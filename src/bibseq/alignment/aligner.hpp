@@ -683,7 +683,7 @@ class aligner {
           		primaryQual_(primaryQuality), secondaryQual_(secondaryQuality),
           		kMaps_(inKmaps),
           		countEndGaps_(countEndGaps){
-  	setDefaultQualities();
+  	setStartingParamters(inKmaps, primaryQuality, secondaryQuality, qualThresholdWindow, countEndGaps);
   }
 
   //distance metrics
@@ -929,6 +929,14 @@ class aligner {
   void setDefaultQualities() {
     primaryQual_ = 20;
     secondaryQual_ = 15;
+    primaryQualLowKmer_ = 30;
+    secondaryQualLowKmer_ = 25;
+    qualThresWindow_ = 5;
+  };
+
+  void setDefaultQualities(uint32_t primaryQual, uint32_t secondaryQual) {
+    primaryQual_ = primaryQual;
+    secondaryQual_ = secondaryQual;
     primaryQualLowKmer_ = 30;
     secondaryQualLowKmer_ = 25;
     qualThresWindow_ = 5;
