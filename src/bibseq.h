@@ -16,5 +16,5 @@
 #include "bibseq/utils.h"
 #include "bibseq/readVectorManipulation.h"
 #include "bibseq/simulation.h"
-#include "bibseq/RInsideUtils.h"
+#include "bibseq/system.h"
 

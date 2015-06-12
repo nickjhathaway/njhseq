@@ -8,7 +8,7 @@
 //
 
 #include "bibseq/IO/readObjectIO.hpp"
-#include "bibseq/IO/textFileReader.hpp"
-#include "bibseq/IO/IOUtils.hpp"
+#include "bibseq/IO/readObjectIOOpt.hpp"
+#include "bibseq/IO/cachedReader.hpp"
 #include "bibseq/IO/fileUtils.hpp"
 #include "bibseq/IO/infoPrinter.hpp"

@@ -27,13 +27,14 @@ class cluster : public baseCluster {
 
   cluster(const readObject &firstRead) : baseCluster(firstRead) {
     rejected_ = false;
+    setLetterCount();
     // std::cout <<"calling the cluster first read constructor " << std::endl;
   }
   cluster(const cluster & other): baseCluster(other), rejected_(other.rejected_), mtx_(),
   		frontChiPos(other.frontChiPos), endChiPos(other.endChiPos),
   		endChimeras(other.endChimeras), allInputClusters(other.allInputClusters),
   		amountAverageMap_(other.amountAverageMap_), pValueMap_(other.pValueMap_){
-
+  	setLetterCount();
   }
 
   cluster& operator= (const cluster& other){
@@ -221,6 +222,7 @@ cluster getConsensus(const std::vector<T> & reads, aligner & alignerObj,
 		mainCluster.addRead(clus);
 	}
 	mainCluster.calculateConsensus(alignerObj, true);
+
 	mainCluster.setName(name);
 	return mainCluster;
 }

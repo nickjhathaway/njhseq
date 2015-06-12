@@ -88,10 +88,11 @@ void subStrToUpper(std::string & str, uint32_t pos, uint32_t len);
 void changeCertainSubStrToLower(std::string& str, const std::string& substring);
 void changeStringVectorToLowerCase(VecStr& vec);
 
-bool stringContainsAllDigits(const std::string& str);
-bool stringContainsAllDigitsDouble(const std::string& str);
-bool vectorOfNumberStringsInt(const VecStr& vec);
-bool vectorOfNumberStringsDouble(const VecStr& vec);
+bool isIntStr(const std::string& str);
+bool isDoubleStr(const std::string& str);
+bool isVecOfIntStr(const VecStr& vec);
+//isVecOfDoubleStr
+bool isVecOfDoubleStr(const VecStr& vec);
 
 // conversion between strings and vectors
 template <typename T>
@@ -126,16 +127,15 @@ std::string stripQuotes( const std::string& str );
 
 
 
-template <typename T, typename TOT>
+template<typename T, typename TOT>
 std::string getPercentageString(T partial, TOT total) {
-  if (total == 0) {
-    return "0";
-  }
-  std::stringstream outStream;
-  outStream << std::setprecision(3);
-  outStream << partial << "("
-  		<< 100 * partial / static_cast<double>(total) << "%)";
-  return outStream.str();
+	if (total == 0) {
+		return "0";
+	}
+	std::stringstream ss;
+	ss << partial << "(" << std::setprecision(3)
+			<< 100 * partial / static_cast<double>(total) << "%)";
+	return ss.str();
 }
 
 // combiners
@@ -196,8 +196,24 @@ struct stringHasher {
 	}
 };
 
+/**@b comparer for case insensitivity comparison, can be used in maps
+ *
+ */
+struct strICaseCmp{
+	struct charICaseCmp{
+		bool operator()(const unsigned char& c1, const unsigned char& c2) const {
+			return tolower(c1) < tolower(c2);
+		}
+	};
+	bool operator()(const std::string & str1, const std::string & str2) const {
+		return std::lexicographical_compare(str1.begin(), str1.end(), str2.begin(),
+				str2.end(), charICaseCmp());
+	}
+};
 
+uint32_t countBeginChar(const std::string & str);
 
+uint32_t countEndChar(const std::string & str);
 }  // namespace bib
 
 #ifndef NOT_HEADER_ONLY

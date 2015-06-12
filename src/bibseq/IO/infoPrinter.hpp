@@ -15,9 +15,17 @@ class infoPrinter {
       const std::map<std::string, collapse::sampleCollapse>& sampCollapses,
       bool checkingExpected, const std::string fileName,
       const collapse::populationCollapse& popCollapse, bool population);
+
   static void printPopulationCollapseInfo(
       const collapse::populationCollapse& popCollapse,
-      const std::string& fileName, bool checkingExpected, bool protein);
+      const std::string& fileName, bool checkingExpected);
+
+  static void printInfoForSamps(
+      const std::map<std::string, collapse::sampleCollapse>& sampCollapses,
+      bool checkingExpected, std::ostream & sampOut, std::ostream & popOut,
+      const collapse::populationCollapse& popCollapse, bool population, const VecStr & forSamps, const std::string & groupName,
+			const std::set<uint32_t> & otherPopPositions);
+
 };
 
 }  // bib

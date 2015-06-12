@@ -1,24 +1,3 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-
 /*
  * randomPopGen.cpp
  *
@@ -27,14 +6,13 @@
  */
 
 #include "randomPopGen.hpp"
-#include "bibseq/simulation/timeTracker.hpp"
 
 namespace bibseq {
 
 void randomPopGen::runPcr(std::map<std::string, uint32_t>& startingReads,
                           double basalErrorRate, uint32_t rounds) {
   for (uint32_t round = 0; round < rounds; ++round) {
-    simulation::timeTracker roundTime("round_" + to_string(round));
+    bib::scopedStopWatch roundTime("round_" + to_string(round),true);
     std::cout << "starting round: " << round << std::endl;
     runOnePcr(startingReads, basalErrorRate);
   }

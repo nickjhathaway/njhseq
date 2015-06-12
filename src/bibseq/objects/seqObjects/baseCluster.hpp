@@ -10,7 +10,6 @@
 #include "bibseq/objects/seqObjects/readObject.hpp"
 #include "bibseq/alignment.h"
 #include "bibseq/IO/readObjectIO.hpp"
-#include "bibseq/helpers/alignmentProfiler.hpp"
 #include "bibseq/objects/helperObjects/probabilityProfile.hpp"
 #include "bibseq/simulation.h"
 
@@ -24,31 +23,20 @@ class baseCluster : public readObject {
   baseCluster() : readObject() {
     seqBase_.cnt_ = 0;
     seqBase_.frac_ = 0;
-    cumulativeFraction = 0;
-    normalizedFraction = 0;
+    firstReadCount = 0;
     needToCalculateConsensus = true;
     updateName();
   }
   // constructor for adding the frist read to the cluster
-  baseCluster(const readObject& firstRead) : readObject(firstRead.seqBase_) {
-    firstReadName = firstRead.seqBase_.name_;
-    firstReadCount = firstRead.seqBase_.cnt_;
-    cumulativeFraction = firstRead.cumulativeFraction;
-    normalizedFraction = firstRead.normalizedFraction;
-    reads_.push_back(firstRead);
-    // addRead(firstRead);
-    needToCalculateConsensus = true;
-    remove = false;
-    updateName();
-  }
+  baseCluster(const readObject& firstRead);
   std::string firstReadName;
   double firstReadCount;
   std::vector<readObject> reads_;
   void addRead(const readObject& newRead);
-  std::map<std::string, errorProfile> previousErrorChecks;
+  std::map<std::string, comparison> previousErrorChecks;
   /// consensus
   bool needToCalculateConsensus;
-  // vectors to hold the alignemtns to the longest sequence in order to create
+  // vectors to hold the alignments to the longest sequence in order to create
   // the consensus
   VecStr longestAlignments;
   VecStr longestAlingmentsRef;
@@ -56,8 +44,13 @@ class baseCluster : public readObject {
   // calculated consensus to hold the consensus calculated
   std::string calculatedConsensus;
   std::vector<uint32_t> calculatedConsensusQuality;
-  void calculateConsensusNew(aligner& alignerObj, bool setToConsensus);
-  void calculateConsensus(aligner& alignerObj, bool setToConsensus = false);
+  seqInfo calcConsensusInfo_;
+  void calculateConsensusOldLet(aligner& alignerObj, bool setToConsensus);
+  void calculateConsensus(aligner& alignerObj, bool setToConsensus);
+  void calculateConsensusTo(const seqInfo & seqBase, aligner& alignerObj, bool setToConsensus);
+  void calculateConsensusOld(aligner& alignerObj, bool setToConsensus);
+  void calculateConsensusToOld(const seqInfo & seqBase, aligner& alignerObj, bool setToConsensus);
+  void calculateConsensusToCurrent(aligner& alignerObj, bool setToConsensus);
   // consensus comparison
   // get info about the reads in the reads vectors
   VecStr getReadNames() const;
@@ -66,26 +59,13 @@ class baseCluster : public readObject {
   std::pair<std::vector<baseReadObject>, std::vector<baseReadObject>>
       calculateAlignmentsToConsensus(aligner& alingerObj);
   void writeOutAlignments(const std::string& directoryName, aligner& alignObj);
-  void writeOutClusters(const std::string& directoryName) const;
-  void alignmentProfile(const std::string& workingDirectory,
-                        aligner& alignerObj, bool local, bool kmerChecking,
-                        int kLength, bool kmersByPosition,
-                        bool weighHomopolyers) const;
+  void writeOutClusters(const std::string& directoryName,const readObjectIOOptions & ioOptions) const;
   // get infos
   double getAverageReadLength() const;
 
   template <typename P>
   void updateErrorProfile(P& prof, aligner& alignObj, bool local) const {
-    /*if (reads.size() == 1) {
-     // if reads size is 1, consensus should be that read and shouldn't be any
-     // different
-     return;
-     }*/
     for (const auto& read : reads_) {
-      /*if (read.seqBase_.seq_ == seqBase_.seq_) {
-       // if the seqs are equal no point in looking for mismatches
-       continue;
-       }*/
       alignObj.alignVec(*this, read, local);
       prof.increaseCountAmount(alignObj.alignObjectA_.seqBase_.seq_,
                                alignObj.alignObjectB_.seqBase_.seq_,
@@ -106,7 +86,7 @@ class baseCluster : public readObject {
     return ans;
   }
 };
-}  // namespace bib
+}  // namespace bibseq
 
 #ifndef NOT_HEADER_ONLY
 #include "baseCluster.cpp"

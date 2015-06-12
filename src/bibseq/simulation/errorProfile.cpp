@@ -88,7 +88,7 @@ void errorProfile::mutateInPlace(char &firstBase, randomGenerator &gen,
 void errorProfile::mutateSeqInPlace(std::string &seq, randomGenerator &gen,
                                     const std::vector<char> &mutateTo,
                                     const std::vector<double> &likelihood) {
-  std::vector<double> rands = gen.unifRandVector(len(likelihood));
+  std::vector<double> rands = gen.unifRandVector(likelihood.size());
   for (const auto &i : iter::range(rands.size())) {
     if (rands[i] <= likelihood[i]) {
       mutateInPlace(seq[i], gen, mutateTo);
@@ -107,7 +107,7 @@ std::string errorProfile::mutateSeq(const std::string &seq,
 void errorProfile::mutateSeqInPlaceSameErrorRate(
     std::string &seq, randomGenerator &gen, const std::vector<char> &mutateTo,
     double errorRate) {
-  std::vector<double> rands = gen.unifRandVector(len(seq));
+  std::vector<double> rands = gen.unifRandVector(seq.size());
   for (const auto &i : iter::range(rands.size())) {
     if (rands[i] <= errorRate) {
       mutateInPlace(seq[i], gen, mutateTo);

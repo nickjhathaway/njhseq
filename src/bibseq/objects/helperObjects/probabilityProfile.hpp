@@ -15,7 +15,7 @@ class probabilityProfile {
  public:
   probabilityProfile() {}
   probabilityProfile(const VecStr &dnaStrings)
-      : _dnaStrings(dnaStrings), _length(len(dnaStrings.front())) {
+      : _dnaStrings(dnaStrings), _length(dnaStrings.front().size()) {
     initCounts();
     updateProfile();
     updateScore();
@@ -23,7 +23,7 @@ class probabilityProfile {
   probabilityProfile(const VecStr &dnaStrings,
                      const std::vector<letterCounter> &counts)
       : _dnaStrings(dnaStrings),
-        _length(len(dnaStrings.front())),
+        _length(dnaStrings.front().size()),
         _counts(counts) {
     // initCounts();
     updateProfile();

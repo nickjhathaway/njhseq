@@ -16,5 +16,3 @@
 #include "bibseq/objects/seqObjects/identicalCluster.hpp"
 #include "bibseq/objects/seqObjects/cluster.hpp"
 #include "bibseq/objects/seqObjects/sampleCluster.hpp"
-#include "bibseq/objects/seqObjects/populationCluster.hpp"
-#include "bibseq/objects/seqObjects/seqWithKmerInfo.hpp"

@@ -11,4 +11,3 @@
 #include "bibseq/readVectorManipulation/readVectorOperations/massGetters.hpp"
 #include "bibseq/readVectorManipulation/readVectorOperations/massManipulators.hpp"
 #include "bibseq/readVectorManipulation/readVectorOperations/massSetters.hpp"
-#include "bibseq/readVectorManipulation/readVectorOperations/temporary.hpp"

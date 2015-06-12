@@ -8,75 +8,44 @@
 //
 
 #include "bibseq/objects/seqObjects/sffObject.hpp"
-#include "bibseq/seqToolsUtils.h"
-#include "bibseq/IO/textFileReader.hpp"
 #include "bibseq/readVectorManipulation.h"
 #include <api/BamReader.h>
-
+#include <bibcpp/jsonUtils.h>
+#include "bibseq/IO/readObjectIOOptions.hpp"
+#include "bibseq/IO/cachedReader.hpp"
 namespace bibseq {
 
-struct readObjectIOOptions {
-  readObjectIOOptions() {}
-  readObjectIOOptions(const std::string& fName, const std::string& sName,
-                      const std::string& tName, const std::string& iFormat,
-                      const std::string& oFormat, const std::string& oFilename,
-                      bool nameProcessed, const std::string& lCaseBases,
-                      bool removingGaps, bool overWrite,
-                      bool exitOnWriteFailure,bool forceWrite, bool includeSpaceInName)
-      : firstName_(fName),
-        secondName_(sName),
-        thirdName_(tName),
-        inFormat_(iFormat),
-        outFormat_(oFormat),
-        outFilename_(oFilename),
-        processed_(nameProcessed),
-        lowerCaseBases_(lCaseBases),
-        removeGaps_(removingGaps),
-        overWriteFile_(overWrite),
-        exitOnFailureToWrite_(exitOnWriteFailure),
-        forceWrite_(forceWrite),
-        includeWhiteSpaceInName_(includeSpaceInName) {};
-  std::string firstName_;
-  std::string secondName_;
-  std::string thirdName_;
-  std::string inFormat_;
-  std::string outFormat_;
-  std::string outFilename_;
-  bool processed_;
-  std::string lowerCaseBases_;
-  bool removeGaps_;
-  bool overWriteFile_;
-  bool exitOnFailureToWrite_;
-  bool forceWrite_;
-  bool includeWhiteSpaceInName_;
-};
+
+
 
 
 
 class readObjectIO {
-
- public:
-  readObjectIO() {
-  	lineBuffer_ = VecStr(10);
-  	//includeSpaceInNames = true;
-  }
+public:
+  readObjectIO() {}
   std::vector<readObject> reads;
   std::vector<sffObject> sffReads;
   std::vector<std::pair<size_t, size_t>> index;
-  VecStr lineBuffer_;
-  uint32_t bufferPos_ = UINT32_MAX;
-  uint32_t lineNum_ = 0;
-  uint32_t bufferMax_ = 10;
-  bool refillBuffer(std::istream & is);
   bool includeSpaceInNames = true;
+
   void readFastaStream(std::istream& is, bool processed, bool add);
+  bool readNextFastaStream(cachedReader& cReader, readObject& read, bool processed);
+  //bool readNextFastaStream(std::istream& is, readObject& read, bool processed);
 
-  bool readNextFastaStream(std::istream& is, readObject& read, bool processed);
+  void readFastaQualStream(std::istream& fastaReader,std::istream& qualReader, bool processed, bool add);
+  bool readNextFastaQualStream(cachedReader& fastaReader, cachedReader& qualReader, readObject & read,bool processed);
+  //bool readNextFastaQualStream(std::istream& fastaReader, std::istream& qualReader, readObject & read,bool processed);
+  bool readNextQualStream(cachedReader& cReader, std::vector<uint32_t>& quals, std::string & name);
+  //bool readNextQualStream(std::istream& is, std::vector<uint32_t>& quals, std::string & name);
 
-  void readFastqStream(std::istream& is, uint32_t offSet,
-                                     bool processed, bool add);
   bool readNextFastqStream(std::istream& is, uint32_t offSet, readObject& read,
                            bool processed);
+  void readFastqStream(std::istream& is, uint32_t offSet,
+                                     bool processed, bool add);
+
+  void readFastqStreamGz(std::string filename, uint32_t offSet,
+                                     bool processed, bool add);
+
   void readBam(std::string filename, bool processed);
   bool readNextBam(BamTools::BamReader & bReader, readObject& read,
   		BamTools::BamAlignment & aln, bool processed);
@@ -202,13 +171,17 @@ class readObjectIO {
       writeFastaQualFlowFile(reads, stubName, overWrite, exitOnFailure);
     } else if (format == "pyroData") {
       writePyroDataFile(reads, stubName, overWrite, exitOnFailure, extra);
-    } else if (format == "clipFastaQual") {
+    } else if (format == "mothurData") {
+      writeMothurDataFile(reads, stubName, overWrite, exitOnFailure, extra);
+    }else if (format == "clipFastaQual") {
       writeClipFastaQualFile(reads, stubName, overWrite, exitOnFailure);
     } else if (format == "condensedFastaQual") {
       writeCondensedFastaQualFile(reads, stubName, overWrite, exitOnFailure);
     } else {
-      std::cout << "Unrecognized format " << format << " while writing "
-                << stubName << std::endl;
+    	std::stringstream ss;
+      ss << bib::bashCT::bold << bib::bashCT::red << "Unrecognized format " << format << " while writing "
+                << stubName << bib::bashCT::reset;
+      throw std::runtime_error{ss.str()};
     }
   }
 
@@ -223,8 +196,10 @@ class readObjectIO {
     } else if (format == "fastaQual") {
       writeFastaQualFile(reads, stubName, overWrite, exitOnFailure);
     } else {
-      std::cout << "Unrecognized format " << format << " while writing "
-                << stubName << std::endl;
+    	std::stringstream ss;
+      ss << bib::bashCT::bold << bib::bashCT::red << "Unrecognized format " << format << " while writing "
+                << stubName << bib::bashCT::reset;
+      throw std::runtime_error{ss.str()};
     }
   }
   template <class T>
@@ -337,12 +312,26 @@ class readObjectIO {
     std::ofstream pyroDataFile;
     openTextFile(pyroDataFile, pryoDataFilename, ".dat", overWrite,
                  exitOnFailure);
-    pyroDataFile << reads.size() << " " << extra << std::endl;
+    pyroDataFile << reads.size() << " " << extra << "\n";
     for (const auto & read : reads) {
       read.outPutPyroData(pyroDataFile);
     }
     pyroDataFile.close();
   }
+  template <class T>
+  static void writeMothurDataFile(const std::vector<T>& reads,
+                                std::string pryoDataFilename, bool overWrite,
+                                bool exitOnFailure, int extra) {
+    std::ofstream pyroDataFile;
+    openTextFile(pyroDataFile, pryoDataFilename, ".flow", overWrite,
+                 exitOnFailure);
+    pyroDataFile << extra << "\n";
+    for (const auto & read : reads) {
+      read.outPutPyroData(pyroDataFile);
+    }
+    pyroDataFile.close();
+  }
+
   template <class T>
   static void writeClipFastaFile(const std::vector<T>& reads,
                                  std::string clipFastaFilename, bool overWrite,
@@ -407,41 +396,13 @@ class readObjectIO {
   }
 
  private:
-  // individual readObject readers
-  void readNextSeq(FILE* fastaFile, char& c, std::string& name,
-                   std::string& seq);
-  void readNextQual(FILE* file, char& c, std::string& name, std::string& qual);
-  void readNextData(FILE* dataFile, char& c, std::string& name,
-                    std::vector<double>& flows);
-  void readNextFastq(FILE* file, char& c, std::string& name, std::string& seq,
-                     std::string& qual);
   sffObject readNextSff(std::string& currentLine, std::fstream& sffFile);
-  // read a name line (e.g. >NAME)
-  void readNextName(FILE* file, std::string& name, char& c);
-
-  // single files in
-  void readQual(std::string filename, bool processed, bool add);
-  void readFlow(std::string filename, bool processed, bool add);
-  void readRaw(std::string filename, bool processed, bool add);
-
   // multiple files
-  // two files
   void readFastaQual(std::string filename, std::string qualName,
                      bool processed);
-  void readFastqFlow(std::string fastqFilename, std::string flowFilename,
-                     bool processed);
-  void readFastaFlow(std::string fastaFilename, std::string flowFilename,
-                     bool processed);
-  void readFlowQual(std::string flowFilename, std::string qualFilename,
-                    bool processed);
-  // triple files
-  void readFastaQualFlow(std::string fastaFilename, std::string qualFilename,
-                         std::string flowFilename, bool processed);
+
   // special cases
-  void readPyroData(std::string filename, bool processed);
   void readSff(std::string filename);
-
-
   void readClustal(std::string filename, bool processed);
   void readClustalNg(std::string filename, bool processed);
   void readShorahOld(const std::string& shorahFilename);

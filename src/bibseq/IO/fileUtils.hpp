@@ -59,7 +59,7 @@ std::string cleanOutPerLine(const std::string &in, uint32_t width,
 std::string cleanOut(const std::string &in, uint32_t width,
                      uint32_t indentAmount);
 
-
+VecStr getNewestDirs(const std::string & dirName, const std::string & con);
 
 
 }  // namespace bib

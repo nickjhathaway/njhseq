@@ -8,4 +8,5 @@
 //
 
 #include "bibseq/programUtils/seqSetUp.hpp"
+#include "bibseq/programUtils/runningParameters.hpp"
 

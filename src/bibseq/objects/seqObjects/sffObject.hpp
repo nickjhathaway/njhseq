@@ -87,8 +87,11 @@ struct sffBinaryHeader {
 	~sffBinaryHeader() { }
 
 	int printSffTxtStyle(std::ostream & out);
-	virtual void printDescription(std::ostream & out, bool deep = false) const;
+	void printDescription(std::ostream & out, bool deep = false) const;
 };
+
+readObject convertSffObject(const sffObject& theOtherObject) ;
+
 }  // namespace bib
 
 #ifndef NOT_HEADER_ONLY

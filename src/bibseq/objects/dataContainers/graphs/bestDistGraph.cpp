@@ -87,7 +87,7 @@ void bestDistGraph::printOutGV(std::ostream& out) {
   out << "fontsize = 20" << std::endl;
   // out << "node [shape=circle,style=filled,width=.3, height=.3]" << std::endl;
   uint32_t count = 0;
-  std::vector<bib::color> colors = bib::evenHuesAll(0.75, 0.45, len(nodes_));
+  std::vector<bib::color> colors = bib::evenHuesAll(0.75, 0.45, nodes_.size());
   for (const auto& n : nodes_) {
     out << n.read_.getReadId() << " [shape=circle,style=filled,fixesize =true, "
                                   "color = \"#000000\", fillcolor ="
@@ -284,7 +284,7 @@ void bestDistGraph::createDotBestConnectedFile(
   auto colorsToUse = colorsForName;
   if (colorsToUse.empty()) {
     uint32_t count = 0;
-    std::vector<bib::color> colors = bib::evenHuesAll(0.75, 0.45, len(nodes_));
+    std::vector<bib::color> colors = bib::evenHuesAll(0.75, 0.45, nodes_.size());
     for (const auto& n : nodes_) {
       colorsToUse[n.read_.getReadId()] = colors[count];
       ++count;
@@ -337,7 +337,7 @@ void bestDistGraph::createDotBestConnectedFile(
   // std::cout <<"mark 6 " << std::endl;
   auto distIter = bestDists_.begin();
   while (!allHaveBeenAdded() && distIter != bestDists_.end()) {
-    for (const auto& nodePos : iter::range<uint32_t>(0, len(nodes_))) {
+    for (const auto& nodePos : iter::range(nodes_.size())) {
       if (nodes_[nodePos].added_) {
         continue;
       }

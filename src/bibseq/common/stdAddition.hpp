@@ -25,9 +25,10 @@ using bib::shuffle;
 using estd::to_string;
 
 
-template <typename T>
-const uint32_t len(const T& c) {
-  return static_cast<uint32_t>(c.size());
+
+template<typename T>
+typename T::size_type len(const T & con){
+	return con.size();
 }
 
 

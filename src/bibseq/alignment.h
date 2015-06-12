@@ -7,8 +7,8 @@
 //  Copyright (c) 2013 Nick Hathaway. All rights reserved.
 //
 
+#include "bibseq/alignment/alignerUtils.h"
 #include "bibseq/alignment/aligner.hpp"
-#include "bibseq/alignment/alignmentInfo.hpp"
 #include "bibseq/alignment/ssw_cpp.h"
 #include "bibseq/alignment/ssw.h"
 

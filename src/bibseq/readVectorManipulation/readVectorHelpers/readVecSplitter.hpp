@@ -103,7 +103,7 @@ class readVecSplitter {
       std::vector<T>& badReads, uint32_t& splitCount, bool mark = true) {
     std::vector<T> normal;
     for (const auto& iter : vec) {
-      if (fabs((int)iter.seqBase_.seq_.length() - given) <= basesWithin) {
+      if (std::abs(static_cast<int32_t>(iter.seqBase_.seq_.length()) - given) <= basesWithin) {
         normal.push_back(iter);
       } else {
         badReads.push_back(iter);
@@ -450,7 +450,7 @@ class readVecSplitter {
     uint64_t maxReadLength = 0;
     readVec::getMaxLength(reads, maxReadLength);
     if (compareObject.seqBase_.seq_.size() > maxReadLength) {
-      maxReadLength = len(compareObject.seqBase_.seq_);
+      maxReadLength = compareObject.seqBase_.seq_.size();
     }
     // aligner object
     auto scoringMatrixMap = substituteMatrix::createDegenScoreMatrix(1,-1);

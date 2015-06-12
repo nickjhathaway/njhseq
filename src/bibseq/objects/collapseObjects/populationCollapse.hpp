@@ -15,10 +15,9 @@ class populationCollapse {
 
  public:
   populationCollapse(const std::vector<sampleCluster> &inputClusters,
-                     const std::string &populationName)
-      : input_(clusterSet(inputClusters)), populationName_(populationName) {}
-  populationCollapse() {}
+                     const std::string &populationName);
 
+  populationCollapse();
   // members
   // the initial clusters of the sample
   clusterSet input_;
@@ -27,26 +26,36 @@ class populationCollapse {
 
   std::string populationName_;
 
-  // functions
+  uint32_t numOfSamps()const;
+  // clustering
   void popCluster(collapser &collapserObj,
                   std::map<int, std::vector<double>> iteratorMap,
                   const std::string &sortBy, aligner &alignerObj);
+  void popClusterOnId(collapser &collapserObj,
+                  std::map<int, std::vector<double>> iteratorMap,
+                  const std::string &sortBy, aligner &alignerObj);
+
 
   // update the initial infos
-  void updateInitialInfos(bool clearCurrentInfos) {
-    input_.updateSetInfo(clearCurrentInfos);
-  }
+  void updateInitialInfos();
   // update the collapsed infos
-  void updateCollapsedInfos(bool clearCurrentInfos) {
-    collapsed_.updateSetInfo(clearCurrentInfos);
-    collapsed_.updateSubClustersPositions(clearCurrentInfos);
-  }
+  void updateCollapsedInfos();
+
   void renameToOtherPopNames(const std::vector<readObject> &previousPop,
                              aligner &alignerObj);
-  void renameClusters(const std::string &sortBy);
+  void renameClusters();
+
+  void updateInfoWithSampCollapses(const std::map<std::string, sampleCollapse> & sampCollapses);
+  void updateInfoWithSampCollapse(const sampleCollapse & sampCollapses);
+
+  //io
   void writeFinal(const std::string &outDirectory, const std::string &outFormat,
                   bool overWrite, bool exitOnFailureToWrite) const;
-  void writeFinalInitial(const std::string &outDirectory) const;
+  void writeFinalInitial(const std::string &outDirectory, const readObjectIOOptions & ioOptions) const;
+
+
+
+
 };
 }  // namspace collpase
 }  // namespace bib

@@ -1,34 +1,13 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-
 #pragma once
 #include "bibseq/objects/seqObjects/baseReadObject.hpp"
 #include "bibseq/objects/helperObjects/kmer.hpp"
 #include "bibseq/objects/helperObjects/gaps.hpp"
 #include "bibseq/objects/helperObjects/tandemRepeat.hpp"
 #include "bibseq/objects/helperObjects/mismatch.hpp"
-#include "bibseq/alignment/alignerUtils.hpp"
+#include "bibseq/alignment/alignerUtils.h"
 #include "bibseq/helpers/seqUtil.hpp"
 #include "bibseq/alignment/alnInfoHolder.hpp"
-#include "bibseq/alignment/substituteMatrix.hpp"
+#include "bibseq/programUtils/runningParameters.hpp"
 
 namespace bibseq {
 
@@ -142,20 +121,8 @@ class alignCalc {
   }
   static void runNeedleSave(const std::string& objA, const std::string& objB,
                             alnParts& parts) {
-  	/*std::cout << objA << std::endl;
-  	std::cout << objB << std::endl;
-  	parts.scoring_.printScores(std::vector<char>{'A', 'G', 'C','T'}, std::cout);
-  	parts.gapScores_.printDescription(std::cout, true);
-  	std::cout << "maxsize: " << parts.maxSize_ << std::endl;*/
     parts.gHolder_.gapInfos_.clear();
     parts.gHolder_.addFromFile_ = false;
-    // std::cout << "doing needle reg" << std::endl;
-    // empty the alignment strings and qualities vectors to reset for the new
-    // alignment
-    // std::cout<<"mark needle non simple"<<std::endl;
-    /*if (currentSetUp_ != "needle") {
-            initializeNeedle();
-    }*/
     // Create the alignment score matrix to do the alignment, a column for each
     // letter in sequence b and a row for each letter in sequence a
     parts.ScoreMatrix_[0][0].leftInherit = 0;
@@ -167,7 +134,7 @@ class alignCalc {
     // initialize first column:
     for (int32_t i = 1; i < parts.maxSize_; i++) {
       if (i == 1) {
-        parts.ScoreMatrix_[i][0].upInherit = -parts.gapScores_.gapLeftOpen_;
+        parts.ScoreMatrix_[i][0].upInherit = - parts.gapScores_.gapLeftOpen_;
         parts.ScoreMatrix_[i][0].leftInherit = 0;
         parts.ScoreMatrix_[i][0].diagInherit = 0;
         parts.ScoreMatrix_[i][0].upInheritPtr = 'U';
@@ -188,7 +155,7 @@ class alignCalc {
     for (int32_t j = 1; j < parts.maxSize_; j++) {
       if (j == 1) {
         parts.ScoreMatrix_[0][j].upInherit = 0;
-        parts.ScoreMatrix_[0][j].leftInherit = -parts.gapScores_.gapLeftOpen_;
+        parts.ScoreMatrix_[0][j].leftInherit = - parts.gapScores_.gapLeftOpen_;
         parts.ScoreMatrix_[0][j].diagInherit = 0;
         parts.ScoreMatrix_[0][j].upInheritPtr = '\0';
         parts.ScoreMatrix_[0][j].leftInheritPtr = 'L';
@@ -204,21 +171,138 @@ class alignCalc {
         parts.ScoreMatrix_[0][j].diagInheritPtr = '\0';
       }
     }
-
-    // objectA=objA;
-    // objectB=objB;
-
-    // alignObjectA_.clear();
-    // alignObjectB_.clear();
     // get the length of the strings to create the alignment score matrix
     uint32_t lena = objA.size() + 1;
     uint32_t lenb = objB.size() + 1;
-    // std::cout<<"length of A"<<lena<<std::endl;
-    // std::cout<<"length of B"<<lenb<<std::endl;
-    for (uint32_t i = 1; i < lena; i++) {
-      for (uint32_t j = 1; j < lenb; j++) {
+    //i = 1, j = 1
+    {
+    	const uint32_t i = 1;
+    	const uint32_t j = 1;
+			//up inherit is always left since it will have to inherit from the left
+			parts.ScoreMatrix_[i][j].upInherit =
+					parts.ScoreMatrix_[i - 1][j].leftInherit - parts.gapScores_.gapOpen_;
+			parts.ScoreMatrix_[i][j].upInheritPtr = 'L';
+    	//left inherit is always coming from up
+      parts.ScoreMatrix_[i][j].leftInherit =
+          parts.ScoreMatrix_[i][j - 1].upInherit -
+          parts.gapScores_.gapOpen_;
+      parts.ScoreMatrix_[i][j].leftInheritPtr = 'U';
+      //diag
+      int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
+      parts.ScoreMatrix_[i][j].diagInherit = parts.ScoreMatrix_[i - 1][j - 1].leftInherit + match;
+      parts.ScoreMatrix_[i][j].diagInheritPtr = 'L';
+    }
+    {
+      //i = 1
+      const uint32_t i = 1;
+  		for (uint32_t j = 2; j < lenb - 1; j++) {
+  			char ptrFlag;
+  			//up inherit is always left since it will have to inherit from the left
+  			parts.ScoreMatrix_[i][j].upInherit =
+  					parts.ScoreMatrix_[i - 1][j].leftInherit - parts.gapScores_.gapOpen_;
+  			parts.ScoreMatrix_[i][j].upInheritPtr = 'L';
+
+  			//regular left inherit
+        parts.ScoreMatrix_[i][j].leftInherit =
+            needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
+                              parts.gapScores_.gapOpen_,
+                          parts.ScoreMatrix_[i][j - 1].leftInherit -
+                              parts.gapScores_.gapExtend_,
+                          parts.ScoreMatrix_[i][j - 1].diagInherit -
+                              parts.gapScores_.gapOpen_,
+                          ptrFlag);
+        parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
+
+        //diag inherit will also have to be from the left
+  			int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
+        parts.ScoreMatrix_[i][j].diagInherit =
+            parts.ScoreMatrix_[i - 1][j - 1].leftInherit + match;
+        parts.ScoreMatrix_[i][j].diagInheritPtr = 'L';
+  		}
+    }
+
+    //j = 1
+    {
+  		const uint32_t j = 1;
+      for (uint32_t i = 2; i < lena - 1 ; i++) {
+      	char ptrFlag;
+      	//regular up inherit
+        parts.ScoreMatrix_[i][1].upInherit =
+            needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
+                              parts.gapScores_.gapExtend_,
+                          parts.ScoreMatrix_[i - 1][j].leftInherit -
+                              parts.gapScores_.gapOpen_,
+                          parts.ScoreMatrix_[i - 1][j].diagInherit -
+                              parts.gapScores_.gapOpen_,
+                          ptrFlag);
+        parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
+      	//left inherit is always coming from up
+        parts.ScoreMatrix_[i][j].leftInherit =
+            parts.ScoreMatrix_[i][j - 1].upInherit -
+            parts.gapScores_.gapOpen_;
+        parts.ScoreMatrix_[i][j].leftInheritPtr = 'U';
+        //diag inherit is always coming from up
+        int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
+        parts.ScoreMatrix_[i][j].diagInherit = parts.ScoreMatrix_[i - 1][j - 1].upInherit + match;
+        parts.ScoreMatrix_[i][j].diagInheritPtr = 'U';
+      }
+    }
+    //i = 1, j = lenb - 1
+    {
+    	char ptrFlag;
+    	//
+    	const uint32_t j = lenb - 1;
+    	const uint32_t i = 1;
+      parts.ScoreMatrix_[i][j ].upInherit =
+                      parts.ScoreMatrix_[i - 1][j ].leftInherit -
+                      parts.gapScores_.gapRightOpen_;
+      parts.ScoreMatrix_[i][j ].upInheritPtr = 'L';
+			//regular left inherit
+      parts.ScoreMatrix_[i][j].leftInherit =
+          needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
+                            parts.gapScores_.gapOpen_,
+                        parts.ScoreMatrix_[i][j - 1].leftInherit -
+                            parts.gapScores_.gapExtend_,
+                        parts.ScoreMatrix_[i][j - 1].diagInherit -
+                            parts.gapScores_.gapOpen_,
+                        ptrFlag);
+      parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
+      //diag inherit will also have to be from the left
+			int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
+      parts.ScoreMatrix_[i][j].diagInherit =
+          parts.ScoreMatrix_[i - 1][j - 1].leftInherit + match;
+      parts.ScoreMatrix_[i][j].diagInheritPtr = 'L';
+    }
+    //j = 1, i = lena - 1
+    {
+    	char ptrFlag;
+    	const uint32_t i = lena - 1;
+    	const uint32_t j = 1;
+    	//regular up inherit
+      parts.ScoreMatrix_[i][1].upInherit =
+          needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
+                            parts.gapScores_.gapExtend_,
+                        parts.ScoreMatrix_[i - 1][j].leftInherit -
+                            parts.gapScores_.gapOpen_,
+                        parts.ScoreMatrix_[i - 1][j].diagInherit -
+                            parts.gapScores_.gapOpen_,
+                        ptrFlag);
+      parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
+    	//left
+      parts.ScoreMatrix_[i][j].leftInherit =
+          parts.ScoreMatrix_[i][j - 1].upInherit -
+          parts.gapScores_.gapRightOpen_;
+      parts.ScoreMatrix_[i][j].leftInheritPtr = 'U';
+      //diag inherit is always coming from up
+      int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
+      parts.ScoreMatrix_[i][j].diagInherit = parts.ScoreMatrix_[i - 1][j - 1].upInherit + match;
+      parts.ScoreMatrix_[i][j].diagInheritPtr = 'U';
+    }
+    for (uint32_t i = 2; i < lena - 1 ; i++) {
+      for (uint32_t j = 2; j < lenb - 1 ; j++) {
+      	char ptrFlag;
         // std::cout<<"i: "<<i<<"j: "<<j<<std::endl;
-        char ptrFlag;
+        //char ptrFlag;
         // first set the upInherit score. If we are in the first row, this will
         // be
         // the value of the above cell's leftInherit score minus a gap open
@@ -227,40 +311,15 @@ class alignCalc {
         // with the appropriate penalty applied (either a
         // parts.gapScores_.gapOpen or
         // parts.gapScores_.gapExtend_).
-        if (i == 1) {
-          if (j == lenb - 1) {
-            parts.ScoreMatrix_[i][j].upInherit =
-                parts.ScoreMatrix_[i - 1][j].leftInherit -
-                parts.gapScores_.gapRightOpen_;
-          } else {
-            parts.ScoreMatrix_[i][j].upInherit =
-                parts.ScoreMatrix_[i - 1][j].leftInherit -
-                parts.gapScores_.gapOpen_;
-          }
-          parts.ScoreMatrix_[i][j].upInheritPtr = 'L';
-        } else {
-          if (j == lenb - 1) {
-            parts.ScoreMatrix_[i][j].upInherit =
-                needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
-                                  parts.gapScores_.gapRightExtend_,
-                              parts.ScoreMatrix_[i - 1][j].leftInherit -
-                                  parts.gapScores_.gapRightOpen_,
-                              parts.ScoreMatrix_[i - 1][j].diagInherit -
-                                  parts.gapScores_.gapRightOpen_,
-                              ptrFlag);
-            parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
-          } else {
-            parts.ScoreMatrix_[i][j].upInherit =
-                needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
-                                  parts.gapScores_.gapExtend_,
-                              parts.ScoreMatrix_[i - 1][j].leftInherit -
-                                  parts.gapScores_.gapOpen_,
-                              parts.ScoreMatrix_[i - 1][j].diagInherit -
-                                  parts.gapScores_.gapOpen_,
-                              ptrFlag);
-            parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
-          }
-        }
+        parts.ScoreMatrix_[i][j].upInherit =
+            needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
+                              parts.gapScores_.gapExtend_,
+                          parts.ScoreMatrix_[i - 1][j].leftInherit -
+                              parts.gapScores_.gapOpen_,
+                          parts.ScoreMatrix_[i - 1][j].diagInherit -
+                              parts.gapScores_.gapOpen_,
+                          ptrFlag);
+        parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
 
         // next set the leftInherit score. If we are in the first column, this
         // will be the value of the left cell's upInherit score minus a gap open
@@ -268,63 +327,137 @@ class alignCalc {
         // Otherwise, it will be the max score of the three scores in the cell
         // to
         // the left, with the appropriate penalty applied.
-        if (j == 1) {
-          if (i == lena - 1) {
-            parts.ScoreMatrix_[i][j].leftInherit =
-                parts.ScoreMatrix_[i][j - 1].upInherit -
-                parts.gapScores_.gapRightOpen_;
-          } else {
-            parts.ScoreMatrix_[i][j].leftInherit =
-                parts.ScoreMatrix_[i][j - 1].upInherit -
-                parts.gapScores_.gapOpen_;
-          }
-          parts.ScoreMatrix_[i][j].leftInheritPtr = 'U';
-        } else {
-          if (i == lena - 1) {
-            parts.ScoreMatrix_[i][j].leftInherit =
-                needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
-                                  parts.gapScores_.gapRightOpen_,
-                              parts.ScoreMatrix_[i][j - 1].leftInherit -
-                                  parts.gapScores_.gapRightExtend_,
-                              parts.ScoreMatrix_[i][j - 1].diagInherit -
-                                  parts.gapScores_.gapRightOpen_,
-                              ptrFlag);
-            parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
-          } else {
-            parts.ScoreMatrix_[i][j].leftInherit =
-                needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
-                                  parts.gapScores_.gapOpen_,
-                              parts.ScoreMatrix_[i][j - 1].leftInherit -
-                                  parts.gapScores_.gapExtend_,
-                              parts.ScoreMatrix_[i][j - 1].diagInherit -
-                                  parts.gapScores_.gapOpen_,
-                              ptrFlag);
-            parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
-          }
-        }
-        // int match = scoringArray[objA.seqBase_.seq_[i -
-        // 1]-'A'][objB.seqBase_.seq_[j - 1]-'A'];
-        int match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
-
-        if (i == 1) {
-          parts.ScoreMatrix_[i][j].diagInherit =
-              parts.ScoreMatrix_[i - 1][j - 1].leftInherit + match;
-          parts.ScoreMatrix_[i][j].diagInheritPtr = 'L';
-        } else if (j == 1) {
-          parts.ScoreMatrix_[i][j].diagInherit =
-              parts.ScoreMatrix_[i - 1][j - 1].upInherit + match;
-          parts.ScoreMatrix_[i][j].diagInheritPtr = 'U';
-        } else {
-          parts.ScoreMatrix_[i][j].diagInherit =
-              match +
-              needleMaximum(parts.ScoreMatrix_[i - 1][j - 1].upInherit,
-                            parts.ScoreMatrix_[i - 1][j - 1].leftInherit,
-                            parts.ScoreMatrix_[i - 1][j - 1].diagInherit,
-                            ptrFlag);
-          parts.ScoreMatrix_[i][j].diagInheritPtr = ptrFlag;
-        }
+        parts.ScoreMatrix_[i][j].leftInherit =
+            needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
+                              parts.gapScores_.gapOpen_,
+                          parts.ScoreMatrix_[i][j - 1].leftInherit -
+                              parts.gapScores_.gapExtend_,
+                          parts.ScoreMatrix_[i][j - 1].diagInherit -
+                              parts.gapScores_.gapOpen_,
+                          ptrFlag);
+        parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
+        //diag, match or mismatch
+        int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
+        parts.ScoreMatrix_[i][j].diagInherit =
+            match +
+            needleMaximum(parts.ScoreMatrix_[i - 1][j - 1].upInherit,
+                          parts.ScoreMatrix_[i - 1][j - 1].leftInherit,
+                          parts.ScoreMatrix_[i - 1][j - 1].diagInherit,
+                          ptrFlag);
+        parts.ScoreMatrix_[i][j].diagInheritPtr = ptrFlag;
       }
     }
+
+    //i = lena - 1
+    {
+    	const uint32_t i = lena - 1;
+      for (uint32_t j = 2; j < lenb - 1; ++j) {
+      	char ptrFlag;
+      	//normal up
+        parts.ScoreMatrix_[i][j].upInherit =
+            needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
+                              parts.gapScores_.gapExtend_,
+                          parts.ScoreMatrix_[i - 1][j].leftInherit -
+                              parts.gapScores_.gapOpen_,
+                          parts.ScoreMatrix_[i - 1][j].diagInherit -
+                              parts.gapScores_.gapOpen_,
+                          ptrFlag);
+        parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
+      	//end left
+        parts.ScoreMatrix_[i][j].leftInherit =
+            needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
+                              parts.gapScores_.gapRightOpen_,
+                          parts.ScoreMatrix_[i][j - 1].leftInherit -
+                              parts.gapScores_.gapRightExtend_,
+                          parts.ScoreMatrix_[i][j - 1].diagInherit -
+                              parts.gapScores_.gapRightOpen_,
+                          ptrFlag);
+        parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
+      	//normal diag
+        int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
+        parts.ScoreMatrix_[i][j].diagInherit =
+            match +
+            needleMaximum(parts.ScoreMatrix_[i - 1][j - 1].upInherit,
+                          parts.ScoreMatrix_[i - 1][j - 1].leftInherit,
+                          parts.ScoreMatrix_[i - 1][j - 1].diagInherit,
+                          ptrFlag);
+        parts.ScoreMatrix_[i][j].diagInheritPtr = ptrFlag;
+      }
+    }
+
+    //j = lenb - 1
+    {
+    	const uint32_t j = lenb - 1;
+      for (uint32_t i = 2; i < lena - 1; i++) {
+      	char ptrFlag;
+      	//end up
+        parts.ScoreMatrix_[i][j].upInherit =
+            needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
+                              parts.gapScores_.gapRightExtend_,
+                          parts.ScoreMatrix_[i - 1][j].leftInherit -
+                              parts.gapScores_.gapRightOpen_,
+                          parts.ScoreMatrix_[i - 1][j].diagInherit -
+                              parts.gapScores_.gapRightOpen_,
+                          ptrFlag);
+        parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
+      	//regular left
+        parts.ScoreMatrix_[i][j].leftInherit =
+            needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
+                              parts.gapScores_.gapOpen_,
+                          parts.ScoreMatrix_[i][j - 1].leftInherit -
+                              parts.gapScores_.gapExtend_,
+                          parts.ScoreMatrix_[i][j - 1].diagInherit -
+                              parts.gapScores_.gapOpen_,
+                          ptrFlag);
+        parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
+      	//normal diag
+        int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
+        parts.ScoreMatrix_[i][j].diagInherit =
+            match +
+            needleMaximum(parts.ScoreMatrix_[i - 1][j - 1].upInherit,
+                          parts.ScoreMatrix_[i - 1][j - 1].leftInherit,
+                          parts.ScoreMatrix_[i - 1][j - 1].diagInherit,
+                          ptrFlag);
+        parts.ScoreMatrix_[i][j].diagInheritPtr = ptrFlag;
+      }
+    }
+
+    //i = lena - 1, j = lenb -1
+    {
+    	char ptrFlag;
+    	const uint32_t i = lena - 1;
+    	const uint32_t j = lenb - 1;
+    	//end up
+      parts.ScoreMatrix_[i][j].upInherit =
+          needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
+                            parts.gapScores_.gapRightExtend_,
+                        parts.ScoreMatrix_[i - 1][j].leftInherit -
+                            parts.gapScores_.gapRightOpen_,
+                        parts.ScoreMatrix_[i - 1][j].diagInherit -
+                            parts.gapScores_.gapRightOpen_,
+                        ptrFlag);
+      parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
+    	//end left
+      parts.ScoreMatrix_[i][j].leftInherit =
+          needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
+                            parts.gapScores_.gapRightOpen_,
+                        parts.ScoreMatrix_[i][j - 1].leftInherit -
+                            parts.gapScores_.gapRightExtend_,
+                        parts.ScoreMatrix_[i][j - 1].diagInherit -
+                            parts.gapScores_.gapRightOpen_,
+                        ptrFlag);
+      parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
+    	//normal diag
+      int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
+      parts.ScoreMatrix_[i][j].diagInherit =
+          match +
+          needleMaximum(parts.ScoreMatrix_[i - 1][j - 1].upInherit,
+                        parts.ScoreMatrix_[i - 1][j - 1].leftInherit,
+                        parts.ScoreMatrix_[i - 1][j - 1].diagInherit,
+                        ptrFlag);
+      parts.ScoreMatrix_[i][j].diagInheritPtr = ptrFlag;
+    }
+
     int icursor = lena - 1;
     int jcursor = lenb - 1;
 
@@ -341,8 +474,6 @@ class alignCalc {
     // the bottom right cell.
     // Alignments are constructed by following the correct pointer backwards at
     // each stage.
-    // Since alignment strings are constructed in reverse, we must call the
-    // reverse() funcion after traceback.
     parts.score_ = needleMaximum(
         parts.ScoreMatrix_[icursor][jcursor].upInherit,
         parts.ScoreMatrix_[icursor][jcursor].leftInherit,
@@ -357,23 +488,23 @@ class alignCalc {
         tracerNext = parts.ScoreMatrix_[icursor][jcursor].upInheritPtr;
         if (tracerNext != 'U' && tracerNext != 'B') {
           parts.gHolder_.gapInfos_.emplace_back(
-              gapInfo(jcursor, gapBSize, false));
+          		bibseq::gapInfo(jcursor, gapBSize, false));
           gapBSize = 0;
         }
-        icursor--;
+        --icursor;
       } else if (tracerNext == 'L') {
         ++gapASize;
         tracerNext = parts.ScoreMatrix_[icursor][jcursor].leftInheritPtr;
         if (tracerNext != 'L') {
           parts.gHolder_.gapInfos_.emplace_back(
-              gapInfo(icursor, gapASize, true));
+          		bibseq::gapInfo(icursor, gapASize, true));
           gapASize = 0;
         }
-        jcursor--;
+        --jcursor;
       } else if (tracerNext == 'D') {
         tracerNext = parts.ScoreMatrix_[icursor][jcursor].diagInheritPtr;
-        icursor--;
-        jcursor--;
+        --icursor;
+        --jcursor;
       }
       // if ambigous traceback (can go either left or up), we give precedence
       // to an 'up' traceback.
@@ -382,35 +513,17 @@ class alignCalc {
         tracerNext = parts.ScoreMatrix_[icursor][jcursor].upInheritPtr;
         if (tracerNext != 'U' && tracerNext != 'B') {
           parts.gHolder_.gapInfos_.emplace_back(
-              gapInfo(jcursor, gapBSize, false));
+          		bibseq::gapInfo(jcursor, gapBSize, false));
           gapBSize = 0;
         }
-        icursor--;
+        --icursor;
       }
     }
-    // std::cout <<"rnv3" << std::endl;
     if ((tracerNext == 'U' || tracerNext == 'B') && gapBSize != 0) {
-      parts.gHolder_.gapInfos_.emplace_back(gapInfo(jcursor, gapBSize, false));
+      parts.gHolder_.gapInfos_.emplace_back(bibseq::gapInfo(jcursor, gapBSize, false));
     } else if (tracerNext == 'L' && gapASize != 0) {
-      parts.gHolder_.gapInfos_.emplace_back(gapInfo(icursor, gapASize, true));
+      parts.gHolder_.gapInfos_.emplace_back(bibseq::gapInfo(icursor, gapASize, true));
     }
-    /*
-    std::cout << changeColor(203);
-    std::cout << "from within alignment " << std::endl;
-
-    parts.gHolder_.printDescription(std::cout, true);
-    std::cout << endAllAttributes();*/
-    // std::cout <<"rnv4" << std::endl;
-    // rearrangeGlobal(objA, objB);
-    // std::cout <<"rnv5" << std::endl;
-    // alnInfoGlobal_.addFromFile_ = false;
-    // alnHolders_.globalHolder_[parts.gapScores_.getIdentifer()]
-    //  .addAlnInfo(objA.seq_, objB.seq_, alnInfoGlobal_);
-    // std::cout <<"rnv6" << std::endl;
-    // std::cout << "alnHolders_.infos_[false][objA.seqBase_.seq_].size()" <<
-    // std::endl;
-    // std::cout << "\t" << alnHolders_.infos_[false][objA.seqBase_.seq_].size()
-    // << std::endl;
   }
 
   static void runSmithSave(const std::string& objA, const std::string& objB,
@@ -679,32 +792,13 @@ class aligner {
           uint32_t qualThresholdWindow, bool countEndGaps
           ):alignObjectA_(baseReadObject()), alignObjectB_(baseReadObject()),
           		parts_(maxSize, gapPars, subMatrix),alnHolder_(gapPars, subMatrix),
-          		distances_(distanceMetrics()),
           		primaryQual_(primaryQuality), secondaryQual_(secondaryQuality),
           		kMaps_(inKmaps),
           		countEndGaps_(countEndGaps){
   	setStartingParamters(inKmaps, primaryQuality, secondaryQuality, qualThresholdWindow, countEndGaps);
   }
 
-  //distance metrics
-  struct distanceMetrics{
-  	distanceMetrics(): identity_(0), ownDistance_(0),
-  			ownGapDistance_(0), percentMismatch_(0),
-  			percentIdentity_(0), percentageGaps_(0),
-  			eventBasedIdentity_(0),refCoverage_(0),
-  			queryCoverage_(0)
-  			{}
-    double identity_;
-    double ownDistance_;
-    double ownGapDistance_;
-    //the following three percents are of the overlap of the alignment only
-    double percentMismatch_;
-    double percentIdentity_;
-    double percentageGaps_;
-    double eventBasedIdentity_;
-    double refCoverage_; //alignObj A
-    double queryCoverage_; //alignObj B
-  };
+
 
   // to hold the sequence alignments
   baseReadObject alignObjectA_;
@@ -714,7 +808,7 @@ class aligner {
   alnInfoMasterHolder alnHolder_;
 
   uint32_t numberOfAlingmentsDone_ = 0;
-  distanceMetrics distances_;
+
   // Aligner
   void alignScore(const std::string& firstSeq,
   									 const std::string& secondSeq,
@@ -819,10 +913,9 @@ class aligner {
 
   //////////alignment
   // various scores
-  uint32_t highQualityMatch_ = 0;
-  uint32_t lowQualityMatch_ = 0;
-  errorProfile errors_;
-  uint32_t numberOfSmallGaps_ = 0;
+
+  comparison comp_;
+
   // tandem repeats
 
   std::map<uint32_t, mismatch> mismatches_;
@@ -831,9 +924,6 @@ class aligner {
   std::map<uint32_t, gap> alignmentGaps_;
   uint32_t primaryQual_;
   uint32_t secondaryQual_;
-
-  uint32_t primaryQualLowKmer_;
-  uint32_t secondaryQualLowKmer_;
 
   uint32_t qualThresWindow_;
   kmerMaps kMaps_;
@@ -857,10 +947,7 @@ class aligner {
                                     //    const baseReadObject& primer);
   // Outputting
   void outPutParameterInfo(std::ostream& out) const;
-  void setLowKmerQual(int primaryQualLow, int secondaryQualLow) {
-    primaryQualLowKmer_ = primaryQualLow;
-    secondaryQualLowKmer_ = secondaryQualLow;
-  }
+
 
   void handleGapCountingInA(gap& currentGap, bool weighHomopolymers);
   void handleGapCountingInB(gap& currentGap, bool weighHomopolymers);
@@ -875,51 +962,26 @@ class aligner {
                         bool usingQuality, bool doingMatchQuality,
                         bool weighHomopolyer, uint32_t start = 0,
                         uint32_t stop = 0);
+
   void profilePrimerAlignment(const baseReadObject& objectA,
                               const baseReadObject& objectB,
                               bool weighHomopolymers);
   void profilePrimerAlignment(const seqInfo& objectA,
                               const seqInfo& objectB,
                               bool weighHomopolymers);
-  void simpleProfileAlignment(const std::string& firstSeq,
-                              const std::string& secondSeq,
-                              int& forwardOverHangSizeA, int& backOverHangSizeA,
-                              int& forwardOverHangSizeB,
-                              int& backOverHangSizeB);
 
-  errorProfile checkAlignment(const baseReadObject& objectA,
-                              const baseReadObject& objectB,
-                              const runningParameters& runParams,
-                              bool checkKmers, bool kmersByPosition,
-                              bool weighHomopolymers);
-
-  errorProfile checkAlignmentLowKmerQual(const baseReadObject& objectA,
+  comparison compareAlignment(const baseReadObject& objectA,
                                          const baseReadObject& objectB,
                                          const runningParameters& runParams,
                                          bool checkKmers, bool kmersByPosition,
                                          bool weighHomopolymers);
-  errorProfile checkAlignmentBothQualKmer(const baseReadObject& objectA,
-                                          const baseReadObject& objectB,
-                                          const runningParameters& runParams,
-                                          bool checkKmers, bool kmersByPosition,
-                                          bool weighHomopolymers);
-  errorProfile checkAlignmentBothRegKmer(const baseReadObject& objectA,
-                                         const baseReadObject& objectB,
+  comparison compareAlignment(const seqInfo& objectA,
+                                         const seqInfo& objectB,
                                          const runningParameters& runParams,
                                          bool checkKmers, bool kmersByPosition,
                                          bool weighHomopolymers);
 
-  // no kmer checking
-  bool checkAlignmentBool(const baseReadObject& objectA,
-                          const baseReadObject& objectB,
-                          const runningParameters& runParams, bool usingQuality,
-                          bool doingMatchQuality, bool weighHomopolymers);
-  // low kmer checking
-  bool checkAlignmentBool(const baseReadObject& objectA,
-                          const baseReadObject& objectB,
-                          const runningParameters& runParams, int kLength,
-                          bool kmersByPosition, bool usingQuality,
-                          bool doingMatchQuality, bool weighHomopolymers);
+
 
   // constructor helper
   void setStartingParamters(const kmerMaps& inKmaps, uint32_t primaryQuality,
@@ -929,16 +991,6 @@ class aligner {
   void setDefaultQualities() {
     primaryQual_ = 20;
     secondaryQual_ = 15;
-    primaryQualLowKmer_ = 30;
-    secondaryQualLowKmer_ = 25;
-    qualThresWindow_ = 5;
-  };
-
-  void setDefaultQualities(uint32_t primaryQual, uint32_t secondaryQual) {
-    primaryQual_ = primaryQual;
-    secondaryQual_ = secondaryQual;
-    primaryQualLowKmer_ = 30;
-    secondaryQualLowKmer_ = 25;
     qualThresWindow_ = 5;
   };
   void resetCounts();

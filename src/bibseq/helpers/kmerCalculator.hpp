@@ -49,7 +49,6 @@ class kmerCalculator {
   template <class T>
   static kmerMaps indexKmerMpas(const std::vector<T>& reads,
                                 uint32_t kmerLength, uint32_t runCutoff,
-                                uint32_t qualRunCutOff,
                             		bool expandPos = false, uint32_t expandSize = 5) {
     double total = 0;
     for (const auto& read : reads) {
@@ -57,7 +56,7 @@ class kmerCalculator {
     }
     return kmerMaps(indexKmerForPosMap(reads, kmerLength, expandPos, expandSize),
                     indexKmerForStringMap(reads, kmerLength), kmerLength,
-                    runCutoff, qualRunCutOff, total);
+                    runCutoff, total);
   }
 
   template <class T>
@@ -123,8 +122,8 @@ kmerCalculator::indexKmerForPosMap(const std::vector<T>& reads,
         }else{
         	startPos = cursor - expandSize;
         }
-        if((expandSize + cursor + 1 )> len(read.seqBase_.seq_)){
-        	stopPos = len(read.seqBase_.seq_);
+        if((expandSize + cursor + 1 )> read.seqBase_.seq_.size()){
+        	stopPos = read.seqBase_.seq_.size();
         }else{
         	stopPos = cursor + expandSize + 1;
         }

@@ -8,7 +8,7 @@
 //
 
 #include "bibseq/utils.h"
-#include "bibseq/simulation/randomGenerator.hpp"
+#include "bibseq/simulation/simulationCommon.hpp"
 #include "bibseq/objects/counters/letterCounter.hpp"
 namespace bibseq {
 namespace simulation {

@@ -1,27 +1,17 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-
 #include "identicalCluster.hpp"
 
 namespace bibseq {
+
+identicalCluster::identicalCluster(const readObject& firstRead) : baseCluster(firstRead) {
+	firstReadName = firstRead.seqBase_.name_;
+	firstReadCount = firstRead.seqBase_.cnt_;
+	basesAboveQualCheck_ = firstRead.basesAboveQualCheck_;
+  //std::cout << "identicalCluster constructor: " << std::endl;
+  //std::cout << seqBase_.name_ << std::endl;
+  //std::cout << seqBase_.cnt_ << std::endl;
+  //std::cout << seqBase_.frac_ << std::endl;
+}
+
 
 void identicalCluster::addRead(const readObject& identicalRead) {
   reads_.emplace_back(identicalRead);
@@ -32,7 +22,7 @@ void identicalCluster::setSeq() {
   readVecSorter::sort(reads_);
   seqBase_.seq_ = reads_.front().seqBase_.seq_;
   seqBase_.name_ = reads_.front().seqBase_.name_;
-  seqBase_.cnt_ = (int)reads_.size();
+  //seqBase_.cnt_ = (int)reads_.size();
   updateName();
 }
 void identicalCluster::setRep(const std::string& repQual){
@@ -47,10 +37,11 @@ void identicalCluster::setRep(const std::string& repQual){
 	} else if (repQual == "bestQual") {
 		setBestQualRep();
 	} else {
-		std::cout << "Unrecognized qualRep: " << repQual << std::endl;
-		std::cout << "Needs to be median, average, bestSeq, bestQual, or worst"
+		std::stringstream ss;
+		ss << "Unrecognized qualRep: " << repQual << std::endl;
+		ss << "Needs to be median, average, bestSeq, bestQual, or worst"
 							<< std::endl;
-		exit(1);
+		throw std::runtime_error{ss.str()};
 	}
 }
 void identicalCluster::setBestQualRep() {

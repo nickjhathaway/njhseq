@@ -1,31 +1,28 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-
 #include "fileUtils.hpp"
 #include "bibseq/utils/utils.hpp"
 #include "bibseq/utils/stringUtils.hpp"
-
+#include <bibcpp/files/fileUtilities.hpp>
 
 namespace bibseq {
 
+
+VecStr getNewestDirs(const std::string & dirName, const std::string & con){
+  VecStr ret;
+  auto dirs = bib::files::listAllFiles(dirName, false, {con});
+
+  std::map<std::string, std::map<std::string,bib::files::bfs::path>> filesByTime;
+  for(const auto & d : dirs){
+  	if(d.second){
+  		auto toks = tokenizeString(d.first.string(), "/");
+  		auto fileToks = tokenizeString(toks.back(), con);
+  		filesByTime[fileToks.front()][fileToks.back()] = d.first;
+  	}
+  }
+  for(const auto & f : filesByTime){
+  	ret.emplace_back(f.second.rbegin()->second.string());
+  }
+  return ret;
+}
 
 
 
@@ -103,32 +100,14 @@ bool fexists(const std::string &filename) {
 void openTextFile(std::ofstream &file, std::string filename,
                   std::string fileExtention, bool overWrite,
                   bool exitOnFailure) {
+
   if (filename.find(fileExtention) == std::string::npos) {
     filename.append(fileExtention);
   } else if (filename.substr(filename.size() - fileExtention.size(),
                              fileExtention.size()) != fileExtention) {
     filename.append(fileExtention);
   }
-  // std::ofstream file;
-  if (fexists(filename) && !overWrite) {
-    std::cout << filename << " already exists" << std::endl;
-    if (exitOnFailure) {
-      exit(1);
-    }
-  } else {
-    file.open(filename.data());
-    if (!file) {
-      std::cout << "Error in opening " << filename << std::endl;
-      if (exitOnFailure) {
-        exit(1);
-      }
-    } else {
-      // chmod(filename.c_str(), S_IRWU|S_IRGRP|S_IWGRP|S_IROTH);
-      chmod(filename.c_str(),
-            S_IWUSR | S_IRUSR | S_IRGRP | S_IWGRP | S_IROTH);
-      // chmod(filename.c_str(), S_IRWXU|S_IRGRP|S_IXGRP|S_IWGRP|S_IROTH);
-    }
-  }
+  bib::files::openTextFile(file, filename, overWrite, false, exitOnFailure);
 }
 // runLog stuff
 void startRunLog(std::ofstream &runLog, const MapStrStr &inputCommands) {

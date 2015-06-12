@@ -35,14 +35,7 @@ std::map<uint64_t, uint32_t> printStringLengths(const VecStr& strings,
 
 template <typename T>
 std::string leftPadNumStr(T num, T highestNumber = 10) {
-  std::stringstream ans;
-  if (num == 0) {
-    ans << std::string(log10(highestNumber), '0');
-  } else {
-    ans << std::string(((int)log10(highestNumber) - (int)log10(num)), '0');
-  }
-  ans << num;
-  return ans.str();
+	return bib::leftPadNumStr(num,highestNumber);
 }
 
 std::string getCurrentDate();
@@ -109,12 +102,6 @@ VecStr pairToVecStr(const std::pair<FIR, SEC>& p) {
 }
 
 
-size_t WriteCallback(char* contents, size_t size, size_t nmemb,
-                     std::ostream* stream);
-
-std::string GetURL(const std::string url);
-void GetURLStream(const std::string url, std::ostream & out);
-
 /*
  * Author:  David Robert Nadeau
  * Site:    http://NadeauSoftware.com/
@@ -162,7 +149,7 @@ size_t getPeakRSS();
  * in bytes, or zero if the value cannot be determined on this OS.
  */
 size_t getCurrentRSS();
-}  // namespace bib
+}  // namespace bibseq
 
 #ifndef NOT_HEADER_ONLY
 #include "utils.cpp"

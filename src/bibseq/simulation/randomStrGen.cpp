@@ -8,7 +8,7 @@
 
 #include "randomStrGen.hpp"
 
-#include "bibseq/simulation/randomGenerator.hpp"
+#include "bibseq/simulation/simulationCommon.hpp"
 #include "bibseq/objects/counters/letterCounter.hpp"
 namespace bibseq {
 namespace simulation {
@@ -25,14 +25,15 @@ std::multimap<double, std::string, std::less<double>> getEvenLikelihood(
 std::multimap<double, std::string, std::less<double>> createLikelihood(
     const std::vector<char> &letters, const std::vector<uint32_t> & counts){
 	if(counts.size() != letters.size()){
-		std::cout << "Error in createLikelihood(const std::vector<char> &letters,"
+		std::stringstream ss;
+		ss << "Error in createLikelihood(const std::vector<char> &letters,"
 				" const std::vector<uint32_t> & counts)" << std::endl;
-		std::cout << "Size of counts differs from size of letters" << std::endl;
-		std::cout << "Size of counts: " << counts.size() << std::endl;
-		std::cout << "Counts: "; printVector(counts, ", ");
-		std::cout << "Size of letters: " << letters.size() << std::endl;
-		std::cout << "Letters: "; printVector(letters, ", ");
-		exit(1);
+		ss << "Size of counts differs from size of letters" << std::endl;
+		ss << "Size of counts: " << counts.size() << std::endl;
+		ss << "Counts: "; printVector(counts, ", ");
+		ss << "Size of letters: " << letters.size() << std::endl;
+		ss << "Letters: "; printVector(letters, ", ");
+		throw std::runtime_error{ss.str()};
 	}
 	double countsSum = vectorSum(counts);
 

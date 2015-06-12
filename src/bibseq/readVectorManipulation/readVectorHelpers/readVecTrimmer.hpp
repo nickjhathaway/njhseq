@@ -99,8 +99,8 @@ void readVecTrimmer::trimToMaxLength(std::vector<T> &reads, size_t maxLength) {
 
 template <class T>
 void readVecTrimmer::trimToMaxLength(T &read, size_t maxLength) {
-  if (read.seqBase_.seq_.size() > maxLength) {
-    read.setClip(0, maxLength);
+  if (maxLength != 0 && read.seqBase_.seq_.size() > maxLength - 1) {
+    read.setClip(0, maxLength - 1);
   }
   return;
 }
@@ -148,8 +148,8 @@ void readVecTrimmer::trimAtSequenceIdentity(T &read,
 	 	alignObj.rearrangeObjs(read.seqBase_, reversePrimer.seqBase_, true);
 
 		alignObj.profilePrimerAlignment(read, reversePrimer, weighHomopolyer);
-		bool passInspection = runParmas.errors_.passErrorProfile(alignObj.errors_);
-		if(alignObj.distances_.queryCoverage_ < queryCutOff){
+		bool passInspection = runParmas.errors_.passErrorProfile(alignObj.comp_);
+		if(alignObj.comp_.distances_.queryCoverage_ < queryCutOff){
 			passInspection = false;
 		}
 		read.remove = !passInspection;
@@ -227,8 +227,8 @@ void readVecTrimmer::trimBeforeSequenceIdentity(T &read, readObject &forwardSeq,
   alignObj.rearrangeObjs(read.seqBase_, forwardSeq.seqBase_, true);
   //need to reordered and profile aligner
   alignObj.profilePrimerAlignment(read, forwardSeq, weighHomopolyer);
-	bool passInspection = runParmas.errors_.passErrorProfile(alignObj.errors_);
-	if(alignObj.distances_.queryCoverage_ < queryCutOff){
+	bool passInspection = runParmas.errors_.passErrorProfile(alignObj.comp_);
+	if(alignObj.comp_.distances_.queryCoverage_ < queryCutOff){
 		passInspection = false;
 	}
 	read.remove = !passInspection;
@@ -308,32 +308,8 @@ void readVecTrimmer::trimBetweenSequences(
   return;
 }
 
-template <class T>
-void readVecTrimmer::trimEndsOfReadsToSharedSeq(std::vector<T> &reads,
-                                                bool verbose) {
-  VecStr longestSharedSeq = findLongestSharedSeqFromReads(reads);
-  if (verbose) {
-    std::cout << vectorToString(longestSharedSeq, ", ") << std::endl;
-    std::vector<size_t> farthestLocations;
-    for (const auto &rIter : reads) {
-      std::vector<size_t> farthestLocation =
-          findOccurences(rIter.seqBase_.seq_, longestSharedSeq[0]);
-      farthestLocations.push_back(vectorMaximum(farthestLocation));
-    }
-    std::cout << "Max: " << vectorMaximum(farthestLocations) << std::endl;
-    std::cout << "Min: " << vectorMinimum(farthestLocations) << std::endl;
-    std::cout << "average: " << vectorMean(farthestLocations) << std::endl;
-    std::cout << "median: " << vectorMedian(farthestLocations) << std::endl;
-  }
-  for (auto &rIter : reads) {
-    std::vector<size_t> farthestLocation =
-        findOccurences(rIter.seqBase_.seq_, longestSharedSeq[0]);
-    size_t maxDistance = vectorMaximum(farthestLocation);
-    rIter.trimBack(maxDistance + longestSharedSeq[0].size());
-  }
-  return;
-}
-}  // namespace bib
+
+}  // namespace bibseq
 
 #ifndef NOT_HEADER_ONLY
 #include "readVecTrimmer.cpp"

@@ -41,10 +41,6 @@ class readVecSorter {
       sortByName(vec, decending);
     } else if (sortBy == "fraction") {
       sortByFraction(vec, decending);
-    } else if (sortBy == "cumulativeFraction") {
-      sortByCumulativeFraction(vec, decending);
-    } else if (sortBy == "normalizedFraction") {
-      sortByNormalizedFraction(vec, decending);
     } else {
       std::cout << "unrecognized sort option: " << sortBy << ", not sorting"
                 << std::endl;
@@ -127,24 +123,6 @@ class readVecSorter {
     }
   }
 
-  template <class T>
-  static void sortByCumulativeFraction(std::vector<T>& vec, bool decending) {
-    cumulativeFractionComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
-  }
-  template <class T>
-  static void sortByNormalizedFraction(std::vector<T>& vec, bool decending) {
-    normalizedFractionComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
-  }
 
   // structs
   template <class T>
@@ -194,18 +172,7 @@ class readVecSorter {
     }
   };
 
-  template <class T>
-  struct cumulativeFractionComparerStr {
-    bool operator()(const T& first, const T& second) const {
-      return first.cumulativeFraction > second.cumulativeFraction;
-    }
-  };
-  template <class T>
-  struct normalizedFractionComparerStr {
-    bool operator()(const T& first, const T& second) const {
-      return first.normalizedFraction > second.normalizedFraction;
-    }
-  };
+
 
   template <class T>
   struct totalCountAEComparerStr {

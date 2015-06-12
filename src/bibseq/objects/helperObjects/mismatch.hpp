@@ -8,6 +8,7 @@
 //
 
 #include "bibseq/utils/stringUtils.hpp"
+#include <bibcpp/jsonUtils.h>
 
 namespace bibseq {
 
@@ -23,69 +24,42 @@ class mismatch {
            int kFreqByPos, int kFreq)
       : refBase(rBase),
         refQual(rQual),
+				refBasePos(rBasePos),
+        transition(isMismatchTransition(rBase, sBase)),
         refLeadingQual(rLeadQual),
         refTrailingQual(rTrailQual),
-        refBasePos(rBasePos),
         seqBase(sBase),
         seqQual(sQual),
         seqLeadingQual(sLeadQual),
         seqTrailingQual(sTrailQual),
         seqBasePos(sBasePos),
         kMerFreqByPos(kFreqByPos),
-        kMerFreq(kFreq),
-        transition(isMismatchTransition(refBase, seqBase)) {}
+        kMerFreq(kFreq){}
+  //mismatch info shared between all seqs sharing this mismatch
   char refBase;
-  int refQual;
+  uint32_t refQual;
+  uint32_t refBasePos;
+  bool transition;
+  uint32_t freq = 1;
+  double frac_ = 0.0;
   std::vector<uint32_t> refLeadingQual;
   std::vector<uint32_t> refTrailingQual;
-  uint32_t refBasePos;
+
+  //specific to a single sequence
   char seqBase;
-  int seqQual;
+  uint32_t seqQual;
   std::vector<uint32_t> seqLeadingQual;
   std::vector<uint32_t> seqTrailingQual;
   uint32_t seqBasePos;
-  int kMerFreqByPos;
-  int kMerFreq;
-  bool transition;
-  /*
-  void tempOutputInfo(std::ostream & out){
-      out<<refBasePos<<"\t";
-      if (transition) {
-          out<<"transition\t";
-      }else{
-          out<<"transversion\t";
-      }
-      out<<refBase<<"\t"<<refQual<<"\t"<<seqBase<<"\t"<<seqQual;
-  }
-  std::string tempOutputInfoString(){
-      std::stringstream out;
-      out<<refBasePos<<"\t";
-      if (transition) {
-          out<<"transition\t";
-      }else{
-          out<<"transversion\t";
-      }
-      out<<refBase<<"\t"<<refQual<<"\t"<<seqBase<<"\t"<<seqQual;
-      return out.str();
-  }*/
-  static bool isMismatchTransition(const char& baseA, const char& baseB);
-  std::string outputInfoString() const {
-    std::stringstream out;
+  uint32_t kMerFreqByPos;
+  uint32_t kMerFreq;
 
-    if (transition) {
-      out << "transition\t";
-    } else {
-      out << "transversion\t";
-    }
-    out << refBasePos << "\t" << refBase << "\t" << refQual << "\t"
-        << vectorToString(refLeadingQual, ",") << "\t"
-        << vectorToString(refTrailingQual, ",") << "\t" << seqBasePos << "\t"
-        << seqBase << "\t" << seqQual << "\t"
-        << vectorToString(seqLeadingQual, ",") << "\t"
-        << vectorToString(seqTrailingQual, ",") << "\t" << kMerFreqByPos << "\t"
-        << kMerFreq;
-    return out.str();
-  }
+
+  std::string outputInfoString() const ;
+  Json::Value outputJson()const;
+
+  static bool isMismatchTransition(const char& baseA, const char& baseB);
+
 };
 }  // namespace bib
 

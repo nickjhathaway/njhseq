@@ -15,13 +15,22 @@ class baseReadObject {
 
  public:
   baseReadObject() : seqBase_(seqInfo()) {}
-  baseReadObject(const seqInfo& seqBase) : seqBase_(seqBase) {}
+  baseReadObject(const seqInfo& seqBase);
 
   seqInfo seqBase_;
 
   // description
   virtual void printDescription(std::ostream& out, bool deep = false) const;
+  using size_type = seqInfo::size_type;
+
+  virtual ~baseReadObject(){}
+
 };
+
+template<>
+inline baseReadObject::size_type len(const baseReadObject & read){
+	return read.seqBase_.seq_.size();
+}
 
 }  // namespace bib
 

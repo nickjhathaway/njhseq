@@ -11,3 +11,4 @@
 #include "bibseq/utils/stringUtils.hpp"
 #include "bibseq/utils/vectorUtils.hpp"
 #include "bibseq/utils/numUtils.hpp"
+#include "bibseq/utils/urlUtils.hpp"

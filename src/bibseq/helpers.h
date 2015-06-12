@@ -11,4 +11,4 @@
 #include "bibseq/helpers/kmerCalculator.hpp"
 #include "bibseq/helpers/seqUtil.hpp"
 #include "bibseq/helpers/profiler.hpp"
-#include "bibseq/helpers/alignmentProfiler.hpp"
+#include "bibseq/helpers/consensusHelper.hpp"

@@ -1,24 +1,3 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-
 /*
  * motif.cpp
  *
@@ -75,7 +54,7 @@ void motif::processMotif(){
   auto backBrackets = findOccurences(motifOriginal_, "}");
  // printVector(backBrackets);
   std::vector<std::pair<uint32_t, uint32_t>> exclusionPairs;
-  for(const auto & pos : iter::range(len(forwardBrackets))){
+  for(const auto & pos : iter::range(forwardBrackets.size())){
   	exclusionPairs.emplace_back(std::pair<uint32_t,uint32_t>{forwardBrackets[pos],backBrackets[pos]} );
   }
   auto forwardBrace = findOccurences(motifOriginal_, "[");
@@ -83,24 +62,24 @@ void motif::processMotif(){
   auto backBrace = findOccurences(motifOriginal_, "]");
  // printVector(backBrace);
   std::vector<std::pair<uint32_t, uint32_t>> inclusionPairs;
-  for(const auto & pos : iter::range(len(forwardBrace))){
+  for(const auto & pos : iter::range(forwardBrace.size())){
   	inclusionPairs.emplace_back(std::pair<uint32_t,uint32_t>{forwardBrace[pos],backBrace[pos]} );
   }
   std::vector<uint32_t> singles(motifOriginal_.size());
   std::map<uint32_t, uint32_t> offSets;
-  for(const auto & pos : iter::range(len(motifOriginal_))){
+  for(const auto & pos : iter::range(motifOriginal_.size())){
   	offSets[pos] = pos;
   }
-  iota<uint32_t>(singles, 0);
+  bib::iota<uint32_t>(singles, 0);
   for(const auto & includ : inclusionPairs){
   	removeElements(singles,getRange(includ.first,includ.second));
-  	for(const auto & off : iter::range(includ.first + 1,len(motifOriginal_))){
+  	for(const auto & off : iter::range<uint32_t>(includ.first + 1,motifOriginal_.size())){
   		offSets[off] = offSets[off] - (includ.second - includ.first);
   	}
   }
   for(const auto & exclud : exclusionPairs){
   	removeElements(singles,getRange(exclud.first,exclud.second));
-  	for(const auto & off : iter::range(exclud.first + 1,len(motifOriginal_))){
+  	for(const auto & off : iter::range<uint32_t>(exclud.first + 1,motifOriginal_.size())){
   		offSets[off] = offSets[off] - (exclud.second - exclud.first);
   	}
   }
@@ -135,7 +114,7 @@ uint32_t motif::scoreMotif(const std::string & possibleMotif){
 		std::cout << "motif size doesn't equal size of the check" << std::endl;
 	}
 	uint32_t score = 0;
-	for(const auto & cPos : iter::range(len(possibleMotif))){
+	for(const auto & cPos : iter::range(possibleMotif.size())){
 		score += motifUnits_[cPos].scoreChar(possibleMotif[cPos]);
 	}
 	return score;
@@ -161,7 +140,7 @@ bool motif::passMotifParameter(const std::string & possibleMotif, uint32_t score
 }
 
 std::vector<uint32_t> motif::findPositions(const std::string & wholeProtein, uint32_t scoreCutOff){
-	uint32_t motifSize = len(motifUnits_);
+	uint32_t motifSize = motifUnits_.size();
 	uint32_t pos = 0;
 	std::vector<uint32_t> positions;
 	while(pos + motifSize <= wholeProtein.size()){
@@ -176,14 +155,14 @@ std::vector<uint32_t> motif::findPositions(const std::string & wholeProtein, uin
 std::vector<uint32_t> motif::findPositionsFull(const std::string & wholeProtein,
 		uint32_t allowableErrors){
 	uint32_t sum = 0;
-	auto predTest = [&] (const char & a, decltype(*motifUnits_.begin()) mot)
+	auto predTest = [&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
 		                   {
 		sum += 1 - mot.second.scoreChar(a);
 		return sum <= allowableErrors;
 		                   };
 	uint32_t pos = 0;
 	std::vector<uint32_t> positions;
-	uint32_t motifSize = len(motifUnits_);
+	uint32_t motifSize = motifUnits_.size();
 	while(pos + motifUnits_.size() <= wholeProtein.size()){
 		sum = 0;
 		if(std::equal(wholeProtein.begin() + pos, wholeProtein.begin() + motifSize + pos,
@@ -197,14 +176,14 @@ std::vector<uint32_t> motif::findPositionsFull(const std::string & wholeProtein,
 std::vector<uint32_t> motif::findPositionsFull(const std::string & wholeProtein,
 		uint32_t allowableErrors, uint32_t start, uint32_t stop) const{
 	uint32_t sum = 0;
-	auto predTest = [&] (const char & a, decltype(*motifUnits_.begin()) mot)
+	auto predTest = [&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
 		                   {
 		sum += 1 - mot.second.scoreChar(a);
 		return sum <= allowableErrors;
 		                   };
 	uint32_t pos = start;
 	std::vector<uint32_t> positions;
-	uint32_t motifSize = len(motifUnits_);
+	uint32_t motifSize = motifUnits_.size();
 	while(pos + motifUnits_.size() <= stop){
 		sum = 0;
 		if(std::equal(wholeProtein.begin() + pos, wholeProtein.begin() + motifSize + pos,

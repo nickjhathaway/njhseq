@@ -126,10 +126,11 @@ class readVecExtractor {
       std::map<std::string, std::vector<T>>& readsByMID,
       const std::string& midFilename, const std::string& midFileDelim,
       int midPos, bool checkComplement, bool keepBarcode, bool barcodeLower,
-      bool variableStart, uint32_t variableStop, uint32_t errors = 0) {
+      bool variableStart, uint32_t variableStop, uint32_t errors, bool barcodeBothEnds) {
 
     std::vector<T> unrecognizedReads;
     int midSize = 10;
+
     // read in mids and barcodes
     MapStrStr midsByTags;
     table mids = seqUtil::readBarcodes(midFilename, midFileDelim, midSize);
@@ -173,6 +174,99 @@ class readVecExtractor {
         read.seqBase_.name_ = replaceString(read.seqBase_.name_, "_Comp", "");
       }
     }
+
+    if(barcodeBothEnds){
+      // read in mids and barcodes
+      MapStrStr midsByTagsRev;
+      table midsRev = seqUtil::readBarcodes(midFilename, midFileDelim, midSize);
+      //mids.outPutContentOrganized(std::cout);
+      for (const auto& fIter : mids.content_) {
+      	midsByTagsRev.insert(std::make_pair(seqUtil::reverseComplement(fIter[1], "DNA"), fIter[0]));
+      }
+      std::vector<T> revReadsUnRec;
+      std::map<std::string, std::vector<T>> readsByMIDRev;
+      if(errors > 0){
+      	auto primers = seqUtil::readPrimers(midFilename, midFileDelim, false);
+      	readObject revPrimer = readObject(seqInfo(primers.content_[0][0],primers.content_[0][2]));
+
+      	revReadsUnRec = extractByMidsVariableErrors<T>(unrecognizedReads, readsByMIDRev,
+        		midsByTags, checkComplement, errors, variableStop, keepBarcode, midSize,
+						revPrimer);
+
+      }else if( variableStart){
+      	revReadsUnRec =
+      	    	    	        extractReadsByMIDVariableStart(unrecognizedReads, readsByMIDRev, midsByTagsRev, variableStop);
+      } else {
+      	revReadsUnRec =
+      	        extractReadsByMID(unrecognizedReads, readsByMIDRev, midsByTagsRev, midPos, midSize);
+      }
+
+      if (checkComplement && errors == 0) {
+        // reverse complement and check again
+        for (auto& read : revReadsUnRec) {
+        	read.seqBase_.reverseComplementRead();
+          read.seqBase_.name_.append("_Comp");
+        }
+        if(variableStart){
+        	revReadsUnRec =
+        	    	        extractReadsByMIDVariableStart(revReadsUnRec, readsByMIDRev, midsByTagsRev, variableStop);
+        }else{
+        	revReadsUnRec = extractReadsByMID(revReadsUnRec, readsByMIDRev,
+        			midsByTagsRev, midPos, midSize);
+        }
+        // reverse complement again to leave the unrecognized reads as they were
+        // found
+        for (auto& read : revReadsUnRec) {
+          read.seqBase_.reverseComplementRead();
+          read.seqBase_.name_ = replaceString(read.seqBase_.name_, "_Comp", "");
+        }
+      }
+      if(errors < 1){
+        if (keepBarcode) {
+          if (barcodeLower) {
+            for (auto& rIter : readsByMIDRev) {
+              readVec::changeFrontEndToLowerCase(rIter.second, midSize -1);
+            }
+          }
+        } else {
+          for (auto& rIter : readsByMIDRev) {
+            readVecTrimmer::trimOffForwardBases(rIter.second, midSize);
+          }
+        }
+      }
+      if (keepBarcode) {
+        if (barcodeLower) {
+          for (auto& rIter : readsByMID) {
+            readVec::changeBackEndToLowerCase(rIter.second, midSize);
+          }
+        }
+      } else {
+        for (auto& rIter : readsByMID) {
+          readVecTrimmer::trimOffEndBases(rIter.second, midSize);
+        }
+      }
+      //now insert the reads in the correct orientation becuase they were found with the reverse primer
+      //and add to the out reads
+      for (auto& rIter : readsByMIDRev) {
+      	readVec::allReverseComplement(rIter.second, true);
+      	if(errors > 0){
+          if (keepBarcode) {
+            if (barcodeLower) {
+              for (auto& rIter : readsByMID) {
+                readVec::changeFrontEndToLowerCase(rIter.second, midSize -1);
+              }
+            }
+          } else {
+            for (auto& rIter : readsByMID) {
+              readVecTrimmer::trimOffForwardBases(rIter.second, midSize);
+            }
+          }
+      	}
+      	addOtherVec(readsByMID[rIter.first],rIter.second);
+      }
+
+      unrecognizedReads = revReadsUnRec;
+    }
     if(errors < 1){
       if (keepBarcode) {
         if (barcodeLower) {
@@ -189,31 +283,7 @@ class readVecExtractor {
     return unrecognizedReads;
   }
 
-  template <typename T>
-  static std::vector<T> extractSameReadsByAlignment(
-      std::vector<T> inputReads, const std::vector<T>& compareReads,
-      aligner& alignObj) {
-    // need to delete? nick 09.17.2013
-    std::vector<T> ans;
-    int counting = 0;
-    size_t outOf = compareReads.size();
-    for (typename std::vector<T>::const_iterator compIter =
-             compareReads.begin();
-         compIter != compareReads.end(); ++compIter) {
-      std::cout << "On " << counting << " of " << outOf << std::endl;
-      for (typename std::vector<T>::iterator inputIter = inputReads.begin();
-           inputIter != inputReads.end(); ++inputIter) {
-        if (inputIter->name == compIter->name) {
-          std::pair<int, int> positions =
-              alignObj.findReversePrimer(*inputIter, *compIter, true);
-          inputIter->setClip(positions);
-          ans.push_back(*inputIter);
-        }
-      }
-      ++counting;
-    }
-    return ans;
-  }
+
 
   template <typename T>
   static std::vector<T> extractSameReadsByName(
@@ -237,6 +307,17 @@ class readVecExtractor {
     std::vector<T> ans;
     for (const auto& read : reads) {
       if (contains(names, read.seqBase_.name_)) {
+        ans.emplace_back(read);
+      }
+    }
+    return ans;
+  }
+  template <typename T>
+  static std::vector<T> extractReadsExcludingNames(const std::vector<T>& reads,
+                                              const VecStr& names) {
+    std::vector<T> ans;
+    for (const auto& read : reads) {
+      if (!contains(names, read.seqBase_.name_)) {
         ans.emplace_back(read);
       }
     }

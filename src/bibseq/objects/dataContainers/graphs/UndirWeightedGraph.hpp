@@ -1,24 +1,3 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-
 #pragma once
 /*
  * UndirWeightedGraph.hpp
@@ -107,6 +86,28 @@ public:
 					}
 				}
 			}
+		}
+
+		DIST getAverageDist(){
+			DIST sum = 0;
+			double edgeNum = 0;
+			for(const auto & e : edges_){
+				if(e->on_){
+					++edgeNum;
+					sum+= e->dist_;
+				}
+			}
+			return sum/edgeNum;
+		}
+
+		DIST getAverageDist(std::function<DIST(std::vector<DIST>)> avgFunc){
+			std::vector<DIST> dists;
+			for(const auto & e : edges_){
+				if(e->on_){
+					dists.emplace_back(e->dist_);
+				}
+			}
+			return avgFunc(dists);
 		}
 
 		void printFirstEdge(std::ostream & out, bool visitEdge){
@@ -350,6 +351,26 @@ public:
 		}
 	}
 
+	void printAdjByGroup(std::ostream & out){
+		std::unordered_map<uint32_t, VecStr> groupOut;
+		for(const auto & e : edges_){
+			if(e->on_){
+				std::stringstream ss;
+				ss << e->nodeToNode_.begin()->second.lock()->group_ << " "
+						<< e->nodeToNode_.begin()->first << " -- "
+						<< e->nodeToNode_.begin()->second.lock()->name_ << " "
+						<< e->dist_;
+				groupOut[e->nodeToNode_.begin()->second.lock()->group_].emplace_back(ss.str());
+			}
+		}
+		for(const auto & g : groupOut){
+			out << "Group: " << g.first << std::endl;
+			for(const auto & go : g.second){
+				out << "\t" << go << std::endl;
+			}
+		}
+	}
+
 	void allPrintEdges(std::ostream & out, bool printVisited){
 		for(const auto & n : nodes_){
 			n->printEdges(out, printVisited);
@@ -429,8 +450,27 @@ public:
 	  uint32_t nCount = 0;
 	  std::unordered_map<uint32_t, uint32_t> groupCounts;
 	  std::unordered_map<std::string, uint64_t> nameToNewPos;
+
 	  for(const auto & n : nodes_){
 	  	++groupCounts[n->group_];
+	  }
+	  uint32_t groupsAboveCutOff =0;
+	  std::set<uint32_t> largeGroups;
+	  for(const auto & n : nodes_){
+	  	if(groupCounts[n->group_] >= groupSizeCutOff){
+	  		largeGroups.emplace(n->group_);
+	  	}
+	  }
+	  groupsAboveCutOff = largeGroups.size();
+	  std::vector<bib::color> groupColors;
+	  if(groupsAboveCutOff > 1){
+	  	groupColors = bib::getColsBetweenInc(0, 360 - 360.0/groupsAboveCutOff, 0.5, 0.5, 1,1, groupsAboveCutOff);
+	  }else{
+	  	groupColors = {bib::color{"#FF0000"}};
+	  }
+	  std::unordered_map<uint32_t, bib::color> gColors;
+	  for(auto e : iter::enumerate(largeGroups)){
+	  	gColors[e.element] = groupColors[e.index];
 	  }
 	  uint64_t pos = 0;
 	  for(const auto & n : nodes_){
@@ -440,6 +480,8 @@ public:
 		  	//std::cout << n->name_ << " : " << n->group_  << " : " << n->value_ << std::endl;
 		  	nodes[nCount]["name"] = bib::json::toJson(n->name_);
 		  	nodes[nCount]["group"] = bib::json::toJson(n->group_);
+		  	nodes[nCount]["color"] = bib::json::toJson("#" + gColors[n->group_].hexStr_);
+		  	nodes[nCount]["size"]  = 30;
 		  	++nCount;
 	  	}
 	  }
@@ -451,6 +493,60 @@ public:
 					links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
 					links[lCount]["value"] = bib::json::toJson(e->dist_);
 					links[lCount]["on"] = bib::json::toJson(e->on_);
+					links[lCount]["color"] = bib::json::toJson("#" + gColors[e->nodeToNode_.begin()->second.lock()->group_].hexStr_);
+					++lCount;
+				}
+			}
+		}
+		return graphJson;
+	}
+
+	Json::Value toJson(uint32_t groupSizeCutOff, std::unordered_map<std::string, std::string> nameToColor){
+	  Json::Value graphJson;
+	  auto & nodes = graphJson["nodes"];
+	  auto & links = graphJson["links"];
+	  uint32_t nCount = 0;
+	  std::unordered_map<uint32_t, uint32_t> groupCounts;
+	  std::unordered_map<std::string, uint64_t> nameToNewPos;
+
+	  for(const auto & n : nodes_){
+	  	++groupCounts[n->group_];
+	  }
+	  uint32_t groupsAboveCutOff =0;
+	  std::set<uint32_t> largeGroups;
+	  for(const auto & n : nodes_){
+	  	if(groupCounts[n->group_] >= groupSizeCutOff){
+	  		largeGroups.emplace(n->group_);
+	  	}
+	  }
+	  groupsAboveCutOff = largeGroups.size();
+	  auto groupColors = bib::getColsBetweenInc(0, 360 - 360.0/groupsAboveCutOff, 0.5, 0.5, 1,1, groupsAboveCutOff);
+	  std::unordered_map<uint32_t, bib::color> gColors;
+	  for(auto e : iter::enumerate(largeGroups)){
+	  	gColors[e.element] = groupColors[e.index];
+	  }
+	  uint64_t pos = 0;
+	  for(const auto & n : nodes_){
+	  	if(groupCounts[n->group_] >= groupSizeCutOff){
+	  		nameToNewPos[n->name_] = pos;
+	  		++pos;
+		  	//std::cout << n->name_ << " : " << n->group_  << " : " << n->value_ << std::endl;
+		  	nodes[nCount]["name"] = bib::json::toJson(n->name_);
+		  	nodes[nCount]["group"] = bib::json::toJson(n->group_);
+		  	nodes[nCount]["color"] = bib::json::toJson(nameToColor[n->name_]);
+		  	nodes[nCount]["size"]  = 30;
+		  	++nCount;
+	  	}
+	  }
+	  uint32_t lCount=0;
+		for(const auto & e : edges_){
+			if(e->on_){
+				if(groupCounts[e->nodeToNode_.begin()->second.lock()->group_] >= groupSizeCutOff){
+					links[lCount]["source"] = bib::json::toJson(nameToNewPos[nodes_[nameToNodePos_[e->nodeToNode_.begin()->first]]->name_]);
+					links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
+					links[lCount]["value"] = bib::json::toJson(e->dist_);
+					links[lCount]["on"] = bib::json::toJson(e->on_);
+					links[lCount]["color"] = bib::json::toJson(nameToColor[e->nodeToNode_.begin()->second.lock()->name_]);
 					++lCount;
 				}
 			}
@@ -499,6 +595,36 @@ template<typename DIST>
 class readDistGraph : public njhUndirWeightedGraph<DIST, std::shared_ptr<seqInfo>>{
 public:
 
+/**@b construct with reads form reads and the distance in distances, the keys being the read names
+ *
+ * @param distances a map or map, structure is readname1, readname2, dist
+ * @param reads the reads
+ */
+	template<typename T>
+	readDistGraph(const std::unordered_map<std::string, std::unordered_map<std::string, DIST>> & distances,
+			const std::vector<T> & reads){
+	  std::vector<std::string> readNames;
+		for(const auto & pos : iter::range(reads.size())){
+	  	this->addNode(reads[pos].seqBase_.name_,
+	  			std::make_shared<seqInfo>(reads[pos].seqBase_));
+	  	readNames.emplace_back(reads[pos].seqBase_.name_);
+	  }
+	  for(const auto & first : distances){
+	  	for(const auto & second : first.second){
+	  		if(!bib::in(first.first, readNames) || !bib::in(second.first, readNames)){
+	  			std::stringstream ss;
+	  			ss << "Error finding " << first.first << " or " << second.first << std::endl;
+	  			ss << "in " << vectorToString(readNames, ", ") << std::endl;
+	  			throw std::runtime_error{bib::bashCT::boldRed(ss.str())};
+	  		}else{
+	  			this->addEdge(first.first,
+	  				  				second.first,
+	  				  				second.second);
+	  		}
+	  	}
+	  }
+	}
+
 	/**@b Construct with a distance matrix and a vector of reads that were used to create the distances
 	 *
 	 * @param distances The distance matrix, the matrix should at least have the diagonal values (each row has as many elements as it's row position
@@ -516,6 +642,21 @@ public:
 	  	for(const auto & subPos : iter::range<uint64_t>(distances[pos].size())){
 	  		this->addEdge(reads[pos].seqBase_.name_,
 	  				reads[subPos].seqBase_.name_,
+	  				distances[pos][subPos]);
+	  	}
+	  }
+	}
+	template<typename T>
+	readDistGraph(const std::vector<std::vector<DIST>> & distances,
+			const std::vector<std::unique_ptr<T>> & reads){
+	  for(const auto & pos : iter::range(reads.size())){
+	  	this->addNode(reads[pos]->seqBase_.name_,
+	  			std::make_shared<seqInfo>(reads[pos]->seqBase_));
+	  }
+	  for(const auto & pos : iter::range(distances.size())){
+	  	for(const auto & subPos : iter::range<uint64_t>(distances[pos].size())){
+	  		this->addEdge(reads[pos]->seqBase_.name_,
+	  				reads[subPos]->seqBase_.name_,
 	  				distances[pos][subPos]);
 	  	}
 	  }
@@ -575,7 +716,8 @@ public:
 	  		maxReadCnt = n->value_->cnt_;
 	  	}
 	  }
-	  scale<double> cntScale({minReadCnt, maxReadCnt},{50.0, 1000.0});
+	  //scale<double> cntScale({minReadCnt, maxReadCnt},{50.0, 1000.0});
+	  scale<double> cntScale({0, maxReadCnt},{50.0, 1000.0});
 	  for(const auto & n : this->nodes_){
   		nameToNewPos[n->name_] = pos;
   		++pos;
@@ -682,7 +824,8 @@ public:
 				maxReadCnt = n->value_->cnt_;
 			}
 		}
-		scale<double> cntScale({minReadCnt, maxReadCnt},{50.0, 1000.0});
+		//scale<double> cntScale({minReadCnt, maxReadCnt},{50.0, 1000.0});
+		scale<double> cntScale({0, maxReadCnt},{50.0, 1000.0});
 		for(const auto & n : this->nodes_){
 	  	if(groupCounts[n->group_] >= groupCutOff){
 				nameToNewPos[n->name_] = pos;
@@ -741,6 +884,104 @@ public:
 		}
 		return graphJson;
 	}
+
+	Json::Value toJsonMismatchGraph(bib::color backgroundColor, double hueStart, double hueStop,
+			    double lumStart, double lumStop,
+			    double satStart, double satStop){
+			Json::Value graphJson;
+			graphJson["backgroundColor"] = "#" +  backgroundColor.hexStr_ ;
+			auto & nodes = graphJson["nodes"];
+			auto & links = graphJson["links"];
+			uint32_t nCount = 0;
+			std::unordered_map<std::string, uint64_t> nameToNewPos;
+
+			uint64_t pos = 0;
+			double minReadCnt = std::numeric_limits<double>::max();
+			double maxReadCnt = std::numeric_limits<double>::min();
+			std::unordered_map<uint32_t, bib::color> groupColors;
+		  std::unordered_map<uint32_t, uint32_t> groupCounts;
+		  for(const auto & n : this->nodes_){
+		  	++groupCounts[n->group_];
+		  }
+		  std::vector<uint32_t> groups;
+			for(const auto & g : groupCounts){
+					groups.emplace_back(g.first);
+			}
+			auto gColors = bib::getColsBetweenInc(hueStart, hueStop,
+		  		lumStart, lumStop,
+		  		satStart, satStop,
+		  		groups.size());
+
+			for(const auto & pos : iter::range(groups.size())){
+				groupColors[groups[pos]] = gColors[pos];
+			}
+
+			for(const auto & n : this->nodes_){
+				if(n->value_->cnt_ < minReadCnt){
+					minReadCnt = n->value_->cnt_;
+				}
+				if(n->value_->cnt_ > maxReadCnt){
+					maxReadCnt = n->value_->cnt_;
+				}
+			}
+			//scale<double> cntScale({minReadCnt, maxReadCnt},{50.0, 1000.0});
+			scale<double> cntScale({0, maxReadCnt},{50.0, 1000.0});
+			for(const auto & n : this->nodes_){
+				nameToNewPos[n->name_] = pos;
+				++pos;
+				//std::cout << n->name_ << " : " << n->group_  << " : " << n->value_ << std::endl;
+				nodes[nCount]["name"] = bib::json::toJson(n->name_);
+				nodes[nCount]["group"] = bib::json::toJson(n->group_);
+				nodes[nCount]["color"] = "#" + groupColors[n->group_].hexStr_;
+				nodes[nCount]["size"] = cntScale.get(n->value_->cnt_);
+				++nCount;
+			}
+			uint32_t lCount=0;
+			for(const auto & e : this->edges_){
+				if(e->on_){
+					if(e->dist_ == 0){
+						links[lCount]["source"] = bib::json::toJson(nameToNewPos[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_]);
+						links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
+						links[lCount]["value"] = bib::json::toJson(1);
+						links[lCount]["on"] = bib::json::toJson(e->on_);
+						auto lColor = getColsBetweenExcludeClosest(groupColors[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->group_],
+								groupColors[e->nodeToNode_.begin()->second.lock()->group_], 1);
+						links[lCount]["color"] = "#" + lColor.front().hexStr_;
+						++lCount;
+					}else{
+						std::string lastName = this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_;
+						auto lColors = getColsBetweenExcludeClosest(groupColors[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->group_],
+								groupColors[e->nodeToNode_.begin()->second.lock()->group_], e->dist_ + 1);
+						for(const auto & mis : iter::range(e->dist_)){
+							std::string newName = this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_
+									+ estd::to_string(mis) + e->nodeToNode_.begin()->second.lock()->name_;
+							nameToNewPos[newName] = pos;
+							++pos;
+							nodes[nCount]["name"] = bib::json::toJson(newName);
+							nodes[nCount]["group"] = bib::json::toJson(e->nodeToNode_.begin()->second.lock()->group_);
+							nodes[nCount]["color"] = "red";
+							nodes[nCount]["size"] = 10;
+							++nCount;
+							links[lCount]["source"] = bib::json::toJson(nameToNewPos[lastName]);
+							links[lCount]["target"] = bib::json::toJson(nameToNewPos[newName]);
+							links[lCount]["value"] = bib::json::toJson(1);
+							links[lCount]["on"] = bib::json::toJson(true);
+							links[lCount]["color"] = "#" + lColors[mis].hexStr_;
+							++lCount;
+							lastName = newName;
+						}
+
+						links[lCount]["source"] = bib::json::toJson(nameToNewPos[lastName]);
+						links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
+						links[lCount]["value"] = bib::json::toJson(1);
+						links[lCount]["on"] = bib::json::toJson(true);
+						links[lCount]["color"] = "#" + lColors[e->dist_].hexStr_;
+						++lCount;
+					}
+				}
+			}
+			return graphJson;
+		}
 };
 
 

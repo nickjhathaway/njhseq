@@ -1,24 +1,3 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-
 /*
  * charCounter.cpp
  *
@@ -75,35 +54,29 @@ void charCounterArray::getBest(char &letter, uint32_t &quality)const {
   quality = bestQuality;
 }
 
-void charCounterArray::getBest(char & letter, uint32_t &quality,
-                            	 uint32_t size)const {
-  char bestBase = ' ';
-  uint32_t bestQuality = 0;
+//for finding for insertions
+void charCounterArray::getBest(char & base, uint32_t &quality, uint32_t size)const {
   uint32_t totalCount = getTotalCount();
-  uint32_t bestCount = size - totalCount;
-  if(bestCount > totalCount){
-  	letter = bestBase;
-  	quality = bestQuality;
-  	return;
-  }
+  uint32_t nonInsertingSize = size - totalCount;
+  uint32_t bestCount = nonInsertingSize;
   //find best count
   for (const auto & c : alphabet_ ) {
     if (chars_[c] > bestCount) {
-      bestBase = c;
+    	base = c;
+    	quality = qualities_[c]/size;
       bestCount = chars_[c];
-      bestQuality = qualities_[c];
-
     }else if(chars_[c] == bestCount){
     	//if count is the same get the let with the best qualities, if same qualities
     	//whatever one was found first
-    	if(qualities_[c] > bestQuality){
-    		bestBase = c;
-				bestQuality = qualities_[c];
+    	//if the bestCount is the non inserting, opt to not putting an insert
+    	if(bestCount != nonInsertingSize){
+      	if(qualities_[c]/size > quality){
+      		base = c;
+      		quality = qualities_[c];
+      	}
     	}
     }
   }
-  letter = bestBase;
-  quality = bestQuality;
 }
 
 void charCounterArray::outPutInfo(std::ostream &out, bool ifQualities) const {
@@ -271,15 +244,21 @@ void charCounterArray::increaseCountOfBaseQual(const char &base, uint32_t qual, 
 	qualities_[base] += qual*cnt;
 	addOtherVec(allQualities_[base], std::vector<uint32_t>(cnt, qual));
 }
+/**
+ *
+ * @param seq
+ * @param qualities
+ * @todo check for small size of seq and qualitites
+ */
 void charCounterArray::increaseCountByStringQual(const std::string &seq, const std::vector<uint32_t> & qualities){
-	for(const auto & pos : iter::range(len(seq))){
+	for(const auto & pos : iter::range(seq.size())){
 		chars_[seq[pos]] += 1;
 		qualities_[seq[pos]] += qualities[pos];
 		allQualities_[seq[pos]].emplace_back(qualities[pos]);
 	}
 }
 void charCounterArray::increaseCountByStringQual(const std::string &seq, const std::vector<uint32_t> & qualities, double cnt){
-	for(const auto & pos : iter::range(len(seq))){
+	for(const auto & pos : iter::range(seq.size())){
 		chars_[seq[pos]] += cnt;
 		qualities_[seq[pos]] += qualities[pos] *cnt;
 		addOtherVec(allQualities_[seq[pos]], std::vector<uint32_t>(cnt, qualities[pos]));
@@ -339,7 +318,7 @@ charCounterArray::createLikelihoodMaps(bool setFractionFirst) {
 
 void charCounterArray::resetAlphabet(bool keepOld){
 	std::vector<char> present;
-	for(auto i : iter::range(len(chars_))){
+	for(auto i : iter::range(chars_.size())){
 		if(chars_[i] > 0){
 			present.emplace_back(i);
 		}
@@ -356,7 +335,7 @@ void charCounterArray::resetAlphabet(bool keepOld){
 }
 
 void charCounterArray::addOtherCounts(const charCounterArray & otherCounter, bool setFractionsAfter){
-	for(const auto & pos : iter::range(len(otherCounter.chars_))){
+	for(const auto & pos : iter::range(otherCounter.chars_.size())){
 		chars_[pos]+=otherCounter.chars_[pos];
 	}
 	if(setFractionsAfter){

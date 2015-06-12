@@ -18,11 +18,7 @@ class identicalCluster : public baseCluster {
 
   identicalCluster() : baseCluster() {}
 
-  identicalCluster(const readObject& firstRead) : baseCluster(firstRead) {
-  	firstReadName = firstRead.seqBase_.name_;
-  	firstReadCount = firstRead.seqBase_.cnt_;
-  	basesAboveQualCheck_ = firstRead.basesAboveQualCheck_;
-  }
+  identicalCluster(const readObject& firstRead) ;
   template <typename T>
   identicalCluster(const std::vector<T>& reads, const std::string & qualRep) : baseCluster(readObject(reads.front().seqBase_)) {
   	for(const auto & readPos : iter::range<uint32_t>(1, len(reads))){
@@ -61,10 +57,11 @@ class identicalCluster : public baseCluster {
       std::for_each(reads.begin(), reads.end(),
                     [](T& read) { read.setBestQualRep(); });
     } else {
-      std::cout << "Unrecognized qualRep: " << repQual << std::endl;
-      std::cout << "Needs to be median, average, bestSeq, bestQual, or worst"
+    	std::stringstream ss;
+      ss << "Unrecognized qualRep: " << repQual << std::endl;
+      ss << "Needs to be median, average, bestSeq, bestQual, or worst"
                 << std::endl;
-      exit(1);
+      throw std::runtime_error{ss.str()};
     }
   }
 };

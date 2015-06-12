@@ -12,7 +12,6 @@
 namespace bibseq {
 
 class seqSetUp : public bib::progutils::programSetUp {
-
  public:
   seqSetUp(int argc, char* argv[]) : bib::progutils::programSetUp(argc, argv) {
     initializeDefaults();
@@ -24,91 +23,7 @@ class seqSetUp : public bib::progutils::programSetUp {
   seqSetUp(const MapStrStr& inputCommands) : bib::progutils::programSetUp(inputCommands) {
     initializeDefaults();
   }
-
-  void initializeDefaults() {
-    ioOptions_.firstName_ = "";
-    ioOptions_.secondName_ = "";
-    ioOptions_.thirdName_ = "";
-    ioOptions_.inFormat_ = "";
-    ioOptions_.outFormat_ = "";
-    ioOptions_.outFilename_ = "";
-    ioOptions_.processed_ = false;
-    ioOptions_.forceWrite_ = false;
-    //
-    seq_ = "";
-    seqObj_ = readObject(seqInfo( "", seq_	));
-    //
-    ioOptions_.removeGaps_ = false;
-    ioOptions_.lowerCaseBases_ = "nothing";
-    //
-    ioOptions_.overWriteFile_ = false;
-    ioOptions_.exitOnFailureToWrite_ = false;
-    //
-    ioOptions_.includeWhiteSpaceInName_ = true;
-    //
-    directoryName_ = "";
-    //
-    refFilename_ = "";
-    refSecondName_ = "";
-    refFormat_ = "";
-    refProcessed_ = false;
-    //
-    gap_ = "7.0,1";
-    gapInfo_.processGapStr(gap_, gapInfo_.gapOpen_, gapInfo_.gapExtend_);
-
-    gapLeft_ = "7.0,1";
-    gapInfo_.processGapStr(gapLeft_, gapInfo_.gapLeftOpen_, gapInfo_.gapLeftExtend_);
-
-    gapRight_ = "0.0,0.0";
-    gapInfo_.processGapStr(gapRight_, gapInfo_.gapRightOpen_, gapInfo_.gapRightExtend_);
-    gapInfo_.setIdentifer();
-    verbose_ = false;
-    debug_ = false;
-    local_ = false;
-    countEndGaps_ = false;
-    weightHomopolymers_ = true;
-    //
-
-    qualThres_ = "20,15";
-    primaryQual_ = 20;
-    secondaryQual_ = 15;
-
-    qualThesLowKmer_ = "30,25";
-    primaryQualLowKmer_ = 30;
-    secondaryQualLowKmer_ = 25;
-
-    qualThresWindow_ = 5;
-
-    eventBased_ = false;
-    //
-    alnInfoDirName_ = "";
-    outAlnInfoDirName_ = "";
-    writingOutAlnInfo_ = false;
-
-    //
-    runCutOffString_ = "1";
-    runCutoff_ = 1;
-    qualRunCutOffString_ = "1";
-    qualRunCutoff_ = 1;
-    kLength_ = 25;
-    kmersByPosition_ = true;
-    checkKmers_ = true;
-    expandKmerPos_ = false;
-    expandKmerSize_ = 5;
-
-    //
-    generalMatch_ = 2;
-    generalMismatch_ = -2;
-    scoring_ = substituteMatrix::createDegenScoreMatrix(1,-1);
-    //general clustering
-    regKmers_ = false;
-    skipOnLetterCounterDifference_ = false;
-    fractionDifferenceCutOff_ = 0.05;
-    condensedCollapse_ = false;
-    adjustHomopolyerRuns_ = false;
-
-    quiet_ = false;
-  }
+  void initializeDefaults();
 
   // seq read in names
   readObjectIOOptions ioOptions_;
@@ -116,34 +31,41 @@ class seqSetUp : public bib::progutils::programSetUp {
   readObject seqObj_;
   // main directoryName
   std::string directoryName_;
+
+  bool verbose_;
+  bool debug_;
+  bool quiet_;
+
   // reference filename
   std::string refFilename_;
   std::string refSecondName_;
   std::string refFormat_;
   bool refProcessed_;
+  // alignment for ref Info;
+  std::string gapRef_;
+  std::string gapLeftRef_;
+  std::string gapRightRef_;
+  gapScoringParameters gapInfoRef_;
+
   // alignmentInfo;
   std::string gap_;
   std::string gapLeft_;
   std::string gapRight_;
   gapScoringParameters gapInfo_;
 
-  bool verbose_;
-  bool debug_;
-  bool quiet_;
+
+
+
   bool local_;
   bool countEndGaps_;
   bool weightHomopolymers_;
 
   std::string qualThres_;
   bool eventBased_;
-  int primaryQual_;
-  int secondaryQual_;
+  uint32_t primaryQual_;
+  uint32_t secondaryQual_;
 
-  std::string qualThesLowKmer_;
-  int primaryQualLowKmer_;
-  int secondaryQualLowKmer_;
-
-  int qualThresWindow_;
+  uint32_t qualThresWindow_;
 
   //
   std::string alnInfoDirName_;
@@ -152,12 +74,9 @@ class seqSetUp : public bib::progutils::programSetUp {
 
   // kmer options
   std::string runCutOffString_;
-  int runCutoff_;
+  uint32_t runCutoff_;
 
-  std::string qualRunCutOffString_;
-  int qualRunCutoff_;
-
-  int kLength_;
+  uint32_t kLength_;
   bool kmersByPosition_;
   bool checkKmers_;
   bool expandKmerPos_;
@@ -166,8 +85,8 @@ class seqSetUp : public bib::progutils::programSetUp {
   // scoring matrix
   //std::unordered_map<char, std::unordered_map<char, int>> scoringMatrixMap_;
   substituteMatrix scoring_;
-  int generalMatch_;
-  int generalMismatch_;
+  int32_t generalMatch_;
+  int32_t generalMismatch_;
   //general clusreing
   bool regKmers_;
   bool skipOnLetterCounterDifference_;
@@ -184,8 +103,11 @@ class seqSetUp : public bib::progutils::programSetUp {
   bool processDefaultReader(bool readInNamesRequired = true);
   bool processReadInNames(bool required = true);
   void processGap();
+  void processGapRef();
   void processQualThres();
   void processIteratorMap(std::string& parametersFile,
+                          std::map<int, std::vector<double>>& iteratorMap);
+  void processIteratorMapOnPerId(std::string& parametersFile,
                           std::map<int, std::vector<double>>& iteratorMap);
   void processKmerOptions();
   void processScoringPars();
@@ -206,6 +128,9 @@ class seqSetUp : public bib::progutils::programSetUp {
   void printInputUsage(std::ostream& out);
   void printAdditionaInputUsage(std::ostream& out,
                                 const std::string& lowerRemove);
+
+  void printGapUsage(std::ostream & out)const;
+
   void printKmerUsage(std::ostream& out);
   void printQualThresUsage(std::ostream& out);
   void printAlignmentUsage(std::ostream& out);

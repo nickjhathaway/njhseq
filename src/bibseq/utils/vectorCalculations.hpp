@@ -64,7 +64,7 @@ T vectorMaximum(const std::vector<T> &  scores) {
 
 template <typename T>
 T vectorSum(const std::vector<T>& scores) {
-	T sum = std::accumulate(scores.begin(), scores.end(), 0);
+	T sum = std::accumulate(scores.begin(), scores.end(), 0.0);
   return sum;
 }
 
@@ -144,11 +144,12 @@ std::vector<double> vectorOfZScores(const std::vector<T>& vec, double givenMean,
                                     double givenStd) {
   std::vector<double> ans;
   if (givenMean == 0) {
-    std::cout << "mean can't be zero" << std::endl;
-    exit(1);
+  	std::stringstream ss;
+    ss << "mean can't be zero" << std::endl;
+    throw std::runtime_error{ss.str()};
   }
   for (const auto& value : vec) {
-    ans.push_back((value - givenStd) / givenMean);
+    ans.emplace_back((value - givenStd) / givenMean);
   }
   return ans;
 }
@@ -170,9 +171,10 @@ template<typename T>
 double getPearsonCoefficientZScores(const std::vector<T> & zScores1,
 		const std::vector<T> & zScores2){
 	if(zScores1.size() != zScores2.size()){
-		std::cout << "getPearsonCoefficient" << std::endl;
-		std::cout << "scores size must equal" << std::endl;
-		exit(1);
+		std::stringstream ss;
+		ss << "getPearsonCoefficient" << std::endl;
+		ss << "scores size must equal" << std::endl;
+		throw std::runtime_error{ss.str()};
 	}
 	return (1/(zScores1.size() -1 )) * std::inner_product(zScores1.begin(), zScores1.end(),
 			zScores2.begin(), 0);

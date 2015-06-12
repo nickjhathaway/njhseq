@@ -1,24 +1,3 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-
 #pragma once
 /*
 
@@ -118,12 +97,16 @@ public:
 		std::vector<T> outReads;
 		outReads.reserve(readPositions_.size());
 		std::ifstream inFile(ioOptions.firstName_);
+		if(!inFile){
+			throw std::runtime_error{"Error in opening " + ioOptions.firstName_};
+		}
+		cachedReader cinFile(inFile);
 		readObjectIO reader;
 		readObject read;
 	  if("fasta" == ioOptions.inFormat_){
 			for(const auto & pos : readPositions_){
-				inFile.seekg(pos);
-				reader.readNextFastaStream(inFile,
+				cinFile.seek(pos);
+				reader.readNextFastaStream(cinFile,
 					  		  			read, ioOptions.processed_);
 				outReads.emplace_back(T(read.seqBase_));
 			}
@@ -136,9 +119,11 @@ public:
 		  	outReads.emplace_back(T(read.seqBase_));
 			}
 	  }else{
-	  	std::cerr << "clusterOnNucComp\n";
-	  	std::cerr << "only works on fasta or fastq files, improper format agrument given\n";
-	  	std::cerr << ioOptions.inFormat_ << std::endl;
+	  	std::stringstream ss;
+	  	ss << "clusterOnNucComp\n";
+	  	ss << "only works on fasta or fastq files, improper format agrument given\n";
+	  	ss << ioOptions.inFormat_ << std::endl;
+	  	throw std::runtime_error{ss.str()};
 	  }
 	  return outReads;
 	}
@@ -150,7 +135,7 @@ void findBestNucComp(const T & read, uint64_t pos, const std::vector<char> & alp
 	bool found = false;
 	double lowestDifference = 1;
 	uint64_t bestPos = std::numeric_limits<uint64_t>::max();
-  for(const auto & compPos : iter::range(len(comps))){
+  for(const auto & compPos : iter::range(comps.size())){
   	if(comps[compPos].compareRead(read, diffCutOff)){
   		found = true;
   		if(findBest){
@@ -177,7 +162,7 @@ void findBestNucComp(const T & read, uint64_t pos, uint64_t minLen,const std::ve
 	bool found = false;
 	double lowestDifference = 1;
 	uint64_t bestPos = std::numeric_limits<uint64_t>::max();
-  for(const auto & compPos : iter::range(len(comps))){
+  for(const auto & compPos : iter::range(comps.size())){
   	if(comps[compPos].compareRead(read, diffCutOff)){
   		found = true;
   		if(findBest){

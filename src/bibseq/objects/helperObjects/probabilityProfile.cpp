@@ -99,7 +99,7 @@ void probabilityProfile::printProfile(std::ostream &out,
                                       const std::string &delim) {
   std::vector<char> dnaLetters = {'A', 'C', 'G', 'T'};
   printVector(dnaLetters, delim, out);
-  for (auto pro : iter::range(len(_profile))) {
+  for (auto pro : iter::range(_profile.size())) {
     std::vector<double> tempVec;
     for (const auto let : dnaLetters) {
       tempVec.push_back(_profile.at(pro).at(let));

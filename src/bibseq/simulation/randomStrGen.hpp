@@ -8,7 +8,7 @@
 //
 
 #include "bibseq/utils.h"
-#include "bibseq/simulation/randomGenerator.hpp"
+#include "bibseq/simulation/simulationCommon.hpp"
 namespace bibseq {
 
 
@@ -68,7 +68,7 @@ std::string randStrMap(
     randomGenerator &gen) {
   std::string ans = "";
   ans.reserve(allLikelihoods.size());
-  std::vector<double> randos = gen.unifRandVector(len(allLikelihoods));
+  std::vector<double> randos = gen.unifRandVector(allLikelihoods.size());
   for (const auto &i : iter::range(allLikelihoods.size())) {
     double sum = 0;
     for (const auto &likelihood : allLikelihoods[i]) {

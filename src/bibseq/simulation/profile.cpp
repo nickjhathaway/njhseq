@@ -31,7 +31,7 @@ void profile::increaseCountAmount(char firstBase, char secondBase,
 }
 
 void profile::resetTotalFrac(){
-	for(const auto & row : iter::range(len(totals_))){
+	for(const auto & row : iter::range(totals_.size())){
 		totals_[row] = 0;
 		fractions_[row] = 0;
 	}

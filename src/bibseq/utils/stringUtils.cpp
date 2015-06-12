@@ -1,24 +1,3 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -31,6 +10,7 @@
 
 #include "stringUtils.hpp"
 #include "bibseq/utils/numUtils.hpp"
+#include <bibcpp/files.h>
 
 namespace bibseq {
 void addToStr(std::string & str, char c){
@@ -47,7 +27,12 @@ std::string get_cwd() {
       10240;  // 2550 KiBs of current path are more than enough
 
   char stackBuffer[chunkSize];  // Stack buffer for the "normal" case
-  if (getcwd(stackBuffer, sizeof(stackBuffer)) != NULL) return stackBuffer;
+  if (getcwd(stackBuffer, sizeof(stackBuffer)) != NULL){
+  	std::string ret = std::string(stackBuffer);
+  	bib::files::appendAsNeeded(ret, "/");
+  	return ret;
+  }
+
   if (errno != ERANGE) {
     // It's not ERANGE, so we don't know how to handle it
     throw std::runtime_error("Cannot determine the current path.");
@@ -57,8 +42,12 @@ std::string get_cwd() {
   for (int chunks = 2; chunks < maxChunks; chunks++) {
     // With boost use scoped_ptr; in C++0x, use unique_ptr
     // If you want to be less C++ but more efficient you may want to use realloc
-    std::unique_ptr<char> cwd(new char[chunkSize * chunks]);
-    if (getcwd(cwd.get(), chunkSize * chunks) != NULL) return cwd.get();
+    std::unique_ptr<char> cwd (new char[chunkSize * chunks]);
+    if (getcwd(cwd.get(), chunkSize * chunks) != NULL) {
+    	std::string ret = std::string(cwd.get());
+    	bib::files::appendAsNeeded(ret, "/");
+    	return ret;
+    }
     if (errno != ERANGE) {
       // It's not ERANGE, so we don't know how to handle it
       throw std::runtime_error("Cannot determine the current path.");
@@ -209,15 +198,15 @@ std::string getStringFromSubstrings(const std::string& seq,
 
 
 std::string stripQuotes( const std::string& str ){
-  std::size_t len = str.size();
-  if (len > 2){
-    if ( ( str[0] == '"'  && str[ len - 1 ] == '"' ) ||
-         ( str[0] == '\'' && str[ len - 1 ] == '\'') ){
+  if (str.size() > 2){
+    if ( ( str.front() == '"'  && str.back() == '"' ) ||
+         ( str.front() == '\'' && str.back() == '\'') ){
     	return std::string( str.begin() + 1, str.end() - 1 );
     }
   }
   return str;
 }
+
 void trimStringAtFirstOccurence(std::string& str,
                                 const std::string& occurence) {
   size_t pos = str.find(occurence);
@@ -265,8 +254,7 @@ std::string replaceString(std::string theString,
 }
 
 std::string removeCharReturn(std::string inputStr, const char& theChar) {
-  inputStr.erase(std::remove(inputStr.begin(), inputStr.end(), theChar),
-                 inputStr.end());
+	removeChar(inputStr, theChar);
   return inputStr;
 }
 void removeChar(std::string& inputStr, const char& theChar) {
@@ -278,11 +266,11 @@ void removeChar(std::string& inputStr, const char& theChar) {
 // remove lower case letters and their corresponding qualities from the
 // sequence.
 void rstrip(std::string & str, char c){
-	uint32_t pos = len(str);
+	uint32_t pos = str.size();
 	while (pos != 0 && str[pos - 1] == c){
 		--pos;
 	}
-	if(pos != len(str)){
+	if(pos != str.size()){
 		str.erase(str.begin() + pos, str.end());
 	}
 }
@@ -303,22 +291,22 @@ VecStr tokenizeString(const std::string& str, const std::string& delim,
     }
   }else{
     if (str.find(delim.c_str()) == std::string::npos) {
-      output.push_back(str);
+      output.emplace_back(str);
     } else {
       std::size_t pos = str.find(delim, 0);
       std::size_t oldPos = -delim.size();
       while (pos != std::string::npos) {
-        output.push_back(
+        output.emplace_back(
             str.substr(oldPos + delim.size(), pos - oldPos - delim.size()));
         oldPos = pos;
         pos = str.find(delim, pos + 1);
       }
       if (oldPos + delim.size() == str.size()) {
         if (addEmptyToEnd) {
-          output.push_back("");
+          output.emplace_back("");
         }
       } else {
-        output.push_back(str.substr(oldPos + delim.size(), str.size() - 1));
+        output.emplace_back(str.substr(oldPos + delim.size(), str.size() - 1));
       }
     }
   }
@@ -337,10 +325,11 @@ std::vector<size_t> findOccurences(const std::string& target,
 }
 
 int countOccurences(const std::string& target, const std::string& subSeq) {
-  return (int)findOccurences(target, subSeq).size();
+  return findOccurences(target, subSeq).size();
 }
 
 void translateStringWithKey(std::string& str, MapStrStr& key) {
+
   for (size_t i = 0; i < str.size(); ++i) {
     str.replace(i, 1, key[str.substr(i, 1)]);
   }
@@ -426,36 +415,36 @@ void changeStringVectorToLowerCase(VecStr& vec) {
   }
 }
 
-bool stringContainsAllDigits(const std::string& str) {
+bool isIntStr(const std::string& str) {
   for (const auto& c : str) {
+  	if(c == str.front() && c == '-'){
+  		continue;
+  	}
     if (!isdigit(c)) {
       return false;
     }
   }
   return true;
 }
+//std::regex intPat { R"([-+]?[0-9]*)"};
+const std::regex doublePat { R"([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)"};
+bool isDoubleStr(const std::string& str) {
+  return std::regex_match(str, doublePat);
+}
 
-bool stringContainsAllDigitsDouble(const std::string& str) {
-  for (const auto& c : str) {
-    if (!isdigit(c) && c != '.') {
+bool isVecOfIntStr(const VecStr& vec) {
+  for (const auto& s : vec) {
+    if (!isIntStr(s)) {
       return false;
     }
   }
   return true;
 }
 
-bool vectorOfNumberStringsInt(const VecStr& vec) {
-  for (const auto& iter : vec) {
-    if (!stringContainsAllDigits(iter)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool vectorOfNumberStringsDouble(const VecStr& vec) {
-  for (const auto& iter : vec) {
-    if (!stringContainsAllDigitsDouble(iter)) {
+//vectorOfNumberStringsDouble
+bool isVecOfDoubleStr(const VecStr& vec) {
+  for (const auto& s : vec) {
+    if (!isDoubleStr(s)) {
       return false;
     }
   }
@@ -622,5 +611,35 @@ uint32_t hexToInt(const std::string& hString) {
   uint32_t ans;
   stream >> std::hex >> ans;
   return ans;
+}
+
+
+
+uint32_t countBeginChar(const std::string & str){
+	if(str.length() == 0){
+		return 0;
+	}
+	uint32_t ret = 1;
+	for(auto pos : iter::range<uint64_t>(1, str.length())){
+		if(str[pos] == str.front()){
+			++ret;
+		}else{
+			break;
+		}
+	}
+	return ret;
+}
+
+uint32_t countEndChar(const std::string & str){
+	if(str.length() == 0){
+		return 0;
+	}
+	uint32_t ret = 1;
+	uint32_t pos = str.size() - 1;
+	while(pos > 0 && str[pos - 1] == str.back() ){
+		++ret;
+		--pos;
+	}
+	return ret;
 }
 }  // namespace bib

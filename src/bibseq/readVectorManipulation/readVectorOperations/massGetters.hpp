@@ -42,10 +42,10 @@ std::vector<T> getSeqsWithNames(const std::vector<T> & reads, const VecStr & nam
 }
 
 template <typename T>
-int getReadVectorSize(const std::vector<T>& reads, bool countRemove = false) {
-  int count = 0;
+uint32_t getReadVectorSize(const std::vector<T>& reads, bool countRemove = false) {
+  uint32_t count = 0;
   if (countRemove) {
-    return (int)reads.size();
+    return reads.size();
   } else {
     for (const auto& read : reads) {
       if (!read.remove) {

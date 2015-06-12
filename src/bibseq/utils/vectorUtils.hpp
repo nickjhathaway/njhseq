@@ -69,7 +69,8 @@ void prependVec(std::vector<T>& vec, const T& singleValue) {
 template <typename T>
 void printVector(const std::vector<T>& vec, const std::string& delim = " ",
                  std::ostream& out = std::cout) {
-  out << vectorToString(vec, delim) << std::endl;
+  out << vectorToString(vec, delim) << "\n";
+
 }
 
 template <class T>
@@ -110,7 +111,7 @@ std::vector<T> repeatVector(const std::vector<T>& vec,
     }
   } else {
     std::cout << "Repeat number vector needs to be either same size of the "
-                 "vector to be repeated or needs to be one number" << std::endl;
+                 "vector to be repeated or needs to be one number" << "\n";
   }
   return ans;
 }
@@ -135,7 +136,7 @@ std::vector<std::vector<T>> permuteVector(const std::vector<T>& vec,
     ans.push_back(bigRepeat);
     repeatFactorVec[0] = repeatFactorVec[0] * sizeOfVectorVec[0];
   }
-  //std::cout << "RepeatThenNumbers:" << getDuration(startTime1) << std::endl;
+  //std::cout << "RepeatThenNumbers:" << getDuration(startTime1) << "\n";
   std::reverse(ans.begin(), ans.end());
   size_t rowStop = ans.size();
   size_t colStop = ans[0].size();
@@ -147,7 +148,7 @@ std::vector<std::vector<T>> permuteVector(const std::vector<T>& vec,
     }
     realAns.push_back(tempVec);
   }
-  //std::cout << "Reorganize time: " << getDuration(startTime2) << std::endl;
+  //std::cout << "Reorganize time: " << getDuration(startTime2) << "\n";
   return realAns;
 }
 
@@ -437,12 +438,17 @@ VecStr numVecToVecStr(const std::vector<T>& nums) {
   }
   return ans;
 }
+
 template <typename T>
 std::vector<T> getRange(const T& start, const T& stop) {
   std::vector<T> ans(stop - start + 1);
   iota(ans, start);
   return ans;
 }
+
+
+double getMeanFromVecStr(const VecStr & strNums);
+
 }  // namespace bib
 
 #ifndef NOT_HEADER_ONLY

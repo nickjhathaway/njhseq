@@ -19,17 +19,17 @@ class bestDistGraph {
                 const std::string& otuName)
       : otuName_(otuName) {
 
-    std::cout << otuName << std::endl;
+    //std::cout << otuName << std::endl;
     double largestNode = 0;
     for (const auto& read : reads) {
       nodes_.push_back(node(readObject(read.seqBase_)));
       if (read.seqBase_.cnt_ > largestNode) {
-        parentNode_ = len(nodes_) - 1;
+        parentNode_ = nodes_.size() - 1;
         largestNode = read.seqBase_.cnt_;
       }
     }
-    for (const auto& first : iter::range<uint32_t>(0, len(nodes_))) {
-      for (const auto& second : iter::range<uint32_t>(0, len(nodes_))) {
+    for (const auto& first : iter::range(nodes_.size())) {
+      for (const auto& second : iter::range(nodes_.size())) {
         if (first == second) {
           continue;
         }
@@ -37,17 +37,17 @@ class bestDistGraph {
         alignerObj.scoreAlignment(false);
         alignerObj.profilePrimerAlignment(nodes_[first].read_,
                                           nodes_[second].read_, true);
-        ++bestDists_[alignerObj.errors_.hqMismatches_];
+        ++bestDists_[alignerObj.comp_.hqMismatches_];
         uint32_t numOfGappedBases = 0;
         for(const auto & g : alignerObj.alignmentGaps_){
-        	numOfGappedBases+= g.second.size;
+        	numOfGappedBases+= g.second.size_;
         }
-        nodes_[first].children_[alignerObj.errors_.hqMismatches_].emplace_back(
-            edge(second, alignerObj.distances_.ownDistance_, alignerObj.distances_.ownGapDistance_,
-                 alignerObj.errors_.hqMismatches_, len(alignerObj.alignmentGaps_),
-                 numOfGappedBases, alignerObj.distances_.percentIdentity_,
-                 alignerObj.distances_.percentageGaps_ > 0,
-                 alignerObj.distances_.percentIdentity_ < 1.0));
+        nodes_[first].children_[alignerObj.comp_.hqMismatches_].emplace_back(
+            edge(second, alignerObj.comp_.distances_.ownDistance_, alignerObj.comp_.distances_.ownGapDistance_,
+                 alignerObj.comp_.hqMismatches_, alignerObj.alignmentGaps_.size(),
+                 numOfGappedBases, alignerObj.comp_.distances_.percentIdentity_,
+                 alignerObj.comp_.distances_.percentageGaps_ > 0,
+                 alignerObj.comp_.distances_.percentIdentity_ < 1.0));
       }
     }
   }

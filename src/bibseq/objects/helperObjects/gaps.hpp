@@ -7,31 +7,27 @@
 //  Copyright (c) 2012 Nick Hathaway. All rights reserved.
 //
 
-#include <string>
+
+#include "bibseq/common/allSystemIncludes.h"
 
 namespace bibseq {
 
 class gap {
  public:
-  // gap(uint32_t startP, const std::string& seq, int firstQual):
-  // startPos(startP), gapedSequence(seq), summedQuality(firstQual), size(1),
-  // homoploymerScore(0){}
-  gap(uint32_t startP, const std::string& seq, int firstQual)
-      : startPos(startP),
-        gapedSequence(seq),
-        summedQuality(firstQual),
-        size(1) {}
-  uint32_t startPos;
-  std::string gapedSequence;
-  int summedQuality;
-  int size;
-  double homoploymerScore;
-  bool ref;
+  gap(uint32_t startP,
+  		const std::string& seq,
+  		uint32_t firstQual,
+			bool ref);
+  uint32_t startPos_;
+  uint32_t size_;
+  std::string gapedSequence_;
+  std::vector<uint32_t> qualities_;
+  double homoploymerScore_ = 0;
+  bool ref_ = false; //ref == true : insertion, ref == false: deletion
   // functions
-  void outputGapInfo(std::ostream& out);
   std::string outputGapInfoSingleLine() const;
 };
-}  // namespace bib
+}  // namespace bibseq
 
 #ifndef NOT_HEADER_ONLY
 #include "gaps.cpp"

@@ -51,30 +51,25 @@ class kmer {
 
 class kmerMaps {
  public:
-  kmerMaps() : qualRunCutOffs_() {}
+  kmerMaps():kLength_(1), runCutOff_(0)  {}
   kmerMaps(std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
                positions, std::unordered_map<std::string, kmer> noPositions,
-           int kmerLength, int runCutOff, int qualRunCutOff, uint32_t readNum)
+           uint32_t kmerLength, uint32_t runCutOff, uint32_t readNum)
       : kmersByPos_(positions),
         kmersAnyWhere_(noPositions),
         kLength_(kmerLength),
-        runCutOff_(runCutOff),
-        qualRunCutOff_(qualRunCutOff),
-        qualRunCutOffs_(generateQualCutOffs(readNum)) {}
+        runCutOff_(runCutOff) {}
   // members
   std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
       kmersByPos_;
   std::unordered_map<std::string, kmer> kmersAnyWhere_;
-  int kLength_;
-  int runCutOff_;
-  int qualRunCutOff_;
-  std::vector<uint32_t> qualRunCutOffs_;
+  uint32_t kLength_;
+  uint32_t runCutOff_;
+
   // functions
   bool isKmerLowFrequency(const std::string& kmer, uint32_t position,
                           bool kmersByPositions, uint32_t cutOff);
-  bool isKmerLowFreqByQual(const std::string& kmer, uint32_t position,
-                           bool kmersByPositions, uint32_t qual);
-  static std::vector<uint32_t> generateQualCutOffs(uint32_t readNum);
+
   static void outputKmerInfo(kmerMaps kMaps, std::ostream& out);
 };
 }  // namespace bib

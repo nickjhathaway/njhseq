@@ -1,39 +1,111 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-
 #include "seqSetUp.hpp"
+#include "bibseq/programUtils/runningParameters.hpp"
 #include <bibcpp/bashUtils.h>
-#include <bibcpp/files/fileUtils.hpp>
+#include <bibcpp/files/fileUtilities.hpp>
 namespace bibseq {
+
+void seqSetUp::initializeDefaults() {
+  ioOptions_.firstName_ = "";
+  ioOptions_.secondName_ = "";
+  ioOptions_.thirdName_ = "";
+  ioOptions_.inFormat_ = "";
+  ioOptions_.outFormat_ = "";
+  ioOptions_.outFilename_ = "out";
+  ioOptions_.processed_ = false;
+  ioOptions_.append_ = false;
+  //
+  seq_ = "";
+  seqObj_ = readObject(seqInfo( "", seq_	));
+  //
+  ioOptions_.removeGaps_ = false;
+  ioOptions_.lowerCaseBases_ = "nothing";
+  //
+  ioOptions_.overWriteFile_ = false;
+  ioOptions_.exitOnFailureToWrite_ = false;
+  //
+  ioOptions_.includeWhiteSpaceInName_ = true;
+  //
+  directoryName_ = "";
+  //
+  refFilename_ = "";
+  refSecondName_ = "";
+  refFormat_ = "";
+  refProcessed_ = false;
+  //
+  gapRef_ = "5,1";
+  gapInfoRef_.processGapStr(gapRef_, gapInfoRef_.gapOpen_, gapInfoRef_.gapExtend_);
+
+  gapLeftRef_ = "0,0";
+  gapInfoRef_.processGapStr(gapLeftRef_, gapInfoRef_.gapLeftOpen_, gapInfoRef_.gapLeftExtend_);
+
+  gapRightRef_ = "0.0,0.0";
+  gapInfoRef_.processGapStr(gapRightRef_, gapInfoRef_.gapRightOpen_, gapInfoRef_.gapRightExtend_);
+  gapInfoRef_.setIdentifer();
+  //
+  gap_ = "7.0,1";
+  gapInfo_.processGapStr(gap_, gapInfo_.gapOpen_, gapInfo_.gapExtend_);
+
+  gapLeft_ = "7.0,1";
+  gapInfo_.processGapStr(gapLeft_, gapInfo_.gapLeftOpen_, gapInfo_.gapLeftExtend_);
+
+  gapRight_ = "0.0,0.0";
+  gapInfo_.processGapStr(gapRight_, gapInfo_.gapRightOpen_, gapInfo_.gapRightExtend_);
+  gapInfo_.setIdentifer();
+
+  verbose_ = false;
+  debug_ = false;
+  local_ = false;
+  countEndGaps_ = false;
+  weightHomopolymers_ = true;
+  //
+
+  qualThres_ = "20,15";
+  primaryQual_ = 20;
+  secondaryQual_ = 15;
+
+  qualThresWindow_ = 2;
+
+  eventBased_ = false;
+  //
+  alnInfoDirName_ = "";
+  outAlnInfoDirName_ = "";
+  writingOutAlnInfo_ = false;
+
+  //
+  runCutOffString_ = "1";
+  runCutoff_ = 1;
+
+  kLength_ = 9;
+  kmersByPosition_ = true;
+  checkKmers_ = true;
+  expandKmerPos_ = false;
+  expandKmerSize_ = 5;
+
+  //
+  generalMatch_ = 2;
+  generalMismatch_ = -2;
+  scoring_ = substituteMatrix::createDegenScoreMatrix(1,-1);
+  //general clustering
+  regKmers_ = false;
+  skipOnLetterCounterDifference_ = false;
+  fractionDifferenceCutOff_ = 0.05;
+  condensedCollapse_ = false;
+  adjustHomopolyerRuns_ = false;
+
+  quiet_ = false;
+}
+
 
 void seqSetUp::processGap() {
   // check command line for gap settings
-  if (setOption(gap_, "-gapAll", "Gap_penalitiesAll")) {
+  if (setOption(gap_, "-gapAll", "Gap Penalties for All (middle and end gaps)")) {
     gapInfo_ = gapScoringParameters (gap_);
     gapLeft_ = gap_;
     gapRight_ = gap_;
   }else{
-  	setOption(gap_, "-gap", "Gap_penalities");
-  	setOption(gapLeft_, "-gapLeft", "Gap_penalities");
-  	setOption(gapRight_, "-gapRight", "Gap_penalities");
+  	setOption(gap_, "-gap", "Gap Penalties for Middle Gap");
+  	setOption(gapLeft_, "-gapLeft", "Gap Penalties for Left End Gap");
+  	setOption(gapRight_, "-gapRight", "Gap Penalties for Right End Gap");
   	// get the gap penalty
   	gapInfo_.processGapStr(gap_, gapInfo_.gapOpen_, gapInfo_.gapExtend_);
   	gapInfo_.processGapStr(gapLeft_, gapInfo_.gapLeftOpen_, gapInfo_.gapLeftExtend_);
@@ -42,18 +114,34 @@ void seqSetUp::processGap() {
   gapInfo_.setIdentifer();
 }
 
+void seqSetUp::processGapRef() {
+  // check command line for gap settings
+  if (setOption(gapRef_, "-gapRefAll", "Gap Penalties for Ref All")) {
+    gapInfoRef_ = gapScoringParameters (gapRef_);
+    gapLeftRef_ = gapRef_;
+    gapRightRef_ = gapRef_;
+  }else{
+  	setOption(gapRef_, "-gap", "Gap Penalties for Ref Middle Gap");
+  	setOption(gapLeftRef_, "-gapLeft", "Gap Penalties for Ref Left End Gap");
+  	setOption(gapRightRef_, "-gapRight", "Gap Penalties for Ref Right End Gap");
+  	// get the gap penalty
+  	gapInfoRef_.processGapStr(gapRef_, gapInfoRef_.gapOpen_, gapInfoRef_.gapExtend_);
+  	gapInfoRef_.processGapStr(gapLeftRef_, gapInfoRef_.gapLeftOpen_, gapInfoRef_.gapLeftExtend_);
+  	gapInfoRef_.processGapStr(gapRightRef_, gapInfoRef_.gapRightOpen_, gapInfoRef_.gapRightExtend_);
+  }
+  gapInfoRef_.setIdentifer();
+}
+
 void seqSetUp::processQualThres() {
   // check command line for qualThres setting
   setOption(qualThres_, "-qualThres", "Quality Thresholds, should go PrimaryQual,SecondaryQual");
-  setOption(qualThesLowKmer_, "-qualThresLowKmer", "QualThresHold_LowKmer");
   // get the qualities
   auto qualToks = tokenizeString(qualThres_, ",");
+  if(qualToks.size() != 2){
+  	throw std::runtime_error{"QaulThres should be two numbers separated by a comma, eg 20,15, not " + qualThres_};
+  }
   primaryQual_ = std::stoi(qualToks[0]);
   secondaryQual_ = std::stoi(qualToks[1]);
-
-  auto qualToksLowKmer = tokenizeString(qualThesLowKmer_, ",");
-  primaryQualLowKmer_ = std::stoi(qualToks[0]);
-  secondaryQualLowKmer_ = std::stoi(qualToks[1]);
 
   setOption(qualThresWindow_, "-qualThresWindow",
             "Quality Threshold Window Length");
@@ -62,58 +150,36 @@ void seqSetUp::processQualThres() {
 void seqSetUp::processIteratorMap(
     std::string& parameters,
     std::map<int, std::vector<double>>& iteratorMap) {
+
 	if(!fexists(parameters)){
 		failed_ = true;
 		warnings_.emplace_back(bib::bashCT::red + bib::bashCT::bold
 				+ "File " + parameters + " doesn't exist"
 				+ bib::bashCT::reset);
 	}
-  std::string delim = "";
-  delim.push_back(':');
-  textFileReader reader(delim);
-  reader.readFile(parameters);
-  std::map<int, std::vector<double>>::iterator iteratorMapIter;
-  int iters = 1;
-  for (const auto& row : reader.fileContent.content_) {
-    if (row[0][0] == 's') {
-      continue;
-    }
-    std::vector<double> tempVect;
-    for (const auto & colPos : iter::range(row.size() )) {
-      if (colPos == 0) {
-        if (row[colPos].find("%") != std::string::npos) {
-          double percent = std::stod(
-          		row[colPos].substr(0, row[colPos].size() - 1));
-          if (percent >= 100) {
-            tempVect.push_back(0.99);
-          } else if (percent > 0) {
-            tempVect.push_back(percent / 100.00);
-          } else {
-            tempVect.push_back(0.10);
-          }
-        } else if (stringToLowerReturn(row[colPos]) == "all") {
-          tempVect.push_back(-1.00);
-        } else {
-          tempVect.push_back(std::stod(row[colPos]));
-        }
-      } else {
-      	tempVect.push_back(std::stod(row[colPos]));
-      }
-    }
-    iteratorMap.insert(std::make_pair(iters, tempVect));
-    iters++;
-  }
+	iteratorMap = runningParameters::processParameters(parameters);
+}
+
+void seqSetUp::processIteratorMapOnPerId(
+    std::string& parameters,
+    std::map<int, std::vector<double>>& iteratorMap) {
+
+	if(!fexists(parameters)){
+		failed_ = true;
+		warnings_.emplace_back(bib::bashCT::red + bib::bashCT::bold
+				+ "File " + parameters + " doesn't exist"
+				+ bib::bashCT::reset);
+	}
+	iteratorMap = runningParameters::processParametersPerId(parameters);
 }
 
 void seqSetUp::processKmerOptions() {
   setOption(runCutOffString_, "-runCutOff", "Kmer_frequencey_cutoff");
-  setOption(qualRunCutOffString_, "-qualRunCutoff",
-            "Kmer_frequencey_cutoff_qual");
   setOption(kLength_, "-kLength", "Kmer_length");
   if (kLength_ % 2 == 0) {
     kLength_--;
     warnings_.emplace_back("-kLength needs to be odd, not even, changing to " +
-                           to_string(kLength_));
+                           estd::to_string(kLength_));
   }
   setBoolOptionFalse(kmersByPosition_, "-kAnywhere", "Kmers_at_positions");
   setBoolOptionFalse(checkKmers_, "-noKmers", "No_Kmer_checking");
@@ -176,30 +242,70 @@ void seqSetUp::processAdjustHRuns(){
 
 bool seqSetUp::processReadInNames(bool required) {
   // still need if multiple files given, like -fasta and -fastq at the same time
-	VecStr readInFormats {"-sff", "-sffBin", "-fasta", "-fastq", "-bam"};
+	VecStr readInFormats {"-sff", "-sffBin", "-fasta", "-fastq", "-fastqgz", "-bam", "-fastqgz"};
 	VecStr foundInFormats;
+	if (gettingFlags_ || printingHelp_) {
+		bib::progutils::flag sffFlagOptions(ioOptions_.firstName_, "-sff",
+				"Input sequence filename, sff text file, if required only one format is accepted",
+				required);
+		bib::progutils::flag sffBinFlagOptions(ioOptions_.firstName_, "-sffBin",
+				"Input sequence filename, sff binary file, if required only one format is accepted",
+				required);
+		bib::progutils::flag fastaFlagOptions(ioOptions_.firstName_, "-fasta",
+				"Input sequence filename, fasta text file, if required only one format is accepted",
+				required);
+		bib::progutils::flag fastqFlagOptions(ioOptions_.firstName_, "-fastq",
+				"Input sequence filename, fastq text file, if required only one format is accepted",
+				required);
+		bib::progutils::flag fastqgzFlagOptions(ioOptions_.firstName_, "-fastqgz",
+				"Input sequence filename, fastq gzipped file, if required only one format is accepted",
+				required);
+		bib::progutils::flag bamFlagOptions(ioOptions_.firstName_, "-bam",
+				"Input sequence filename, bam file, if required only one format is accepted",
+				required);
+		flags_.addFlag(sffFlagOptions);
+		flags_.addFlag(sffBinFlagOptions);
+		flags_.addFlag(fastaFlagOptions);
+		flags_.addFlag(fastqFlagOptions);
+		flags_.addFlag(bamFlagOptions);
+		flags_.addFlag(fastqgzFlagOptions);
+	}
 	//process out format
 	if(commands_.containsFlagCaseInsensitive("-fasta")){
 		ioOptions_.inFormat_ = "fasta";
 		ioOptions_.outFormat_ = "fasta";
-
+		ioOptions_.outExtention_ = ".fasta";
 		foundInFormats.emplace_back("-fasta");
-	}else if(commands_.containsFlagCaseInsensitive("-sff")){
+	}
+	if(commands_.containsFlagCaseInsensitive("-sff")){
 		ioOptions_.inFormat_ = "sff";
 		ioOptions_.outFormat_ = "fastq";
+		ioOptions_.outExtention_ = ".fastq";
 		foundInFormats.emplace_back("-sff");
-	}else if(commands_.containsFlagCaseInsensitive("-sffBin")){
+	}
+	if(commands_.containsFlagCaseInsensitive("-sffBin")){
 		ioOptions_.inFormat_ = "sffbin";
 		ioOptions_.outFormat_ = "fastq";
+		ioOptions_.outExtention_ = ".fastq";
 		foundInFormats.emplace_back("-sffBin");
-	}else if(commands_.containsFlagCaseInsensitive("-bam")){
+	}
+	if(commands_.containsFlagCaseInsensitive("-bam")){
 		ioOptions_.inFormat_ = "bam";
 		ioOptions_.outFormat_ = "fastq";
+		ioOptions_.outExtention_ = ".fastq";
 		foundInFormats.emplace_back("-bam");
-	}else if(commands_.containsFlagCaseInsensitive("-fastq")){
+	}
+	if(commands_.containsFlagCaseInsensitive("-fastq")){
 		ioOptions_.inFormat_ = "fastq";
 		ioOptions_.outFormat_ = "fastq";
+		ioOptions_.outExtention_ = ".fastq";
 		foundInFormats.emplace_back("-fastq");
+	}
+	if(commands_.containsFlagCaseInsensitive("-fastqgz")){
+		ioOptions_.inFormat_ = "fastqgz";
+		ioOptions_.outFormat_ = "fastq";
+		ioOptions_.outExtention_ = ".fastq";
+		foundInFormats.emplace_back("-fastqgz");
 	}
 	if(foundInFormats.size() > 1){
     std::stringstream tempOut;
@@ -218,7 +324,7 @@ bool seqSetUp::processReadInNames(bool required) {
 	    				<< "Did not find a recognizable read in option"
 	            << std::endl;
 	    tempOut << "options include: "
-	            << bib::bashCT::red << "-fasta, -fasta/-qual, -stub, -fastq"
+	            << bib::bashCT::red << "-fasta, -fasta/-qual, -stub, -fastq, -fastqgz"
 	            << bib::bashCT::reset << std::endl;
 	    tempOut << "Command line arguments" << std::endl;
 	    writeOutCommandLineArguments(commands_.arguments_, tempOut);
@@ -235,203 +341,10 @@ bool seqSetUp::processReadInNames(bool required) {
 			}
 		}
 		setOption(ioOptions_.outFormat_, "-outFormat", "Format of out sequence file");
+		setOption(ioOptions_.outExtention_, "-outExtention", "Extention of out file");
 		setOption(ioOptions_.outFilename_, "-out", "Name of the out sequence file");
 		return true;
 	}
-
-
-/*
-  if (commands_.containsFlagCaseInsensitive("-fasta")) {
-    ioOptions_.firstName_ = commands_["-fasta"];
-    if (!commands_.containsFlagCaseInsensitive("-qual") &&
-        !commands_.containsFlagCaseInsensitive("-flow")) {
-      ioOptions_.inFormat_ = "fasta";
-      validOptions_.push_back("-fasta");
-    } else {
-      if (commands_.containsFlagCaseInsensitive("-qual")) {
-        ioOptions_.secondName_ = commands_["-qual"];
-        if (commands_.containsFlagCaseInsensitive("-flow")) {
-          ioOptions_.thirdName_ = commands_["-flow"];
-          ioOptions_.inFormat_ = "fastaQualFlow";
-          validOptions_.push_back("-fasta");
-          validOptions_.push_back("-qual");
-          validOptions_.push_back("-flow");
-        } else {
-          ioOptions_.inFormat_ = "fastaQual";
-          validOptions_.push_back("-fasta");
-          validOptions_.push_back("-qual");
-        }
-      } else if (commands_.containsFlagCaseInsensitive("-flow")) {
-        ioOptions_.secondName_ = commands_["-flow"];
-        ioOptions_.inFormat_ = "fastaFlow";
-        validOptions_.push_back("-fasta");
-        validOptions_.push_back("-flow");
-      }
-    }
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      ioOptions_.outFormat_ = ioOptions_.inFormat_;
-    }
-
-  } else if (commands_.containsFlagCaseInsensitive("-stub")) {
-    ioOptions_.firstName_ = commands_["-stub"];
-    if (ioOptions_.firstName_.find(".fasta") == std::string::npos) {
-      ioOptions_.firstName_ = ioOptions_.firstName_ + ".fasta";
-    }
-    ioOptions_.secondName_ = ioOptions_.firstName_ + ".qual";
-
-    if (commands_.containsFlagCaseInsensitive("-flow")) {
-      ioOptions_.thirdName_ = commands_["-flow"];
-      ioOptions_.inFormat_ = "fastaQualFlow";
-      validOptions_.push_back("-stub");
-      validOptions_.push_back("-flow");
-    } else {
-      ioOptions_.inFormat_ = "fastaQual";
-      validOptions_.push_back("-stub");
-    }
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      ioOptions_.outFormat_ = ioOptions_.inFormat_;
-    }
-  } else if (commands_.containsFlagCaseInsensitive("-fastq")) {
-    ioOptions_.firstName_ = commands_["-fastq"];
-    if (commands_.containsFlagCaseInsensitive("-flow")) {
-      ioOptions_.secondName_ = commands_["-flow"];
-      ioOptions_.inFormat_ = "fastqFlow";
-
-      validOptions_.push_back("-fastq");
-      validOptions_.push_back("-flow");
-    } else {
-      ioOptions_.inFormat_ = "fastq";
-
-      validOptions_.push_back("-fastq");
-    }
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      ioOptions_.outFormat_ = ioOptions_.inFormat_;
-    }
-  } else if (commands_.containsFlagCaseInsensitive("-bam")) {
-    ioOptions_.firstName_ = commands_["-bam"];
-    ioOptions_.inFormat_ = "bam";
-    validOptions_.push_back("-bam");
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      ioOptions_.outFormat_ = "fastq";
-    }
-  } else if (commands_.containsFlagCaseInsensitive("-flow")) {
-    ioOptions_.firstName_ = commands_["-flow"];
-    if (commands_.containsFlagCaseInsensitive("-qual")) {
-      ioOptions_.secondName_ = commands_["-qual"];
-      ioOptions_.inFormat_ = "flowQual";
-      validOptions_.push_back("-flow");
-      validOptions_.push_back("-qual");
-    } else {
-      ioOptions_.inFormat_ = "flow";
-      validOptions_.push_back("-flow");
-    }
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      if (ioOptions_.inFormat_ == "flowQual") {
-        ioOptions_.outFormat_ = "fastaQualFlow";
-      } else {
-        ioOptions_.outFormat_ = ioOptions_.inFormat_;
-      }
-    }
-  } else if (commands_.containsFlagCaseInsensitive("-pyrodata")) {
-    ioOptions_.firstName_ = commands_["-pyrodata"];
-    ioOptions_.inFormat_ = "pyroData";
-    ioOptions_.outFormat_ = "fasta";
-    validOptions_.push_back("-pyroData");
-  } else if (commands_.containsFlagCaseInsensitive("-sff")) {
-    ioOptions_.firstName_ = commands_["-sff"];
-    ioOptions_.inFormat_ = "sff";
-    validOptions_.push_back("-sff");
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      ioOptions_.outFormat_ = "fastq";
-    }
-  } else if (commands_.containsFlagCaseInsensitive("-sffbin")) {
-    ioOptions_.firstName_ = commands_["-sffbin"];
-    ioOptions_.inFormat_ = "sffbin";
-    validOptions_.push_back("-sffbin");
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      ioOptions_.outFormat_ = "fastq";
-    }
-  } else if (commands_.containsFlagCaseInsensitive("-shorah")) {
-    ioOptions_.firstName_ = commands_["-shorah"];
-    ioOptions_.inFormat_ = "shorah";
-    validOptions_.push_back("-shorah");
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      ioOptions_.outFormat_ = "fasta";
-    }
-  } else if (commands_.containsFlagCaseInsensitive("-shorahOld")) {
-    ioOptions_.firstName_ = commands_["-shorahOld"];
-    ioOptions_.inFormat_ = "shorahOld";
-    validOptions_.push_back("-shorahOld");
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      ioOptions_.outFormat_ = "fasta";
-    }
-  } else if (commands_.containsFlagCaseInsensitive("-clustal")) {
-    ioOptions_.firstName_ = commands_["-clustal"];
-    ioOptions_.inFormat_ = "clustal";
-    validOptions_.push_back("-clustal");
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      ioOptions_.outFormat_ = "fasta";
-    }
-  } else if (commands_.containsFlagCaseInsensitive("-clustal-ng")) {
-    ioOptions_.firstName_ = commands_["-clustal-ng"];
-    ioOptions_.inFormat_ = "clustal-ng";
-    validOptions_.push_back("-clustal-ng");
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      ioOptions_.outFormat_ = "fasta";
-    }
-  } else if (commands_.containsFlagCaseInsensitive("-raw")) {
-    ioOptions_.firstName_ = commands_["-raw"];
-    ioOptions_.inFormat_ = "raw";
-    validOptions_.push_back("-raw");
-    if (commands_.containsFlagCaseInsensitive("-outformat")) {
-      ioOptions_.outFormat_ = commands_["-outformat"];
-    } else {
-      ioOptions_.outFormat_ = "fasta";
-    }
-  } else {
-    if (required) {
-      std::stringstream tempOut;
-      tempOut << boldBlackText("Did not find a recognizable read in option")
-              << std::endl;
-      tempOut << boldBlackText("options include: ") +
-                     boldText("-fasta, -fasta/-qual, -stub, -fastq", "31")
-              << std::endl;
-      tempOut << "Command line arguments" << std::endl;
-      writeOutCommandLineArguments(commands_.arguments_, tempOut);
-      addOtherVec(warnings_, streamToVecStr(tempOut));
-      failed_ = true;
-    }
-    return false;
-  }
-  pars_.addParameter("DataFile1", ioOptions_.firstName_, true);
-  pars_.addParameter("DataFile2", ioOptions_.secondName_, true);
-  pars_.addParameter("DataFile3", ioOptions_.thirdName_, true);
-  pars_.addParameter("DataFileInFormat", ioOptions_.inFormat_, true);
-  pars_.addParameter("OutFormat", ioOptions_.outFormat_, true);
-
-  return true;*/
 }
 
 void seqSetUp::processDirectoryOutputName(const std::string& defaultName,
@@ -447,11 +360,6 @@ void seqSetUp::processDirectoryOutputName(const std::string& defaultName,
       directoryName_ = bib::files::makeDir("./", defaultName);
     }
   }
-  /*
-  bool makeDefault = false;
-  if(setOption(makeDefault, "-makeDir,-makeDirectory", "MakeDefaultDirectory")){
-    directoryName_ = makeDirectory("./", defaultName);
-  }*/
 }
 
 void seqSetUp::processDirectoryOutputName(bool mustMakeDirectory) {
@@ -466,27 +374,30 @@ bool seqSetUp::processDefaultReader(bool readInNamesRequired) {
     passed = false;
   }
   //setOption(ioOptions_.forceWrite_, "-overWrite", "Over Write Fill");
-  setOption(ioOptions_.processed_, "-processed", "Processed");
-  setOption(ioOptions_.outFilename_, "-out", "OutFilename");
-  setOption(ioOptions_.lowerCaseBases_, "-lower", "LowerCaseBaseHandling");
-  setOption(ioOptions_.removeGaps_, "-removeGaps", "RemoveGaps");
+  setOption(ioOptions_.processed_, "-processed", "Processed, Input Sequence Name contains abundance info");
+  setOption(ioOptions_.outFilename_, "-out", "Out Filename");
+  setOption(ioOptions_.lowerCaseBases_, "-lower", "How to handle Lower Case Bases");
+  setOption(ioOptions_.removeGaps_, "-removeGaps", "Remove Gaps from Input Sequences");
   setBoolOptionFalse(ioOptions_.includeWhiteSpaceInName_,
-                     "-noSpaceInName,-removeWhiteSpace,-nowhitespace",
-                     "NoWhiteSapceInNmae");
+                     "-noWSpaceInName",
+                     "Remove White Space From Sequence Names");
   processWritingOptions();
   return passed;
 }
 
 void seqSetUp::processWritingOptions() {
   setOption(ioOptions_.overWriteFile_, "-overWrite",
-            "OverWriteExistingFiles");
+            "Over Write Existing Files");
   setOption(ioOptions_.exitOnFailureToWrite_, "-exitOnFailureToWrite",
-            "ExitOnFailureToWrite");
+            "Exit On Failure To Write");
+  setOption(ioOptions_.append_, "-appendFile",
+              "Append to file");
 }
+
 
 bool seqSetUp::processRefFilename(bool required) {
   setOption(refProcessed_, "-refProcessed",
-            "ReferenceHasAbundanceInfo");
+            "Reference Name Has Abundance Info");
   if (commands_.containsFlagCaseInsensitive("-refFastq") ||
       commands_.containsFlagCaseInsensitive("-expectFastq")) {
     refFormat_ = "fastq";
@@ -494,6 +405,7 @@ bool seqSetUp::processRefFilename(bool required) {
              commands_.containsFlagCaseInsensitive("-expect")) {
     refFormat_ = "fasta";
   }
+  processGapRef();
   return setOption(refFilename_, "-ref,-refFastq,-expect,-expectFastq",
                    "ReferenceFileName", required);
 }
@@ -509,7 +421,7 @@ bool seqSetUp::processSeq(std::string& inputSeq, const std::string& flag,
   if (fexists(inputSeq)) {
   	std::ifstream inFile(inputSeq);
 
-    inputSeq = textFileReader::getFirstLine(inputSeq);
+    inputSeq = bib::files::getFirstLine(inputSeq);
     seqObj_ = readObject(seqInfo("seq", inputSeq));
     //std::cout << "2 "<< inputSeq << std::endl;
     if(inputSeq[0] == '>'){
@@ -520,10 +432,12 @@ bool seqSetUp::processSeq(std::string& inputSeq, const std::string& flag,
     	//NEEDS TO BE FIXED TO BE GIVEN BY REF AND USE THE DEFAULT
     	seqObj_ = reader.reads.front();
     }else if(inputSeq[0] == '@'){
+    	//std::cout << "4" << std::endl;
     	std::string nextLine = "";
     	getline(inFile, nextLine);
     	getline(inFile, nextLine);
       seqObj_ = readObject(seqInfo(inputSeq.substr(1), nextLine));
+      inputSeq = seqObj_.seqBase_.seq_;
     }
   } else{
   	seqObj_ = readObject(seqInfo("seq", inputSeq));
@@ -536,11 +450,11 @@ bool seqSetUp::processVerbose() {
 }
 
 bool seqSetUp::processDebug() {
-  return setOption(debug_, "-d,--debug", "Debug");
+  return setOption(debug_, "--debug", "Debug");
 }
 
 bool seqSetUp::processQuiet() {
-  return setOption(quiet_, "-q,--quiet", "quiet");
+  return setOption(quiet_, "--quiet", "quiet");
 }
 void seqSetUp::processAlignerDefualts() {
   processGap();
@@ -550,19 +464,18 @@ void seqSetUp::processAlignerDefualts() {
   processAlnInfoInput();
   setOption(eventBased_, "-eventBased", "Event Based Comparison");
 }
+
 void seqSetUp::processAlnInfoInput() {
-  if (setOption(alnInfoDirName_, "-alnInfoDir", "alnInfoDirName")) {
-    if (!setOption(outAlnInfoDirName_, "-outAlnInfoDir",
-                   "alnInfoDirName")) {
-      outAlnInfoDirName_ = alnInfoDirName_;
-    }
-    writingOutAlnInfo_ = true;
-  } else {
-    if (setOption(outAlnInfoDirName_, "-outAlnInfoDir",
-                  "alnInfoDirName")) {
-      writingOutAlnInfo_ = true;
-    }
-  }
+	if (setOption(alnInfoDirName_, "-alnInfoDir", "alnInfoDirName")) {
+		if (!setOption(outAlnInfoDirName_, "-outAlnInfoDir", "alnInfoDirName")) {
+			outAlnInfoDirName_ = alnInfoDirName_;
+		}
+		writingOutAlnInfo_ = true;
+	} else {
+		if (setOption(outAlnInfoDirName_, "-outAlnInfoDir", "alnInfoDirName")) {
+			writingOutAlnInfo_ = true;
+		}
+	}
 }
 
 void seqSetUp::printInputUsage(std::ostream& out) {
@@ -651,16 +564,26 @@ void seqSetUp::printQualThresUsage(std::ostream& out) {
          " base, defaults to 5" << std::endl;
   // out << cleanOut(tempOut.str(), width_, indent_);
 }
+
+void seqSetUp::printGapUsage(std::ostream & out) const {
+	out << bib::bashCT::bold << "Gap Scoring options" << bib::bashCT::reset
+			<< "\n";
+	out << "-gap [option]: Gap penalty, given in the format 7,0.5 "
+			"where 7 is the gap open penalty and 0.5 is the gap extension"
+			<< "\n";
+	out << "-gapLeft [option]: Gap penalty for putting gaps at the beginning"
+			" of the sequence, same format as -gap" << "\n";
+	out << "-gapRight [option]: Gap penalty for putting gaps at the end"
+			" of the sequence, same format as -gap" << "\n";
+	out << "-gapAll [option]: Gap penalty at all locations, would be like calling"
+			" all three options,-gap, -gapRight, -gapLeft with the same parameters, same format as -gap\n";
+}
+
+
 void seqSetUp::printAlignmentUsage(std::ostream& out) {
   // std::stringstream tempOut;
   out << bib::bashCT::bold <<"Alignment options"<< bib::bashCT::reset  << std::endl;
-  out << "1) -gap [option]: Gap penalty, given in the format 7,0.5 "
-         "where 7 is the gap open penalty and 0.5 is the gap extension"
-      << std::endl;
-  out << "2) -gapLeft [option]: Gap penalty for putting gaps at the beginning"
-         " of the sequence, same format as -gap" << std::endl;
-  out << "3) -gapLeft [option]: Gap penalty for putting gaps at the end"
-         " of the sequence, same format as -gap" << std::endl;
+  printGapUsage(out);
   out << "4a) -scoreMatrix : A filename for an alignment scoring matrix "
          "of a custom scoring matrix" << std::endl;
   out << "4b) -generalMatch [option]: If no score matrix is given the score "

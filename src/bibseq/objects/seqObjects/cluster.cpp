@@ -1,24 +1,3 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-
 #include "cluster.hpp"
 
 namespace bibseq {
@@ -26,9 +5,9 @@ namespace bibseq {
 std::unordered_map<std::string, uint32_t> cluster::mutateConensus(const std::vector<std::vector<uint32_t>>& currentAlignQuals,
 		std::unordered_map<double, double> bestLikelihood,
 		simulation::errorProfile & eProfile,
-		randomGenerator & gen){
+		bib::randomGenerator & gen){
 	std::unordered_map<std::string, uint32_t> mutated;
-	std::vector<uint32_t> randomQualPos = gen.unifRandVector<uint32_t>(0,len(currentAlignQuals), seqBase_.cnt_);
+	std::vector<uint32_t> randomQualPos = gen.unifRandVector<uint32_t>(0,currentAlignQuals.size(), seqBase_.cnt_);
 	for(const auto & randQual : randomQualPos ){
 		std::vector<double> currentLikelihood = likelihoodForBaseQ(currentAlignQuals[randQual] , bestLikelihood);
 		std::string currentMutant = eProfile.mutateSeq(seqBase_.seq_, gen, eProfile.alphabet_, currentLikelihood);
@@ -94,7 +73,7 @@ std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<cluster>>>
     if(similarReadsClusters[mismatchCount][clusSize].back().seqBase_.cnt_ < 1){
     	similarReadsClusters[mismatchCount][clusSize].back().printDescription(std::cout, true);
     	std::cout << std::endl;
-    	for_each(simReads.second, [&](const readObject & r){ r.printDescription(std::cout, true) ;});
+    	bib::for_each(simReads.second, [&](const readObject & r){ r.printDescription(std::cout, true) ;});
     	exit(1);
     }
   }
@@ -104,7 +83,7 @@ void cluster::removeClustersOnFDR(aligner & alignerObj, double fdrCutOff, std::v
 	auto similarReadsClusters = createSimReadClusters(alignerObj);
 	for(const auto & m : similarReadsClusters){
 		for(const auto & c : m.second){
-  		if(getFDRValue(c.first, m.first, len(c.second)) <= fdrCutOff){
+  		if(getFDRValue(c.first, m.first, c.second.size()) <= fdrCutOff){
   			for(const auto & rejected : c.second){
   				rejectedClusters.emplace_back(rejected);
   				rejectedClusters.back().rejected_ = true;
@@ -117,7 +96,7 @@ void cluster::removeClustersOnFDR(aligner & alignerObj, double fdrCutOff, std::v
 }
 void cluster::simOnQual(const std::vector<identicalCluster> &initialClusters, aligner & alignerObj , uint32_t runTimes, std::unordered_map<double, double> bestLikelihood,
 	simulation::errorProfile & eProfile,
-	randomGenerator & gen ){
+	bib::randomGenerator & gen ){
 
   std::vector<readObject> collection = getAllBeginingClusters(initialClusters);
   std::vector<std::vector<uint32_t>> currentAlignQuals = alignOrigQuals(collection,  alignerObj, false);
@@ -178,10 +157,9 @@ std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::unordered_map<uin
 		const std::vector<std::vector<uint32_t>>& currentAlignQuals,
 		std::unordered_map<double, double> bestLikelihood,
 		simulation::errorProfile & eProfile,
-		randomGenerator & gen){
+		bib::randomGenerator & gen){
   std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>>> allRunsCounts;
-  simulation::timeTracker mutation(seqBase_.name_ + "_mutagenesis", true);
-  mutation.defaultIndent_ = 1;
+  bib::scopedStopWatch mutation(seqBase_.name_ + "_mutagenesis", true);
   for(uint32_t run = 0; run < runTimes; ++run){
   	std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>> currentRunCount;
   	std::unordered_map<std::string, uint32_t> mutated = mutateConensus(currentAlignQuals, bestLikelihood, eProfile, gen);
@@ -213,25 +191,25 @@ double cluster::getPValue(const seqInfo & seqBase, uint32_t numOfMismatches){
 	if(numOfMismatches == 0){
 		return 1;
 	}
-	return pValueMap_[numOfMismatches][std::round( seqBase.cnt_)];
+	return pValueMap_[numOfMismatches][::round( seqBase.cnt_)];
 }
 double cluster::getPValue(const seqInfo & seqBase, aligner & alignerObj, bool local){
 	alignerObj.alignVec(seqBase_, seqBase, local);
 	alignerObj.profileAlignment(seqBase_, seqBase, 11, true, false, false, false, true);
-	if((int)alignerObj.errors_.largeBaseIndel_ > 0){
+	if((int)alignerObj.comp_.largeBaseIndel_ > 0){
 		return 0;
 	}
-	return getPValue(seqBase, alignerObj.errors_.hqMismatches_);
+	return getPValue(seqBase, alignerObj.comp_.hqMismatches_);
 }
 void cluster::removeRead(const std::string & stubName){
-	uint32_t readIndex = UINT32_MAX;
-	for(const auto & index : iter::range(len(reads_))){
+	uint32_t readIndex = std::numeric_limits<uint32_t>::max();
+	for(const auto & index : iter::range(reads_.size())){
 		if(reads_[index].getStubName(true) == stubName){
 			readIndex = index;
 			break;
 		}
 	}
-	if(readIndex!=UINT32_MAX){
+	if(readIndex!=std::numeric_limits<uint32_t>::max()){
 		seqBase_.cnt_ -= reads_[readIndex].seqBase_.cnt_;
 		reads_.erase(reads_.begin() + readIndex);
 	  if (seqBase_.cnt_ / 2 > firstReadCount) {
@@ -247,11 +225,11 @@ void cluster::removeReads(const std::vector<readObject> & vec){
 }
 void cluster::addRead(const baseCluster& cr) {
   // clusterVector.push_back(cr);
-  seqBase_.frac_ = seqBase_.frac_ * reads_.size();
+
   reads_.insert(reads_.end(), cr.reads_.begin(), cr.reads_.end());
   seqBase_.cnt_ += cr.seqBase_.cnt_;
+  seqBase_.frac_ = seqBase_.frac_ * reads_.size();
   seqBase_.frac_ = (seqBase_.frac_ + cr.seqBase_.frac_) / reads_.size();
-  cumulativeFraction += cr.seqBase_.frac_;
   // needToCalculateConsensus = true;
   if (seqBase_.cnt_ / 2 > firstReadCount) {
     needToCalculateConsensus = true;
@@ -271,7 +249,7 @@ double cluster::getAverageSizeDifference() {
   double averageSizeDifference = 0;
   for (const auto& read : reads_) {
     averageSizeDifference +=
-        std::abs((int)(read.seqBase_.seq_.length() - seqBase_.seq_.length())) *
+        uAbsdiff(read.seqBase_.seq_.length(), seqBase_.seq_.length()) *
         read.seqBase_.cnt_;
   }
   averageSizeDifference = averageSizeDifference / seqBase_.cnt_;
@@ -281,10 +259,10 @@ double cluster::getAverageSizeDifference() {
 int cluster::getLargestSizeDifference() {
   int largestSizeDifference = 0;
   for (const auto& read : reads_) {
-    if (std::abs((int)(read.seqBase_.seq_.length() - seqBase_.seq_.length())) >
+    if (uAbsdiff(read.seqBase_.seq_.length(),seqBase_.seq_.length()) >
         largestSizeDifference) {
       largestSizeDifference =
-          std::abs((int)(read.seqBase_.seq_.length() - seqBase_.seq_.length()));
+      		uAbsdiff(read.seqBase_.seq_.length(), seqBase_.seq_.length());
     }
   }
   return largestSizeDifference;
