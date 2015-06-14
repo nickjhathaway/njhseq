@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  kmer.hpp
 //  sequenceTools
 //
@@ -51,30 +71,25 @@ class kmer {
 
 class kmerMaps {
  public:
-  kmerMaps() : qualRunCutOffs_() {}
+  kmerMaps():kLength_(1), runCutOff_(0)  {}
   kmerMaps(std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
                positions, std::unordered_map<std::string, kmer> noPositions,
-           int kmerLength, int runCutOff, int qualRunCutOff, uint32_t readNum)
+           uint32_t kmerLength, uint32_t runCutOff, uint32_t readNum)
       : kmersByPos_(positions),
         kmersAnyWhere_(noPositions),
         kLength_(kmerLength),
-        runCutOff_(runCutOff),
-        qualRunCutOff_(qualRunCutOff),
-        qualRunCutOffs_(generateQualCutOffs(readNum)) {}
+        runCutOff_(runCutOff) {}
   // members
   std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
       kmersByPos_;
   std::unordered_map<std::string, kmer> kmersAnyWhere_;
-  int kLength_;
-  int runCutOff_;
-  int qualRunCutOff_;
-  std::vector<uint32_t> qualRunCutOffs_;
+  uint32_t kLength_;
+  uint32_t runCutOff_;
+
   // functions
   bool isKmerLowFrequency(const std::string& kmer, uint32_t position,
                           bool kmersByPositions, uint32_t cutOff);
-  bool isKmerLowFreqByQual(const std::string& kmer, uint32_t position,
-                           bool kmersByPositions, uint32_t qual);
-  static std::vector<uint32_t> generateQualCutOffs(uint32_t readNum);
+
   static void outputKmerInfo(kmerMaps kMaps, std::ostream& out);
 };
 }  // namespace bib

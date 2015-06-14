@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 #include "sffObject.hpp"
 
 namespace bibseq {
@@ -102,7 +101,7 @@ uint32_t fromBase36(std::string base36){
 	}
 	catch(std::exception& e) {
 
-		exit(1);
+		throw;
 	}
 }
 
@@ -117,6 +116,15 @@ void sffObject::sffAdditionalInitialation() {
   clipAdapterRight_ = 0;
 }
 
+template <typename T>
+std::vector<T> stringToVectorTest(const std::string& strToConvert) {
+	std::vector<T> ret;
+	std::istringstream in( strToConvert );
+	std::copy( std::istream_iterator<T>( in ), std::istream_iterator<T>(),
+		 std::back_inserter( ret ) );
+  return ret;
+}
+
 void sffObject::addSffInfo(std::unordered_map<std::string, std::string> &info) {
   // add various info and the sequence
   seqBase_.name_ = info["Name"];
@@ -127,11 +135,11 @@ void sffObject::addSffInfo(std::unordered_map<std::string, std::string> &info) {
   clipQualLeft_ = std::stoi(info["Clip Qual Left"]);
   clipQualRight_ = std::stoi(info["Clip Qual Right"]);
   // add qual info
-  seqBase_.qual_ = stringToVector<uint32_t>(info["Quality Scores"]);
+  seqBase_.qual_ = stringToVectorTest<uint32_t>(info["Quality Scores"]);
   // add flow indexes
-  flowIndex_ = stringToVector<uint32_t>(info["Flow Indexes"]);
+  flowIndex_ = stringToVectorTest<uint32_t>(info["Flow Indexes"]);
   // add flowgram data
-  flowValues = stringToVector<double>(info["Flowgram"]);
+  flowValues = stringToVectorTest<double>(info["Flowgram"]);
   averageErrorRate = getAverageErrorRate();
   numberOfFlows = flowIndex_[clipQualRight_ - 1];
 }
@@ -212,7 +220,7 @@ void sffObject::decodeName(){
 	}
 	catch(std::exception& e) {
 		//m->errorOut(e, "SffInfoCommand", "decodeName");
-		exit(1);
+		throw;
 	}
 }
 void sffObject::printDescription(std::ostream & out, bool deep) const {
@@ -308,24 +316,18 @@ bool sffObject::sanityCheck(){
 	return okay;
 }
 int sffBinaryHeader::printSffTxtStyle(std::ostream & out){
-	try {
-		out << "Common Header:\nMagic Number: " << magicNumber << std::endl;
-		out << "Version: " << version << std::endl;
-		out << "Index Offset: " << indexOffset << std::endl;
-		out << "Index Length: " << indexLength << std::endl;
-		out << "Number of Reads: " << numReads << std::endl;
-		out << "Header Length: " << headerLength << std::endl;
-		out << "Key Length: " << keyLength << std::endl;
-		out << "Number of Flows: " << numFlowsPerRead << std::endl;
-		out << "Format Code: " << flogramFormatCode << std::endl;
-		out << "Flow Chars: " << flowChars << std::endl;
-		out << "Key Sequence: " << keySequence << std::endl << std::endl;
-		return 0;
-	}
-	catch(std::exception& e) {
-		//m->errorOut(e, "SffInfoCommand", "printCommonHeader");
-		exit(1);
-	}
+	out << "Common Header: \nMagic Number: " << magicNumber << std::endl;
+	out << "Version: " << version << std::endl;
+	out << "Index Offset: " << indexOffset << std::endl;
+	out << "Index Length: " << indexLength << std::endl;
+	out << "Number of Reads: " << numReads << std::endl;
+	out << "Header Length: " << headerLength << std::endl;
+	out << "Key Length: " << keyLength << std::endl;
+	out << "Number of Flows: " << numFlowsPerRead << std::endl;
+	out << "Format Code: " << flogramFormatCode << std::endl;
+	out << "Flow Chars: " << flowChars << std::endl;
+	out << "Key Sequence: " << keySequence << std::endl << std::endl;
+	return 0;
 }
 
 void sffBinaryHeader::printDescription(std::ostream & out, bool deep)const {
@@ -342,6 +344,14 @@ void sffBinaryHeader::printDescription(std::ostream & out, bool deep)const {
 	out << "flowChars: " << flowChars << std::endl;
 	out << "keySequence: " << keySequence << std::endl;
 	out << "}" << std::endl;
+}
+
+readObject convertSffObject(const sffObject& theOtherObject) {
+  readObject ans = readObject(theOtherObject.seqBase_);
+  ans.numberOfFlows =
+      theOtherObject.flowIndex_[theOtherObject.clipQualRight_ - 1];
+  ans.flowValues = theOtherObject.flowValues;
+  return ans;
 }
 
 }  // namespace bib

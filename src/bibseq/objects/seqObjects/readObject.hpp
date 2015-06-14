@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  readObject.hpp
 //  sequenceTools
 //
@@ -21,46 +41,9 @@ class readObject : public baseReadObject {
  public:
   // constructors
   // empty constructor
-  /*
-  readObject():name(""),seq(""),qual(std::vector<int>(0)){
-      initializeOthers();
-  }*/
   readObject() : baseReadObject() { initializeOthers(); }
-  readObject(const seqInfo& seqBase, bool processed = false)
-      : baseReadObject(seqBase) {
-    processRead(processed);
-    initializeOthers();
-  }
-  // constuctor for a given read name, sequence, a vector of quality values,
-  // checks if processed
-  /*readObject(const std::string& readName, const std::string& sequence,
-             const std::vector<uint32_t>& qualities, bool processed = false)
-      : baseReadObject(readName, sequence, qualities) {
-    processRead(processed);
-    initializeOthers();
-  }
-  // constuctor for a given read name, sequence, a default quality of 40 if none
-  // given, checks if processed
-  readObject(const std::string& readName, const std::string& sequence,
-             bool processed = false)
-      : baseReadObject(readName, sequence) {
-    processRead(processed);
-    initializeOthers();
-  }
-  readObject(const std::string& readName, const std::string& sequence,
-             const std::string& stringQual, bool processed = false)
-      : baseReadObject(readName, sequence, stringQual) {
-    processRead(processed);
-    initializeOthers();
-  }
-  // constuctor for a given read name, sequence, a string of fastq quality and
-  // the offset for the conversion to int from char, checks if processed
-  readObject(const std::string& readName, const std::string& sequence,
-             const std::string& stringQual, int off_set, bool processed = false)
-      : baseReadObject(readName, sequence, stringQual, off_set) {
-    processRead(processed);
-    initializeOthers();
-  }*/
+  readObject(const seqInfo& seqBase, bool processed = false);
+
 
   // constructor helpers
   void initializeOthers();
@@ -82,9 +65,10 @@ class readObject : public baseReadObject {
   std::string expectsString;
   int numberOfFlows;
 
-  double cumulativeFraction;
-  double normalizedFraction;
+  //double cumulativeFraction;
+  //double normalizedFraction;
   double averageErrorRate;
+
   uint32_t basesAboveQualCheck_;
   double fractionAboveQualCheck_;
   bool remove;
@@ -100,11 +84,12 @@ class readObject : public baseReadObject {
 
   letterCounter condensedCounter;
 
-  void addQual(std::string stringQual);
-  void addQual(std::string stringQual, int offSet);
+  void addQual(const std::string & stringQual);
+  void addQual(const std::string & stringQual, uint32_t offSet);
+  void addQual(const std::vector<uint32_t> & quals);
 
   void setFractionByCount(size_t totalNumberOfReads);
-  void setNormalizedFraction(size_t totalNumberOfSamples);
+  //void setNormalizedFraction(size_t totalNumberOfSamples);
 
   void setBaseCountOnQualCheck(uint32_t qualCheck);
   void setLetterCount();
@@ -127,15 +112,15 @@ class readObject : public baseReadObject {
   // get various information about the qualities with the sequence
   double getAverageQual() const;
   double getAverageErrorRate() const;
-  double getSumQual() const;
+  uint32_t getSumQual() const;
   // change the name of the object
   virtual void updateName();
   virtual void setName(const std::string& newName);
   void appendName(const std::string& add);
   void setFractionName();
-  void setCumulativeFractionName();
-  void setNormalizedFractionName();
-  void setNormalizedFractionByCumulativeFraction(size_t totalNumberOfSamples);
+  //void setCumulativeFractionName();
+  //void setNormalizedFractionName();
+  //void setNormalizedFractionByCumulativeFraction(size_t totalNumberOfSamples);
   std::string getStubName(bool removeChiFlag) const;
   std::string getReadId() const;
   std::string getOtherReadSampName(const readObject& cr) const;
@@ -151,7 +136,7 @@ class readObject : public baseReadObject {
   size_t findFirstNoisyFlow(const std::vector<double>& flows);
   bool flowNoiseProcess(size_t cutoff);
 
-  // proteiin conversion
+  // Protein conversion
   void convertToProteinFromcDNA(bool transcribeToRNAFirst, size_t start = 0,
                                 bool forceStartM = false);
   std::string getProteinFromcDNA(bool transcribeToRNAFirst, size_t start = 0,
@@ -200,7 +185,13 @@ class readObject : public baseReadObject {
   bool operator>=(const readObject& otherRead) const;
   // description
   virtual void printDescription(std::ostream& out, bool deep = false) const;
+  using size_type = baseReadObject::size_type;
 };
+
+template<>
+inline readObject::size_type len(const readObject & read){
+	return read.seqBase_.seq_.size();
+}
 }  // namespace bib
 
 #ifndef NOT_HEADER_ONLY

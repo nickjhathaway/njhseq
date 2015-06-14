@@ -1,6 +1,7 @@
+#pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,8 +19,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
-#pragma once
 /*
  * randStrGen.hpp
  *
@@ -27,7 +26,9 @@
  *      Author: nickhathaway
  */
 
-#include "bibseq/simulation/randObjectGen.hpp"
+
+#include <bibcpp/simulation/randObjGen.hpp>
+#include "bibseq/simulation/simulationCommon.hpp"
 
 namespace bibseq {
 
@@ -37,18 +38,18 @@ public:
 	//constructor
 	randStrGen(randomGenerator rGen,
 			const std::vector<char> & letters):
-				charGen_(randObjectGen<char,uint32_t>(letters)),
+				charGen_(bib::randObjectGen<char,uint32_t>(letters)),
 				rGen_(rGen){}
 
 	randStrGen(randomGenerator rGen,
 			const std::vector<char> & letters,
 			const std::vector<uint32_t> & counts):
-					charGen_(randObjectGen<char, uint32_t>(letters,counts)),
+					charGen_(bib::randObjectGen<char, uint32_t>(letters,counts)),
 					rGen_(rGen){}
 
 private:
 	//members
-	randObjectGen<char, uint32_t> charGen_;
+	bib::randObjectGen<char, uint32_t> charGen_;
 	randomGenerator rGen_;
 public:
 	//functions

@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  sorting.hpp
 //  sequenceTools
 //
@@ -41,10 +61,6 @@ class readVecSorter {
       sortByName(vec, decending);
     } else if (sortBy == "fraction") {
       sortByFraction(vec, decending);
-    } else if (sortBy == "cumulativeFraction") {
-      sortByCumulativeFraction(vec, decending);
-    } else if (sortBy == "normalizedFraction") {
-      sortByNormalizedFraction(vec, decending);
     } else {
       std::cout << "unrecognized sort option: " << sortBy << ", not sorting"
                 << std::endl;
@@ -127,24 +143,6 @@ class readVecSorter {
     }
   }
 
-  template <class T>
-  static void sortByCumulativeFraction(std::vector<T>& vec, bool decending) {
-    cumulativeFractionComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
-  }
-  template <class T>
-  static void sortByNormalizedFraction(std::vector<T>& vec, bool decending) {
-    normalizedFractionComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
-  }
 
   // structs
   template <class T>
@@ -194,18 +192,7 @@ class readVecSorter {
     }
   };
 
-  template <class T>
-  struct cumulativeFractionComparerStr {
-    bool operator()(const T& first, const T& second) const {
-      return first.cumulativeFraction > second.cumulativeFraction;
-    }
-  };
-  template <class T>
-  struct normalizedFractionComparerStr {
-    bool operator()(const T& first, const T& second) const {
-      return first.normalizedFraction > second.normalizedFraction;
-    }
-  };
+
 
   template <class T>
   struct totalCountAEComparerStr {

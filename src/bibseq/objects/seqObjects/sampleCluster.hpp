@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  sampleCluster.hpp
 //  sequenceTools
 //
@@ -8,130 +28,95 @@
 //
 
 #include "bibseq/objects/seqObjects/cluster.hpp"
+#include "bibseq/objects/helperObjects/sampInfo.hpp"
 
 namespace bibseq {
 
-struct sampInfo {
-  sampInfo()
-      : runName_(""),
-        readCnt_(0),
-        runReadCnt_(0),
-        fraction_(0),
-        numberOfClusters_(0),
-        chiReadCnt_(0),
-        chiNumberOfClusters_(0) {}
-  sampInfo(const readObject& cr) {
-    if (cr.seqBase_.name_.find("CHI") == std::string::npos) {
-      chiReadCnt_ = 0;
-      chiNumberOfClusters_ = 0;
-    } else {
-      chiReadCnt_ = cr.seqBase_.cnt_;
-      chiNumberOfClusters_ = 1;
-    }
-    numberOfClusters_ = 1;
-    readCnt_ = cr.seqBase_.cnt_;
-    runName_ = cr.getOwnSampName();
-  };
-  // updates
-  void update(const readObject& cr) {
-    if (cr.seqBase_.name_.find("CHI") != std::string::npos) {
-      chiReadCnt_ += cr.seqBase_.cnt_;
-      ++chiNumberOfClusters_;
-    }
-    ++numberOfClusters_;
-    readCnt_ += cr.seqBase_.cnt_;
-  }
-  void updateRunReadCnt(double runReadCnt) {
-    runReadCnt_ = runReadCnt;
-    updateFraction();
-  }
-  void updateFraction() { fraction_ = readCnt_ / runReadCnt_; }
-  // samp info
-  std::string runName_;
-  double readCnt_;
-  double runReadCnt_;
-  double fraction_;
-  int numberOfClusters_;
-  // chimeric info
-  double chiReadCnt_;
-  int chiNumberOfClusters_;
 
-  std::string getReadInfo(const std::string& delim = "\t") const {
-    return std::to_string(fraction_) + delim + std::to_string(readCnt_) +
-           delim + std::to_string(numberOfClusters_);
-  }
-  std::string getReadInfo(int cnt, const std::string& delim = "\t") const {
-    return std::to_string(readCnt_ / cnt) + delim + std::to_string(readCnt_) +
-           delim + std::to_string(numberOfClusters_);
-  }
-  std::string getChimeraInfo(const std::string& delim = "\t") const {
-    return std::to_string(chiReadCnt_ / runReadCnt_) + delim +
-           std::to_string(chiReadCnt_) + delim +
-           std::to_string(chiNumberOfClusters_);
-  }
-  std::string getChimeraInfo(int cnt, const std::string& delim = "\t") const {
-    return std::to_string(chiReadCnt_ / cnt) + delim +
-           std::to_string(chiReadCnt_) + delim +
-           std::to_string(chiNumberOfClusters_);
-  }
-};
 
 class sampleCluster : public cluster {
 
  public:
-  template <typename T>
-  sampleCluster(const T& firstCluster) {
-    // std::cout<<"mark con1"<<std::endl;
-    seqBase_.name_ = firstCluster.seqBase_.name_;
-    seqBase_.seq_ = firstCluster.seqBase_.seq_;
-    seqBase_.qual_ = firstCluster.seqBase_.qual_;
-    firstReadName = firstCluster.seqBase_.name_;
-    firstReadCount = firstCluster.seqBase_.cnt_;
-    // normalizedFraction = 0;
-    seqBase_.frac_ = firstCluster.seqBase_.frac_;
-    cumulativeFraction = firstCluster.seqBase_.frac_;
-    seqBase_.cnt_ = firstCluster.seqBase_.cnt_;
-    normalizedFraction = firstCluster.normalizedFraction;
-    sampName = getOwnSampName();
-    // create tempObject to add to reads
-    readObject tempObject(seqInfo(firstCluster.seqBase_.name_,
-                                  firstCluster.seqBase_.seq_,
-                                  firstCluster.seqBase_.qual_));
-    tempObject.seqBase_.frac_ = firstCluster.seqBase_.frac_;
-    tempObject.cumulativeFraction = firstCluster.cumulativeFraction;
-    tempObject.seqBase_.cnt_ = firstCluster.seqBase_.cnt_;
-    reads_.emplace_back(tempObject);
-    updateInfoWithRead(tempObject, 0);
-    // std::cout<<"sampName: "<<sampName<<std::endl;
-    // reads.clear();
-    // addRead(firstCluster);
-    remove = false;
-    // normalizedFraction=firstCluster.normalizedFraction;
-    // std::cout<<"mark con2"<<std::endl;
-  }
-  sampleCluster() {}
+  //template <typename T>
+  sampleCluster(const readObject& initializerRead, const std::map<std::string, sampInfo>& infos) ;
+
+  //sampleCluster(){}
 
   virtual void updateName();
   virtual void setName(const std::string& newName);
+
+
+
   void addRead(const cluster& cr);
+  void updateInfoWithRead(const readObject& read, uint32_t pos);
 
   void update(const std::map<std::string, sampInfo>& infos);
-  void update(const cluster& cr);
-  void updateInfoWithRead(const readObject& read, uint32_t pos);
+
   void updateFractionInfo();
   // info
+  uint32_t numberOfRuns()const;
+
+  double getAveragedFrac()const;
+  double getCumulativeFrac()const;
+
+  double getAveragedFrac(const VecStr & forClusters)const;
+  double getCumulativeFrac(const VecStr & forClusters)const;
+  double getReadCnt(const VecStr & forClusters)const;
+  uint32_t getSampNum(const VecStr & forClusters)const;
+ private:
+  double getAveragedFrac(const std::vector<uint32_t> & forClusters)const;
+  double getCumulativeFrac(const std::vector<uint32_t> & forClusters)const;
+  double getReadCnt(const std::vector<uint32_t> & forClusters)const;
+  uint32_t getSampNum(const std::vector<uint32_t> & forClusters)const;
+ public:
+
+  std::vector<uint32_t> getReadPositions(const VecStr & forClusters)const;
+
+  double getReadWeightedAveragedFrac()const;
+
   std::string getChimeraInfo(const std::string& delim = "\t") const;
-  std::string getStandardInfo(int sampReadCnt,
-                              const std::string& delim = "\t") const;
-  std::string getPopStandardInfo(double popReadCnt, uint32_t popClusNum,
-                                 uint32_t sampNum, bool addProtein,
+
+  std::string getSampleInfo(const std::string& delim = "\t") const;
+  static std::string getSampleInfoHeader(const std::string & delim = "\t");
+
+	std::string getRepsInfo(const std::map<std::string, sampInfo> & input,
+			const std::map<std::string, sampInfo> & excluded,
+			const std::map<std::string, sampInfo> & collapsed,uint32_t maxRepCount, bool checkingExpected,
+			const std::string& delim = "\t") const;
+
+  static std::string getRepsInfoHeader(uint32_t maxRunCount,bool checkingExpected, const std::string & delim = "\t");
+
+
+  std::string getPopInfo(double popReadCnt, uint32_t popClusNum,
+                                 uint32_t sampNum,const VecStr & forClusters,
                                  const std::string& delim = "\t") const;
-  // members
-  uint32_t numberOfRuns_;
-  // std::map<std::string, std::vector<readObject>> sampleClusters_;
+
+  std::string getPopInfo(double popReadCnt, uint32_t popClusNum,
+                                 uint32_t sampNum,
+                                 const std::string& delim = "\t") const;
+
+  static std::string getPopInfoHeader(const std::string & delim = "\t");
+
+  std::string getFullPopInfo(double popReadCnt, uint32_t popClusNum,
+                                 uint32_t sampNum,uint32_t numOfHaps, const std::string& moiHeader,
+                                 const std::string& delim = "\t") const;
+
+	std::string getFullPopInfo(double popReadCnt, uint32_t popClusNum,
+			uint32_t sampNum, uint32_t numOfUniHaps, const std::string& moiInfo,
+			const VecStr & forClusters, const std::string& delim = "\t") const;
+
+  static std::string getFullPopInfoHeader(const std::string& moiHeader, const std::string & delim = "\t");
+
+  void resetInfos();
+
+protected:
   std::map<std::string, std::vector<uint32_t>> sampleClusters_;
   std::map<std::string, sampInfo> sampInfos_;
-
+public:
+  const std::map<std::string, sampInfo> & sampInfos()const{return sampInfos_;}
+  void setSampInfos(const std::map<std::string, sampInfo> & sampInfos){
+  	sampInfos_ = sampInfos;
+  }
   template <typename T>
   static void updateAllClusters(std::vector<T>& clusters,
                                 const std::map<std::string, sampInfo>& infos) {

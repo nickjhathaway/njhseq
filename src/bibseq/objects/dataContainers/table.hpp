@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  table.hpp
 //  sequenceTools
 //
@@ -54,96 +74,115 @@ struct outOptions {
 };
 
 class table {
-
  public:
-  // constructors
-  table() : hasHeader_(false) {}
-  table(const std::vector<VecStr> &inContent, const VecStr &inColumnNames)
-      : content_(inContent) {
-    size_t pos = 0;
-    for (const auto &cIter : inColumnNames) {
-      colNames_.insert(std::make_pair(cIter, pos));
-      ++pos;
-    }
-    columnNames_ = inColumnNames;
-    hasHeader_ = true;
-    addPaddingToEndOfRows();
-  }
-  table(const std::vector<VecStr> &inContent) : content_(inContent) {
-    hasHeader_ = false;
-    addPaddingToEndOfRows();
-    for (auto i : iter::range(0, (int)content_[0].size())) {
-      columnNames_.push_back(
-          combineStrings({"col.", leftPadNumStr(i, (int)content_[0].size())}));
-    }
-  }
-  table(std::istream & in, const std::string &inDelim = " ",
-          bool header = false);
-
-  table(const std::string &filename, const std::string &inDelim = " ",
-        bool header = false);
-  /*
-   * Construct with simple unordered_map
+	table() :
+			hasHeader_(false) {
+	}
+	/**@b Construct with a vec of vec of strings with column name
+	 *
+	 * @param content The content to be put into the table
+	 * @param columnNames The column names for the table
+	 */
+	table(const std::vector<VecStr> &content, const VecStr &columnNames) :
+			content_(content), columnNames_(columnNames), hasHeader_(true) {
+		addPaddingToEndOfRows();
+		setColNamePositions();
+	}
+	/**@b Construct with a vector of vector of strings for content, no headers
+	 *
+	 * @param inContent
+	 */
+	table(const std::vector<VecStr> &content) :
+			content_(content), hasHeader_(false) {
+		addPaddingToEndOfRows();
+		for (auto i : iter::range(content_[0].size())) {
+			columnNames_.emplace_back("col." + leftPadNumStr(i, content_[0].size()));
+		}
+	}
+	/**@b Construct with just column names, data to be put in latter
+	 *
+	 * @param columnNames A vector of column names
+	 */
+	table(const VecStr &columnNames) :
+			columnNames_(columnNames), hasHeader_(true) {
+		setColNamePositions();
+	}
+	/**@b Construct with a stream with lines separated by new line characters and each line is delimited
+	 *
+	 * @param in In stream
+	 * @param inDelim The delimiter per line
+	 * @param header Whether the first line is a header
+	 */
+	table(std::istream & in, const std::string &inDelim = " ",
+			bool header = false);
+	/**@b Construct with a file with lines separated by new line characters and each line is delimited
+	 *
+	 * @param in In file name
+	 * @param inDelim The delimiter per line
+	 * @param header Whether the first line is a header
+	 */
+	table(const std::string &filename, const std::string &inDelim = " ",
+			bool header = false);
+  /**@b Construct with simple unordered_map
+   *
    */
   template <typename KEY, typename VALUE>
   table(const std::unordered_map<KEY, VALUE> &inMap, const VecStr &columnNames)
-      : hasHeader_(true), columnNames_(columnNames) {
+      : columnNames_(columnNames),hasHeader_(true) {
     for (const auto &row : inMap) {
       content_.emplace_back(pairToVecStr(row));
     }
+    setColNamePositions();
   }
   template <typename MAP1KEY, typename MAP2KEY, typename MAP2VALUE>
   table(const std::map<MAP1KEY, std::map<MAP2KEY, MAP2VALUE>> &input,
         const VecStr &colNames)
-      : hasHeader_(true), columnNames_(colNames) {
+      : columnNames_(colNames), hasHeader_(true) {
     // std::cout <<"at least started" << std::endl;
     for (const auto &m1 : input) {
       // std::cout << "m1.first" << m1.first << std::endl;
       for (const auto &m2 : m1.second) {
-        content_.emplace_back(VecStr{to_string(m1.first), to_string(m2.first),
-                                     to_string(m2.second)});
+        content_.emplace_back(toVecStr(m1.first,m2.first,
+                                     m2.second));
       }
     }
+    setColNamePositions();
   }
   template <typename MAP1KEY, typename MAP2KEY, typename MAP2VALUE>
   table(const std::unordered_map<MAP1KEY,
                                  std::unordered_map<MAP2KEY, MAP2VALUE>> &input,
         const VecStr &colNames)
-      : hasHeader_(true), columnNames_(colNames) {
+      : columnNames_(colNames),hasHeader_(true) {
     // std::cout <<"at least started" << std::endl;
     for (const auto &m1 : input) {
       // std::cout << "m1.first" << m1.first << std::endl;
       for (const auto &m2 : m1.second) {
-        content_.emplace_back(VecStr{to_string(m1.first), to_string(m2.first),
-                                     to_string(m2.second)});
+        content_.emplace_back(toVecStr(m1.first,m2.first,
+                                     m2.second));
       }
     }
+    setColNamePositions();
   }
-  /*
-   * Construct with simple map
-   */
+
   template <typename KEY, typename VALUE>
   table(const std::map<KEY, VALUE> &inMap, const VecStr &columnNames)
-      : hasHeader_(true), columnNames_(columnNames) {
+      :columnNames_(columnNames), hasHeader_(true) {
     for (const auto &row : inMap) {
       content_.emplace_back(pairToVecStr(row));
     }
-  }
-  /*
-   * Construct with just column names, data to be put in latter
-   */
-  table(const VecStr &columnNames)
-      : hasHeader_(true), columnNames_(columnNames) {
+    setColNamePositions();
   }
 
-  // memebers
-  bool hasHeader_;
+
+  // members
   std::vector<VecStr> content_;
   VecStr columnNames_;
-  std::map<std::string, size_t> colNames_;
+  std::unordered_map<std::string, uint32_t> colNameToPos_;
+  bool hasHeader_;
   std::string inDelim_;
-  // functions
 
+  void setColNamePositions();
+  uint32_t getColPos(const std::string & colName)const;
   // to ensure all the rows have equal length
   void addPaddingToEndOfRows();
   void addPaddingZeros();
@@ -159,12 +198,12 @@ class table {
   void outPutContents(std::ostream &out, std::string delim) const;
   void outPutContentOrganized(std::ostream &out) const;
   // extracting columns
-  table getColumns(const VecStr &specificColumnNames);
-  table getColumns(const std::vector<uint32_t> &specificColumnPositions);
+  table getColumns(const VecStr &specificColumnNames)const;
+  table getColumns(const std::vector<uint32_t> &specificColumnPositions)const;
   table getColumnsNotAtPositions(
-      const std::vector<uint32_t> &specificColumnPositions);
-  table getColumnsLoose(const std::string &subStr);
-  table getColumnsStartWith(const std::string &startsWith);
+      const std::vector<uint32_t> &specificColumnPositions)const;
+  table getColumnsLoose(const std::string &subStr)const;
+  table getColumnsStartWith(const std::string &startsWith)const;
   VecStr getColumn(const std::string &specifcColumnName) const;
   VecStr getColumn(uint32_t pos) const;
   std::vector<std::string *> getColumnPointer(
@@ -174,13 +213,13 @@ class table {
   void deleteColumn(size_t columnIndex);
   // extracting rows
   table getRows(const std::string &forColumn, const std::string &element) const;
-  table getRows(const std::vector<uint32_t> &specificRowPositions);
+  table getRows(const std::vector<uint32_t> &specificRowPositions)const;
   table getRowsLoose(const std::string &forColumn,
                      const std::string &subString) const;
   table getRowsStartsWith(const std::string &forColumn,
-                          const std::string &startsWtih);
+                          const std::string &startsWtih)const;
   // get unique rows only
-  table getUniqueRows();
+  table getUniqueRows()const;
   // deleting a row
   void deleteRow(size_t rowIndex);
   // sort the table
@@ -212,6 +251,10 @@ class table {
                                  bool outOrganized);
   std::map<std::string, uint32_t> countColumn(const std::string &columnName);
   std::map<std::string, uint32_t> countColumn(uint32_t colPos);
+
+  table countColumn(const VecStr &columnNames);
+  table countColumn(const std::vector<uint32_t> & colPositions);
+
   table getStatsTable() const;
   table aggregateSimple(const std::string &columnName,
                         const std::string &function, bool addZeros = true);
@@ -223,35 +266,54 @@ class table {
                      const std::string &columnForceMatch, bool addZeros = true);
   void removeEmpty(bool addPadding);
 
-  table extractNumColGreater(uint32_t colPos, double cutOff);
-  table extractNumColGreater(const std::string & colName, double cutOff);
+  table extractNumColGreater(uint32_t colPos, double cutOff)const;
+  table extractNumColGreater(const std::string & colName, double cutOff)const;
+
+  VecStr getColumnLevels(uint32_t colPos);
+  VecStr getColumnLevels(const std::string & colName);
+
   template<typename UnaryPredicate>
-  table extractByComp(uint32_t colPos, UnaryPredicate p){
+  table extractByComp(uint32_t colPos, UnaryPredicate p)const{
   	table out(columnNames_);
-  	if(colPos < len(columnNames_)){
-  		for(const auto & rowPos : iter::range(len(content_))){
+  	if(colPos < columnNames_.size()){
+  		for(const auto & rowPos : iter::range(content_.size())){
   			if(p(content_[rowPos][colPos])){
   				out.content_.emplace_back(content_[rowPos]);
   			}
   		}
   	}else{
-  		std::cout << "columnPos: " << colPos << "is out of bounds of " << len(columnNames_) << std::endl;
-  		exit(1);
+  		std::stringstream ss;
+  		ss << "columnPos: " << colPos << "is out of bounds of " << columnNames_.size() << std::endl;
+  		throw std::out_of_range{ss.str()};
   	}
   	return out;
   }
   template<typename UnaryPredicate>
-  table extractByComp(const std::string & columnName, UnaryPredicate p){
+  table extractByComp(const std::string & columnName, UnaryPredicate p)const{
   	if(in(columnName, columnNames_)){
   		uint32_t pos = getFirstPositionOfTarget(columnNames_,columnName );
   		return extractByComp(pos, p);
   	}else{
-  		std::cout << "columnName: " << columnName << "doesn't exist" << std::endl;
-  		std::cout << "options are : "; printVector(columnNames_, ", ");
-  		exit(1);
+  		std::stringstream ss;
+  		ss << "columnName: " << columnName << "doesn't exist" << std::endl;
+  		ss << "options are : "; printVector(columnNames_, ", ");
+  		throw std::runtime_error{ss.str()};
   		return table();
   	}
   }
+	auto begin() const {
+		return content_.begin();
+	}
+	auto end() const {
+		return content_.end();
+	}
+
+	auto begin() {
+		return content_.begin();
+	}
+	auto end() {
+		return content_.end();
+	}
 };
 }  // namespace bib
 

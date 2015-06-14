@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  cluster.h
 //  ampliconCluster
 //
@@ -27,13 +47,14 @@ class cluster : public baseCluster {
 
   cluster(const readObject &firstRead) : baseCluster(firstRead) {
     rejected_ = false;
+    setLetterCount();
     // std::cout <<"calling the cluster first read constructor " << std::endl;
   }
   cluster(const cluster & other): baseCluster(other), rejected_(other.rejected_), mtx_(),
   		frontChiPos(other.frontChiPos), endChiPos(other.endChiPos),
   		endChimeras(other.endChimeras), allInputClusters(other.allInputClusters),
   		amountAverageMap_(other.amountAverageMap_), pValueMap_(other.pValueMap_){
-
+  	setLetterCount();
   }
 
   cluster& operator= (const cluster& other){
@@ -221,6 +242,7 @@ cluster getConsensus(const std::vector<T> & reads, aligner & alignerObj,
 		mainCluster.addRead(clus);
 	}
 	mainCluster.calculateConsensus(alignerObj, true);
+
 	mainCluster.setName(name);
 	return mainCluster;
 }

@@ -7,7 +7,7 @@ from utils import Utils
 from genFuncs import genHelper
 def main():
     name = "bibseq"
-    libs = "cppitertools,zi_lib,boost,r,bamtools,curl,bibcpp,armadillo"
+    libs = "cppitertools,zi_lib,boost,bamtools,curl,bibcpp,armadillo"
     args = genHelper.parseNjhConfigureArgs()
     cmd = genHelper.mkConfigCmd(name, libs, sys.argv)
     Utils.run(cmd)

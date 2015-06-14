@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  clusterSpecific.hpp
 //  sequenceTools
 //
@@ -11,12 +31,12 @@
 // nick 7.17.13
 //////////********************/////////////////////
 
-#include "bibseq/objects/helperObjects/hpRun.hpp"
+
 #include "bibseq/objects/helperObjects/kmer.hpp"
 #include "bibseq/utils/vectorUtils.hpp"
 #include "bibseq/alignment/aligner.hpp"
 #include "bibseq/readVectorManipulation/readVectorOperations/massGetters.hpp"
-#include <bibcpp/files/fileUtils.hpp>
+//#include <bibcpp/files/fileUtils.hpp>
 
 /// setting quality representation
 namespace bibseq {
@@ -30,10 +50,10 @@ static void allWriteAllInputClusters(const std::vector<T> &reads,
 }
 template <typename T>
 static void allWriteOutClusters(const std::vector<T> &reads,
-                                const std::string &workingDir) {
-  for_each(reads, [&](const T &read) { read.writeOutClusters(workingDir); });
+                                const std::string &workingDir, const readObjectIOOptions & ioOptions) {
+  for_each(reads, [&](const T &read) { read.writeOutClusters(workingDir, ioOptions); });
 }
-
+/*
 template <typename T>
 static void allWriteOutAlignments(std::vector<T> &reads,
                                   const std::string &workingDirectory,
@@ -55,7 +75,7 @@ static void allWriteOutLongestAlignments(std::vector<T> &reads,
       read.writeOutLongestAlignments(dir);
     }
   }
-}
+}*/
 // manipulators
 template <typename T>
 static void allCalculateConsensus(std::vector<T> &reads, aligner &alignerObj,
@@ -102,25 +122,38 @@ bool isClusterCompletelyChimeric(const std::vector<CLUSTER> &clusters) {
   return true;
 }
 
-template <typename CLUSTER>
+template<typename CLUSTER>
 bool isClusterAtLeastHalfChimeric(const std::vector<CLUSTER> &clusters) {
-  size_t chiCount = 0;
-  uint32_t chiReadCnt = 0;
-  double total = readVec::getTotalReadCount(clusters);
-  for (const auto &clus : clusters) {
-    if (clus.seqBase_.name_.find("CHI") != std::string::npos) {
-      ++chiCount;
-      chiReadCnt+= clus.seqBase_.cnt_;
-    }
-  }
-  if (chiReadCnt >= total/ 2.0) {
-      return true;
-    }
-  /*
-  if (chiCount >= (double)clusters.size() / 2.0) {
-    return true;
-  }*/
-  return false;
+	size_t chiCount = 0;
+	uint32_t chiReadCnt = 0;
+	double total = readVec::getTotalReadCount(clusters);
+	for (const auto &clus : clusters) {
+		if (clus.seqBase_.name_.find("CHI") != std::string::npos) {
+			++chiCount;
+			chiReadCnt += clus.seqBase_.cnt_;
+		}
+	}
+	if (chiReadCnt >= total / 2.0) {
+		return true;
+	}
+	return false;
+}
+
+template<typename CLUSTER>
+bool isClusterAtLeastChimericCutOff(const std::vector<CLUSTER> &clusters, double cutOff) {
+	size_t chiCount = 0;
+	uint32_t chiReadCnt = 0;
+	double total = readVec::getTotalReadCount(clusters);
+	for (const auto &clus : clusters) {
+		if (clus.seqBase_.name_.find("CHI") != std::string::npos) {
+			++chiCount;
+			chiReadCnt += clus.seqBase_.cnt_;
+		}
+	}
+	if (chiReadCnt/total >= cutOff) {
+		return true;
+	}
+	return false;
 }
 
 template <typename CLUSTER>

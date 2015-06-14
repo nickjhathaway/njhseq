@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,9 +18,19 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 #include "readObject.hpp"
 namespace bibseq {
+
+
+readObject::readObject(const seqInfo& seqBase, bool processed)
+    : baseReadObject(seqBase) {
+  processRead(processed);
+  initializeOthers();
+  //std::cout << "readObject constructor: " << std::endl;
+  //std::cout << seqBase_.name_ << std::endl;
+  //std::cout << seqBase_.cnt_ << std::endl;
+  //std::cout << seqBase_.frac_ << std::endl;
+}
 
 std::string readObject::getOtherReadSampName(const readObject& cr) const {
   VecStr toks = tokenizeString(cr.seqBase_.name_, ".");
@@ -33,17 +43,14 @@ std::string readObject::getOwnSampName() const {
 
 /// chagening the name of the cluster
 void readObject::updateName() {
-  size_t totalPos = seqBase_.name_.rfind("_t");
-  if (totalPos != std::string::npos) {
-    seqBase_.name_ = seqBase_.name_.substr(0, totalPos);
-  }
-  seqBase_.name_ += "_t" + to_string(seqBase_.cnt_);
+	seqBase_.updateName();
 }
 
 void readObject::setName(const std::string& newName) {
-  seqBase_.name_ = newName + "_t" + to_string(seqBase_.cnt_);
+  seqBase_.name_ = newName + "_t" + estd::to_string(seqBase_.cnt_);
   sampName = getOwnSampName();
 }
+
 void readObject::setFractionName() {
   size_t tPos = seqBase_.name_.rfind("_t");
   size_t fPos = seqBase_.name_.rfind("_f");
@@ -62,107 +69,25 @@ std::string readObject::getReadId() const {
   return seqBase_.name_.substr(firstPeriod + 1, firstUnder - firstPeriod - 1);
 }
 std::string readObject::getStubName(bool removeChiFlag) const {
-  size_t tPos = seqBase_.name_.rfind("_t");
-  size_t fPos = seqBase_.name_.rfind("_f");
-  std::string outString = seqBase_.name_;
-  if (tPos == std::string::npos && fPos == std::string::npos) {
-    outString = seqBase_.name_;
-  } else if (tPos != std::string::npos && fPos != std::string::npos) {
-    if (tPos < fPos) {
-      outString = seqBase_.name_.substr(0, tPos);
-    } else {
-      outString = seqBase_.name_.substr(0, fPos);
-    }
-  } else if (tPos == std::string::npos) {
-    outString = seqBase_.name_.substr(0, fPos);
-  } else {
-    outString = seqBase_.name_.substr(0, tPos);
-  }
-
-  if (removeChiFlag) {
-    outString = replaceString(outString, "CHI_", "");
-  }
-  return outString;
+  return seqBase_.getStubName(removeChiFlag);
 }
 
-void readObject::setCumulativeFractionName() {
-  size_t tPos = seqBase_.name_.rfind("_t");
-  size_t fPos = seqBase_.name_.rfind("_f");
-  if (tPos == std::string::npos && fPos == std::string::npos) {
 
-  } else if (tPos == std::string::npos) {
-    seqBase_.name_ = seqBase_.name_.substr(0, fPos);
-  } else {
-    seqBase_.name_ = seqBase_.name_.substr(0, tPos);
-  }
-  seqBase_.name_ += "_f" + std::to_string(cumulativeFraction);
-}
-void readObject::setNormalizedFractionName() {
-  size_t tPos = seqBase_.name_.rfind("_t");
-  size_t fPos = seqBase_.name_.rfind("_f");
-  if (tPos == std::string::npos && fPos == std::string::npos) {
 
-  } else if (tPos == std::string::npos) {
-    seqBase_.name_ = seqBase_.name_.substr(0, fPos);
-  } else {
-    seqBase_.name_ = seqBase_.name_.substr(0, tPos);
-  }
-  seqBase_.name_ += "_f" + std::to_string(normalizedFraction);
-}
 
 void readObject::appendName(const std::string& add) {
   size_t totalPos = seqBase_.name_.rfind("_t");
   if (totalPos != std::string::npos) {
     seqBase_.name_ = seqBase_.name_.substr(0, totalPos);
   }
-  seqBase_.name_ += add + "_t" + to_string(seqBase_.cnt_);
+  seqBase_.name_ += add + "_t" + estd::to_string(seqBase_.cnt_);
 }
 
 void readObject::processRead(bool processed) {
-  bool setFraction = false;
-  if (processed) {
-    VecStr toks;
-    bool containsAllNumbers = true;
-    if (seqBase_.name_.find("_t") == std::string::npos &&
-        seqBase_.name_.find("_f") == std::string::npos) {
-      if (seqBase_.name_.rfind("_") == std::string::npos) {
-        std::cout << "Improper name format for processed read, should have a "
-                     "_# or _t# where # is the number of reads the sequence "
-                     "represents" << std::endl;
-        std::cout << "failed due to name not have a _ or _t, " << seqBase_.name_
-                  << std::endl;
-        exit(1);
-      } else {
-        toks = tokenizeString(seqBase_.name_, "_");
-      }
-    } else if (seqBase_.name_.find("_t") != std::string::npos) {
-      toks = tokenizeString(seqBase_.name_, "_t");
-    } else {
-      toks = tokenizeString(seqBase_.name_, "_f");
-      setFraction = true;
-    }
-    containsAllNumbers = stringContainsAllDigitsDouble(toks[toks.size() - 1]);
-    if (containsAllNumbers) {
-      seqBase_.cnt_ = std::stod(toks[toks.size() - 1]);
-      if (setFraction) {
-        seqBase_.frac_ = seqBase_.cnt_;
-        seqBase_.cnt_ = seqBase_.frac_ * 1000;
-      }
-      seqBase_.name_ = seqBase_.name_.substr(0, seqBase_.name_.rfind("_")) +
-                       "_t" + to_string(seqBase_.cnt_);
-    } else {
-      std::cout << "Improper name format for processed read, should have a _# "
-                   "or _t# where # is the number of reads the sequence "
-                   "represents" << std::endl;
-      std::cout << "failed due to # containing a non-digit character, "
-                << toks[toks.size() - 1] << std::endl;
-      exit(1);
-      // error
-    }
-  } else {
-    // seqBase_.cnt_ = seqBase.cnt_;
-  }
+	seqBase_.processRead(processed);
 }
+
+
 void readObject::initializeOthers() {
   flowValues.clear();
   seqClip = "";
@@ -171,24 +96,24 @@ void readObject::initializeOthers() {
   condensedSeqCount.clear();
   averageErrorRate = getAverageErrorRate();
   remove = false;
-  cumulativeFraction = 0;
-  normalizedFraction = 0;
   numberOfFlows = 0;
   basesAboveQualCheck_ = 0;
   fractionAboveQualCheck_ = 0;
   sampName = getOwnSampName();
 }
 
-void readObject::addQual(std::string qualString) {
-  seqBase_.qual_ = stringToVector<uint32_t>(qualString);
+void readObject::addQual(const std::string & qualString) {
+	seqBase_.addQual(qualString);
   averageErrorRate = getAverageErrorRate();
 }
 
-void readObject::addQual(std::string qualString, int offSet) {
-  seqBase_.qual_.clear();
-  for (size_t i = 0; i < qualString.size(); ++i) {
-    seqBase_.qual_.push_back(qualString[i] - offSet);
-  }
+void readObject::addQual(const std::string & qualString, uint32_t offSet) {
+	seqBase_.addQual(qualString, offSet);
+  averageErrorRate = getAverageErrorRate();
+}
+
+void readObject::addQual(const std::vector<uint32_t> & quals){
+	seqBase_.addQual(quals);
   averageErrorRate = getAverageErrorRate();
 }
 
@@ -226,7 +151,7 @@ void readObject::createCondensedSeq() {
     } else {
       condensedSeq.push_back(seqBase_.seq_[i - 1]);
       condensedSeqQual.push_back(vectorMean(currentQuals));
-      currentQualPos.second = len(currentQuals);
+      currentQualPos.second = currentQuals.size();
       condensedSeqQualPos.emplace_back(currentQualPos);
       currentQualPos.first = i;
       condensedSeqCount.push_back(currentCount);
@@ -247,7 +172,7 @@ void readObject::createCondensedSeq() {
   }
   condensedSeq.push_back(seqBase_.seq_[i - 1]);
   condensedSeqQual.push_back(vectorMean(currentQuals));
-  currentQualPos.second = len(currentQuals);
+  currentQualPos.second = currentQuals.size();
   condensedSeqQualPos.emplace_back(currentQualPos);
   condensedSeqCount.push_back(currentCount);
   if (print) {
@@ -264,73 +189,40 @@ void readObject::createCondensedSeq() {
 }
 
 void readObject::setClip(size_t leftPos, size_t rightPos) {
-  seqBase_.seq_ = seqBase_.seq_.substr(leftPos, rightPos - leftPos + 1);
-  seqBase_.qual_.erase(seqBase_.qual_.begin() + rightPos + 1,
-                       seqBase_.qual_.end());
-  seqBase_.qual_.erase(seqBase_.qual_.begin(),
-                       seqBase_.qual_.begin() + leftPos);
-  averageErrorRate = getAverageErrorRate();
+	seqBase_.setClip(leftPos, rightPos);
+	averageErrorRate = getAverageErrorRate();
 }
-void readObject::setClip(size_t rightPos) { setClip(0, rightPos); }
+void readObject::setClip(size_t rightPos) {
+	setClip(0, rightPos);
+}
 void readObject::setClip(const std::pair<int, int>& positions) {
-  setClip(positions.first, positions.second);
+	setClip(positions.first, positions.second);
 }
 
 void readObject::trimFront(size_t upToPosNotIncluding) {
   setClip(upToPosNotIncluding, seqBase_.seq_.size() - 1);
-  /*
-  seq=seqBase_.seq_.substr(upToPosNotIncluding);
-  seqBase_.qual_.erase(qual.begin(),qual.begin()+upToPosNotIncluding-1);
-  */
-  averageErrorRate = getAverageErrorRate();
 }
 void readObject::trimBack(size_t fromPositionIncluding) {
   setClip(0, fromPositionIncluding - 1);
-  /*
-  seq=seqBase_.seq_.substr(0,fromPositionIncluding);
-  seqBase_.qual_.erase(qual.begin()+fromPositionIncluding,qual.end());*/
-  averageErrorRate = getAverageErrorRate();
+
 }
 
 double readObject::getAverageQual() const {
-
-  double sum = 0;
-  for (const auto& q : seqBase_.qual_) {
-    sum += q;
-  }
-  return sum / seqBase_.qual_.size();
+	return seqBase_.getAverageErrorRate();
 }
 
 double readObject::getAverageErrorRate() const {
-  double sum = 0;
-  for (const auto& q : seqBase_.qual_) {
-    sum += pow(10.0, -(q / 10.0));
-  }
-
-  return sum / seqBase_.qual_.size();
+	return seqBase_.getAverageErrorRate();
 }
 
-double readObject::getSumQual() const {
-  double sum = 0;
-  for (const auto& q : seqBase_.qual_) {
-    sum += q;
-  }
-  return sum;
+uint32_t readObject::getSumQual() const {
+	return seqBase_.getSumQual();
 }
 
 void readObject::setFractionByCount(size_t totalNumberOfReads) {
-  seqBase_.frac_ = (double)seqBase_.cnt_ / totalNumberOfReads;
-  cumulativeFraction = seqBase_.frac_;
+  seqBase_.frac_ = seqBase_.cnt_ / totalNumberOfReads;
 }
 
-void readObject::setNormalizedFraction(size_t totalNumberOfSamples) {
-  normalizedFraction = seqBase_.frac_ / totalNumberOfSamples;
-}
-
-void readObject::setNormalizedFractionByCumulativeFraction(
-    size_t totalNumberOfSamples) {
-  normalizedFraction = cumulativeFraction / totalNumberOfSamples;
-}
 
 std::vector<size_t> readObject::findSubsequenceOccurences(
     const std::string& search) const {
@@ -372,7 +264,7 @@ void readObject::outPutCondensedQual(std::ostream& out) const {
 
 // special output
 void readObject::checkSeqQual(std::ostream& outFile) const {
-  for (int i = 0; i < (int)seqBase_.seq_.length(); i++) {
+  for (uint32_t i = 0; i < seqBase_.seq_.length(); ++i) {
     outFile << seqBase_.seq_[i] << ":" << seqBase_.qual_[i] << " ";
   }
   outFile << std::endl;
@@ -385,11 +277,13 @@ void readObject::setLetterCount() {
 	counter_.setFractions();
   //counter_ = letterCounter(seqBase_.seq_, seqBase_.qual_);
 }
+
 void readObject::setLetterCount(const std::vector<char> & alph){
 	counter_ = charCounterArray(alph);
 	counter_.increaseCountByString(seqBase_.seq_, seqBase_.cnt_);
 	counter_.setFractions();
 }
+
 void readObject::setCondensedCounter() {
   condensedCounter = letterCounter(condensedSeq);
 }
@@ -447,28 +341,27 @@ bool readObject::operator<=(const readObject& otherRead) const {
 }
 
 void readObject::setBaseCountOnQualCheck(uint32_t qualCheck) {
-  basesAboveQualCheck_ = count_if(seqBase_.qual_, [&](const uint32_t & q){ return q>=qualCheck;});
-  fractionAboveQualCheck_ = (double)basesAboveQualCheck_ / seqBase_.qual_.size();
+  basesAboveQualCheck_ = bib::count_if(seqBase_.qual_, [&qualCheck](const uint32_t & q){ return q>=qualCheck;});
+  fractionAboveQualCheck_ = static_cast<double>(basesAboveQualCheck_) / seqBase_.qual_.size();
 }
 
 void readObject::replace(const std::string& toBeReplaced,
                          const std::string& replaceWith, bool allOccurences) {
   std::vector<size_t> occurences = findSubsequenceOccurences(toBeReplaced);
   std::reverse(occurences.begin(), occurences.end());
-  for (std::vector<size_t>::iterator oIter = occurences.begin();
-       oIter != occurences.end(); ++oIter) {
+  for (const auto pos : occurences) {
     std::vector<uint32_t> currentQuals;
-    for (size_t i = *oIter; i < *oIter + toBeReplaced.size(); ++i) {
-      currentQuals.push_back(seqBase_.qual_[i]);
+    for (const auto & subPos : iter::range(pos, pos + toBeReplaced.size())) {
+      currentQuals.push_back(seqBase_.qual_[subPos]);
     }
     for (size_t i = 0; i < toBeReplaced.size(); ++i) {
-      seqBase_.seq_.erase(seqBase_.seq_.begin() + *oIter);
-      seqBase_.qual_.erase(seqBase_.qual_.begin() + *oIter);
+      seqBase_.seq_.erase(seqBase_.seq_.begin() + pos);
+      seqBase_.qual_.erase(seqBase_.qual_.begin() + pos);
     }
     double meanQual = vectorMean(currentQuals);
-    seqBase_.qual_.insert(seqBase_.qual_.begin() + *oIter, replaceWith.size(),
+    seqBase_.qual_.insert(seqBase_.qual_.begin() + pos, replaceWith.size(),
                           meanQual);
-    seqBase_.seq_.insert(*oIter, replaceWith.c_str());
+    seqBase_.seq_.insert(pos, replaceWith.c_str());
   }
 }
 
@@ -495,6 +388,7 @@ int readObject::clipToNinetyPercentOfFlows(size_t cutOff) {
   std::cout << "Clipped to : " << processedFlowValues.size() << std::endl;
   int clipTo = getNumberOfBasesFromFlow(flowValues);
   // setClip(0, clipTo);
+  //exit(
   return clipTo;
 }
 
@@ -546,23 +440,15 @@ bool readObject::flowNoiseProcess(size_t cutoff) {
 
 void readObject::convertToProteinFromcDNA(bool transcribeToRNAFirst,
                                           size_t start, bool forceStartM) {
-  if (transcribeToRNAFirst) {
-    seqUtil::convertToProteinFromcDNA(seqBase_.seq_, start, forceStartM);
-  } else {
-    seqBase_.seq_ =
-        seqUtil::convertToProtein(seqBase_.seq_, start, forceStartM);
-  }
+	seqBase_.convertToProteinFromcDNA(transcribeToRNAFirst, start, forceStartM);
 }
+
 std::string readObject::getProteinFromcDNA(bool transcribeToRNAFirst,
                                            size_t start,
                                            bool forceStartM) const {
-  if (transcribeToRNAFirst) {
-    return seqUtil::convertToProteinFromcDNAReturn(seqBase_.seq_, start,
-                                                   forceStartM);
-  } else {
-    return seqUtil::convertToProtein(seqBase_.seq_, start, forceStartM);
-  }
+	return seqBase_.getProteinFromcDNA(transcribeToRNAFirst, start, forceStartM);
 }
+
 double readObject::getGCContent() {
   setLetterCount();
   counter_.calcGcContent();
@@ -588,7 +474,7 @@ void readObject::updateQualCounts(
     std::map<std::string, std::map<double, uint32_t>>& counts,
     int qualWindowSize, const std::array<double, 100>& qualErrorLookUp) const {
 
-  for (const auto& pos : iter::range(len(seqBase_.qual_))) {
+  for (const auto& pos : iter::range(seqBase_.qual_.size())) {
     updateQaulCountsAtPos(pos, counts, qualWindowSize, qualErrorLookUp);
   }
 }
@@ -655,9 +541,9 @@ void readObject::updateQaulCountsAtPos(
 
 void readObject::setQualMeans(uint32_t windowSize) {
   qualMeans_.clear();
-  for (auto i : iter::range(len(seqBase_.qual_))) {
+  for (auto i : iter::range(seqBase_.qual_.size())) {
     uint32_t lowerBound = 0;
-    uint32_t higherBound = len(seqBase_.qual_);
+    uint32_t higherBound = seqBase_.qual_.size();
     if (i > windowSize) {
       lowerBound = i - windowSize;
     }
@@ -674,9 +560,9 @@ void readObject::setQualMeans(uint32_t windowSize) {
 void readObject::setQualProbMeans(uint32_t windowSize,
                                   const std::array<double, 100>& errorLookUp) {
   qualProbMeans_.clear();
-  for (auto i : iter::range(len(seqBase_.qual_))) {
+  for (auto i : iter::range(seqBase_.qual_.size())) {
     uint32_t lowerBound = 0;
-    uint32_t higherBound = len(seqBase_.qual_);
+    uint32_t higherBound = seqBase_.qual_.size();
     if (i > windowSize) {
       lowerBound = i - windowSize;
     }
@@ -701,8 +587,6 @@ void readObject::printDescription(std::ostream& out, bool deep) const {
       << std::endl << "sampName:" << sampName << std::endl
       << "expectsString:" << expectsString << std::endl
       << "numberOfFlows:" << numberOfFlows << std::endl
-      << "cumulativeFraction:" << cumulativeFraction << std::endl
-      << "normalizedFraction:" << normalizedFraction << std::endl
       << "averageErrorRate:" << averageErrorRate << std::endl
       << "basesAboveQualCheck:" << basesAboveQualCheck_ << std::endl
       << "fractionAboveQualCheck:" << fractionAboveQualCheck_ << std::endl

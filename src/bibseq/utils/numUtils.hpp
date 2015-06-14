@@ -1,6 +1,7 @@
+#pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,8 +19,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
-#pragma once
 /*
 
  * numUtils.hpp
@@ -55,6 +54,23 @@ public:
 	}
 };
 
+template<typename T>
+std::vector<T> getIntRange(T start, T stop){
+	std::vector<T> ret;
+	if(start == stop){
+		return std::vector<T> {start};
+	}else if (start > stop){
+		ret = std::vector<T>(start - stop + 1);
+		std::iota(ret.begin(), ret.end(), stop);
+		std::reverse(ret.begin(), ret.end());
+	}else if (start < stop){
+		ret = std::vector<T>(stop - start + 1);
+		std::iota(ret.begin(), ret.end(), start);
+	}
+	return ret;
+}
+
+
 inline bool isPrime (uint64_t num) {
 	if(num % 2 == 0){
 		if(num == 2){
@@ -83,6 +99,7 @@ T Factorial(T x) {
 }
 
 std::vector<double> getRange(double start, double stop, uint32_t num);
+
 inline unsigned uAbsdiff( unsigned a, unsigned b ){
       unsigned n= (unsigned)(
          (long long)((unsigned long long)a - (unsigned long long)b)>>32

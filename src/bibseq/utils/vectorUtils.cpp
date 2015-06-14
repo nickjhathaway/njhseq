@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,9 +18,8 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 #include "vectorUtils.hpp"
-
+#include <bibcpp/utils/lexical_cast.hpp>
 namespace bibseq {
 
 std::string getSubVector(const std::string& vec, uint32_t start,
@@ -110,4 +109,9 @@ VecStr getStringsContains(const VecStr& vec, const std::string& contains) {
   return ans;
 }
 void setDelim(const std::string& newDelim) { bibseq::outDelim = newDelim; }
+
+double getMeanFromVecStr(const VecStr & strNums){
+	auto converted = bib::lexical_cast_con<VecStr, std::vector<double>>(strNums);
+	return vectorMean(converted);
+}
 }  // namespace bib
