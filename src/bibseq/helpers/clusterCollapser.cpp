@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 #include "clusterCollapser.hpp"
 
 namespace bibseq {
@@ -104,9 +103,9 @@ std::vector<cluster> clusterCollapser::markChimeras(
        }*/
 
       std::string tailEnd = "";
-      if (alignerObj.errors_.hqMismatches_ > 1 &&
-          alignerObj.errors_.largeBaseIndel_ < 2 &&
-          alignerObj.alignmentGaps_.begin()->second.size < 50) {
+      if (alignerObj.comp_.hqMismatches_ > 1 &&
+          alignerObj.comp_.largeBaseIndel_ < 2 &&
+          alignerObj.alignmentGaps_.begin()->second.size_ < 50) {
         // if (alignerObj.comparison.highQualityMismatch>1 &&
         // clusIter->seqBase_.seq_.length()==secondClusIter->seqBase_.seq_.length()
         // &&
@@ -171,15 +170,205 @@ std::vector<cluster> clusterCollapser::markChimeras(
 
   return output;
 }
+void markChimerasAdvancedNew(
+    std::vector<cluster> &processedReads, aligner &alignerObj,
+    double parentFreqs, double runCutOff,
+    const comparison &chiOverlap, uint32_t overLapSizeCutoff,
+    bool weighHomopolyer, uint32_t &chimeraCount, uint32_t allowableError, bool verbose) {
+
+  for (const auto &pos : iter::range(processedReads.size())) {
+  	if(verbose){
+    	std::cout << pos << ":" << processedReads.size()<< "\r";
+    	std::cout.flush();
+  	}
+    for (const auto &subPos : iter::range(pos + 1, processedReads.size())) {
+    	if(pos == subPos){
+    		continue;
+    	}
+    	//std::cout << "part 1" << std::endl;
+      if ((processedReads[pos].seqBase_.frac_ /
+           processedReads[subPos].seqBase_.frac_) < parentFreqs ||
+          processedReads[subPos].seqBase_.cnt_ <= runCutOff) {
+        // std::cout << processedReads[pos].seqBase_.frac_ /
+        // processedReads[subPos].seqBase_.frac_ << std::endl;
+      	//std::cout << "part 1.5" << std::endl;
+        continue;
+      }
+      //std::cout << "part 2" << std::endl;
+      alignerObj.alignVec(processedReads[pos], processedReads[subPos], false);
+      // alignerObj.profilePrimerAlignment(processedReads[pos],
+      // processedReads[subPos], setUp.weightHomopolymers_);
+      alignerObj.profileAlignment(processedReads[pos], processedReads[subPos],
+                                  11, true, false, true, false,
+                                  weighHomopolyer);
+      /*if (alignerObj.errors_.largeBaseIndel_ > 0) {
+        continue;
+      }*/
+      // std::cout << alignerObj.mismatches_.size() << std::endl;
+      if (alignerObj.mismatches_.size() > allowableError) {
+      	//std::cout << "part 3" << std::endl;
+      	//std::cout << processedReads[subPos].seqBase_.name_ << std::endl;
+      	//std::cout <<  processedReads[pos].seqBase_.name_ << std::endl;
+      	//std::cout << "first mismatch " <<  alignerObj.mismatches_.begin()->first << std::endl;
+      	//std::cout << "last mismatch " << alignerObj.mismatches_.rbegin()->first << std::endl;
+      	//std::cout << "front overlap size " << alignerObj.mismatches_.begin()->first + 1 << std::endl;
+      	//std::cout << "end overlap size " << alignerObj.alignObjectA_.seqBase_.seq_.size() -
+            //alignerObj.mismatches_.rbegin()->first << std::endl;
+      	//std::cout << "overlap cut off : " << overLapSizeCutoff << std::endl;
+      	bool failedEnd = true;
+      	bool failedFront = true;
+      	std::map<uint32_t, mismatch> savedMismatches = alignerObj.mismatches_;
+        if (savedMismatches.begin()->first + 1 <= overLapSizeCutoff){
+        	failedFront = true;
+        	//std::cout << "failed front due to overlap" << std::endl;
+        }else{
+        	//std::cout << "this part 1" << std::endl;
+          alignerObj.profileAlignment(
+              processedReads[pos], processedReads[subPos], 11, true, false, true,
+              false, weighHomopolyer, 0, savedMismatches.begin()->first);
+          //std::cout << "that part 1" << std::endl;
+          failedFront =
+              chiOverlap.passErrorProfile(alignerObj.comp_);
+        }
+        //std::cout << "here?" << std::endl;
+        if(overLapSizeCutoff >=
+            (alignerObj.alignObjectA_.seqBase_.seq_.size() -
+            		savedMismatches.rbegin()->first)){
+        	failedEnd = true;
+        	//std::cout << "failed end due to overlap" << std::endl;
+        }else{
+         //std::cout << "this part 2" << std::endl;
+          alignerObj.profileAlignment(
+              processedReads[pos], processedReads[subPos], 11, true, false, true,
+              false, weighHomopolyer, savedMismatches.rbegin()->first + 1);
+          //std::cout << "that part 2" << std::endl;
+          // std::cout << "after these? " << std::endl;
+          failedEnd = chiOverlap.passErrorProfile(alignerObj.comp_);
+
+        }
+        //std::cout << "part 4" << std::endl;
+        //std::cout << "this part" << std::endl;
+        if (!failedEnd && !failedFront) {
+          continue;
+        }
+        // processedReads[subPos].outPutSeq(std::cout);
+        // processedReads[pos].outPutSeq(std::cout);
+        if (failedFront) {
+          processedReads[subPos].frontChiPos.insert(
+              {savedMismatches.begin()->second.seqBasePos, pos});
+          // baseReadObject subReadAFront =
+          // baseReadObject(alignerObj.alignObjectA_.seqBase_.getSubRead(0,
+          // savedMismatches.begin()->first));
+          // baseReadObject subReadBFront =
+          // baseReadObject(alignerObj.alignObjectB_.seqBase_.getSubRead(0,
+          // savedMismatches.begin()->first));
+          // subReadAFront.outPutSeq(std::cout);
+          // subReadBFront.outPutSeq(std::cout);
+        }
+        if (failedEnd) {
+          processedReads[subPos].endChiPos.insert(
+              {savedMismatches.rbegin()->second.seqBasePos, pos});
+          // baseReadObject subReadABack =
+          // baseReadObject(alignerObj.alignObjectA_.seqBase_.getSubRead(savedMismatches.rbegin()->first
+          // + 1));
+          // baseReadObject subReadBBack =
+          // baseReadObject(alignerObj.alignObjectB_.seqBase_.getSubRead(savedMismatches.rbegin()->first
+          // + 1));
+          // subReadBBack.outPutSeq(std::cout);
+          // subReadABack.outPutSeq(std::cout);
+        }
+      }
+    }
+  }
+  if(verbose){
+  	std::cout << std::endl;
+  }
+  bool print = false;
+  if (print) {
+    for (auto &clus : processedReads) {
+      std::cout << clus.seqBase_.name_;
+      for (const auto &front : iter::reverse(clus.frontChiPos)) {
+        std::cout << "\t" << front.first << "\t"
+                  << processedReads[front.second].seqBase_.name_;
+      }
+      std::cout << std::endl;
+    }
+    std::cout << std::endl;
+    std::cout << std::endl;
+    for (auto &clus : processedReads) {
+      std::cout << clus.seqBase_.name_;
+      for (const auto &end : clus.endChiPos) {
+        std::cout << "\t" << end.first << "\t"
+                  << processedReads[end.second].seqBase_.name_;
+      }
+      std::cout << std::endl;
+    }
+  }
+  for (auto &clus : processedReads) {
+    bool foundChi = false;
+    for (const auto &front : iter::reverse(clus.frontChiPos)) {
+      for (const auto &pos : iter::range(processedReads.size())) {
+        if ((processedReads[pos].seqBase_.frac_ / clus.seqBase_.frac_) <
+                parentFreqs ||
+            pos == front.second) {
+          continue;
+        }
+        alignerObj.alignVec(processedReads[pos], clus, false);
+        alignerObj.profileAlignment(processedReads[pos], clus, 11, true, false,
+                                    true, false, weighHomopolyer, front.first);
+        if (chiOverlap.passErrorProfile(alignerObj.comp_)) {
+          foundChi = true;
+          clus.seqBase_.markAsChimeric();
+          ++chimeraCount;
+          break;
+        }
+      }
+      if (foundChi) {
+        break;
+      }
+    }
+    if (foundChi) {
+      continue;
+    }
+    for (const auto &end : clus.endChiPos) {
+      for (const auto &pos : iter::range(processedReads.size())) {
+        if ((processedReads[pos].seqBase_.frac_ / clus.seqBase_.frac_) <
+                parentFreqs ||
+            pos == end.second) {
+          continue;
+        }
+        alignerObj.alignVec(processedReads[pos], clus, false);
+        alignerObj.profileAlignment(processedReads[pos], clus, 11, true, false,
+                                    true, false, weighHomopolyer, 0,
+                                    end.first + 1);
+        if (chiOverlap.passErrorProfile(alignerObj.comp_)) {
+          foundChi = true;
+          clus.seqBase_.markAsChimeric();
+          ++chimeraCount;
+          break;
+        }
+      }
+      if (foundChi) {
+        break;
+      }
+    }
+  }
+}
+
 
 void clusterCollapser::markChimerasAdvanced(
     std::vector<cluster> &processedReads, aligner &alignerObj,
     double parentFreqs, int runCutOff, bool local,
-    const errorProfile &chiOverlap, uint32_t overLapSizeCutoff,
+    const comparison &chiOverlap, uint32_t overLapSizeCutoff,
     bool weighHomopolyer, uint32_t &chimeraCount, uint32_t allowableError) {
 
   for (const auto &pos : iter::range(processedReads.size())) {
+  	std::cout << pos << ":" << processedReads.size()<< "\r";
+  	std::cout.flush();
     for (const auto &subPos : iter::range(pos + 1, processedReads.size())) {
+    	if(pos == subPos){
+    		continue;
+    	}
     	//std::cout << "part 1" << std::endl;
       if ((processedReads[pos].seqBase_.frac_ /
            processedReads[subPos].seqBase_.frac_) < parentFreqs ||
@@ -223,7 +412,7 @@ void clusterCollapser::markChimerasAdvanced(
               false, weighHomopolyer, 0, savedMismatches.begin()->first);
           //std::cout << "that part 1" << std::endl;
           failedFront =
-              chiOverlap.passErrorProfileLowKmer(alignerObj.errors_);
+              chiOverlap.passErrorProfile(alignerObj.comp_);
         }
         //std::cout << "here?" << std::endl;
         if(overLapSizeCutoff >=
@@ -238,7 +427,7 @@ void clusterCollapser::markChimerasAdvanced(
               false, weighHomopolyer, savedMismatches.rbegin()->first + 1);
           //std::cout << "that part 2" << std::endl;
           // std::cout << "after these? " << std::endl;
-          failedEnd = chiOverlap.passErrorProfileLowKmer(alignerObj.errors_);
+          failedEnd = chiOverlap.passErrorProfile(alignerObj.comp_);
 
         }
         //std::cout << "part 4" << std::endl;
@@ -275,6 +464,7 @@ void clusterCollapser::markChimerasAdvanced(
       }
     }
   }
+  std::cout << std::endl;
   bool print = false;
   if (print) {
     for (auto &clus : processedReads) {
@@ -308,7 +498,7 @@ void clusterCollapser::markChimerasAdvanced(
         alignerObj.alignVec(processedReads[pos], clus, local);
         alignerObj.profileAlignment(processedReads[pos], clus, 11, true, false,
                                     true, false, weighHomopolyer, front.first);
-        if (chiOverlap.passErrorProfileLowKmer(alignerObj.errors_)) {
+        if (chiOverlap.passErrorProfile(alignerObj.comp_)) {
           foundChi = true;
           clus.seqBase_.markAsChimeric();
           ++chimeraCount;
@@ -333,7 +523,7 @@ void clusterCollapser::markChimerasAdvanced(
         alignerObj.profileAlignment(processedReads[pos], clus, 11, true, false,
                                     true, false, weighHomopolyer, 0,
                                     end.first + 1);
-        if (chiOverlap.passErrorProfileLowKmer(alignerObj.errors_)) {
+        if (chiOverlap.passErrorProfile(alignerObj.comp_)) {
           foundChi = true;
           clus.seqBase_.markAsChimeric();
           ++chimeraCount;
@@ -373,8 +563,8 @@ void clusterCollapser::collapseTandems(std::vector<cluster> &processedReads,
                                   weighHomopolyer);
       // alignerObj.outPutParameterInfo(std::cout);
       if (alignerObj.checkForTandemRepeatGap() &&
-          alignerObj.errors_.hqMismatches_ < 1 &&
-          alignerObj.errors_.lqMismatches_ < 1 &&
+          alignerObj.comp_.hqMismatches_ < 1 &&
+          alignerObj.comp_.lqMismatches_ < 1 &&
           clusIterSecond.seqBase_.cnt_ >
               (freqCutoff * clusIter.seqBase_.cnt_)) {
         clusIter.remove = true;

@@ -1,4 +1,24 @@
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  randomStrGen.cpp
 //  sequenceTools
 //
@@ -8,7 +28,7 @@
 
 #include "randomStrGen.hpp"
 
-#include "bibseq/simulation/randomGenerator.hpp"
+#include "bibseq/simulation/simulationCommon.hpp"
 #include "bibseq/objects/counters/letterCounter.hpp"
 namespace bibseq {
 namespace simulation {
@@ -25,14 +45,15 @@ std::multimap<double, std::string, std::less<double>> getEvenLikelihood(
 std::multimap<double, std::string, std::less<double>> createLikelihood(
     const std::vector<char> &letters, const std::vector<uint32_t> & counts){
 	if(counts.size() != letters.size()){
-		std::cout << "Error in createLikelihood(const std::vector<char> &letters,"
+		std::stringstream ss;
+		ss << "Error in createLikelihood(const std::vector<char> &letters,"
 				" const std::vector<uint32_t> & counts)" << std::endl;
-		std::cout << "Size of counts differs from size of letters" << std::endl;
-		std::cout << "Size of counts: " << counts.size() << std::endl;
-		std::cout << "Counts: "; printVector(counts, ", ");
-		std::cout << "Size of letters: " << letters.size() << std::endl;
-		std::cout << "Letters: "; printVector(letters, ", ");
-		exit(1);
+		ss << "Size of counts differs from size of letters" << std::endl;
+		ss << "Size of counts: " << counts.size() << std::endl;
+		ss << "Counts: "; printVector(counts, ", ");
+		ss << "Size of letters: " << letters.size() << std::endl;
+		ss << "Letters: "; printVector(letters, ", ");
+		throw std::runtime_error{ss.str()};
 	}
 	double countsSum = vectorSum(counts);
 

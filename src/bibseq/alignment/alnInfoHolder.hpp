@@ -1,4 +1,24 @@
 #pragma once
+//
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
 
 //
 //  alnInfoHolder.hpp
@@ -8,8 +28,8 @@
 //  Copyright (c) 2014 Nicholas Hathaway. All rights reserved.
 //
 
-#include "alignerUtils.hpp"
-
+#include "bibseq/alignment/alignerUtils.h"
+#include "bibseq/IO/fileUtils.hpp"
 
 namespace bibseq {
 struct gapInfo {
@@ -198,7 +218,6 @@ public:
 	  	//@TODO Doing nothing now if there are duplicates but perhaps should do a check to see if they are the same at least
 	    //std::cout << "already added " << std::endl << seq2Hash << std::endl;
 	    //std::cout << "to " << std::endl << seq1Hash << std::endl;
-	    //exit(1);
 	  } else {
 	    infos_[seq1Hash].emplace(seq2Hash, info);
 	  }
@@ -283,7 +302,7 @@ public:
 	  //std::cout << "Reading " + alnType_  + " index file" << std::endl;
 	  std::ifstream inFile;
 	  inFile.open(indexFilename);
-	  std::vector<std::string> info(400);
+	  std::vector<std::string> info(800);
 	  std::vector<std::string> inputGapInfo(3);
 	  std::string out;
 	  std::stringstream ss;
@@ -364,26 +383,27 @@ public:
 
 	void mergeOtherHolder(const alnInfoHolderBase<T> & other ){
 		bool fail = false;
+		std::stringstream ss;
 		if(other.alnType_ != alnType_){
-			std::cerr << "Error in mergeOtherHolder, trying to merge aln holder of a different type" << std::endl;
-			std::cerr << "current holder type: " << alnType_ << ", trying to add type: " << other.alnType_ << std::endl;
+			ss << "Error in mergeOtherHolder, trying to merge aln holder of a different type" << std::endl;
+			ss << "current holder type: " << alnType_ << ", trying to add type: " << other.alnType_ << std::endl;
 			fail = true;
 		}
 		if(other.gapPars_ != gapPars_){
-			std::cerr << "Error in mergeOtherHolder, trying to merge aln holder of a gap parameters" << std::endl;
-			std::cerr << "current gap type: " << gapPars_.getIdentifer() << ", trying to add type: " << other.gapPars_.getIdentifer() << std::endl;
+			ss << "Error in mergeOtherHolder, trying to merge aln holder of a gap parameters" << std::endl;
+			ss << "current gap type: " << gapPars_.getIdentifer() << ", trying to add type: " << other.gapPars_.getIdentifer() << std::endl;
 			fail = true;
 		}
 		if(other.scoring_.mat_ != scoring_.mat_){
-			std::cerr << "Error in mergeOtherHolder, trying to merge aln holder with different scoring" << std::endl;
-			std::cerr << "current scoring: " << std::endl;
-			scoring_.printScores(std::cerr);
-			std::cerr << "other scoring: " << std::endl;
-			other.scoring_.printScores(std::cerr);
+			ss << "Error in mergeOtherHolder, trying to merge aln holder with different scoring" << std::endl;
+			ss << "current scoring: " << std::endl;
+			scoring_.printScores(ss);
+			ss << "other scoring: " << std::endl;
+			other.scoring_.printScores(ss);
 			fail = true;
 		}
 		if(fail){
-			exit(1);
+			throw std::runtime_error{ss.str()};
 		}
 		for(const auto & s1 : other.infos_){
 			for(const auto & s2 : s1.second){
@@ -400,81 +420,29 @@ class alnInfoMasterHolder {
 
  public:
   // constructors
-	alnInfoMasterHolder() {};
+	alnInfoMasterHolder();
   alnInfoMasterHolder(const gapScoringParameters & gapPars,
-  	  const substituteMatrix & scoringArray):localHolder_(std::unordered_map<std::string, alnInfoHolderBase<alnInfoLocal>> {{gapPars.getIdentifer(),alnInfoHolderBase<alnInfoLocal>(gapPars,scoringArray, "LOCAL")} }),
-  	  		globalHolder_(std::unordered_map<std::string, alnInfoHolderBase<alnInfoGlobal>>{{gapPars.getIdentifer(),alnInfoHolderBase<alnInfoGlobal>(gapPars,scoringArray, "GLOBAL")} }){};
+  	  const substituteMatrix & scoringArray);
 	alnInfoMasterHolder(const std::string &masterDirName, const gapScoringParameters & gapPars,
-  	  const substituteMatrix & scoringArray) {
-	  std::cout << "Reading in previous alignments" << std::endl;
-	  auto allDirectories = getFiles(masterDirName, "", "directory", false, false);
-	  for (const auto &dir : allDirectories) {
-	    std::cout << "Reading from " << dir.first << std::endl;
-	    std::cout << "Reading in local" << std::endl;
-	    alnInfoHolderBase<alnInfoLocal> currentLocalHolder(dir.first, "LOCAL");
-	    std::cout << "Reading in global" << std::endl;
-	    alnInfoHolderBase<alnInfoGlobal> currentGlobalHolder(dir.first, "GLOBAL");
-
-	    //std::cout << "local: " << currentLocalHolder.gapPars_.getIdentifer()
-	    //          << std::endl;
-	    //std::cout << "global: " << currentGlobalHolder.gapPars_.getIdentifer()
-	    //          << std::endl;
-
-	    localHolder_[currentLocalHolder.gapPars_.getIdentifer()] =
-	        currentLocalHolder;
-	    globalHolder_[currentGlobalHolder.gapPars_.getIdentifer()] =
-	        currentGlobalHolder;
-	  }
-	  if(allDirectories.empty()){
-	  	*this = alnInfoMasterHolder(gapPars, scoringArray);
-	  }
-	}
+  	  const substituteMatrix & scoringArray, bool verbose = false);
   // members
   std::unordered_map<std::string, alnInfoHolderBase<alnInfoLocal>> localHolder_;
   std::unordered_map<std::string, alnInfoHolderBase<alnInfoGlobal>> globalHolder_;
   std::hash<std::string> strH_;
   // writing
-  void write(const std::string &masterDirName) {
-    int directoryStatus =
-        mkdir(masterDirName.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
-    if (directoryStatus != 0) {
-      // if directory already exits do nothing i guess
-    } else {
-      chmod(masterDirName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    }
-    // write out the alignment infos
-    for (const auto &holder : localHolder_) {
-    	std::cout << "Writing: " << holder.first << std::endl;
-      holder.second.writeOutInfos(masterDirName, "alnInfo_" + holder.second.gapPars_.getIdentifer());
-    }
-    for (const auto &holder : globalHolder_) {
-    	std::cout << "Writing: " << holder.first << std::endl;
-      holder.second.writeOutInfos(masterDirName, "alnInfo_" + holder.second.gapPars_.getIdentifer());
-    }
-  }
+  void write(const std::string &masterDirName, bool verbose = false);
 
-  void mergeOtherHolder(const alnInfoMasterHolder & otherHolder){
-  	for(const auto & gH : otherHolder.globalHolder_){
-  		auto check = globalHolder_.find(gH.first);
-  		if(check == globalHolder_.end()){
-  			globalHolder_[gH.first] = gH.second;
-  		}else{
-  			check->second.mergeOtherHolder(gH.second);
-  		}
-  	}
-
-  	for(const auto & lH : otherHolder.localHolder_){
-  		auto check = localHolder_.find(lH.first);
-  		if(check == localHolder_.end()){
-  			localHolder_[lH.first] = lH.second;
-  		}else{
-  			check->second.mergeOtherHolder(lH.second);
-  		}
-  	}
-  }
+  void mergeOtherHolder(const alnInfoMasterHolder & otherHolder);
 };
 
-}  // bib
+namespace alignment {
+
+static std::unordered_map<std::string, std::mutex> alnCacheDirLocks;
+
+}  // namespace alignment
+
+
+}  // namespace bibseq
 
 #ifndef NOT_HEADER_ONLY
 #include "alnInfoHolder.cpp"

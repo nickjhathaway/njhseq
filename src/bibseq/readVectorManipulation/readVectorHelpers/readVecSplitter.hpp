@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  trimmers.hpp
 //  sequenceTools
 //
@@ -103,7 +123,7 @@ class readVecSplitter {
       std::vector<T>& badReads, uint32_t& splitCount, bool mark = true) {
     std::vector<T> normal;
     for (const auto& iter : vec) {
-      if (fabs((int)iter.seqBase_.seq_.length() - given) <= basesWithin) {
+      if (std::abs(static_cast<int32_t>(iter.seqBase_.seq_.length()) - given) <= basesWithin) {
         normal.push_back(iter);
       } else {
         badReads.push_back(iter);
@@ -450,7 +470,7 @@ class readVecSplitter {
     uint64_t maxReadLength = 0;
     readVec::getMaxLength(reads, maxReadLength);
     if (compareObject.seqBase_.seq_.size() > maxReadLength) {
-      maxReadLength = len(compareObject.seqBase_.seq_);
+      maxReadLength = compareObject.seqBase_.seq_.size();
     }
     // aligner object
     auto scoringMatrixMap = substituteMatrix::createDegenScoreMatrix(1,-1);

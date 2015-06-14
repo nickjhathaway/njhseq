@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,184 +18,257 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 #include "baseCluster.hpp"
+#include "bibseq/helpers/consensusHelper.hpp"
 
 namespace bibseq {
+
+baseCluster::baseCluster(const readObject& firstRead) : readObject(firstRead.seqBase_) {
+  firstReadName = firstRead.seqBase_.name_;
+  firstReadCount = firstRead.seqBase_.cnt_;
+  reads_.push_back(firstRead);
+  // addRead(firstRead);
+  needToCalculateConsensus = true;
+  remove = false;
+  updateName();
+  //std::cout << "baseCluster constructor: " << std::endl;
+  //std::cout << seqBase_.name_ << std::endl;
+  //std::cout << seqBase_.cnt_ << std::endl;
+  //std::cout << seqBase_.frac_ << std::endl;
+}
+
 
 void baseCluster::addRead(const readObject& newRead) {
   seqBase_.cnt_ += newRead.seqBase_.cnt_;
   seqBase_.frac_ = ((seqBase_.frac_ * reads_.size()) + newRead.seqBase_.frac_) /
                    (reads_.size() + 1);
-  cumulativeFraction += newRead.cumulativeFraction;
   if (seqBase_.cnt_ / 2 > firstReadCount) {
     needToCalculateConsensus = true;
   }
   // needToCalculateConsensus = true;
   reads_.push_back(newRead);
 }
-void baseCluster::calculateConsensusNew(aligner& alignerObj, bool setToConsensus) {
-  // if the cluster is only one read, no need to create consensus
-  if (seqBase_.cnt_ == 1 || reads_.size() <= 1) {
-    return;
-  }
+void baseCluster::calculateConsensusToCurrent(aligner& alignerObj, bool setToConsensus){
+	// if the cluster is only one read, no need to create consensus
+	if (reads_.size() <= 1) {
+		return;
+	}
   //check to see if a consensus needs to be built
   if (!needToCalculateConsensus) {
     return;
   }
-  // find the longest cluster
-  // if the the current consensus is much shorter than the average amount of reads than choose the longest
-  // read, this is to prevent consensus being built with only the a small portion of the sequences in the
-  // the cluster
+  calculateConsensusTo(seqBase_, alignerObj, setToConsensus);
+
+}
+
+
+
+
+void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
+		aligner& alignerObj, bool setToConsensus) {
+	// create the map for letter counters for each position
+	std::map<uint32_t, charCounterArray> counters;
+	// create a map in case of insertions
+	std::map<uint32_t, std::map<uint32_t, charCounterArray>> insertions;
+	std::map<int32_t, charCounterArray> beginningGap;
+	auto getSeqBase =
+			[](const readObject & read) ->const seqInfo& {return read.seqBase_;};
+	consensusHelper::increaseCounters(seqBase_, reads_, getSeqBase, alignerObj, counters,
+			insertions, beginningGap);
+	calcConsensusInfo_ = seqBase_;
+	consensusHelper::genConsensusFromCounters(calcConsensusInfo_, counters, insertions,
+			beginningGap);
+	if (setToConsensus) {
+		if (seqBase_.seq_ != calcConsensusInfo_.seq_) {
+			seqBase_.seq_ = calcConsensusInfo_.seq_;
+			setLetterCount();
+		} else {
+			seqBase_.seq_ = calcConsensusInfo_.seq_;
+		}
+		seqBase_.qual_ = calcConsensusInfo_.qual_;
+	}
+	previousErrorChecks.clear();
+	needToCalculateConsensus = false;
+}
+
+void baseCluster::calculateConsensus(aligner& alignerObj, bool setToConsensus) {
+	// if the cluster is only one read, no need to create consensus
+	if (reads_.size() <= 1) {
+		return;
+	}
+  //check to see if a consensus needs to be built
+  if (!needToCalculateConsensus) {
+    return;
+  }
+
+
   auto averageSize = getAverageReadLength();
-  readObject longestcluster;
-  if (true) {
-  //if (uAbsdiff(this->seqBase_.seq_.size(),averageSize) >
-    //  0.1 * averageSize) {
+  seqInfo longestcluster;
+  if (uAbsdiff(this->seqBase_.seq_.size(), averageSize) >
+      0.1 * averageSize) {
     uint64_t biggest = 0;
     for (const auto& read : reads_) {
       if (read.seqBase_.seq_.length() > biggest) {
-        longestcluster = read;
+        longestcluster = read.seqBase_;
         biggest = read.seqBase_.seq_.length();
       }
     }
   } else {
-    longestcluster =
-        readObject(seqInfo(seqBase_.name_, seqBase_.seq_, seqBase_.qual_));
+    longestcluster =seqInfo(seqBase_.name_, seqBase_.seq_, seqBase_.qual_);
   }
 
+  calculateConsensusTo(longestcluster, alignerObj, setToConsensus);
 
-  // clear the vectors in case of previous consensus calculations
-  longestAlignments.clear();
-  longestAlignmentsQualities.clear();
-  longestAlingmentsRef.clear();
-
-  calculatedConsensus.clear();
-  calculatedConsensusQuality.clear();
-
-  for (const auto & read : reads_) {
-    alignerObj.alignVec(longestcluster, read, false);
-    longestAlignments.push_back(alignerObj.alignObjectB_.seqBase_.seq_);
-    longestAlignmentsQualities.push_back(
-        alignerObj.alignObjectB_.seqBase_.qual_);
-    longestAlingmentsRef.push_back(alignerObj.alignObjectA_.seqBase_.seq_);
-  }
-
-  // create the map for letter counters for each position
-  std::map<uint32_t, charCounterArray> counter;
-  // create a map in case of insertions
-  std::map<uint32_t, std::map<uint32_t, charCounterArray>> insertions;
-  // counter of the reads
-  //int numberOfReads = 0;
-  // now iterator over the various clusters and alignments to count the bases
-  // and their qualities
-  // VecStr
-  // stringsWithoutInsertions(longestAlingmentsRef.size(),"");
-  int count = -1;
-  for (const auto & readPos : iter::range(len(reads_)) ) {
-    ++count;
-    // std::cout<<count+1<<"/"<<longestAlingmentsRef.size()<<std::endl;
-    // the offset for the insertions
-    uint32_t offSet = 0;
-    // get the size of the cluster being processed
-    //int sizeAdjustment = (int)clusterIter->seqBase_.cnt_;
-    //numberOfReads += (int)clusterIter->seqBase_.cnt_;
-    int currentOffset = 1;
-    for (uint32_t i = 0; i < len(longestAlingmentsRef[readPos]); i++) {
-      // if the longest reference has an insertion in it put it in the
-      // insertions letter counter map
-      if (longestAlingmentsRef[readPos][i] == '-') {
-      	insertions[i - offSet][currentOffset].increaseCountOfBaseQual(longestAlignments[readPos][i],
-      			longestAlignmentsQualities[readPos][i], reads_[readPos].seqBase_.cnt_ );
-
-        currentOffset++;
-        offSet++;
-        continue;
-      }
-      currentOffset = 1;
-      counter[i - offSet].increaseCountOfBaseQual(longestAlignments[readPos][i],
-    			longestAlignmentsQualities[readPos][i],reads_[readPos].seqBase_.cnt_ );
-    }
-  }
-  // the iterators to over the letter counter maps
-  for (auto & count : counter) {
-    uint32_t bestQuality = 0;
-    char bestBase = ' ';
-    // if there is an insertion look at those if there is a majority of reads
-    // with that insertion
-    if (insertions.find(count.first) != insertions.end()) {
-      for (auto & counterInsert : insertions[count.first]) {
-      	counterInsert.second.getBest(bestBase, bestQuality, std::round(seqBase_.cnt_));
-        if (bestBase == ' ') {
-          continue;
-        } else {
-          calculatedConsensus.push_back(bestBase);
-          calculatedConsensusQuality.push_back(bestQuality / seqBase_.cnt_);
-        }
-      }
-    }
-    count.second.getBest(bestBase, bestQuality);
-    if (bestBase == '-') {
-      continue;
-    }
-    calculatedConsensus.push_back(bestBase);
-    calculatedConsensusQuality.push_back(bestQuality / seqBase_.cnt_);
-  }
-  bool debug = false;
-  if(debug){
-  	std::ofstream outFile;
-  	openTextFile(outFile, "outFile.txt", ".txt", true, false);
-  	outFile << "pos\tchar\tcount" << std::endl;
-  	uint32_t posing = 0;
-    for (auto & count : counter) {
-      uint32_t bestQuality = 0;
-      char bestBase = ' ';
-      // if there is an insertion look at those if there is a majority of reads
-      // with that insertion
-
-      if (insertions.find(count.first) != insertions.end()) {
-        for (auto & counterInsert : insertions[count.first]) {
-        	std::cout << count.first << " : i: " << counterInsert.first << std::endl;
-        	counterInsert.second.outPutInfo(std::cout, false);
-
-        	for(const auto & a : counterInsert.second.alphabet_){
-        		outFile << posing << "\t" << a << "\t" << counterInsert.second.chars_[a] << std::endl;
-        	}
-        	++posing;
-        	//counterInsert.second.getBest(bestBase, bestQuality, std::round(seqBase_.cnt_));
-          if (bestBase == ' ') {
-            continue;
-          } else {
-            calculatedConsensus.push_back(bestBase);
-            calculatedConsensusQuality.push_back(bestQuality / seqBase_.cnt_);
-          }
-        }
-      }
-    	for(const auto & a : count.second.alphabet_){
-    		outFile << posing << "\t" << a << "\t" << count.second.chars_[a] << std::endl;
-    	}
-      ++posing;
-    	std::cout << count.first << std::endl;
-    	count.second.outPutInfo(std::cout, false);
-      //count.second.getBest(bestBase, bestQuality);
-      if (bestBase == '-') {
-        continue;
-      }
-      //calculatedConsensus.push_back(bestBase);
-      //calculatedConsensusQuality.push_back(bestQuality / seqBase_.cnt_);
-    }
-  }
-
-  if (setToConsensus) {
-    seqBase_.seq_ = calculatedConsensus;
-    seqBase_.qual_ = calculatedConsensusQuality;
-  }
-  previousErrorChecks.clear();
-  needToCalculateConsensus = false;
-  // exit(1);
 }
+
+void baseCluster::calculateConsensusToOld(const seqInfo & seqBase, aligner& alignerObj, bool setToConsensus){
+	//bib::stopWatch watch;
+		//watch.setLapName("Start");
+	  calculatedConsensus.clear();
+	  calculatedConsensusQuality.clear();
+
+	  //watch.startNewLap("aligning and counting");
+		// create the map for letter counters for each position
+		std::map<uint32_t, charCounterArray> counters;
+		// create a map in case of insertions
+		std::map<uint32_t, std::map<uint32_t, charCounterArray>> insertions;
+		std::map<int32_t, charCounterArray> beginningGap;
+		//std::ofstream tempOutFile("tempOutFile.fasta");
+		//double alnTime = 0;
+		//double countingTime = 0;
+
+		for (const auto & readPos : iter::range(reads_.size())) {
+			alignerObj.alignVec(seqBase, reads_[readPos].seqBase_, false);
+			// the offset for the insertions
+			uint32_t offSet = 0;
+			uint32_t currentOffset = 1;
+			uint32_t start = 0;
+			//check to see if there is a gap at the beginning
+			if (alignerObj.alignObjectA_.seqBase_.seq_.front() == '-') {
+				start = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+				for (uint32_t i = 0; i < start; ++i) {
+					beginningGap[i - start].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += reads_[readPos].seqBase_.cnt_;
+					beginningGap[i - start].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *reads_[readPos].seqBase_.cnt_;
+					++offSet;
+				}
+			}
+			for (uint32_t i = start; i < len(alignerObj.alignObjectB_); ++i) {
+				// if the longest reference has an insertion in it put it in the
+				// insertions letter counter map
+				if (alignerObj.alignObjectA_.seqBase_.seq_[i] == '-') {
+					insertions[i - offSet][currentOffset].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += reads_[readPos].seqBase_.cnt_;
+					insertions[i - offSet][currentOffset].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *reads_[readPos].seqBase_.cnt_;
+					++currentOffset;
+					++offSet;
+					continue;
+				}
+				currentOffset = 1;
+				counters[i - offSet].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += reads_[readPos].seqBase_.cnt_;
+				counters[i - offSet].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *reads_[readPos].seqBase_.cnt_;
+			}
+		}
+		/*
+		std::string calculatedConsensus = "";
+		calculatedConsensus.reserve(len(longestcluster));
+		std::vector<uint32_t> calculatedConsensusQuality;
+		calculatedConsensusQuality.reserve(len(longestcluster));
+	*/
+		//watch.startNewLap("determining consensus");
+
+		// first deal with any gaps in the beginning
+		double fortyPercent = 0.40 * seqBase_.cnt_;
+		for(const auto & bCount : beginningGap){
+			uint32_t bestQuality = 0;
+			char bestBase = ' ';
+			bCount.second.getBest(bestBase, bestQuality);
+			if (bestBase == '-' || bCount.second.getTotalCount() < fortyPercent) {
+				continue;
+			}
+			calculatedConsensus.push_back(bestBase);
+			calculatedConsensusQuality.emplace_back(bestQuality / bCount.second.getTotalCount());
+		}
+		//read.seqBase_.outPutFastq(std::cout);
+		// the iterators to over the letter counter maps
+		for (const auto & count : counters) {
+			uint32_t bestQuality = 0;
+			char bestBase = ' ';
+			// if there is an insertion look at those if there is a majority of reads
+			// with that insertion
+			auto search = insertions.find(count.first);
+			if (search != insertions.end()) {
+				for (auto & counterInsert : search->second) {
+					bestQuality = 0;
+					bestBase = ' ';
+					counterInsert.second.getBest(bestBase, bestQuality,
+							std::round(seqBase_.cnt_));
+					if (bestBase == ' ') {
+						continue;
+					} else {
+						calculatedConsensus.push_back(bestBase);
+						calculatedConsensusQuality.emplace_back(bestQuality);
+					}
+				}
+			}
+			count.second.getBest(bestBase, bestQuality);
+			if (bestBase == '-' || count.second.getTotalCount() < fortyPercent) {
+				continue;
+			}
+			calculatedConsensus.push_back(bestBase);
+			calculatedConsensusQuality.emplace_back(
+					bestQuality / count.second.getTotalCount());
+		}
+
+		if (setToConsensus) {
+			if(seqBase_.seq_ != calculatedConsensus){
+				seqBase_.seq_ = calculatedConsensus;
+				setLetterCount();
+			}else{
+				seqBase_.seq_ = calculatedConsensus;
+			}
+			seqBase_.qual_ = calculatedConsensusQuality;
+		}
+		previousErrorChecks.clear();
+		needToCalculateConsensus = false;
+		/*std::cout << seqBase_.name_ << std::endl;
+		std::cout << "readsSize: " << reads_.size() << std::endl;
+		std::cout << "firstReadCount: " << firstReadCount << std::endl;
+		std::cout << "alnTime: " << bib::getTimeFormat(alnTime,true, 6) << std::endl;
+		std::cout << "countingTime: " << bib::getTimeFormat(countingTime,true, 6) << std::endl;;
+		watch.logLapTimes(std::cout, true, 6, true);
+		std::cout << std::endl;*/
+}
+void baseCluster::calculateConsensusOld(aligner& alignerObj, bool setToConsensus) {
+	// if the cluster is only one read, no need to create consensus
+	if (reads_.size() <= 1) {
+		return;
+	}
+  //check to see if a consensus needs to be built
+  if (!needToCalculateConsensus) {
+    return;
+  }
+
+
+  auto averageSize = getAverageReadLength();
+  seqInfo longestcluster;
+  if (uAbsdiff(this->seqBase_.seq_.size(), averageSize) >
+      0.1 * averageSize) {
+    uint64_t biggest = 0;
+    for (const auto& read : reads_) {
+      if (read.seqBase_.seq_.length() > biggest) {
+        longestcluster = read.seqBase_;
+        biggest = read.seqBase_.seq_.length();
+      }
+    }
+  } else {
+    longestcluster =seqInfo(seqBase_.name_, seqBase_.seq_, seqBase_.qual_);
+  }
+
+  calculateConsensusToOld(longestcluster, alignerObj, setToConsensus);
+
+}
+
 //////////// calculate the consensus
-void baseCluster::calculateConsensus(aligner& alignerObj, bool setToConsensus) {
+void baseCluster::calculateConsensusOldLet(aligner& alignerObj, bool setToConsensus) {
   // if the cluster is only one read, no need to create consensus
   if (seqBase_.cnt_ == 1 || reads_.size() <= 1) {
     return;
@@ -204,6 +277,8 @@ void baseCluster::calculateConsensus(aligner& alignerObj, bool setToConsensus) {
   if (!needToCalculateConsensus) {
     return;
   }
+	//bib::stopWatch watch;
+	//watch.setLapName("Start");
   //std::cout << "creating consensus" << std::endl;
   // find the longest cluster
   // if the the current consensus is much shorter than the average amount of reads than choose the longest
@@ -236,6 +311,7 @@ void baseCluster::calculateConsensus(aligner& alignerObj, bool setToConsensus) {
   calculatedConsensus.clear();
   calculatedConsensusQuality.clear();
   bool rStripReads = true;
+  //watch.startNewLap("alning and counting");
   for (const auto & read : reads_) {
     alignerObj.alignVec(longestcluster, read, false);
     if(rStripReads){
@@ -304,6 +380,7 @@ void baseCluster::calculateConsensus(aligner& alignerObj, bool setToConsensus) {
   }
   // the iterators to over the letter counter maps
   //std::cout << "num of reads " << numberOfReads << std::endl;
+  //watch.startNewLap("determing consensus");
   std::map<uint32_t, letterCounter>::iterator counterIter;
   std::map<uint32_t, letterCounter>::iterator insertionsIter;
   for (counterIter = counter.begin(); counterIter != counter.end();
@@ -328,7 +405,7 @@ void baseCluster::calculateConsensus(aligner& alignerObj, bool setToConsensus) {
     counterIter->second.getBest(bestBase, bestQuality);
     //printOutMapContents(counterIter->second.letters, "\t", std::cout);
     //std::cout << calculatedConsensus.size() << ":" << bestBase << std::endl;
-    double fortyPercent = 0.40 * this->seqBase_.cnt_;
+    double fortyPercent = 0.40 * seqBase_.cnt_;
     if (bestBase == '-' || counterIter->second.letters[bestBase] < fortyPercent) {
       continue;
     }
@@ -342,6 +419,7 @@ void baseCluster::calculateConsensus(aligner& alignerObj, bool setToConsensus) {
   }
   previousErrorChecks.clear();
   needToCalculateConsensus = false;
+  //watch.logLapTimes(std::cout, true, 6, true);
   //this->seqBase_.outPutSeqAnsi(std::cout);
   //std::cout << std::endl;
   /*if(this->seqBase_.cnt_ > 50){
@@ -586,15 +664,8 @@ void baseCluster::writeOutAlignments(const std::string& directoryName,
 }
 
 /// output the clusters currently clustered to the this cluster
-void baseCluster::writeOutClusters(const std::string& directoryName) const {
-  if (reads_.size() == 0) {
-
-  } else {
-    readObjectIO reader = readObjectIO();
-    ;
-    reader.writeVector(reads_, directoryName + seqBase_.name_, "fastaQual",
-                       false, false);
-  }
+void baseCluster::writeOutClusters(const std::string& directoryName, const readObjectIOOptions & ioOptions) const {
+  readObjectIO::write(reads_, directoryName + seqBase_.name_, ioOptions);
 }
 
 VecStr baseCluster::getReadNames() const { return readVec::getNames(reads_); }
@@ -616,23 +687,10 @@ double baseCluster::getAverageReadLength() const {
   }
 }
 
-void baseCluster::alignmentProfile(const std::string& workingDirectory,
-                                   aligner& alignerObj, bool local,
-                                   bool kmerChecking, int kLength,
-                                   bool kmersByPosition,
-                                   bool weighHomopolyers) const {
-  alignmentProfiler::getInfoSingleComparison(
-      reads_, *this, alignerObj, local,
-      workingDirectory + seqBase_.name_ + "_profile.tab.txt", kLength,
-      weighHomopolyers);
-}
+
 
 readObject baseCluster::createRead() const {
-  readObject outRead(seqInfo(seqBase_.name_, seqBase_.seq_, seqBase_.qual_));
-  outRead.seqBase_.cnt_ = seqBase_.cnt_;
-  outRead.seqBase_.frac_ = seqBase_.frac_;
-  outRead.normalizedFraction = normalizedFraction;
-  return outRead;
+	return readObject(seqBase_);
 }
 
 void baseCluster::printDescription(std::ostream& out, bool deep) const {

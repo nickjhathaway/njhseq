@@ -1,4 +1,24 @@
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  errorProfile.cpp
 //  sequenceTools
 //
@@ -88,7 +108,7 @@ void errorProfile::mutateInPlace(char &firstBase, randomGenerator &gen,
 void errorProfile::mutateSeqInPlace(std::string &seq, randomGenerator &gen,
                                     const std::vector<char> &mutateTo,
                                     const std::vector<double> &likelihood) {
-  std::vector<double> rands = gen.unifRandVector(len(likelihood));
+  std::vector<double> rands = gen.unifRandVector(likelihood.size());
   for (const auto &i : iter::range(rands.size())) {
     if (rands[i] <= likelihood[i]) {
       mutateInPlace(seq[i], gen, mutateTo);
@@ -107,7 +127,7 @@ std::string errorProfile::mutateSeq(const std::string &seq,
 void errorProfile::mutateSeqInPlaceSameErrorRate(
     std::string &seq, randomGenerator &gen, const std::vector<char> &mutateTo,
     double errorRate) {
-  std::vector<double> rands = gen.unifRandVector(len(seq));
+  std::vector<double> rands = gen.unifRandVector(seq.size());
   for (const auto &i : iter::range(rands.size())) {
     if (rands[i] <= errorRate) {
       mutateInPlace(seq[i], gen, mutateTo);

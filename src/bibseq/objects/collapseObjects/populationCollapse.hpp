@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  populationCollapse.hpp
 //  sequenceTools
 //
@@ -15,10 +35,9 @@ class populationCollapse {
 
  public:
   populationCollapse(const std::vector<sampleCluster> &inputClusters,
-                     const std::string &populationName)
-      : input_(clusterSet(inputClusters)), populationName_(populationName) {}
-  populationCollapse() {}
+                     const std::string &populationName);
 
+  populationCollapse();
   // members
   // the initial clusters of the sample
   clusterSet input_;
@@ -27,26 +46,36 @@ class populationCollapse {
 
   std::string populationName_;
 
-  // functions
+  uint32_t numOfSamps()const;
+  // clustering
   void popCluster(collapser &collapserObj,
                   std::map<int, std::vector<double>> iteratorMap,
                   const std::string &sortBy, aligner &alignerObj);
+  void popClusterOnId(collapser &collapserObj,
+                  std::map<int, std::vector<double>> iteratorMap,
+                  const std::string &sortBy, aligner &alignerObj);
+
 
   // update the initial infos
-  void updateInitialInfos(bool clearCurrentInfos) {
-    input_.updateSetInfo(clearCurrentInfos);
-  }
+  void updateInitialInfos();
   // update the collapsed infos
-  void updateCollapsedInfos(bool clearCurrentInfos) {
-    collapsed_.updateSetInfo(clearCurrentInfos);
-    collapsed_.updateSubClustersPositions(clearCurrentInfos);
-  }
+  void updateCollapsedInfos();
+
   void renameToOtherPopNames(const std::vector<readObject> &previousPop,
                              aligner &alignerObj);
-  void renameClusters(const std::string &sortBy);
+  void renameClusters();
+
+  void updateInfoWithSampCollapses(const std::map<std::string, sampleCollapse> & sampCollapses);
+  void updateInfoWithSampCollapse(const sampleCollapse & sampCollapses);
+
+  //io
   void writeFinal(const std::string &outDirectory, const std::string &outFormat,
                   bool overWrite, bool exitOnFailureToWrite) const;
-  void writeFinalInitial(const std::string &outDirectory) const;
+  void writeFinalInitial(const std::string &outDirectory, const readObjectIOOptions & ioOptions) const;
+
+
+
+
 };
 }  // namspace collpase
 }  // namespace bib

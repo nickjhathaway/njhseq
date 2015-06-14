@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  identicalCluster.hpp
 //  sequenceTools
 //
@@ -18,11 +38,7 @@ class identicalCluster : public baseCluster {
 
   identicalCluster() : baseCluster() {}
 
-  identicalCluster(const readObject& firstRead) : baseCluster(firstRead) {
-  	firstReadName = firstRead.seqBase_.name_;
-  	firstReadCount = firstRead.seqBase_.cnt_;
-  	basesAboveQualCheck_ = firstRead.basesAboveQualCheck_;
-  }
+  identicalCluster(const readObject& firstRead) ;
   template <typename T>
   identicalCluster(const std::vector<T>& reads, const std::string & qualRep) : baseCluster(readObject(reads.front().seqBase_)) {
   	for(const auto & readPos : iter::range<uint32_t>(1, len(reads))){
@@ -61,10 +77,11 @@ class identicalCluster : public baseCluster {
       std::for_each(reads.begin(), reads.end(),
                     [](T& read) { read.setBestQualRep(); });
     } else {
-      std::cout << "Unrecognized qualRep: " << repQual << std::endl;
-      std::cout << "Needs to be median, average, bestSeq, bestQual, or worst"
+    	std::stringstream ss;
+      ss << "Unrecognized qualRep: " << repQual << std::endl;
+      ss << "Needs to be median, average, bestSeq, bestQual, or worst"
                 << std::endl;
-      exit(1);
+      throw std::runtime_error{ss.str()};
     }
   }
 };

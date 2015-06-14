@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,11 +18,13 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 #include "readObjectIO.hpp"
 #include <bibcpp/bashUtils.h>
-
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 namespace bibseq {
+
 
 void readObjectIO::read(const readObjectIOOptions& options) {
   includeSpaceInNames = options.includeWhiteSpaceInName_;
@@ -40,8 +42,9 @@ void readObjectIO::read(const std::string& fileType, std::string filename,
                         std::string secondName, std::string thirdName,
                         bool processed) {
 	if(!fexists(filename)){
-		std::cout << "error, file " << filename << " doesn't exist " << std::endl;
-		exit(1);
+		std::stringstream ss;
+		ss << "error, file " << filename << " doesn't exist " << std::endl;
+		throw std::runtime_error{ss.str()};
 	}
 	std::ifstream inFile(filename);
   if (fileType == "clustal") {
@@ -58,36 +61,24 @@ void readObjectIO::read(const std::string& fileType, std::string filename,
     readShorahOld(filename);
   } else if (fileType == "fastq" || fileType == "fq" || fileType == "fnq") {
   	readFastqStream(inFile, SangerQualOffset ,processed, false);
+  } else if (fileType == "fastqgz" ) {
+  	readFastqStreamGz(filename, SangerQualOffset ,processed, false);
   } else if (fileType == "fasta") {
   	readFastaStream(inFile, processed, false);
-  } else if (fileType == "flow") {
-    readFlow(filename, processed, false);
-  } else if (fileType == "qual") {
-    readQual(filename, processed, false);
-  } else if (fileType == "raw") {
-    readRaw(filename, processed, false);
   } else if (fileType == "bam") {
     readBam(filename, processed);
-  } else if (fileType == "pyroData") {
-    readPyroData(filename, processed);
   } else if (fileType == "fastaQual") {
     readFastaQual(filename, secondName, processed);
-  } else if (fileType == "fastqFlow") {
-    readFastqFlow(filename, secondName, processed);
-  } else if (fileType == "fastaFlow") {
-    readFastaFlow(filename, secondName, processed);
-  } else if (fileType == "flowQual") {
-    readFlowQual(filename, secondName, processed);
-  } else if (fileType == "fastaQualFlow") {
-    readFastaQualFlow(filename, secondName, thirdName, processed);
   } else {
-    std::cout << "Unrecognized file type : " << fileType << ", not reading "
+  	std::stringstream ss;
+    ss << "Unrecognized file type : " << fileType << ", not reading "
               << filename << std::endl;
-    std::cout << "Acceptable types are fasta, qual,fastq, stub, sff,  "
+    ss << "Acceptable types are fasta, qual,fastq, stub, sff,  "
               << std::endl;
-    exit(1);
+    throw std::runtime_error{ss.str()};
   }
 }
+
 
 // single readers
 void readObjectIO::read(const std::string& fileType, std::string filename,
@@ -103,8 +94,9 @@ void readObjectIO::read(const std::string& fileType, std::string filename,
 
 void readObjectIO::readShorahOld(const std::string& shorahFilename) {
 	if(!fexists(shorahFilename)){
-		std::cout << "file: " << shorahFilename << ", doesn't exist or can't be open" << std::endl;
-		exit(1);
+		std::stringstream ss;
+		ss << "file: " << shorahFilename << ", doesn't exist or can't be open" << std::endl;
+		throw std::runtime_error{ss.str()};
 	}else{
 		std::ifstream inFile(shorahFilename);
 	  readFastaStream(inFile, false, false);
@@ -121,8 +113,9 @@ void readObjectIO::readShorahOld(const std::string& shorahFilename) {
 
 void readObjectIO::readShorah(const std::string& shorahFilename) {
 	if(!fexists(shorahFilename)){
-		std::cout << "file: " << shorahFilename << ", doesn't exist or can't be open" << std::endl;
-		exit(1);
+		std::stringstream ss;
+		ss << "file: " << shorahFilename << ", doesn't exist or can't be open" << std::endl;
+		throw std::runtime_error{ss.str()};
 	}else{
 		std::ifstream inFile(shorahFilename);
 	  readFastaStream(inFile, false, false);
@@ -159,214 +152,63 @@ bool readObjectIO::readNextBam(BamTools::BamReader & bReader, readObject& read,
 	return succes;
 }
 
-void readObjectIO::readFlow(std::string filename, bool processed, bool add) {
-  if (!add) {
-    reads.clear();
-  }
-  FILE* dataFile;
-  dataFile = fopen(filename.c_str(), "r");
-  if (!dataFile) {
-    std::cout << "Error in opening " << filename << std::endl;
-    exit(1);
-  }
-  char c;
-  c = fgetc(dataFile);
-  std::string name = "";
-  std::vector<double> flows;
-  while (c != EOF) {
-    if (c == '>' && c != EOF) {
-      readNextData(dataFile, c, name, flows);
-      if (add) {
-        readVec::getReadByName(reads, name).flowValues = flows;
-      } else {
-        readObject nextRead = readObject(
-            seqInfo(name, seqUtil::getSeqFromFlow(flows)), processed);
-        nextRead.flowValues = flows;
-        reads.emplace_back(nextRead);
-      }
-    }
-  }
-  fclose(dataFile);
-}
-void readObjectIO::readRaw(std::string filename, bool processed, bool add) {
-  if (!add) {
-    reads.clear();
-  }
-  FILE* dataFile;
-  dataFile = fopen(filename.c_str(), "r");
-  if (!dataFile) {
-    std::cout << "Error in opening " << filename << std::endl;
-    exit(1);
-  }
 
-  char c;
-  c = fgetc(dataFile);
-  std::string firstLine = "";
-  while (c != '>') {
-    firstLine.push_back(c);
-    c = fgetc(dataFile);
-  }
-  // std::cout<<"firstLine: "<<firstLine<<std::endl;
-  std::string name = "";
-  std::vector<double> flows;
-  while (c != EOF) {
-    if (c == '>' && c != EOF) {
-      readNextData(dataFile, c, name, flows);
-      if (add) {
-        readVec::getReadByName(reads, name).flowValues = flows;
-      } else {
-        readObject nextRead = readObject(
-            seqInfo(name, seqUtil::getSeqFromFlow(flows)), processed);
-        nextRead.flowValues = flows;
-        reads.emplace_back(nextRead);
-      }
-    }
-  }
-  fclose(dataFile);
-}
 
-void readObjectIO::readQual(std::string filename, bool processed, bool add) {
-  if (!add) {
-    reads.clear();
-  }
-  FILE* qualFile;
-  qualFile = fopen(filename.c_str(), "r");
-  if (!qualFile) {
-    std::cout << "Error in opening " << filename << std::endl;
-    exit(1);
-  }
-  char c;
-  c = fgetc(qualFile);
-  std::string name = "";
-  std::string qual = "";
-  // std::vector<double> flows;
-  while (c != EOF) {
-    if (c == '>' && c != EOF) {
-      readNextQual(qualFile, c, name, qual);
-      if (add) {
-        readVec::getReadByName(reads, name).addQual(qual);
-      } else {
-        reads.emplace_back(readObject(seqInfo(name, "", qual), processed));
-      }
-    }
-  }
-  fclose(qualFile);
-}
 
 void readObjectIO::readFastaQual(std::string fastaName,
-                                 std::string qualFilename, bool processed) {
+                                 std::string qualFilename,
+																 bool processed) {
+	//std::cout << "here1" << std::endl;
+
+
   reads.clear();
+  std::stringstream ss;
+  bool fail = false;
 	if(!fexists(fastaName)){
-		std::cout << "file: " << fastaName << ", doesn't exist or can't be open" << std::endl;
-		exit(1);
-	} else if (!fexists(qualFilename)){
-		std::cout << "file: " << qualFilename << ", doesn't exist or can't be open" << std::endl;
-		exit(1);
+		ss << "file: " << fastaName << ", doesn't exist or can't be open" << std::endl;
+		fail = true;
+	}
+	if (!fexists(qualFilename)){
+		ss << "file: " << qualFilename << ", doesn't exist or can't be open" << std::endl;
+		fail = true;
+	}
+	if(fail){
+		throw std::runtime_error{ss.str()};
 	} else {
-		std::ifstream inFile(fastaName);
-	  readFastaStream(inFile, processed, false);
-	  readQual(qualFilename, processed, true);
-	}
-
-}
-
-void readObjectIO::readFastqFlow(std::string fastqFilename,
-                                 std::string flowFilename, bool processed) {
-  reads.clear();
-	if(!fexists(fastqFilename)){
-		std::cout << "file: " << fastqFilename << ", doesn't exist or can't be open" << std::endl;
-		exit(1);
-	}else{
-		std::ifstream inFile(fastqFilename);
-	  readFastqStream(inFile,SangerQualOffset, processed, false);
-	  readFlow(flowFilename, processed, true);
-	}
-}
-
-void readObjectIO::readFastaFlow(std::string fastaFilename,
-                                 std::string flowFilename, bool processed) {
-  reads.clear();
-	if(!fexists(fastaFilename)){
-		std::cout << "file: " << fastaFilename << ", doesn't exist or can't be open" << std::endl;
-		exit(1);
-	}else{
-		std::ifstream inFile(fastaFilename);
-	  readFastaStream(inFile, processed, false);
-	  readFlow(flowFilename, processed, true);
+		std::ifstream inFastaFile(fastaName);
+		std::ifstream inQualFile(qualFilename);
+		if(!inFastaFile){
+			ss << "Error in opening in fastaFile: " << fastaName << std::endl;
+			fail = true;
+		}
+		if(!inQualFile){
+			ss << "Error in opening in qualFile: " << qualFilename << std::endl;
+			fail = true;
+		}
+		if(fail){
+			throw std::runtime_error{ss.str()};
+		}else{
+			//std::cout << "here2" << std::endl;
+			readFastaQualStream(inFastaFile, inQualFile, processed, false);
+		}
 	}
 }
 
-void readObjectIO::readFlowQual(std::string flowFilename,
-                                std::string qualFilename, bool processed) {
-  reads.clear();
-  readFlow(flowFilename, processed, false);
-  readQual(qualFilename, processed, true);
-}
 
-void readObjectIO::readPyroData(std::string filename, bool processed) {
-  reads.clear();
-  textFileReader txtReader = textFileReader();
-  txtReader.readFile(filename);
-  int count = 0;
-  for (auto& fileIter : txtReader.fileContent.content_) {
-    if (count == 0) {
-      std::string name = fileIter[0];
-      int numberOfFlows = atoi(fileIter[0].c_str());
-      fileIter.erase(fileIter.begin());
-      fileIter.erase(fileIter.begin());
-      reads.emplace_back(readObject(seqInfo(
-          name, seqUtil::getSeqFromFlow(
-                    stringToVector<double>(vectorToString(fileIter))))));
-      reads[reads.size() - 1].numberOfFlows = numberOfFlows;
-      reads[reads.size() - 1].flowValues =
-          stringToVector<double>(vectorToString(fileIter));
-    }
-    ++count;
-  }
-}
-bool readObjectIO::refillBuffer(std::istream & is){
-	lineNum_ = 0;
-	while(lineNum_ < bufferMax_ && !is.eof() ){
-		std::getline(is, lineBuffer_[lineNum_]);
-		++lineNum_;
-	}
-
-	bufferPos_ = 0;
-	if(lineNum_ == 0){
-		//didn't read in anything, probably at end of the file
-		return false;
-	}else{
-		// did read in some in the buffer
-		return true;
-	}
-}
-bool readObjectIO::readNextFastaStream(std::istream& is,
+bool readObjectIO::readNextFastaStream(cachedReader & cReader,
 		readObject& read, bool processed) {
-	bool fileNotEmpty = true;
-	if(bufferPos_ == UINT32_MAX || bufferPos_ == bufferMax_ || bufferPos_ == lineNum_){
-		// if the buffer is initialize yet or it reached the
-		// end of the buffer read in the next ten line
-		fileNotEmpty = refillBuffer(is);
-	}
-	if(!fileNotEmpty){
+	if(cReader.done()){
 		return false;
 	}
+	//std::cout << "reading next" << std::endl;
   std::string name = "";
   std::string buildingSeq = "";
-  if(lineBuffer_[bufferPos_][0] =='>'){
-  	name = lineBuffer_[bufferPos_];
-  	//std::cout << boldText("name: ", "31") << name << std::endl;
-  	++bufferPos_;
-		if(bufferPos_ == bufferMax_){
-			refillBuffer(is);
-		}
-  	while( bufferPos_ < lineNum_ && lineBuffer_[bufferPos_][0] !='>'){
-			buildingSeq.append(lineBuffer_[bufferPos_]);
-			++bufferPos_;
-			if(bufferPos_ == bufferMax_){
-				refillBuffer(is);
-			}
-			//std::cout << boldText("buildingSeq: ", "31") << buildingSeq << std::endl;
+  if(cReader.currentLine().front() =='>'){
+  	name = cReader.currentLine();
+  	//std::cout << "name: " << name << std::endl;
+  	while( cReader.setNextLine() && cReader.currentLine().front() !='>'){
+  		//std::cout <<"seq:" << cReader.currentLine() << std::endl;
+			buildingSeq.append(cReader.currentLine());
 		}
   	read = readObject(seqInfo(name.substr(1), buildingSeq));
   	if(processed){
@@ -374,25 +216,102 @@ bool readObjectIO::readNextFastaStream(std::istream& is,
   	}
   	return true;
   }else{
-  	std::cout << "error in reading fasta file, line doesn't begin with >" << std::endl;
-  	std::cout << lineBuffer_[bufferPos_][0] << std::endl;
-  	std::cout << "bufferPos " << bufferPos_ << std::endl;
-  	printVector(lineBuffer_, "\n");
+  	std::stringstream ss;
+  	ss << "error in reading fasta file, line doesn't begin with >, starts with: " << std::endl;
+  	ss << cReader.currentLine().front() << std::endl;
+  	throw std::runtime_error{ss.str()};
+  	return false;
+  }
+}
+/*
+bool readObjectIO::readNextFastaStream(std::istream& is,
+		readObject& read, bool processed) {
+  cachedReader cReader(is);
+  return readNextFastaStream(cReader, read, processed);
+}
+
+bool readObjectIO::readNextQualStream(std::istream& is, std::vector<uint32_t>& quals, std::string & name){
+  cachedReader cReader(is);
+  return readNextQualStream(cReader, quals, name );
+}*/
+
+void readObjectIO::readFastaQualStream(std::istream& fastaReader,std::istream& qualReader, bool processed, bool add){
+	if(!add){
+		reads.clear();
+	}
+  readObject tempObj;
+  cachedReader fastaCacheReader(fastaReader);
+  cachedReader qualCacheReader(qualReader);
+  //std::cout << "here3" << std::endl;
+  while(readNextFastaQualStream(fastaCacheReader, qualCacheReader, tempObj, processed)){
+  	reads.emplace_back(tempObj);
+  }
+}
+bool readObjectIO::readNextFastaQualStream(cachedReader& fastaReader, cachedReader& qualReader, readObject & read,bool processed){
+	if(!readNextFastaStream(fastaReader, read, processed)){
+		return false;
+	}
+	std::vector<uint32_t> quals;
+	std::string name;
+	bool qualStatus = readNextQualStream(qualReader, quals, name);
+	if(qualStatus){
+		if(name == read.seqBase_.name_){
+			read.seqBase_.addQual(quals);
+			return true;
+		}else{
+			std::stringstream ss;
+			ss << "Error in reading fasta and qual files, name in qual did not match fasta file, check ordering" << std::endl;
+			ss << "Fasta seq name: " << read.seqBase_.name_ << std::endl;
+			ss << "Qual seq name: " << name << std::endl;
+			throw std::runtime_error{ss.str()};
+			return false;
+		}
+	}else{
+		std::stringstream ss;
+		ss << "Error in reading qual files in readNextFastaQualStream" << std::endl;
+		throw std::runtime_error{ss.str()};
+		return false;
+	}
+}
+/*
+bool readObjectIO::readNextFastaQualStream(std::istream& fastaReader, std::istream& qualReader, readObject & read,bool processed){
+  cachedReader fastaCacheReader(fastaReader);
+  cachedReader qualCacheReader(qualReader);
+	return readNextFastaQualStream(fastaCacheReader, qualCacheReader, read, processed);
+}*/
+
+bool readObjectIO::readNextQualStream(cachedReader& cReader, std::vector<uint32_t>& quals, std::string & name){
+	if(cReader.done()){
+		return false;
+	}
+	quals.clear();
+  if(cReader.currentLine().front() =='>'){
+  	name = cReader.currentLine().substr(1);
+  	while( cReader.setNextLine() && cReader.currentLine().front() !='>'){
+  		addOtherVec(quals, stringToVector<uint32_t>(cReader.currentLine()));
+		}
+  	return true;
+  }else{
+  	std::stringstream ss;
+  	ss << "error in reading qual file, line doesn't begin with >, starts with: " << std::endl;
+  	ss << cReader.currentLine().front() << std::endl;
+
+  	throw std::runtime_error{ss.str()};
   	return false;
   }
 }
 
-void readObjectIO::readFastqStream(std::istream& is, uint32_t offSet,
-                                   bool processed, bool add) {
+void readObjectIO::readFastaStream(std::istream& is, bool processed, bool add) {
 	if(!add){
-	  reads.clear();
+		reads.clear();
 	}
-  readObject read;
-  while (readNextFastqStream(is, offSet, read, processed)) {
-    reads.emplace_back(read);
+  readObject tempObj;
+  cachedReader cReader(is);
+  while(readNextFastaStream(cReader, tempObj, processed)){
+  	reads.emplace_back(tempObj);
   }
-
 }
+
 
 bool readObjectIO::readNextFastqStream(std::istream& is, uint32_t offSet,
                                        readObject& read, bool processed) {
@@ -424,60 +343,79 @@ bool readObjectIO::readNextFastqStream(std::istream& is, uint32_t offSet,
     if (allBlanks) {
       return false;
     }
-    std::cerr << bib::bashCT::bold
+    std::stringstream ss;
+    ss << bib::bashCT::bold
     		<< "Incomplete sequence, read only"
     		<< bib::bashCT::reset << std::endl;
     for (uint32_t i = 0; i < count; ++i) {
-      std::cout << "!" << data[i] << "!" << std::endl;
+      ss << "!" << data[i] << "!" << std::endl;
     }
-    std::cerr << bib::bashCT::bold
+    ss << bib::bashCT::bold
     		<< "exiting" << bib::bashCT::reset << std::endl;
-    exit(1);
+    throw std::runtime_error{ss.str()};
     return false;
   } else {
     return false;
   }
 }
 
-void readObjectIO::readFastaStream(std::istream& is, bool processed, bool add) {
-	lineBuffer_.clear();
+void readObjectIO::readFastqStream(std::istream& is, uint32_t offSet,
+                                   bool processed, bool add) {
 	if(!add){
-		reads.clear();
+	  reads.clear();
 	}
-  readObject tempObj;
-  while(readNextFastaStream(is, tempObj, processed)){
-  	reads.emplace_back(tempObj);
+  readObject read;
+  while (readNextFastqStream(is, offSet, read, processed)) {
+    reads.emplace_back(read);
   }
 }
 
+void readObjectIO::readFastqStreamGz(std::string filename, uint32_t offSet,
+                                   bool processed, bool add){
+  if(!fexists(filename)){
+  	throw std::runtime_error{"file " + filename + " doesn't exist"};
+  }
+	std::ifstream file(filename, std::ios_base::in | std::ios_base::binary);
+
+  boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+  inbuf.push(boost::iostreams::gzip_decompressor());
+  inbuf.push(file);
+  //Convert streambuf to istream
+  std::istream instream(&inbuf);
+  readFastqStream(instream, offSet, processed, add);
+  file.close();
+}
+
+
+
+
+
 void readObjectIO::readClustal(std::string filename, bool processed) {
-  reads.clear();
-  textFileReader txtReader;
-  txtReader.readFile(filename);
-  std::vector<std::pair<std::string, readObject>> readMap;
-  std::vector<std::pair<std::string, readObject>>::iterator readMapIter;
-  for (const auto& fileIter : txtReader.fileContent.content_) {
-    if (fileIter.size() != 2 || fileIter[0][0] == '*') {
-    } else {
-      bool foundMatch = false;
-      for (readMapIter = readMap.begin(); readMapIter != readMap.end();
-           ++readMapIter) {
-        if (readMapIter->first == fileIter[0]) {
-          foundMatch = true;
-          readMapIter->second.seqBase_.seq_.append(fileIter[1]);
-          break;
-        }
-      }
-      if (!foundMatch) {
-        readMap.emplace_back(std::make_pair(
-            fileIter[0], readObject(seqInfo(fileIter[0], fileIter[1]))));
-      }
-    }
-  }
-  for (readMapIter = readMap.begin(); readMapIter != readMap.end();
-       readMapIter++) {
-    reads.emplace_back(readMapIter->second);
-  }
+	reads.clear();
+	table inTab(filename);
+	std::vector<std::pair<std::string, readObject>> readMap;
+	std::vector<std::pair<std::string, readObject>>::iterator readMapIter;
+	for (const auto& row : inTab.content_) {
+		if (row.size() != 2 || row[0][0] == '*') {
+		} else {
+			bool foundMatch = false;
+			for (readMapIter = readMap.begin(); readMapIter != readMap.end();
+					++readMapIter) {
+				if (readMapIter->first == row[0]) {
+					foundMatch = true;
+					readMapIter->second.seqBase_.seq_.append(row[1]);
+					break;
+				}
+			}
+			if (!foundMatch) {
+				readMap.emplace_back(row[0], readObject(seqInfo(row[0], row[1])));
+			}
+		}
+	}
+	for (readMapIter = readMap.begin(); readMapIter != readMap.end();
+			readMapIter++) {
+		reads.emplace_back(readMapIter->second);
+	}
 }
 void readObjectIO::readClustalNg(std::string filename, bool processed) {
   reads.clear();
@@ -493,7 +431,9 @@ void readObjectIO::readSff(std::string filename) {
   std::fstream sffFile;
   sffFile.open(filename.c_str());
   if (!sffFile) {
-    std::cout << "Problem opening " << filename << std::endl;
+  	std::stringstream ss;
+    ss << "Error in opening " << filename;
+    throw std::runtime_error{ss.str()};
   }
   std::string currentLine;
   getline(sffFile, currentLine);
@@ -515,160 +455,15 @@ void readObjectIO::readSff(std::string filename) {
   }
   int convertCount = 0;
   // std::cout<<"Converting sff reads into regular read objects"<<std::endl;
-  for (const auto& sIter : sffReads) {
-    // readObject tempRead(sIter->seqBase_.name_,sIter->seq,sIter->qual);
-    // tempRead.flowValues=sIter->flowValues;
-    reads.emplace_back(convertSffObject(sIter));
+  for (const auto& read : sffReads) {
+    reads.emplace_back(convertSffObject(read));
     ++convertCount;
   }
 }
 
-void readObjectIO::readFastaQualFlow(std::string fastaFilename,
-                                     std::string qualFilename,
-                                     std::string flowFilename, bool processed) {
-  reads.clear();
-	if(!fexists(fastaFilename)){
-		std::cout << "file: " << fastaFilename << ", doesn't exist or can't be open" << std::endl;
-		exit(1);
-	} else if (!fexists(qualFilename)){
-		std::cout << "file: " << qualFilename << ", doesn't exist or can't be open" << std::endl;
-		exit(1);
-	} else if (!fexists(flowFilename)){
-		std::cout << "file: " << flowFilename << ", doesn't exist or can't be open" << std::endl;
-		exit(1);
-	} else {
-		std::ifstream inFile(fastaFilename);
-	  readFastaStream(inFile, processed, false);
-	  readQual(qualFilename, processed, true);
-	  readFlow(flowFilename, processed, true);
-	}
-
-}
 
 ///////////////////////reading the files
-void readObjectIO::readNextName(FILE* file, std::string& name, char& c) {
-  while ((includeSpaceInNames || c != 9) && (includeSpaceInNames || c != 32) &&
-         c != 10 && c != 13 && c != EOF) {
-    name.push_back(c);
-    c = fgetc(file);
-  }
-  while (c != 10 && c != 13 && c != EOF) {
-    c = fgetc(file);
-  }
-}
 
-void readObjectIO::readNextSeq(FILE* fastaFile, char& c, std::string& name,
-                               std::string& seq) {
-  name = "";
-  seq = "";
-  c = fgetc(fastaFile);
-  readNextName(fastaFile, name, c);
-  c = fgetc(fastaFile);
-  while (c != '>' && c != EOF) {
-    if (c == 10 || c == 13) {
-    } else {
-      seq.push_back(c);
-    }
-    c = fgetc(fastaFile);
-  }
-  // return readObject(name,seq,processed);
-}
-
-void readObjectIO::readNextQual(FILE* qualFile, char& c, std::string& name,
-                                std::string& qual) {
-  name = "";
-  qual = "";
-  c = fgetc(qualFile);
-  readNextName(qualFile, name, c);
-  /*
-    while (c!=9 && c!=32 && c!=10 && c!=13 && c!=EOF) {
-    name.push_back(c);
-    c=fgetc(qualFile);
-    }
-    while (c!=10 && c!=13 && c!=EOF) {
-    c=fgetc(qualFile);
-    }*/
-
-  c = fgetc(qualFile);
-  while (c != '>' && c != EOF) {
-    if (c == 10 || c == 13) {
-      qual.push_back(' ');
-    } else {
-      qual.push_back(c);
-    }
-    c = fgetc(qualFile);
-  }
-  // return qual;
-}
-
-void readObjectIO::readNextData(FILE* dataFile, char& c, std::string& name,
-                                std::vector<double>& flows) {
-  name = "";
-  std::string data = "";
-  c = fgetc(dataFile);
-  readNextName(dataFile, name, c);
-  /*
-    while (c!=9 && c!=32 && c!=10 && c!=13 && c!=EOF) {
-    name.push_back(c);
-    c=fgetc(dataFile);
-    }
-    while (c!=10 && c!=13 && c!=EOF) {
-    c=fgetc(dataFile);
-    }*/
-  c = fgetc(dataFile);
-  while (c != '>' && c != EOF) {
-    if (c == 10 || c == 13) {
-      data.push_back(' ');
-    } else {
-      data.push_back(c);
-    }
-    c = fgetc(dataFile);
-  }
-  flows = stringToVector<double>(data);
-  // need to find a better way to do this checking, nick 7.29.2013
-  if (flows[0] > 50) {
-    flows.erase(flows.begin());
-  }
-  // return stringToVector<double>(data);
-}
-
-void readObjectIO::readNextFastq(FILE* file, char& c, std::string& name,
-                                 std::string& seq, std::string& qual) {
-  name = "";
-  seq = "";
-  qual = "";
-  c = fgetc(file);
-  // id before first white space
-  readNextName(file, name, c);
-  /*
-    while (c!=9 && c!=32 && c!=10 && c!=13 && c!=EOF) {
-    name.push_back(c);
-    c=fgetc(file);
-    }
-    while (c!=10 && c!=13 && c!=EOF) {
-    c=fgetc(file);
-    }*/
-  // seq
-  c = fgetc(file);
-  while (c != '+' && c != EOF) {
-    if (c == 10 || c == 13) {
-    } else {
-      seq.push_back(c);
-    }
-    c = fgetc(file);
-  }
-  // qual
-  c = fgetc(file);
-  c = fgetc(file);
-  while (c != 10 && c != 13 && c != EOF) {
-    qual.push_back(c);
-    c = fgetc(file);
-  }
-  if (c != EOF) {
-    c = fgetc(file);
-  }
-  // return readObject(name,seq, qual, 33, processed);
-}
 
 sffObject readObjectIO::readNextSff(std::string& currentLine,
                                     std::fstream& sffFile) {
@@ -728,8 +523,8 @@ std::vector<readObject> readObjectIO::getReferenceSeq(
 
 bool readObjectIO::readNextSffBin(std::ifstream& in, sffObject& read, int32_t numFlowReads){
 	try {
-		uint64_t startSpotInFile = in.tellg();
-
+		//uint64_t startSpotInFile = in.tellg();
+		in.tellg();
 		if (!in.eof()) {
 
 			/*****************************************/
@@ -814,7 +609,9 @@ bool readObjectIO::readNextSffBin(std::ifstream& in, sffObject& read, int32_t nu
 			spot = (spotInFile + 7)& ~7;
 			in.seekg(spot);
 		}else{
-			std::cout << "Error in reading sff binary object" << std::endl;
+			std::stringstream ss;
+			ss << "Error in reading sff binary object" << std::endl;
+			throw std::runtime_error{ss.str()};
 		}
 
     if (in.eof()) {
@@ -824,8 +621,10 @@ bool readObjectIO::readNextSffBin(std::ifstream& in, sffObject& read, int32_t nu
 		return false;
 	}
 	catch(std::exception& e) {
-		std::cout << "Error in reading during readSeqData" << std::endl;
-		exit(1);
+		std::stringstream ss;
+		ss << "Error in reading during readSeqData" << std::endl;
+		ss << e.what() << std::endl;
+		throw std::runtime_error{ss.str()};
 	}
 }
 
@@ -892,20 +691,25 @@ void readObjectIO::readHeader(std::ifstream& in, sffBinaryHeader& header){
 			uint64_t spot = (spotInFile + 7)& ~7;  // ~ inverts
 			in.seekg(spot);
 			}else{
-				std::cout << "Error reading sff common header." << std::endl;
+				std::stringstream ss;
+				ss << "Error reading sff common header" << std::endl;
+				throw std::runtime_error{ss.str()};
 		}
 	}
 	catch(std::exception& e) {
-		//m->errorOut(e, "SffInfoCommand", "readCommonHeader");
-		exit(1);
+		std::stringstream ss;
+		ss << "Error in reading during readHeader" << std::endl;
+		ss << e.what() << std::endl;
+		throw std::runtime_error{ss.str()};
 	}
 }
 
 void readObjectIO::readSffbin(const std::string & filename){
 	std::ifstream inFile;
 	if(!fexists(filename)){
-		std::cout << "File: " << filename << " doesn't exist" << std::endl;
-		exit(1);
+		std::stringstream ss;
+		ss << "File: " << filename << " doesn't exist" << std::endl;
+		throw std::runtime_error{ss.str()};
 	}
 	inFile.open(filename, std::ios::binary);
 	sffBinaryHeader header;
@@ -919,7 +723,7 @@ void readObjectIO::readSffbin(const std::string & filename){
 		if (!okay) {
 			break;
 		}
-
+		/**@todo find out why numberOfFlows isn't being set properly*/
 		reads.emplace_back(convertSffObject(read));
 
 		++count;

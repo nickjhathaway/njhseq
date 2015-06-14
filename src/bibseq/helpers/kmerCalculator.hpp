@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  kmerCalculator.hpp
 //  sequenceTools
 //
@@ -49,7 +69,6 @@ class kmerCalculator {
   template <class T>
   static kmerMaps indexKmerMpas(const std::vector<T>& reads,
                                 uint32_t kmerLength, uint32_t runCutoff,
-                                uint32_t qualRunCutOff,
                             		bool expandPos = false, uint32_t expandSize = 5) {
     double total = 0;
     for (const auto& read : reads) {
@@ -57,7 +76,7 @@ class kmerCalculator {
     }
     return kmerMaps(indexKmerForPosMap(reads, kmerLength, expandPos, expandSize),
                     indexKmerForStringMap(reads, kmerLength), kmerLength,
-                    runCutoff, qualRunCutOff, total);
+                    runCutoff, total);
   }
 
   template <class T>
@@ -123,8 +142,8 @@ kmerCalculator::indexKmerForPosMap(const std::vector<T>& reads,
         }else{
         	startPos = cursor - expandSize;
         }
-        if((expandSize + cursor + 1 )> len(read.seqBase_.seq_)){
-        	stopPos = len(read.seqBase_.seq_);
+        if((expandSize + cursor + 1 )> read.seqBase_.seq_.size()){
+        	stopPos = read.seqBase_.seq_.size();
         }else{
         	stopPos = cursor + expandSize + 1;
         }

@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  clusterCollapser.h
 //  sequenceTools
 //
@@ -34,23 +54,9 @@ class clusterCollapser {
       const std::vector<readObject> &seqList, const std::string &repQual,
       const std::string &lower);
 
-  template <class CLUSTER>
-  static std::vector<uint> findMatchIndex(
-      const CLUSTER &read, const std::vector<CLUSTER> &comparingReads,
-      const runningParameters &runParams, aligner &alignerObj,
-      size_t &amountAdded, bool findingBestMatch, int bestMatchCheck,
-      kmerMaps &kMaps, bool kmersByPos, int runCutOff, int kLength,
-      bool usingQuality, bool local, bool weighHomopolyer,
-      bool skipOnLetterCounterDifference, double fractionDifferenceCutOff);
 
-  template <class CLUSTER>
-  static void collapseWithParametersByIndices(
-      std::vector<CLUSTER> &comparingReads, aligner &alignerObj,
-      const runningParameters &runParams, bool findingBestMatch,
-      int bestMatchCheck, bool local, bool usingQuality, kmerMaps &kMaps,
-      bool kmersByPosition, int runCutOff, bool verbose, int kLength,
-      bool smallestFirst, bool weighHomopolyer,
-      bool skipOnLetterCounterDifference, double fractionDifferenceCutOff);
+
+
 
   // mark chimeras
   static std::vector<cluster> markChimeras(std::vector<cluster> &processedReads,
@@ -62,7 +68,7 @@ class clusterCollapser {
   static void markChimerasAdvanced(std::vector<cluster> &processedReads,
                                    aligner &alignerObj, double parentFreqs,
                                    int runCutOff, bool local,
-                                   const errorProfile &chiOverlap,
+                                   const comparison &chiOverlap,
                                    uint32_t overLapSizeCutoff,
                                    bool weighHomopolyer, uint32_t &chimeraCount,
                                    uint32_t allowableError);
@@ -86,163 +92,8 @@ std::vector<identicalCluster> clusterCollapser::collapseToUniqueReads(
 	}
 	return output;
 }
-template <class CLUSTER>
-std::vector<uint> clusterCollapser::findMatchIndex(
-    const CLUSTER &read, const std::vector<CLUSTER> &comparingReads,
-    const runningParameters &runParams, aligner &alignerObj,
-    size_t &amountAdded, bool findingBestMatch, int bestMatchCheck,
-    kmerMaps &kMaps, bool kmersByPos, int runCutOff, int kLength,
-    bool usingQuality, bool local, bool weighHomopolyer,
-    bool skipOnLetterCounterDifference, double fractionDifferenceCutOff) {
-  int count = -1;
-  uint32_t pos = 0;
-  double bestScore = 0;
-  int bestSearching = 0;
-  bool foundMatch = false;
-  bool beginning = true;
-  std::vector<uint> indices;
-  for (auto &clus : comparingReads) {
-    if (!beginning) {
-      ++pos;
-    } else {
-      beginning = false;
-    }
-    if (foundMatch) {
-      ++bestSearching;
-    }
-    // std::cout<<"mark 1"<<std::endl;
-    if (clus.remove) {
-      continue;
-    } else {
-      ++count;
-    }
-    // std::cout<<"mark 2"<<std::endl;
-    if (clus.totalCount <= runParams.smallCheckStop_) {
-      continue;
-    }
-    // std::cout<<"mark 3"<<std::endl;
-    if (clus.name == read.name) {
-      continue;
-    }
-    if (skipOnLetterCounterDifference) {
-      // std::cout<<"skipping on letter counter difference"<<std::endl;
-      double sum = 0;
-      for (const auto &count : read.counter.fractions) {
-        sum += clus.counter.fractions.at(count.first) - count.second;
-      }
-      if (sum > fractionDifferenceCutOff) {
-        continue;
-      }
-    }
-    // std::cout<<"mark 4"<<std::endl;
-    /*std::cout<<"\t"<<count<<std::endl;
-     std::cout<<"\t"<<runParams.stopCheck<<std::endl;
-     std::cout<<"\t"<<bestSearching<<std::endl;
-     std::cout<<"\t"<<bestMatchCheck<<std::endl;*/
-    if (1 + count > runParams.stopCheck_ || bestSearching > bestMatchCheck) {
-      // std::cout<<"mark breaking on stop check or bestMatchCheck"<<std::endl;
-      break;
-    }
-    // std::cout<<"mark 5"<<std::endl;
-    if (alignerObj.CountEndGaps()) {
-      if (abs((int)read.seq.length() - (int)clus.seq.length()) > 10) {
-        continue;
-      }
-    }
-    bool matching = false;
-    alignerObj.alignVec(clus, read, local);
-    matching = alignerObj.checkAlignmentBool(clus, read, runParams, kLength,
-                                             kmersByPos, usingQuality, false,
-                                             weighHomopolyer);
-    if (matching) {
-      foundMatch = true;
-      if (findingBestMatch) {
-        if (alignerObj.parts_.score_ > bestScore) {
-          bestScore = alignerObj.parts_.score_;
-          indices.clear();
-          indices.push_back(pos);
-        } else if (alignerObj.parts_.score_ == bestScore) {
-          indices.push_back(pos);
-        }
-      } else {
-        indices.push_back(pos);
-        return indices;
-        break;
-      }
-    }
-  }
-  return indices;
-}
-template <class CLUSTER>
-void clusterCollapser::collapseWithParametersByIndices(
-    std::vector<CLUSTER> &comparingReads, aligner &alignerObj,
-    const runningParameters &runParams, bool findingBestMatch,
-    int bestMatchCheck, bool local, bool usingQuality, kmerMaps &kMaps,
-    bool kmersByPosition, int runCutOff, bool verbose, int kLength,
-    bool smallestFirst, bool weighHomopolyer,
-    bool skipOnLetterCounterDifference, double fractionDifferenceCutOff) {
-  int sizeOfReadVector = getReadVectorSize(comparingReads);
-  if (sizeOfReadVector < 2) {
-    return;
-  }
-  if (verbose)
-    std::cout << "Starting with " << sizeOfReadVector << " clusters"
-              << std::endl;
-  int clusterCounter = 0;
-  size_t amountAdded = 0;
-  if (smallestFirst) {
-    for (auto &reverseRead : iter::reverse(comparingReads)) {
-      if (reverseRead.remove) {
-        continue;
-      } else {
-        clusterCounter++;
-      }
-      if (verbose && clusterCounter % 100 == 0) {
-        std::cout << "Currently on cluster " << clusterCounter << " of "
-                  << sizeOfReadVector << std::endl;
-      }
 
-      std::vector<uint> indices = findMatchIndex(
-          reverseRead, comparingReads, runParams, alignerObj, amountAdded,
-          findingBestMatch, bestMatchCheck, kMaps, kmersByPosition, runCutOff,
-          kLength, usingQuality, local, weighHomopolyer,
-          skipOnLetterCounterDifference, fractionDifferenceCutOff);
-      if (indices.size() > 0) {
-        ++amountAdded;
-        comparingReads[indices[0]].addRead(reverseRead);
-        comparingReads[indices[0]].allInputClusters.push_back(reverseRead);
-        reverseRead.remove = true;
-      }
-    }
-  } else {
-    for (auto &forwardRead : comparingReads) {
-      if (forwardRead.remove) {
-        continue;
-      } else {
-        clusterCounter++;
-      }
 
-      if (verbose && clusterCounter % 100 == 0) {
-        std::cout << "Currently on cluster " << clusterCounter << " of "
-                  << sizeOfReadVector << std::endl;
-      }
-      std::vector<uint> indices = findMatchIndex(
-          forwardRead, comparingReads, runParams, alignerObj, amountAdded,
-          findingBestMatch, bestMatchCheck, kMaps, kmersByPosition, runCutOff,
-          kLength, usingQuality, local, weighHomopolyer,
-          skipOnLetterCounterDifference, fractionDifferenceCutOff);
-      if (indices.size() > 0) {
-        ++amountAdded;
-        comparingReads[indices[0]].addRead(forwardRead);
-        comparingReads[indices[0]].allInputClusters.push_back(forwardRead);
-        forwardRead.remove = true;
-      }
-    }
-  }
-  if (verbose)
-    std::cout << "Collapsed down to " << sizeOfReadVector - amountAdded
-              << " clusters" << std::endl;
-}
 
 }  // namespace bib
 

@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,12 +18,40 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 #include "table.hpp"
 #include "bibseq/IO/fileUtils.hpp"
 #include <bibcpp/bashUtils.h>
 
 namespace bibseq {
+
+void table::setColNamePositions(){
+	colNameToPos_.clear();
+	for(const auto & pos : iter::range(columnNames_.size())){
+		colNameToPos_[columnNames_[pos]] = pos;
+	}
+}
+uint32_t table::getColPos(const std::string & colName) const {
+	auto search = colNameToPos_.find(colName);
+	if (search == colNameToPos_.end()) {
+		throw std::runtime_error { bib::bashCT::boldRed(
+				"No column " + colName + " in header," + "available colnames are: "
+						+ bib::bashCT::blue + bib::conToStr(columnNames_, ",")) };
+	}
+	return search->second;
+}
+
+VecStr table::getColumnLevels(uint32_t colPos){
+	std::set<std::string> retSet;
+	for(const auto & row : content_){
+		retSet.emplace(row[colPos]);
+	}
+	return VecStr(retSet.begin(), retSet.end());
+}
+
+VecStr table::getColumnLevels(const std::string & colName){
+	return getColumnLevels(getColPos(colName));
+}
+
 table::table(std::istream & in, const std::string &inDelim,
         bool header){
 	VecStr columnNames;
@@ -31,12 +59,7 @@ table::table(std::istream & in, const std::string &inDelim,
 	std::vector<VecStr> tempFileContent;
 	if (inDelim == " " || inDelim == "whitespace") {
 		std::string currentLine;
-		/*std::fstream textFile(filename.c_str());
-		if (!textFile) {
-			std::cout << "Error in opening " << filename << std::endl;
-			exit(1);
-		}*/
-		getline(in, currentLine);
+		std::getline(in, currentLine);
 		if (header) {
 			std::stringstream tempStream;
 			tempStream << currentLine;
@@ -44,10 +67,10 @@ table::table(std::istream & in, const std::string &inDelim,
 			while (!tempStream.eof()) {
 				std::string tempName;
 				tempStream >> tempName;
-				tempVect.push_back(tempName);
+				tempVect.emplace_back(tempName);
 			}
 			columnNames = tempVect;
-			getline(in, currentLine);
+			std::getline(in, currentLine);
 		}
 		while (!in.eof()) {
 			std::stringstream tempStream;
@@ -56,28 +79,25 @@ table::table(std::istream & in, const std::string &inDelim,
 			while (!tempStream.eof()) {
 				std::string tempName;
 				tempStream >> tempName;
-				tempVect.push_back(tempName);
+				tempVect.emplace_back(tempName);
 			}
-			getline(in, currentLine);
-			tempFileContent.push_back(tempVect);
+			std::getline(in, currentLine);
+			tempFileContent.emplace_back(tempVect);
 		}
 	} else {
+		if(inDelim == "tab"){
+			inDelim_ = "\t";
+		}
 		std::string currentLine;
-		/*std::ifstream textFile(filename.c_str());
-		if (!textFile) {
-			std::cout << "Error in opening " << filename << std::endl;
-			exit(1);
-		}*/
-		getline(in, currentLine);
+		std::getline(in, currentLine);
 		if (header) {
-			VecStr temp = tokenizeString(currentLine, inDelim, true);
+			VecStr temp = tokenizeString(currentLine, inDelim_, true);
 			columnNames = temp;
-			getline(in, currentLine);
+			std::getline(in, currentLine);
 		}
 		while (!in.eof()) {
-			VecStr temp = tokenizeString(currentLine, inDelim, true);
-			tempFileContent.push_back(tokenizeString(currentLine, inDelim));
-			getline(in, currentLine);
+			tempFileContent.emplace_back(tokenizeString(currentLine, inDelim_, true));
+			std::getline(in, currentLine);
 		}
 	}
 	if (header) {
@@ -85,68 +105,20 @@ table::table(std::istream & in, const std::string &inDelim,
 	} else {
 		*this = table(tempFileContent);
 	}
+	setColNamePositions();
 }
 table::table(const std::string &filename, const std::string &inDelim,
              bool header) {
-  VecStr columnNames;
-  inDelim_ = inDelim;
-  std::vector<VecStr> tempFileContent;
-  if (inDelim == " " || inDelim == "whitespace") {
-    std::string currentLine;
-    std::fstream textFile(filename.c_str());
-    if (!textFile) {
-      std::cout << "Error in opening " << filename << std::endl;
-      exit(1);
-    }
-    getline(textFile, currentLine);
-    if (header) {
-      std::stringstream tempStream;
-      tempStream << currentLine;
-      VecStr tempVect;
-      while (!tempStream.eof()) {
-        std::string tempName;
-        tempStream >> tempName;
-        tempVect.push_back(tempName);
-      }
-      columnNames = tempVect;
-      getline(textFile, currentLine);
-    }
-    while (!textFile.eof()) {
-      std::stringstream tempStream;
-      tempStream << currentLine;
-      VecStr tempVect;
-      while (!tempStream.eof()) {
-        std::string tempName;
-        tempStream >> tempName;
-        tempVect.push_back(tempName);
-      }
-      getline(textFile, currentLine);
-      tempFileContent.push_back(tempVect);
-    }
-  } else {
-    std::string currentLine;
-    std::ifstream textFile(filename.c_str());
-    if (!textFile) {
-      std::cout << "Error in opening " << filename << std::endl;
-      exit(1);
-    }
-    getline(textFile, currentLine);
-    if (header) {
-      VecStr temp = tokenizeString(currentLine, inDelim, true);
-      columnNames = temp;
-      getline(textFile, currentLine);
-    }
-    while (!textFile.eof()) {
-      VecStr temp = tokenizeString(currentLine, inDelim, true);
-      tempFileContent.push_back(tokenizeString(currentLine, inDelim));
-      getline(textFile, currentLine);
-    }
+  std::ifstream textFile(filename.c_str());
+  if (!textFile) {
+  	std::stringstream ss;
+    ss << bib::bashCT::red << bib::bashCT::bold
+		<< "Error in opening " << filename
+		<< bib::bashCT::reset << "\n";
+    throw std::runtime_error{ss.str()};
   }
-  if (header) {
-    *this = table(tempFileContent, columnNames);
-  } else {
-    *this = table(tempFileContent);
-  }
+  *this = table(textFile, inDelim, header);
+  setColNamePositions();
 }
 void table::addPaddingToEndOfRows() {
   size_t maxRowLength = 0;
@@ -169,13 +141,13 @@ void table::addPaddingZeros() {
     size_t pos = 0;
     for (const auto &fIter : content_) {
       if (fIter[colPos] == "") {
-        blankPositions.push_back(pos);
+        blankPositions.emplace_back(pos);
       } else {
-        nonBlanks.push_back(fIter[colPos]);
+        nonBlanks.emplace_back(fIter[colPos]);
       }
       ++pos;
     }
-    if (vectorOfNumberStringsDouble(nonBlanks)) {
+    if (isVecOfDoubleStr(nonBlanks)) {
       for (const auto &i : blankPositions) {
         content_[i][colPos] = "0";
       }
@@ -186,21 +158,22 @@ void table::addPaddingZeros() {
 void table::addColumn(const VecStr & columnNew, const std::string & name){
 	//check size
 	if(columnNew.size() != content_.size() && columnNew.size() != 1){
-		std::cout << "new column's size doesn't match the size of the table not adding" << std::endl;
-		std::cout << "tableSize: " << content_.size() << std::endl;
-		std::cout << "addColumnSize: " << columnNew.size() << std::endl;
+		std::cout << "new column's size doesn't match the size of the table not adding" << "\n";
+		std::cout << "tableSize: " << content_.size() << "\n";
+		std::cout << "addColumnSize: " << columnNew.size() << "\n";
 	}else{
 		columnNames_.emplace_back(name);
 		if(columnNew.size() == 1){
-			for(const auto & rowPos : iter::range(len(content_))){
+			for(const auto & rowPos : iter::range(content_.size())){
 				content_[rowPos].emplace_back(columnNew[0]);
 			}
 		}else{
-			for(const auto & rowPos : iter::range(len(content_))){
+			for(const auto & rowPos : iter::range(content_.size())){
 				content_[rowPos].emplace_back(columnNew[rowPos]);
 			}
 		}
 	}
+	setColNamePositions();
 	return;
 }
 void table::addZerosToEnds() {
@@ -219,28 +192,28 @@ void table::addZerosToEnds() {
     }
   }
 }
-table table::getColumns(const VecStr &specificColumnNames) {
+table table::getColumns(const VecStr &specificColumnNames) const{
   std::vector<uint32_t> positions =
       getPositionsMultipleTargets(columnNames_, specificColumnNames);
   return getColumns(positions);
 }
 
-table table::getColumns(const std::vector<uint32_t> &specificColumnPositions) {
+table table::getColumns(const std::vector<uint32_t> &specificColumnPositions)const {
   std::vector<VecStr> ans;
   for (const auto &fileIter : content_) {
     VecStr currentRow;
-    ans.push_back(getTargetsAtPositions(fileIter, specificColumnPositions));
+    ans.emplace_back(getTargetsAtPositions(fileIter, specificColumnPositions));
   }
   table outTab(ans, getTargetsAtPositions(columnNames_, specificColumnPositions));
   outTab.hasHeader_ = hasHeader_;
   return outTab;
 }
 table table::getColumnsNotAtPositions(
-    const std::vector<uint32_t> &specificColumnPositions) {
+    const std::vector<uint32_t> &specificColumnPositions) const{
   std::vector<VecStr> ans;
   for (const auto &fileIter : content_) {
     VecStr currentRow;
-    ans.push_back(getTargetsNotAtPositions(fileIter, specificColumnPositions));
+    ans.emplace_back(getTargetsNotAtPositions(fileIter, specificColumnPositions));
   }
   return table(ans,
                getTargetsNotAtPositions(columnNames_, specificColumnPositions));
@@ -248,16 +221,25 @@ table table::getColumnsNotAtPositions(
 
 VecStr table::getColumn(const std::string &specifcColumnName) const {
   uint32_t colPos = getFirstPositionOfTarget(columnNames_, specifcColumnName);
+  if(colPos == 4294967295){
+  	std::stringstream ss;
+  	ss << bib::bashCT::bold
+				<< "Can't find col: " << bib::bashCT::red << specifcColumnName
+				<< bib::bashCT::reset << "\n";
+  	throw std::runtime_error{bib::bashCT::boldRed(ss.str())};
+  }
   return getColumn(colPos);
 }
 VecStr table::getColumn(uint32_t colPos) const {
   VecStr ans;
   if (colPos >= columnNames_.size()) {
-    std::cout << "positions: " << colPos << " is out of the bounds of "
-              << columnNames_.size() << " return nothing" << std::endl;
+  	std::stringstream ss;
+  	ss << "positions: " << colPos << " is out of the bounds of "
+              << columnNames_.size() << " return nothing" << "\n";
+  	throw std::runtime_error{bib::bashCT::boldRed(ss.str())};
   } else {
     for (const auto &fIter : content_) {
-      ans.push_back(fIter[colPos]);
+      ans.emplace_back(fIter[colPos]);
     }
   }
   return ans;
@@ -268,7 +250,7 @@ std::vector<std::string *> table::getColumnPointer(
   size_t colPos = getFirstPositionOfTarget(columnNames_, specifcColumnName);
   std::vector<std::string *> ans;
   for (auto &fIter : content_) {
-    ans.push_back(&fIter[colPos]);
+    ans.emplace_back(&fIter[colPos]);
   }
   return ans;
 }
@@ -285,7 +267,7 @@ void table::deleteColumn(size_t columnIndex) {
     }
   } else {
     std::cout << "Column " << columnIndex << " doesn't exist, table left alone"
-              << std::endl;
+              << "\n";
   }
 }
 void table::deleteRow(size_t rowIndex) {
@@ -293,7 +275,7 @@ void table::deleteRow(size_t rowIndex) {
     content_.erase(content_.begin() + rowIndex);
   } else {
     std::cout << "Row " << rowIndex << " is out of bounds, table left alone"
-              << std::endl;
+              << "\n";
   }
 }
 
@@ -313,7 +295,7 @@ table table::getRowsLoose(const std::string &forColumn,
   return table(getTargetsAtPositions(content_, positions), columnNames_);
 }
 table table::getRowsStartsWith(const std::string &forColumn,
-                               const std::string &startsWtih) {
+                               const std::string &startsWtih) const{
   VecStr col = getColumn(forColumn);
   std::vector<uint32_t> positions =
       getPositionsOfTargetStartsWith(col, startsWtih);
@@ -321,7 +303,7 @@ table table::getRowsStartsWith(const std::string &forColumn,
   return table(getTargetsAtPositions(content_, positions), columnNames_);
 }
 
-table table::getRows(const std::vector<uint32_t> &specificRowPositions) {
+table table::getRows(const std::vector<uint32_t> &specificRowPositions) const{
 
   return table(getTargetsAtPositions(content_, specificRowPositions),
                columnNames_);
@@ -333,7 +315,7 @@ void table::outPutContents(std::ostream &out, std::string delim) const {
     delim = " ";
   }
   if (hasHeader_) {
-    out << vectorToString(columnNames_, delim) << std::endl;
+    out << vectorToString(columnNames_, delim) << "\n";
   }
   outputVectorOfVectors(content_, delim, out);
 }
@@ -342,15 +324,15 @@ void table::sortTable(const std::string &byThisColumn, bool decending,
                       bool guessFormat) {
   if (!vectorContains(columnNames_, byThisColumn)) {
     std::cout << "Table does not contain " << byThisColumn
-              << " not sorting table" << std::endl;
-    std::cout << "options are" << std::endl;
+              << " not sorting table" << "\n";
+    std::cout << "options are" << "\n";
     printVector(columnNames_, ",");
     return;
   }
   VecStr col = getColumn(byThisColumn);
-  if (guessFormat && vectorOfNumberStringsDouble(col)) {
-    if (vectorOfNumberStringsInt(col)) {
-      std::multimap<int, VecStr> mapSorter;
+  if (guessFormat && isVecOfDoubleStr(col)) {
+    if (isVecOfIntStr(col)) {
+      std::multimap<int32_t, VecStr> mapSorter;
       size_t count = 0;
       for (const auto &iter : content_) {
         mapSorter.insert(std::make_pair(std::stoi(col[count]), iter));
@@ -358,7 +340,7 @@ void table::sortTable(const std::string &byThisColumn, bool decending,
       }
       content_.clear();
       for (const auto &iter : mapSorter) {
-        content_.push_back(iter.second);
+        content_.emplace_back(iter.second);
       }
     } else {
       std::multimap<double, VecStr> mapSorter;
@@ -369,7 +351,7 @@ void table::sortTable(const std::string &byThisColumn, bool decending,
       }
       content_.clear();
       for (const auto &iter : mapSorter) {
-        content_.push_back(iter.second);
+        content_.emplace_back(iter.second);
       }
     }
   } else {
@@ -383,7 +365,7 @@ void table::sortTable(const std::string &byThisColumn, bool decending,
     content_.clear();
     for (std::multimap<std::string, VecStr>::iterator iter = mapSorter.begin();
          iter != mapSorter.end(); ++iter) {
-      content_.push_back(iter->second);
+      content_.emplace_back(iter->second);
     }
   }
   if (decending) {
@@ -396,7 +378,7 @@ std::map<std::string, table> table::splitTableOnColumn(
     const std::string &colName) const {
 
   VecStr factorNames = getUniqueStrings(getColumn(colName));
-  std::cout << factorNames << std::endl;
+  //std::cout << factorNames << "\n";
   std::map<std::string, table> ans;
   for (const auto &iter : factorNames) {
     ans.insert({iter, getRows(colName, iter)});
@@ -438,7 +420,7 @@ void table::cbind(const table &otherTable) {
     if (count > maxRows) {
       VecStr empty(numCol, "");
       addOtherVec(empty, tabIter);
-      content_.push_back(empty);
+      content_.emplace_back(empty);
     } else {
       addOtherVec(content_[count], tabIter);
     }
@@ -447,31 +429,31 @@ void table::cbind(const table &otherTable) {
   addOtherVec(columnNames_, otherTable.columnNames_);
 }
 
-table table::getColumnsLoose(const std::string &subStr) {
+table table::getColumnsLoose(const std::string &subStr) const{
   std::vector<uint32_t> positions =
       getPositionsOfSubStrTarget(columnNames_, subStr);
   if (positions.size() == 0) {
     std::cout << "Couldn't find any columns that contained: " << subStr
-              << " returning the whole table" << std::endl;
+              << " returning the whole table" << "\n";
     return *this;
   } else {
     return getColumns(positions);
   }
 }
 
-table table::getColumnsStartWith(const std::string &startsWith) {
+table table::getColumnsStartWith(const std::string &startsWith) const{
   std::vector<uint32_t> positions =
       getPositionsOfTargetStartsWith(columnNames_, startsWith);
   if (positions.size() == 0) {
     std::cout << "Couldn't find any columns that started with: " << startsWith
-              << " returning the whole table" << std::endl;
+              << " returning the whole table" << "\n";
     return *this;
   } else {
     return getColumns(positions);
   }
 }
 
-table table::getUniqueRows() {
+table table::getUniqueRows() const{
   return table(collapseUniqueVectors(content_), columnNames_);
 }
 
@@ -496,7 +478,7 @@ void table::printOutSplitTable(const std::map<std::string, table> &tabSplit,
                                std::ostream &out, const std::string &delim,
                                bool outOrganized) {
   for (const auto &iter : tabSplit) {
-    out << iter.first << std::endl;
+    out << iter.first << "\n";
     if (outOrganized) {
       iter.second.outPutContentOrganized(out);
     } else {
@@ -516,33 +498,33 @@ void table::trimElementsAtFirstOccurenceOf(const std::string &trimAt) {
 table table::getStatsTable() const {
   table outTable;
   outTable.hasHeader_ = true;
-  outTable.columnNames_.push_back("stat");
+  outTable.columnNames_.emplace_back("stat");
   for (auto sIter : {"sum", "mean", "median", "min", "max", "std"}) {
-    outTable.content_.push_back(VecStr{sIter});
+    outTable.content_.emplace_back(VecStr{sIter});
   }
   for (auto &colNameIter : columnNames_) {
     VecStr currentColumn = getColumn(colNameIter);
-    if (vectorOfNumberStringsDouble(currentColumn)) {
-      outTable.columnNames_.push_back(colNameIter);
+    if (isVecOfDoubleStr(currentColumn)) {
+      outTable.columnNames_.emplace_back(colNameIter);
       std::vector<double> currentNumbers;
       for (const auto &numStr : currentColumn) {
-        currentNumbers.push_back(std::stod(numStr));
+        currentNumbers.emplace_back(std::stod(numStr));
       }
       auto currentStats = getStatsOnVec(currentNumbers);
       for (auto i : iter::range(0, (int)outTable.content_.size())) {
         if (i == 0) {
-          outTable.content_[i].push_back(std::to_string(currentStats["sum"]));
+          outTable.content_[i].emplace_back(estd::to_string(currentStats["sum"]));
         } else if (i == 1) {
-          outTable.content_[i].push_back(std::to_string(currentStats["mean"]));
+          outTable.content_[i].emplace_back(estd::to_string(currentStats["mean"]));
         } else if (i == 2) {
           outTable.content_[i]
-              .push_back(std::to_string(currentStats["median"]));
+              .emplace_back(estd::to_string(currentStats["median"]));
         } else if (i == 3) {
-          outTable.content_[i].push_back(std::to_string(currentStats["min"]));
+          outTable.content_[i].emplace_back(estd::to_string(currentStats["min"]));
         } else if (i == 4) {
-          outTable.content_[i].push_back(std::to_string(currentStats["max"]));
+          outTable.content_[i].emplace_back(estd::to_string(currentStats["max"]));
         } else if (i == 5) {
-          outTable.content_[i].push_back(std::to_string(currentStats["std"]));
+          outTable.content_[i].emplace_back(estd::to_string(currentStats["std"]));
         }
       }
     }
@@ -564,26 +546,26 @@ table table::aggregateSimple(const std::string &columnName,
     }
     table outTable;
     outTable.hasHeader_ = true;
-    outTable.columnNames_.push_back(columnName);
+    outTable.columnNames_.emplace_back(columnName);
     VecStr otherColNames = stats.begin()->second.columnNames_;
     std::string remove = "stat";
     removeElement(otherColNames, remove);
     addOtherVec(outTable.columnNames_, otherColNames);
     for (const auto &statsIter : stats) {
       VecStr currentLine;
-      currentLine.push_back(statsIter.first);
+      currentLine.emplace_back(statsIter.first);
       table info = statsIter.second.getRows("stat", function);
       VecStr currentInfo = info.content_.front();
       removeElement(currentInfo, function);
       addOtherVec(currentLine, currentInfo);
-      outTable.content_.push_back(currentLine);
+      outTable.content_.emplace_back(currentLine);
     }
     return outTable;
   } else {
     std::cout << "unrecognized function for aggregate," << function
-              << std::endl;
+              << "\n";
     std::cout << "Available optins are sum, mean, median, max, min, std"
-              << std::endl;
+              << "\n";
     return *this;
   }
 }
@@ -620,8 +602,8 @@ std::vector<uint32_t> table::getNumericColumnPositions(bool addZeros) {
   uint32_t pos = 0;
   for (const auto &col : columnNames_) {
     VecStr currentColumn = getColumn(col);
-    if (vectorOfNumberStringsDouble(currentColumn)) {
-      ans.push_back(pos);
+    if (isVecOfDoubleStr(currentColumn)) {
+      ans.emplace_back(pos);
     }
     ++pos;
   }
@@ -644,7 +626,7 @@ table table::aggregateAdvance(const std::string &columnName,
   table nonNumericColumns = getAllNonNumericColumns();
   std::vector<VecStr> collapsedColumns;
   for (const auto row : nonNumericColumns.content_) {
-    collapsedColumns.push_back({vectorToString(row, sep)});
+    collapsedColumns.emplace_back(VecStr{vectorToString(row, sep)});
   }
 
   table tempTable(collapsedColumns, {"collapsed"});
@@ -654,7 +636,7 @@ table table::aggregateAdvance(const std::string &columnName,
   aggregated.deleteColumn("collapsed");
   std::vector<VecStr> expanded;
   for (const auto &element : collapsedColumn) {
-    expanded.push_back(tokenizeString(element, sep));
+    expanded.emplace_back(tokenizeString(element, sep));
   }
   table expandedTable(expanded, nonNumericColumns.columnNames_);
   expandedTable.cbind(aggregated);
@@ -681,9 +663,9 @@ table table::cbind(const std::vector<table> &tables,
   }
   names = getUniqueStrings(names);
   std::sort(names.begin(), names.end());
-  ans.columnNames_.push_back(columnForceMatch);
+  ans.columnNames_.emplace_back(columnForceMatch);
   for (const auto &name : names) {
-    ans.content_.push_back({name});
+    ans.content_.emplace_back(VecStr{name});
   }
 
   addOtherVec(ans.columnNames_, repeatVector(spNames, {splitTables.size()}));
@@ -707,20 +689,22 @@ std::map<std::string, uint32_t> table::countColumn(
 
   auto colPos = getPositionsOfTarget(columnNames_, columnName);
   if (colPos.empty()) {
-    std::cout << "No column named, "
+  	std::stringstream ss;
+    ss << "No column named, "
     		<< bib::bashCT::bold << columnName
-    		<< bib::bashCT::reset << std::endl;
-    std::cout << "Options are : "; printVector(columnNames_, ", ");
-    exit(1);
+    		<< bib::bashCT::reset << "\n";
+    ss << "Options are : "; printVector(columnNames_, ", ");
+    throw std::runtime_error{ss.str()};
   }
   return countColumn(colPos.front());
 }
 std::map<std::string, uint32_t> table::countColumn(uint32_t colPos) {
   std::map<std::string, uint32_t> ans;
-  if (colPos > len(columnNames_)) {
-    std::cout << "colPos: " << colPos << ", out of bounds of "
-              << len(columnNames_);
-    exit(1);
+  if (colPos > columnNames_.size()) {
+  	std::stringstream ss;
+    ss << "colPos: " << colPos << ", out of bounds of "
+              << columnNames_.size();
+    throw std::runtime_error{ss.str()};
   }
   for (const auto &row : content_) {
     ++ans[row[colPos]];
@@ -734,12 +718,12 @@ table table::cbind(const std::map<std::string, table> &tables,
 }
 void table::removeEmpty(bool addPadding) {
 	std::vector<uint32_t> emptyPositions;
-	for(const auto & rowPos : iter::range(len(content_))){
+	for(const auto & rowPos : iter::range(content_.size())){
 		if(content_.empty()){
 			emptyPositions.emplace_back(rowPos);
 		}else {
 			bool empty =true;
-			for(const auto & colPos : iter::range(len(content_[rowPos]))){
+			for(const auto & colPos : iter::range(content_[rowPos].size())){
 				if(!allWhiteSpaceStr(content_[rowPos][colPos])){
 					empty = false;
 					break;
@@ -751,7 +735,7 @@ void table::removeEmpty(bool addPadding) {
 		}
 	}
 	if(!emptyPositions.empty()){
-		sort(emptyPositions);
+		bib::sort(emptyPositions);
 		for(const auto & pos : iter::reverse(emptyPositions)){
 			content_.erase(content_.begin() + pos);
 		}
@@ -759,14 +743,65 @@ void table::removeEmpty(bool addPadding) {
 
 }
 
-table table::extractNumColGreater(const std::string & colName, double cutOff){
+
+table table::countColumn(const VecStr &columnNames){
+	std::vector<uint32_t> colPositions;
+	for(const auto & col :columnNames){
+		colPositions.emplace_back(getColPos(col));
+	}
+	return countColumn(colPositions);
+}
+table table::countColumn(const std::vector<uint32_t> & colPositions){
+	bool pass = true;
+	for(const auto & pos : colPositions){
+		if(pos >= columnNames_.size()){
+			pass = false;
+			break;
+		}
+	}
+	if(!pass){
+		std::stringstream ss;
+		ss << bib::bashCT::red << bib::bashCT::bold
+				<< "Error in table::countColumn(const std::vector<uint32_t> & colPositions), out of range error\n"
+				<< bib::bashCT::blue << vectorToString(colPositions, ",")
+				<< bib::bashCT::red << " out of range of " << columnNames_.size()
+				<< bib::bashCT::reset << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	std::map<std::string, uint32_t> counts;
+	for(const auto & row : content_){
+		std::string codedName = "";
+		for(const auto & pos : colPositions){
+			if(pos == colPositions.back()){
+				codedName+= row[pos];
+			}else{
+				codedName+= row[pos] + "SPLITONTHIS";
+			}
+		}
+		++counts[codedName];
+	}
+	VecStr outColumnNames;
+	for(const auto & pos : colPositions){
+		outColumnNames.emplace_back(columnNames_[pos]);
+	}
+	outColumnNames.emplace_back("count");
+	table ret(outColumnNames);
+	for(const auto & c : counts){
+		auto toks = tokenizeString(c.first,"SPLITONTHIS");
+		toks.emplace_back(estd::to_string(c.second));
+		ret.content_.emplace_back(toks);
+	}
+	return ret;
+}
+
+table table::extractNumColGreater(const std::string & colName, double cutOff)const{
   auto comp = [&](const std::string & str){
   	double numValue = std::stod(str);
   	return numValue > cutOff;
   };
   return extractByComp(colName, comp);
 }
-table table::extractNumColGreater(uint32_t colPos, double cutOff){
+table table::extractNumColGreater(uint32_t colPos, double cutOff)const{
   auto comp = [&](const std::string & str){
   	double numValue = std::stod(str);
   	return numValue > cutOff;

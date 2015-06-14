@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,26 +18,13 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 #include "seqUtil.hpp"
 #include "bibseq/simulation/mutator.hpp"
+#include "bibseq/IO/fileUtils.hpp"
 
 namespace bibseq {
 
-double seqUtil::calculateWeightOfProteinDouble(const std::string &protein) {
-  double weight = 0;
-  for (const auto &c : protein) {
-    weight += aminoAcidInfo::infos::allInfo.at(c).weight_;
-  }
-  return weight;
-}
-int seqUtil::calculateWeightOfProteinInt(const std::string &protein) {
-  int weight = 0;
-  for (const auto &c : protein) {
-    weight += std::round(aminoAcidInfo::infos::allInfo.at(c).weight_);
-  }
-  return weight;
-}
+
 
 std::string seqUtil::reverseComplement(const std::string &seq,
                                        const std::string &seqType) {
@@ -166,9 +153,10 @@ std::string seqUtil::reverseComplement(const std::string &seq,
                 // the SAM/CIGAR format.
       default:  // Should never get here.
         // Unrecognized base.
-        std::cerr << "Error in reverseComplement.  Unknown base character = "
+      	std::stringstream ss;
+        ss << "Error in reverseComplement.  Unknown base character = "
                   << thisBase << ".  Exiting." << std::endl;
-        exit(1);  // Stop right away.
+        throw std::runtime_error{ss.str()};  // Stop right away.
         break;
     }
     outSeq[numChar - 1 - i] = outBase;
@@ -176,51 +164,7 @@ std::string seqUtil::reverseComplement(const std::string &seq,
   return outSeq;
 }
 
-bool seqUtil::reversePalindrome(const std::string &seq,
-                                const std::string &seqType) {
-  if (seq.size() % 2 != 0 || seq.size() < 2) {
-    return false;
-  } else {
-    std::string reverse = reverseComplement(seq, seqType);
-    if (reverse == seq) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-}
 
-std::map<size_t, size_t> seqUtil::findReversePalindromes(
-    const std::string &seq, const std::string &seqType, size_t lowerSizeLimit,
-    size_t upperSizeLimit) {
-  std::map<size_t, size_t> locationsLengths;
-  for (size_t size = lowerSizeLimit; size <= upperSizeLimit; size += 2) {
-    size_t pos = 0;
-    while (pos + size <= seq.size()) {
-      if (reversePalindrome(seq.substr(pos, size), seqType)) {
-        locationsLengths.insert(std::make_pair(pos, size));
-      }
-      ++pos;
-    }
-  }
-  return locationsLengths;
-}
-
-void seqUtil::printOutReversePalindromes(
-    const std::string &seq, const std::string &seqType, std::ostream &out,
-    bool multipleAtSameSite, size_t lowerSizeLimit, size_t upperSizeLimit) {
-  std::map<size_t, size_t> locationsLengths = seqUtil::findReversePalindromes(
-      seq, seqType, lowerSizeLimit, upperSizeLimit);
-  size_t previousPosition = std::string::npos;
-  for (const auto &iter : locationsLengths) {
-    if (!multipleAtSameSite && iter.first == previousPosition) {
-
-    } else {
-      out << iter.first + 1 << " " << iter.second << std::endl;
-    }
-    previousPosition = iter.first;
-  }
-}
 
 // forceStartM means if the string starts AUG, GUG, UUG, AUU, or CUG, then
 // put M (start codon) at the beginning.
@@ -669,122 +613,20 @@ std::unordered_map<char, std::unordered_map<char, int>> seqUtil::readScoringMatr
 }
 
 
-VecStr seqUtil::getAllProteins(const std::string &seq) {
-  VecStr ans;
-  if (seq.size() < 6) {
-    std::cout << "sequence needs to be at least 6 bases long" << std::endl;
-    return ans;
-  }
 
-  for (int i = 0; i < 3; ++i) {
-    ans.push_back(convertToProtein(seq.substr(i)));
-    std::string hold = reverseComplement(seq, "DNA");
-    ans.push_back(convertToProtein(hold.substr(i)));
-  }
-  return ans;
-}
 
-VecStr seqUtil::findAllOpenFrames(const VecStr &proteins) {
-  VecStr ans;
-  for (VecStr::const_iterator siter = proteins.begin(); siter != proteins.end();
-       ++siter) {
-    if (siter->find("M") == std::string::npos ||
-        siter->find("*") == std::string::npos) {
-      continue;
-    }
-    std::vector<size_t> mPositions = findOccurences(*siter, "M");
-    std::vector<size_t> starPositions = findOccurences(*siter, "*");
-    std::sort(starPositions.begin(), starPositions.end());
-    std::sort(mPositions.begin(), mPositions.end());
-    for (std::vector<size_t>::iterator miter = mPositions.begin();
-         miter != mPositions.end(); ++miter) {
-      for (std::vector<size_t>::iterator starIter = starPositions.begin();
-           starIter != starPositions.end(); ++starIter) {
-        if (*starIter > *miter) {
-          if (vectorContains(ans,
-                             siter->substr(*miter, (*starIter - *miter)))) {
-
-          } else {
-            ans.push_back(siter->substr(*miter, (*starIter - *miter)));
-          }
-          break;
-        }
-      }
-    }
-  }
-  return ans;
-}
-
-VecStr seqUtil::findOpenFramesFromSeq(const std::string &seq) {
-  VecStr proteins = getAllProteins(seq);
-  return findAllOpenFrames(proteins);
-}
-
-std::map<std::string, std::pair<std::string, std::string>> seqUtil::readPrimers(
-    const std::string &idFileName, bool multiplex) {
-  std::map<std::string, std::pair<std::string, std::string>> ans;
-  textFileReader txtReader = textFileReader();
-  txtReader.readFile(idFileName);
-  if (multiplex) {
-    std::map<std::string, std::pair<std::string, std::string>> primersNoIDs;
-    MapStrStr ids;
-    bool readingGene = false;
-    bool readingBarcode = false;
-    size_t barcodeSize = 0;
-    for (const auto &fIter : txtReader.fileContent.content_) {
-      if (stringToLowerReturn(fIter[0]) == "gene") {
-        readingGene = true;
-        readingBarcode = false;
-        continue;
-      } else if (stringToLowerReturn(fIter[0]) == "id") {
-        readingGene = false;
-        readingBarcode = true;
-        continue;
-      } else {
-        if (readingGene) {
-          primersNoIDs.insert(
-              std::make_pair(fIter[0], std::make_pair(fIter[1], fIter[2])));
-        } else if (readingBarcode) {
-          barcodeSize = fIter[1].size();
-          ids.insert(std::make_pair(fIter[0], fIter[1]));
-        }
-      }
-    }
-    ans["barcodeSize"] = {"sizeIs", std::to_string(barcodeSize)};
-
-    for (const auto &primersNoIDsIter : primersNoIDs) {
-      for (const auto &idsIter : ids) {
-        auto key = combineStrings({primersNoIDsIter.first, idsIter.first});
-        ans[key] = {
-            combineStrings({idsIter.second, primersNoIDsIter.second.first}),
-            primersNoIDsIter.second.second};
-      }
-    }
-  } else {
-    for (const auto &fIter : txtReader.fileContent.content_) {
-      if (stringToLowerReturn(fIter[0]) == "gene") {
-        continue;
-      } else {
-        ans.insert(
-            std::make_pair(fIter[0], std::make_pair(fIter[1], fIter[2])));
-      }
-    }
-  }
-  return ans;
-}
 
 table seqUtil::readBarcodes(const std::string &idFileName,
                             const std::string &fileDelim, int &barcodeSize,
                             bool forceRead) {
-  textFileReader txtReader = textFileReader(fileDelim);
-  txtReader.readFile(idFileName);
-  txtReader.fileContent.removeEmpty(false);
+	table inTab(idFileName, fileDelim);
+	inTab.removeEmpty(false);
   table ans;
   ans.columnNames_ = {"id", "barcode"};
   ans.hasHeader_ = true;
   bool readingGene = false;
   bool readingBarcode = forceRead;
-  for (const auto &row : txtReader.fileContent.content_) {
+  for (const auto &row : inTab.content_) {
     if (stringToLowerReturn(row[0]) == "gene") {
       readingGene = true;
       readingBarcode = false;
@@ -797,24 +639,24 @@ table seqUtil::readBarcodes(const std::string &idFileName,
       if (readingGene) {
 
       } else if (readingBarcode) {
-        barcodeSize = len(row[1]);
+        barcodeSize = row[1].size();
         ans.content_.emplace_back(row);
       }
     }
   }
+  ans.setColNamePositions();
   return ans;
 }
 table seqUtil::readPrimers(const std::string &idFileName,
                            const std::string &fileDelim, bool forceRead) {
-  textFileReader txtReader = textFileReader(fileDelim);
-  txtReader.readFile(idFileName);
-  txtReader.fileContent.removeEmpty(false);
+	table inTab(idFileName, fileDelim);
+	inTab.removeEmpty(false);
   table ans;
   ans.hasHeader_ = true;
   ans.columnNames_ = {"geneName", "forwardPrimer", "reversePrimer"};
   bool readingGene = forceRead;
   bool readingBarcode = false;
-  for (const auto &fIter : txtReader.fileContent.content_) {
+  for (const auto &fIter : inTab.content_) {
     if (stringToLowerReturn(fIter[0]) == "gene") {
       readingGene = true;
       readingBarcode = false;
@@ -830,176 +672,12 @@ table seqUtil::readPrimers(const std::string &idFileName,
       }
     }
   }
+  ans.setColNamePositions();
   return ans;
 }
 
-// std::string seqUtil::getSeqFromFlow(const std::vector<double> & flows, const
-// std::string & flowSeq="TACG"){
-/*! \fn getSeqFromFlow
- \brief convert a flow gram to sequence.
 
- This function translates a flowgram to sequence assuming that it flows the
- pattern of TACG flows, it will continue until the end of the flowgram and will
- pull N's when no signal is found for four flows in a row.
- */
-/*    std::string ans="";
-    int flowNumber=0;
-    for (std::vector<double>::const_iterator flowIter=flows.begin();
-flowIter!=flows.end(); ++flowIter) {
-        int signal=*flowIter+0.5;
-        char base=flowSeq[flowNumber%4];
-        if (signal>0) {
-            for (int i=0; i<signal; ++i) {
-                ans.push_back(base);
-            }
-        }
-        flowNumber++;
-    }
-    return ans;
-}*/
-VecStr seqUtil::getBarcodesInOrderTheyAppear(const std::string &fileName) {
-  textFileReader txtReader = textFileReader();
-  txtReader.readFile(fileName);
-  VecStr ans;
-  bool readingGene = false;
-  bool readingBarcodes = true;
-  for (const auto &fIter : txtReader.fileContent.content_) {
-    if (fIter[0] == "gene") {
-      readingGene = true;
-      readingBarcodes = false;
-      continue;
-    }
-    if (fIter[0] == "id") {
-      readingGene = false;
-      readingBarcodes = true;
-      continue;
-    }
-    if (readingBarcodes && !readingGene) {
-      ans.push_back(fIter[0]);
-    }
-  }
-  return ans;
-}
 
-std::map<std::string, int> seqUtil::makeDNAKmerCompMap(int kLength) {
-  std::string dna = "A C G T";
-  VecStr dnaStrings = stringToVector<std::string>(dna);
-  std::vector<VecStr> strVectors = permuteVector(dnaStrings, kLength);
-  std::map<std::string, int> ans;
-  for (const auto &iter : strVectors) {
-    ans.insert(std::make_pair(vectorToString(iter, ""), 0));
-  }
-  return ans;
-}
-std::map<std::string, kmer> seqUtil::makeDNAKmerMap(int kLength) {
-  std::map<std::string, int> stringMap = makeDNAKmerCompMap(kLength);
-  std::map<std::string, kmer> kmerMapAns;
-  for (const auto &strMap : stringMap) {
-    kmerMapAns.emplace(strMap.first, kmer(strMap.first, -1));
-  }
-  return kmerMapAns;
-}
-
-double seqUtil::getAverageErrorRate(const std::vector<int> &qual) {
-  std::vector<int>::const_iterator itr;
-  double sum = 0;
-  for (itr = qual.begin(); itr < qual.end(); itr++) {
-    sum += pow(10.0, -(*itr) / 10.0);
-  }
-  return sum / qual.size();
-}
-
-VecStr seqUtil::findLongestShardedMotif(VecStr dnaStrings) {
-  stringSorter strSorter = stringSorter();
-  strSorter.sortStrByLength(dnaStrings);
-  std::string shortString = dnaStrings[0];
-  VecStr longestVec;
-  for (size_t i = shortString.length(); i != 1; --i) {
-    bool doesContain = true;
-    bool found = false;
-    size_t pos = 0;
-    while (pos + i <= shortString.length()) {
-      doesContain = true;
-      for (VecStr::iterator sIter = dnaStrings.begin();
-           sIter != dnaStrings.end(); ++sIter) {
-        if (sIter->find(shortString.substr(pos, i)) == std::string::npos) {
-          doesContain = false;
-          break;
-        }
-      }
-      if (doesContain) {
-        found = true;
-        longestVec.push_back(shortString.substr(pos, i));
-      }
-      pos++;
-    }
-    if (found) {
-      break;
-    }
-  }
-  return longestVec;
-}
-std::string seqUtil::findLongestSharedSubString(VecStr dnaStrings) {
-  stringSorter strSorter = stringSorter();
-  strSorter.sortStrByLength(dnaStrings);
-  std::string shortString = dnaStrings[0];
-  std::string longestString;
-  for (size_t i = shortString.length(); i != 1; --i) {
-    bool doesContain = true;
-    bool found = false;
-    size_t pos = 0;
-    while (pos + i <= shortString.length()) {
-      doesContain = true;
-      for (VecStr::iterator sIter = dnaStrings.begin();
-           sIter != dnaStrings.end(); ++sIter) {
-        if (sIter->find(shortString.substr(pos, i)) == std::string::npos) {
-          doesContain = false;
-          break;
-        }
-      }
-      if (doesContain) {
-        found = true;
-        longestString = shortString.substr(pos, i);
-      }
-      pos++;
-    }
-    if (found) {
-      break;
-    }
-  }
-  return longestString;
-}
-
-std::string seqUtil::getSeqFromFlow(const std::vector<double> &flows,
-                                    const std::string &flowSeq) {
-  /**
-   * @brief Convert a flow gram to sequence.
-   *
-   * @param flows The flows to be translated
-   * @param flowSeq The flowOrder, defaults to TACG
-   * @return The translated sequence
-   */
-  std::string ans = "";
-  int flowNumber = 0;
-  uint32_t roundsWithOutSignal = 0;
-  for (const auto &flowIter : flows) {
-    int signal = flowIter + 0.5;
-    char base = flowSeq[flowNumber % flowSeq.size()];
-    if (signal > 0) {
-      roundsWithOutSignal = 0;
-      for (int i = 0; i < signal; ++i) {
-        ans.push_back(base);
-      }
-    } else {
-      roundsWithOutSignal++;
-      if (roundsWithOutSignal == flowSeq.size()) {
-        ans.push_back('N');
-      }
-    }
-    flowNumber++;
-  }
-  return ans;
-}
 
 void seqUtil::processQualityWindowString(const std::string &qualityWindowString,
                                          int &qualityWindowLength,
@@ -1074,54 +752,6 @@ bool seqUtil::doesSequenceContainDegenerativeBase(const std::string &seq) {
   }
 }
 
-std::string seqUtil::removeIntronsThenTranslate(std::string dna,
-                                                const VecStr &introns) {
-  for (const auto &sIter : introns) {
-    dna = replaceString(dna, sIter, "");
-  }
-  return convertToProtein(dna, 0, true);
-}
-
-double seqUtil::calculateTransitionTransversionRatio(const std::string &seq1,
-                                                     const std::string &seq2) {
-  int transitions = 0;
-  int transversions = 0;
-  if (seq1.size() != seq2.size()) {
-    std::cout << "Sequences need to be same length" << std::endl;
-    return -1;
-  } else {
-    for (size_t i = 0; i < seq1.size(); ++i) {
-
-      if (seq1[i] != seq2[i]) {
-        if (toupper(seq1[i]) == 'G' || toupper(seq1[i]) == 'A') {
-          if (toupper(seq2[i]) == 'G' || toupper(seq2[i]) == 'A') {
-            ++transitions;
-          } else if (toupper(seq2[i]) == 'C' || toupper(seq2[i]) == 'T') {
-            ++transversions;
-          } else {
-            std::cout << "Unrecognized base " << seq2[i] << std::endl;
-          }
-        } else if (toupper(seq1[i]) == 'C' || toupper(seq1[i]) == 'T') {
-          if (toupper(seq2[i]) == 'G' || toupper(seq2[i]) == 'A') {
-            ++transversions;
-          } else if (toupper(seq2[i]) == 'C' || toupper(seq2[i]) == 'T') {
-            ++transitions;
-          } else {
-            std::cout << "Unrecognized base " << seq1[i] << std::endl;
-          }
-        } else {
-          std::cout << "Unrecognized base " << seq1[i] << std::endl;
-        }
-      }
-    }
-  }
-  if (transversions == 0) {
-    return (double)std::string::npos;
-  } else {
-    return (double)transitions / transversions;
-  }
-}
-
 bool seqUtil::isHomopolyer(const std::string &seq) {
   if (seq.size() == 1) {
     return true;
@@ -1135,133 +765,6 @@ bool seqUtil::isHomopolyer(const std::string &seq) {
   return true;
 }
 
-bool seqUtil::checkTwoEqualSeqs(const std::string &seq1,
-                                const std::string &seq2,
-                                int allowableMismatches) {
-  int currentMismatches = 0;
-  for (auto i : iter::range(seq1.size())) {
-    if (seq1[i] != seq2[i]) {
-      ++currentMismatches;
-      if (currentMismatches > allowableMismatches) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-std::map<std::string, kmer> seqUtil::adjustKmerCountsForMismatches(
-    const std::map<kmer, int> &kmers, int allowableMismatches) {
-  std::map<std::string, kmer> ans;
-  for (const auto &k : kmers) {
-    ans[k.first.k_] = k.first;
-  }
-  for (auto firstIter = kmers.begin(); firstIter != kmers.end(); ++firstIter) {
-    for (auto secondIter = firstIter; secondIter != kmers.end(); ++secondIter) {
-      if (secondIter == firstIter) {
-        continue;
-      }
-      if (checkTwoEqualSeqs(firstIter->first.k_, secondIter->first.k_,
-                            allowableMismatches)) {
-        ans[firstIter->first.k_].count_ += secondIter->first.count_;
-        addOtherVec(ans[firstIter->first.k_].positions_,
-                    secondIter->first.positions_);
-        ans[secondIter->first.k_].count_ += firstIter->first.count_;
-        addOtherVec(ans[secondIter->first.k_].positions_,
-                    firstIter->first.positions_);
-      }
-    }
-  }
-  return ans;
-}
-std::map<std::string, kmer> seqUtil::adjustKmerCountsForMismatches(
-    const std::map<std::string, kmer> &kmers, int allowableMismatches) {
-  std::map<std::string, kmer> ans = kmers;
-  for (auto firstIter = kmers.begin(); firstIter != kmers.end(); ++firstIter) {
-    for (auto secondIter = firstIter; secondIter != kmers.end(); ++secondIter) {
-      if (secondIter == firstIter) {
-        continue;
-      }
-      if (secondIter->second.count_ == 0 && firstIter->second.count_ == 0) {
-        continue;
-      }
-      if (checkTwoEqualSeqs(firstIter->second.k_, secondIter->second.k_,
-                            allowableMismatches)) {
-        ans[firstIter->second.k_].count_ += secondIter->second.count_;
-        addOtherVec(ans[firstIter->second.k_].positions_,
-                    secondIter->second.positions_);
-        ans[secondIter->second.k_].count_ += firstIter->second.count_;
-        addOtherVec(ans[secondIter->second.k_].positions_,
-                    firstIter->second.positions_);
-      }
-    }
-  }
-  return ans;
-}
-
-std::unordered_map<std::string, uint32_t> seqUtil::getFuzzyKmerCount(const std::string &seq,
-                                                      uint32_t kLength,
-                                                      uint32_t allowableMutations,
-                                                      bool checkComplement) {
-	std::unordered_map<std::string, uint32_t> ans;
-  std::unordered_map<std::string, VecStr> alreadyMutated;
-  for (auto i : iter::range(seq.size() - kLength + 1)) {
-    std::string currentKmer = seq.substr(i, kLength);
-    std::string currentKmerComplement = reverseComplement(currentKmer, "DNA");
-    if (alreadyMutated.find(currentKmer) == alreadyMutated.end()) {
-      if (allowableMutations == 1) {
-        alreadyMutated[currentKmer] =
-            mutator::getSingleMutations(currentKmer, true);
-        if (checkComplement) {
-          addOtherVec(alreadyMutated[currentKmer],
-                      mutator::getSingleMutations(currentKmerComplement, true));
-        }
-      } else if (allowableMutations == 2) {
-        alreadyMutated[currentKmer] =
-            mutator::getUpToDoubleMutations(currentKmer, true);
-        if (checkComplement) {
-          addOtherVec(
-              alreadyMutated[currentKmer],
-              mutator::getUpToDoubleMutations(currentKmerComplement, true));
-        }
-      } else if (allowableMutations == 3) {
-        alreadyMutated[currentKmer] =
-            mutator::getUpToTripleMutations(currentKmer, true);
-        if (checkComplement) {
-          addOtherVec(
-              alreadyMutated[currentKmer],
-              mutator::getUpToTripleMutations(currentKmerComplement, true));
-        }
-      } else if (allowableMutations == 0) {
-        // no mutations allowed don't add any mutated strings
-        alreadyMutated[currentKmer] = {};
-      } else {
-        std::cout << "Only 1,2, or 3 mutation(s) supported, can't do "
-                  << allowableMutations << std::endl;
-        exit(1);
-      }
-    }
-    ++ans[currentKmer];
-    if (checkComplement) {
-      ++ans[currentKmerComplement];
-    }
-    for (const auto &mutant : alreadyMutated[currentKmer]) {
-      ++ans[mutant];
-    }
-  }
-  return ans;
-}
-uint64_t seqUtil::getNumberOfPossibleDNAStrandsFromProtein(
-    const std::string &protein) {
-  uint64_t ans = 1;
-  for (const auto &c : protein) {
-    ans *= aminoAcidInfo::infos::allInfo.at(c).numCodons_;
-  }
-  if (protein.back() != '*') {
-    ans *= 3;
-  }
-  return ans;
-}
 
 void seqUtil::removeLowerCase(std::string &sequence,
                               std::vector<uint32_t> &quality) {
@@ -1290,47 +793,7 @@ std::pair<std::string, std::vector<uint32_t>> seqUtil::removeLowerCaseReturn(
   }
   return {sequence, quality};
 }
-int seqUtil::getCyclopeptideLengthFromSprectumLength(uint64_t length) {
-  return std::ceil(std::sqrt(length));
-}
-std::vector<std::vector<char>> seqUtil::getPossibleCyclopeptideFromSpretrum(
-    const std::vector<int> &spectrum) {
-  std::vector<std::vector<char>> ans;
-  int lengthOfPeptide = 0;
-  uint64_t lengthOfSpectrum = 0;
-  bool containsZero = false;
-  if (spectrum[0] == 0) {
-    containsZero = true;
-    lengthOfSpectrum = spectrum.size() - 2;
-  } else {
-    lengthOfSpectrum = spectrum.size() - 1;
-  }
-  lengthOfPeptide = getCyclopeptideLengthFromSprectumLength(lengthOfSpectrum);
-  if (containsZero) {
-    for (auto i : iter::range(lengthOfPeptide + 1)) {
-      auto &spec = spectrum[i];
-      if (spec == 0) {
-        continue;
-      }
-      ans.push_back(aminoAcidInfo::infos::weightIntToAminoAcid.at(spec));
-    }
-  } else {
-    for (auto i : iter::range(lengthOfPeptide)) {
-      auto &spec = spectrum[i];
-      ans.push_back(aminoAcidInfo::infos::weightIntToAminoAcid.at(spec));
-    }
-  }
-  return ans;
-}
-int seqUtil::getNumberOfPossibleLinearPeptides(uint64_t lengthOfProtein) {
-  int num = 0;
-  for (auto i : iter::range(lengthOfProtein + 1)) {
-    num += lengthOfProtein - i;
-  }
-  // for zero pepitide ""
-  ++num;
-  return num;
-}
+
 std::string seqUtil::removeGapsReturn(const std::string &seq) {
   return removeCharReturn(seq, '-');
 }
@@ -1338,72 +801,7 @@ void seqUtil::removeGaps(std::string &seq) {
   removeChar(seq, '-');
   return;
 }
-VecStr seqUtil::getFuzzySharedMotif(const VecStr &strs, uint32_t kLength,
-		uint32_t allowableMutations,
-                                    bool checkComplement) {
-  std::unordered_map<uint32_t, std::unordered_map<std::string, uint32_t>> kmers;
-  VecStr ans;
-  uint32_t count = 0;
-  for (const auto &str : strs) {
-    kmers[count] =
-        getFuzzyKmerCount(str, kLength, allowableMutations, checkComplement);
-    ++count;
-  }
-  for (const auto &firstMers : kmers[0]) {
-    bool eachContains = true;
-    for (auto i : iter::range(1, (int)kmers.size())) {
-      if (kmers[i].find(firstMers.first) == kmers[i].end()) {
-        eachContains = false;
-        break;
-      }
-    }
-    if (eachContains) {
-      ans.push_back(firstMers.first);
-    }
-  }
-  return ans;
-}
-std::unordered_map<uint64_t, std::string> seqUtil::findMinimumHammingDistance(
-    const std::string &seq, const std::string &subSeq, int kLength) {
-  std::unordered_map<uint64_t, std::string> ans;
-  int minimumHammingDistance = (int)subSeq.size() + 1;
-  for (auto i : iter::range(seq.size() - kLength + 1)) {
-    std::string currentSubString = seq.substr(i, kLength);
-    int currentHammingDistance =
-        computeHammingDistance(currentSubString, subSeq);
-    // std::cout<<"hamDis: "<<currentHammingDistance<<" seq:
-    // "<<currentSubString<<" subSeq: "<<subSeq<<std::endl;
-    if (currentHammingDistance == minimumHammingDistance) {
-      ans[i] = currentSubString;
-    } else if (currentHammingDistance < minimumHammingDistance) {
-      minimumHammingDistance = currentHammingDistance;
-      ans.clear();
-      ans[i] = currentSubString;
-    }
-  }
-  return ans;
-}
-std::string seqUtil::createDegenerativeString(const VecStr &dnaString) {
-  // size check, should be same size
-  uint64_t firstSize = dnaString.front().size();
-  for (const auto &dna : dnaString) {
-    if (dna.size() != firstSize) {
-      std::cout << "All strings should be same size" << std::endl;
-      return "";
-    }
-  }
-  std::vector<letterCounter> counters(firstSize);
-  for (auto i : iter::range(firstSize)) {
-    for (const auto &dna : dnaString) {
-      counters[i].increaseCountOfBase(dna[i]);
-    }
-  }
-  std::string ans;
-  for (const auto &count : counters) {
-    ans.push_back(count.getDegenativeBase());
-  }
-  return ans;
-}
+
 
 std::vector<uint32_t> seqUtil::getQualPositions(const std::string &consensus,
                                                 const std::string &compare) {
@@ -1447,92 +845,7 @@ std::vector<uint32_t> seqUtil::rearrangeQuals(
   }
   return ans;
 }
-uint32_t seqUtil::countMismatchesInAlignment(const std::string &ref,
-                                             const std::string &compare,
-                                             const char &ignore) {
-  uint32_t count = 0;
-  auto mis = std::make_pair(ref.begin(), compare.begin());
-  while (mis.first != ref.end()) {
-    mis = std::mismatch(mis.first, ref.end(), mis.second);
-    if (mis.first != ref.end()) {
-      if (*mis.first != ignore && *mis.second != ignore) {
-        ++count;
-      }
-      ++mis.first;
-      ++mis.second;
-    }
-  }
-  return count;
-}
 
-void seqUtil::printQualCountsFiles(
-    const std::string &workingDir, const std::string &seqName,
-    std::map<std::string, std::map<double, uint32_t>> counts, bool overWrite,
-    bool exitOnFailure) {
-  for (const auto &count : counts) {
-    std::ofstream currentCountFile;
-    openTextFile(currentCountFile, workingDir + count.first, ".tab.txt",
-                 overWrite, exitOnFailure);
-    currentCountFile << "runName\tqual\tfreq" << std::endl;
-    for (const auto &subCount : count.second) {
-      currentCountFile << seqName << "\t" << subCount.first << "\t"
-                       << subCount.second << std::endl;
-    }
-  }
-}
-void seqUtil::printMismatchQualCountsFiles(
-    const std::string &workingDir, const std::string &seqName,
-    std::map<std::string, std::map<double, uint32_t>> counts,
-    std::map<std::string, std::map<double, uint32_t>> mismatchCounts,
-    bool overWrite, bool exitOnFailure) {
-  std::ofstream currentCountFile;
-  openTextFile(currentCountFile, workingDir + "qualErrors", ".tab.txt",
-               overWrite, exitOnFailure);
-  currentCountFile << "runName\tparameter\tqual\terrorFreq\ttotalFreq\terrorRate"
-                   << std::endl;
-  for (const auto &count : counts) {
-    // std::cout << count.first << std::endl;
-    for (const auto &subCount : count.second) {
-      currentCountFile << seqName << "\t" << count.first << "\t"
-                       << subCount.first;
-      if (mismatchCounts[count.first].find(subCount.first) ==
-          mismatchCounts[count.first].end()) {
-        currentCountFile << "\t" << 0 << "\t" << subCount.second << "\t" << "0" << std::endl;
-      } else {
-        currentCountFile << "\t"
-                         << mismatchCounts[count.first].at(subCount.first)
-                         << "\t" << subCount.second
-                         << "\t" << mismatchCounts[count.first].at(subCount.first)/static_cast<double>(subCount.second) << std::endl;
-      }
-
-    }
-  }
-  for (const auto &count : counts) {
-    if (in(count.first, {"mean", "median", "base", "min"})) {
-      std::ofstream currentBigCountFile;
-      openTextFile(currentBigCountFile,
-                   workingDir + seqName + "_qualErrors_" + count.first,
-                   ".tab.txt", overWrite, exitOnFailure);
-      currentBigCountFile << "error\tqual\tweight" << std::endl;
-      for (const auto &subCount : count.second) {
-        if (has(mismatchCounts[count.first], subCount.first)) {
-          currentBigCountFile << 0 << "\t" << subCount.first << "\t"
-                              << subCount.second - mismatchCounts[count.first]
-                                                       .at(subCount.first)
-                              << std::endl;
-          currentBigCountFile << 1 << "\t" << subCount.first << "\t"
-                              << mismatchCounts[count.first].at(subCount.first)
-                              << std::endl;
-        } else {
-          currentBigCountFile << 0 << "\t" << subCount.first << "\t"
-                              << subCount.second << std::endl;
-          currentBigCountFile << 1 << "\t" << subCount.first << "\t" << 0
-                              << std::endl;
-        }
-      }
-    }
-  }
-}
 std::map<std::string, std::unordered_map<std::string, std::vector<double>>>
 seqUtil::getCountsForModel(
     std::map<std::string, std::map<double, uint32_t>> counts,
@@ -1540,7 +853,7 @@ seqUtil::getCountsForModel(
   std::map<std::string, std::unordered_map<std::string, std::vector<double>>>
       ans;
   for (const auto &count : counts) {
-    if (in(count.first, {"mean", "median", "base", "min"})) {
+    if (bib::in(count.first, {"mean", "median", "base", "min"})) {
       ans[count.first] = getCountsForSpecificModel(
           count.second, mismatchCounts.at(count.first));
     }
@@ -1554,7 +867,7 @@ seqUtil::getCountsForSpecificModel(std::map<double, uint32_t> counts,
   std::ofstream currentBigCountFile;
   currentBigCountFile << "error\tqual\tweight" << std::endl;
   for (const auto &subCount : counts) {
-    if (has(mismatchCounts, subCount.first)) {
+    if (bib::has(mismatchCounts, subCount.first)) {
       currentCounts["error"].emplace_back(0);
       currentCounts["qual"].emplace_back(subCount.first);
       currentCounts["weight"]
@@ -1586,7 +899,7 @@ seqUtil::getTrueErrorRate(
     std::map<std::string, std::map<double, uint32_t>> mismatchCounts) {
   std::map<std::string, std::unordered_map<double, double>> ans;
   for (const auto &count : counts) {
-    if (in(count.first, {"mean", "median", "base", "min"})) {
+    if (bib::in(count.first, {"mean", "median", "base", "min"})) {
       ans[count.first] = getTrueErrorRateSpecific(
           count.second, mismatchCounts.at(count.first));
     }
@@ -1598,7 +911,7 @@ std::unordered_map<double, double> seqUtil::getTrueErrorRateSpecific(
     std::map<double, uint32_t> mismatchCounts) {
   std::unordered_map<double, double> currentCounts;
   for (const auto &subCount : counts) {
-    if (has(mismatchCounts, subCount.first)) {
+    if (bib::has(mismatchCounts, subCount.first)) {
       currentCounts[subCount.first] =
           (double)mismatchCounts.at(subCount.first) / subCount.second;
     } else {
@@ -1612,65 +925,17 @@ std::unordered_map<double, double> seqUtil::getTrueErrorRateSpecific(
 
 void seqUtil::rstripRead(std::string & str,
 		std::vector<uint32_t> & qual, char c){
-	uint32_t pos = len(str);
+	uint32_t pos = str.size();
 	while (pos != 0 && str[pos - 1] == c){
 		--pos;
 	}
-	if(pos != len(str)){
+	if(pos != str.size()){
 		qual.erase(qual.begin() + pos, qual.end());
 		str.erase(str.begin() + pos, str.end());
 	}
 }
 
-/*
-void seqUtil::updateMismatchCounts(const std::string & consensus, const
-std::string & mutant,
-                                                                                                                                        const std::vector<uint32_t> & quals, std::unordered_map<uint32_t, std::unordered_map<std::pair<char, char>, uint32_t>> & mutCounts){
-  if (consensus.length() != mutant.length()) {
-    std::cout << "Strings should be the same length" << std::endl;
-    std::cout << "Str1: " << consensus << " Str2: " << mutant << std::endl;
-    return;
-  }
-  auto mis = std::make_pair(consensus.begin(), mutant.begin());
-  int count = 0;
-  while (mis.first != consensus.end()) {
-    mis = std::mismatch(mis.first, consensus.end(), mis.second);
-    if (mis.first != consensus.end()) {
-        uint32_t mismatchPos = mis.first - consensus.begin();
 
-      ++mis.first;
-      ++mis.second;
-      ++count;
-    }
-  }
-}*/
-/*
-double seqUtil::probabilityOfKmer(const std::string & kmer,const
-std::unordered_map<uint, std::unordered_map<char, double>>& mapsOfProbs){
-double prob=1;
-uint32_t pos=0;
-for(const auto & c : kmer){
-  prob*=mapsOfProbs.at(pos).at(c);
-  ++pos;
-}
-return prob;
-}
-std::vector<kmer> seqUtil::mostProbableKmers(const std::string & seq, int
-kLength,const std::unordered_map<uint, std::unordered_map<char, double>>&
-mapsOfProbs){
-std::map<kmer,int> kmers=kmerCalculator::indexKmer(seq, kLength);
-std::vector<kmer> mostProbableKmers;
-double highestProb=0;
-for(const auto & k : kmers){
-  double currentProb=probabilityOfKmer(k.first.k_, mapsOfProbs);
-  if(currentProb==highestProb){
-    mostProbableKmers.push_back(k.first);
-  }else if(currentProb>highestProb){
-    highestProb=currentProb;
-    mostProbableKmers.clear();
-    mostProbableKmers.push_back(k.first);
-  }
-}
-return mostProbableKmers;
-}*/
+
+\
 }  // namespace bibseq

@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2014 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,7 +18,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 /*
  * randomFileCreator.cpp
  *
@@ -57,7 +56,7 @@ void randomFileCreator::randomFasta(uint32_t strLen, uint32_t strNum,
 		randomGenerator & gen, bool processed, uint32_t topAmount,
 		std::ostream & out){
   VecStr randomSeqs = simulation::evenRandStrs(strLen, alphabetVec,gen, strNum );
-  for(const auto & seqPos : iter::range(len(randomSeqs))){
+  for(const auto & seqPos : iter::range(randomSeqs.size())){
   	out << ">Seq." << leftPadNumStr<uint32_t>(seqPos, strNum);
   	if(processed){
   		out << "_t" << gen.unifRand<uint32_t>(1, topAmount + 1);

@@ -1,5 +1,25 @@
 #pragma once
 //
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
 //  massManipulators.hpp
 //  sequenceTools
 //
@@ -20,6 +40,13 @@ void changeFrontEndToLowerCase(std::vector<T>& reads, int numberOfBases) {
 }
 
 template <typename T>
+void changeBackEndToLowerCase(std::vector<T>& reads, int numberOfBases) {
+  for_each(reads, [&](T& read) {
+  	changeSubStrToLowerToEnd(read.seqBase_.seq_, read.seqBase_.seq_.size() - numberOfBases);
+  });
+}
+
+template <typename T>
 void allRemoveLowQualityBases(std::vector<T>& reads, int qualCutOff) {
   for_each(reads,
            [&](T& read) { read.seqBase_.removeLowQualityBases(qualCutOff); });
@@ -30,8 +57,8 @@ void allAdjustHomopolymerRunsQualities(std::vector<T>& reads) {
   for_each(reads, [](T& read) { read.adjustHomopolyerRunQualities(); });
 }
 template <typename T>
-void allReverseComplement(std::vector<T>& reads) {
-	for_each(reads, [&](T & read) {read.seqBase_.reverseComplementRead();});
+void allReverseComplement(std::vector<T>& reads, bool mark = false) {
+	for_each(reads, [&](T & read) {read.seqBase_.reverseComplementRead(mark);});
 }
 
 template <typename T>
@@ -56,6 +83,17 @@ void handelLowerCaseBases(std::vector<T>& reads, const std::string& lower) {
     removeLowerCaseBases(reads);
   } else if (lower == "upper") {
     lowerCaseBasesToUpperCase(reads);
+  } else {
+    // any other option will be considered do nothing to them
+  }
+}
+
+template <typename T>
+void handelLowerCaseBases(T & read, const std::string& lower) {
+  if (lower == "remove") {
+  	seqUtil::removeLowerCase(read.seqBase_.seq_, read.seqBase_.qual_);
+  } else if (lower == "upper") {
+  	stringToUpper(read.seqBase_.seq_);
   } else {
     // any other option will be considered do nothing to them
   }
