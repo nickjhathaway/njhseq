@@ -183,12 +183,9 @@ class Paths():
         return self.__package_dirs(url, name)
     
     def __bibcpp(self):
-        i = self.__path('bibcpp')
-        branch = "release/2"
-        version = "2.1"
-        #self.__buildNjhProject(i)
-        self.__buildNjhProjectTag(i, version)
-        #self.__buildNjhProjectBranch(i, branch)
+        url = "https://github.com/umass-bib/bibcpp.git"
+        name = "bibcpp"
+        return self.__package_dirs(url, name)
 
     def __package_dirs(self, url, name):
         '''set up dirs for libraries that need some installing as well, 
