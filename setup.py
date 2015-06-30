@@ -183,9 +183,12 @@ class Paths():
         return self.__package_dirs(url, name)
     
     def __bibcpp(self):
-        url = "https://github.com/umass-bib/bibcpp.git"
-        name = "bibcpp"
-        return self.__package_dirs(url, name)
+        i = self.__path('bibcpp')
+        branch = "release/2"
+        version = "2.1"
+        #self.__buildNjhProject(i)
+        self.__buildNjhProjectTag(i, version)
+        #self.__buildNjhProjectBranch(i, branch)
 
     def __package_dirs(self, url, name):
         '''set up dirs for libraries that need some installing as well, 
@@ -633,10 +636,10 @@ make COMPFILE=compfile.mk -j {num_cores}
 
     def bibcpp(self):
         i = self.__path('bibcpp')
-        branch = "release/2"
-        version = "2"
-        self.__buildNjhProject(i)
-        #self.__buildNjhProjectTag(i, version)
+        branch = "release/2.1"
+        version = "2.1"
+        #self.__buildNjhProject(i)
+        self.__buildNjhProjectTag(i, version)
         #self.__buildNjhProjectBranch(i, branch)
     
     def bibcppDev(self):
