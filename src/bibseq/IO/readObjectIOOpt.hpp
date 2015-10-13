@@ -43,9 +43,13 @@ public:
 	readObjectIOOpt(const readObjectIOOptions & options);
   static const uint32_t IlluminaQualOffset;
   static const uint32_t SangerQualOffset;
-  readObjectIOOptions ioOptions_;
+  const readObjectIOOptions ioOptions_;
   bool includeSpaceInNames = true;
   bool readNextRead(readObject & read);
+  bool readNextRead(std::shared_ptr<readObject> & read);
+  bool readNextRead(std::unique_ptr<readObject> & read);
+  std::shared_ptr<readObject> readNextRead();
+
 
   bool inOpen()const;
   void openIn();

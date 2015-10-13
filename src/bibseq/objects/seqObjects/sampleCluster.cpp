@@ -25,8 +25,9 @@ sampleCluster::sampleCluster(const readObject& initializerRead,
 		const std::map<std::string, sampInfo>& infos)
 		 {
 	seqBase_ = initializerRead.seqBase_;
-	firstReadName = initializerRead.seqBase_.name_;
-	firstReadCount = initializerRead.seqBase_.cnt_;
+	
+	firstReadName_ = initializerRead.seqBase_.name_;
+	firstReadCount_ = initializerRead.seqBase_.cnt_;
 
 	sampName = getOwnSampName();
 
@@ -52,7 +53,7 @@ void sampleCluster::addRead(const cluster& cr) {
   seqBase_.frac_ = getAveragedFrac(); //calculate average as the mean average between all
   updateName();
   //consider putting in parameters to determine if
-  needToCalculateConsensus = true;
+  needToCalculateConsensus_ = true;
 }
 
 void sampleCluster::updateInfoWithRead(const readObject& read, uint32_t pos) {
@@ -367,7 +368,7 @@ std::string sampleCluster::getFullPopInfo(double popReadCnt,
 			<< delim << reads_.size()
 			<< delim << vectorToString(readVec::getNames(reads_), ",")
 			<< delim << seqBase_.seq_
-			<< delim << getProteinFromcDNA(false);
+			<< delim << translateRet(false, false).seqBase_.seq_;
   return outStream.str();
 }
 
@@ -401,7 +402,7 @@ std::string sampleCluster::getFullPopInfo(double popReadCnt,
 			<< delim << subReadPositions.size()
 			<< delim << vectorToString(subReadNames, ",")
 			<< delim << seqBase_.seq_
-			<< delim << getProteinFromcDNA(false);
+			<< delim << translateRet(false, false).seqBase_.seq_;
   return outStream.str();
 }
 

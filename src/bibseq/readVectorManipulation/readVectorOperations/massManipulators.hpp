@@ -99,14 +99,14 @@ void handelLowerCaseBases(T & read, const std::string& lower) {
   }
 }
 
-template <typename T>
-void convertReadsToProteinFromcDNA(std::vector<T>& reads,
-                                   bool transcribeToRNAFirst, size_t start = 0,
-                                   bool forceStartM = false) {
-  for_each(reads, [&](T& read) {
-    read.convertToProteinFromcDNA(transcribeToRNAFirst, start, forceStartM);
-  });
+template<typename T>
+void translateAll(std::vector<T>& reads, bool complement, bool reverse,
+		size_t start = 0) {
+	for_each(reads, [&](T& read) {
+		read.translate(complement, reverse, start);
+	});
 }
+
 template <typename T1, typename T2>
 std::vector<T2> convertVec(const std::vector<T1>& vec) {
   std::vector<T2> ans;

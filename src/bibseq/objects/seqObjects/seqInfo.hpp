@@ -38,17 +38,22 @@ namespace bibseq {
 
 struct seqInfo {
   // constructors
-  seqInfo();
+  /**@brief Empty constructor
+   *
+   */
+	seqInfo();
+  /**@brief Construct with just a name, no sequence data
+   *
+   * @param name
+   */
   seqInfo(const std::string & name);
   seqInfo(const std::string& name, const std::string& seq,
           const std::vector<uint32_t>& qual);
   seqInfo(const std::string& name, const std::string& seq,
           const std::vector<uint32_t>& qual, double cnt);
   seqInfo(const std::string& name, const std::string& seq);
-
   seqInfo(const std::string& name, const std::string& seq,
           const std::string& stringQual);
-
   seqInfo(const std::string& name, const std::string& seq,
           const std::string& stringQual, uint32_t off_set);
   seqInfo(const std::string& name, const std::string& seq,
@@ -116,10 +121,8 @@ struct seqInfo {
   void setName(const std::string& newName);
 
   // Protein conversion
-  void convertToProteinFromcDNA(bool transcribeToRNAFirst, size_t start = 0,
-                                bool forceStartM = false);
-  std::string getProteinFromcDNA(bool transcribeToRNAFirst, size_t start = 0,
-                                 bool forceStartM = false) const;
+  void translate( bool complement, bool reverse, size_t start = 0);
+  seqInfo translateRet(bool complement, bool reverse,  size_t start = 0) const;
 
   void processRead(bool processed);
 

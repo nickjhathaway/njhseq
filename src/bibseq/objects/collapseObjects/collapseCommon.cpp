@@ -1,24 +1,4 @@
 //
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-//
 //  collapseCommon.cpp
 //  sequenceTools
 //
@@ -50,7 +30,13 @@ void clusterSet::setSetInfo() {
 // writing
 void clusterSet::writeClusters(std::string filename, std::string format,
                                bool overWrite, bool exitOnFailure) const {
-  readObjectIO::write(clusters_, filename, format, overWrite, exitOnFailure);
+	readObjectIOOptions options;
+	options.outFilename_ = filename;
+	options.outFormat_ = format;
+	options.append_ = false;
+	options.overWriteFile_ = overWrite;
+	options.exitOnFailureToWrite_ = exitOnFailure;
+  readObjectIO::write(clusters_, options);
 }
 
 void clusterSet::writeClusters(std::string filename, const readObjectIOOptions & ioOptions) const{

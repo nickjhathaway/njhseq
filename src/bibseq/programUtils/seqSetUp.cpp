@@ -1,56 +1,57 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
 #include "seqSetUp.hpp"
 #include "bibseq/programUtils/runningParameters.hpp"
 #include <bibcpp/bashUtils.h>
 #include <bibcpp/files/fileUtilities.hpp>
 namespace bibseq {
 
+
+seqSetUp::seqSetUp(int argc, char* argv[]) : bib::progutils::programSetUp(argc, argv) {
+  initializeDefaults();
+}
+
+seqSetUp::seqSetUp(const bib::progutils::commandLineArguments& inputCommands)
+    : bib::progutils::programSetUp(inputCommands) {
+  initializeDefaults();
+}
+
+seqSetUp::seqSetUp(const MapStrStr& inputCommands) : bib::progutils::programSetUp(inputCommands) {
+  initializeDefaults();
+}
+
 void seqSetUp::initializeDefaults() {
   ioOptions_.firstName_ = "";
   ioOptions_.secondName_ = "";
-  ioOptions_.thirdName_ = "";
   ioOptions_.inFormat_ = "";
   ioOptions_.outFormat_ = "";
   ioOptions_.outFilename_ = "out";
   ioOptions_.processed_ = false;
   ioOptions_.append_ = false;
   //
-  seq_ = "";
-  seqObj_ = readObject(seqInfo( "", seq_	));
-  //
   ioOptions_.removeGaps_ = false;
   ioOptions_.lowerCaseBases_ = "nothing";
   //
   ioOptions_.overWriteFile_ = false;
-  ioOptions_.exitOnFailureToWrite_ = false;
+  ioOptions_.exitOnFailureToWrite_ = true;
   //
   ioOptions_.includeWhiteSpaceInName_ = true;
   //
+  seq_ = "";
+  seqObj_ = readObject(seqInfo("", seq_));
+
+  //
   directoryName_ = "";
+  overWriteDir_ = false;
   //
   refFilename_ = "";
   refSecondName_ = "";
   refFormat_ = "";
   refProcessed_ = false;
+
+  //
+  verbose_ = false;
+  debug_ = false;
+  quiet_ = false;
+
   //
   gapRef_ = "5,1";
   gapInfoRef_.processGapStr(gapRef_, gapInfoRef_.gapOpen_, gapInfoRef_.gapExtend_);
@@ -58,31 +59,31 @@ void seqSetUp::initializeDefaults() {
   gapLeftRef_ = "0,0";
   gapInfoRef_.processGapStr(gapLeftRef_, gapInfoRef_.gapLeftOpen_, gapInfoRef_.gapLeftExtend_);
 
-  gapRightRef_ = "0.0,0.0";
+  gapRightRef_ = "0,0";
   gapInfoRef_.processGapStr(gapRightRef_, gapInfoRef_.gapRightOpen_, gapInfoRef_.gapRightExtend_);
   gapInfoRef_.setIdentifer();
   //
-  gap_ = "7.0,1";
+  gap_ = "7,1";
   gapInfo_.processGapStr(gap_, gapInfo_.gapOpen_, gapInfo_.gapExtend_);
 
-  gapLeft_ = "7.0,1";
+  gapLeft_ = "7,1";
   gapInfo_.processGapStr(gapLeft_, gapInfo_.gapLeftOpen_, gapInfo_.gapLeftExtend_);
 
-  gapRight_ = "0.0,0.0";
+  gapRight_ = "0,0";
   gapInfo_.processGapStr(gapRight_, gapInfo_.gapRightOpen_, gapInfo_.gapRightExtend_);
   gapInfo_.setIdentifer();
-
-  verbose_ = false;
-  debug_ = false;
+  //
   local_ = false;
+  generalMatch_ = 2;
+  generalMismatch_ = -2;
+  scoring_ = substituteMatrix::createDegenScoreMatrix(1,-1);
+  //
   countEndGaps_ = false;
   weightHomopolymers_ = true;
-  //
 
   qualThres_ = "20,15";
   primaryQual_ = 20;
   secondaryQual_ = 15;
-
   qualThresWindow_ = 2;
 
   eventBased_ = false;
@@ -97,22 +98,24 @@ void seqSetUp::initializeDefaults() {
 
   kLength_ = 9;
   kmersByPosition_ = true;
-  checkKmers_ = true;
   expandKmerPos_ = false;
   expandKmerSize_ = 5;
 
-  //
-  generalMatch_ = 2;
-  generalMismatch_ = -2;
-  scoring_ = substituteMatrix::createDegenScoreMatrix(1,-1);
   //general clustering
-  regKmers_ = false;
   skipOnLetterCounterDifference_ = false;
   fractionDifferenceCutOff_ = 0.05;
-  condensedCollapse_ = false;
   adjustHomopolyerRuns_ = false;
+  largestFirst_ = false;
+  firstMatch_ = false;
+  bestMatchCheck_ = 10;
+}
 
-  quiet_ = false;
+void seqSetUp::processClusteringOptions(){
+  processSkipOnNucComp();
+  processAdjustHRuns();
+  setOption(largestFirst_,   "-largestFirst",   "Compare largest clusters first");
+  setOption(firstMatch_,     "-firstMatch",     "Settle for first Match in Clustering");
+  setOption(bestMatchCheck_, "-bestMatchCheck", "Best Match Check Number");
 }
 
 
@@ -193,26 +196,34 @@ void seqSetUp::processIteratorMapOnPerId(
 	iteratorMap = runningParameters::processParametersPerId(parameters);
 }
 
-void seqSetUp::processKmerOptions() {
+void seqSetUp::processKmerLenOptions(){
+  setOption(kLength_, "-kLength", "Kmer Length");
+}
+
+void seqSetUp::processKmerProfilingOptions() {
   setOption(runCutOffString_, "-runCutOff", "Kmer_frequencey_cutoff");
-  setOption(kLength_, "-kLength", "Kmer_length");
-  if (kLength_ % 2 == 0) {
+  processKmerLenOptions();
+  bool forKmerProfiling = true;
+  if (forKmerProfiling && kLength_ % 2 == 0) {
     kLength_--;
     warnings_.emplace_back("-kLength needs to be odd, not even, changing to " +
                            estd::to_string(kLength_));
   }
-  setBoolOptionFalse(kmersByPosition_, "-kAnywhere", "Kmers_at_positions");
-  setBoolOptionFalse(checkKmers_, "-noKmers", "No_Kmer_checking");
-  setOption(expandKmerPos_, "-expandKmerPos", "expandKmerPos");
-  setOption(expandKmerSize_, "-expandKmerSize", "expandKmerSize");
+  bool kAnywhere = false;
+  setOption(kAnywhere, "-kAnywhere", "Count Kmers without regard for position");
+  kmersByPosition_ = !kAnywhere;
+  setOption(expandKmerPos_, "-expandKmerPos", "Expand Kmer Position Found At");
+  setOption(expandKmerSize_, "-expandKmerSize", "Expand Kmer Size for extending where kmers where found");
 }
 
 void seqSetUp::processScoringPars() {
   setOption(local_, "-local", "Local_alignment");
   setOption(countEndGaps_, "-countEndGaps", "CountEndGaps");
-  setBoolOptionFalse(weightHomopolymers_,
+  bool noHomopolymerWeighting = false;
+  setOption(noHomopolymerWeighting,
                      "-noHomopolymerWeighting",
-                     "HomopolymerWeighting");
+                     "Don't do Homopolymer Weighting");
+  weightHomopolymers_ = !noHomopolymerWeighting;
   std::string scoreMatrixFilename = "";
   bool degenScoring = false;
   bool caseInsensitive = false;
@@ -241,23 +252,19 @@ void seqSetUp::processScoringPars() {
     }
   }
 }
-void seqSetUp::processRegKmers(){
 
-  setOption(regKmers_, "-regKmers", "regularKmerAnalysis");
-}
+
 void seqSetUp::processSkipOnNucComp(){
   setOption(skipOnLetterCounterDifference_, "-skip",
                   "skipOnLetterCounterDifference");
   setOption(fractionDifferenceCutOff_, "-skipCutOff",
                   "fractionDifferenceCutOff");
 }
-void seqSetUp::processCondensedCollapse(){
-  setOption(condensedCollapse_, "-condensedCollapse", "condensedCollapse");
-}
+
 void seqSetUp::processAdjustHRuns(){
   setOption(adjustHomopolyerRuns_,
             "-adjustHomopolyerRuns",
-            "AdjustHomopolyerRunsToBeSameQual");
+            "Adjust Homopolyer Runs To Be Same Qual");
 }
 
 bool seqSetUp::processReadInNames(bool required) {
@@ -266,22 +273,22 @@ bool seqSetUp::processReadInNames(bool required) {
 	VecStr foundInFormats;
 	if (gettingFlags_ || printingHelp_) {
 		bib::progutils::flag sffFlagOptions(ioOptions_.firstName_, "-sff",
-				"Input sequence filename, sff text file",
+				"Input sequence filename, sff text file, if required only one format is accepted",
 				required);
 		bib::progutils::flag sffBinFlagOptions(ioOptions_.firstName_, "-sffBin",
-				"Input sequence filename, sff binary file",
+				"Input sequence filename, sff binary file, if required only one format is accepted",
 				required);
 		bib::progutils::flag fastaFlagOptions(ioOptions_.firstName_, "-fasta",
-				"Input sequence filename, fasta text file",
+				"Input sequence filename, fasta text file, if required only one format is accepted",
 				required);
 		bib::progutils::flag fastqFlagOptions(ioOptions_.firstName_, "-fastq",
-				"Input sequence filename, fastq text file",
+				"Input sequence filename, fastq text file, if required only one format is accepted",
 				required);
 		bib::progutils::flag fastqgzFlagOptions(ioOptions_.firstName_, "-fastqgz",
-				"Input sequence filename, fastq gzipped file",
+				"Input sequence filename, fastq gzipped file, if required only one format is accepted",
 				required);
 		bib::progutils::flag bamFlagOptions(ioOptions_.firstName_, "-bam",
-				"Input sequence filename, bam file",
+				"Input sequence filename, bam file, if required only one format is accepted",
 				required);
 		flags_.addFlag(sffFlagOptions);
 		flags_.addFlag(sffBinFlagOptions);
@@ -369,14 +376,25 @@ bool seqSetUp::processReadInNames(bool required) {
 
 void seqSetUp::processDirectoryOutputName(const std::string& defaultName,
                                           bool mustMakeDirectory) {
+	setOption(overWriteDir_, "--overWriteDir", "If the directory already exists over write it");
   directoryName_ = "./";
-  if (setOption(directoryName_, "-dout", "OutDirectoryName")) {
+  if (setOption(directoryName_, "-dout", "Output Directory Name")) {
     if (!failed_) {
+      std::string newDirectoryName = "./" +
+      		replaceString(replaceString(directoryName_, "./", ""), "TODAY", getCurrentDate()) +"/";
+    	if(bib::files::bfs::exists(newDirectoryName) && overWriteDir_){
+    		bib::files::rmDirForce(newDirectoryName);
+    	}
       directoryName_ =
           bib::files::makeDir("./", replaceString(directoryName_, "./", ""));
     }
   } else {
     if (mustMakeDirectory && !failed_) {
+      std::string newDirectoryName = "./" +
+      		replaceString(defaultName, "TODAY", getCurrentDate()) +"/";
+    	if(bib::files::bfs::exists(newDirectoryName) && overWriteDir_){
+    		bib::files::rmDirForce(newDirectoryName);
+    	}
       directoryName_ = bib::files::makeDir("./", defaultName);
     }
   }
@@ -408,8 +426,7 @@ bool seqSetUp::processDefaultReader(bool readInNamesRequired) {
 void seqSetUp::processWritingOptions() {
   setOption(ioOptions_.overWriteFile_, "-overWrite",
             "Over Write Existing Files");
-  setOption(ioOptions_.exitOnFailureToWrite_, "-exitOnFailureToWrite",
-            "Exit On Failure To Write");
+  //setOption(ioOptions_.exitOnFailureToWrite_, "-exitOnFailureToWrite","Exit On Failure To Write");
   setOption(ioOptions_.append_, "-appendFile",
               "Append to file");
 }
@@ -476,10 +493,11 @@ bool seqSetUp::processDebug() {
 bool seqSetUp::processQuiet() {
   return setOption(quiet_, "--quiet", "quiet");
 }
+
 void seqSetUp::processAlignerDefualts() {
   processGap();
   processQualThres();
-  processKmerOptions();
+  processKmerProfilingOptions();
   processScoringPars();
   processAlnInfoInput();
   setOption(eventBased_, "-eventBased", "Event Based Comparison");
@@ -501,93 +519,95 @@ void seqSetUp::processAlnInfoInput() {
 void seqSetUp::printInputUsage(std::ostream& out) {
   // std::stringstream tempOut;
   out << bib::bashCT::bold << "Input options:" << bib::bashCT::reset << std::endl;
-  out << "-stub [option]: Stub name for the .fasta and .fasta.qual files"
+  out << "1a) -stub [option]: Stub name for the .fasta and .fasta.qual files"
       << std::endl;
-  out << "-fasta [option]: Full name of the fasta file" << std::endl;
-  out << "-qual [option]: Full name of the quality file" << std::endl;
-  out << "-fastq [option]: Full name of the fastq file" << std::endl;
+  out << "1b) -fasta [option]: Full name of the fasta file" << std::endl;
+  out << "1c) -qual [option]: Full name of the quality file" << std::endl;
+  out << "1d) -fastq [option]: Full name of the fastq file" << std::endl;
   // out << cleanOut(tempOut.str(), width_, indent_);
 }
 void seqSetUp::printAdditionaInputUsage(std::ostream& out,
                                         const std::string& lowerRemove) {
   out << bib::bashCT::bold << "Read in processing options: "<< bib::bashCT::reset  << std::endl;
   if (lowerRemove == "remove") {
-    out << "-lower [option]: can be remove or upper, remove to remove the "
+    out << "1) -lower [option]: can be remove or upper, remove to remove the "
            "lower case, upper to convert lower to upper case, defaults to "
            "removing lowercase" << std::endl;
   } else if (lowerRemove == "upper") {
-    out << "-lower [option]: can be remove or upper, remove to remove the "
+    out << "1) -lower [option]: can be remove or upper, remove to remove the "
            "lower case, upper to convert lower to upper case, defaults to "
            "converting to upper case" << std::endl;
   } else {
-    out << "-lower [option]: can be remove or upper, remove to remove the "
+    out << "1) -lower [option]: can be remove or upper, remove to remove the "
            "lower case, upper to convert lower to upper case, defaults to "
            "doing nothing" << std::endl;
   }
-  out << "-processed : whether the reads being read have frequency info in "
+  out << "2) -processed : whether the reads being read have frequency info in "
          "their name, in the form of NAME_t[totalReadNum] or "
          "NAME_f[fractionAmount], defaults to no info" << std::endl;
-  out << "-removeGaps : whether to remove any gap infomation (-) in the "
+  out << "3) -removeGaps : whether to remove any gap infomation (-) in the "
          "input sequence if there is any, defaults to leaving gaps"
       << std::endl;
-  out << "-noSpaceInName,-removeWhiteSpace : wheter to remove any any white "
+  out << "4) -noSpaceInName,-removeWhiteSpace : wheter to remove any any white "
          "space from the read names or to keep them in, defaults to leaving "
          "white space" << std::endl;
 }
 void seqSetUp::printFileWritingUsage(std::ostream& out, bool all) {
   // std::stringstream tempOut;
   out << bib::bashCT::bold <<"File output options: "<< bib::bashCT::reset << std::endl;
-  out << "-out [option]: Name of output file" << std::endl;
-  out << "-outFormat [option]: Output file format"
+  out << "1) -out [option]: Name of output file" << std::endl;
+  out << "2) -outFormat [option]: Output file format"
          ", options are fasta, fastaQual, and fastq" << std::endl;
   if (all) {
-    out << "-overWrite,-overWriteFile : overwrite the file if it "
+    out << "3) -overWrite,-overWriteFile : overwrite the file if it "
            " already exists, defaults to not overwriting" << std::endl;
-    out << "-exitOnFailureToWrite : if fail to write the file whether to "
+    out << "4) -exitOnFailureToWrite : if fail to write the file whether to "
            "keep going or exit, defaults to keep going " << std::endl;
   }
   // out << cleanOut(tempOut.str(), width_, indent_);
 }
-void seqSetUp::printKmerUsage(std::ostream& out) {
+void seqSetUp::printKmerProfilingUsage(std::ostream& out) {
   // std::stringstream tempOut;
   out << bib::bashCT::bold <<"kmer options"<< bib::bashCT::reset << std::endl;
-  out << "-kLength [option]: The length of the k mer check, defaults to " << kLength_ << std::endl;
-  out << "-kAnywhere : check any kmers found anywhere, defaults to "
+  out << "1) -kLength [option]: The length of the k mer check, defaults to " << kLength_ << std::endl;
+  out << "2) -kAnywhere : check any kmers found anywhere, defaults to "
          "checking for kmers at the position found" << std::endl;
-  out << "-runCutOff [option]: kmer occurrence number cut off "
+  out << "3) -runCutOff [option]: kmer occurrence number cut off "
          "to count as real sequence, defaults to 1, which means it has "
          "to occur in more than one read to be considered real" << std::endl;
   out << "\tif given with a percent sign, will make the cutoff the "
-         "percentage, eg. 0.2% has to occur in more than 0.2% of the "
-         "reads, so on 1000 reads this would be 2" << std::endl;
-  out << "\tfor the percentage option a back up number can be given as well,"
-  		" by giving a second number, for example 0.2%,1, which means if .2% of "
-  		"the reads would be 0 it will default to 1 instead, so on 100 reads"
-  		" giving 0.2%,1 will make this 1" << std::endl;
+         "percentage, eg. 0.5% has to occur in more than 0.5% of the "
+         "reads" << std::endl;
+  out << "4) -qualRunCutOff [option]: kmer occurrence number cut off "
+      << "to raise the quality threshold for mismatches, same formating as "
+         "-runCutOff" << std::endl;
   // out << cleanOut(tempOut.str(), width_, indent_);
 }
 void seqSetUp::printQualThresUsage(std::ostream& out) {
   // std::stringstream tempOut;
   out << bib::bashCT::bold <<"Quality Threshold Options"<< bib::bashCT::reset  << std::endl;
-  out << "-qualThres [option]: Quality threshold for high qual "
+  out << "1) -qualThres [option]: Quality threshold for high qual "
          "mismatch, given in the format of 20,15, where 20 is the "
          "primary quality (of mismatch) and 15 is the secondary quality "
          "(of flanking bases)" << std::endl;
-  out << "-qualThresWindow, -qwindow [option]: Number of flanking qualities "
+  out << "2) -qualThresLowKmer [option]: Same as above but this threshold is "
+         "used"
+         " instead if low kmer checking is on, defaults to 30,25" << std::endl;
+  out << "3) -qualThresWindow, -qwindow [option]: Number of flanking qualities "
          "to "
-         "included in quality neighborhood, a value of 2 would mean five "
+         "included in quality neighborhood, a value of 5 would mean five "
          "trailing qualities and five"
-         "leading qualities would be in the window for a total of 5 qualities "
+         "leading qualities would be in the window for a total of 11 qualities "
          "(includig the mismatch"
-         " base), defaults to " << qualThresWindow_ << std::endl;
+         " base, defaults to 5" << std::endl;
   // out << cleanOut(tempOut.str(), width_, indent_);
 }
 
 void seqSetUp::printGapUsage(std::ostream & out) const {
 	out << bib::bashCT::bold << "Gap Scoring options" << bib::bashCT::reset
 			<< "\n";
-	out << "-gap [option]: Gap penalty, given in the format 7,1 "
-			"where 7 is the gap open penalty and 1 is the gap extension"
+	out << "-gap [option]: Gap penalty, given in the format 7,0.5 "
+			"where 7 is the gap open penalty and 0.5 is the gap extension"
 			<< "\n";
 	out << "-gapLeft [option]: Gap penalty for putting gaps at the beginning"
 			" of the sequence, same format as -gap" << "\n";
@@ -602,32 +622,32 @@ void seqSetUp::printAlignmentUsage(std::ostream& out) {
   // std::stringstream tempOut;
   out << bib::bashCT::bold <<"Alignment options"<< bib::bashCT::reset  << std::endl;
   printGapUsage(out);
-  out << "-scoreMatrix : A filename for an alignment scoring matrix "
+  out << "4a) -scoreMatrix : A filename for an alignment scoring matrix "
          "of a custom scoring matrix" << std::endl;
-  out << "-generalMatch [option]: If no score matrix is given the score "
-         " of any match will be this, defaults to " << generalMatch_ << std::endl;
-  out << "-generalMismatch [option]: If no score matrix is given the score "
+  out << "4b) -generalMatch [option]: If no score matrix is given the score "
+         " of any match will be this, defaults to 2" << std::endl;
+  out << "4c) -generalMismatch [option]: If no score matrix is given the score "
          " of any mismatch will be this,"
-         " defaults to " << generalMismatch_ << std::endl;
-  //out << "-local : do local alignment instead of global, defaults to global"
-  //    << std::endl;
-  out << "-countEndGaps: Whether or not to count end gaps in the "
-         "alignment comparison, defaults to false" << std::endl;
-  out << "-noHomopolymerWeighting: In alignment comparison, "
+         " defaults to -2" << std::endl;
+  out << "5) -local : do local alignment instead of global, defaults to global"
+      << std::endl;
+  out << "6) -countEndGaps: Whether or not to count end gaps in the "
+         "alignment comparison" << std::endl;
+  out << "7) -noHomopolymerWeighting,-noHWeighting: In alignment comparison, "
          "do not count"
-         " indels in homopolymer differnt from other indels which is the default" << std::endl;
+         " indels in homopolymer differnt from other indels" << std::endl;
   // out << cleanOut(tempOut.str(), width_, indent_);
 }
 void seqSetUp::printReferenceComparisonUsage(std::ostream& out) {
   // std::stringstream tempOut;
   out << bib::bashCT::bold <<"Reference comparison options:"<< bib::bashCT::reset  << std::endl;
-  out << "-ref,-expect [option]: Name of a reference file in fasta format "
+  out << "1a) -ref,-expect [option]: Name of a reference file in fasta format "
          "for"
          " references sequences to be read from " << std::endl;
-  out << "-refFastq,-expectFastq [option]: Same as above but if the file "
+  out << "1b) -refFastq,-expectFastq [option]: Same as above but if the file "
          "is in"
          " fastq format " << std::endl;
-  out << "-refprocessed,-expectedProcessed : If the references have "
+  out << "2) -refprocessed,-expectedProcessed : If the references have "
          "frequency info"
          " in their name, in the form of _t[readNumber] or _f[Fraction]"
       << std::endl;
@@ -636,12 +656,12 @@ void seqSetUp::printReferenceComparisonUsage(std::ostream& out) {
 void seqSetUp::printAlnInfoDirUsage(std::ostream& out) {
   // std::stringstream tempOut;
   out << bib::bashCT::bold <<"Save Alignments Options: "<< bib::bashCT::reset  << std::endl;
-  out << "-alnInfoDir [option] : Name of a directory to save alingments"
+  out << "1) -alnInfoDir [option] : Name of a directory to save alingments"
          " if the directory already exists it assumes it has saved alingments "
          "and these will be read in and used, if the directory does not exist "
          "a new directory will be created with this name and alingment will be "
          "save here" << std::endl;
-  out << "-outAlnInfoDir,-outAln,-outAlnInfo [option] : Name of a new "
+  out << "2) -outAlnInfoDir,-outAln,-outAlnInfo [option] : Name of a new "
          "directory to save alignments in, if -alnInfoDir given but nothing "
          "for this option, the out directory will default to the -alnInfodir "
          "name" << std::endl;
@@ -649,14 +669,19 @@ void seqSetUp::printAlnInfoDirUsage(std::ostream& out) {
   // out << cleanOut(tempOut.str(), width_, indent_);
 }
 void seqSetUp::printAdditionalClusteringUsage(std::ostream& out) {
+  // std::stringstream tempOut;
   out << bib::bashCT::bold <<"Optional Clustering options"<< bib::bashCT::reset << std::endl;
-  out << "-bestMatchCheck [option] : The number of reads to look "
-         "for when when a match has been found, defaults to " << 10
+  out << "1) -bestMatch : Has the program cluster the reads looking "
+         "for the best match, defaults to the first read that meets "
+         "the given parameters" << std::endl;
+  out << "2) -bestMatchCheck [option] : The number of reads to look "
+         "for when -bestMatch has been switched on, defaults to 10"
       << std::endl;
-  out << "-largestFirst : Cluster the reads by comparing the "
+  out << "3) -largestFirst : Cluster the reads by comparing the "
          "largest clusters to each other first, defaults to taking the "
          "smallest cluster and comparing to the largest and making "
          "it's way up" << std::endl;
+  // out << cleanOut(tempOut.str(), width_, indent_);
 }
 
 }  // namespace bib

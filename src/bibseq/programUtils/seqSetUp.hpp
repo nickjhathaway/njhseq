@@ -33,25 +33,20 @@ namespace bibseq {
 
 class seqSetUp : public bib::progutils::programSetUp {
  public:
-  seqSetUp(int argc, char* argv[]) : bib::progutils::programSetUp(argc, argv) {
-    initializeDefaults();
-  }
-  seqSetUp(const bib::progutils::commandLineArguments& inputCommands)
-      : bib::progutils::programSetUp(inputCommands) {
-    initializeDefaults();
-  }
-  seqSetUp(const MapStrStr& inputCommands) : bib::progutils::programSetUp(inputCommands) {
-    initializeDefaults();
-  }
+  seqSetUp(int argc, char* argv[]);
+  seqSetUp(const bib::progutils::commandLineArguments& inputCommands);
+  seqSetUp(const MapStrStr& inputCommands);
   void initializeDefaults();
 
   // seq read in names
   readObjectIOOptions ioOptions_;
   std::string seq_;
   readObject seqObj_;
-  // main directoryName
+  // directory name
   std::string directoryName_;
+  bool overWriteDir_;
 
+  //reporting
   bool verbose_;
   bool debug_;
   bool quiet_;
@@ -61,6 +56,7 @@ class seqSetUp : public bib::progutils::programSetUp {
   std::string refSecondName_;
   std::string refFormat_;
   bool refProcessed_;
+
   // alignment for ref Info;
   std::string gapRef_;
   std::string gapLeftRef_;
@@ -73,52 +69,45 @@ class seqSetUp : public bib::progutils::programSetUp {
   std::string gapRight_;
   gapScoringParameters gapInfo_;
 
-
-
-
   bool local_;
+  // scoring matrix
+  substituteMatrix scoring_;
+  int32_t generalMatch_;
+  int32_t generalMismatch_;
+
+  // alignment profiling
   bool countEndGaps_;
   bool weightHomopolymers_;
-
   std::string qualThres_;
   bool eventBased_;
   uint32_t primaryQual_;
   uint32_t secondaryQual_;
-
   uint32_t qualThresWindow_;
 
-  //
+  // kmer options
+  uint32_t kLength_;
+  // kmer profiling
+  std::string runCutOffString_;
+  uint32_t runCutoff_;
+  bool kmersByPosition_;
+  bool expandKmerPos_;
+  uint32_t expandKmerSize_;
+
+  //alnment caching
   std::string alnInfoDirName_;
   std::string outAlnInfoDirName_;
   bool writingOutAlnInfo_;
 
-  // kmer options
-  std::string runCutOffString_;
-  uint32_t runCutoff_;
-
-  uint32_t kLength_;
-  bool kmersByPosition_;
-  bool checkKmers_;
-  bool expandKmerPos_;
-  uint32_t expandKmerSize_;
-
-  // scoring matrix
-  //std::unordered_map<char, std::unordered_map<char, int>> scoringMatrixMap_;
-  substituteMatrix scoring_;
-  int32_t generalMatch_;
-  int32_t generalMismatch_;
-  //general clusreing
-  bool regKmers_;
+  //general clustering options
   bool skipOnLetterCounterDifference_;
   double fractionDifferenceCutOff_;
-  bool condensedCollapse_;
   bool adjustHomopolyerRuns_;
+  bool largestFirst_;
+  bool firstMatch_;
+  uint32_t bestMatchCheck_;
 
   // private:
-  void processRegKmers();
-  void processSkipOnNucComp();
-  void processCondensedCollapse();
-  void processAdjustHRuns();
+
 
   bool processDefaultReader(bool readInNamesRequired = true);
   bool processReadInNames(bool required = true);
@@ -129,7 +118,8 @@ class seqSetUp : public bib::progutils::programSetUp {
                           std::map<int, std::vector<double>>& iteratorMap);
   void processIteratorMapOnPerId(std::string& parametersFile,
                           std::map<int, std::vector<double>>& iteratorMap);
-  void processKmerOptions();
+  void processKmerLenOptions();
+  void processKmerProfilingOptions();
   void processScoringPars();
   void processAlignerDefualts();
   void processDirectoryOutputName(const std::string& defaultName,
@@ -144,6 +134,10 @@ class seqSetUp : public bib::progutils::programSetUp {
   bool processDebug();
   bool processQuiet();
   void processAlnInfoInput();
+
+  void processClusteringOptions();
+  void processSkipOnNucComp();
+  void processAdjustHRuns();
   // usage prints
   void printInputUsage(std::ostream& out);
   void printAdditionaInputUsage(std::ostream& out,
@@ -151,7 +145,7 @@ class seqSetUp : public bib::progutils::programSetUp {
 
   void printGapUsage(std::ostream & out)const;
 
-  void printKmerUsage(std::ostream& out);
+  void printKmerProfilingUsage(std::ostream& out);
   void printQualThresUsage(std::ostream& out);
   void printAlignmentUsage(std::ostream& out);
   void printReferenceComparisonUsage(std::ostream& out);

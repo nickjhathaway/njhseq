@@ -1,28 +1,25 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
 #include "table.hpp"
 #include "bibseq/IO/fileUtils.hpp"
 #include <bibcpp/bashUtils.h>
 
 namespace bibseq {
+
+bool table::containsColumn(const std::string & colName)const{
+	return bib::in(colName, columnNames_);
+}
+
+bool table::containsColumns(const VecStr & colNames)const{
+	for(const auto & col : colNames){
+		if(!containsColumn(col)){
+			return false;
+		}
+	}
+	return true;
+}
+
+bool table::containsColumn(const uint32_t & colPos)const{
+	return colPos <= columnNames_.size();
+}
 
 void table::setColNamePositions(){
 	colNameToPos_.clear();
@@ -308,6 +305,33 @@ table table::getRows(const std::vector<uint32_t> &specificRowPositions) const{
   return table(getTargetsAtPositions(content_, specificRowPositions),
                columnNames_);
 }
+void table::outPutContents(CsvIOOptions options) const {
+  if (options.outDelim_ == "tab") {
+    options.outDelim_ = "\t";
+  } else if (options.outDelim_ == "whitespace") {
+    options.outDelim_ = " ";
+  }
+  if (options.outFilename_ == "") {
+    if (options.outOrganized_) {
+      outPutContentOrganized(std::cout);
+    } else {
+      outPutContents(std::cout, options.outDelim_);
+    }
+  } else {
+    std::ofstream outFile;
+    openTextFile(outFile, options);
+    if (options.outDelim_ == "tab") {
+    	options.outDelim_ = "\t";
+    } else if (options.outDelim_ == "whitespace") {
+    	options.outDelim_ = " ";
+    }
+    if (hasHeader_ && !options.append_) {
+    	outFile << vectorToString(columnNames_, options.outDelim_) << "\n";
+    }
+    outputVectorOfVectors(content_, options.outDelim_, outFile);
+  }
+}
+
 void table::outPutContents(std::ostream &out, std::string delim) const {
   if (delim == "tab") {
     delim = "\t";
@@ -570,29 +594,7 @@ table table::aggregateSimple(const std::string &columnName,
   }
 }
 
-void table::outPutContents(outOptions options) const {
-  if (options.outDelim_ == "tab") {
-    options.outDelim_ = "\t";
-  } else if (options.outDelim_ == "whitespace") {
-    options.outDelim_ = " ";
-  }
-  if (options.outFilename_ == "") {
-    if (options.outOrganized_) {
-      outPutContentOrganized(std::cout);
-    } else {
-      outPutContents(std::cout, options.outDelim_);
-    }
-  } else {
-    std::ofstream outFile;
-    openTextFile(outFile, options.outFilename_, options.extention_,
-                 options.overWriteFile_, options.exitOnFailureToWrite_);
-    if (options.outOrganized_) {
-      outPutContentOrganized(outFile);
-    } else {
-      outPutContents(outFile, options.outDelim_);
-    }
-  }
-}
+
 
 std::vector<uint32_t> table::getNumericColumnPositions(bool addZeros) {
   if (addZeros) {

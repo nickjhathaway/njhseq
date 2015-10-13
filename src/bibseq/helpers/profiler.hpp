@@ -31,6 +31,7 @@
 #include "bibseq/readVectorManipulation.h"
 #include "bibseq/objects/seqObjects/readObject.hpp"
 #include "bibseq/objects/helperObjects/kmer.hpp"
+#include "bibseq/objects/helperObjects/hpRun.hpp"
 #include "bibseq/alignment/aligner.hpp"
 #include "bibseq/helpers/kmerCalculator.hpp"
 #include "bibseq/helpers/seqUtil.hpp"
@@ -118,6 +119,42 @@ class profiler {
                               std::vector<readObject> & refSeqs, aligner& alignObj,
                               bool local, bool weighHomopolyer);
 
+  template <class T>
+  static void addHPRuns(std::vector<T>& reads,
+                        std::multimap<uint32_t, hpRun>& hpRuns,
+                        int sizeMinimum = 3);
+  template <class T>
+  static std::multimap<uint32_t, hpRun> findHPRuns(std::vector<T>& reads,
+                                                   int sizeMinimum = 3);
+
+  template <class T>
+  static void addHPRunsSimple(std::vector<T>& reads,
+                              std::map<std::string, std::vector<hpRun>>& hpRuns,
+                              int sizeMinimum = 3);
+  template <class T>
+  static std::map<std::string, std::vector<hpRun>> findHPRunsSimple(
+      std::vector<T>& reads, int sizeMinimum = 3);
+
+  static void outputHpRunsSimpleMap(
+      const std::map<std::string, std::vector<hpRun>>& runs, std::ostream& out);
+  template <class T>
+  static void addHPRunsWQ(std::vector<T>& reads,
+                          std::multimap<uint32_t, hpRun>& hpRuns,
+                          int sizeMinimum = 3);
+
+  template <class T>
+  static std::multimap<uint32_t, hpRun> findHPRunsWQ(std::vector<T>& reads,
+                                                     int sizeMinimum = 3);
+
+  template <class T>
+  static std::map<uint32_t, hpRun> searchForHpRuns(const T& read);
+  template <class T>
+  static std::map<std::string, std::map<uint32_t, hpRun>>
+      searchForHpRunsMultiple(const std::vector<T>& reads);
+  template <class T>
+  static void addBleed(std::vector<T>& reads,
+                       std::multimap<uint32_t, hpRun>& hpRuns,
+                       int sizeMinimum = 3);
 
   template <class T>
   static void outputHighestGCContent(std::vector<T>& reads, std::ostream& out);
@@ -337,6 +374,264 @@ std::string profiler::getBestRef(const std::vector<REF> & inputRefs,
    return out.str();
 }
 
+template <class T>
+void profiler::addHPRuns(std::vector<T>& reads,
+                         std::multimap<uint32_t, hpRun>& hpRuns,
+                         int sizeMinimum) {
+  std::multimap<uint32_t, hpRun>::iterator hpRunsIter;
+  for (typename std::vector<T>::const_iterator iter = reads.begin();
+       iter != reads.end(); ++iter) {
+    int currentCount = 1;
+    size_t pos = 0;
+    for (uint32_t i = 1; i < iter->seqBase_.seq_.length(); i++) {
+      if (iter->seqBase_.seq_[i] == iter->seqBase_.seq_[i - 1]) {
+        currentCount++;
+      } else {
+        if (currentCount < sizeMinimum) {
+
+        } else {
+          bool foundMatch = false;
+          for (hpRunsIter = hpRuns.begin(); hpRunsIter != hpRuns.end();
+               ++hpRunsIter) {
+            if (hpRunsIter->second.pos == (int)pos &&
+                hpRunsIter->second.base == iter->seqBase_.seq_[i - 1] &&
+                hpRunsIter->second.runSize == currentCount) {
+              hpRunsIter->second += iter->seqBase_.cnt_;
+              foundMatch = true;
+              break;
+            }
+          }
+          if (!foundMatch) {
+            hpRuns.insert(
+                std::make_pair(pos, hpRun(iter->seqBase_.seq_[i - 1], (int)pos,
+                                          currentCount, iter->seqBase_.cnt_)));
+          }
+        }
+        currentCount = 1;
+        pos = i;
+      }
+    }
+  }
+}
+template <class T>
+std::multimap<uint32_t, hpRun> profiler::findHPRuns(std::vector<T>& reads,
+                                                    int sizeMinimum) {
+  std::multimap<uint32_t, hpRun> hpRuns;
+  addHPRuns(reads, hpRuns);
+  return hpRuns;
+};
+
+template <class T>
+void profiler::addHPRunsSimple(
+    std::vector<T>& reads, std::map<std::string, std::vector<hpRun>>& hpRuns,
+    int sizeMinimum) {
+  std::map<std::string, std::vector<hpRun>>::iterator hpRunsIter;
+  std::vector<hpRun>::iterator hpVecIter;
+  for (typename std::vector<T>::const_iterator iter = reads.begin();
+       iter != reads.end(); ++iter) {
+    int currentCount = 1;
+    size_t pos = 0;
+    for (uint32_t i = 1; i < iter->seqBase_.seq_.length(); i++) {
+      if (iter->seqBase_.seq_[i] == iter->seqBase_.seq_[i - 1]) {
+        currentCount++;
+      } else {
+        if (currentCount < sizeMinimum) {
+
+        } else {
+          bool foundMatch = false;
+          if (hpRuns.find(iter->seqBase_.seq_.substr(i - 1, 1)) ==
+              hpRuns.end()) {
+            std::vector<hpRun> tempVec;
+            tempVec.push_back(hpRun(iter->seqBase_.seq_[i - 1], (int)pos,
+                                    currentCount, iter->seqBase_.cnt_));
+            hpRuns.insert(
+                std::make_pair(iter->seqBase_.seq_.substr(i - 1, 1), tempVec));
+          } else {
+            for (hpVecIter =
+                     hpRuns[iter->seqBase_.seq_.substr(i - 1, 1)].begin();
+                 hpVecIter !=
+                     hpRuns[iter->seqBase_.seq_.substr(i - 1, 1)].end();
+                 ++hpVecIter) {
+              if (hpVecIter->pos == (int)pos &&
+                  hpVecIter->base == iter->seqBase_.seq_[i - 1] &&
+                  hpVecIter->runSize == currentCount) {
+                (*hpVecIter) += iter->seqBase_.cnt_;
+                foundMatch = true;
+                break;
+              }
+            }
+            if (!foundMatch) {
+              hpRuns[iter->seqBase_.seq_.substr(i - 1, 1)]
+                  .push_back(hpRun(iter->seqBase_.seq_[i - 1], (int)pos,
+                                   currentCount, iter->seqBase_.cnt_));
+            }
+          }
+        }
+        currentCount = 1;
+        pos = i;
+      }
+    }
+  }
+}
+template <class T>
+std::map<std::string, std::vector<hpRun>> profiler::findHPRunsSimple(
+    std::vector<T>& reads, int sizeMinimum) {
+  std::map<std::string, std::vector<hpRun>> hpRuns;
+  addHPRunsSimple(reads, hpRuns);
+  return hpRuns;
+};
+
+template <class T>
+void profiler::addHPRunsWQ(std::vector<T>& reads,
+                           std::multimap<uint32_t, hpRun>& hpRuns,
+                           int sizeMinimum) {
+  std::multimap<uint32_t, hpRun>::iterator hpRunsIter;
+  for (typename std::vector<T>::const_iterator iter = reads.begin();
+       iter != reads.end(); ++iter) {
+    int currentCount = 1;
+    size_t pos = 0;
+    std::vector<int> currentQuals;
+    for (uint32_t i = 1; i < iter->seqBase_.seq_.length(); i++) {
+      if (iter->seqBase_.seq_[i] == iter->seqBase_.seq_[i - 1]) {
+        if (currentCount == 1) {
+          currentQuals.push_back(iter->qual[i - 1]);
+          currentQuals.push_back(iter->qual[i]);
+        } else {
+          currentQuals.push_back(iter->qual[i]);
+        }
+        currentCount++;
+
+      } else {
+        if (currentCount < sizeMinimum) {
+
+        } else {
+          bool foundMatch = false;
+          for (hpRunsIter = hpRuns.begin(); hpRunsIter != hpRuns.end();
+               ++hpRunsIter) {
+            if (hpRunsIter->second.pos == (int)pos &&
+                hpRunsIter->second.base == iter->seqBase_.seq_[i - 1] &&
+                hpRunsIter->second.runSize == currentCount) {
+              hpRunsIter->second += iter->seqBase_.cnt_;
+              hpRunsIter->second.increaseCount(0, vectorMean(currentQuals));
+              foundMatch = true;
+              break;
+            }
+          }
+          if (!foundMatch) {
+            std::vector<int> tempQual;
+            tempQual.push_back(vectorMean(currentQuals));
+            hpRuns.insert(std::make_pair(
+                pos, hpRun(iter->seqBase_.seq_[i - 1], (int)pos, currentCount,
+                           iter->seqBase_.cnt_, tempQual)));
+          }
+        }
+        currentQuals.clear();
+        currentCount = 1;
+        pos = i;
+      }
+    }
+  }
+}
+template <class T>
+std::multimap<uint32_t, hpRun> profiler::findHPRunsWQ(std::vector<T>& reads,
+                                                      int sizeMinimum) {
+  std::multimap<uint32_t, hpRun> hpRuns;
+  addHPRunsWQ(reads, hpRuns);
+  return hpRuns;
+};
+template <class T>
+void profiler::addBleed(std::vector<T>& reads,
+                        std::multimap<uint32_t, hpRun>& hpRuns,
+                        int sizeMinimum) {
+  std::multimap<uint32_t, hpRun>::iterator hpRunsIter;
+  for (typename std::vector<T>::const_iterator iter = reads.begin();
+       iter != reads.end(); ++iter) {
+    int currentCount = 1;
+    size_t pos = 0;
+    std::vector<int> currentQuals;
+    for (uint32_t i = 1; i < iter->seqBase_.seq_.length(); i++) {
+      if (iter->seqBase_.seq_[i] == iter->seqBase_.seq_[i - 1]) {
+        if (currentCount == 1) {
+          currentQuals.push_back(iter->qual[i - 1]);
+          currentQuals.push_back(iter->qual[i]);
+        } else {
+          currentQuals.push_back(iter->qual[i]);
+        }
+        currentCount++;
+
+      } else {
+        if (currentCount < sizeMinimum) {
+
+        } else {
+          bool foundMatch = false;
+          for (hpRunsIter = hpRuns.begin(); hpRunsIter != hpRuns.end();
+               ++hpRunsIter) {
+            if (hpRunsIter->second.pos == (int)pos &&
+                hpRunsIter->second.base == iter->seqBase_.seq_[i - 1] &&
+                hpRunsIter->second.runSize == currentCount) {
+              hpRunsIter->second += iter->seqBase_.cnt_;
+              hpRunsIter->second.increaseCount(0, vectorMean(currentQuals));
+              foundMatch = true;
+              break;
+            }
+          }
+          if (!foundMatch) {
+            std::vector<int> tempQual;
+            tempQual.push_back(vectorMean(currentQuals));
+            hpRuns.insert(std::make_pair(
+                pos, hpRun(iter->seqBase_.seq_[i - 1], (int)pos, currentCount,
+                           iter->seqBase_.cnt_, tempQual)));
+          }
+        }
+        currentQuals.clear();
+        currentCount = 1;
+        pos = i;
+      }
+    }
+  }
+}
+template <class T>
+std::map<uint32_t, hpRun> profiler::searchForHpRuns(const T& read) {
+  std::map<uint32_t, hpRun> ans;
+  int currentCount = 1;
+  size_t pos = 0;
+  std::vector<int> currentQuals;
+  int numOfHPRuns = 1;
+  for (uint32_t i = 1; i < read.seqBase_.seq_.length(); i++) {
+    if (read.seqBase_.seq_[i] == read.seqBase_.seq_[i - 1]) {
+      if (currentCount == 1) {
+        currentQuals.push_back(read.seqBase_.qual_[i - 1]);
+        currentQuals.push_back(read.seqBase_.qual_[i]);
+      } else {
+        currentQuals.push_back(read.seqBase_.qual_[i]);
+      }
+      currentCount++;
+
+    } else {
+      ++numOfHPRuns;
+      if (currentCount > 1) {
+        ans.insert(std::make_pair(
+            pos, hpRun(read.seqBase_.seq_[i - 1], (int)pos, numOfHPRuns,
+                       currentCount, read.seqBase_.cnt_, currentQuals)));
+      }
+      currentQuals.clear();
+      currentCount = 1;
+      pos = i;
+    }
+  }
+  return ans;
+}
+
+template <class T>
+std::map<std::string, std::map<uint32_t, hpRun>>
+profiler::searchForHpRunsMultiple(const std::vector<T>& reads) {
+  std::map<std::string, std::map<uint32_t, hpRun>> ans;
+  for (typename std::vector<T>::const_iterator rIter = reads.begin();
+       rIter != reads.end(); ++rIter) {
+    ans.insert(std::make_pair(rIter->seqBase_.name_, searchForHpRuns(*rIter)));
+  }
+  return ans;
+}
 
 template <class T>
 void profiler::outputHighestGCContent(std::vector<T>& reads,

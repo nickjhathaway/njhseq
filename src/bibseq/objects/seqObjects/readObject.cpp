@@ -90,14 +90,12 @@ void readObject::processRead(bool processed) {
 
 void readObject::initializeOthers() {
   flowValues.clear();
-  seqClip = "";
-  qualityClip.clear();
   condensedSeq = "";
   condensedSeqCount.clear();
   averageErrorRate = getAverageErrorRate();
   remove = false;
   numberOfFlows = 0;
-  basesAboveQualCheck_ = 0;
+  //basesAboveQualCheck_ = 0;
   fractionAboveQualCheck_ = 0;
   sampName = getOwnSampName();
 }
@@ -122,8 +120,6 @@ void readObject::clearObject() {
   seqBase_.seq_ = "";
   seqBase_.qual_.clear();
   flowValues.clear();
-  seqClip = "";
-  qualityClip.clear();
   seqBase_.cnt_ = 0;
   condensedSeq = "";
   condensedSeqCount.clear();
@@ -208,7 +204,7 @@ void readObject::trimBack(size_t fromPositionIncluding) {
 }
 
 double readObject::getAverageQual() const {
-	return seqBase_.getAverageErrorRate();
+	return seqBase_.getAverageQual();
 }
 
 double readObject::getAverageErrorRate() const {
@@ -244,15 +240,8 @@ void readObject::outPutPyroData(std::ostream& pyroNoiseFile) const {
                 << vectorToString(flowValues) << std::endl;
 }
 
-void readObject::outPutSeqClip(std::ostream& out) const {
-  out << ">" << seqBase_.name_ << std::endl;
-  out << seqClip << std::endl;
-}
 
-void readObject::outPutQualClip(std::ostream& out) const {
-  out << ">" << seqBase_.name_ << std::endl;
-  out << vectorToString(qualityClip) << std::endl;
-}
+
 void readObject::outPutCondensedSeq(std::ostream& out) const {
   out << ">" << seqBase_.name_ << std::endl;
   out << condensedSeq << std::endl;
@@ -274,8 +263,8 @@ void readObject::checkSeqQual(std::ostream& outFile) const {
 void readObject::setLetterCount() {
 	counter_.reset();
 	counter_.increaseCountByString(seqBase_.seq_, seqBase_.cnt_);
+	counter_.resetAlphabet(true);
 	counter_.setFractions();
-  //counter_ = letterCounter(seqBase_.seq_, seqBase_.qual_);
 }
 
 void readObject::setLetterCount(const std::vector<char> & alph){
@@ -284,65 +273,111 @@ void readObject::setLetterCount(const std::vector<char> & alph){
 	counter_.setFractions();
 }
 
-void readObject::setCondensedCounter() {
-  condensedCounter = letterCounter(condensedSeq);
-}
+
 
 // comparisons
 bool readObject::operator<(const readObject& otherRead) const {
-  if (seqBase_.cnt_ > otherRead.seqBase_.cnt_) {
-    return true;
-  } else if (seqBase_.cnt_ == otherRead.seqBase_.cnt_) {
-    if (averageErrorRate < otherRead.averageErrorRate) {
-      return true;
-    } else {
-      return false;
-    }
-  } else {
-    return false;
-  }
+	/*
+	if (seqBase_.cnt_ == otherRead.seqBase_.cnt_) {
+		if (averageErrorRate < otherRead.averageErrorRate) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return seqBase_.cnt_ > otherRead.seqBase_.cnt_;
+	}*/
+	if (roundDecPlaces(seqBase_.cnt_, 2) == roundDecPlaces(otherRead.seqBase_.cnt_, 2) ) {
+		if (roundDecPlaces(averageErrorRate, 2)  < roundDecPlaces(otherRead.averageErrorRate, 2) ) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return roundDecPlaces(seqBase_.cnt_, 2)  > roundDecPlaces(otherRead.seqBase_.cnt_, 2) ;
+	}
 }
 
 bool readObject::operator>(const readObject& otherRead) const {
-  if (seqBase_.cnt_ < otherRead.seqBase_.cnt_) {
-    return true;
-  } else if (seqBase_.cnt_ == otherRead.seqBase_.cnt_) {
-    if (averageErrorRate > otherRead.averageErrorRate) {
-      return true;
-    } else {
-      return false;
-    }
-  } else {
-    return false;
-  }
+	/*
+	if (seqBase_.cnt_ == otherRead.seqBase_.cnt_) {
+		if (averageErrorRate > otherRead.averageErrorRate) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return seqBase_.cnt_ < otherRead.seqBase_.cnt_;
+	}*/
+	if (roundDecPlaces(seqBase_.cnt_, 2) == roundDecPlaces(otherRead.seqBase_.cnt_, 2) ) {
+		if (roundDecPlaces(averageErrorRate, 2)  > roundDecPlaces(otherRead.averageErrorRate, 2) ) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return roundDecPlaces(seqBase_.cnt_, 2)  < roundDecPlaces(otherRead.seqBase_.cnt_, 2) ;
+	}
 }
 
+/*
 bool readObject::operator==(const readObject& otherRead) const {
   if (seqBase_.cnt_ == otherRead.seqBase_.cnt_) {
     return true;
   } else {
     return false;
   }
-}
+}*/
+
 bool readObject::operator>=(const readObject& otherRead) const {
-  if (seqBase_.cnt_ <= otherRead.seqBase_.cnt_) {
-    return true;
-  } else {
-    return false;
-  }
+	/*if (seqBase_.cnt_ == otherRead.seqBase_.cnt_) {
+		if (averageErrorRate >= otherRead.averageErrorRate) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return seqBase_.cnt_ <= otherRead.seqBase_.cnt_;
+	}*/
+	if (roundDecPlaces(seqBase_.cnt_, 2) == roundDecPlaces(otherRead.seqBase_.cnt_, 2) ) {
+		if (roundDecPlaces(averageErrorRate, 2)  >= roundDecPlaces(otherRead.averageErrorRate, 2) ) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return roundDecPlaces(seqBase_.cnt_, 2)  <= roundDecPlaces(otherRead.seqBase_.cnt_, 2) ;
+	}
 }
 
 bool readObject::operator<=(const readObject& otherRead) const {
-  if (seqBase_.cnt_ >= otherRead.seqBase_.cnt_) {
-    return true;
-  } else {
-    return false;
-  }
+	/*if (seqBase_.cnt_ == otherRead.seqBase_.cnt_) {
+		if (averageErrorRate <= otherRead.averageErrorRate) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return seqBase_.cnt_ >= otherRead.seqBase_.cnt_;
+	}*/
+	if (roundDecPlaces(seqBase_.cnt_, 2) == roundDecPlaces(otherRead.seqBase_.cnt_, 2) ) {
+		if (roundDecPlaces(averageErrorRate, 2)  <= roundDecPlaces(otherRead.averageErrorRate, 2) ) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return roundDecPlaces(seqBase_.cnt_, 2)  >= roundDecPlaces(otherRead.seqBase_.cnt_, 2) ;
+	}
+}
+
+double readObject::getQualCheck(uint32_t qualCutOff) const{
+  auto basesAboveQualCheck = bib::count_if(seqBase_.qual_, [&qualCutOff](const uint32_t & q){ return q>=qualCutOff;});
+  return static_cast<double>(basesAboveQualCheck) / seqBase_.qual_.size();
 }
 
 void readObject::setBaseCountOnQualCheck(uint32_t qualCheck) {
-  basesAboveQualCheck_ = bib::count_if(seqBase_.qual_, [&qualCheck](const uint32_t & q){ return q>=qualCheck;});
-  fractionAboveQualCheck_ = static_cast<double>(basesAboveQualCheck_) / seqBase_.qual_.size();
+  fractionAboveQualCheck_ = getQualCheck(qualCheck);
 }
 
 void readObject::replace(const std::string& toBeReplaced,
@@ -437,17 +472,13 @@ bool readObject::flowNoiseProcess(size_t cutoff) {
 
   return true;
 }
-
-void readObject::convertToProteinFromcDNA(bool transcribeToRNAFirst,
-                                          size_t start, bool forceStartM) {
-	seqBase_.convertToProteinFromcDNA(transcribeToRNAFirst, start, forceStartM);
+void readObject::translate(bool complement, bool reverse, size_t start ){
+	seqBase_.translate(complement, reverse, start);
+}
+readObject readObject::translateRet(bool complement, bool reverse, size_t start ) const{
+	return readObject(seqBase_.translateRet(complement, reverse, start), false);
 }
 
-std::string readObject::getProteinFromcDNA(bool transcribeToRNAFirst,
-                                           size_t start,
-                                           bool forceStartM) const {
-	return seqBase_.getProteinFromcDNA(transcribeToRNAFirst, start, forceStartM);
-}
 
 double readObject::getGCContent() {
   setLetterCount();
@@ -539,56 +570,17 @@ void readObject::updateQaulCountsAtPos(
           [roundDecPlaces(currentProbSum / (2 * qualWindowSize + 1), 4)];
 }
 
-void readObject::setQualMeans(uint32_t windowSize) {
-  qualMeans_.clear();
-  for (auto i : iter::range(seqBase_.qual_.size())) {
-    uint32_t lowerBound = 0;
-    uint32_t higherBound = seqBase_.qual_.size();
-    if (i > windowSize) {
-      lowerBound = i - windowSize;
-    }
-    if (i + windowSize + 1 < higherBound) {
-      higherBound = i + windowSize + 1;
-    }
-    double sum = 0.0;
-    for (auto cursor : iter::range(lowerBound, higherBound)) {
-      sum += seqBase_.qual_[cursor];
-    }
-    qualMeans_.push_back(sum / (higherBound - lowerBound));
-  }
-}
-void readObject::setQualProbMeans(uint32_t windowSize,
-                                  const std::array<double, 100>& errorLookUp) {
-  qualProbMeans_.clear();
-  for (auto i : iter::range(seqBase_.qual_.size())) {
-    uint32_t lowerBound = 0;
-    uint32_t higherBound = seqBase_.qual_.size();
-    if (i > windowSize) {
-      lowerBound = i - windowSize;
-    }
-    if (i + windowSize + 1 < higherBound) {
-      higherBound = i + windowSize + 1;
-    }
-    double sum = 0.0;
-    for (auto cursor : iter::range(lowerBound, higherBound)) {
-      sum += errorLookUp[seqBase_.qual_[cursor]];
-    }
-    qualProbMeans_.push_back(sum / (higherBound - lowerBound));
-  }
-}
+
 
 void readObject::printDescription(std::ostream& out, bool deep) const {
   baseReadObject::printDescription(out);
-  out << "readObject{" << std::endl << "qualMeans_:" << qualMeans_ << std::endl
-      << "qualProbMeans_:" << qualProbMeans_ << std::endl
-      << "flowValues:" << flowValues << std::endl
+  out << "readObject{" << std::endl << "flowValues:" << flowValues << std::endl
       << "processedFlowValues:" << processedFlowValues << std::endl
-      << "seqClip:" << seqClip << std::endl << "qualityClip:" << qualityClip
-      << std::endl << "sampName:" << sampName << std::endl
+      << "sampName:" << sampName << std::endl
       << "expectsString:" << expectsString << std::endl
       << "numberOfFlows:" << numberOfFlows << std::endl
       << "averageErrorRate:" << averageErrorRate << std::endl
-      << "basesAboveQualCheck:" << basesAboveQualCheck_ << std::endl
+      //<< "basesAboveQualCheck:" << basesAboveQualCheck_ << std::endl
       << "fractionAboveQualCheck:" << fractionAboveQualCheck_ << std::endl
       << "remove:" << remove << std::endl;
   if (deep) {
@@ -597,9 +589,6 @@ void readObject::printDescription(std::ostream& out, bool deep) const {
   out << "condensedSeq:" << condensedSeq << std::endl
       << "condensedSeqQual:" << condensedSeqQual << std::endl
       << "condensedSeqCount:" << condensedSeqCount << std::endl;
-  if (deep) {
-    condensedCounter.printDescription(out, deep);
-  }
   out << "}" << std::endl;
 }
 

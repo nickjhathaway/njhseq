@@ -26,13 +26,16 @@ namespace bibseq {
 
 readObjectIOOpt::readObjectIOOpt(const readObjectIOOptions & options) :
 		ioOptions_(options) {
-
+	openIn();
 }
 
 bool readObjectIOOpt::inOpen()const{
 	return inOpen_;
 }
 void readObjectIOOpt::openIn(){
+	if(inOpen_){
+		return;
+	}
 	if(!bib::files::bfs::exists(ioOptions_.firstName_)){
   	std::stringstream ss;
     ss << "Error file: " << ioOptions_.firstName_ << "doesn't exist\n";
@@ -114,6 +117,26 @@ void readObjectIOOpt::closeIn(){
   	bReader_.Close();
   }
   inOpen_ = false;
+}
+
+
+std::shared_ptr<readObject> readObjectIOOpt::readNextRead(){
+	auto ret = std::make_shared<readObject>();
+	auto status = readNextRead(ret);
+	if(status){
+		return ret;
+	}else{
+		return nullptr;
+	}
+}
+
+
+
+bool readObjectIOOpt::readNextRead(std::shared_ptr<readObject> & read){
+	return readNextRead(*read);
+}
+bool readObjectIOOpt::readNextRead(std::unique_ptr<readObject> & read){
+	return readNextRead(*read);
 }
 
 bool readObjectIOOpt::readNextRead(readObject & read){
@@ -254,6 +277,7 @@ bool readObjectIOOpt::readNextFastqStream(std::istream& is, uint32_t offSet,
         break;
       }
     }
+
     if (allBlanks) {
       return false;
     }

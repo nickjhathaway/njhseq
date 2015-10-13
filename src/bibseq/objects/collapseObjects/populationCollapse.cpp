@@ -1,24 +1,4 @@
 //
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-//
 //  populationCollapse.cpp
 //  sequenceTools
 //
@@ -37,6 +17,9 @@ populationCollapse::populationCollapse(){
 populationCollapse::populationCollapse(const std::vector<sampleCluster> &inputClusters,
                    const std::string &populationName)
     : input_(clusterSet(inputClusters)), populationName_(populationName) {
+	if(containsSubString(populationName_, ".")){
+		throw std::runtime_error{"Error in populationCollapse::populationCollapse, populationName can't contain '.', " + populationName_};
+	}
 	for(auto & i : input_.clusters_){
 		i.setSampInfos(input_.info_.infos_);
 	}
@@ -94,6 +77,7 @@ void populationCollapse::renameClusters() {
   		return clus1.numberOfRuns() >clus2.numberOfRuns();
   	}
   });
+
   renameReadNames(collapsed_.clusters_, populationName_, true, false,false);
   for (auto &clus : collapsed_.clusters_) {
     if (clusterVec::isClusterAtLeastHalfChimeric(clus.reads_)) {
@@ -119,21 +103,50 @@ void populationCollapse::renameToOtherPopNames(
   readVec::getMaxLength(previousPop, maxLen);
   readVec::getMaxLength(collapsed_.clusters_, maxLen);
   aligner alignerObj(maxLen, refGapScore, substituteMatrix(2,-2));
+  comparison noErrors;
+
+  VecStr alreadyTakenNames;
+  std::vector<uint32_t> alreadyTakenIds;
+  std::map<std::string, std::vector<uint32_t>> previousIdsByExp;
+  for(const auto & read : previousPop){
+  	auto firstPer = read.seqBase_.name_.find(".");
+  	auto firstUnder = read.seqBase_.name_.find("_", firstPer);
+  	alreadyTakenNames.emplace_back(read.seqBase_.name_.substr(0, firstUnder));
+  	auto prevId = bib::lexical_cast<uint32_t>(read.seqBase_.name_.substr(firstPer + 1, firstUnder -1 - firstPer));
+  	auto prevExpName = read.seqBase_.name_.substr(0, firstPer);
+  	alreadyTakenNames.emplace_back(prevExpName);
+  	alreadyTakenIds.emplace_back(prevId);
+  	previousIdsByExp[prevExpName].emplace_back(prevId);
+  }
+  uint32_t id = 0;
+  if(bib::in(populationName_, previousIdsByExp)){
+  	id = (*std::max_element(previousIdsByExp[populationName_].begin(), previousIdsByExp[populationName_].end())) + 1;
+  }
   for (auto &clus : collapsed_.clusters_) {
+  	bool chimeric = clus.seqBase_.name_.find("CHI") != std::string::npos;
     double bestScore = 0;
-    uint32_t bestRefPos = 0;
+    uint32_t bestRefPos = std::numeric_limits<uint32_t>::max();
     for (const auto &refPos : iter::range(previousPop.size())) {
       alignerObj.alignVec(previousPop[refPos], clus, false);
-      if (alignerObj.parts_.score_ > bestScore) {
+      alignerObj.profilePrimerAlignment(previousPop[refPos], clus,false);
+      if(noErrors.passErrorProfile(alignerObj.comp_) &&  alignerObj.parts_.score_ > bestScore) {
         bestScore = alignerObj.parts_.score_;
         bestRefPos = refPos;
       }
     }
-    clus.seqBase_.name_ = previousPop[bestRefPos].seqBase_.name_;
-    clus.updateName();
+    if(bestRefPos != std::numeric_limits<uint32_t>::max()){
+      clus.seqBase_.name_ = previousPop[bestRefPos].seqBase_.name_;
+      clus.updateName();
+    }else{
+      clus.seqBase_.name_ = populationName_ + "." + estd::to_string(id);
+      ++id;
+      clus.updateName();
+    }
+    if(chimeric){
+    	clus.seqBase_.markAsChimeric();
+    }
   }
-  // set the scoring back to what it was
-  //alignerObj.setGapScoring(currentGapScores);
+  //fix id name
 }
 
 

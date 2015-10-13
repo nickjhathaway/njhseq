@@ -98,6 +98,7 @@ public:
 	void setWithPam250();
 	void setWithDegenScoring(int32_t matchScore, int32_t mismatchScore);
 	void setWithDegenScoringLessN();
+	void setWithDegenScoringNoNInRef();
 	void setWithDegenScoringCaseInsen(int32_t matchScore, int32_t mismatchScore);
 	void setWithFilename(const std::string & filename);
 
@@ -111,6 +112,7 @@ public:
 	static substituteMatrix createDegenScoreMatrix(int32_t matchScore, int32_t mismatchScore);
 	static substituteMatrix createDegenScoreMatrixCaseInsensitive(int32_t matchScore, int32_t mismatchScore);
 	static substituteMatrix createDegenScoreMatrixLessN();
+	static substituteMatrix createDegenScoreMatrixNoNInRef();
 	static substituteMatrix createScoreMatrix(int32_t matchScore, int32_t mismatchScore,
 			bool degenerativeScoring, bool caseInsensitive);
 };

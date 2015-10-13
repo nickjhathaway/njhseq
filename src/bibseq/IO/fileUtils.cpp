@@ -120,15 +120,17 @@ bool fexists(const std::string &filename) {
 void openTextFile(std::ofstream &file, std::string filename,
                   std::string fileExtention, bool overWrite,
                   bool exitOnFailure) {
-
-  if (filename.find(fileExtention) == std::string::npos) {
-    filename.append(fileExtention);
-  } else if (filename.substr(filename.size() - fileExtention.size(),
-                             fileExtention.size()) != fileExtention) {
-    filename.append(fileExtention);
-  }
+  bib::files::appendAsNeeded(filename, fileExtention);
   bib::files::openTextFile(file, filename, overWrite, false, exitOnFailure);
 }
+
+void openTextFile(std::ofstream &file, const IoOptions & options) {
+	auto outFilename = options.outFilename_;
+	bib::files::appendAsNeeded(outFilename, options.outExtention_);
+	bib::files::openTextFile(file, outFilename, options.overWriteFile_,
+			options.append_, options.exitOnFailureToWrite_);
+}
+
 // runLog stuff
 void startRunLog(std::ofstream &runLog, const MapStrStr &inputCommands) {
   runLog << "Ran " << getCurrentDate() << std::endl;

@@ -1,24 +1,4 @@
 #pragma once
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
 /*
 
  * charCounter.hpp
@@ -52,13 +32,11 @@ public:
 class charCounterArray {
 public:
 	//constructor
-	//default construct with the default dna with gaps library
-	charCounterArray() :alphabet_(std::vector<char>{'A','C','G','T','-'}), originalAlphabet_(alphabet_) {
-		reset();
-	}
-	charCounterArray(const std::vector<char>&  alphabet) : alphabet_(alphabet), originalAlphabet_(alphabet_) {
-		reset();
-	}
+
+	charCounterArray();
+	charCounterArray(const std::vector<char>& alphabet);
+	charCounterArray(const std::string & str);
+	charCounterArray(const std::string & str, const std::vector<char>& alphabet);
 
 	//members
   std::array<uint32_t, 127> chars_;
@@ -99,7 +77,7 @@ public:
       bool setFractionFirst);
 
   // gc content
-  double gcContent;
+  double gcContent = 0;
   void calcGcContent();
   int getGcDifference();
   // compute entropy

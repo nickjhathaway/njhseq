@@ -29,25 +29,27 @@
 
 #include "bibseq/utils.h"
 #include "bibseq/simulation/simulationCommon.hpp"
-#include "bibseq/objects/counters/letterCounter.hpp"
 namespace bibseq {
 namespace simulation {
-//randObjectGen.hpp
-class errorProfile {
+
+class mismatchProfile {
 
  public:
   // constructor
   /*! \brief Default Construct DNA Alphabet
    *
    */
-  errorProfile() : alphabet_({'A', 'C', 'G', 'T'}) { reset(); }
+  mismatchProfile() : alphabet_({'A', 'C', 'G', 'T'}) { reset(); }
   /*! \brief Construct with Given Alphabet
    *
    */
-  errorProfile(const std::vector<char>& alphabet) : alphabet_(alphabet) {
+  mismatchProfile(const std::vector<char>& alphabet) : alphabet_(alphabet) {
     reset();
   }
-  // Members
+  // Members, only upper case letters allowed
+  /**
+   * @todo increase size of array to include lower case letters
+   */
   std::array<std::array<uint32_t, 26>, 26> counts_;
   std::array<std::array<double, 26>, 26> fractions_;
   std::vector<char> alphabet_;
@@ -72,6 +74,7 @@ class errorProfile {
   void mutateSeqInPlace(std::string& seq, randomGenerator& gen,
                         const std::vector<char>& mutateTo,
                         const std::vector<double>& likelihood);
+
   std::string mutateSeq(const std::string& seq, randomGenerator& gen,
                         const std::vector<char>& mutateTo,
                         const std::vector<double>& likelihood);

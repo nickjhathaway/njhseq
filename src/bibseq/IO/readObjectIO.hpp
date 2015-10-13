@@ -75,67 +75,23 @@ public:
   // combo readers
   void read(const std::string& fileType, std::string filename,
             std::string secondName, bool processed = false);
-  // three file readers, only one is fasta, qual, flow reader as of 8/6/13
-  void read(const std::string& fileType, std::string filename,
-            std::string secondName, std::string thirdName,
-            bool processed = false);
+
 
   void read(const readObjectIOOptions& options);
 
-  /*! \brief Internal Write
-   *
-   *
-   *  Write the internal vector reads and write it to file
-   */
-  void write(std::string filename, std::string format, bool overWrite,
-             bool exitOnFailure) {
-    // seqWriter writer;
-    if (format == "sff") {
-      format = "fastq";
-    }
-    writeVector(reads, filename, format, overWrite, exitOnFailure);
-  }
+
   /*! \brief Internal Write with optioins
    *
    *
    *  Write the internal vector reads and write it to file
    */
-  void write(const readObjectIOOptions& options) {
-    // seqWriter writer;
-    if (options.outFormat_ == "sff") {
-      writeVector(reads, options.outFilename_, "fastq", options.overWriteFile_,
-                  options.exitOnFailureToWrite_);
-    } else {
-      writeVector(reads, options.outFilename_, options.outFormat_,
-                  options.overWriteFile_, options.exitOnFailureToWrite_);
-    }
+  void write(readObjectIOOptions options) {
+  	write(reads, options);
   }
-  void write(const std::string & filename, const readObjectIOOptions& options) {
-    // seqWriter writer;
-    if (options.outFormat_ == "sff") {
-      writeVector(reads, filename, "fastq", options.overWriteFile_,
-                  options.exitOnFailureToWrite_);
-    } else {
-      writeVector(reads, filename, options.outFormat_,
-                  options.overWriteFile_, options.exitOnFailureToWrite_);
-    }
+  void write(const std::string & filename, readObjectIOOptions options) {
+  	write(reads,filename, options);
   }
-  /*! \brief External Write
-   *
-   *
-   *  This function takes a vector of any class of read (readObject, cluster, or
-   *sffObject) writes to file in given format
-   */
-  template <typename T>
-  static void write(const std::vector<T>& inputReads, std::string filename,
-                    std::string format, bool overWrite, bool exitOnFailure,
-                    int extra = 0) {
-    // seqWriter writer;
-    if (format == "sff") {
-      format = "fastq";
-    }
-    writeVector(inputReads, filename, format, overWrite, exitOnFailure, extra);
-  }
+
   /*! \brief External Write With Options
    *
    *
@@ -143,24 +99,21 @@ public:
    *sffObject) writes to file in given format
    */
   template <typename T>
-  static void write(const std::vector<T>& inputReads,
-                    readObjectIOOptions options, int extra = 0) {
+  static void write(const std::vector<T>& inputReads, readObjectIOOptions options) {
     // seqWriter writer;
     if (options.outFormat_ == "sff") {
       options.outFormat_ = "fastq";
     }
-    writeVector(inputReads, options.outFilename_, options.outFormat_,
-                options.overWriteFile_, options.exitOnFailureToWrite_, extra);
+    writeVector(inputReads, options);
   }
   template <typename T>
-	static void write(const std::vector<T>& inputReads, const std::string & filename,
-										readObjectIOOptions options, int extra = 0) {
+	static void write(const std::vector<T>& inputReads, const std::string & filename,readObjectIOOptions options) {
 		// seqWriter writer;
 		if (options.outFormat_ == "sff") {
 			options.outFormat_ = "fastq";
 		}
-		writeVector(inputReads, filename, options.outFormat_,
-								options.overWriteFile_, options.exitOnFailureToWrite_, extra);
+		options.outFilename_ = filename;
+		writeVector(inputReads, options);
 	}
 
   static std::vector<readObject> getReferenceSeq(const std::string& refFilename,
@@ -169,32 +122,31 @@ public:
                                                  uint64_t& maxLength);
 
  public:
+	template<class T>
+	static void writeVector(const std::vector<T>& reads,
+			readObjectIOOptions options) {
+		writeVector(reads, options.outFilename_, options.outFormat_,
+				options.overWriteFile_, options.append_, options.exitOnFailureToWrite_,
+				options.extra_);
+	}
   template <class T>
   static void writeVector(const std::vector<T>& reads, std::string stubName,
-                          const std::string& format, bool overWrite,
-                          bool exitOnFailure, int extra = 0) {
+                          const std::string& format, bool overWrite, bool append,
+                          bool exitOnFailure, int extra) {
     if (format == "fastq") {
-      writeFastqFile(reads, stubName, overWrite, exitOnFailure);
+      writeFastqFile(reads, stubName, overWrite, append,exitOnFailure);
     } else if (format == "fasta") {
-      writeFastaFile(reads, stubName, overWrite, exitOnFailure);
+      writeFastaFile(reads, stubName, overWrite, append, exitOnFailure);
     } else if (format == "flow") {
       writeFlowFile(reads, stubName, overWrite, exitOnFailure);
     } else if (format == "flowRaw") {
       writeFlowRawFile(reads, stubName, overWrite, exitOnFailure);
     } else if (format == "fastaQual") {
-      writeFastaQualFile(reads, stubName, overWrite, exitOnFailure);
-    } else if (format == "fastaFlow") {
-      writeFastaFlowFile(reads, stubName, overWrite, exitOnFailure);
-    } else if (format == "fastqFlow") {
-      writeFastqFlowFile(reads, stubName, overWrite, exitOnFailure);
-    } else if (format == "fastaQualFlow") {
-      writeFastaQualFlowFile(reads, stubName, overWrite, exitOnFailure);
+      writeFastaQualFile(reads, stubName, overWrite, append, exitOnFailure);
     } else if (format == "pyroData") {
       writePyroDataFile(reads, stubName, overWrite, exitOnFailure, extra);
     } else if (format == "mothurData") {
       writeMothurDataFile(reads, stubName, overWrite, exitOnFailure, extra);
-    }else if (format == "clipFastaQual") {
-      writeClipFastaQualFile(reads, stubName, overWrite, exitOnFailure);
     } else if (format == "condensedFastaQual") {
       writeCondensedFastaQualFile(reads, stubName, overWrite, exitOnFailure);
     } else {
@@ -208,13 +160,13 @@ public:
   template <class T>
   static void writeSimpleVector(const std::vector<T>& reads,
                                 std::string stubName, const std::string& format,
-                                bool overWrite, bool exitOnFailure) {
+                                bool overWrite, bool append, bool exitOnFailure) {
     if (format == "fastq") {
-      writeFastqFile(reads, stubName, overWrite, exitOnFailure);
+      writeFastqFile(reads, stubName, overWrite, append, exitOnFailure);
     } else if (format == "fasta") {
-      writeFastaFile(reads, stubName, overWrite, exitOnFailure);
+      writeFastaFile(reads, stubName, overWrite, append, exitOnFailure);
     } else if (format == "fastaQual") {
-      writeFastaQualFile(reads, stubName, overWrite, exitOnFailure);
+      writeFastaQualFile(reads, stubName, overWrite, append, exitOnFailure);
     } else {
     	std::stringstream ss;
       ss << bib::bashCT::bold << bib::bashCT::red << "Unrecognized format " << format << " while writing "
@@ -226,7 +178,7 @@ public:
   static void writeSimpleVector(const std::vector<T>& reads,
                                 const readObjectIOOptions& options) {
     writeSimpleVector(reads, options.outFilename_, options.outFormat_,
-                      options.overWriteFile_, options.exitOnFailureToWrite_);
+                      options.overWriteFile_, options.append_, options.exitOnFailureToWrite_);
     return;
   }
   static const uint32_t IlluminaQualOffset;
@@ -238,10 +190,10 @@ public:
 
   template <class T>
   static void writeFastqFile(const std::vector<T>& reads,
-                             std::string fastqFileName, bool overWrite,
+                             std::string fastqFileName, bool overWrite,bool append,
                              bool exitOnFailure) {
     std::ofstream fastqFile;
-    openTextFile(fastqFile, fastqFileName, ".fastq", overWrite, exitOnFailure);
+    bib::files::openTextFile(fastqFile, fastqFileName, ".fastq", overWrite, append, exitOnFailure);
 
     for (const auto& read : reads) {
       read.seqBase_.outPutFastq(fastqFile);
@@ -251,10 +203,10 @@ public:
 
   template <class T>
   static void writeFastaFile(const std::vector<T>& reads,
-                             std::string fastaFilename, bool overWrite,
+                             std::string fastaFilename, bool overWrite,bool append,
                              bool exitOnFailure) {
     std::ofstream fastaFile;
-    openTextFile(fastaFile, fastaFilename, ".fasta", overWrite, exitOnFailure);
+    bib::files::openTextFile(fastaFile, fastaFilename, ".fasta", overWrite, append, exitOnFailure);
     for (const auto& read : reads) {
       read.seqBase_.outPutSeq(fastaFile);
     }
@@ -287,11 +239,10 @@ public:
   }
   template <class T>
   static void writeQualFile(const std::vector<T>& reads,
-                            std::string qualFilename, bool overWrite,
+                            std::string qualFilename, bool overWrite,bool append,
                             bool exitOnFailure) {
     std::ofstream fastaQualFile;
-    openTextFile(fastaQualFile, qualFilename, ".fasta.qual", overWrite,
-                 exitOnFailure);
+    bib::files::openTextFile(fastaQualFile, qualFilename, ".fasta.qual", overWrite, append, exitOnFailure);
     for (const auto& read : reads) {
       read.seqBase_.outPutQual(fastaQualFile);
     }
@@ -299,32 +250,13 @@ public:
   }
   template <class T>
   static void writeFastaQualFile(const std::vector<T>& reads,
-                                 std::string stubname, bool overWrite,
+                                 std::string stubname, bool overWrite,bool append,
                                  bool exitOnFailure) {
-    writeFastaFile(reads, stubname, overWrite, exitOnFailure);
-    writeQualFile(reads, stubname, overWrite, exitOnFailure);
+    writeFastaFile(reads, stubname, overWrite,append, exitOnFailure);
+    writeQualFile(reads, stubname, overWrite, append, exitOnFailure);
   }
-  template <class T>
-  static void writeFastaFlowFile(const std::vector<T>& reads,
-                                 std::string stubName, bool overWrite,
-                                 bool exitOnFailure) {
-    writeFastaFile(reads, stubName, overWrite, exitOnFailure);
-    writeFlowFile(reads, stubName, overWrite, exitOnFailure);
-  }
-  template <class T>
-  static void writeFastqFlowFile(const std::vector<T>& reads,
-                                 std::string stubName, bool overWrite,
-                                 bool exitOnFailure) {
-    writeFastqFile(reads, stubName, overWrite, exitOnFailure);
-    writeFlowFile(reads, stubName, overWrite, exitOnFailure);
-  }
-  template <class T>
-  static void writeFastaQualFlowFile(const std::vector<T>& reads,
-                                     std::string stubName, bool overWrite,
-                                     bool exitOnFailure) {
-    writeFastaQualFile(reads, stubName, overWrite, exitOnFailure);
-    writeFlowFile(reads, stubName, overWrite, exitOnFailure);
-  }
+
+
   template <class T>
   static void writePyroDataFile(const std::vector<T>& reads,
                                 std::string pryoDataFilename, bool overWrite,
@@ -352,37 +284,7 @@ public:
     pyroDataFile.close();
   }
 
-  template <class T>
-  static void writeClipFastaFile(const std::vector<T>& reads,
-                                 std::string clipFastaFilename, bool overWrite,
-                                 bool exitOnFailure) {
-    std::ofstream clipFastaFile;
-    openTextFile(clipFastaFile, clipFastaFilename, ".clip.fasta", overWrite,
-                 exitOnFailure);
-    for (const auto & read : reads) {
-      read.outPutSeqClip(clipFastaFile);
-    }
-    clipFastaFile.close();
-  }
-  template <class T>
-  static void writeClipQualFile(const std::vector<T>& reads,
-                                std::string clipFastaQualFilename,
-                                bool overWrite, bool exitOnFailure) {
-    std::ofstream clipFastaQualFile;
-    openTextFile(clipFastaQualFile, clipFastaQualFilename, ".clip.fasta.qual",
-                 overWrite, exitOnFailure);
-    for (const auto & read : reads) {
-      read.outPutQualClip(clipFastaQualFile);
-    }
-    clipFastaQualFile.close();
-  }
-  template <class T>
-  static void writeClipFastaQualFile(const std::vector<T>& reads,
-                                     std::string stubName, bool overWrite,
-                                     bool exitOnFailure) {
-    writeClipFastaFile(reads, stubName, overWrite, exitOnFailure);
-    writeQualFile(reads, stubName, overWrite, exitOnFailure);
-  }
+
   template <class T>
   static void writeCondensedFastaFile(const std::vector<T>& reads,
                                       std::string fastaFilename, bool overWrite,

@@ -34,8 +34,8 @@ PrimerDeterminator::PrimerDeterminator(const table & primers) {
 			|| !bib::in(std::string("forwardPrimer"), primers.columnNames_)
 			|| !bib::in(std::string("reversePrimer"), primers.columnNames_)) {
 		throw std::runtime_error {
-				"Error in creating MidDeterminator, need to have at "
-						"least two columns, geneName, forwardPrimer, reversePrimer, only have "
+				"Error in creating PrimerDeterminator, need to have at "
+						"least the following three columns, geneName, forwardPrimer, reversePrimer, only have "
 						+ bib::conToStr(primers.columnNames_, ",") };
 	}
 	for (const auto & row : primers.content_) {
@@ -75,9 +75,12 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info, uint3
 				&& alignerObj.comp_.distances_.queryCoverage_
 						>= allowable.distances_.queryCoverage_
 				&& allowable.passErrorProfile(alignerObj.comp_)) {
+			if(withinPos != 0 && forwardPosition.first != 0){
+				info.setClip(forwardPosition.first, info.seq_.size() - 1);
+			}
 			if (forwardPrimerToLowerCase) {
 				changeSubStrToLowerFromBegining(info.seq_,
-						currentPrimer.second.reversePrimerInfoForDir_.seq_.size());
+						forwardPosition.second - forwardPosition.first);
 			}
 			info.on_ = true;
 			return currentPrimer.second.reversePrimerInfoForDir_.name_;
@@ -109,9 +112,12 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 				&& alignerObj.comp_.distances_.queryCoverage_
 						>= allowable.distances_.queryCoverage_
 				&& allowable.passErrorProfile(alignerObj.comp_)) {
+			if(withinPos != 0 && forwardPosition.first != 0){
+				info.setClip(forwardPosition.first,info.seq_.size() - 1);
+			}
 			if (forwardPrimerToLowerCase) {
 				changeSubStrToLowerFromBegining(info.seq_,
-						currentPrimer.second.forwardPrimerInfo_.seq_.size());
+						forwardPosition.second - forwardPosition.first);
 			}
 			info.on_ = true;
 			return currentPrimer.second.forwardPrimerInfo_.name_;
@@ -125,27 +131,23 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 bool PrimerDeterminator::checkForReversePrimer(seqInfo & info,
 		const std::string & primerName, aligner & alignObj,
 		const comparison & allowable, bool reversePrimerToLowerCase,
-		bool weighHomopolyers) {
+		bool weighHomopolyers, uint32_t within, bool trimExtra) {
 	if (!bib::in(primerName, primers_)) {
 		throw std::runtime_error { "checkForReversePrimer: No primer info for: "
 				+ primerName };
 	}
 	seqInfo readEnd;
-	if (primers_[primerName].reversePrimer_.size() * 2 < len(info)) {
-		readEnd = info.getSubRead(
-				info.seq_.size() - primers_[primerName].reversePrimer_.size() * 2);
+	auto trimBackSize = within + primers_[primerName].reversePrimerInfo_.seq_.size() * 2;
+	if (trimBackSize < len(info)) {
+		readEnd = info.getSubRead(len(info) - trimBackSize);
 	} else {
 		readEnd = info;
 	}
 	auto rPos = alignObj.findReversePrimer(readEnd.seq_,
 			primers_[primerName].reversePrimerInfo_.seq_);
-	if (primers_[primerName].reversePrimer_.size() * 2 < len(info)) {
-		rPos.first += info.seq_.size()
-				- primers_[primerName].reversePrimer_.size() * 2;
-		rPos.second += info.seq_.size()
-				- primers_[primerName].reversePrimer_.size() * 2;
-	} else {
-		readEnd = info;
+	if (trimBackSize < len(info)) {
+		rPos.first += len(info) - trimBackSize;
+		rPos.second += len(info) - trimBackSize;
 	}
 	alignObj.rearrangeObjs(readEnd, primers_[primerName].reversePrimerInfo_,
 			true);
@@ -158,25 +160,13 @@ bool PrimerDeterminator::checkForReversePrimer(seqInfo & info,
 		primerGood = false;
 	}
 	info.on_ = primerGood;
-	/*if(!primerGood){
-		std::cout << std::endl;
-		alignObj.comp_.printErrors(std::cout);
-		allowable.printErrors(std::cout);
-		alignObj.alignObjectA_.seqBase_.outPutSeq(std::cout);
-		alignObj.alignObjectB_.seqBase_.outPutSeq(std::cout);
-		primers_[primerName].reversePrimerInfo_.outPutSeq(std::cout);
-		std::cout << "queryCoverage_: " << alignObj.comp_.distances_.queryCoverage_ << std::endl;
-		std::cout << bib::colorBool(alignObj.comp_.distances_.queryCoverage_< allowable.distances_.queryCoverage_) << std::endl;
-		std::cout << bib::colorBool(!allowable.passErrorProfile(alignObj.comp_)) << std::endl;
-		std::cout << bib::colorBool(alignObj.comp_.distances_.queryCoverage_
-				< allowable.distances_.queryCoverage_
-				|| !allowable.passErrorProfile(alignObj.comp_)) << std::endl;
-		std::cout << std::endl;
-	}*/
+
 	if (primerGood) {
 		if (reversePrimerToLowerCase) {
-			while (info.seq_[rPos.first] == info.seq_[rPos.first - 1]) {
-				--rPos.first;
+			if(trimExtra){
+				while (rPos.first != 0 && info.seq_[rPos.first] == info.seq_[rPos.first - 1]) {
+					--rPos.first;
+				}
 			}
 			changeSubStrToLowerToEnd(info.seq_, rPos.first);
 		}
@@ -187,27 +177,24 @@ bool PrimerDeterminator::checkForReversePrimer(seqInfo & info,
 
 bool PrimerDeterminator::checkForForwardPrimerInRev(seqInfo & info, const std::string & primerName,
 		aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-    bool weighHomopolyers){
+    bool weighHomopolyers, uint32_t within, bool trimExtra){
 	if (!bib::in(primerName, primers_)) {
 		throw std::runtime_error { "checkForReversePrimer: No primer info for: "
 				+ primerName };
 	}
 	seqInfo readEnd;
-	if (primers_[primerName].forwardPrimer_.size() * 2 < len(info)) {
-		readEnd = info.getSubRead(
-				info.seq_.size() - primers_[primerName].forwardPrimer_.size() * 2);
+	auto trimBackSize = within + primers_[primerName].forwardPrimerInfoRevDir_.seq_.size() * 2;
+	if (trimBackSize < len(info)) {
+		readEnd = info.getSubRead(len(info) - trimBackSize);
 	} else {
 		readEnd = info;
 	}
+
 	auto rPos = alignObj.findReversePrimer(readEnd.seq_,
 			primers_[primerName].forwardPrimerInfoRevDir_.seq_);
-	if (primers_[primerName].forwardPrimer_.size() * 2 < len(info)) {
-		rPos.first += info.seq_.size()
-				- primers_[primerName].forwardPrimer_.size() * 2;
-		rPos.second += info.seq_.size()
-				- primers_[primerName].forwardPrimer_.size() * 2;
-	} else {
-		readEnd = info;
+	if (trimBackSize < len(info)) {
+		rPos.first += len(info) - trimBackSize;
+		rPos.second += len(info) - trimBackSize;
 	}
 	alignObj.rearrangeObjs(readEnd, primers_[primerName].forwardPrimerInfoRevDir_,
 			true);
@@ -223,8 +210,10 @@ bool PrimerDeterminator::checkForForwardPrimerInRev(seqInfo & info, const std::s
 
 	if (primerGood) {
 		if (reversePrimerToLowerCase) {
-			while (info.seq_[rPos.first] == info.seq_[rPos.first - 1]) {
-				--rPos.first;
+			if(trimExtra){
+				while (rPos.first != 0 && info.seq_[rPos.first] == info.seq_[rPos.first - 1]) {
+					--rPos.first;
+				}
 			}
 			changeSubStrToLowerToEnd(info.seq_, rPos.first);
 		}

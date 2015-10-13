@@ -28,79 +28,111 @@
 
 #include "probabilityProfile.hpp"
 #include "bibseq/helpers/seqUtil.hpp"
+#include "bibseq/helpers/kmerCalculator.hpp"
 
 namespace bibseq {
+
+probabilityProfile::probabilityProfile(const VecStr &dnaStrings) :
+		dnaStrings_(dnaStrings), length_(dnaStrings.front().size()) {
+	/**@todo check that all the sizes in dnaStrings are the same size*/
+	initCounts();
+	updateProfile();
+	updateScore();
+}
+
+probabilityProfile::probabilityProfile(uint32_t kmerLength) :
+		length_(kmerLength) {
+	initCounts();
+
+}
+
+
 void probabilityProfile::initCounts() {
   std::vector<char> dnaLetters = {'A', 'C', 'G', 'T'};
-  for (uint32_t i = 0; i < _length; ++i) {
-    _counts.push_back(letterCounter(dnaLetters));
+  for (uint32_t i = 0; i < length_; ++i) {
+    counts_.emplace_back(dnaLetters);
     // new adjustment to account for zeros
-    for (auto &letCount : _counts.back().letters) {
-      letCount.second = 1;
+    for (auto & let : counts_.back().alphabet_) {
+      counts_.back().chars_[let]= 1;
     }
   }
-  for (const auto str : _dnaStrings) {
+
+  for (const auto str : dnaStrings_) {
     for (auto i : iter::range(str.size())) {
-      _counts[i].increaseCountOfBase(str[i]);
+      counts_[i].increaseCountOfBase(str[i]);
     }
   }
 }
+
+void probabilityProfile::updateProfile() {
+  std::stringstream consensus;
+  uint32_t pos = 0;
+  for (auto &count : counts_) {
+    consensus << count.outputBestLetter();
+    count.setFractions();
+    ++pos;
+  }
+  consensus_ = consensus.str();
+}
+
+void probabilityProfile::updateScore() {
+  score_ = 0;
+  for (const auto &dString : dnaStrings_) {
+    score_ += seqUtil::computeHammingDistance(consensus_, dString);
+  }
+}
+
 void probabilityProfile::add(const std::string &dnaString, bool update) {
-  _dnaStrings.push_back(dnaString);
+	if(dnaString.size() != length_){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": kmer is wrong size, should be " << length_ << " not " << dnaString.size() << std::endl;
+		ss << "For kmer: " << dnaString << std::endl;
+		throw std::runtime_error{ss.str()};
+	}
+  dnaStrings_.push_back(dnaString);
   for (auto i : iter::range(dnaString.size())) {
-    _counts[i].increaseCountOfBase(dnaString[i]);
+    counts_[i].increaseCountOfBase(dnaString[i]);
   }
   if (update) {
     updateProfile();
   }
 }
+
 void probabilityProfile::add(const VecStr &moreDnaStrings) {
   for (const auto &dString : moreDnaStrings) {
     add(dString, false);
   }
   updateProfile();
 }
-void probabilityProfile::updateProfile() {
-  //_profile.clear();
-  // std::unordered_map<uint, std::unordered_map<char, double>> _profile;
-  std::stringstream consensus;
-  uint32_t pos = 0;
-  for (auto &count : _counts) {
-    consensus << count.outputBestLetter();
-    count.setFractions();
-    for (const auto &letFrac : count.fractions) {
-      _profile[pos][letFrac.first] = letFrac.second;
-    }
-    ++pos;
-  }
-  _consensus = consensus.str();
-}
-void probabilityProfile::updateScore() {
-  _score = 0;
-  for (const auto &dString : _dnaStrings) {
-    _score += seqUtil::computeHammingDistance(_consensus, dString);
-  }
-}
+
 double probabilityProfile::getEntrophy() {
   double ans = 0;
-  for (auto &count : _counts) {
+  for (auto &count : counts_) {
     ans += count.computeEntrophy();
   }
   return ans;
 }
+
 double probabilityProfile::getProbabilityOfKmer(const std::string &kmer) {
+	if(kmer.size() != length_){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": kmer is wrong size, should be " << length_ << " not " << kmer.size() << std::endl;
+		ss << "For kmer: " << kmer << std::endl;
+		throw std::runtime_error{ss.str()};
+	}
   double prob = 1;
   uint32_t pos = 0;
   for (const auto &c : kmer) {
-    prob *= _profile.at(pos).at(c);
+    prob *= counts_.at(pos).fractions_[c];
     ++pos;
   }
   return prob;
 }
+
 std::vector<kmer> probabilityProfile::mostProbableKmers(
     const std::string &seq) {
   std::unordered_map<std::string, kmer> kmers =
-      kmerCalculator::indexKmer(seq, _length);
+      kmerCalculator::indexKmer(seq, length_);
   std::vector<kmer> mostProbableKmers;
   double highestProb = 0;
   for (const auto &k : kmers) {
@@ -119,10 +151,10 @@ void probabilityProfile::printProfile(std::ostream &out,
                                       const std::string &delim) {
   std::vector<char> dnaLetters = {'A', 'C', 'G', 'T'};
   printVector(dnaLetters, delim, out);
-  for (auto pro : iter::range(_profile.size())) {
+  for (auto pos : iter::range(counts_.size())) {
     std::vector<double> tempVec;
     for (const auto let : dnaLetters) {
-      tempVec.push_back(_profile.at(pro).at(let));
+      tempVec.push_back(counts_[pos].fractions_[let]);
     }
     printVector(tempVec, delim, out);
   }

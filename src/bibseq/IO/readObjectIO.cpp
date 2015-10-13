@@ -29,7 +29,7 @@ namespace bibseq {
 void readObjectIO::read(const readObjectIOOptions& options) {
   includeSpaceInNames = options.includeWhiteSpaceInName_;
   read(options.inFormat_, options.firstName_, options.secondName_,
-       options.thirdName_, options.processed_);
+        options.processed_);
   readVec::handelLowerCaseBases(reads, options.lowerCaseBases_);
   if (options.removeGaps_) {
     std::cout << "mark removing gaps" << std::endl;
@@ -37,10 +37,15 @@ void readObjectIO::read(const readObjectIOOptions& options) {
   }
 }
 
-// main reader
+// single readers
 void readObjectIO::read(const std::string& fileType, std::string filename,
-                        std::string secondName, std::string thirdName,
                         bool processed) {
+  read(fileType, filename, "noSecondName", processed);
+}
+
+// double readers
+void readObjectIO::read(const std::string& fileType, std::string filename,
+                        std::string secondName, bool processed) {
 	if(!fexists(filename)){
 		std::stringstream ss;
 		ss << "error, file " << filename << " doesn't exist " << std::endl;
@@ -77,19 +82,6 @@ void readObjectIO::read(const std::string& fileType, std::string filename,
               << std::endl;
     throw std::runtime_error{ss.str()};
   }
-}
-
-
-// single readers
-void readObjectIO::read(const std::string& fileType, std::string filename,
-                        bool processed) {
-  read(fileType, filename, "noSecondName", "noThirdName", processed);
-}
-
-// double readers
-void readObjectIO::read(const std::string& fileType, std::string filename,
-                        std::string secondName, bool processed) {
-  read(fileType, filename, secondName, "noThirdName", processed);
 }
 
 void readObjectIO::readShorahOld(const std::string& shorahFilename) {

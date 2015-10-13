@@ -34,36 +34,43 @@ template<typename T>
 class scale {
 public:
 
-	scale(const std::pair<T,T> & in,
-			const std::pair<T,T> & out):
-				min_(in.first), max_(in.second),
-				start_(out.first), stop_(out.second){
+	scale(const std::pair<T, T> & in, const std::pair<T, T> & out) :
+			min_(in.first), max_(in.second), start_(out.first), stop_(out.second) {
 
 	}
 
 	T min_;
 	T max_;
 
-
 	T start_;
 	T stop_;
 
-	T get(T num){
-		auto ret = start_ + (stop_ - start_) * ((num - min_)/(std::abs(max_ - min_)));
+	T get(T num) {
+		auto ret = start_
+				+ (stop_ - start_) * ((num - min_) / (std::abs(max_ - min_)));
+		return ret;
+	}
+
+	Json::Value toJson() const {
+		Json::Value ret;
+		ret["min_"] = bib::json::toJson(min_);
+		ret["max_"] = bib::json::toJson(max_);
+		ret["start_"] = bib::json::toJson(start_);
+		ret["stop_"] = bib::json::toJson(stop_);
 		return ret;
 	}
 };
 
 template<typename T>
-std::vector<T> getIntRange(T start, T stop){
+std::vector<T> getIntRange(T start, T stop) {
 	std::vector<T> ret;
-	if(start == stop){
-		return std::vector<T> {start};
-	}else if (start > stop){
+	if (start == stop) {
+		return std::vector<T> { start };
+	} else if (start > stop) {
 		ret = std::vector<T>(start - stop + 1);
 		std::iota(ret.begin(), ret.end(), stop);
 		std::reverse(ret.begin(), ret.end());
-	}else if (start < stop){
+	} else if (start < stop) {
 		ret = std::vector<T>(stop - start + 1);
 		std::iota(ret.begin(), ret.end(), start);
 	}
@@ -100,12 +107,11 @@ T Factorial(T x) {
 
 std::vector<double> getRange(double start, double stop, uint32_t num);
 
-inline unsigned uAbsdiff( unsigned a, unsigned b ){
-      unsigned n= (unsigned)(
-         (long long)((unsigned long long)a - (unsigned long long)b)>>32
-                      ); // same n as 2nd example
-      unsigned result = a-b;
-      return (result^n)-n; // 'result' if n = 0; '-result' if n = 0xFFFFFFFF
+inline unsigned uAbsdiff(unsigned a, unsigned b) {
+	unsigned n = (unsigned) ((long long) ((unsigned long long) a
+			- (unsigned long long) b) >> 32); // same n as 2nd example
+	unsigned result = a - b;
+	return (result ^ n) - n; // 'result' if n = 0; '-result' if n = 0xFFFFFFFF
 }
 
 } /* namespace bib */

@@ -75,14 +75,14 @@ public:
 	void processMotif();
 	motifSubUnit processInclusion(uint32_t start, uint32_t stop);
 	motifSubUnit processExclusion(uint32_t start, uint32_t stop);
-	uint32_t scoreMotif(const std::string & possibleMotif);
+	uint32_t scoreMotif(const std::string & possibleMotif)const;
 	uint32_t scoreMotif(const std::string::const_iterator & targetBegin,
-			const std::string::const_iterator & targetEnd );
+			const std::string::const_iterator & targetEnd )const;
 
-	bool passMotifParameter(const std::string & possibleMotif, uint32_t scoreCutOff);
-	std::vector<uint32_t> findPositions(const std::string & wholeProtein, uint32_t scoreCutOff);
+	bool passMotifParameter(const std::string & possibleMotif, uint32_t scoreCutOff)const;
+	std::vector<uint32_t> findPositions(const std::string & wholeProtein, uint32_t scoreCutOff)const;
 	std::vector<uint32_t> findPositionsFull(const std::string & wholeProtein,
-			uint32_t allowableErrors = 0);
+			uint32_t allowableErrors = 0)const;
 	std::vector<uint32_t> findPositionsFull(const std::string & wholeProtein,
 			uint32_t allowableErrors, uint32_t start, uint32_t stop) const;
 

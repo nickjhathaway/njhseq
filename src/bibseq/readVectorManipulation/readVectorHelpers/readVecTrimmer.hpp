@@ -328,8 +328,32 @@ void readVecTrimmer::trimBetweenSequences(
   return;
 }
 
-
-}  // namespace bibseq
+template <class T>
+void readVecTrimmer::trimEndsOfReadsToSharedSeq(std::vector<T> &reads,
+                                                bool verbose) {
+  VecStr longestSharedSeq = findLongestSharedSeqFromReads(reads);
+  if (verbose) {
+    std::cout << vectorToString(longestSharedSeq, ", ") << std::endl;
+    std::vector<size_t> farthestLocations;
+    for (const auto &rIter : reads) {
+      std::vector<size_t> farthestLocation =
+          findOccurences(rIter.seqBase_.seq_, longestSharedSeq[0]);
+      farthestLocations.push_back(vectorMaximum(farthestLocation));
+    }
+    std::cout << "Max: " << vectorMaximum(farthestLocations) << std::endl;
+    std::cout << "Min: " << vectorMinimum(farthestLocations) << std::endl;
+    std::cout << "average: " << vectorMean(farthestLocations) << std::endl;
+    std::cout << "median: " << vectorMedian(farthestLocations) << std::endl;
+  }
+  for (auto &rIter : reads) {
+    std::vector<size_t> farthestLocation =
+        findOccurences(rIter.seqBase_.seq_, longestSharedSeq[0]);
+    size_t maxDistance = vectorMaximum(farthestLocation);
+    rIter.trimBack(maxDistance + longestSharedSeq[0].size());
+  }
+  return;
+}
+}  // namespace bib
 
 #ifndef NOT_HEADER_ONLY
 #include "readVecTrimmer.cpp"

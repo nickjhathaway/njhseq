@@ -28,8 +28,10 @@
 //
 
 #include "bibseq/objects/seqObjects/readObject.hpp"
+#include "bibseq/objects/seqObjects/seqWithKmerInfo.hpp"
 #include "bibseq/objects/seqObjects/sffObject.hpp"
 
+#include "bibseq/seqToolsUtils/aminoAcidInfo.hpp"
 #include "bibseq/alignment.h"
 #include "bibseq/helpers/seqUtil.hpp"
 #include "bibseq/utils.h"
@@ -37,7 +39,6 @@
 #include "bibseq/simulation/simulationCommon.hpp"
 
 #include "bibseq/simulation/errorProfile.hpp"
-#include "bibseq/simulation/profile.hpp"
 #include "bibseq/objects/helperObjects/probabilityProfile.hpp"
 
 #include <bibcpp/graphics/colorUtils.hpp>
@@ -46,37 +47,57 @@
 namespace bibseq {
 
 
+template<typename T>
+uint32_t getMismatches(const T & read1,
+				const T & read2,
+				aligner alignerObj, bool weightHomopolymers){
+	alignerObj.alignVec(read1.seqBase_,read2.seqBase_, false);
+	alignerObj.profilePrimerAlignment(read1.seqBase_, read2.seqBase_, weightHomopolymers);
+	return alignerObj.comp_.hqMismatches_;
+};
 
 
-void getReadCnt(const std::string & filename, std::string & format,
-		bool processed, uint64_t & currentCount) ;
+Json::Value genMinTreeData(const std::vector<readObject> & reads);
+Json::Value genMinTreeData(const std::vector<readObject> & reads, aligner & alignerObj);
+
+
+
+uint32_t countSeqs(const readObjectIOOptions & opts, bool verbose);
 
 void setUpSampleDirs(
-    const std::string& barcodeFilename,
-		const std::string& mainDirectoryName) ;
+    const std::string& sampleNamesFilename,
+		const std::string& mainDirectoryName,
+		bool separatedDirs);
 std::pair<uint32_t,uint32_t> getMaximumRounds(double cnt);
 std::vector<char> getAAs(bool noStopCodon);
 class cluster;
-
+template <typename T>
+static std::vector<readObject> createCondensedObjects(std::vector<T> reads) {
+  std::vector<readObject> ans;
+  readVec::allSetCondensedSeq(reads);
+  for (const auto& read : reads) {
+    ans.emplace_back(readObject(seqInfo(read.seqBase_.name_, read.condensedSeq,
+                                        read.condensedSeqQual)));
+  }
+  return ans;
+}
 template<typename T>
-simulation::profile simProfileWithReads(const std::vector<T> & reads, aligner & alignerObj,
+simulation::mismatchProfile simProfileWithReads(const std::vector<T> & reads, aligner & alignerObj,
 		randomGenerator & gen, uint32_t sampNum, bool local, bool ignoreGaps){
   std::vector<uint32_t> randomFirstPos = gen.unifRandVector<uint32_t>(0, len(reads),sampNum);
   std::vector<uint32_t> randomSecondPos = gen.unifRandVector<uint32_t>(0, len(reads),sampNum);
-  simulation::profile allProfile;
+  simulation::mismatchProfile ret;
   for(const auto & pos : iter::range(sampNum)){
   	alignerObj.alignVec(reads[randomFirstPos[pos]],
   			reads[randomSecondPos[pos]], local);
-  	allProfile.increaseCountAmount(alignerObj.alignObjectA_.seqBase_.seq_,
+  	ret.increaseCountAmount(alignerObj.alignObjectA_.seqBase_.seq_,
   	  				alignerObj.alignObjectB_.seqBase_.seq_, 1);
   }
-  allProfile.setProfile(true);
-  return allProfile;
+  ret.setFractions();
+  return ret;
 }
-simulation::errorProfile getErrors(const simulation::profile & allProfile,
-		const std::vector<char> & alphabet);
-substituteMatrix getMatrixFromProfile(simulation::profile allProfile,
-		const std::vector<char> & alphabet);
+
+
 
 std::string genHtmlStrForPsuedoMintree(std::string jsonFileName);
 
@@ -207,6 +228,19 @@ void findForwardPrimerAndSortDegenerative(
   }
 }
 
+/**@b
+ *
+ * @param read
+ * @param reversePrimer
+ * @param runParmas
+ * @param alignObj
+ * @param reverserPrimerToLowerCase
+ * @param weighHomopolyers
+ * @param queryCoverageCutOff
+ * @param percentIdentityCutoff
+ *
+ * @todo needs to be optimized
+ */
 template <typename T>
 void checkForReversePrimer(T& read, readObject& reversePrimer,
                            runningParameters runParmas, aligner& alignObj,
@@ -326,6 +360,8 @@ void renameReadNamesNewClusters(std::vector<T>& reads, const std::string& stub,
   }
 }
 
+VecStr getRecurrenceStemNames(const VecStr& allNames);
+
 
 
 void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString, int counter);
@@ -333,6 +369,24 @@ void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString, i
 uint32_t processRunCutoff(const std::string& runCutOffString, uint64_t counter);
 
 
+
+
+template <typename T>
+VecStr findLongestSharedSeqFromReads(const std::vector<T>& reads) {
+  VecStr seqs;
+  for (const auto& rIter : reads) {
+    seqs.push_back(rIter.seqBase_.seq_);
+  }
+  return seqUtil::findLongestShardedMotif(seqs);
+}
+
+void makeMultipleSampleDirectory(const std::string& barcodeFilename,
+                                 const std::string& mainDirectoryName);
+
+void makeSampleDirectoriesWithSubDirectories(const std::string&,
+                                             const std::string&);
+
+void processKrecName(readObject& read, bool post);
 
 
 
@@ -345,10 +399,271 @@ std::string processFileNameForID(const std::string& fileName);
 
 std::string findAdditonalOutLocation(const std::string& locationFile,
                                      const std::string& fileName);
+VecStr getPossibleDNASubstringsForProtein(const std::string& seq,
+                                          const std::string& protein,
+                                          const std::string& seqType = "DNA");
+VecStr findPossibleDNA(const std::string& seq, const std::string& protein,
+                       const std::string& seqType = "DNA",
+                       bool checkComplement = true);
+
+VecStr getAllCycloProteinFragments(const std::string& protein);
+
+std::multimap<int, std::string> getProteinFragmentSpectrum(
+    const std::string& protein);
+
+std::vector<int> getRealPossibleWeights(const std::vector<int>& spectrum);
 
 
 
+VecStr organizeLexicallyKmers(const std::string& input, size_t colNum);
+VecStr organizeLexicallyKmers(const VecStr& input, int colNum);
+uint64_t smallestSizePossible(uint64_t weight);
 
+template <typename READ, typename REF>
+std::vector<baseReadObject> alignToSeq(const std::vector<READ>& reads,
+                                       const REF& reference, aligner& alignObj,
+                                       bool local, bool usingQuality) {
+  std::vector<baseReadObject> output;
+  output.emplace_back(baseReadObject(reference));
+  for (const auto& read : reads) {
+    alignObj.alignVec(reference, read, local);
+    output.emplace_back(baseReadObject(seqInfo(
+        read.seqBase_.name_ + "_score:" + std::to_string(alignObj.parts_.score_),
+        alignObj.alignObjectB_.seqBase_.seq_,
+        alignObj.alignObjectB_.seqBase_.qual_)));
+  }
+  return output;
+}
+template <typename READ, typename REF>
+std::vector<baseReadObject> alignToSeqVec(const std::vector<READ>& reads,
+                                          const REF& reference,
+                                          aligner& alignObj, bool local,
+                                          bool usingQuality) {
+  std::vector<baseReadObject> output;
+  output.emplace_back(baseReadObject(reference));
+  for (const auto& read : reads) {
+    alignObj.alignVec(reference, read, local);
+    output.emplace_back(baseReadObject(seqInfo(
+        read.seqBase_.name_ + "_score:" + std::to_string(alignObj.parts_.score_),
+        alignObj.alignObjectB_.seqBase_.seq_,
+        alignObj.alignObjectB_.seqBase_.qual_)));
+  }
+  return output;
+}
+template <typename READ, typename REF>
+VecStr alignToSeqStrings(const std::vector<READ>& reads, const REF& reference,
+                         aligner& alignObj, bool local, bool usingQuality) {
+  VecStr output;
+  output.push_back(reference.seqBase_.seq_);
+  for (const auto read : reads) {
+    alignObj.alignVec(reference, read, local);
+    output.push_back(alignObj.alignObjectB_.seqBase_.seq_);
+  }
+  return output;
+}
+
+int64_t getPossibleNumberOfProteins(
+    int64_t weight, std::unordered_map<int64_t, int64_t>& cache);
+probabilityProfile randomMotifSearch(const VecStr& dnaStrings, int kLength,
+                                     int numberOfRuns, bool gibs, int gibsRuns,
+                                     randomGenerator& gen);
+probabilityProfile randomlyFindBestProfile(const VecStr& dnaStrings,
+                                           const std::vector<VecStr>& allKmers,
+                                           int numberOfKmers,
+                                           randomGenerator& gen);
+probabilityProfile randomlyFindBestProfileGibs(
+    const VecStr& dnaStrings, const std::vector<VecStr>& allKmers,
+    int numberOfKmers, int runTimes, randomGenerator& gen);
+/*
+template <typename T>
+struct letterCompositionSorter {
+  letterCompositionSorter(const std::string& letter) : _letter(letter) {}
+  std::string _letter;
+  bool operator()(const T& first, const T& second) const {
+    return first.counter.fractions.at(_letter) <
+           second.counter.fractions.at(_letter);
+  }
+};
+template <typename T>
+void sortByLetterComposition(std::vector<T>& vec, const std::string& letter,
+                             bool decending) {
+  letterCompositionSorter<T> comparer(letter);
+  if (decending) {
+    std::sort(vec.begin(), vec.end(), comparer);
+  } else {
+    std::sort(vec.rbegin(), vec.rend(), comparer);
+  }
+}*/
+template <typename T>
+std::vector<std::vector<T>> getAllVecCycloFragments(const std::vector<T>& vec) {
+  std::vector<std::vector<T>> ans;
+  ans.emplace_back(std::vector<int>(0));
+  for (auto i : iter::range<uint32_t>(1, vec.size())) {
+    for (auto j : iter::range(vec.size())) {
+      std::vector<T> currentFragment;
+      if (j + i > vec.size()) {
+        currentFragment =
+            catenateVectors(getSubVector(vec, j, vec.size() - j),
+                            getSubVector(vec, 0, i - (vec.size() - j)));
+      } else {
+        currentFragment = getSubVector(vec, j, i);
+      }
+      ans.push_back(currentFragment);
+    }
+  }
+  ans.push_back(vec);
+  std::sort(ans.begin(), ans.end());
+  return ans;
+}
+template <typename T>
+std::vector<std::vector<T>> getAllVecLinearFragments(
+    const std::vector<T>& vec) {
+  std::vector<std::vector<T>> ans;
+  ans.emplace_back(std::vector<int>(0));
+  for (auto i : iter::range<uint32_t>(1, vec.size())) {
+    for (auto j : iter::range(vec.size())) {
+      std::vector<T> currentFragment;
+      if (j + i > vec.size()) {
+
+      } else {
+        currentFragment = getSubVector(vec, j, i);
+        ans.push_back(currentFragment);
+      }
+    }
+  }
+  ans.push_back(vec);
+  std::sort(ans.begin(), ans.end());
+  return ans;
+}
+VecStr getAllLinearProteinFragments(const std::string& protein);
+std::vector<std::vector<int>> getPossibleProteinsForSpectrum(
+    const std::string& spectrum, bool useAllWeights = false);
+bool trimCycle(std::vector<std::vector<int>>& nextCycle,
+               std::vector<std::vector<int>>& matchesSpectrum,
+               const std::map<int, int>& spectrumToWeights,
+               const std::vector<int> specVec);
+std::vector<std::vector<int>> growNextCycle(
+    const std::vector<std::vector<int>>& previousCycle,
+    const std::vector<int>& possibleWeights);
+int scoreSpectrumAgreement(const std::map<int, int>& spectrum,
+                           const std::map<int, int>& currentSpectrum);
+std::multimap<int, std::vector<int>, std::greater<int>> growNextCycleScore(
+    const std::multimap<int, std::vector<int>, std::greater<int>>&
+        previousCycle,
+    const std::vector<int>& possibleWeights,
+    const std::map<int, int>& spectrumCounts, int parentMass, bool linear);
+std::multimap<int, std::vector<int>, std::greater<int>> trimCycleScore(
+    std::multimap<int, std::vector<int>, std::greater<int>>& nextCycle,
+    std::multimap<int, std::vector<int>, std::greater<int>>& matchesSpectrum,
+    int parentMass, int leaderBoardNumber, int& currentLeader);
+std::multimap<int, std::vector<int>, std::greater<int>>
+    getPossibleProteinsForSpectrum(const std::string& spectrum,
+                                   int leaderBoardNumber, bool verbose,
+                                   bool useAllWeights, bool convolution,
+                                   int convolutionCutOff, bool linear);
+std::map<int, int> getConvolutionWeights(std::vector<int> experimentalSpectrum,
+                                         int multiplicityCutOff,
+                                         int lowerBound = 57,
+                                         int upperBound = 200);
+std::vector<int> convolutionWeights(std::vector<int> experimentalSpectrum,
+                                    int multiplicityCutOff, int lowerBound = 57,
+                                    int upperBound = 200);
+std::vector<int> topConvolutionWeights(std::vector<int> experimentalSpectrum,
+                                       int mItems, int lowerBound = 57,
+                                       int upperBound = 200);
+int64_t getMinCoins(int64_t change, const std::vector<int64_t>& coins,
+                    std::unordered_map<int64_t, int64_t>& cache);
+
+template <typename T, typename CLUSTER>
+std::vector<CLUSTER> roughCreateOTU(const std::vector<T>& reads,
+                                    aligner& alignerObj, double percentCutOff,
+                                    double gapCutOff, double queryCutoff, bool local,
+                                    bool weighHomopolymers) {
+  std::vector<CLUSTER> ans;
+  uint32_t tenPercent = .1 * readVec::getTotalReadCount(reads);
+  uint32_t count = 0;
+
+  for (const auto& read : reads) {
+    if (count % tenPercent == 0) {
+      std::cout << "On " << count << " of "
+                << readVec::getTotalReadCount(reads) << std::endl;
+    }
+    ++count;
+    bool foundAnOtu = false;
+    for (auto& compare : ans) {
+      alignerObj.alignVec(compare, read, local);
+      alignerObj.profilePrimerAlignment(compare, read, weighHomopolymers);
+      /*
+      std::cout << compare.seqBase_.name_ << std::endl;
+      std::cout << alignerObj.alignObjectA_.seqBase_.seq_ << std::endl;
+      std::cout << read.seqBase_.name_ << std::endl;
+      std::cout << alignerObj.alignObjectB_.seqBase_.seq_ << std::endl;
+      std::cout << "pi: " << alignerObj.percentIdentity_ <<"\tpg: "
+      << alignerObj.percentageGaps_ << "\tqc: "<< alignerObj.queryCoverage_ <<
+      std::endl;
+      std::cout << "pi - pg " << alignerObj.percentIdentity_ -
+      alignerObj.percentageGaps_;
+      std::cout <<std::endl;*/
+      // if (alignerObj.percentIdentity_ >=percentCutOff &&
+      // alignerObj.percentageGaps_ <= gapCutOff) {
+      if (alignerObj.comp_.distances_.percentIdentity_ >= percentCutOff &&
+          gapCutOff >= alignerObj.comp_.distances_.percentageGaps_ &&
+          alignerObj.comp_.distances_.queryCoverage_ >=queryCutoff) {
+        // std::cout << alignerObj.percentIdentity_ << std::endl;
+        // std::cout << alignerObj.alignObjectA_.seqBase_.seq_ << std::endl;
+        // std::cout << alignerObj.alignObjectB_.seqBase_.seq_ << std::endl;
+        // readObject tempObject = readObject(seqInfo(
+        // read.getStubName(false), read.seqBase_.seq_, read.seqBase_.qual_));
+        // tempObject.seqBase_.cnt_ = read.seqBase_.cnt_;
+        // CLUSTER adding = CLUSTER(tempObject);
+        CLUSTER adding = CLUSTER(readObject(read.seqBase_));
+        compare.addRead(adding);
+        foundAnOtu = true;
+        break;
+      }
+    }
+    if (!foundAnOtu) {
+      readObject tempObject = readObject(seqInfo(
+          read.getStubName(false), read.seqBase_.seq_, read.seqBase_.qual_));
+      tempObject.seqBase_.cnt_ = read.seqBase_.cnt_;
+      CLUSTER adding = CLUSTER(tempObject);
+      ans.push_back(adding);
+    }
+  }
+  return ans;
+}
+template <typename T>
+std::vector<std::vector<T>> roughCreateOTULong(const std::vector<T>& reads,
+                                               aligner& alignerObj,
+                                               double percentCutOff, bool local,
+                                               bool weighHomopolymers) {
+  std::vector<std::vector<T>> otus;
+  for (const auto& read : reads) {
+    bool foundAnOtu = false;
+    uint32_t otuPos = 0;
+    for (auto& compare : otus) {
+      for (auto& otu : compare) {
+        alignerObj.alignVec(otu, read, local);
+        alignerObj.profilePrimerAlignment(otu, read, weighHomopolymers);
+        if (alignerObj.comp_.distances_.percentIdentity_ - alignerObj.comp_.distances_.percentageGaps_ >=
+            percentCutOff) {
+          foundAnOtu = true;
+          break;
+        }
+      }
+      if (foundAnOtu) {
+        break;
+      }
+      ++otuPos;
+    }
+    if (!foundAnOtu) {
+      otus.emplace_back(std::vector<T>{read});
+    } else {
+      otus[otuPos].emplace_back(read);
+    }
+  }
+  return otus;
+}
 void processAlnInfoInput(aligner& alignerObj,
                          const std::string& alnInfoDirName);
 template <typename T>
@@ -398,7 +713,31 @@ std::vector<double> likelihoodForMinQ(
     const std::vector<uint32_t>& qual, uint32_t qWindowSize,
     std::unordered_map<double, double>& likelihoods);
 
-
+double getChangeInHydro(const char& firstAA, const char& secondAA);
+template<typename T>
+std::vector<double> getHydroChanges(const std::string& originalCodon,
+                                    const VecStr& mutantCodons,
+                                    const T& code) {
+  std::vector<double> ans;
+  if (originalCodon.size() != 3) {
+    std::cout << "codon needs to be 3 bases" << std::endl;
+    std::cout << originalCodon << std::endl;
+    std::cout << originalCodon.size() << std::endl;
+    return ans;
+  }
+  char originalAA = code.at(originalCodon);
+  if (originalAA == '*') {
+    return ans;
+  }
+  for (const auto& codon : mutantCodons) {
+    char mutantAA = code.at(codon);
+    if (mutantAA == '*') {
+      continue;
+    }
+    ans.emplace_back(getChangeInHydro(originalAA, mutantAA));
+  }
+  return ans;
+}
 cluster createClusterFromSimiliarReads(std::vector<readObject> similiarReads,
                                        aligner& alignerObj);
 
@@ -420,7 +759,20 @@ VecStr readObjsToVecStr(const std::vector<T> & vec){
 	return ans;
 }
 
-
+VecStr createDegenStrs(const std::string & str);
+static const std::unordered_map<char, std::vector<char>> degenBaseExapnd = {
+		{ 'N', std::vector<char>{'A', 'C','G', 'T'}},
+		{ 'K', std::vector<char>{'G', 'T'}},
+		{ 'Y', std::vector<char>{'C', 'T'}},
+		{ 'W', std::vector<char>{'A', 'T'}},
+		{ 'S', std::vector<char>{'C', 'G'}},
+		{ 'R', std::vector<char>{'A', 'G'}},
+		{ 'M', std::vector<char>{'A', 'C'}},
+		{ 'B', std::vector<char>{'C', 'G', 'T'}},
+		{ 'D', std::vector<char>{'A', 'G', 'T'}},
+		{ 'H', std::vector<char>{'A', 'C', 'T'}},
+		{ 'V', std::vector<char>{'A', 'C', 'G'}}
+};
 
 template<typename READ, typename REF>
 bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs, table& outInfo, aligner & alignerObj,
@@ -546,17 +898,73 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 	return foundAChimera;
 }
 
-
+table getErrorFractions(const table & errorTab);
+table getErrorFractionsCoded(const table & errorTab);
+table getIndelSizeStats(const table & indelTab);
+table getIndelDistribution(const table & indelTab);
+table getErrorStats(const table & errorTab);
+table getErrorDist(const table & errorTab);
+table getSeqPosTab(const std::string & str);
 
 uint32_t processCutOffStr(const std::string& runCutOffString,
   uint64_t readCount);
+
+
+
+
+
 
 uint32_t getAlnPos(const std::string & seq, uint32_t realSeqPos);
 
 uint32_t getRealPos(const std::string & seq, uint32_t seqAlnPos);
 
 
-}  // namespace bibseq
+struct ExtractionInfo {
+	ExtractionInfo(const table & allStatsTab, const table & allprofileTab,
+			const table & profileBySampTab) :
+			allStatsTab_(allStatsTab), allProfileTab_(allprofileTab), profileBySampTab_(
+					profileBySampTab) {
+
+	}
+	ExtractionInfo(){}
+
+	table allStatsTab_;
+	table allProfileTab_;
+	table profileBySampTab_;
+};
+
+ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::string & indexToDir, const std::string & sampNames);
+ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, const std::string & indexToDir, const std::string & sampNames);
+
+
+class readsWithSnps {
+public:
+
+	readsWithSnps(const std::map<uint32_t, mismatch> & mismatches,
+			uint64_t firstReadPos) :
+			mismatches_(mismatches), readPositions_( { firstReadPos }) {
+		mismatchId_ = "";
+		for(const auto & hm : mismatches_){
+			mismatchId_.append(estd::to_string(hm.first) + estd::to_string(hm.second.seqBase));
+		}
+	}
+	std::string mismatchId_;
+	std::map<uint32_t, mismatch> mismatches_;
+	std::vector<uint64_t> readPositions_;
+
+	void addReadPos(uint64_t readPos){
+		readPositions_.emplace_back(readPos);
+	}
+
+	using size_type = std::vector<uint64_t>::size_type;
+
+};
+
+template<>
+inline readsWithSnps::size_type len(const readsWithSnps & reads){
+	return reads.readPositions_.size();
+}
+}  // namespace bib
 
 #ifndef NOT_HEADER_ONLY
 #include "seqToolsUtils.cpp"

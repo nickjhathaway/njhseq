@@ -26,15 +26,19 @@
  *      Author: nickhathaway
  */
 
-
-#include "bibseq/common.h"
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
 #include <bibcpp/jsonUtils.h>
 #include <bibcpp/graphics.h>
 
+#include "bibseq/common.h"
+#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/seqToolsUtils/distCalc.hpp"
+
+
+
 
 namespace bibseq {
-
+std::unordered_map<std::string,bib::color> getColorsForNames(const VecStr & popNames);
+void jsonTreeToDot(Json::Value treeData, std::ostream & outDot);
 
 template<typename DIST, typename VALUE>
 class njhUndirWeightedGraph {
@@ -666,6 +670,25 @@ public:
 	  	}
 	  }
 	}
+
+	template<typename T, typename... Args>
+	readDistGraph(const std::vector<T> & reads, uint32_t numThreads,
+			std::function<DIST(const T & e1, const T& e2, Args...)> func,
+			const Args&... args) {
+			auto distances = getDistanceCopy(reads, numThreads, func, args...);
+		  for(const auto & pos : iter::range(reads.size())){
+		  	this->addNode(reads[pos].seqBase_.name_,
+		  			std::make_shared<seqInfo>(reads[pos].seqBase_));
+		  }
+		  for(const auto & pos : iter::range(distances.size())){
+		  	for(const auto & subPos : iter::range<uint64_t>(distances[pos].size())){
+		  		this->addEdge(reads[pos].seqBase_.name_,
+		  				reads[subPos].seqBase_.name_,
+		  				distances[pos][subPos]);
+		  	}
+		  }
+		}
+
 	template<typename T>
 	readDistGraph(const std::vector<std::vector<DIST>> & distances,
 			const std::vector<std::unique_ptr<T>> & reads){
@@ -1003,6 +1026,7 @@ public:
 			return graphJson;
 		}
 };
+
 
 
 }  // namespace bibseq

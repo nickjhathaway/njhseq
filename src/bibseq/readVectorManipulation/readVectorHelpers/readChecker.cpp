@@ -199,18 +199,22 @@ bool readChecker::checkReadOnNs(seqInfo & info, bool mark){
 }
 
 bool readChecker::checkReadOnKmerComp(seqInfo & info,kmerInfo compareInfo, uint32_t kLength, double kmerCutoff, bool mark) {
-	std::stringstream window;
-	window << "_failedKmerCutOff:" << kmerCutoff << "_kLen_" << kLength;
-	kmerInfo currentInfo(info.seq_, kLength);
+	std::stringstream ss;
+	ss << "_failedKmerCutOff:" << kmerCutoff << "_kLen_" << kLength;
+	kmerInfo currentInfo(info.seq_, kLength, false);
 	auto dist = compareInfo.compareKmers(currentInfo);
 	if(dist.second < kmerCutoff){
 		info.on_ = false;
-		if(mark) info.name_.append(window.str());
+		if(mark){
+			info.name_.append(ss.str());
+		}
 		return false;
 	} else {
 		info.on_ = true;
 		return true;
 	}
 }
+
+
 
 }  // namespace bibseq
