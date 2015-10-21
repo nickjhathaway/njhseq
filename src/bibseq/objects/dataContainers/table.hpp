@@ -83,6 +83,7 @@ class table {
 		for (auto i : iter::range(content_[0].size())) {
 			columnNames_.emplace_back("col." + leftPadNumStr(i, content_[0].size()));
 		}
+		setColNamePositions();
 	}
 	/**@b Construct with just column names, data to be put in latter
 	 *

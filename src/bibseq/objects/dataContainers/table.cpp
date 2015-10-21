@@ -1,7 +1,26 @@
 #include "table.hpp"
 #include "bibseq/IO/fileUtils.hpp"
 #include <bibcpp/bashUtils.h>
-
+//
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
 namespace bibseq {
 
 bool table::containsColumn(const std::string & colName)const{
@@ -50,58 +69,22 @@ VecStr table::getColumnLevels(const std::string & colName){
 }
 
 table::table(std::istream & in, const std::string &inDelim,
-        bool header){
-	VecStr columnNames;
-	inDelim_ = inDelim;
-	std::vector<VecStr> tempFileContent;
-	if (inDelim == " " || inDelim == "whitespace") {
-		std::string currentLine;
-		std::getline(in, currentLine);
-		if (header) {
-			std::stringstream tempStream;
-			tempStream << currentLine;
-			VecStr tempVect;
-			while (!tempStream.eof()) {
-				std::string tempName;
-				tempStream >> tempName;
-				tempVect.emplace_back(tempName);
-			}
-			columnNames = tempVect;
-			std::getline(in, currentLine);
-		}
-		while (!in.eof()) {
-			std::stringstream tempStream;
-			tempStream << currentLine;
-			VecStr tempVect;
-			while (!tempStream.eof()) {
-				std::string tempName;
-				tempStream >> tempName;
-				tempVect.emplace_back(tempName);
-			}
-			std::getline(in, currentLine);
-			tempFileContent.emplace_back(tempVect);
-		}
-	} else {
-		if(inDelim == "tab"){
-			inDelim_ = "\t";
-		}
-		std::string currentLine;
-		std::getline(in, currentLine);
-		if (header) {
-			VecStr temp = tokenizeString(currentLine, inDelim_, true);
-			columnNames = temp;
-			std::getline(in, currentLine);
-		}
-		while (!in.eof()) {
-			tempFileContent.emplace_back(tokenizeString(currentLine, inDelim_, true));
-			std::getline(in, currentLine);
-		}
+        bool header): hasHeader_(header), inDelim_(inDelim){
+	if(inDelim == "tab"){
+		inDelim_ = "\t";
 	}
-	if (header) {
-		*this = table(tempFileContent, columnNames);
-	} else {
-		*this = table(tempFileContent);
+
+	std::string currentLine = "";
+	uint32_t lineCount = 0;
+	while(std::getline(in, currentLine)){
+		if(lineCount == 0 && header){
+			columnNames_ = tokenizeString(currentLine, inDelim_, true);
+		}else{
+			content_.emplace_back(tokenizeString(currentLine, inDelim_, true));
+		}
+		++lineCount;
 	}
+	addPaddingToEndOfRows();
 	setColNamePositions();
 }
 table::table(const std::string &filename, const std::string &inDelim,
