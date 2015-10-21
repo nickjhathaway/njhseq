@@ -270,44 +270,51 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 
 
 
-void setUpSampleDirs(
-    const std::string& sampleNamesFilename,
-		const std::string& mainDirectoryName,
-		bool separatedDirs) {
+void setUpSampleDirs(const std::string& sampleNamesFilename,
+		const std::string& mainDirectoryName, bool separatedDirs) {
 	auto topDir = bib::replaceString(mainDirectoryName, "./", "");
 	table inTab(sampleNamesFilename, "whitespace", false);
 
 	//first key is target/index, second key is samp, value is vector of rep names and then the full path name for that rep
-	std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>>> sampleDirWithSubDirs;
-	for(const auto & rowPos : iter::range(inTab.content_.size())){
+	std::unordered_map<std::string,
+			std::unordered_map<std::string,
+					std::vector<std::pair<std::string, std::string>>> >sampleDirWithSubDirs;
+	for (const auto & rowPos : iter::range(inTab.content_.size())) {
 		const auto & row = inTab.content_[rowPos];
-		if(row.empty() || row[0].front() == '#'){
+		if (row.empty() || row[0].front() == '#') {
 			continue;
 		}
 		if (row.size() < 3) {
-			throw std::runtime_error { bib::err::F()
-					<< __PRETTY_FUNCTION__ << ": rows should have at least 3 columns, row: "
-					<< rowPos << "has " << row.size() };
+			throw std::runtime_error { bib::err::F() << __PRETTY_FUNCTION__
+					<< ": rows should have at least 3 columns, row: " << rowPos << "has "
+					<< row.size() };
 		}
 		VecStr repNames;
-		for(const auto & colPos : iter::range<uint32_t>(2,row.size())){
-			if(row[colPos] == "" || allWhiteSpaceStr(row[colPos])){
+		for (const auto & colPos : iter::range<uint32_t>(2, row.size())) {
+			if (row[colPos] == "" || allWhiteSpaceStr(row[colPos])) {
 				continue;
 			}
 			repNames.emplace_back(row[colPos]);
 		}
-		for(const auto & rep : repNames){
-			sampleDirWithSubDirs[row[0]][row[1]].emplace_back(std::pair<std::string, std::string>{rep,""});
+		for (const auto & rep : repNames) {
+			sampleDirWithSubDirs[row[0]][row[1]].emplace_back(
+					std::pair<std::string, std::string> { rep, "" });
 		}
 	}
 	auto cwd = get_cwd();
 	try {
 		if (separatedDirs) {
 			for (auto & targetDirs : sampleDirWithSubDirs) {
+				std::cout << bib::bashCT::bold << "Making Target Dir: " << bib::bashCT::purple << topDir + targetDirs.first
+									<< bib::bashCT::reset << std::endl;
 				std::string targetDir = bib::files::makeDir(topDir, targetDirs.first);
 				for (auto & sampDirs : targetDirs.second) {
+					std::cout << bib::bashCT::bold << "Making Samp Dir: " << bib::bashCT::green << targetDir + sampDirs.first
+										<< bib::bashCT::reset << std::endl;
 					std::string sampDir = bib::files::makeDir(targetDir, sampDirs.first);
 					for (auto & rep : sampDirs.second) {
+						std::cout << bib::bashCT::bold << "Making Rep Dir: " << bib::bashCT::blue << sampDir + rep.first
+											<< bib::bashCT::reset << std::endl;
 						std::string repDir = bib::files::makeDir(sampDir, rep.first);
 						rep.second = bib::files::join(cwd, repDir);
 					}
@@ -317,10 +324,14 @@ void setUpSampleDirs(
 			for (auto & targetDirs : sampleDirWithSubDirs) {
 				for (auto & sampDirs : targetDirs.second) {
 					std::string sampDir = bib::files::join(topDir, sampDirs.first);
-					if(!bib::files::bfs::exists(sampDir)){
+					if (!bib::files::bfs::exists(sampDir)) {
+						std::cout << bib::bashCT::bold << "Making Samp Dir: " << bib::bashCT::green << topDir + sampDirs.first
+											<< bib::bashCT::reset << std::endl;
 						bib::files::makeDir(topDir, sampDirs.first);
 					}
 					for (auto & rep : sampDirs.second) {
+						std::cout << bib::bashCT::bold << "Making Rep Dir: " << bib::bashCT::blue << sampDir + rep.first
+											<< bib::bashCT::reset << std::endl;
 						std::string repDir = bib::files::makeDir(sampDir, rep.first);
 						rep.second = bib::files::join(cwd, repDir);
 					}
