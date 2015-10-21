@@ -228,16 +228,14 @@ charCounterArray getAverageLetterFraction(const std::vector<T>& reads,
 }*/
 
 template <typename T>
-VecStr getProteinsFromcDNA(const std::vector<T>& reads,
-                           bool transcribeToRNAFirst, size_t start = 0,
-                           bool forceStartM = false) {
+VecStr translateAllRet(const std::vector<T>& reads,bool complement, bool reverse, size_t start = 0) {
   VecStr ans;
-  for (const auto& rIter : reads) {
-    ans.push_back(
-        rIter.getProteinFromcDNA(transcribeToRNAFirst, start, forceStartM));
+  for (const auto& read : reads) {
+    ans.emplace_back(read.translateRet(complement, reverse, start).seqBase_.seq_);
   }
   return ans;
 }
+
 template <typename T>
 void updateQaulCountsMultiple(const std::vector<T>& reads,
                               std::map<uint32_t, uint32_t>& qualCounts) {

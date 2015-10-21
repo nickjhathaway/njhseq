@@ -115,12 +115,21 @@ alnInfoGlobal alnInfoGlobal::readInfo(std::stringstream& ss,
 alnInfoMasterHolder::alnInfoMasterHolder() {}
 
 alnInfoMasterHolder::alnInfoMasterHolder(const gapScoringParameters & gapPars,
-	  const substituteMatrix & scoringArray):localHolder_(std::unordered_map<std::string, alnInfoHolderBase<alnInfoLocal>> {{gapPars.getIdentifer(),alnInfoHolderBase<alnInfoLocal>(gapPars,scoringArray, "LOCAL")} }),
-	  		globalHolder_(std::unordered_map<std::string, alnInfoHolderBase<alnInfoGlobal>>{{gapPars.getIdentifer(),alnInfoHolderBase<alnInfoGlobal>(gapPars,scoringArray, "GLOBAL")} }){};
+		const substituteMatrix & scoringArray) :
+		localHolder_(
+				std::unordered_map<std::string, alnInfoHolderBase<alnInfoLocal>> { {
+						gapPars.getIdentifer(), alnInfoHolderBase<alnInfoLocal>(gapPars,
+								scoringArray, "LOCAL") } }), globalHolder_(
+				std::unordered_map<std::string, alnInfoHolderBase<alnInfoGlobal>> { {
+						gapPars.getIdentifer(), alnInfoHolderBase<alnInfoGlobal>(gapPars,
+								scoringArray, "GLOBAL") } }) {
+}
+;
 
 
 alnInfoMasterHolder::alnInfoMasterHolder(const std::string &masterDirName, const gapScoringParameters & gapPars,
 	  const substituteMatrix & scoringArray, bool verbose ) {
+	alignment::alnCacheDirSearchLock.lock();
 	auto fullPath = bib::files::normalize(masterDirName).string();
 	auto search = alignment::alnCacheDirLocks.find(fullPath);
 	if(search == alignment::alnCacheDirLocks.end()){
@@ -128,10 +137,14 @@ alnInfoMasterHolder::alnInfoMasterHolder(const std::string &masterDirName, const
 	}
 	auto realSearch = alignment::alnCacheDirLocks.find(fullPath);
 	std::lock_guard<std::mutex> lock(realSearch->second);
-
-  if(verbose) std::cout << "Reading in previous alignments" << std::endl;
+	alignment::alnCacheDirSearchLock.unlock();
+  if(verbose) {
+  	std::cout << "Reading in Previous Alignments" << std::endl;
+  }
   auto allDirectories = getFiles(masterDirName, "", "directory", false, false);
+  //std::cout << bib::bashCT::boldGreen("here?") << std::endl;
   for (const auto &dir : allDirectories) {
+  	//std::cout << bib::bashCT::boldGreen("here1?") << std::endl;
   	if(verbose){
   		std::cout << "Reading from " << dir.first << std::endl;
   		std::cout << "Reading in local" << std::endl;
@@ -152,21 +165,45 @@ alnInfoMasterHolder::alnInfoMasterHolder(const std::string &masterDirName, const
     globalHolder_[currentGlobalHolder.gapPars_.getIdentifer()] =
         currentGlobalHolder;
   }
+  //std::cout << bib::bashCT::boldGreen("here2?") << std::endl;
   if(allDirectories.empty()){
-  	*this = alnInfoMasterHolder(gapPars, scoringArray);
+  	//std::cout << bib::bashCT::boldGreen("here3?") << std::endl;
+  	//std::cout << gapPars.getIdentifer() << std::endl;
+  	//std::cout << bib::bashCT::boldGreen("here3.1?") << std::endl;
+  	auto lHolder = alnInfoHolderBase<alnInfoLocal>(gapPars,scoringArray, "LOCAL");
+  	//std::cout << bib::bashCT::boldGreen("here3.2?") << std::endl;
+  	auto gHolder = alnInfoHolderBase<alnInfoGlobal>(gapPars,scoringArray, "GLOBAL");
+  	//std::cout << bib::bashCT::boldGreen("here3.3?") << std::endl;
+  	localHolder_[gapPars.getIdentifer()] = lHolder;
+  	//localHolder_[gapPars.getIdentifer()] = alnInfoHolderBase<alnInfoLocal>(gapPars,scoringArray, "LOCAL");
+  	//std::cout << bib::bashCT::boldGreen("here3.4?") << std::endl;
+  	globalHolder_[gapPars.getIdentifer()] = gHolder;
+  	//globalHolder_[gapPars.getIdentifer()] = alnInfoHolderBase<alnInfoGlobal>(gapPars,scoringArray, "GLOBAL");
+  	//std::cout << bib::bashCT::boldGreen("here3.5?") << std::endl;
+  	/*localHolder_ =
+  					std::unordered_map<std::string, alnInfoHolderBase<alnInfoLocal>> { {
+  							gapPars.getIdentifer(), alnInfoHolderBase<alnInfoLocal>(gapPars,scoringArray, "LOCAL") } };
+  	globalHolder_ =
+  					std::unordered_map<std::string, alnInfoHolderBase<alnInfoGlobal>> { {
+  							gapPars.getIdentifer(), alnInfoHolderBase<alnInfoGlobal>(gapPars,scoringArray, "GLOBAL") } };*/
+  	//std::cout << bib::bashCT::boldGreen("here4?") << std::endl;
   }
+  //std::cout << bib::bashCT::boldGreen("here5?") << std::endl;
 }
 
 
 void alnInfoMasterHolder::write(const std::string &masterDirName, bool verbose ) {
+
 	auto fullPath = bib::files::normalize(masterDirName).string();
+	alignment::alnCacheDirSearchLock.lock();
 	auto search = alignment::alnCacheDirLocks.find(fullPath);
 	if(search == alignment::alnCacheDirLocks.end()){
 		alignment::alnCacheDirLocks.emplace(std::piecewise_construct, std::make_tuple(fullPath), std::tuple<>());
 	}
 	auto realSearch = alignment::alnCacheDirLocks.find(fullPath);
-	std::lock_guard<std::mutex> lock(realSearch->second);
 
+	std::lock_guard<std::mutex> lock(realSearch->second);
+	alignment::alnCacheDirSearchLock.unlock();
 
   int directoryStatus =
       mkdir(masterDirName.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);

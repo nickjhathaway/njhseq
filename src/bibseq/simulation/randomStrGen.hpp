@@ -32,7 +32,6 @@
 namespace bibseq {
 
 
-class letterCounter;
 namespace simulation {
 //even likelihood for all chars generators
 std::multimap<double, std::string, std::less<double>> getEvenLikelihood(
@@ -119,7 +118,7 @@ std::string randStr(std::vector<COUNTER> counts, randomGenerator &gen) {
   }
   return randStrMap(allLikelihoods, gen);
 }
-std::string randStr(std::vector<letterCounter> counts, randomGenerator &gen);
+//std::string randStr(std::vector<letterCounter> counts, randomGenerator &gen);
 
 
 template<typename TYPE>

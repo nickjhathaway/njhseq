@@ -37,12 +37,12 @@ class randomPopGen {
 
  public:
   // Constructors
-  randomPopGen(const simulation::errorProfile& eProfile,
+  randomPopGen(const simulation::mismatchProfile& eProfile,
                const randomGenerator& gen)
       : eProfile_(eProfile), gen_(gen) {}
 
   // members
-  simulation::errorProfile eProfile_;
+  simulation::mismatchProfile eProfile_;
   randomGenerator gen_;
 
   // functions

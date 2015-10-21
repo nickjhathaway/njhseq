@@ -35,10 +35,11 @@ namespace bibseq {
 
 struct readObjectIOOptions {
   readObjectIOOptions() {}
+	readObjectIOOptions(const std::string & firstName,
+			const std::string & inFormat, bool processed);
 
   std::string firstName_;
   std::string secondName_;
-  std::string thirdName_;
   std::string inFormat_;
 
   std::string outFormat_;

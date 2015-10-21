@@ -437,6 +437,7 @@ class alnInfoMasterHolder {
 
 namespace alignment {
 
+static std::mutex alnCacheDirSearchLock;
 static std::unordered_map<std::string, std::mutex> alnCacheDirLocks;
 
 }  // namespace alignment

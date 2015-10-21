@@ -29,7 +29,6 @@
 #include "randomStrGen.hpp"
 
 #include "bibseq/simulation/simulationCommon.hpp"
-#include "bibseq/objects/counters/letterCounter.hpp"
 namespace bibseq {
 namespace simulation {
 
@@ -78,10 +77,10 @@ VecStr evenRandStrsRandLen(uint32_t minLen, uint32_t maxLen,
   return randStrsRandLenMap(minLen, maxLen, getEvenLikelihood(letters), gen,
                          strNum);
 }
-
+/*
 std::string randStr(std::vector<letterCounter> counts, randomGenerator &gen){
 	return randStr<letterCounter, char>(counts, gen);
-}
+}*/
 
 }  // sim
 }  // bib

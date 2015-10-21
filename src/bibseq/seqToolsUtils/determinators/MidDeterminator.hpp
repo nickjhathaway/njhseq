@@ -54,7 +54,7 @@ public:
 	 * @param mids a table that has at least two columns titled id(string name of mid) and barcode(nucleoties)
 	 * @todo check for whether there are several mids of the same barcode by accident
 	 */
-	MidDeterminator(const table & mids);
+	explicit MidDeterminator(const table & mids);
 
 	MidDeterminator(){};
 
@@ -72,27 +72,41 @@ public:
 
 
 
-	midPos determineMidSimple(const std::string & seq) ;
+	midPos determineMidSimple(const std::string & seq);
+	midPos determineMidSimple(const std::string & seq, uint32_t allowableMismatches);
 
-	midPos determineMidSimpleBack(const std::string & seq) ;
+	midPos determineMidSimpleBack(const std::string & seq);
+	midPos determineMidSimpleBack(const std::string & seq,  uint32_t allowableMismatches);
 
-	midPos determineMidSimpleComp(const std::string & seq) ;
+	midPos determineMidSimpleComp(const std::string & seq);
+	midPos determineMidSimpleComp(const std::string & seq,  uint32_t allowableMismatches);
 
 	midPos determineMidSimpleCompFront(const std::string & seq);
+	midPos determineMidSimpleCompFront(const std::string & seq, uint32_t allowableMismatches);
 
 	midPos determineMidPosVarStart(const std::string & seq, uint32_t varStop);
+	midPos determineMidPosVarStart(const std::string & seq, uint32_t varStop, uint32_t allowableMismatches);
 
 	midPos determineMidPosVarStartBack(const std::string & seq, uint32_t varStop);
+	midPos determineMidPosVarStartBack(const std::string & seq, uint32_t varStop, uint32_t allowableMismatches);
 
-	midPos determineMidPosVarStartComp(const std::string & seq, uint32_t varStop) ;
+	midPos determineMidPosVarStartComp(const std::string & seq, uint32_t varStop);
+	midPos determineMidPosVarStartComp(const std::string & seq, uint32_t varStop, uint32_t allowableMismatches);
 
 	midPos determineMidPosVarStartCompFront(const std::string & seq, uint32_t varStop);
+	midPos determineMidPosVarStartCompFront(const std::string & seq, uint32_t varStop, uint32_t allowableMismatches);
 
-	midPos fullDetermine(seqInfo & info, bool variableStart, uint32_t variableStop, bool checkComplement, bool barcodesBothEnds );
+
+	midPos fullDetermine(seqInfo & info, bool variableStart, uint32_t variableStop, bool checkComplement, bool barcodesBothEnds);
+	midPos fullDetermine(seqInfo & info, bool variableStart, uint32_t variableStop, bool checkComplement, bool barcodesBothEnds, uint32_t allowableMismatches);
 
 	template<typename T>
-	midPos fullDetermine(T & read, bool variableStart, uint32_t variableStop, bool checkComplement, bool barcodesBothEnds ){
+	midPos fullDetermine(T & read, bool variableStart, uint32_t variableStop, bool checkComplement, bool barcodesBothEnds){
 		return fullDetermine(read.seqBase_, variableStart, variableStop, checkComplement, barcodesBothEnds);
+	}
+	template<typename T>
+	midPos fullDetermine(T & read, bool variableStart, uint32_t variableStop, bool checkComplement, bool barcodesBothEnds, uint32_t allowableMismatches){
+		return fullDetermine(read.seqBase_, variableStart, variableStop, checkComplement, barcodesBothEnds, allowableMismatches);
 	}
 };
 

@@ -1,5 +1,3 @@
-#include "cluster.hpp"
-//
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
@@ -19,15 +17,18 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+//
+#include "cluster.hpp"
 
 namespace bibseq {
 
 std::unordered_map<std::string, uint32_t> cluster::mutateConensus(const std::vector<std::vector<uint32_t>>& currentAlignQuals,
 		std::unordered_map<double, double> bestLikelihood,
-		simulation::errorProfile & eProfile,
+		simulation::mismatchProfile & eProfile,
 		bib::randomGenerator & gen){
+	//mutate the number of reads are in the cluster
 	std::unordered_map<std::string, uint32_t> mutated;
-	std::vector<uint32_t> randomQualPos = gen.unifRandVector<uint32_t>(0,currentAlignQuals.size(), seqBase_.cnt_);
+	std::vector<uint32_t> randomQualPos = gen.unifRandVector<uint32_t>(0,currentAlignQuals.size(), std::round(seqBase_.cnt_));
 	for(const auto & randQual : randomQualPos ){
 		std::vector<double> currentLikelihood = likelihoodForBaseQ(currentAlignQuals[randQual] , bestLikelihood);
 		std::string currentMutant = eProfile.mutateSeq(seqBase_.seq_, gen, eProfile.alphabet_, currentLikelihood);
@@ -35,6 +36,20 @@ std::unordered_map<std::string, uint32_t> cluster::mutateConensus(const std::vec
 	}
 	return mutated;
 }
+
+std::unordered_map<std::string, uint32_t> cluster::mutateConensus(double errorRate,
+		simulation::mismatchProfile & eProfile,
+		bib::randomGenerator & gen){
+	//mutate the number of reads are in the cluster
+	std::unordered_map<std::string, uint32_t> mutated;
+	for(uint32_t i = 0; i < seqBase_.cnt_; ++i){
+		std::string currentMutant = eProfile.mutateSeqSameErrorRate(seqBase_.seq_, gen, eProfile.alphabet_, errorRate);
+		++mutated[currentMutant];
+	}
+	return mutated;
+}
+
+
 std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<cluster>>> cluster::createSimReadClusters(aligner & alignerObj ){
   std::unordered_map<std::string, std::vector<readObject>> similarReads;
   std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<cluster>>> similarReadsClusters;
@@ -48,13 +63,7 @@ std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<cluster>>>
   	//std::cout << "here3" << std::endl;
   	bool sameCondensed = false;
   	//std::cout << "here4" << std::endl;
-  	if(qualityClip.size() == 100){
-    	if(read.condensedSeq.size() < condensedSeq.size()){
-    		sameCondensed = std::equal(read.condensedSeq.begin(), read.condensedSeq.end(), condensedSeq.begin());
-    	}else{
-    		sameCondensed = std::equal(condensedSeq.begin(), condensedSeq.end(), read.condensedSeq.begin());
-    	}
-  	}
+
 
   	//std::cout << "here5" << std::endl;
   	if(sameCondensed){
@@ -99,6 +108,7 @@ std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<cluster>>>
   }
   return similarReadsClusters;
 }
+
 void cluster::removeClustersOnFDR(aligner & alignerObj, double fdrCutOff, std::vector<cluster> & rejectedClusters){
 	auto similarReadsClusters = createSimReadClusters(alignerObj);
 	for(const auto & m : similarReadsClusters){
@@ -114,23 +124,28 @@ void cluster::removeClustersOnFDR(aligner & alignerObj, double fdrCutOff, std::v
   }
 	return;
 }
-void cluster::simOnQual(const std::vector<identicalCluster> &initialClusters, aligner & alignerObj , uint32_t runTimes, std::unordered_map<double, double> bestLikelihood,
-	simulation::errorProfile & eProfile,
-	bib::randomGenerator & gen ){
 
-  std::vector<readObject> collection = getAllBeginingClusters(initialClusters);
-  std::vector<std::vector<uint32_t>> currentAlignQuals = alignOrigQuals(collection,  alignerObj, false);
-  auto allRunsCounts = simulate(runTimes, currentAlignQuals, bestLikelihood, eProfile, gen);
-  postProcessSimulation(runTimes, allRunsCounts);
-  return;
+void cluster::simOnQual(const std::vector<identicalCluster> &initialClusters,
+		aligner & alignerObj, uint32_t runTimes,
+		std::unordered_map<double, double> bestLikelihood,
+		simulation::mismatchProfile & eProfile, bib::randomGenerator & gen) {
+
+	std::vector<readObject> collection = getAllBeginingClusters(initialClusters);
+	std::vector<std::vector<uint32_t>> currentAlignQuals = alignOrigQuals(
+			collection, alignerObj, false);
+	auto allRunsCounts = simulate(runTimes, currentAlignQuals, bestLikelihood,
+			eProfile, gen);
+	postProcessSimulation(runTimes, allRunsCounts);
+	return;
 }
-void cluster::postProcessSimulation(uint32_t runTimes, const std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>>> & allRunsCounts){
-  pValueMap_.clear();
+
+void cluster::postProcessSimulation(uint32_t runTimes,
+		const std::unordered_map<uint32_t,
+				std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>>>& allRunsCounts) {
+	pValueMap_.clear();
   amountAverageMap_.clear();
 	std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>> presentMap;
   std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>> amountMap;
-
-
   for(const auto & runCount : allRunsCounts){
   	std::map<uint32_t, uint32_t> maxes;
   	uint32_t lastMax = 0;
@@ -163,12 +178,12 @@ void cluster::postProcessSimulation(uint32_t runTimes, const std::unordered_map<
   //convert the present map and amount maps into averaged over the run times
   for(const auto & mis : presentMap){
   	for(const auto & clus : mis.second){
-  		pValueMap_[mis.first][clus.first] = (double)clus.second/runTimes;
+  		pValueMap_[mis.first][clus.first] = clus.second/static_cast<double>(runTimes);
   	}
   }
   for(const auto & mis : amountMap){
   	for(const auto & clus : mis.second){
-  		amountAverageMap_[mis.first][clus.first] = (double)clus.second/runTimes;
+  		amountAverageMap_[mis.first][clus.first] = clus.second/static_cast<double>(runTimes);
   	}
   }
   return;
@@ -176,8 +191,9 @@ void cluster::postProcessSimulation(uint32_t runTimes, const std::unordered_map<
 std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>>> cluster::simulate(uint32_t runTimes,
 		const std::vector<std::vector<uint32_t>>& currentAlignQuals,
 		std::unordered_map<double, double> bestLikelihood,
-		simulation::errorProfile & eProfile,
+		simulation::mismatchProfile & eProfile,
 		bib::randomGenerator & gen){
+	// k1 = run, k2 = number of mismatches, k3 = cluster number, v  = occurrences
   std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>>> allRunsCounts;
   bib::scopedStopWatch mutation(seqBase_.name_ + "_mutagenesis", true);
   for(uint32_t run = 0; run < runTimes; ++run){
@@ -196,7 +212,7 @@ double cluster::getAverageFrequencyOfClusterVector() const {
   for (const auto& read : reads_) {
     sum += read.seqBase_.frac_;
   }
-  return (double)sum / reads_.size();
+  return sum / reads_.size();
 }
 
 //fdr calc
@@ -204,8 +220,9 @@ double cluster::getFDRValue(uint32_t clusSize, uint32_t mismatches, uint32_t obs
 	if(mismatches == 0){
 		return 1;
 	}
-	return (double)amountAverageMap_[mismatches][clusSize]/observedAmount;
+	return amountAverageMap_[mismatches][clusSize]/static_cast<double>(observedAmount);
 }
+
 //pvalue calc
 double cluster::getPValue(const seqInfo & seqBase, uint32_t numOfMismatches){
 	if(numOfMismatches == 0){
@@ -213,27 +230,29 @@ double cluster::getPValue(const seqInfo & seqBase, uint32_t numOfMismatches){
 	}
 	return pValueMap_[numOfMismatches][::round( seqBase.cnt_)];
 }
+
 double cluster::getPValue(const seqInfo & seqBase, aligner & alignerObj, bool local){
 	alignerObj.alignVec(seqBase_, seqBase, local);
 	alignerObj.profileAlignment(seqBase_, seqBase, 11, true, false, false, false, true);
-	if((int)alignerObj.comp_.largeBaseIndel_ > 0){
+	if(static_cast<int>(alignerObj.comp_.largeBaseIndel_) > 0){
 		return 0;
 	}
 	return getPValue(seqBase, alignerObj.comp_.hqMismatches_);
 }
+
 void cluster::removeRead(const std::string & stubName){
-	uint32_t readIndex = std::numeric_limits<uint32_t>::max();
-	for(const auto & index : iter::range(reads_.size())){
-		if(reads_[index].getStubName(true) == stubName){
-			readIndex = index;
+	uint32_t readPos = std::numeric_limits<uint32_t>::max();
+	for(const auto & pos : iter::range(reads_.size())){
+		if(reads_[pos].getStubName(true) == stubName){
+			readPos = pos;
 			break;
 		}
 	}
-	if(readIndex!=std::numeric_limits<uint32_t>::max()){
-		seqBase_.cnt_ -= reads_[readIndex].seqBase_.cnt_;
-		reads_.erase(reads_.begin() + readIndex);
-	  if (seqBase_.cnt_ / 2 > firstReadCount) {
-	    needToCalculateConsensus = true;
+	if(readPos!=std::numeric_limits<uint32_t>::max()){
+		seqBase_.cnt_ -= reads_[readPos].seqBase_.cnt_;
+		reads_.erase(reads_.begin() + readPos);
+	  if (seqBase_.cnt_ / 2 > firstReadCount_) {
+	    needToCalculateConsensus_ = true;
 	  }
 	}
 }
@@ -251,8 +270,8 @@ void cluster::addRead(const baseCluster& cr) {
   seqBase_.frac_ = seqBase_.frac_ * reads_.size();
   seqBase_.frac_ = (seqBase_.frac_ + cr.seqBase_.frac_) / reads_.size();
   // needToCalculateConsensus = true;
-  if (seqBase_.cnt_ / 2 > firstReadCount) {
-    needToCalculateConsensus = true;
+  if (seqBase_.cnt_ / 2 > firstReadCount_) {
+    needToCalculateConsensus_ = true;
   }
 }
 
@@ -287,32 +306,7 @@ int cluster::getLargestSizeDifference() {
   }
   return largestSizeDifference;
 }
-/*
-void cluster::gatherAllClusterInfo(std::ofstream &fastaFile, std::ofstream
-&qualFile)const{
-    for (std::vector<cluster>::const_iterator cIter=clusterVector.begin();
-cIter!=clusterVector.end(); ++cIter) {
-        if (cIter->clusterVector.size()>1) {
-            cIter->gatherAllClusterInfo(fastaFile, qualFile);
-        }else{
-            cIter->outPutSeq(fastaFile);
-            cIter->outPutQual(qualFile);
-        }
-    }
-    return;
-}*/
-/*
-void cluster::gatherAllClusters(std::vector<cluster> & allClusters)const{
-    for (std::vector<cluster>::const_iterator cIter=clusterVector.begin();
-cIter!=clusterVector.end(); ++cIter) {
-        if (cIter->clusterVector.size()>1) {
-            cIter->gatherAllClusters(allClusters);
-        }else{
-            allClusters.push_back(*cIter);
-        }
-    }
-    return;
-}*/
+
 
 void cluster::outputInfoComp(const std::string& workingDir) const {
   std::ofstream info(combineStrings({workingDir, seqBase_.name_}).c_str());
@@ -331,23 +325,7 @@ void cluster::outputInfoComp(const std::string& workingDir) const {
   }
   return;
 }
-/*
-void cluster::gatherInfoAboutIdenticalReadCompostion(std::map<int, int>
-&clusterCounter)const{
-    for (std::vector<cluster>::const_iterator cIter=clusterVector.begin();
-cIter!=clusterVector.end(); ++cIter) {
-        if (cIter->clusterVector.size()>1) {
-            cIter->gatherInfoAboutIdenticalReadCompostion(clusterCounter);
-        }else{
-            if
-(clusterCounter.find(cIter->.seqBase_.cnt_)==clusterCounter.end()) {
-                clusterCounter.insert(std::make_pair(cIter->.seqBase_.cnt_,1));
-            }else{
-                clusterCounter[cIter->.seqBase_.cnt_]++;
-            }
-        }
-    }
-}*/
+
 std::vector<readObject> cluster::getAllBeginingClusters(
     const std::vector<identicalCluster>& initialClusters) const {
   std::vector<readObject> collection;
@@ -358,6 +336,7 @@ std::vector<readObject> cluster::getAllBeginingClusters(
   }
   return collection;
 }
+
 std::vector<std::vector<uint32_t>> cluster::alignOrigQuals(const std::vector<readObject> & reads,
 		  aligner & alignerObj, bool local)const{
 	std::vector<std::vector<uint32_t>> ans;
@@ -384,23 +363,11 @@ std::vector<uint32_t> cluster::getQualToConsensus(
                                    positions[read.seqBase_.seq_]);
   }
 }
-//////outputs
-void cluster::outputChimeras(const std::string& workingDir) const {
-  readObjectIO reader;
-  reader.write(allInputClusters,
-               workingDir + seqBase_.name_ + "_chimeras.fasta", "fastaQual",
-               false, false);
-}
 
-void cluster::outputEndChimeras(const std::string& workingDir) const {
-  readObjectIO reader;
-  reader.write(allInputClusters,
-               workingDir + seqBase_.name_ + "_endChimeras.fasta", "fastaQual",
-               false, false);
-}
 void cluster::writeOutInputClusters(const std::string& workingDir) const {
-  readObjectIO reader;
-  reader.write(allInputClusters, workingDir + seqBase_.name_, "fastaQual",
-               false, false);
+	readObjectIOOptions options;
+	options.outFilename_ = workingDir + seqBase_.name_;
+	options.outFormat_ = "fastaQual";
+  readObjectIO::write(allInputClusters,options);
 }
 }  // namespace bib

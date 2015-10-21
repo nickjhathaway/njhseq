@@ -129,19 +129,19 @@ void motif::processMotif(){
   //getRange(0,2);
 
 }
-uint32_t motif::scoreMotif(const std::string & possibleMotif){
+uint32_t motif::scoreMotif(const std::string & possibleMotif)const{
 	if(possibleMotif.size() !=  motifUnits_.size()){
 		std::cout << "motif size doesn't equal size of the check" << std::endl;
 	}
 	uint32_t score = 0;
 	for(const auto & cPos : iter::range(possibleMotif.size())){
-		score += motifUnits_[cPos].scoreChar(possibleMotif[cPos]);
+		score += motifUnits_.at(cPos).scoreChar(possibleMotif[cPos]);
 	}
 	return score;
 }
 
 uint32_t motif::scoreMotif(const std::string::const_iterator & targetBegin,
-		const std::string::const_iterator & targetEnd ){
+		const std::string::const_iterator & targetEnd )const{
 	if((targetEnd - targetBegin) !=  motifUnits_.size()){
 		std::cout << "motif size doesn't equal size of the check" << std::endl;
 	}
@@ -155,11 +155,11 @@ uint32_t motif::scoreMotif(const std::string::const_iterator & targetBegin,
 }
 
 
-bool motif::passMotifParameter(const std::string & possibleMotif, uint32_t scoreCutOff){
+bool motif::passMotifParameter(const std::string & possibleMotif, uint32_t scoreCutOff)const{
 	return scoreMotif(possibleMotif) >= scoreCutOff;
 }
 
-std::vector<uint32_t> motif::findPositions(const std::string & wholeProtein, uint32_t scoreCutOff){
+std::vector<uint32_t> motif::findPositions(const std::string & wholeProtein, uint32_t scoreCutOff)const{
 	uint32_t motifSize = motifUnits_.size();
 	uint32_t pos = 0;
 	std::vector<uint32_t> positions;
@@ -173,7 +173,7 @@ std::vector<uint32_t> motif::findPositions(const std::string & wholeProtein, uin
 }
 
 std::vector<uint32_t> motif::findPositionsFull(const std::string & wholeProtein,
-		uint32_t allowableErrors){
+		uint32_t allowableErrors)const{
 	uint32_t sum = 0;
 	auto predTest = [&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
 		                   {
@@ -215,4 +215,4 @@ std::vector<uint32_t> motif::findPositionsFull(const std::string & wholeProtein,
 	return positions;
 }
 
-} /* namespace bib */
+} /* namespace bibseq */

@@ -50,13 +50,15 @@ class cluster : public baseCluster {
     setLetterCount();
     // std::cout <<"calling the cluster first read constructor " << std::endl;
   }
+
+  /*
   cluster(const cluster & other): baseCluster(other), rejected_(other.rejected_), mtx_(),
   		frontChiPos(other.frontChiPos), endChiPos(other.endChiPos),
   		endChimeras(other.endChimeras), allInputClusters(other.allInputClusters),
   		amountAverageMap_(other.amountAverageMap_), pValueMap_(other.pValueMap_){
   	setLetterCount();
-  }
-
+  }*/
+/*
   cluster& operator= (const cluster& other){
   	baseCluster::operator=(other);
   	rejected_ = other.rejected_;
@@ -68,7 +70,7 @@ class cluster : public baseCluster {
   	pValueMap_ = other.pValueMap_;
 
   	return *this;
-  }
+  }*/
 
   void addRead(const baseCluster &read);
 
@@ -76,7 +78,7 @@ class cluster : public baseCluster {
   void removeReads(const std::vector<readObject> &vec);
   bool rejected_;
 
-  std::mutex mtx_;
+  //std::mutex mtx_;
   // chimeras vectors
   // key is the position at which they could be chimeric with the
   // value which is the positions in the vector they are both in...
@@ -105,8 +107,7 @@ class cluster : public baseCluster {
   double getAverageSizeDifference();
   int getLargestSizeDifference();
 
-  void outputChimeras(const std::string &workingDir) const;
-  void outputEndChimeras(const std::string &workingDir) const;
+
   void writeOutInputClusters(const std::string &workingDir) const;
 
 
@@ -131,29 +132,32 @@ class cluster : public baseCluster {
   void simOnQual(const std::vector<identicalCluster> &initialClusters,
                  aligner &alingerObj, uint32_t runTimes,
                  std::unordered_map<double, double> bestLikelihood,
-                 simulation::errorProfile &eProfile, randomGenerator &gen);
-  std::unordered_map<std::string, uint32_t> mutateConensus(
-      const std::vector<std::vector<uint32_t>> &currentAlignQuals,
-      std::unordered_map<double, double> bestLikelihood,
-      simulation::errorProfile &eProfile, randomGenerator &gen);
-  std::unordered_map<
-      uint32_t,
-      std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>>>
-      simulate(uint32_t runTimes,
-               const std::vector<std::vector<uint32_t>> &currentAlignQuals,
-               std::unordered_map<double, double> bestLikelihood,
-               simulation::errorProfile &eProfile, randomGenerator &gen);
-  void postProcessSimulation(
-      uint32_t runTimes,
-      const std::unordered_map<
-          uint32_t, std::unordered_map<
-                        uint32_t, std::unordered_map<uint32_t, uint32_t>>> &
-          allRunCounts);
-  std::unordered_map<uint32_t,
-                     std::unordered_map<uint32_t, std::vector<cluster>>>
-      createSimReadClusters(aligner &alignerObj);
-  void removeClustersOnFDR(aligner &alingerObj, double fdrCutOff,
-                           std::vector<cluster> &rejectedClusters);
+                 simulation::mismatchProfile &eProfile, randomGenerator &gen);
+
+	std::unordered_map<std::string, uint32_t> mutateConensus(
+			const std::vector<std::vector<uint32_t>> &currentAlignQuals,
+			std::unordered_map<double, double> bestLikelihood,
+			simulation::mismatchProfile &eProfile, randomGenerator &gen);
+
+	std::unordered_map<std::string, uint32_t> mutateConensus(double errorRate,
+			simulation::mismatchProfile &eProfile, randomGenerator &gen);
+
+	std::unordered_map<uint32_t,
+			std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>>>simulate(uint32_t runTimes,
+			const std::vector<std::vector<uint32_t>> &currentAlignQuals,
+			std::unordered_map<double, double> bestLikelihood,
+			simulation::mismatchProfile &eProfile, randomGenerator &gen);
+	void postProcessSimulation(
+			uint32_t runTimes,
+			const std::unordered_map<
+			uint32_t, std::unordered_map<
+			uint32_t, std::unordered_map<uint32_t, uint32_t>>> &
+			allRunCounts);
+	std::unordered_map<uint32_t,
+	std::unordered_map<uint32_t, std::vector<cluster>>>
+	createSimReadClusters(aligner &alignerObj);
+	void removeClustersOnFDR(aligner &alingerObj, double fdrCutOff,
+			std::vector<cluster> &rejectedClusters);
   //////get infos
   template <typename T>
   static void getInfo(std::vector<T> &inReads, const std::string &directory,
@@ -167,7 +171,10 @@ class cluster : public baseCluster {
       totalAmountOfReads += inReads[readPos].seqBase_.cnt_;
       readsBySize[inReads[readPos].seqBase_.cnt_].emplace_back(readPos);
     }
-    readObjectIO::writeVector(inReads, directory + "reads", "fastaQual", false, false);
+    readObjectIOOptions options;
+    options.outFilename_ = directory + "reads";
+    options.outFormat_ = "fastq";
+    readObjectIO::writeVector(inReads, options);
     std::ofstream info;
     openTextFile(info, directory + filename, ".tab.txt", false, false);
     info << "ClusterSize\tnumberOfClusters\ttotalReads(%)"

@@ -19,6 +19,7 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 //
+//
 //  collapseCommon.cpp
 //  sequenceTools
 //
@@ -50,7 +51,13 @@ void clusterSet::setSetInfo() {
 // writing
 void clusterSet::writeClusters(std::string filename, std::string format,
                                bool overWrite, bool exitOnFailure) const {
-  readObjectIO::write(clusters_, filename, format, overWrite, exitOnFailure);
+	readObjectIOOptions options;
+	options.outFilename_ = filename;
+	options.outFormat_ = format;
+	options.append_ = false;
+	options.overWriteFile_ = overWrite;
+	options.exitOnFailureToWrite_ = exitOnFailure;
+  readObjectIO::write(clusters_, options);
 }
 
 void clusterSet::writeClusters(std::string filename, const readObjectIOOptions & ioOptions) const{

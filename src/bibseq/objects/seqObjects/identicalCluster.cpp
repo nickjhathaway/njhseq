@@ -1,5 +1,3 @@
-#include "identicalCluster.hpp"
-//
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
@@ -19,13 +17,16 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+//
+#include "identicalCluster.hpp"
 
 namespace bibseq {
 
 identicalCluster::identicalCluster(const readObject& firstRead) : baseCluster(firstRead) {
-	firstReadName = firstRead.seqBase_.name_;
-	firstReadCount = firstRead.seqBase_.cnt_;
-	basesAboveQualCheck_ = firstRead.basesAboveQualCheck_;
+	
+	firstReadName_ = firstRead.seqBase_.name_;
+	firstReadCount_ = firstRead.seqBase_.cnt_;
+	//basesAboveQualCheck_ = firstRead.basesAboveQualCheck_;
   //std::cout << "identicalCluster constructor: " << std::endl;
   //std::cout << seqBase_.name_ << std::endl;
   //std::cout << seqBase_.cnt_ << std::endl;

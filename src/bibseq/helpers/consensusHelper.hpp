@@ -50,14 +50,34 @@ class consensusHelper {
   		std::map<uint32_t, charCounterArray> & counters,
   		std::map<uint32_t, std::map<uint32_t, charCounterArray>> & insertions,
   		std::map<int32_t, charCounterArray> & beginningGap) {
+  	//std::cout << "increaseCounters start" << std::endl;
   	for (const auto & readPos : iter::range(reads.size())) {
+  		//std::cout << "increaseCounters -2" << std::endl;
   		//use input function to get the seqInfo to compare to
   		const seqInfo & read = getSeqInfo(reads[readPos]);
+  		//seqInfo read = getSeqInfo(reads[readPos]);
+  		/*std::cout << "increaseCounters -1" << std::endl;
+  		seqBase.outPutFastq(std::cout);
+  		std::cout << seqBase.seq_.size() << std::endl;
+  		std::cout << read.seq_.size() << std::endl;
+  		std::cout << alignerObj.parts_.maxSize_ << std::endl;
+  		std::cout << read.seq_ << std::endl;
+  		std::cout << read.seq_ << std::endl;
+  		std::cout << read.qual_ << std::endl;
+  		std::cout << std::endl;
+  		std::cout << reads[readPos].seqBase_.seq_.size() << std::endl;
+  		std::cout << reads[readPos].seqBase_.seq_ << std::endl;
+  		std::cout << reads[readPos].seqBase_.seq_ << std::endl;
+  		std::cout << reads[readPos].seqBase_.qual_ << std::endl;
+
+  		read.outPutFastq(std::cout);*/
+
   		alignerObj.alignVec(seqBase, read, false);
   		// the offset for the insertions
   		uint32_t offSet = 0;
   		uint32_t currentOffset = 1;
   		uint32_t start = 0;
+  		//std::cout << "increaseCounters 0" << std::endl;
   		//check to see if there is a gap at the beginning
   		if (alignerObj.alignObjectA_.seqBase_.seq_.front() == '-') {
   			start = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
@@ -67,6 +87,7 @@ class consensusHelper {
   				++offSet;
   			}
   		}
+  		//std::cout << "increaseCounters 1" << std::endl;
   		for (uint32_t i = start; i < len(alignerObj.alignObjectB_); ++i) {
   			// if the longest reference has an insertion in it put it in the
   			// insertions letter counter map
@@ -81,7 +102,9 @@ class consensusHelper {
   			counters[i - offSet].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += read.cnt_;
   			counters[i - offSet].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *read.cnt_;
   		}
+  		//std::cout << "increaseCounters 2" << std::endl;
   	}
+  	//std::cout << "increaseCounters stop" << std::endl;
   }
 
   template<typename T, typename FUNC>
@@ -103,12 +126,15 @@ class consensusHelper {
   template<typename T, typename FUNC>
   static seqInfo buildConsensus(const std::vector<T> & reads,
   		FUNC getSeqInfo, aligner & alignerObj) {
+  	//std::cout << "buildConsensus start" << std::endl;
   	seqInfo ret = getSeqInfo(reads.front());
+  	//std::cout << "buildConsensus between1" << std::endl;
   	double readTotal = 0;
   	double totalFrac = 0;
   	std::vector<uint64_t> lens;
   	uint32_t longestLenPos = -1;
   	uint64_t longestLen = 0;
+  	//std::cout << "buildConsensus between2" << std::endl;
   	for(const auto & readPos : iter::range(reads.size())){
   		const auto & readInfo = getSeqInfo(reads[readPos]);
   		lens.emplace_back(len(readInfo));
@@ -119,24 +145,29 @@ class consensusHelper {
   			longestLenPos = readPos;
   		}
   	}
+  	//std::cout << "buildConsensus between3" << std::endl;
   	double averageSize = vectorMean(lens);
     if (uAbsdiff(ret.seq_.size(), averageSize) >
         0.1 * averageSize) {
     	ret = getSeqInfo(reads[longestLenPos]);
     }
-
+    //std::cout << "buildConsensus between4" << std::endl;
   	// create the map for letter counters for each position
   	std::map<uint32_t, charCounterArray> counters;
   	// create a map in case of insertions
   	std::map<uint32_t, std::map<uint32_t, charCounterArray>> insertions;
   	std::map<int32_t, charCounterArray> beginningGap;
+  	//std::cout << "buildConsensus between5" << std::endl;
   	increaseCounters(ret, reads, getSeqInfo, alignerObj, counters,
   			insertions, beginningGap);
+  	//std::cout << "buildConsensus between6" << std::endl;
   	ret.cnt_ = readTotal;
   	ret.frac_ = totalFrac;
+  	//std::cout << "buildConsensus between7" << std::endl;
   	genConsensusFromCounters(ret, counters, insertions,
   			beginningGap);
-
+  	//std::cout << "buildConsensus between8" << std::endl;
+  	//std::cout << "buildConsensus stop" << std::endl;
   	return ret;
   }
   template<typename T, typename FUNC>

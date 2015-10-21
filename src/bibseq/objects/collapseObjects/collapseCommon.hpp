@@ -20,6 +20,7 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 //
+//
 //  collapseCommon.hpp
 //  sequenceTools
 //

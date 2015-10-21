@@ -32,7 +32,7 @@
 
 // template <class T>
 namespace bibseq {
-
+//template <typename T>
 class readVecSorter {
 
  public:
@@ -42,168 +42,119 @@ class readVecSorter {
     return;
   }
 
-  template <class T>
-  static void sortReadVector(std::vector<T>& vec, const std::string& sortBy,
-                             bool decending = true) {
+  template <typename T>
+  static void sortReadVector(std::vector<T>& vec, const std::string& sortBy, bool decending = true) {
     if (sortBy == "averageError" || sortBy == "totalCount") {
-      sortByTotalCountAE(vec, decending);
+      sortByTotalCountAE<T>(vec, decending);
     } else if (sortBy == "seq") {
-      sortBySeq(vec, decending);
-    } else if (sortBy == "seqClip") {
-      sortBySeqClip(vec, decending);
+      sortBySeq<T>(vec, decending);
     } else if (sortBy == "seqCondensed") {
-      sortBySeqCondensed(vec, decending);
+      sortBySeqCondensed<T>(vec, decending);
     } else if (sortBy == "qualCheck") {
-      sortByQualCheck(vec, decending);
+      sortByQualCheck<T>(vec, decending);
     } else if (sortBy == "size") {
-      sortBySeqSize(vec, decending);
+      sortBySeqSize<T>(vec, decending);
     } else if (sortBy == "name") {
-      sortByName(vec, decending);
+      sortByName<T>(vec, decending);
     } else if (sortBy == "fraction") {
-      sortByFraction(vec, decending);
+      sortByFraction<T>(vec, decending);
     } else {
       std::cout << "unrecognized sort option: " << sortBy << ", not sorting"
                 << std::endl;
     }
   }
+/*
+	template <typename T>
+	static void sortReadVectorFunc(std::vector<T>& vec,
+			std::function<bool(const T & read1, const T & read2)> func,
+			bool decending = true) {
+		if (decending) {
+			std::sort(vec.begin(), vec.end(), func);
+		} else {
+			std::sort(vec.rbegin(), vec.rend(), func);
+		}
+	}*/
+	template <typename T, typename FUNC>
+	static void sortReadVectorFunc(std::vector<T>& vec,
+			FUNC func,
+			bool decending = true) {
+		if (decending) {
+			std::sort(vec.begin(), vec.end(), func);
+		} else {
+			std::sort(vec.rbegin(), vec.rend(), func);
+		}
+	}
 
  private:
   // sorting functions
-  template <class T>
+  template <typename T>
   static void sortByQualCheck(std::vector<T>& vec, bool decending) {
-    qualCheckComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
+  	sortReadVectorFunc<T>(vec, [](const T& first, const T& second) -> bool{
+      return first.fractionAboveQualCheck_ > second.fractionAboveQualCheck_;
+    }, decending);
   }
-  template <class T>
+
+  template <typename T>
   static void sortByTotalCountAE(std::vector<T>& vec, bool decending) {
-    totalCountAEComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
+  	sortReadVectorFunc<T>(vec, [](const T& first, const T& second) -> bool{
+  		/*
+			if (first.seqBase_.cnt_ == second.seqBase_.cnt_) {
+				if (first.averageErrorRate < second.averageErrorRate) {
+					return true;
+				} else {
+					return false;
+				}
+			} else {
+				return first.seqBase_.cnt_ > second.seqBase_.cnt_;
+			}*/
+  		if (roundDecPlaces(first.seqBase_.cnt_, 2) == roundDecPlaces(second.seqBase_.cnt_, 2) ) {
+  			if (roundDecPlaces(first.averageErrorRate, 2)  < roundDecPlaces(second.averageErrorRate, 2) ) {
+  				return true;
+  			} else {
+  				return false;
+  			}
+  		} else {
+  			return roundDecPlaces(first.seqBase_.cnt_, 2)  > roundDecPlaces(second.seqBase_.cnt_, 2) ;
+  		}
+    }, decending);
   }
-  template <class T>
+
+  template <typename T>
   static void sortBySeq(std::vector<T>& vec, bool decending) {
-    seqComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
+  	sortReadVectorFunc<T>(vec, [](const T& first, const T& second) {
+      return first.seqBase_.seq_ < second.seqBase_.seq_;
+    }, decending);
   }
-  template <class T>
-  static void sortBySeqClip(std::vector<T>& vec, bool decending) {
-    seqClipComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
-  }
-  template <class T>
+
+  template <typename T>
   static void sortByName(std::vector<T>& vec, bool decending) {
-    nameComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
+  	sortReadVectorFunc<T>(vec, [](const T& first, const T& second)  {
+      return first.seqBase_.name_ < second.seqBase_.name_;
+    }, decending);
   }
-  template <class T>
+  template <typename T>
   static void sortBySeqCondensed(std::vector<T>& vec, bool decending) {
     readVec::allSetCondensedSeq(vec);
-    seqCondensedComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
-  }
-  template <class T>
-  static void sortBySeqSize(std::vector<T>& vec, bool decending) {
-    seqSizeComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
-  }
-  template <class T>
-  static void sortByFraction(std::vector<T>& vec, bool decending) {
-    fractionComparerStr<T> comparer;
-    if (decending) {
-      std::sort(vec.begin(), vec.end(), comparer);
-    } else {
-      std::sort(vec.rbegin(), vec.rend(), comparer);
-    }
-  }
-
-
-  // structs
-  template <class T>
-  struct seqSizeComparerStr {
-    bool operator()(const T& first, const T& second) const {
-      return first.seqBase_.seq_.size() < second.seqBase_.seq_.size();
-    }
-  };
-  template <class T>
-  struct nameComparerStr {
-    bool operator()(const T& first, const T& second) const {
-      return first.seqBase_.name_ < second.seqBase_.name_;
-    }
-  };
-  template <class T>
-  struct seqComparerStr {
-    bool operator()(const T& first, const T& second) const {
-      return first.seqBase_.seq_ < second.seqBase_.seq_;
-    }
-  };
-  template <class T>
-  struct seqClipComparerStr {
-    bool operator()(const T& first, const T& second) const {
-      return first.seqClip < second.seqClip;
-    }
-  };
-  template <class T>
-  struct seqCondensedComparerStr {
-    bool operator()(const T& first, const T& second) const {
+    sortReadVectorFunc<T>(vec, [](const T& first, const T& second)  {
       if (first.condensedSeq == second.condensedSeq) {
         return first.seqBase_.seq_ < second.seqBase_.seq_;
       } else {
         return first.condensedSeq < second.condensedSeq;
       }
-    }
-  };
-  template <class T>
-  struct qualCheckComparerStr {
-    bool operator()(const T& first, const T& second) const {
-      return first.fractionAboveQualCheck_ > second.fractionAboveQualCheck_;
-    }
-  };
-  template <class T>
-  struct fractionComparerStr {
-    bool operator()(const T& first, const T& second) const {
+    }, decending);
+  }
+  template <typename T>
+  static void sortBySeqSize(std::vector<T>& vec, bool decending) {
+  	sortReadVectorFunc<T>(vec, [](const T& first, const T& second)  {
+      return first.seqBase_.seq_.size() < second.seqBase_.seq_.size();
+    }, decending);
+  }
+  template <typename T>
+  static void sortByFraction(std::vector<T>& vec, bool decending) {
+  	sortReadVectorFunc<T>(vec, [](const T& first, const T& second)  {
       return first.seqBase_.frac_ > second.seqBase_.frac_;
-    }
-  };
-
-
-
-  template <class T>
-  struct totalCountAEComparerStr {
-    bool operator()(const T& first, const T& second) const {
-      if (first.seqBase_.cnt_ == second.seqBase_.cnt_) {
-        return first.averageErrorRate < second.averageErrorRate;
-      } else {
-        return first.seqBase_.cnt_ > second.seqBase_.cnt_;
-      }
-    }
-  };
+    }, decending);
+  }
 };
 }  // namespace bib
 

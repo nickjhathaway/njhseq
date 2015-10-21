@@ -45,7 +45,7 @@ class mismatch {
       : refBase(rBase),
         refQual(rQual),
 				refBasePos(rBasePos),
-        transition(isMismatchTransition(rBase, sBase)),
+        transition(false),
         refLeadingQual(rLeadQual),
         refTrailingQual(rTrailQual),
         seqBase(sBase),
@@ -77,6 +77,8 @@ class mismatch {
 
   std::string outputInfoString() const ;
   Json::Value outputJson()const;
+
+  void setTransitionTransverstion();
 
   static bool isMismatchTransition(const char& baseA, const char& baseB);
 

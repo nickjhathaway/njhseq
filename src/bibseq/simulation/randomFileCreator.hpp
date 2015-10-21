@@ -29,6 +29,7 @@
 
 #include "bibseq/simulation/simulationCommon.hpp"
 #include "bibseq/utils.h"
+#include "bibseq/objects/counters/charCounter.hpp"
 namespace bibseq {
 
 class randomFileCreator {
@@ -37,31 +38,30 @@ class randomFileCreator {
   // Constructor
   randomFileCreator(const std::vector<char>& alphabet, uint32_t qualStart,
                     uint32_t qualStop)
-      : alphabet_(alphabet), qualStart_(qualStart), qualStop_(qualStop) {}
-  randomFileCreator(const std::vector<char>& alphabet, uint32_t qualStart,
-                    uint32_t qualStop, randomGenerator gen)
-      : alphabet_(alphabet),
-        qualStart_(qualStart),
-        qualStop_(qualStop),
-        gen_(gen) {}
-  randomFileCreator(const std::vector<char>& alphabet, randomGenerator gen)
-      : alphabet_(alphabet),
-        qualStart_(10),
-        qualStop_(40),
-        gen_(gen) {}
-  // Members
-  std::vector<char> alphabet_;
-  uint32_t qualStart_;
-  uint32_t qualStop_;
-  randomGenerator gen_;
+      : randomFileCreator(alphabet, std::vector<uint32_t>(alphabet.size(), 1), qualStart, qualStop){
+  }
 
-  // functions
-  void randomFastq(uint32_t len, uint32_t numOfSeqs, std::ostream& out,
-                   uint32_t offset, bool processed, uint32_t topAmount);
-  void randomFasta(uint32_t strLen, uint32_t strNum,
-  		uint32_t width, const std::vector<char> & alphabetVec,
-  		randomGenerator & gen, bool processed, uint32_t topAmount,
-  		std::ostream & out);
+  randomFileCreator(const std::vector<char>& alphabet,
+  		const std::vector<uint32_t>& alphabetCounts, uint32_t qualStart,
+                    uint32_t qualStop)
+      : counter_(alphabet), qualStart_(qualStart), qualStop_(qualStop) {
+  	for(const auto & pos : iter::range(alphabet.size())){
+  		counter_.increaseCountOfBase(alphabet[pos],alphabetCounts[pos]);
+  	}
+  	counter_.setFractions();
+  }
+
+  // Members
+  charCounterArray counter_;
+  uint32_t qualStart_ = 40;
+  uint32_t qualStop_ = 40;
+  randomGenerator rgen_;
+
+	// functions
+	void randomFile(uint32_t lenStart, uint32_t lenStop, uint32_t numOfSeqs,
+			bool processed, uint32_t bottomAmount, uint32_t topAmount, bool fastq,
+			std::ostream& out);
+
 };
 
 } /* namespace bib */

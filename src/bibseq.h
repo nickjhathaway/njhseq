@@ -28,6 +28,7 @@
 //
 
 #include "bibseq/alignment.h"
+#include "bibseq/BamToolsUtils.h"
 #include "bibseq/helpers.h"
 #include "bibseq/objects.h"
 #include "bibseq/IO.h"

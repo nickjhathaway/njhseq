@@ -56,9 +56,10 @@ std::vector<readObject> muscleSeqsRet(std::vector<T> seqs){
 /**@b muscle the sequences in seqs
  *
  * @param seqs the sequence to align
+ * @param selected only muscle these selected sequences at these positions, will throw if out of range
  */
 template<typename T>
-void muscleSeqs(std::vector<T> & seqs){
+void muscleSeqs(std::vector<T> & seqs, const std::vector<uint64_t> & selected){
 	//create temporary file, the last 6 xs will be randomized characters
 	char *tmpname = strdup("/tmp/tmpfileXXXXXX");
 	mkstemp(tmpname);
@@ -67,14 +68,20 @@ void muscleSeqs(std::vector<T> & seqs){
 		if(!tFile){
 			throw std::runtime_error{bib::bashCT::boldRed("Error in opening " + std::string(tmpname))};
 		}
-		//make name the read position as muscle will reorganize the seqs aftewards
-		uint32_t pos = 0;
-		for(const auto & read : seqs){
-			if(!containsSubString(read.seqBase_.seq_, "*")){
-				tFile << ">" << pos << "\n";
-				tFile << read.seqBase_.seq_ << "\n";
+		//make name the read position as muscle will reorganize the seqs afterwards
+
+		for (const auto & pos : selected) {
+			if (pos >= seqs.size()) {
+				throw std::out_of_range {
+						"Error in bibseq::sys::muscleSeqs, position out of range, pos: "
+								+ estd::to_string(pos) + ", size: "
+								+ estd::to_string(seqs.size()) };
 			}
-			++pos;
+			//hack because muscle doesn't like stop codons
+			if(!containsSubString(seqs[pos].seqBase_.seq_, "*")){
+				tFile << ">" << pos << "\n";
+				tFile << seqs[pos].seqBase_.seq_ << "\n";
+			}
 		}
 	}
 	std::vector<readObject> tempObjs;
@@ -90,11 +97,25 @@ void muscleSeqs(std::vector<T> & seqs){
 	bib::bfs::remove(tmpname);
 	//replace the sequences with the aligned sequences and adjust the qual
 	for(const auto & read : tempObjs){
+		/**@todo to preserve case, create glovalGapInfo from string and rearrange out sequence*/
 		auto & currentRead = seqs[std::stoul(read.seqBase_.name_)];
 		currentRead.seqBase_.seq_ = read.seqBase_.seq_;
 		adjustAlnSeqsQual(currentRead.seqBase_);
 	}
 }
+
+/**@b muscle the sequences in seqs
+ *
+ * @param seqs the sequence to align
+ */
+template<typename T>
+void muscleSeqs(std::vector<T> & seqs){
+	std::vector<uint64_t> allSelected(seqs.size());
+	bib::iota<uint64_t>(allSelected, 0);
+	muscleSeqs(seqs, allSelected);
+}
+
+
 
 
 

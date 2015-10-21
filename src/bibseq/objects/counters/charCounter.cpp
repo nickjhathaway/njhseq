@@ -1,3 +1,4 @@
+/*
 //
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
@@ -18,7 +19,7 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-/*
+//
  * charCounter.cpp
  *
  *  Created on: Mar 27, 2014
@@ -29,7 +30,28 @@
 
 namespace bibseq {
 
+charCounterArray::charCounterArray() :
+		charCounterArray(std::vector<char> { 'A', 'C', 'G', 'T', '-' }) {
 
+}
+
+charCounterArray::charCounterArray(const std::vector<char>& alphabet) :
+		alphabet_(alphabet), originalAlphabet_(alphabet_) {
+	reset();
+}
+
+charCounterArray::charCounterArray(const std::string & str) {
+	increaseCountByString(str);
+	resetAlphabet(false);
+	setFractions();
+}
+
+charCounterArray::charCounterArray(const std::string & str,
+		const std::vector<char>& alphabet): alphabet_(alphabet), originalAlphabet_(alphabet) {
+	increaseCountByString(str);
+	resetAlphabet(true);
+	setFractions();
+}
 
 void charCounterArray::increasePortion(const std::string & str, uint64_t len, double cnt){
 	increasePortion(str.begin(), str.begin() + len, cnt);

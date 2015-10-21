@@ -25,25 +25,27 @@ namespace bibseq {
 std::vector<identicalCluster> clusterCollapser::collapseIdenticalReads(
     const std::vector<readObject> &inputReads, const std::string &repQual,
     const std::string &lower) {
+	//std::cout << "here1" << std::endl;
   std::vector<identicalCluster> finalClusterVec;
   // handelLowerCaseBases(inputReads, lower);
   int count = 0;
-  for (const auto &seqIter : inputReads) {
+  for (const auto &read : inputReads) {
+
     ++count;
     if (count == 1) {
-      finalClusterVec.emplace_back(identicalCluster(seqIter));
+      finalClusterVec.emplace_back(identicalCluster(read));
       continue;
     }
     bool foundMatch = false;
     for (auto &clusterIter : finalClusterVec) {
-      if (seqIter.seqBase_.seq_ == clusterIter.seqBase_.seq_) {
-        clusterIter.addRead(seqIter);
+      if (read.seqBase_.seq_ == clusterIter.seqBase_.seq_) {
+        clusterIter.addRead(read);
         foundMatch = true;
         break;
       }
     }
     if (!foundMatch) {
-      finalClusterVec.emplace_back(identicalCluster(seqIter));
+      finalClusterVec.emplace_back(identicalCluster(read));
     }
   }
   identicalCluster::setIdneticalClusterQual(finalClusterVec, repQual);
@@ -361,10 +363,13 @@ void clusterCollapser::markChimerasAdvanced(
     double parentFreqs, int runCutOff, bool local,
     const comparison &chiOverlap, uint32_t overLapSizeCutoff,
     bool weighHomopolyer, uint32_t &chimeraCount, uint32_t allowableError) {
-
+	bool verbose = false;
   for (const auto &pos : iter::range(processedReads.size())) {
-  	std::cout << pos << ":" << processedReads.size()<< "\r";
-  	std::cout.flush();
+  	if(verbose){
+  		std::cout << pos << ":" << processedReads.size()<< "\r";
+  		std::cout.flush();
+  	}
+
     for (const auto &subPos : iter::range(pos + 1, processedReads.size())) {
     	if(pos == subPos){
     		continue;
@@ -464,7 +469,10 @@ void clusterCollapser::markChimerasAdvanced(
       }
     }
   }
-  std::cout << std::endl;
+  if(verbose){
+  	std::cout << std::endl;
+  }
+
   bool print = false;
   if (print) {
     for (auto &clus : processedReads) {
@@ -554,7 +562,7 @@ void clusterCollapser::collapseTandems(std::vector<cluster> &processedReads,
       std::cout << counter << " out of " << processedReads.size() << std::endl;
     }
     for (auto &clusIterSecond : processedReads) {
-      if (clusIter == clusIterSecond) {
+      if (clusIter.seqBase_.name_ == clusIterSecond.seqBase_.name_) {
         continue;
       }
       alignerObj.alignVec(clusIterSecond, clusIter, local);
