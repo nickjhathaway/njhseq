@@ -34,7 +34,6 @@
 #include "bibseq/simulation/errorProfile.hpp"
 #include "bibseq/simulation/randomStrGen.hpp"
 #include "bibseq/simulation/randStrGen.hpp"
-#include "bibseq/simulation/profile.hpp"
 #include "bibseq/simulation/mutator.hpp"
 
 

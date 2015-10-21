@@ -31,6 +31,7 @@
 #include "bibseq/readVectorManipulation/readVectorOperations.h"
 #include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
 
+
 namespace bibseq {
 
 class readVecSplitter {
@@ -357,23 +358,24 @@ class readVecSplitter {
       const std::vector<T>& reads, std::vector<T>& badReads,
       uint32_t& splitCount) {
     std::vector<T> ans;
-    letterCounter mainCounter = letterCounter();
+    charCounterArray mainCounter;
     for (auto& rIter : reads) {
-      letterCounter counter(rIter.seqBase_.seq_);
-      for (const auto& iter : counter.fractions) {
-        mainCounter.fractions[iter.first] += iter.second;
+    	charCounterArray counter;
+    	counter.increaseCountByString(rIter.seqBase_.seq_);
+      for (const auto& letPos : iter::range(counter.fractions_.size())) {
+        mainCounter.fractions_[letPos] += counter.fractions_[letPos];
       }
     }
-    for (auto& iter : mainCounter.fractions) {
-      iter.second = iter.second / reads.size();
+    for (auto& iter : mainCounter.fractions_) {
+      iter = iter / reads.size();
     }
     std::vector<double> differences;
     for (auto& rIter : reads) {
-      letterCounter counter(rIter.seqBase_.seq_);
+    	charCounterArray counter;
+    	counter.increaseCountByString(rIter.seqBase_.seq_);
       double difference = 0.00;
-      for (const auto& fIter : counter.fractions) {
-
-        difference += fabs(mainCounter.fractions[fIter.first] - fIter.second);
+      for (const auto& letPos : iter::range(counter.fractions_.size())) {
+        difference += fabs(mainCounter.fractions_[letPos] - counter.fractions_[letPos]);
         // std::cout<<difference<<std::endl;
       }
       differences.push_back(difference);
@@ -383,12 +385,12 @@ class readVecSplitter {
     std::vector<T> in;
     std::vector<T> out;
     for (auto& rIter : reads) {
-      letterCounter counter(rIter.seqBase_.seq_);
+    	charCounterArray counter;
+    	counter.increaseCountByString(rIter.seqBase_.seq_);
       double difference = 0.00;
+      for (const auto& letPos : iter::range(counter.fractions_.size())){
 
-      for (const auto& fIter : counter.fractions) {
-
-        difference += fabs(mainCounter.fractions[fIter.first] - fIter.second);
+      	difference += fabs(mainCounter.fractions_[letPos] - counter.fractions_[letPos]);
         // std::cout<<difference<<std::endl;
       }
       if (difference > (meanCalc + 2 * stdCalc)) {
@@ -404,7 +406,7 @@ class readVecSplitter {
   template <class T>
   static std::pair<std::vector<T>, std::vector<T>>
   splitVectorOnNucleotideComposition(const std::vector<T>& reads,
-                                     letterCounter mainCounter) {
+                                     charCounterArray mainCounter) {
     std::vector<T> ans;
     std::vector<T> other;
     uint32_t splitCount = 0;
@@ -416,15 +418,15 @@ class readVecSplitter {
   template <class T>
   static std::vector<T> splitVectorOnNucleotideCompositionAdd(
       const std::vector<T>& reads, std::vector<T>& badReads,
-      letterCounter mainCounter, uint32_t& splitCount) {
+			charCounterArray mainCounter, uint32_t& splitCount) {
     std::vector<T> ans;
     std::vector<double> differences;
     for (auto& rIter : reads) {
-      letterCounter counter(rIter.seqBase_.seq_);
+    	charCounterArray counter;
+    	counter.increaseCountByString(rIter.seqBase_.seq_);
       double difference = 0.00;
-      for (const auto& fIter : counter.fractions) {
-
-        difference += fabs(mainCounter.fractions[fIter.first] - fIter.second);
+      for (const auto& letPos : iter::range(counter.fractions_.size())) {
+        difference += fabs(mainCounter.fractions_[letPos] - counter.fractions_[letPos]);
         // std::cout<<difference<<std::endl;
       }
       differences.push_back(difference);
@@ -434,12 +436,12 @@ class readVecSplitter {
     std::vector<T> in;
     std::vector<T> out;
     for (auto& rIter : reads) {
-      letterCounter counter(rIter.seqBase_.seq_);
+    	charCounterArray counter;
+    	counter.increaseCountByString(rIter.seqBase_.seq_);
       double difference = 0.00;
+      for (const auto& letPos : iter::range(counter.fractions_.size())){
 
-      for (const auto& fIter : counter.fractions) {
-
-        difference += fabs(mainCounter.fractions[fIter.first] - fIter.second);
+      	difference += fabs(mainCounter.fractions_[letPos] - counter.fractions_[letPos]);
         // std::cout<<difference<<std::endl;
       }
       if (difference > (meanCalc + 2 * stdCalc)) {
@@ -572,15 +574,8 @@ class readVecSplitter {
     bool passed = true;
     std::vector<T> goodReads;
     for (const auto& iter : reads) {
-      if (useClipped) {
-        passed =
-            seqUtil::checkQualityWindow(qualityWindowLength, qualityWindowThres,
-                                        qualityWindowStep, iter.qualityClip);
-      } else {
-        passed =
-            seqUtil::checkQualityWindow(qualityWindowLength, qualityWindowThres,
-                                        qualityWindowStep, iter.seqBase_.qual_);
-      }
+    	passed = seqUtil::checkQualityWindow(qualityWindowLength, qualityWindowThres,
+    	                                        qualityWindowStep, iter.seqBase_.qual_);
       if (passed) {
         goodReads.push_back(iter);
       } else {
@@ -620,15 +615,9 @@ class readVecSplitter {
     std::vector<T> goodReads;
     for (const auto& iter : reads) {
       uint32_t windowFailedPos = 0;
-      if (useClipped) {
-        windowFailedPos = seqUtil::checkQualityWindowPos(
-            qualityWindowLength, qualityWindowThres, qualityWindowStep,
-            iter.qualityClip);
-      } else {
-        windowFailedPos = seqUtil::checkQualityWindowPos(
-            qualityWindowLength, qualityWindowThres, qualityWindowStep,
-            iter.seqBase_.qual_);
-      }
+      windowFailedPos = seqUtil::checkQualityWindowPos(
+                  qualityWindowLength, qualityWindowThres, qualityWindowStep,
+                  iter.seqBase_.qual_);
       if (windowFailedPos + 1 > minLen) {
         goodReads.push_back(iter);
         goodReads.back().setClip(0, windowFailedPos - 1);

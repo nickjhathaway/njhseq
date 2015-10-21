@@ -28,5 +28,70 @@
 #include "UndirWeightedGraph.hpp"
 
 namespace bibseq {
+std::unordered_map<std::string,bib::color> getColorsForNames(const VecStr & popNames){
+	auto popColors = bib::njhColors(popNames.size());
+	bibseq::VecStr popColorsStrs(popColors.size());
+	uint32_t count = 0;
+	uint32_t halfCount = 0;
+	for(const auto & cPos : iter::range(popColors.size())) {
+		uint32_t pos = 0;
+		if(cPos %2 == 0) {
+			pos = popColors.size()/2 + halfCount;
+			++halfCount;
+		} else {
+			pos = count;
+			++count;
+		}
+		popColorsStrs[cPos] = "#" + popColors[pos].hexStr_;
+	}
+	std::unordered_map<std::string,bib::color> nameColors;
+	for(auto pos : iter::range(popNames.size())){
+		nameColors[popNames[pos]] = popColorsStrs[pos];
+	}
+	return nameColors;
+}
+
+void jsonTreeToDot(Json::Value treeData, std::ostream & outDot){
+	bib::color bgColor = bib::color(treeData["backgroundColor"].asString());
+	outDot << "graph G  { " << std::endl;
+	outDot << "bgcolor =\"" << bgColor.getHexStr() <<"\"" << std::endl;
+	outDot << "overlap = false; " << std::endl;
+	outDot << "fixedsize = true; " << std::endl;
+	bgColor.invert();
+	outDot << "fontcolor = \"" << bgColor.getHexStr() <<"\"" << std::endl;
+	outDot << "fontsize = 20" << std::endl;
+	std::vector<double> sizes;
+	for (const auto & node : treeData["nodes"]){
+		if(node["color"].asString() != "red"){
+			sizes.emplace_back(node["size"].asDouble());
+		}
+	}
+
+	scale<double> cntScale({0, vectorMaximum(sizes)},{0.5, 3});
+	//std::cout << cntScale.toJson() << std::endl;
+	for (const auto & node : treeData["nodes"]){
+		if(node["color"].asString() == "red"){
+			// width = 0.15 , label =""
+			outDot << node["name"].asString() << " [shape=circle,style=filled,fixesize "
+			                                    "=true, color = \"#000000\", fillcolor ="
+			          << "\"" << node["color"].asString() << "\""
+			          << ", width = 0.15, label =\"\"]"
+			          << std::endl;
+		}else{
+			outDot << node["name"].asString() << " [shape=circle,style=filled,fixesize "
+			                                    "=true, color = \"#000000\", fillcolor ="
+			          << "\"" << node["color"].asString() << "\""
+			          << ", width = " << cntScale.get(node["size"].asDouble())<< "]"
+			          << std::endl;
+		}
+	}
+	for(const auto & link : treeData["links"]){
+		outDot << treeData["nodes"][link["source"].asUInt()]["name"].asString()
+				<< " -- " << treeData["nodes"][link["target"].asUInt()]["name"].asString()
+          << " [penwidth=5, color=\""
+          << link["color"].asString() << "\"]" << std::endl;
+	}
+	outDot << "}" << std::endl;
+}
 
 } /* namespace bibseq */

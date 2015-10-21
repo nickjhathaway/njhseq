@@ -29,7 +29,6 @@
 //
 
 #include "bibseq/utils/utils.hpp"
-#include "bibseq/objects/counters/letterCounter.hpp"
 #include "bibseq/objects/counters/charCounter.hpp"
 #include "bibseq/objects/seqObjects/baseReadObject.hpp"
 #include "bibseq/helpers/seqUtil.hpp"
@@ -49,30 +48,23 @@ class readObject : public baseReadObject {
   void initializeOthers();
   void processRead(bool processed);
 
-  std::vector<double> qualMeans_;
-  std::vector<double> qualProbMeans_;
-  void setQualMeans(uint32_t windowSize);
-  void setQualProbMeans(uint32_t windowSize,
-                        const std::array<double, 100>& errorLookUp);
+
 
   std::vector<double> flowValues;
   std::vector<double> processedFlowValues;
+  int numberOfFlows;
 
-  std::string seqClip;
-  std::vector<uint32_t> qualityClip;
 
   std::string sampName;
   std::string expectsString;
-  int numberOfFlows;
 
-  //double cumulativeFraction;
-  //double normalizedFraction;
+
   double averageErrorRate;
 
-  uint32_t basesAboveQualCheck_;
+  //uint32_t basesAboveQualCheck_;
   double fractionAboveQualCheck_;
   bool remove;
-  //letterCounter counter_;
+
   charCounterArray counter_;
 
   std::string condensedSeq;
@@ -80,29 +72,25 @@ class readObject : public baseReadObject {
   std::vector<std::pair<uint32_t, uint32_t>> condensedSeqQualPos;
   std::vector<int> condensedSeqCount;
 
+
   void adjustHomopolyerRunQualities();
 
-  letterCounter condensedCounter;
+
 
   void addQual(const std::string & stringQual);
   void addQual(const std::string & stringQual, uint32_t offSet);
   void addQual(const std::vector<uint32_t> & quals);
 
   void setFractionByCount(size_t totalNumberOfReads);
-  //void setNormalizedFraction(size_t totalNumberOfSamples);
 
-  void setBaseCountOnQualCheck(uint32_t qualCheck);
-  void setLetterCount();
-  void setLetterCount(const std::vector<char> & alph);
-  double getGCContent();
+  virtual double getQualCheck(uint32_t qualCutOff)const ;
+  virtual void setBaseCountOnQualCheck(uint32_t qualCheck);
+  virtual void setLetterCount();
+  virtual void setLetterCount(const std::vector<char> & alph);
+  virtual double getGCContent();
 
-  // creates a condensed sequence, meaning all the homopolymer runs are
-  // collapsed down into singles
-  void createCondensedSeq();
-  void setCondensedCounter();
-  // get the string for the various vectors of info
-  // std::string getQualString() const ;
-  // std::string getFastqQualString(int offset) const ;
+  virtual void createCondensedSeq();
+
   // get the quality clipings used with the sff file
   void setClip(size_t leftPos, size_t rightPos);
   void setClip(size_t rightPos);
@@ -111,16 +99,12 @@ class readObject : public baseReadObject {
   void trimBack(size_t fromPositionIncluding);
   // get various information about the qualities with the sequence
   double getAverageQual() const;
-  double getAverageErrorRate() const;
+  virtual double getAverageErrorRate() const;
   uint32_t getSumQual() const;
-  // change the name of the object
   virtual void updateName();
   virtual void setName(const std::string& newName);
   void appendName(const std::string& add);
   void setFractionName();
-  //void setCumulativeFractionName();
-  //void setNormalizedFractionName();
-  //void setNormalizedFractionByCumulativeFraction(size_t totalNumberOfSamples);
   std::string getStubName(bool removeChiFlag) const;
   std::string getReadId() const;
   std::string getOtherReadSampName(const readObject& cr) const;
@@ -137,10 +121,8 @@ class readObject : public baseReadObject {
   bool flowNoiseProcess(size_t cutoff);
 
   // Protein conversion
-  void convertToProteinFromcDNA(bool transcribeToRNAFirst, size_t start = 0,
-                                bool forceStartM = false);
-  std::string getProteinFromcDNA(bool transcribeToRNAFirst, size_t start = 0,
-                                 bool forceStartM = false) const;
+  void translate(bool complement, bool reverse, size_t start = 0);
+  readObject translateRet(bool complement, bool reverse, size_t start = 0) const;
   //
   void updateQualCounts(std::map<uint32_t, uint32_t>& qualCounts) const;
   void updateQualCounts(
@@ -169,8 +151,6 @@ class readObject : public baseReadObject {
   void outPutFlows(std::ostream& flowsFile) const;
   void outPutFlowsRaw(std::ostream& flowdataFile) const;
   void outPutPyroData(std::ostream& pyroNoiseFile) const;
-  void outPutSeqClip(std::ostream& seqClipfile) const;
-  void outPutQualClip(std::ostream& qualClipfile) const;
   void outPutCondensedSeq(std::ostream& condensedSeqfile) const;
   void outPutCondensedQual(std::ostream& condensedQualFile) const;
   // check to seq to qual, output base and quality right next to each other
@@ -180,7 +160,7 @@ class readObject : public baseReadObject {
   // comparing reads
   bool operator>(const readObject& otherRead) const;
   bool operator<(const readObject& otherRead) const;
-  bool operator==(const readObject& otherRead) const;
+  //bool operator==(const readObject& otherRead) const;
   bool operator<=(const readObject& otherRead) const;
   bool operator>=(const readObject& otherRead) const;
   // description

@@ -1,3 +1,6 @@
+#include "table.hpp"
+#include "bibseq/IO/fileUtils.hpp"
+#include <bibcpp/bashUtils.h>
 //
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
@@ -18,11 +21,24 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "table.hpp"
-#include "bibseq/IO/fileUtils.hpp"
-#include <bibcpp/bashUtils.h>
-
 namespace bibseq {
+
+bool table::containsColumn(const std::string & colName)const{
+	return bib::in(colName, columnNames_);
+}
+
+bool table::containsColumns(const VecStr & colNames)const{
+	for(const auto & col : colNames){
+		if(!containsColumn(col)){
+			return false;
+		}
+	}
+	return true;
+}
+
+bool table::containsColumn(const uint32_t & colPos)const{
+	return colPos <= columnNames_.size();
+}
 
 void table::setColNamePositions(){
 	colNameToPos_.clear();
@@ -53,58 +69,22 @@ VecStr table::getColumnLevels(const std::string & colName){
 }
 
 table::table(std::istream & in, const std::string &inDelim,
-        bool header){
-	VecStr columnNames;
-	inDelim_ = inDelim;
-	std::vector<VecStr> tempFileContent;
-	if (inDelim == " " || inDelim == "whitespace") {
-		std::string currentLine;
-		std::getline(in, currentLine);
-		if (header) {
-			std::stringstream tempStream;
-			tempStream << currentLine;
-			VecStr tempVect;
-			while (!tempStream.eof()) {
-				std::string tempName;
-				tempStream >> tempName;
-				tempVect.emplace_back(tempName);
-			}
-			columnNames = tempVect;
-			std::getline(in, currentLine);
-		}
-		while (!in.eof()) {
-			std::stringstream tempStream;
-			tempStream << currentLine;
-			VecStr tempVect;
-			while (!tempStream.eof()) {
-				std::string tempName;
-				tempStream >> tempName;
-				tempVect.emplace_back(tempName);
-			}
-			std::getline(in, currentLine);
-			tempFileContent.emplace_back(tempVect);
-		}
-	} else {
-		if(inDelim == "tab"){
-			inDelim_ = "\t";
-		}
-		std::string currentLine;
-		std::getline(in, currentLine);
-		if (header) {
-			VecStr temp = tokenizeString(currentLine, inDelim_, true);
-			columnNames = temp;
-			std::getline(in, currentLine);
-		}
-		while (!in.eof()) {
-			tempFileContent.emplace_back(tokenizeString(currentLine, inDelim_, true));
-			std::getline(in, currentLine);
-		}
+        bool header): hasHeader_(header), inDelim_(inDelim){
+	if(inDelim == "tab"){
+		inDelim_ = "\t";
 	}
-	if (header) {
-		*this = table(tempFileContent, columnNames);
-	} else {
-		*this = table(tempFileContent);
+
+	std::string currentLine = "";
+	uint32_t lineCount = 0;
+	while(std::getline(in, currentLine)){
+		if(lineCount == 0 && header){
+			columnNames_ = tokenizeString(currentLine, inDelim_, true);
+		}else{
+			content_.emplace_back(tokenizeString(currentLine, inDelim_, true));
+		}
+		++lineCount;
 	}
+	addPaddingToEndOfRows();
 	setColNamePositions();
 }
 table::table(const std::string &filename, const std::string &inDelim,
@@ -308,6 +288,33 @@ table table::getRows(const std::vector<uint32_t> &specificRowPositions) const{
   return table(getTargetsAtPositions(content_, specificRowPositions),
                columnNames_);
 }
+void table::outPutContents(CsvIOOptions options) const {
+  if (options.outDelim_ == "tab") {
+    options.outDelim_ = "\t";
+  } else if (options.outDelim_ == "whitespace") {
+    options.outDelim_ = " ";
+  }
+  if (options.outFilename_ == "") {
+    if (options.outOrganized_) {
+      outPutContentOrganized(std::cout);
+    } else {
+      outPutContents(std::cout, options.outDelim_);
+    }
+  } else {
+    std::ofstream outFile;
+    openTextFile(outFile, options);
+    if (options.outDelim_ == "tab") {
+    	options.outDelim_ = "\t";
+    } else if (options.outDelim_ == "whitespace") {
+    	options.outDelim_ = " ";
+    }
+    if (hasHeader_ && !options.append_) {
+    	outFile << vectorToString(columnNames_, options.outDelim_) << "\n";
+    }
+    outputVectorOfVectors(content_, options.outDelim_, outFile);
+  }
+}
+
 void table::outPutContents(std::ostream &out, std::string delim) const {
   if (delim == "tab") {
     delim = "\t";
@@ -570,29 +577,7 @@ table table::aggregateSimple(const std::string &columnName,
   }
 }
 
-void table::outPutContents(outOptions options) const {
-  if (options.outDelim_ == "tab") {
-    options.outDelim_ = "\t";
-  } else if (options.outDelim_ == "whitespace") {
-    options.outDelim_ = " ";
-  }
-  if (options.outFilename_ == "") {
-    if (options.outOrganized_) {
-      outPutContentOrganized(std::cout);
-    } else {
-      outPutContents(std::cout, options.outDelim_);
-    }
-  } else {
-    std::ofstream outFile;
-    openTextFile(outFile, options.outFilename_, options.extention_,
-                 options.overWriteFile_, options.exitOnFailureToWrite_);
-    if (options.outOrganized_) {
-      outPutContentOrganized(outFile);
-    } else {
-      outPutContents(outFile, options.outDelim_);
-    }
-  }
-}
+
 
 std::vector<uint32_t> table::getNumericColumnPositions(bool addZeros) {
   if (addZeros) {

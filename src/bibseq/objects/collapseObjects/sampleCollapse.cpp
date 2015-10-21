@@ -19,6 +19,7 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 //
+//
 //  sampleCollapse.cpp
 //  sequenceTools
 //

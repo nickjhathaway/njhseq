@@ -29,4 +29,7 @@
 
 #include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
 #include "bibseq/seqToolsUtils/distCalc.hpp"
+#include "bibseq/seqToolsUtils/aminoAcidInfo.hpp"
 #include "bibseq/seqToolsUtils/determinators.h"
+#include "bibseq/seqToolsUtils/ExtractionStator.hpp"
+

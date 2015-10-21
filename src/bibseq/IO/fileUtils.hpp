@@ -34,6 +34,7 @@
 #include <sys/stat.h>
 #include <boost/filesystem.hpp>
 #include "bibseq/common/typedefs.hpp"
+#include "bibseq/IO/IOUtils.hpp"
 
 namespace bibseq {
 
@@ -51,6 +52,7 @@ bool fexists(const std::string &filename);
 void openTextFile(std::ofstream &file, std::string filename,
                   std::string fileExtention, bool overWrite,
                   bool exitOnFailure);
+void openTextFile(std::ofstream &file, const IoOptions & options);
 template<typename OPTIONS>
 void openTextFile(std::ofstream &file, std::string filename,
                   std::string fileExtention, OPTIONS outOptions){

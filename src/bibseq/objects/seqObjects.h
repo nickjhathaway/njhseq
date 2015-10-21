@@ -1,5 +1,4 @@
 #pragma once
-//
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
@@ -20,6 +19,7 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 //
+//
 //  seqObjects.h
 //  sequenceTools
 //
@@ -36,3 +36,8 @@
 #include "bibseq/objects/seqObjects/identicalCluster.hpp"
 #include "bibseq/objects/seqObjects/cluster.hpp"
 #include "bibseq/objects/seqObjects/sampleCluster.hpp"
+#include "bibseq/objects/seqObjects/populationCluster.hpp"
+#include "bibseq/objects/seqObjects/seqWithKmerInfo.hpp"
+#include "bibseq/objects/seqObjects/PairedRead.hpp"
+#include "bibseq/objects/seqObjects/PairedCluster.hpp"
+

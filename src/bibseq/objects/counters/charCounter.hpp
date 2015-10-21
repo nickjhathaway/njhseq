@@ -19,6 +19,7 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+//
 /*
 
  * charCounter.hpp
@@ -52,13 +53,11 @@ public:
 class charCounterArray {
 public:
 	//constructor
-	//default construct with the default dna with gaps library
-	charCounterArray() :alphabet_(std::vector<char>{'A','C','G','T','-'}), originalAlphabet_(alphabet_) {
-		reset();
-	}
-	charCounterArray(const std::vector<char>&  alphabet) : alphabet_(alphabet), originalAlphabet_(alphabet_) {
-		reset();
-	}
+
+	charCounterArray();
+	charCounterArray(const std::vector<char>& alphabet);
+	charCounterArray(const std::string & str);
+	charCounterArray(const std::string & str, const std::vector<char>& alphabet);
 
 	//members
   std::array<uint32_t, 127> chars_;
@@ -99,7 +98,7 @@ public:
       bool setFractionFirst);
 
   // gc content
-  double gcContent;
+  double gcContent = 0;
   void calcGcContent();
   int getGcDifference();
   // compute entropy

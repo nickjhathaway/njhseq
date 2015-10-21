@@ -28,49 +28,34 @@
 //
 
 #include "bibseq/utils.h"
+#include "bibseq/IO/IOUtils.hpp"
 #include <cppitertools/range.hpp>
 namespace bibseq {
 
-struct outOptions {
-  outOptions()
-      : outFilename_(""),
-        extention_(".txt"),
+class  CsvIOOptions : public IoOptions{
+public:
+	CsvIOOptions()
+      : IoOptions("", ".txt", "txt", true),
         outDelim_("\t"),
-        outOrganized_(false),
-        overWriteFile_(false),
-        exitOnFailureToWrite_(false) {}
-  outOptions(const std::string & outFilename,
+        outOrganized_(false){}
+	CsvIOOptions(const std::string & outFilename,
   		const std::string & extention)
-        : outFilename_(outFilename),
-          extention_(extention),
-          outDelim_("\t"),
-          outOrganized_(false),
-          overWriteFile_(false),
-          exitOnFailureToWrite_(false) {}
-  outOptions(const std::string & outFilename,
+        : IoOptions(outFilename, extention, "tab", true),
+          outDelim_("\t"){}
+	CsvIOOptions(const std::string & outFilename,
   		const std::string & extention, const std::string & outDelim_)
-        : outFilename_(outFilename),
-          extention_(extention),
-          outDelim_(outDelim_),
-          outOrganized_(false),
-          overWriteFile_(false),
-          exitOnFailureToWrite_(false) {}
-  outOptions(const std::string & outFilename,
+				: IoOptions(outFilename, extention, outDelim_, true),
+					outDelim_(outDelim_){}
+	CsvIOOptions(const std::string & outFilename,
   		const std::string & extention, const std::string & outDelim_,
   		bool overWriteFile)
-        : outFilename_(outFilename),
-          extention_(extention),
-          outDelim_(outDelim_),
-          outOrganized_(false),
-          overWriteFile_(overWriteFile),
-          exitOnFailureToWrite_(false) {}
+				: IoOptions(outFilename, extention, outDelim_, false, overWriteFile, true),
+					outDelim_(outDelim_){}
 
-  std::string outFilename_;
-  std::string extention_;
+  std::string inDelim_;
   std::string outDelim_;
-  bool outOrganized_;
-  bool overWriteFile_;
-  bool exitOnFailureToWrite_;
+  bool outOrganized_ = false;
+
 };
 
 class table {
@@ -98,6 +83,7 @@ class table {
 		for (auto i : iter::range(content_[0].size())) {
 			columnNames_.emplace_back("col." + leftPadNumStr(i, content_[0].size()));
 		}
+		setColNamePositions();
 	}
 	/**@b Construct with just column names, data to be put in latter
 	 *
@@ -183,6 +169,9 @@ class table {
 
   void setColNamePositions();
   uint32_t getColPos(const std::string & colName)const;
+  bool containsColumn(const std::string & colName)const;
+  bool containsColumns(const VecStr & colNames)const;
+  bool containsColumn(const uint32_t & colPos)const;
   // to ensure all the rows have equal length
   void addPaddingToEndOfRows();
   void addPaddingZeros();
@@ -194,7 +183,7 @@ class table {
   	addColumn(add, name);
   }
   // outputs
-  void outPutContents(outOptions options) const;
+  void outPutContents(CsvIOOptions options) const;
   void outPutContents(std::ostream &out, std::string delim) const;
   void outPutContentOrganized(std::ostream &out) const;
   // extracting columns

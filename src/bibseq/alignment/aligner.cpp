@@ -1147,6 +1147,7 @@ bool aligner::checkTwoEqualSeqs(const std::string& seq1,
   }
   return true;
 }
+
 bool aligner::checkTwoStringsDegen(
     const std::string& str1, const std::string& str2, int allowableMismatches,
     const substituteMatrix& scoringArrayIn) {
@@ -1166,6 +1167,7 @@ bool aligner::checkTwoStringsDegen(
     return true;
   }
 }
+
 void aligner::scoreAlignment(bool editTheSame) {
   parts_.score_ = 0;
   //editDistance_ = 0;
@@ -1269,4 +1271,33 @@ void aligner::scoreAlignment(bool editTheSame) {
                            [alignObjectB_.seqBase_.seq_[i]];
   }
 }
+
+void aligner::noAlignSetAndScore(const baseReadObject& objectA,
+		const baseReadObject& objectB) {
+	noAlignSetAndScore(objectA.seqBase_, objectB.seqBase_);
+}
+
+void aligner::noAlignSetAndScore(const seqInfo& objectA,
+		const seqInfo& objectB) {
+	alignObjectA_.seqBase_ = objectA;
+	alignObjectB_.seqBase_ = objectB;
+
+	if (alignObjectA_.seqBase_.seq_.size() < alignObjectB_.seqBase_.seq_.size()) {
+		alignObjectA_.seqBase_.append(
+				std::string('-',
+						alignObjectB_.seqBase_.seq_.size()
+								- alignObjectA_.seqBase_.seq_.size()), 0);
+	} else if (alignObjectA_.seqBase_.seq_.size()
+			> alignObjectB_.seqBase_.seq_.size()) {
+		alignObjectB_.seqBase_.append(
+				std::string('-',
+						alignObjectA_.seqBase_.seq_.size()
+								- alignObjectB_.seqBase_.seq_.size()), 0);
+	}
+
+	scoreAlignment(false);
+
+}
+
+
 }  // namespace bib

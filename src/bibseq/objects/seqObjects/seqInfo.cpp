@@ -98,23 +98,24 @@ Json::Value seqInfo::toJson()const{
 	return ret;
 }
 
-void seqInfo::convertToProteinFromcDNA(bool transcribeToRNAFirst, size_t start,
-		bool forceStartM) {
-	if (transcribeToRNAFirst) {
-		seqUtil::convertToProteinFromcDNA(seq_, start, forceStartM);
-	} else {
-		seq_ = seqUtil::convertToProtein(seq_, start, forceStartM);
+void seqInfo::translate(bool complement, bool reverse, size_t start){
+	if(complement && reverse){
+		reverseComplementRead(true, true);
+		seq_ = seqUtil::convertToProtein(seq_, start, false);
+	}else if (complement){
+		seqUtil::convertToProteinFromcDNA(seq_, start, false);
+	}else{
+		seq_ = seqUtil::convertToProtein(seq_, start, false);
 	}
+	qual_ = std::vector<uint32_t>(seq_.size(), 40);
 }
 
-std::string seqInfo::getProteinFromcDNA(bool transcribeToRNAFirst, size_t start,
-		bool forceStartM) const {
-	if (transcribeToRNAFirst) {
-		return seqUtil::convertToProteinFromcDNAReturn(seq_, start, forceStartM);
-	} else {
-		return seqUtil::convertToProtein(seq_, start, forceStartM);
-	}
+seqInfo seqInfo::translateRet(bool complement, bool reverse,  size_t start) const{
+	seqInfo ret(*this);
+	ret.translate(complement, reverse, start);
+	return ret;
 }
+
 
 void seqInfo::processRead(bool processed) {
   bool setFraction = false;
@@ -559,11 +560,22 @@ void seqInfo::trimBack(size_t fromPositionIncluding) {
 double seqInfo::getAverageQual() const {
   return static_cast<double>(getSumQual()) / qual_.size();
 }
+/*
+double seqInfo::getAverageErrorRate() const {
+	//return 0;
+	bib::randomGenerator gen;
+  double sum = 0;
+  for (auto q : qual_) {
+  	sum += std::pow(10.0, -(gen.unifRand(0.01, 4.0) / 10.0));
+  	//sum += std::pow(10.0, -(q / 10.0));
+  }
+  return sum / qual_.size();
+}*/
 
 double seqInfo::getAverageErrorRate() const {
   double sum = 0;
-  for (const auto& q : qual_) {
-    sum += pow(10.0, -(q / 10.0));
+  for (auto q : qual_) {
+  	sum += std::pow(10.0, -(q / 10.0));
   }
   return sum / qual_.size();
 }

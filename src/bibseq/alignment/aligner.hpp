@@ -830,16 +830,15 @@ class aligner {
   uint32_t numberOfAlingmentsDone_ = 0;
 
   // Aligner
-  void alignScore(const std::string& firstSeq,
-  									 const std::string& secondSeq,
-                    bool local) {
-    if (local) {
-    	alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
-    } else {
-    	alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
-    }
-    ++numberOfAlingmentsDone_;
-  }
+	void alignScore(const std::string& firstSeq, const std::string& secondSeq,
+			bool local) {
+		if (local) {
+			alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
+		} else {
+			alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
+		}
+		++numberOfAlingmentsDone_;
+	}
 
   void alignScoreCache(const std::string& firstSeq, const std::string& secondSeq,
                 bool local) {
@@ -863,14 +862,17 @@ class aligner {
 			}
     }
   }
+
   void alignVec(const baseReadObject & ref, const baseReadObject & read, bool local){
   	alignScoreCache(ref.seqBase_.seq_, read.seqBase_.seq_, local);
   	rearrangeObjs(ref.seqBase_, read.seqBase_, local);
   }
+
   void alignVec(const seqInfo & ref, const seqInfo & read, bool local){
   	alignScoreCache(ref.seq_, read.seq_, local);
   	rearrangeObjs(ref, read, local);
   }
+
   void alignReg(const baseReadObject & ref, const baseReadObject & read, bool local){
   	alignScore(ref.seqBase_.seq_, read.seqBase_.seq_, local);
   	rearrangeObjs(ref.seqBase_, read.seqBase_, local);
@@ -949,22 +951,19 @@ class aligner {
   kmerMaps kMaps_;
   bool countEndGaps_;
 
+  void noAlignSetAndScore(const baseReadObject& objectA,
+                        const baseReadObject& objectB);
+  void noAlignSetAndScore(const seqInfo& objectA,
+                          const seqInfo& objectB);
 
   void scoreAlignment(bool editTheSame);
-  bool& CountEndGaps() { return countEndGaps_; }
+  bool CountEndGaps() { return countEndGaps_; }
   void setQual(int primaryQual, int secondayQual, int qualThresWindow);
 
   // kmer map setting
   void setKmerMpas(const kmerMaps& inKmerMaps) { kMaps_ = inKmerMaps; }
   kmerMaps getKmerMaps() { return kMaps_; }
-  /*! \brief Find Reverse Primer
-   *
-   *
-   *  Returns the start and end position of the highest matching local alignment
-   *of the reverse primer to the sequence
-   */
- // std::pair<int, int> findReversePrimer(const baseReadObject& read,
-                                    //    const baseReadObject& primer);
+
   // Outputting
   void outPutParameterInfo(std::ostream& out) const;
 
@@ -977,6 +976,7 @@ class aligner {
                         bool kmersByPosition, bool checkKmer, bool usingQuality,
                         bool doingMatchQuality, bool weighHomopolyer,
                         uint32_t start = 0, uint32_t stop = 0);
+
   void profileAlignment(const seqInfo& objectA, const seqInfo& objectB,
                         int kLength, bool kmersByPosition, bool checkKmer,
                         bool usingQuality, bool doingMatchQuality,

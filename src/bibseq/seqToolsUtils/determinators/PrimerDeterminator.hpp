@@ -34,7 +34,7 @@ namespace bibseq {
 
 class PrimerDeterminator{
 public:
-	PrimerDeterminator(const table & primers) ;
+	explicit PrimerDeterminator(const table & primers) ;
 
 	struct primerInfo {
 		primerInfo() {}
@@ -75,24 +75,24 @@ public:
 	template<typename T>
 	bool checkForReversePrimer(T & read, const std::string & primerName,
 			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-			bool weighHomopolyers) {
-		return checkForReversePrimer(read.seqBase_, primerName, alignObj, allowable, reversePrimerToLowerCase, weighHomopolyers);
+			bool weighHomopolyers, uint32_t within, bool trimExtra) {
+		return checkForReversePrimer(read.seqBase_, primerName, alignObj, allowable, reversePrimerToLowerCase, weighHomopolyers, within, trimExtra);
 	}
 
 	bool checkForReversePrimer(seqInfo & info, const std::string & primerName,
 			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-      bool weighHomopolyers);
+      bool weighHomopolyers, uint32_t within, bool trimExtra);
 
 	template<typename T>
 	bool checkForForwardPrimerInRev(T & read, const std::string & primerName,
 			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-			bool weighHomopolyers) {
-		return checkForForwardPrimerInRev(read.seqBase_, primerName, alignObj, allowable, reversePrimerToLowerCase, weighHomopolyers);
+			bool weighHomopolyers, uint32_t within, bool trimExtra) {
+		return checkForForwardPrimerInRev(read.seqBase_, primerName, alignObj, allowable, reversePrimerToLowerCase, weighHomopolyers, within,trimExtra);
 	}
 
 	bool checkForForwardPrimerInRev(seqInfo & info, const std::string & primerName,
 			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-      bool weighHomopolyers);
+      bool weighHomopolyers,uint32_t within, bool trimExtra);
 };
 
 } /* namespace bibseq */

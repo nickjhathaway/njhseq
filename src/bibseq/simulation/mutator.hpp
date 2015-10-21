@@ -61,7 +61,7 @@ class mutator {
                                              uint64_t pos3);
   static std::string mutateString(std::string seq,
                                   const std::vector<uint32_t> &qual,
-                                  const simulation::errorProfile &profile,
+                                  const simulation::mismatchProfile &profile,
                                   randomGenerator &gen,
                                   const std::vector<char> &mutateTo,
                                   uint32_t &mutateCount,

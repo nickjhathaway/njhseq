@@ -35,7 +35,6 @@ readObjectIOOptions::readObjectIOOptions(const std::string & jsonStr) {
 	}
 	firstName_ = root.get("firstName_", "").asString();
 	secondName_ = root.get("secondName_", "").asString();
-	thirdName_ = root.get("thirdName_", "").asString();
 	inFormat_ = root.get("inFormat_", "").asString();
 	outFormat_ = root.get("outFormat_", "").asString();
 	outFilename_ = root.get("outFilename_", "").asString();
@@ -54,7 +53,6 @@ Json::Value readObjectIOOptions::toJson()const{
 	Json::Value ret;
 	ret["firstName_"] = bib::json::toJson(firstName_);
 	ret["secondName_"] = bib::json::toJson(secondName_);
-	ret["thirdName_"] = bib::json::toJson(thirdName_);
 	ret["inFormat_"] = bib::json::toJson(inFormat_);
 	ret["outFormat_"] = bib::json::toJson(outFormat_);
 	ret["outFilename_"] = bib::json::toJson(outFilename_);
@@ -68,6 +66,16 @@ Json::Value readObjectIOOptions::toJson()const{
 	ret["includeWhiteSpaceInName_"] = bib::json::toJson(includeWhiteSpaceInName_);
 	ret["extra_"] = bib::json::toJson(extra_);
 	return ret;
+}
+
+readObjectIOOptions::readObjectIOOptions(const std::string & firstName,
+		const std::string & inFormat, bool processed) :
+		firstName_(firstName), inFormat_(inFormat), processed_(processed) {
+	if(inFormat_ == "sff" || inFormat_ == "sffbin" || inFormat_ == "bam"){
+		outFormat_ = "fastq";
+	}else{
+		outFormat_ = inFormat_;
+	}
 }
 
 

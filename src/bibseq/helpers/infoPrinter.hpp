@@ -20,6 +20,7 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 //
+//
 //  infoPrinter.hpp
 //  sequenceTools
 //
@@ -48,7 +49,7 @@ class infoPrinter {
 
 };
 
-}  // bib
+}  // namespace bibseq
 
 #ifndef NOT_HEADER_ONLY
 #include "infoPrinter.cpp"

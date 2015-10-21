@@ -1,4 +1,3 @@
-//
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
@@ -18,9 +17,15 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+//
+
 #include "mismatch.hpp"
 
 namespace bibseq {
+
+void mismatch::setTransitionTransverstion(){
+	transition = isMismatchTransition(refBase, seqBase);
+}
 
 bool mismatch::isMismatchTransition(const char& baseA, const char& baseB) {
   bool transition = false;
@@ -41,7 +46,7 @@ bool mismatch::isMismatchTransition(const char& baseA, const char& baseB) {
     } else if (upperBaseB == 'C' || upperBaseB == 'T') {
       transition = false;
     } else {
-      std::cout << "Unrecognized base " << upperBaseB << std::endl;
+      std::cerr << "Unrecognized base " << upperBaseB << std::endl;
     }
   } else if (upperBaseA == 'C' || upperBaseA == 'T') {
     if (upperBaseB == 'G' || upperBaseB == 'A') {
@@ -49,10 +54,10 @@ bool mismatch::isMismatchTransition(const char& baseA, const char& baseB) {
     } else if (upperBaseB == 'C' || upperBaseB == 'T') {
       transition = true;
     } else {
-      std::cout << "Unrecognized base " << upperBaseB << std::endl;
+      std::cerr << "Unrecognized base " << upperBaseB << std::endl;
     }
   } else {
-    std::cout << "Unrecognized base " << upperBaseA << std::endl;
+    std::cerr << "Unrecognized base " << upperBaseA << std::endl;
   }
   return transition;
 }

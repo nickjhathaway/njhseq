@@ -31,6 +31,7 @@
 #include "bibseq/objects/helperObjects/gaps.hpp"
 #include "bibseq/objects/helperObjects/kmer.hpp"
 #include "bibseq/objects/helperObjects/kmerInfo.hpp"
+#include "bibseq/objects/helperObjects/hpRun.hpp"
 
 #include "bibseq/objects/helperObjects/tandemRepeat.hpp"
 #include "bibseq/objects/helperObjects/mismatch.hpp"

@@ -32,7 +32,7 @@ namespace bibseq {
 void randomPopGen::runPcr(std::map<std::string, uint32_t>& startingReads,
                           double basalErrorRate, uint32_t rounds) {
   for (uint32_t round = 0; round < rounds; ++round) {
-    bib::scopedStopWatch roundTime("round_" + to_string(round),true);
+    bib::scopedStopWatch roundTime("round_" + estd::to_string(round),true);
     std::cout << "starting round: " << round << std::endl;
     runOnePcr(startingReads, basalErrorRate);
   }

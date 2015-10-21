@@ -468,6 +468,11 @@ std::vector<T> getRange(const T& start, const T& stop) {
 
 double getMeanFromVecStr(const VecStr & strNums);
 
+template<typename T>
+T getSumOfVecStr(const VecStr & vec){
+	return vectorSum(bib::lexical_cast_con<VecStr,std::vector<T>>(vec));
+}
+
 }  // namespace bib
 
 #ifndef NOT_HEADER_ONLY

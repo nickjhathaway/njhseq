@@ -28,7 +28,7 @@
 //
 
 #include "bibseq/objects/helperObjects/kmer.hpp"
-
+#include "bibseq/objects/seqObjects/PairedCluster.hpp"
 namespace bibseq {
 
 class kmerCalculator {
@@ -47,69 +47,98 @@ class kmerCalculator {
       uint32_t readCount,
       std::unordered_map<std::string, kmer>& kTuppleOccurences);
 
-  template <class T>
+  template <typename T>
   static std::unordered_map<std::string, kmer> indexKmerForStringMap(
       const std::vector<T>& reads, uint32_t kmerSize);
-  template <class T>
+  template <typename T>
   static std::unordered_map<std::string, kmer> indexKmerForStringMap(
       const std::vector<T>& reads,const std::vector<uint64_t> & positons,
       uint32_t kmerSize);
+/*
+  template <>
+  static std::unordered_map<std::string, kmer> indexKmerForStringMap(
+      const std::vector<PairedCluster>& reads, uint32_t kmerSize);
+  template <>
+  static std::unordered_map<std::string, kmer> indexKmerForStringMap(
+      const std::vector<PairedCluster>& reads,const std::vector<uint64_t> & positons,
+      uint32_t kmerSize);*/
 
-  template <class T>
+  template <typename T>
   static std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
       indexKmerForPosMap(const std::vector<T>& reads, uint32_t kmerSize,
       		bool expandPos = false, uint32_t expandSize = 5);
-  template <class T>
+  template <typename T>
   static std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
       indexKmerForPosMap(const std::vector<T>& reads,const std::vector<uint64_t> & positions,
       		uint32_t kmerSize,
       		bool expandPos = false, uint32_t expandSize = 5);
+  /*
+  template <>
+  static std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
+      indexKmerForPosMap(const std::vector<PairedCluster>& reads, uint32_t kmerSize,
+      		bool expandPos = false, uint32_t expandSize = 5);
+  template <>
+  static std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
+      indexKmerForPosMap(const std::vector<PairedCluster>& reads,const std::vector<uint64_t> & positions,
+      		uint32_t kmerSize,
+      		bool expandPos = false, uint32_t expandSize = 5);*/
 
-  // get both kmer type maps
-  template <class T>
-  static kmerMaps indexKmerMpas(const std::vector<T>& reads,
-                                uint32_t kmerLength, uint32_t runCutoff,
-                            		bool expandPos = false, uint32_t expandSize = 5) {
-    double total = 0;
-    for (const auto& read : reads) {
-      total += read.seqBase_.cnt_;
+
+  static void addKmerForPos(
+  		std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>> & outputKmers,
+  		uint64_t pos, const std::string currentKmer, const seqInfo & sInfo) ;
+
+  static std::pair<uint32_t, uint32_t> determineExpandPos(uint32_t expandSize, uint32_t pos, const seqInfo & sInfo){
+    uint32_t startPos = 0;
+    uint32_t stopPos = 0;
+    if(expandSize >= pos){
+    	startPos = 0;
+    }else{
+    	startPos = pos - expandSize;
     }
-    return kmerMaps(indexKmerForPosMap(reads, kmerLength, expandPos, expandSize),
-                    indexKmerForStringMap(reads, kmerLength), kmerLength,
-                    runCutoff, total);
+    if((expandSize + pos + 1 )> sInfo.seq_.size()){
+    	stopPos = sInfo.seq_.size();
+    }else{
+    	stopPos = pos + expandSize + 1;
+    }
+    return {startPos, stopPos};
   }
 
-  template <class T>
+  static void addStrKmersPos(
+  		std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>> & outputKmers,
+  		const seqInfo & sInfo, uint32_t kmerLen);
+
+  static void addStrKmersPosExpand(
+  		std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>> & outputKmers,
+  		const seqInfo & sInfo, uint32_t kmerLen, uint32_t expandSize);
+
+  // get both kmer type maps
+  template <typename T>
+  static kmerMaps indexKmerMpas(const std::vector<T>& reads,
+                                uint32_t kmerLength, uint32_t runCutoff,
+                            		bool expandPos = false, uint32_t expandSize = 5);
+
+  template <typename T>
   static kmerMaps indexKmerMpas(const std::vector<T>& reads,
   															const std::vector<uint64_t> & positions,
                                 uint32_t kmerLength, uint32_t runCutoff,
                                 uint32_t qualRunCutOff,
                             		bool expandPos = false,
-                            		uint32_t expandSize = 5) {
-    double total = 0;
-    for (const auto& readPos : positions) {
-      total += reads[readPos].seqBase_.cnt_;
-    }
-    return kmerMaps(indexKmerForPosMap(reads,positions, kmerLength, expandPos, expandSize),
-                    indexKmerForStringMap(reads, positions, kmerLength), kmerLength,
-                    runCutoff, qualRunCutOff, total);
-  }
+                            		uint32_t expandSize = 5);
+
   // simply get all kmers, even repeats
   static VecStr getAllKmers(const std::string& seq, uint32_t kLength);
 };
 
-template <class T>
+template <typename T>
 std::unordered_map<std::string, kmer> kmerCalculator::indexKmerForStringMap(
     const std::vector<T>& reads, uint32_t kmerSize) {
-  std::unordered_map<std::string, kmer> kTuppleOccurences;
-  for_each(reads, [&](const T& read) {
-    indexKmer(read.seqBase_.seq_, kmerSize, read.seqBase_.name_,
-              read.seqBase_.cnt_, kTuppleOccurences);
-  });
-  return kTuppleOccurences;
+	std::vector<uint64_t> positions(reads.size());
+	bib::iota<uint64_t>(positions, 0);
+	return indexKmerForStringMap(reads, positions, kmerSize);
 }
 
-template <class T>
+template <typename T>
 std::unordered_map<std::string, kmer> kmerCalculator::indexKmerForStringMap(
     const std::vector<T>& reads,const std::vector<uint64_t> & positons,
     uint32_t kmerSize) {
@@ -119,85 +148,23 @@ std::unordered_map<std::string, kmer> kmerCalculator::indexKmerForStringMap(
   	indexKmer(read.seqBase_.seq_, kmerSize, read.seqBase_.name_,
   	              read.seqBase_.cnt_, kTuppleOccurences);
   }
-
   return kTuppleOccurences;
 }
 
-template <class T>
+template <typename T>
 std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
 kmerCalculator::indexKmerForPosMap(const std::vector<T>& reads,
                                    uint32_t kmerSize, bool expandPos,
                                    uint32_t expandSize) {
-  std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
-      outputKmers;
-  if(expandPos){
-    for (const auto& read : reads) {
-      uint32_t cursor = 0;
-      while (cursor + kmerSize <= read.seqBase_.seq_.length()) {
-        std::string currentKmer = read.seqBase_.seq_.substr(cursor, kmerSize);
-        uint32_t startPos = 0;
-        uint32_t stopPos = 0;
-        if(expandSize >= cursor){
-        	startPos = 0;
-        }else{
-        	startPos = cursor - expandSize;
-        }
-        if((expandSize + cursor + 1 )> read.seqBase_.seq_.size()){
-        	stopPos = read.seqBase_.seq_.size();
-        }else{
-        	stopPos = cursor + expandSize + 1;
-        }
-        for(const auto & nCursor : iter::range(startPos, stopPos)){
-          if (outputKmers.find(nCursor) == outputKmers.end()) {
-            outputKmers.emplace(nCursor, std::unordered_map<std::string, kmer>{
-                {currentKmer, kmer(currentKmer, cursor, read.seqBase_.name_,
-                                   read.seqBase_.cnt_)}});
-          } else {
-            if (outputKmers[nCursor].find(currentKmer) ==
-                outputKmers[nCursor].end()) {
-              outputKmers[nCursor].emplace(
-                  currentKmer, kmer(currentKmer, cursor, read.seqBase_.name_,
-                                    read.seqBase_.cnt_));
-            } else {
-              outputKmers[nCursor][currentKmer]
-                  .addPosition(cursor, read.seqBase_.name_, read.seqBase_.cnt_);
-            }
-          }
-        }
-        ++cursor;
-      }
-    }
-  }else{
-    for (const auto& read : reads) {
-      uint32_t cursor = 0;
-      while (cursor + kmerSize <= read.seqBase_.seq_.length()) {
-        std::string currentKmer = read.seqBase_.seq_.substr(cursor, kmerSize);
-        if (outputKmers.find(cursor) == outputKmers.end()) {
-          std::unordered_map<std::string, kmer> tempKmerSubMap = {
-              {currentKmer, kmer(currentKmer, cursor, read.seqBase_.name_,
-                                 read.seqBase_.cnt_)}};
-          outputKmers.emplace(cursor, tempKmerSubMap);
-        } else {
-          if (outputKmers[cursor].find(currentKmer) ==
-              outputKmers[cursor].end()) {
-            outputKmers[cursor].emplace(
-                currentKmer, kmer(currentKmer, cursor, read.seqBase_.name_,
-                                  read.seqBase_.cnt_));
-          } else {
-            outputKmers[cursor][currentKmer]
-                .addPosition(cursor, read.seqBase_.name_, read.seqBase_.cnt_);
-          }
-        }
-        ++cursor;
-      }
-    }
-  }
-
-  return outputKmers;
+	std::vector<uint64_t> positions(reads.size());
+	bib::iota<uint64_t>(positions, 0);
+	return indexKmerForPosMap(reads, positions, kmerSize,expandPos, expandSize);
 }
 
 
-template <class T>
+
+
+template <typename T>
 std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
 kmerCalculator::indexKmerForPosMap(const std::vector<T>& reads,
 																	 const std::vector<uint64_t> & positions,
@@ -208,69 +175,101 @@ kmerCalculator::indexKmerForPosMap(const std::vector<T>& reads,
   if(expandPos){
     for (const auto& readPos : positions) {
     	const auto & read = reads[readPos];
-      uint32_t cursor = 0;
-      while (cursor + kmerSize <= read.seqBase_.seq_.length()) {
-        std::string currentKmer = read.seqBase_.seq_.substr(cursor, kmerSize);
-        uint32_t startPos = 0;
-        uint32_t stopPos = 0;
-        if(expandSize >= cursor){
-        	startPos = 0;
-        }else{
-        	startPos = cursor - expandSize;
-        }
-        if((expandSize + cursor + 1 )> len(read.seqBase_.seq_)){
-        	stopPos = len(read.seqBase_.seq_);
-        }else{
-        	stopPos = cursor + expandSize + 1;
-        }
-        for(const auto & nCursor : iter::range(startPos, stopPos)){
-          if (outputKmers.find(nCursor) == outputKmers.end()) {
-            outputKmers.emplace(nCursor, std::unordered_map<std::string, kmer>{
-                {currentKmer, kmer(currentKmer, cursor, read.seqBase_.name_,
-                                   read.seqBase_.cnt_)}});
-          } else {
-            if (outputKmers[nCursor].find(currentKmer) ==
-                outputKmers[nCursor].end()) {
-              outputKmers[nCursor].emplace(
-                  currentKmer, kmer(currentKmer, cursor, read.seqBase_.name_,
-                                    read.seqBase_.cnt_));
-            } else {
-              outputKmers[nCursor][currentKmer]
-                  .addPosition(cursor, read.seqBase_.name_, read.seqBase_.cnt_);
-            }
-          }
-        }
-        ++cursor;
-      }
+    	addStrKmersPosExpand(outputKmers, read.seqBase_, kmerSize, expandSize);
     }
   }else{
     for (const auto& readPos : positions) {
     	const auto & read = reads[readPos];
-      uint32_t cursor = 0;
-      while (cursor + kmerSize <= read.seqBase_.seq_.length()) {
-        std::string currentKmer = read.seqBase_.seq_.substr(cursor, kmerSize);
-        if (outputKmers.find(cursor) == outputKmers.end()) {
-          std::unordered_map<std::string, kmer> tempKmerSubMap = {
-              {currentKmer, kmer(currentKmer, cursor, read.seqBase_.name_,
-                                 read.seqBase_.cnt_)}};
-          outputKmers.emplace(cursor, tempKmerSubMap);
-        } else {
-          if (outputKmers[cursor].find(currentKmer) ==
-              outputKmers[cursor].end()) {
-            outputKmers[cursor].emplace(
-                currentKmer, kmer(currentKmer, cursor, read.seqBase_.name_,
-                                  read.seqBase_.cnt_));
-          } else {
-            outputKmers[cursor][currentKmer]
-                .addPosition(cursor, read.seqBase_.name_, read.seqBase_.cnt_);
-          }
-        }
-        ++cursor;
-      }
+    	addStrKmersPos(outputKmers, read.seqBase_, kmerSize);
     }
   }
   return outputKmers;
 }
+
+template <typename T>
+kmerMaps kmerCalculator::indexKmerMpas(const std::vector<T>& reads,
+                              uint32_t kmerLength, uint32_t runCutoff,
+                          		bool expandPos, uint32_t expandSize ) {
+  double total = 0;
+  for (const auto& read : reads) {
+    total += read.seqBase_.cnt_;
+  }
+  return kmerMaps(indexKmerForPosMap(reads, kmerLength, expandPos, expandSize),
+                  indexKmerForStringMap(reads, kmerLength), kmerLength,
+                  runCutoff, total);
+}
+
+template <typename T>
+kmerMaps kmerCalculator::indexKmerMpas(const std::vector<T>& reads,
+															const std::vector<uint64_t> & positions,
+                              uint32_t kmerLength, uint32_t runCutoff,
+                              uint32_t qualRunCutOff,
+                          		bool expandPos,
+                          		uint32_t expandSize ) {
+  double total = 0;
+  for (const auto& readPos : positions) {
+    total += reads[readPos].seqBase_.cnt_;
+  }
+  return kmerMaps(indexKmerForPosMap(reads, positions, kmerLength, expandPos, expandSize),
+                  indexKmerForStringMap(reads, positions, kmerLength), kmerLength,
+                  runCutoff, qualRunCutOff, total);
+}
+template <>
+inline std::unordered_map<std::string, kmer> kmerCalculator::indexKmerForStringMap(
+    const std::vector<PairedCluster>& reads,const std::vector<uint64_t> & positons,
+    uint32_t kmerSize){
+  std::unordered_map<std::string, kmer> kTuppleOccurences;
+  for(const auto & readPos : positons){
+  	const auto & read = reads[readPos];
+  	indexKmer(read.seqBase_.seq_, kmerSize, read.seqBase_.name_,
+  	              read.seqBase_.cnt_, kTuppleOccurences);
+  	indexKmer(read.mateSeqBase_.seq_, kmerSize, read.seqBase_.name_,
+  	  	              read.seqBase_.cnt_, kTuppleOccurences);
+  }
+  return kTuppleOccurences;
+}
+
+template <>
+inline std::unordered_map<std::string, kmer> kmerCalculator::indexKmerForStringMap(
+    const std::vector<PairedCluster>& reads, uint32_t kmerSize){
+	std::vector<uint64_t> positions(reads.size());
+	bib::iota<uint64_t>(positions, 0);
+	return indexKmerForStringMap(reads, positions, kmerSize);
+}
+
+
+template <>
+inline std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
+kmerCalculator::indexKmerForPosMap(const std::vector<PairedCluster>& reads,const std::vector<uint64_t> & positions,
+    		uint32_t kmerSize,
+    		bool expandPos , uint32_t expandSize ){
+  std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
+      outputKmers;
+  if(expandPos){
+    for (const auto& readPos : positions) {
+    	const auto & read = reads[readPos];
+    	addStrKmersPosExpand(outputKmers, read.seqBase_, kmerSize, expandSize);
+    	addStrKmersPosExpand(outputKmers, read.mateSeqBase_, kmerSize, expandSize);
+    }
+  }else{
+    for (const auto& readPos : positions) {
+    	const auto & read = reads[readPos];
+    	addStrKmersPos(outputKmers, read.seqBase_, kmerSize);
+    	addStrKmersPos(outputKmers, read.mateSeqBase_, kmerSize);
+    }
+  }
+  return outputKmers;
+}
+
+template <>
+inline std::unordered_map<uint32_t, std::unordered_map<std::string, kmer>>
+kmerCalculator::indexKmerForPosMap(const std::vector<PairedCluster>& reads, uint32_t kmerSize,
+    		bool expandPos, uint32_t expandSize ){
+	std::vector<uint64_t> positions(reads.size());
+	bib::iota<uint64_t>(positions, 0);
+	return indexKmerForPosMap(reads, positions, kmerSize,expandPos, expandSize);
+}
+
 
 }  // namespace bib
 
