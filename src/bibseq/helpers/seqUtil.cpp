@@ -804,7 +804,8 @@ table seqUtil::readPrimers(const std::string &idFileName,
   bool readingGene = forceRead;
   bool readingBarcode = false;
   for (const auto &fIter : inTab.content_) {
-    if (stringToLowerReturn(fIter[0]) == "gene") {
+    if (stringToLowerReturn(fIter[0]) == "gene" ||
+    		stringToLowerReturn(fIter[0]) == "target" ) {
       readingGene = true;
       readingBarcode = false;
       continue;

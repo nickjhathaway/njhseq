@@ -276,7 +276,9 @@ void setUpSampleDirs(
 		bool separatedDirs) {
 	auto topDir = bib::replaceString(mainDirectoryName, "./", "");
 	table inTab(sampleNamesFilename, "whitespace", false);
-	std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> sampleDirWithSubDirs;
+
+	//first key is target/index, second key is samp, value is vector of rep names and then the full path name for that rep
+	std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>>> sampleDirWithSubDirs;
 	for(const auto & rowPos : iter::range(inTab.content_.size())){
 		const auto & row = inTab.content_[rowPos];
 		if(row.empty() || row[0].front() == '#'){
@@ -284,70 +286,65 @@ void setUpSampleDirs(
 		}
 		if (row.size() < 3) {
 			throw std::runtime_error { bib::err::F()
-					<< "setUpSampleDirs: rows should have at least 3 columns, row: "
+					<< __PRETTY_FUNCTION__ << ": rows should have at least 3 columns, row: "
 					<< rowPos << "has " << row.size() };
 		}
+		VecStr repNames;
 		for(const auto & colPos : iter::range<uint32_t>(2,row.size())){
 			if(row[colPos] == "" || allWhiteSpaceStr(row[colPos])){
 				continue;
 			}
-			sampleDirWithSubDirs[row[1]].emplace_back(row[colPos], row[0]);
+			repNames.emplace_back(row[colPos]);
+		}
+		for(const auto & rep : repNames){
+			sampleDirWithSubDirs[row[0]][row[1]].emplace_back(std::pair<std::string, std::string>{rep,""});
 		}
 	}
-	std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> indexsWithFullSampPathNames;
 	auto cwd = get_cwd();
-	for(const auto & sDirs : sampleDirWithSubDirs){
-		std::cout << bib::bashCT::bold << "Making Sample Dir: " << bib::bashCT::green << topDir + sDirs.first
-				<< bib::bashCT::reset << std::endl;
-		std::string sampDir = "";
-		if(separatedDirs){
-			try {
-				std::string indexDirName = sDirs.second.front().second;
-				if(!bib::files::bfs::exists(bib::files::join(topDir,sDirs.second.front().second))){
-					 bib::files::makeDir(topDir, sDirs.second.front().second);
+	try {
+		if (separatedDirs) {
+			for (auto & targetDirs : sampleDirWithSubDirs) {
+				std::string targetDir = bib::files::makeDir(topDir, targetDirs.first);
+				for (auto & sampDirs : targetDirs.second) {
+					std::string sampDir = bib::files::makeDir(targetDir, sampDirs.first);
+					for (auto & rep : sampDirs.second) {
+						std::string repDir = bib::files::makeDir(sampDir, rep.first);
+						rep.second = bib::files::join(cwd, repDir);
+					}
 				}
-				sampDir = bib::files::makeDir(topDir, indexDirName + "/" + sDirs.first);
-			} catch (std::exception & e) {
-				std::stringstream ss;
-				ss << bib::bashCT::boldRed(e.what()) << std::endl;
-				throw std::runtime_error{ss.str()};
 			}
-		}else{
-			try {
-				sampDir = bib::files::makeDir(topDir, sDirs.first);
-			} catch (std::exception & e) {
-				std::stringstream ss;
-				ss << bib::bashCT::boldRed(e.what()) << std::endl;
-				throw std::runtime_error{ss.str()};
+		} else {
+			for (auto & targetDirs : sampleDirWithSubDirs) {
+				for (auto & sampDirs : targetDirs.second) {
+					std::string sampDir = bib::files::join(topDir, sampDirs.first);
+					if(!bib::files::bfs::exists(sampDir)){
+						bib::files::makeDir(topDir, sampDirs.first);
+					}
+					for (auto & rep : sampDirs.second) {
+						std::string repDir = bib::files::makeDir(sampDir, rep.first);
+						rep.second = bib::files::join(cwd, repDir);
+					}
+				}
 			}
 		}
-
-		for(const auto & midNames : sDirs.second){
-			std::cout << bib::bashCT::bold << "Making Mid Dir: " << bib::bashCT::blue << sampDir + midNames.first
-					<< bib::bashCT::reset << std::endl;
-			std::string midDir = "";
-			try {
-				midDir = bib::files::makeDir(sampDir,midNames.first);
-			} catch (std::exception & e) {
-				std::stringstream ss;
-				std::cerr << bib::bashCT::boldRed(e.what()) << std::endl;
-				throw std::runtime_error{ss.str()};
+	} catch (std::exception & e) {
+		std::stringstream ss;
+		ss << bib::bashCT::boldRed(e.what()) << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	//log the locations
+	std::string indexDir = bib::files::makeDir(mainDirectoryName,
+			"locationByIndex");
+	for (const auto & targetDirs : sampleDirWithSubDirs) {
+		std::ofstream indexFile;
+		openTextFile(indexFile, indexDir + targetDirs.first, ".tab.txt", false,
+				false);
+		for (const auto & sampDirs : targetDirs.second) {
+			for (auto & rep : sampDirs.second) {
+				indexFile << rep.first << "\t" << rep.second << std::endl;
 			}
-			bib::files::appendAsNeeded(cwd, "/");
-			indexsWithFullSampPathNames[midNames.second].emplace_back(midNames.first, cwd + midDir);
 		}
 	}
-
-  std::string indexDir = bib::files::makeDir(mainDirectoryName, "locationByIndex");
-  for (const auto& indexIter : indexsWithFullSampPathNames) {
-    std::ofstream indexFile;
-    openTextFile(indexFile, indexDir + replaceString(indexIter.first),
-                 ".tab.txt", false, false);
-    for (const auto& spIter : indexIter.second) {
-      indexFile << spIter.first << "\t"
-                << replaceString(spIter.second, "./", "") << std::endl;
-    }
-  }
 }
 
 std::string genHtmlStrForPsuedoMintree(std::string jsonFileName){
