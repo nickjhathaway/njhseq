@@ -525,6 +525,7 @@ class Packages():
         pack = CPPLibPackage(name, buildCmd, self.dirMaster_, "git", "v0.1")
         pack.addVersion(url, "develop")
         pack.addVersion(url, "v0.1")
+        pack.addVersion(url, "release__v0.2")
         return pack 
       
     def __SeekDeep(self):
