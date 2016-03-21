@@ -1,7 +1,6 @@
-#include "gapScoring.hpp"
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,6 +18,7 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+#include "gapScoring.hpp"
 
 namespace bibseq {
 // Constructors
@@ -117,15 +117,19 @@ bool gapScoringParameters::operator>(const gapScoringParameters& otherPars) cons
 bool gapScoringParameters::operator<(const gapScoringParameters& otherPars) const {
   return (gapOpen_ < otherPars.gapOpen_);
 }
-void gapScoringParameters::printDescription(std::ostream& out, bool deep) const {
-  out << "gapScoringParameters{" << std::endl << "gapOpen_:" << gapOpen_
-      << std::endl << "gapExtend_:" << gapExtend_ << std::endl
-      << "gapLeftOpen_:" << gapLeftOpen_ << std::endl
-      << "gapLeftExtend_:" << gapLeftExtend_ << std::endl
-      << "gapRightOpen_:" << gapRightOpen_ << std::endl
-      << "gapRightExtend_:" << gapRightExtend_ << std::endl
-      << "uniqueIdentifer_:" << uniqueIdentifer_ << std::endl;
-  out << "}" << std::endl;
+
+
+Json::Value gapScoringParameters::toJson() const {
+	Json::Value ret;
+	ret["class"] = "bibseq::gapScoringParameters";
+	ret["gapOpen_"] = bib::json::toJson(gapOpen_);
+	ret["gapExtend_"] = bib::json::toJson(gapExtend_);
+	ret["gapRightOpen_"] = bib::json::toJson(gapRightOpen_);
+	ret["gapRightExtend_"] = bib::json::toJson(gapRightExtend_);
+	ret["gapLeftOpen_"] = bib::json::toJson(gapLeftOpen_);
+	ret["gapLeftExtend_"] = bib::json::toJson(gapLeftExtend_);
+	ret["uniqueIdentifer_"] = bib::json::toJson(uniqueIdentifer_);
+	return ret;
 }
 
 

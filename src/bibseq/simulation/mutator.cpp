@@ -1,6 +1,12 @@
+////  mutator.cpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 1/1/14.
+//  Copyright (c) 2014 Nicholas Hathaway. All rights reserved.
+//
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,13 +24,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-////  mutator.cpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 1/1/14.
-//  Copyright (c) 2014 Nicholas Hathaway. All rights reserved.
-//
-
 #include "mutator.hpp"
 namespace bibseq {
 

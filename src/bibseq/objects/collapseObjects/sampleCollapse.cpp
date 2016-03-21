@@ -1,24 +1,4 @@
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-//
+
 //
 //  sampleCollapse.cpp
 //  sequenceTools
@@ -113,7 +93,7 @@ void sampleCollapse::clusterOnPerId(collapser &collapserObj,
 // excludes
 void sampleCollapse::excludeChimeras(bool update) {
   for (auto &clus : collapsed_.clusters_) {
-    if (clusterVec::isClusterAtLeastHalfChimeric(clus.reads_)) {
+    if (clus.isClusterAtLeastHalfChimeric()) {
       clus.seqBase_.markAsChimeric();
       clus.remove = true;
     }
@@ -131,7 +111,7 @@ void sampleCollapse::excludeChimeras(bool update) {
 // excludes
 void sampleCollapse::excludeChimeras(bool update, double fracCutOff) {
   for (auto &clus : collapsed_.clusters_) {
-    if (clusterVec::isClusterAtLeastChimericCutOff(clus.reads_, fracCutOff)) {
+    if (clus.isClusterAtLeastChimericCutOff(fracCutOff)) {
       clus.seqBase_.markAsChimeric();
       clus.remove = true;
     }
@@ -174,7 +154,7 @@ void sampleCollapse::renameClusters(const std::string &sortBy) {
   readVecSorter::sortReadVector(collapsed_.clusters_, sortBy);
   renameReadNames(collapsed_.clusters_, sampName_, true, false);
   for (auto &clus : collapsed_.clusters_) {
-    if (clusterVec::isClusterAtLeastHalfChimeric(clus.reads_)) {
+    if (clus.isClusterAtLeastHalfChimeric()) {
       clus.seqBase_.markAsChimeric();
       //clus.remove = true;
     }
@@ -249,7 +229,7 @@ std::vector<sampleCluster> sampleCollapse::createOutput(
   // need to change subreads names so look up can happen correctly
   for (auto &out : output) {
     for (auto &subRead : out.reads_) {
-      subRead.seqBase_.name_ = out.seqBase_.name_;
+      subRead->seqBase_.name_ = out.seqBase_.name_;
     }
   }
   return output;
@@ -257,31 +237,32 @@ std::vector<sampleCluster> sampleCollapse::createOutput(
 
 // writing
 void sampleCollapse::writeExcluded(const std::string &outDirectory,
-		const readObjectIOOptions & ioOptions) const {
+		const SeqIOOptions & ioOptions) const {
   excluded_.writeClusters(outDirectory + sampName_, ioOptions);
 }
 
 void sampleCollapse::writeExcludedOriginalClusters(const std::string &outDirectory,
-		const readObjectIOOptions & ioOptions) const {
+		const SeqIOOptions & ioOptions) const {
   for (const auto &clus : excluded_.clusters_) {
-    clus.writeOutClusters(outDirectory, ioOptions);
+    clus.writeClustersInDir(outDirectory, ioOptions);
   }
 }
 
 void sampleCollapse::writeInitial(const std::string &outDirectory,
-		const readObjectIOOptions & ioOptions) const {
+		const SeqIOOptions & ioOptions) const {
   input_.writeClusters(outDirectory + sampName_, ioOptions);
 }
 
 void sampleCollapse::writeFinal(const std::string &outDirectory,
-		const readObjectIOOptions & ioOptions) const {
+		const SeqIOOptions & ioOptions) const {
   collapsed_.writeClusters(outDirectory + sampName_, ioOptions);
 }
 
-void sampleCollapse::writeFinalOrignalClusters(const std::string &outDirectory, const readObjectIOOptions & ioOptions) const {
-  for (const auto &clus : collapsed_.clusters_) {
-    clus.writeOutClusters(outDirectory, ioOptions);
-  }
+void sampleCollapse::writeFinalOrignalClusters(const std::string &outDirectory,
+		const SeqIOOptions & ioOptions) const {
+	for (const auto &clus : collapsed_.clusters_) {
+		clus.writeClustersInDir(outDirectory, ioOptions);
+	}
 }
 
 

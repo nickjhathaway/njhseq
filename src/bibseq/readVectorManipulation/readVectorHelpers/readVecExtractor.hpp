@@ -1,7 +1,14 @@
 #pragma once
 //
+//  extraction.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 8/11/13.
+//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,14 +26,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  extraction.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 8/11/13.
-//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
-//
-
 #include "bibseq/alignment.h"
 #include "bibseq/utils.h"
 #include "bibseq/readVectorManipulation/readVectorOperations.h"
@@ -405,7 +404,7 @@ class readVecExtractor {
   		uint64_t maxReadLen = 0;
   		readVec::getMaxLength(reads, maxReadLen);
   		substituteMatrix scoring(2,-2);
-  		scoring.setWithDegenScoring(2,-2);
+  		scoring.setWithDegenScoringCaseSense(2,-2);
   		aligner alignerObj(maxReadLen, gapScoringParameters(7,1,7,1,7,1), scoring);
   		std::vector<uint64_t> eraseThese;
   		//std::cout << "in the errors" << std::endl;
@@ -522,7 +521,7 @@ class readVecExtractor {
   				}
   			}
   		}
-  		for(const auto & rem : iter::reverse(eraseThese)){
+  		for(const auto & rem : iter::reversed(eraseThese)){
   			unmatched.erase(unmatched.begin() + rem);
   		}
   	}

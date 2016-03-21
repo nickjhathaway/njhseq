@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -17,7 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
 //
 #include "seqUtil.hpp"
 #include "bibseq/simulation/mutator.hpp"
@@ -743,7 +742,8 @@ std::map<std::string, std::pair<std::string, std::string>> seqUtil::readPrimers(
     bool readingBarcode = false;
     size_t barcodeSize = 0;
     for (const auto &row : inTab.content_) {
-      if (stringToLowerReturn(row[0]) == "gene") {
+      if (stringToLowerReturn(row[0]) == "gene" ||
+      		stringToLowerReturn(row[0]) == "target" )  {
         readingGene = true;
         readingBarcode = false;
         continue;
@@ -825,8 +825,7 @@ table seqUtil::readPrimers(const std::string &idFileName,
   bool readingGene = forceRead;
   bool readingBarcode = false;
   for (const auto &fIter : inTab.content_) {
-    if (stringToLowerReturn(fIter[0]) == "gene" ||
-    		stringToLowerReturn(fIter[0]) == "target" ) {
+    if (stringToLowerReturn(fIter[0]) == "gene") {
       readingGene = true;
       readingBarcode = false;
       continue;
@@ -1015,19 +1014,18 @@ std::string seqUtil::getSeqFromFlow(const std::vector<double> &flows,
 }
 
 void seqUtil::processQualityWindowString(const std::string &qualityWindowString,
-                                         int &qualityWindowLength,
-                                         int &qualityWindowStep,
-                                         int &qualityWindowThres) {
-  VecStr toks = tokenizeString(qualityWindowString, ",");
-  if (toks.size() != 3) {
-    std::cout << "Error qualityWindow must be given with three values separatd "
-                 "by two commas like \'50,5,20\' not \'" << qualityWindowString
-              << "\'" << std::endl;
-  } else {
-    qualityWindowLength = atoi(toks[0].c_str());
-    qualityWindowStep = atoi(toks[1].c_str());
-    qualityWindowThres = atoi(toks[2].c_str());
-  }
+		uint32_t &qualityWindowLength, uint32_t &qualityWindowStep,
+		uint32_t &qualityWindowThres) {
+	VecStr toks = tokenizeString(qualityWindowString, ",");
+	if (toks.size() != 3) {
+		std::cout << "Error qualityWindow must be given with three values separatd "
+				"by two commas like \'50,5,20\' not \'" << qualityWindowString << "\'"
+				<< std::endl;
+	} else {
+		qualityWindowLength = atoi(toks[0].c_str());
+		qualityWindowStep = atoi(toks[1].c_str());
+		qualityWindowThres = atoi(toks[2].c_str());
+	}
 }
 
 bool seqUtil::checkQualityWindow(int windowSize, int minimumAverageQaul,
@@ -1407,7 +1405,7 @@ std::string seqUtil::createDegenerativeString(const VecStr &dnaString) {
     }
   }
 
-  std::vector<charCounterArray> counters(firstSize);
+  std::vector<charCounter> counters(firstSize);
   for (auto i : iter::range(firstSize)) {
     for (const auto &dna : dnaString) {
       counters[i].increaseCountOfBase(dna[i]);

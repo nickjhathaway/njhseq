@@ -1,7 +1,14 @@
 #pragma once
 //
+//  trimmers.hpp
+//  sequenceTools
+//
+//  Created by Nick Hathaway on 2/3/13.
+//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,14 +26,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  trimmers.hpp
-//  sequenceTools
-//
-//  Created by Nick Hathaway on 2/3/13.
-//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
-//
-
 #include "bibseq/utils.h"
 #include "bibseq/readVectorManipulation/readVectorOperations.h"
 #include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
@@ -52,8 +51,8 @@ class readVecSplitter {
       const std::vector<T>& vec, std::vector<T>& badReads, uint32_t& splitCount,
       bool mark = true) {
     std::vector<uint32_t> lengths;
-    for (const auto& iter : vec) {
-      lengths.push_back(iter.seqBase_.seq_.length());
+    for (const auto& read : vec) {
+      lengths.push_back(getSeqBase(read).seq_.length());
     }
     double meanLength = vectorMean(lengths);
     double sdLength = vectorStandardDeviationSamp(lengths);
@@ -64,7 +63,7 @@ class readVecSplitter {
       } else {
         badReads.push_back(iter);
         if (mark) {
-          badReads.back().seqBase_.name_.append("_len>2sdFromMean");
+          getSeqBase(badReads.back()).name_.append("_len>2sdFromMean");
         }
         ++splitCount;
       }
@@ -87,18 +86,18 @@ class readVecSplitter {
       const std::vector<T>& vec, int basesWithin, std::vector<T>& badReads,
       uint32_t& splitCount, bool mark = true) {
     std::vector<uint32_t> lengths;
-    for (const auto& iter : vec) {
-      lengths.push_back(iter.seqBase_.seq_.length());
+    for (const auto& read : vec) {
+      lengths.push_back(getSeqBase(read).seq_.length());
     }
     double meanLength = vectorMean(lengths);
     std::vector<T> normal;
-    for (const auto& iter : vec) {
-      if (fabs(iter.seqBase_.seq_.length() - meanLength) <= basesWithin) {
-        normal.push_back(iter);
+    for (const auto& read : vec) {
+      if (fabs(getSeqBase(read).seq_.length() - meanLength) <= basesWithin) {
+        normal.push_back(read);
       } else {
-        badReads.push_back(iter);
+        badReads.push_back(read);
         if (mark) {
-          badReads.back().seqBase_.name_.append(
+          getSeqBase(badReads.back()).name_.append(
               "_lenMoreThan" + std::to_string(basesWithin) + "FromMean");
         }
         ++splitCount;
@@ -123,13 +122,13 @@ class readVecSplitter {
       const std::vector<T>& vec, int basesWithin, int given,
       std::vector<T>& badReads, uint32_t& splitCount, bool mark = true) {
     std::vector<T> normal;
-    for (const auto& iter : vec) {
-      if (std::abs(static_cast<int32_t>(iter.seqBase_.seq_.length()) - given) <= basesWithin) {
-        normal.push_back(iter);
+    for (const auto& read : vec) {
+      if (std::abs(static_cast<int32_t>(getSeqBase(read).seq_.length()) - given) <= basesWithin) {
+        normal.push_back(read);
       } else {
-        badReads.push_back(iter);
+        badReads.push_back(read);
         if (mark) {
-          badReads.back().seqBase_.name_.append("_lenMoreThan" +
+          getSeqBase(badReads.back()).name_.append("_lenMoreThan" +
                                                 std::to_string(basesWithin) +
                                                 "From" + std::to_string(given));
         }
@@ -141,7 +140,7 @@ class readVecSplitter {
 
   template <class T>
   static std::pair<std::vector<T>, std::vector<T>> splitVectorBellowLength(
-      const std::vector<T>& vec, int minLength) {
+      const std::vector<T>& vec, uint32_t minLength) {
     std::vector<T> outliers;
     uint32_t splitCount = 0;
     std::vector<T> normal =
@@ -151,19 +150,19 @@ class readVecSplitter {
 
   template <class T>
   static std::vector<T> splitVectorBellowLengthAdd(const std::vector<T>& vec,
-                                                   int minLength,
+                                                   uint32_t minLength,
                                                    std::vector<T>& badReads,
                                                    uint32_t& splitCount,
                                                    bool mark = true) {
     std::vector<T> goodReads;
-    for (const auto& iter : vec) {
-      if ((int)iter.seqBase_.seq_.length() >= minLength) {
-        goodReads.push_back(iter);
+    for (const auto& read : vec) {
+      if (getSeqBase(read).seq_.length() >= minLength) {
+        goodReads.push_back(read);
       } else {
         ++splitCount;
-        badReads.push_back(iter);
+        badReads.push_back(read);
         if (mark) {
-          badReads.back().seqBase_.name_.append("_length<" +
+          getSeqBase(badReads.back()).name_.append("_length<" +
                                                 std::to_string(minLength));
         }
       }
@@ -173,7 +172,7 @@ class readVecSplitter {
 
   template <class T>
   static std::pair<std::vector<T>, std::vector<T>> splitVectorOnQualCheck(
-      const std::vector<T>& vec, int qualCheck, double cutOff) {
+      const std::vector<T>& vec, uint32_t qualCheck, double cutOff) {
     std::vector<T> outliers;
     uint32_t splitCount = 0;
 
@@ -184,19 +183,19 @@ class readVecSplitter {
 
   template <class T>
   static std::vector<T> splitVectorOnQualCheckAdd(const std::vector<T>& vec,
-  																								int qualCheck, double cutOff,
+  																								uint32_t qualCheck, double cutOff,
                                                    std::vector<T>& badReads,
                                                    uint32_t& splitCount,
                                                    bool mark = true) {
     std::vector<T> goodReads;
-    for (const auto& iter : vec) {
-      if (iter.fractionAboveQualCheck_ >= cutOff) {
-        goodReads.push_back(iter);
+    for (const auto& read : vec) {
+      if (read.fractionAboveQualCheck_ >= cutOff) {
+        goodReads.push_back(read);
       } else {
         ++splitCount;
-        badReads.push_back(iter);
+        badReads.push_back(read);
         if (mark) {
-          badReads.back().seqBase_.name_.append("_q" + to_string(qualCheck) + "<" +
+          getSeqBase(badReads.back()).name_.append("_q" + to_string(qualCheck) + "<" +
                                                 std::to_string(cutOff));
         }
       }
@@ -206,7 +205,7 @@ class readVecSplitter {
 
   template <class T>
   static std::pair<std::vector<T>, std::vector<T>> splitVectorAboveLength(
-      const std::vector<T>& vec, int maxLength) {
+      const std::vector<T>& vec, uint32_t maxLength) {
     std::vector<T> outliers;
     uint32_t splitCount = 0;
     std::vector<T> normal =
@@ -215,19 +214,19 @@ class readVecSplitter {
   };
   template <class T>
   static std::vector<T> splitVectorAboveLengthAdd(const std::vector<T>& vec,
-                                                  int maxLength,
+                                                  uint32_t maxLength,
                                                   std::vector<T>& badReads,
                                                   uint32_t& splitCount,
                                                   bool mark = true) {
     std::vector<T> normal;
-    for (const auto& iter : vec) {
-      if ((int)iter.seqBase_.seq_.length() <= maxLength) {
-        normal.push_back(iter);
+    for (const auto& read : vec) {
+      if (getSeqBase(read).seq_.length() <= maxLength) {
+        normal.push_back(read);
       } else {
         ++splitCount;
-        badReads.push_back(iter);
+        badReads.push_back(read);
         if (mark) {
-          badReads[badReads.size() - 1]
+          badReads.back()
               .seqBase_.name_.append("_length>" + std::to_string(maxLength));
         }
       }
@@ -237,7 +236,7 @@ class readVecSplitter {
 
   template <class T>
   static std::pair<std::vector<T>, std::vector<T>> splitVectorBetweenLengths(
-      const std::vector<T>& vec, int minLength, int maxLength) {
+      const std::vector<T>& vec, uint32_t minLength, uint32_t maxLength) {
     std::vector<T> outliers;
     uint32_t splitCount = 0;
     std::vector<T> normal = splitVectorBetweenLengthAdd(
@@ -246,7 +245,7 @@ class readVecSplitter {
   };
   template <class T>
   static std::vector<T> splitVectorBetweenLengthAdd(
-      const std::vector<T>& vec, int minLength, int maxLength,
+      const std::vector<T>& vec, uint32_t minLength, uint32_t maxLength,
       std::vector<T>& badReads, uint32_t& splitCount, bool mark = true) {
     std::vector<T> goodReads =
         splitVectorAboveLengthAdd(vec, maxLength, badReads, splitCount, mark);
@@ -257,7 +256,7 @@ class readVecSplitter {
 
   template <class T>
   static std::pair<std::vector<T>, std::vector<T>> splitVectorOnReadCount(
-      const std::vector<T>& reads, int runCutoff) {
+      const std::vector<T>& reads, uint32_t runCutoff) {
     std::vector<T> other;
     uint32_t splitCount = 0;
     std::vector<T> ans =
@@ -267,18 +266,18 @@ class readVecSplitter {
 
   template <class T>
   static std::vector<T> splitVectorOnReadCountAdd(const std::vector<T>& reads,
-                                                  int runCutoff,
+  		uint32_t runCutoff,
                                                   std::vector<T>& badReads,
                                                   uint32_t& splitCount,
                                                   bool mark = true) {
     std::vector<T> ans;
-    for (const auto& iter : reads) {
-      if (iter.seqBase_.cnt_ > runCutoff) {
-        ans.push_back(iter);
+    for (const auto& read : reads) {
+      if (getSeqBase(read).cnt_ > runCutoff) {
+        ans.push_back(read);
       } else {
-        badReads.push_back(iter);
+        badReads.push_back(read);
         if (mark) {
-          badReads.back().seqBase_.name_.append("_clusterSize<=" +
+          getSeqBase(badReads.back()).name_.append("_clusterSize<=" +
                                                 std::to_string(runCutoff));
         }
         ++splitCount;
@@ -301,13 +300,13 @@ class readVecSplitter {
       const std::vector<T>& reads, double fractionCutOff,
       std::vector<T>& badReads, uint32_t& splitCount, bool mark = true) {
     std::vector<T> ans;
-    for (const auto& iter : reads) {
-      if (iter.seqBase_.frac_ >= fractionCutOff) {
-        ans.push_back(iter);
+    for (const auto& read : reads) {
+      if (getSeqBase(read).frac_ >= fractionCutOff) {
+        ans.push_back(read);
       } else {
-        badReads.push_back(iter);
+        badReads.push_back(read);
         if (mark) {
-          badReads.back().seqBase_.name_.append("_fraction<=" +
+          getSeqBase(badReads.back()).name_.append("_fraction<=" +
                                                 std::to_string(fractionCutOff));
         }
         ++splitCount;
@@ -330,14 +329,14 @@ class readVecSplitter {
       const std::vector<T>& reads, std::vector<T>& badReads, uint32_t& splitCount,
       const std::string& markWith = "_remove", bool mark = true) {
     std::vector<T> ans;
-    for (const auto& iter : reads) {
-      if (!iter.remove) {
-        ans.push_back(iter);
+    for (const auto& read : reads) {
+      if (!read.remove) {
+        ans.push_back(read);
       } else {
         ++splitCount;
-        badReads.push_back(iter);
+        badReads.push_back(read);
         if (mark) {
-          badReads.back().seqBase_.name_.append(markWith);
+          getSeqBase(badReads.back()).name_.append(markWith);
         }
       }
     }
@@ -358,10 +357,10 @@ class readVecSplitter {
       const std::vector<T>& reads, std::vector<T>& badReads,
       uint32_t& splitCount) {
     std::vector<T> ans;
-    charCounterArray mainCounter;
-    for (auto& rIter : reads) {
-    	charCounterArray counter;
-    	counter.increaseCountByString(rIter.seqBase_.seq_);
+    charCounter mainCounter;
+    for (const auto& read : reads) {
+    	charCounter counter;
+    	counter.increaseCountByString(getSeqBase(read).seq_);
       for (const auto& letPos : iter::range(counter.fractions_.size())) {
         mainCounter.fractions_[letPos] += counter.fractions_[letPos];
       }
@@ -370,9 +369,9 @@ class readVecSplitter {
       iter = iter / reads.size();
     }
     std::vector<double> differences;
-    for (auto& rIter : reads) {
-    	charCounterArray counter;
-    	counter.increaseCountByString(rIter.seqBase_.seq_);
+    for (const auto& read : reads) {
+    	charCounter counter;
+    	counter.increaseCountByString(getSeqBase(read).seq_);
       double difference = 0.00;
       for (const auto& letPos : iter::range(counter.fractions_.size())) {
         difference += fabs(mainCounter.fractions_[letPos] - counter.fractions_[letPos]);
@@ -385,7 +384,7 @@ class readVecSplitter {
     std::vector<T> in;
     std::vector<T> out;
     for (auto& rIter : reads) {
-    	charCounterArray counter;
+    	charCounter counter;
     	counter.increaseCountByString(rIter.seqBase_.seq_);
       double difference = 0.00;
       for (const auto& letPos : iter::range(counter.fractions_.size())){
@@ -406,7 +405,7 @@ class readVecSplitter {
   template <class T>
   static std::pair<std::vector<T>, std::vector<T>>
   splitVectorOnNucleotideComposition(const std::vector<T>& reads,
-                                     charCounterArray mainCounter) {
+                                     charCounter mainCounter) {
     std::vector<T> ans;
     std::vector<T> other;
     uint32_t splitCount = 0;
@@ -418,12 +417,12 @@ class readVecSplitter {
   template <class T>
   static std::vector<T> splitVectorOnNucleotideCompositionAdd(
       const std::vector<T>& reads, std::vector<T>& badReads,
-			charCounterArray mainCounter, uint32_t& splitCount) {
+			charCounter mainCounter, uint32_t& splitCount) {
     std::vector<T> ans;
     std::vector<double> differences;
-    for (auto& rIter : reads) {
-    	charCounterArray counter;
-    	counter.increaseCountByString(rIter.seqBase_.seq_);
+    for (const auto& read : reads) {
+    	charCounter counter;
+    	counter.increaseCountByString(getSeqBase(read).seq_);
       double difference = 0.00;
       for (const auto& letPos : iter::range(counter.fractions_.size())) {
         difference += fabs(mainCounter.fractions_[letPos] - counter.fractions_[letPos]);
@@ -435,9 +434,9 @@ class readVecSplitter {
     double meanCalc = vectorMean(differences);
     std::vector<T> in;
     std::vector<T> out;
-    for (auto& rIter : reads) {
-    	charCounterArray counter;
-    	counter.increaseCountByString(rIter.seqBase_.seq_);
+    for (const auto& read : reads) {
+    	charCounter counter;
+    	counter.increaseCountByString(getSeqBase(read).seq_);
       double difference = 0.00;
       for (const auto& letPos : iter::range(counter.fractions_.size())){
 
@@ -445,10 +444,10 @@ class readVecSplitter {
         // std::cout<<difference<<std::endl;
       }
       if (difference > (meanCalc + 2 * stdCalc)) {
-        badReads.push_back(rIter);
+        badReads.push_back(read);
         ++splitCount;
       } else {
-        ans.push_back(rIter);
+        ans.push_back(read);
       }
     }
     return ans;
@@ -476,18 +475,15 @@ class readVecSplitter {
     }
     // aligner object
     auto scoringMatrixMap = substituteMatrix::createDegenScoreMatrix(1,-1);
-    kmerMaps emptyMaps;
-    gapScoringParameters gapPars(7, 1, 7, 1, 0, 0);
-    aligner alignerObj = aligner(maxReadLength, gapPars,scoringMatrixMap, emptyMaps, 20, 15, 5,
-                                 false);
-
-    for (auto& rIter : reads) {
-      alignerObj.alignVec(compareObject, rIter, false);
+    gapScoringParameters gapPars(5, 1, 5, 1, 0, 0);
+    aligner alignerObj = aligner(maxReadLength, gapPars,scoringMatrixMap);
+    for (const auto& read : reads) {
+      alignerObj.alignCache(compareObject, read, false);
       if (alignerObj.parts_.score_ < 0) {
         ++splitCount;
-        badReads.push_back(rIter);
+        badReads.push_back(read);
       } else {
-        ans.push_back(rIter);
+        ans.push_back(read);
       }
     }
     return ans;
@@ -495,7 +491,7 @@ class readVecSplitter {
 
   template <class T>
   static std::pair<std::vector<T>, std::vector<T>> splitVectorSeqContaining(
-      const std::vector<T>& reads, const std::string& str, int occurences) {
+      const std::vector<T>& reads, const std::string& str, uint32_t occurences) {
     std::vector<T> other;
     uint32_t splitCount = 0;
     std::vector<T> ans = splitVectorSeqContainingAdd(reads, str, occurences,
@@ -504,20 +500,20 @@ class readVecSplitter {
   };
   template <class T>
   static std::vector<T> splitVectorSeqContainingAdd(
-      const std::vector<T>& reads, const std::string& str, int occurences,
+      const std::vector<T>& reads, const std::string& str, uint32_t occurences,
       std::vector<T>& badReads, uint32_t& splitCount, bool mark = true) {
     std::vector<T> goodReads;
     std::string lowerCaseSearch = stringToLowerReturn(str);
-    for (const auto& iter : reads) {
-      if (countOccurences(iter.seqBase_.seq_, str) +
-              countOccurences(iter.seqBase_.seq_, lowerCaseSearch) <
+    for (const auto& read : reads) {
+      if (countOccurences(getSeqBase(read).seq_, str) +
+              countOccurences(getSeqBase(read).seq_, lowerCaseSearch) <
           occurences) {
-        goodReads.push_back(iter);
+        goodReads.push_back(read);
       } else {
-        badReads.push_back(iter);
+        badReads.push_back(read);
         ++splitCount;
         if (mark) {
-          badReads.back().seqBase_.name_.append(
+          getSeqBase(badReads.back()).name_.append(
               "_contained>" + std::to_string(occurences - 1) + "_" + str);
         }
       }
@@ -540,14 +536,14 @@ class readVecSplitter {
       const std::vector<T>& reads, const std::string& exclusionString,
       std::vector<T>& badReads, uint32_t& splitCount, bool mark = true) {
     std::vector<T> ans;
-    for (const auto& iter : reads) {
-      if (iter.seqBase_.name_.find(exclusionString) == std::string::npos) {
-        ans.push_back(iter);
+    for (const auto& read : reads) {
+      if (getSeqBase(read).name_.find(exclusionString) == std::string::npos) {
+        ans.push_back(read);
       } else {
         ++splitCount;
-        badReads.push_back(iter);
+        badReads.push_back(read);
         if (mark) {
-          badReads.back().seqBase_.name_.append("_seqNameContains:" +
+          getSeqBase(badReads.back()).name_.append("_seqNameContains:" +
                                                 exclusionString);
         }
       }
@@ -573,19 +569,19 @@ class readVecSplitter {
       std::vector<T>& badReads, uint32_t& splitCount, bool mark = true) {
     bool passed = true;
     std::vector<T> goodReads;
-    for (const auto& iter : reads) {
+    for (const auto& read : reads) {
     	passed = seqUtil::checkQualityWindow(qualityWindowLength, qualityWindowThres,
-    	                                        qualityWindowStep, iter.seqBase_.qual_);
+    	                                        qualityWindowStep, getSeqBase(read).qual_);
       if (passed) {
-        goodReads.push_back(iter);
+        goodReads.push_back(read);
       } else {
-        badReads.push_back(iter);
+        badReads.push_back(read);
         ++splitCount;
         if (mark) {
           std::stringstream window;
           window << "wl:" << qualityWindowLength << ",ws:" << qualityWindowStep
                  << ",wt:" << qualityWindowThres;
-          badReads.back().seqBase_.name_.append("_failedWindowOf_" +
+          getSeqBase(badReads.back()).name_.append("_failedWindowOf_" +
                                                 window.str());
         }
       }
@@ -613,22 +609,22 @@ class readVecSplitter {
       int minLen, std::vector<T>& badReads, uint32_t& splitCount,
       bool mark = true) {
     std::vector<T> goodReads;
-    for (const auto& iter : reads) {
+    for (const auto& read : reads) {
       uint32_t windowFailedPos = 0;
       windowFailedPos = seqUtil::checkQualityWindowPos(
                   qualityWindowLength, qualityWindowThres, qualityWindowStep,
-                  iter.seqBase_.qual_);
+									getSeqBase(read).qual_);
       if (windowFailedPos + 1 > minLen) {
-        goodReads.push_back(iter);
+        goodReads.push_back(read);
         goodReads.back().setClip(0, windowFailedPos - 1);
       } else {
-        badReads.push_back(iter);
+        badReads.push_back(read);
         ++splitCount;
         if (mark) {
           std::stringstream window;
           window << "wl:" << qualityWindowLength << ",ws:" << qualityWindowStep
                  << ",wt:" << qualityWindowThres;
-          badReads.back().seqBase_.name_.append("_failedWindowOf_" +
+          getSeqBase(badReads.back()).name_.append("_failedWindowOf_" +
                                                 window.str());
         }
       }
@@ -640,7 +636,7 @@ class readVecSplitter {
   template <class T>
   static std::pair<std::vector<T>, std::vector<T>>
   splitVectorOnNsPlusLength(const std::vector<T>& reads,
-                                       int minLen) {
+                                       uint32_t minLen) {
     std::vector<T> other;
     uint32_t splitCount = 0;
     std::vector<T> ans = splitVectorOnNsPlusLengthAdd(
@@ -651,11 +647,11 @@ class readVecSplitter {
   template <class T>
   static std::vector<T> splitVectorOnNsPlusLengthAdd(
       const std::vector<T>& reads,
-      int minLen, std::vector<T>& badReads, uint32_t& splitCount,
+      uint32_t minLen, std::vector<T>& badReads, uint32_t& splitCount,
       bool mark = true) {
     std::vector<T> goodReads;
     for (const auto& read : reads) {
-      auto firstN = read.seqBase_.seq_.find("N");
+      auto firstN = getSeqBase(read).seq_.find("N");
       if(firstN > minLen){
       	goodReads.emplace_back(read);
       	if(firstN != std::string::npos){
@@ -667,7 +663,7 @@ class readVecSplitter {
         if (mark) {
           std::stringstream window;
           window << "N_before" << minLen;
-          badReads.back().seqBase_.name_.append(window.str());
+          getSeqBase(badReads.back()).name_.append(window.str());
         }
       }
     }
@@ -690,14 +686,14 @@ class readVecSplitter {
                                                   uint32_t& splitCount,
                                                   bool mark = true) {
     std::vector<T> goodReads;
-    for (auto iter : reads) {
-      if (iter.flowNoiseProcess(flowCutOff)) {
-        goodReads.push_back(iter);
+    for (auto read : reads) {
+      if (read.flowNoiseProcess(flowCutOff)) {
+        goodReads.push_back(read);
       } else {
         if (mark) {
-          iter.seqBase_.name_.append("_failedFlowNoiseProcessing");
+        	getSeqBase(read).name_.append("_failedFlowNoiseProcessing");
         }
-        badReads.push_back(iter);
+        badReads.push_back(read);
         ++splitCount;
       }
     }

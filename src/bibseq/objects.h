@@ -1,7 +1,14 @@
 #pragma once
 //
+//  objects.h
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 7/20/13.
+//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,18 +26,12 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  objects.h
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 7/20/13.
-//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
-//
 
 #include "bibseq/objects/seqObjects.h"
+#include "bibseq/objects/kmer.h"
 #include "bibseq/objects/helperObjects.h"
 #include "bibseq/objects/collapseObjects.h"
 #include "bibseq/objects/dataContainers.h"
 #include "bibseq/objects/seqContainers.h"
-#include "bibseq/objects/databaseObjects.h"
 #include "bibseq/objects/counters.h"
+#include "objects/BioDataObject.h"

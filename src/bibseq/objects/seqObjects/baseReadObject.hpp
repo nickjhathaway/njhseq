@@ -1,7 +1,14 @@
 #pragma once
 //
+//  baseReadObject.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 8/31/13.
+//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,32 +26,21 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  baseReadObject.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 8/31/13.
-//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
-//
-
 #include "bibseq/utils.h"
 #include "bibseq/objects/seqObjects/seqInfo.hpp"
 namespace bibseq {
 
 class baseReadObject {
 
- public:
-  baseReadObject() : seqBase_(seqInfo()) {}
-  baseReadObject(const seqInfo& seqBase);
+public:
+	baseReadObject();
+	baseReadObject(const seqInfo& seqBase);
 
-  seqInfo seqBase_;
+	seqInfo seqBase_;
+	using size_type = seqInfo::size_type;
+	virtual Json::Value toJson() const;
 
-  // description
-  virtual void printDescription(std::ostream& out, bool deep = false) const;
-  using size_type = seqInfo::size_type;
-
-  virtual ~baseReadObject(){}
-
+	virtual ~baseReadObject(){}
 };
 
 template<>

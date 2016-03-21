@@ -1,7 +1,14 @@
 #pragma once
 //
+//  urlUtils.hpp
+//
+//  Created by Nick Hathaway on 5/27/15.
+//  Copyright (c) 2015 University of Massachusetts Medical School. All rights
+// reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,14 +26,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  urlUtils.hpp
-//
-//  Created by Nick Hathaway on 5/27/15.
-//  Copyright (c) 2015 University of Massachusetts Medical School. All rights
-// reserved.
-//
-
 #include "bibseq/common.h"
 #include "bibseq/utils/bitSwaps.hpp"
 
@@ -37,6 +36,16 @@ size_t WriteCallback(char* contents, size_t size, size_t nmemb,
 std::string GetURL(const std::string url);
 void GetURLStream(const std::string url, std::ostream & out);
 
+
+bool inline xdigit(int c) {
+	//from cppcms 1.05
+	return ('0' <= c && c <= '9') || ('a' <= c && c <= 'f')
+			|| ('A' <= c && c <= 'F');
+}
+
+std::string urldecode(char const *begin, char const *end);
+
+std::string urldecode(std::string const &s);
 
 }  // namespace bibseq
 

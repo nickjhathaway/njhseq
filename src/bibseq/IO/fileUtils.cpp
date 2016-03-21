@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -120,13 +120,25 @@ bool fexists(const std::string &filename) {
 void openTextFile(std::ofstream &file, std::string filename,
                   std::string fileExtention, bool overWrite,
                   bool exitOnFailure) {
-  bib::files::appendAsNeeded(filename, fileExtention);
+  bib::appendAsNeeded(filename, fileExtention);
   bib::files::openTextFile(file, filename, overWrite, false, exitOnFailure);
 }
 
-void openTextFile(std::ofstream &file, const IoOptions & options) {
+void openTextFile(std::ofstream &file, std::string filename,
+		const OutOptions & outOptions){
+	openTextFile(file, filename, outOptions.outExtention_,
+			outOptions.overWriteFile_, outOptions.exitOnFailureToWrite_);
+}
+
+void openTextFile(std::ofstream &file, std::string filename,
+                  std::string fileExtention, const OutOptions & outOptions){
+	openTextFile(file, filename, fileExtention,
+			outOptions.overWriteFile_, outOptions.exitOnFailureToWrite_);
+}
+
+void openTextFile(std::ofstream &file, const OutOptions & options) {
 	auto outFilename = options.outFilename_;
-	bib::files::appendAsNeeded(outFilename, options.outExtention_);
+	bib::appendAsNeeded(outFilename, options.outExtention_);
 	bib::files::openTextFile(file, outFilename, options.overWriteFile_,
 			options.append_, options.exitOnFailureToWrite_);
 }

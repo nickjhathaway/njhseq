@@ -1,6 +1,14 @@
 #pragma once
+//
+//  seqContainers.h
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 03/07/14.
+//  Copyright (c) 2014 Nick Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,15 +26,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//
-//  seqContainers.h
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 03/07/14.
-//  Copyright (c) 2014 Nick Hathaway. All rights reserved.
-//
-
 // include all the seq container objects
 #include "bibseq/objects/seqContainers/baseContainer.hpp"
 #include "bibseq/objects/seqContainers/otuContainer.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -30,13 +30,11 @@
 #include "bibseq/utils/utils.hpp"
 #include "bibseq/readVectorManipulation.h"
 #include "bibseq/objects/seqObjects/readObject.hpp"
-#include "bibseq/objects/helperObjects/kmer.hpp"
-#include "bibseq/objects/helperObjects/hpRun.hpp"
-#include "bibseq/alignment/aligner.hpp"
-#include "bibseq/helpers/kmerCalculator.hpp"
+#include "bibseq/alignment/aligner.h"
 #include "bibseq/helpers/seqUtil.hpp"
-#include "bibseq/IO/readObjectIO.hpp"
-#include "bibseq/objects/seqObjects/sampleCluster.hpp"
+#include "bibseq/IO/SeqIO/SeqInput.hpp"
+#include "bibseq/objects/seqObjects/Clusters/sampleCluster.hpp"
+#include "bibseq/objects/helperObjects/hpRun.hpp"
 
 namespace bibseq {
 
@@ -192,7 +190,7 @@ VecStr profiler::compareToRefSingle(const std::vector<REF>& inputRefs,
     if (read.seqBase_.name_ == input.seqBase_.name_) {
       continue;
     }
-    alignerObj.alignVec(input, read, local);
+    alignerObj.alignCache(input, read, local);
     if (alignerObj.parts_.score_ != 0 && alignerObj.parts_.score_ == bestScore) {
       bestRead.emplace_back(input);
     } else if (alignerObj.parts_.score_ > bestScore) {
@@ -204,7 +202,7 @@ VecStr profiler::compareToRefSingle(const std::vector<REF>& inputRefs,
   VecStr ans;
 
   for (const auto& best : bestRead) {
-    alignerObj.alignVec(best, read, local);
+    alignerObj.alignCache(best, read, local);
     alignerObj.profileAlignment(best, read, 11, true, false, false, false,
                                 weighHomopolyers);
     std::stringstream profile;
@@ -249,7 +247,7 @@ void profiler::compareToRef(std::vector<REF> inputRefs,
       if (input.seqBase_.name_ == ref.seqBase_.name_) {
         continue;
       }
-      alignerObj.alignVec(ref, input, local);
+      alignerObj.alignCache(ref, input, local);
       double currentScore = 0;
       if(eventBased){
         alignerObj.profileAlignment(ref, input, 2, false, false, true, false,
@@ -270,7 +268,7 @@ void profiler::compareToRef(std::vector<REF> inputRefs,
     }
     for (const auto& bestPos : bestRead) {
     	const auto & best = inputRefs[bestPos];
-      alignerObj.alignVec(best, input, local);
+      alignerObj.alignCache(best, input, local);
       tempFile << ">" << best.seqBase_.name_ << std::endl;
       tempFile << alignerObj.alignObjectA_.seqBase_.seq_ << std::endl;
       tempFile << ">" << input.seqBase_.name_ << std::endl;
@@ -321,7 +319,7 @@ std::string profiler::getBestRef(const std::vector<REF> & inputRefs,
      if (read.seqBase_.name_ == ref.seqBase_.name_) {
        continue;
      }
-     alignerObj.alignVec(ref.seqBase_, read.seqBase_, local);
+     alignerObj.alignCache(ref.seqBase_, read.seqBase_, local);
      double currentScore = 0;
      if(eventBased){
        //alignerObj.profileAlignment(ref.seqBase_, read.seqBase_, 2, false, false, true, false,
@@ -343,7 +341,7 @@ std::string profiler::getBestRef(const std::vector<REF> & inputRefs,
    }
    for (const auto& bestPos : bestRead) {
    	const auto & best = inputRefs[bestPos];
-     alignerObj.alignVec(best.seqBase_, read.seqBase_, local);
+     alignerObj.alignCache(best.seqBase_, read.seqBase_, local);
      /*
      tempFile << ">" << best.seqBase_.name_ << std::endl;
      tempFile << alignerObj.alignObjectA_.seqBase_.seq_ << std::endl;
@@ -644,14 +642,14 @@ void profiler::outputHighestGCContent(std::vector<T>& reads,
     if (iter == reads.begin()) {
       highestGCContent = *iter;
     } else {
-      if (iter->counter.gcContent > highestGCContent.counter_.gcContent) {
+      if (iter->counter.gcContent > highestGCContent.counter_.gcContent_) {
         highestGCContent = *iter;
       }
     }
   }
   // out<<">"<<highestGCContent.seqBase_.name_<<std::endl;
   out << highestGCContent.seqBase_.name_ << std::endl;
-  out << highestGCContent.counter_.gcContent * 100.00 << "%" << std::endl;
+  out << highestGCContent.counter_.gcContent_ * 100.00 << "%" << std::endl;
 }
 
 template <class T>
@@ -754,10 +752,12 @@ void profiler::getFractionInfo(const std::vector<CLUSTER>& reads,
                                bool weighHomopolyer) {
   std::ofstream outFile;
   openTextFile(outFile, directory + filename, ".tab.txt", false, false);
-  readObjectIO reader = readObjectIO();
-  reader.read("fasta", refFilename);
+  SeqIOOptions opts;
+  SeqInput reader(opts);
+  reader.openIn();
+  auto refReads = reader.readAllReads<readObject>();
 
-  getFractionInfo(reads, outFile, reader.reads, alignObj, local, weighHomopolyer);
+  getFractionInfo(reads, outFile, refReads, alignObj, local, weighHomopolyer);
 }
 
 template <class CLUSTER>
@@ -777,10 +777,12 @@ void profiler::getFractionInfoCluster(const std::vector<CLUSTER>& reads,
                                bool weighHomopolyer) {
   std::ofstream outFile;
   openTextFile(outFile, directory + filename, ".tab.txt", false, false);
-  readObjectIO reader = readObjectIO();
-  reader.read("fasta", refFilename);
+  SeqIOOptions opts;
+  SeqInput reader(opts);
+  reader.openIn();
+  auto refReads = reader.readAllReads<readObject>();
 
-  getFractionInfoCluster(reads, outFile, reader.reads, alignObj, local, weighHomopolyer);
+  getFractionInfoCluster(reads, outFile, refReads, alignObj, local, weighHomopolyer);
 }
 
 template <class CLUSTER>
@@ -888,7 +890,7 @@ void profiler::getMapInfo(const std::vector<CLUSTER>& reads,
       if (read.seqBase_.name_ == clusIter.seqBase_.name_) {
         continue;
       }
-      alignerObj.alignVec(clusIter.seqBase_, read.seqBase_, false);
+      alignerObj.alignCache(clusIter.seqBase_, read.seqBase_, false);
       alignerObj.profileAlignment(clusIter.seqBase_, read.seqBase_, 11, true, false, true, false,
                                   true);
       for (int i = 0; i < std::ceil(read.seqBase_.cnt_); ++i) {
@@ -904,7 +906,7 @@ void profiler::getMapInfo(const std::vector<CLUSTER>& reads,
     outFile << seqName << "\t" << clusIter.seqBase_.name_ << "\t"
             << clusIter.seqBase_.cnt_ << "\t"
             << (double)clusIter.seqBase_.cnt_ / totalReads << "\t"
-            << vectorMean(mismatches) << "\t" << vectorMedian(mismatches)
+            << vectorMean(mismatches) << "\t" << vectorMedianRef(mismatches)
             << std::endl;
     currentCluster++;
   }
@@ -930,7 +932,7 @@ void profiler::getMapInfo(const std::vector<CLUSTER>& reads,
       if (read.seqBase_.name_ == clusIter.seqBase_.name_) {
         continue;
       }
-      alignerObj.alignVec(clusIter.seqBase_, read.seqBase_, false);
+      alignerObj.alignCache(clusIter.seqBase_, read.seqBase_, false);
       alignerObj.profileAlignment(clusIter.seqBase_, read.seqBase_, 11, true, false, true, false,
                                   true);
       for (int i = 0; i < std::ceil(read.seqBase_.cnt_); ++i) {
@@ -946,7 +948,7 @@ void profiler::getMapInfo(const std::vector<CLUSTER>& reads,
     outFile << seqName << "\t" << barcode << "\t" << expected << "\t"
             << clusIter.seqBase_.name_ << "\t" << clusIter.seqBase_.cnt_ << "\t"
             << (double)clusIter.seqBase_.cnt_ / totalReads << "\t"
-            << vectorMean(mismatches) << "\t" << vectorMedian(mismatches)
+            << vectorMedianRef(mismatches) << "\t" << vectorMedianRef(mismatches)
             << std::endl;
     currentCluster++;
   }

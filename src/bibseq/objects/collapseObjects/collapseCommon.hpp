@@ -1,26 +1,5 @@
 #pragma once
 //
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-//
-//
 //  collapseCommon.hpp
 //  sequenceTools
 //
@@ -28,7 +7,7 @@
 //  Copyright (c) 2014 Nicholas Hathaway. All rights reserved.
 //
 
-#include "bibseq/objects/seqObjects/sampleCluster.hpp"
+#include "bibseq/objects/seqObjects/Clusters/sampleCluster.hpp"
 #include "bibseq/helpers/clusterCollapser.hpp"
 #include "bibseq/objects/collapseObjects/collapser.hpp"
 #include "bibseq/readVectorManipulation.h"
@@ -63,7 +42,7 @@ public:
 	template<typename T>
 	void updateInfo(const std::vector<T> & reads){
 		for (const auto & read : reads){
-			updateInfo(read);
+			updateInfo(*read);
 		}
 		//for cluster set info set the runReadCnt equal to the readCnt count
 		resetRunReadCnt();
@@ -101,7 +80,7 @@ public:
 		return vectorMean(mois_);
 	}
 	double medianMoi()const{
-		return vectorMedian(mois_);
+		return vectorMedianCopy(mois_);
 	}
 	uint32_t maxMoi()const {
 		return vectorMaximum(mois_);
@@ -156,9 +135,8 @@ public:
 		}
 	}
 	// writing
-	void writeClusters(std::string filename, std::string format, bool overWrite,
-                     bool exitOnFailure) const;
-	void writeClusters(std::string filename, const readObjectIOOptions & ioOptions) const;
+
+	void writeClusters(std::string filename, const SeqIOOptions & ioOptions) const;
 
 	table getReplicateInfo()const;
 

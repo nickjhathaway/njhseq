@@ -1,7 +1,14 @@
 #pragma once
 //
+//  trimmer.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 10/22/13.
+//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,17 +26,11 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  trimmer.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 10/22/13.
-//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
-//
-
 #include "bibseq/alignment.h"
 #include "bibseq/utils.h"
 #include "bibseq/readVectorManipulation/readVectorOperations.h"
+
+#include "bibseq/objects/seqObjects/readObject.hpp"
 
 namespace bibseq {
 
@@ -169,7 +170,7 @@ void readVecTrimmer::trimAtSequenceIdentity(T &read,
 
 		alignObj.profilePrimerAlignment(read, reversePrimer, weighHomopolyer);
 		bool passInspection = runParmas.errors_.passErrorProfile(alignObj.comp_);
-		if(alignObj.comp_.distances_.queryCoverage_ < queryCutOff){
+		if(alignObj.comp_.distances_.query_.coverage_ < queryCutOff){
 			passInspection = false;
 		}
 		read.remove = !passInspection;
@@ -248,7 +249,7 @@ void readVecTrimmer::trimBeforeSequenceIdentity(T &read, readObject &forwardSeq,
   //need to reordered and profile aligner
   alignObj.profilePrimerAlignment(read, forwardSeq, weighHomopolyer);
 	bool passInspection = runParmas.errors_.passErrorProfile(alignObj.comp_);
-	if(alignObj.comp_.distances_.queryCoverage_ < queryCutOff){
+	if(alignObj.comp_.distances_.query_.coverage_ < queryCutOff){
 		passInspection = false;
 	}
 	read.remove = !passInspection;
@@ -340,10 +341,12 @@ void readVecTrimmer::trimEndsOfReadsToSharedSeq(std::vector<T> &reads,
           findOccurences(rIter.seqBase_.seq_, longestSharedSeq[0]);
       farthestLocations.push_back(vectorMaximum(farthestLocation));
     }
+    /*
     std::cout << "Max: " << vectorMaximum(farthestLocations) << std::endl;
     std::cout << "Min: " << vectorMinimum(farthestLocations) << std::endl;
     std::cout << "average: " << vectorMean(farthestLocations) << std::endl;
     std::cout << "median: " << vectorMedian(farthestLocations) << std::endl;
+    */
   }
   for (auto &rIter : reads) {
     std::vector<size_t> farthestLocation =

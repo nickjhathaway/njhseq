@@ -1,7 +1,14 @@
 #pragma once
+/*
+
+ * nucCompCluster.hpp
+ *
+ *  Created on: Apr 9, 2014
+ *      Author: nickhathaway
+ */
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,19 +26,11 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-/*
-
- * nucCompCluster.hpp
- *
- *  Created on: Apr 9, 2014
- *      Author: nickhathaway
- */
-
 #include "bibseq/utils.h"
 #include "bibseq/objects/counters/charCounter.hpp"
-#include "bibseq/objects/dataContainers/table.hpp"
+#include "bibseq/objects/dataContainers/tables/table.hpp"
 #include "bibseq/readVectorManipulation/readVectorHelpers/readVecSorter.hpp"
-#include "bibseq/IO/readObjectIO.hpp"
+#include "bibseq/IO/SeqIO/SeqInput.hpp"
 
 namespace bibseq {
 
@@ -41,7 +40,7 @@ public:
 
 	template<typename T>
 	nucCompCluster(const T& firstRead, uint64_t readPos):
-	counter_(charCounterArray(firstRead.counter_.alphabet_)),
+	counter_(charCounter(firstRead.counter_.alphabet_)),
 	readCnt_(firstRead.seqBase_.cnt_) {
 		counter_.increaseCountByString(firstRead.seqBase_.seq_, firstRead.seqBase_.cnt_);
 		readPositions_.emplace_back(readPos);
@@ -50,14 +49,14 @@ public:
 
 	template<typename T>
 	nucCompCluster(const T& firstRead, uint64_t readPos, uint64_t minLen):
-	counter_(charCounterArray(firstRead.counter_.alphabet_)),
+	counter_(charCounter(firstRead.counter_.alphabet_)),
 	readCnt_(firstRead.seqBase_.cnt_) {
 		counter_.increasePortion(firstRead.seqBase_.seq_,minLen, firstRead.seqBase_.cnt_);
 		readPositions_.emplace_back(readPos);
 		counter_.setFractions();
 	}
 
-	charCounterArray counter_;
+	charCounter counter_;
 	std::vector<uint64_t> readPositions_;
 	double readCnt_ = 0;
 	uint32_t readBuffer_ = 0;
@@ -112,39 +111,18 @@ public:
 		return outReads;
 	}
 	template<typename T>
-	std::vector<T> getReads(const readObjectIOOptions &
+	std::vector<T> getReads(const SeqIOOptions &
 			ioOptions) const{
 		std::vector<T> outReads;
 		outReads.reserve(readPositions_.size());
-		std::ifstream inFile(ioOptions.firstName_);
-		if(!inFile){
-			throw std::runtime_error{"Error in opening " + ioOptions.firstName_};
-		}
-		cachedReader cinFile(inFile);
-		readObjectIO reader;
+		SeqInput reader(ioOptions.firstName_);
+		reader.openIn();
 		readObject read;
-	  if("fasta" == ioOptions.inFormat_){
-			for(const auto & pos : readPositions_){
-				cinFile.seek(pos);
-				reader.readNextFastaStream(cinFile,
-					  		  			read, ioOptions.processed_);
-				outReads.emplace_back(T(read.seqBase_));
-			}
-
-	  }else if ("fastq" == ioOptions.inFormat_){
-			for(const auto & pos : readPositions_){
-				inFile.seekg(pos);
-		  	reader.readNextFastqStream(inFile, reader.SangerQualOffset,
-		  		  			read, ioOptions.processed_);
-		  	outReads.emplace_back(T(read.seqBase_));
-			}
-	  }else{
-	  	std::stringstream ss;
-	  	ss << "clusterOnNucComp\n";
-	  	ss << "only works on fasta or fastq files, improper format agrument given\n";
-	  	ss << ioOptions.inFormat_ << std::endl;
-	  	throw std::runtime_error{ss.str()};
-	  }
+		for(const auto & pos : readPositions_){
+			reader.seekgPri(pos);
+			reader.readNextRead(read);
+			outReads.emplace_back(read);
+		}
 	  return outReads;
 	}
 
@@ -251,7 +229,7 @@ std::vector<nucCompCluster>  clusterOnNucComp(std::vector<T> & reads,
   return comps;
 }
 
-std::vector<nucCompCluster>  clusterOnNucComp(const readObjectIOOptions &
+std::vector<nucCompCluster>  clusterOnNucComp(const SeqIOOptions &
 		ioOptions,
 		const std::vector<char> & alphabet,
 		double diffCutOff, bool findBest, bool preSort,

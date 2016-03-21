@@ -1,26 +1,5 @@
 #pragma once
 //
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-//
-//
 //  collapser.h
 //  sequenceTools
 //
@@ -33,26 +12,31 @@
 #include "bibseq/alignment.h"
 #include "bibseq/seqToolsUtils.h"
 #include "bibseq/readVectorManipulation.h"
-#include "bibseq/helpers/kmerCalculator.hpp"
-#include "bibseq/objects/seqObjects/cluster.hpp"
+#include "bibseq/objects/kmer/kmerCalculator.hpp"
+#include "bibseq/objects/seqObjects/Clusters/cluster.hpp"
 #include "bibseq/programUtils/seqSetUp.hpp"
 
 namespace bibseq {
 
 class collapser {
 
- public:
-  // constructor
-  collapser(bool findingBestMatch, uint32_t bestMatchCheck, bool local,
-            bool checkKmers, bool kmersByPosition, uint32_t runCutOff,
-            uint32_t kLength, bool verbose, bool smallestFirst,
-            bool condensedCollapse, bool weighHomopolyer,
-            bool skipOnLetterCounterDifference, double fractionDifferenceCutOff,
-            bool adjustHomopolyerRuns)
-      : opts_(findingBestMatch, bestMatchCheck,local, checkKmers, kmersByPosition, runCutOff, kLength, verbose, smallestFirst, condensedCollapse, weighHomopolyer,
-      		skipOnLetterCounterDifference, fractionDifferenceCutOff, adjustHomopolyerRuns)  {}
-  collapser(const collapserOpts & opts):opts_(opts){}
-  // Members
+public:
+	// constructor
+	collapser(bool findingBestMatch, uint32_t bestMatchCheck, bool local,
+			bool checkKmers, bool kmersByPosition, uint32_t runCutOff,
+			uint32_t kLength, bool verbose, bool smallestFirst,
+			bool condensedCollapse, bool weighHomopolyer,
+			bool skipOnLetterCounterDifference, double fractionDifferenceCutOff,
+			bool adjustHomopolyerRuns) :
+			opts_(findingBestMatch, bestMatchCheck, local, checkKmers,
+					kmersByPosition, runCutOff, kLength, verbose, smallestFirst,
+					condensedCollapse, weighHomopolyer, skipOnLetterCounterDifference,
+					fractionDifferenceCutOff, adjustHomopolyerRuns) {
+	}
+	collapser(const collapserOpts & opts) :
+			opts_(opts) {
+	}
+
   collapserOpts opts_;
 private:
   template<class CLUSTER>
@@ -133,10 +117,12 @@ public:
 
   void runFullClustering(std::vector<cluster> & clusters,
   		bool onPerId, std::map<int, std::vector<double>> iteratorMap,
+			std::map<int, std::vector<double>> binIteratorMap,
   		bool useNucComp,bool useMinLenNucComp, bool findBestNuc, const std::vector<double> & diffCutOffVec,
   		bool useKmerBinning, uint32_t kCompareLen, double kmerCutOff,
-  		aligner & alignerObj, seqSetUp & setUp,
+  		aligner & alignerObj, const SeqSetUpPars & setUpPars,
 			bool snapShots, const std::string & snapShotsDirName);
+
 
   void markChimerasAdvanced(std::vector<cluster> &processedReads,
                                    aligner &alignerObj,
@@ -164,7 +150,7 @@ void collapser::collapseWithPerId(
     std::vector<uint64_t> & positions,
     const runningParameters &runParams,
     aligner &alignerObj) {
-	int sizeOfReadVector = 0;
+	int32_t sizeOfReadVector = 0;
 	for(const auto & pos : positions){
 		if(!comparingReads[pos].remove){
 			++sizeOfReadVector;
@@ -330,7 +316,7 @@ void collapser::findMatch(CLUSTER &read,
         if(opts_.noAlign_){
         	alignerObj.noAlignSetAndScore(clus, read);
         }else{
-        	alignerObj.alignVec(clus, read, opts_.local_);
+        	alignerObj.alignCacheGlobal(clus, read);
         }
       	double currentScore = 0;
       	if(opts_.eventBased_){
@@ -425,7 +411,7 @@ void collapser::findMatchOnPerId(CLUSTER &read,
         if(opts_.noAlign_){
         	alignerObj.noAlignSetAndScore(clus, read);
         }else{
-        	alignerObj.alignVec(clus, read, opts_.local_);
+        	alignerObj.alignCacheGlobal(clus, read);
         }
       	double currentScore = 0;
       	if(opts_.eventBased_){
@@ -467,8 +453,8 @@ std::vector<CLUSTER> collapser::collapseClusterOnPerId(
     std::map<int, runningParameters> iteratorMap, const std::string &sortBy,
     aligner &alignerObj){
   // set kmer maps
-  kmerMaps kMaps = kmerCalculator::indexKmerMpas(clusters, opts_.kLength_, opts_.runCutOff_);
-  alignerObj.setKmerMpas(kMaps);
+  //kmerMaps kMaps = kmerCalculator::indexKmerMpas(clusters, opts_.kLength_, opts_.runCutOff_);
+  //alignerObj.setKmerMpas(kMaps);
   // go over the iterations collapsing down and down, sort the reads after each
   // iteration
   // and calculate a consensus after each one
@@ -749,8 +735,9 @@ std::vector<CLUSTER> collapser::collapseCluster(std::vector<CLUSTER> clusters,
 		std::map<int, runningParameters> iteratorMap, const std::string &sortBy,
 		aligner &alignerObj) {
 	//set kmer frequncy maps
-	kmerMaps kMaps = kmerCalculator::indexKmerMpas(clusters, opts_.kLength_,
-			opts_.runCutOff_);
+	bool expandKmerPos = false;
+	uint32_t expandKmerPosSize = 5;
+	KmerMaps kMaps = indexKmers(clusters, opts_.kLength_, opts_.runCutOff_, opts_.kmersByPosition_, expandKmerPos, expandKmerPosSize);
 	alignerObj.setKmerMpas(kMaps);
 	// go over the iterations collapsing down and down, sort the reads after each
 	// iteration
@@ -808,7 +795,9 @@ std::vector<CLUSTER> collapser::collapseOneOffs(
     double fracCutOff, aligner &alignerObj) {
 	throw std::runtime_error{std::string(__PRETTY_FUNCTION__) + " not yet implemented"};
   runParams.errors_.hqMismatches_ = 1;
-  kmerMaps kMaps = kmerCalculator::indexKmerMpas(clusters, opts_.kLength_, opts_.runCutOff_);
+	bool expandKmerPos = false;
+	uint32_t expandKmerPosSize = 5;
+	KmerMaps kMaps = indexKmers(clusters, opts_.kLength_, opts_.runCutOff_, opts_.kmersByPosition_, expandKmerPos, expandKmerPosSize);
   // std::cout <<"cc2" << std::endl;
   alignerObj.setKmerMpas(kMaps);
   // std::cout <<"cc3" << std::endl;
@@ -941,14 +930,14 @@ void collapser::findMatchOneOff(CLUSTER &read,
       if(opts_.noAlign_){
       	alignerObj.noAlignSetAndScore(clus, read);
       }else{
-      	alignerObj.alignVec(clus, read, opts_.local_);
+      	alignerObj.alignCacheGlobal(clus, read);
       }
       //alignerObj.profilePrimerAlignment(clus, read, opts_.weighHomopolyer_);
     } else {
       if(opts_.noAlign_){
       	alignerObj.noAlignSetAndScore(clus, read);
       }else{
-      	alignerObj.alignVec(clus, read, opts_.local_);
+      	alignerObj.alignCacheGlobal(clus, read);
       }
       alignerObj.profilePrimerAlignment(clus, read, opts_.weighHomopolyer_);
       comparison currentProfile = alignerObj.compareAlignment(
@@ -962,7 +951,7 @@ void collapser::findMatchOneOff(CLUSTER &read,
     if (matching) {
       foundMatch = true;
       if (opts_.findingBestMatch_) {
-      	alignerObj.alignVec(clus, read, opts_.local_);
+      	alignerObj.alignCacheGlobal(clus, read);
       	double currentScore = 0;
       	if(opts_.eventBased_){
       		alignerObj.profilePrimerAlignment(clus, read, opts_.weighHomopolyer_);

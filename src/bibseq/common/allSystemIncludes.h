@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,6 +19,12 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+//
+//  Copyright (c) 2012 University of Massachusetts Medical School. All rights
+// reserved.
+//
+
+//#error Precompiled header file not found
 
 //C libraries
 #include <cstring>
@@ -91,7 +97,20 @@
 //#include <openssl/md5.h>
 #include <curl/curl.h>
 #include <cppitertools/range.hpp>
+
+#if __has_include("cppitertools/reverse.hpp")
 #include <cppitertools/reverse.hpp>
+#else
+#include <cppitertools/reversed.hpp>
+namespace iter {
+/**@todo simple fix for now, should just change all occurrences of reverse to reversed*/
+template <typename Container>
+iter::impl::Reverser<Container> reverse(Container&& container) {
+  return reversed(std::forward<Container>(container));
+}
+}  // namespace iter
+#endif
+
 #include <cppitertools/enumerate.hpp>
 
 //own files

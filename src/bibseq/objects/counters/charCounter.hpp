@@ -1,7 +1,15 @@
 #pragma once
+/*
+
+ * charCounter.hpp
+ *
+ *  Created on: Mar 27, 2014
+ *      Author: nickhathaway
+ */
+
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,45 +27,19 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-/*
-
- * charCounter.hpp
- *
- *  Created on: Mar 27, 2014
- *      Author: nickhathaway
- */
-
-
 #include "bibseq/utils.h"
+#include "bibseq/alignment/alignerUtils/substituteMatrix.hpp"
 namespace bibseq {
-/*
-class baseCounter {
-
-public:
-
-	virtual void increaseCountByString(const std::string &seq) = 0;
-	virtual void increaseCountByString(const std::string &seq, double cnt) = 0;
-	virtual void reset() = 0;
-	uint32_t getTotalCount() const  = 0;
-	void setFractions() = 0;
-	template<typename T>
-	std::multimap<double, T, std::less<double>> createLikelihoodMaps(
-	      bool setFractionFirst) = 0;
-	virtual void printDescription(std::ostream &out, bool deep) const = 0;
-	virtual ~baseCounter(){ }
-};*/
 
 
-
-class charCounterArray {
+class charCounter {
 public:
 	//constructor
 
-	charCounterArray();
-	charCounterArray(const std::vector<char>& alphabet);
-	charCounterArray(const std::string & str);
-	charCounterArray(const std::string & str, const std::vector<char>& alphabet);
+	charCounter();
+	charCounter(const std::vector<char>& alphabet);
+	charCounter(const std::string & str);
+	charCounter(const std::string & str, const std::vector<char>& alphabet);
 
 	//members
   std::array<uint32_t, 127> chars_;
@@ -69,6 +51,14 @@ public:
   //
   std::vector<char> alphabet_;
   std::vector<char> originalAlphabet_;
+  double gcContent_ = 0;
+
+  /**@brief convert to json representation
+   *
+   * @return Json::Value object
+   */
+	Json::Value toJson() const;
+
   void resetAlphabet(bool keepOld);
   void reset();
 
@@ -92,20 +82,20 @@ public:
   void increaseCountByStringQual(const std::string &seq, const std::vector<uint32_t> & qualities, double cnt);
   void setFractions();
   void setFractions(const std::vector<char>& alphabet);
-  void addOtherCounts(const charCounterArray & otherCounter, bool setFractions);
+  void addOtherCounts(const charCounter & otherCounter, bool setFractions);
   uint32_t getTotalCount() const ;
   std::multimap<double, char, std::less<double>> createLikelihoodMaps(
       bool setFractionFirst);
 
   // gc content
-  double gcContent = 0;
+
   void calcGcContent();
   int getGcDifference();
   // compute entropy
   double computeEntrophy();
 
   // get the best letter and the corresponding quality for consensus calculation
-  char outputBestLetter();
+  char outputBestLetter()const;
   void getBest(char &letter) const ;
   void getBest(char &letter, uint32_t &quality) const ;
   void getBest(char &letter, uint32_t &quality, uint32_t size) const;
@@ -115,14 +105,14 @@ public:
   void outPutInfo(std::ostream &out, bool ifQualities) const;
   void outPutACGTInfo(std::ostream &out) const;
   void outPutACGTFractionInfo(std::ostream &out);
-  double getFracDifference(const charCounterArray & otherCounter, const std::vector<char> & alph)const;
-  // description
-  virtual void printDescription(std::ostream &out, bool deep) const;
-  virtual ~charCounterArray(){}
+  double getFracDifference(const charCounter & otherCounter, const std::vector<char> & alph)const;
+
+  void increaseRates(substituteMatrix & mat, char refBase) const;
+
 };
 
 
-} /* namespace bib */
+} /* namespace bibseq */
 
 
 #ifndef NOT_HEADER_ONLY
