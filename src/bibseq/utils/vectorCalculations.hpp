@@ -1,7 +1,14 @@
 #pragma once
 //
+//  vectorCalculations.hpp
+//  sequenceTools
+//
+//  Created by Nick Hathaway on 1/3/13.
+//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,14 +26,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  vectorCalculations.hpp
-//  sequenceTools
-//
-//  Created by Nick Hathaway on 1/3/13.
-//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
-//
-
 #include "bibseq/utils/utils.hpp"
 #include <vector>
 #include <algorithm>
@@ -35,6 +34,37 @@
 /// various functions to calculate stats on vectors of any number
 
 namespace bibseq {
+template <typename T>
+double vectorMedianCopy(std::vector<T> scores) {
+  double median = 0.0;
+  if (scores.size() != 0) {
+    std::size_t size = scores.size();
+    std::sort(scores.begin(), scores.end());
+    if (size % 2 == 0) {
+      median = (scores[size / 2 - 1] + scores[size / 2]) / 2.0;
+    } else {
+      median = scores[size / 2];
+    }
+  }
+  return median;
+}
+
+template <typename T>
+double vectorMedianRef(std::vector<T>& scores) {
+  double median = 0.0;
+  if (scores.size() != 0) {
+    std::size_t size = scores.size();
+    std::sort(scores.begin(), scores.end());
+    if (size % 2 == 0) {
+      median = (scores[size / 2 - 1] + scores[size / 2]) / 2.0;
+    } else {
+      median = scores[size / 2];
+    }
+  }
+  return median;
+}
+
+/*
 template <typename T>
 double medianTrue(const std::vector<T>& ov){
    std::vector<double> nv(ov.begin(), ov.end());
@@ -47,7 +77,7 @@ T vectorMedian(const std::vector<T>& v) {
 		return arma::median(arma::Col<T>(v));
 	}
 	return 0;
-}
+}*/
 /*
 template <typename T>
 double vectorMedian(std::vector<T> scores) {
@@ -63,6 +93,8 @@ double vectorMedian(std::vector<T> scores) {
   }
   return median;
 }*/
+
+
 
 template <typename T>
 T vectorMinimum(const std::vector<T> & scores) {
@@ -236,7 +268,7 @@ void outputMeanMedainRangeStd(const std::vector<T>& vec, std::ostream& out) {
 template <typename T>
 std::map<std::string, double> getStatsOnVec(const std::vector<T>& vec) {
   return {{"mean", vectorMean(vec)},
-          {"median", vectorMedian(vec)},
+          {"median", vectorMedianCopy(vec)},
           {"max", vectorMaximum(vec)},
           {"min", vectorMinimum(vec)},
           {"std", vectorStandardDeviationSamp(vec)},
@@ -245,11 +277,20 @@ std::map<std::string, double> getStatsOnVec(const std::vector<T>& vec) {
 template <typename T>
 std::map<std::string, double> getStatsOnVecMore(const std::vector<T>& vec) {
   return {{"mean", vectorMean(vec)},
-          {"median", vectorMedian(vec)},
+          {"median", vectorMedianCopy(vec)},
           {"max", vectorMaximum(vec)},
           {"min", vectorMinimum(vec)},
           {"std", vectorStandardDeviationSamp(vec)},
           {"sum", vectorSum(vec)},
           {"sem", vectorSEMSamp(vec)}};
 }
+
+
+template<typename T>
+T getSumFromVecStr(const VecStr & strNums){
+	auto converted = bib::lexical_cast_con<VecStr, std::vector<T>>(strNums);
+	return vectorSum(converted);
+}
+
+
 }  // namespace bib

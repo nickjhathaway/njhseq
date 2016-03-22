@@ -1,6 +1,14 @@
 #pragma once
+/*
+
+ * strCounterMap.hpp\
+ *
+ *  Created on: Jun 1, 2014
+ *      Author: nickhathaway
+ */
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,42 +26,33 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-
-/*
-
- * strCounterMap.hpp
- *
- *  Created on: Jun 1, 2014
- *      Author: nickhathaway
- */
 #include "bibseq/utils.h"
 
 namespace bibseq {
 
-class strCounterMap {
+class strCounter {
 
 public:
 	//constructor
 	//members
-  std::unordered_map<std::string, uint32_t> counts_;
-  std::unordered_map<std::string, double> fractions_;
-  //std::unordered_map<std::string, std::vector<uint32_t>> qualities_;
-  //std::unordered_map<std::string, std::vector<std::vector<uint32_t>>> allQualities_;
+	std::unordered_map<std::string, uint32_t> counts_;
+	std::unordered_map<std::string, double> fractions_;
+	//functions
+	void increaseCountByString(const std::string &seq);
+	void increaseCountByString(const std::string &seq, double cnt);
+	void increaseCountByVecStr(const VecStr &seqs);
+	void increaseCountByVecStr(const VecStr &seqs,
+			const std::vector<double> & counts);
+	std::multimap<double, std::string, std::less<double>> createLikelihoodMaps(
+			bool setFractionFirst);
+	void setFractions();
+	uint32_t getTotalCount() const;
 
+	void addOtherCounts(const strCounter & otherCounter);
 
-
-  //functions
-  void increaseCountByString(const std::string &seq);
-  virtual void increaseCountByString(const std::string &seq, double cnt);
-  void increaseCountByVecStr(const VecStr &seqs);
-  void increaseCountByVecStr(const VecStr &seqs, const std::vector<double> & counts);
-  std::multimap<double, std::string, std::less<double>> createLikelihoodMaps(
-        bool setFractionFirst);
-  void setFractions();
-  void printAllInfo(std::ostream & out);
-  void printCountInfo(std::ostream & out);
-  void printFractionInfo(std::ostream & out);
+	void printAllInfo(std::ostream & out) const;
+	void printCountInfo(std::ostream & out) const;
+	void printFractionInfo(std::ostream & out) const;
 };
 
 } /* namespace bib */

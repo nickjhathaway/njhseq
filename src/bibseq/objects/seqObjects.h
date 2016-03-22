@@ -1,6 +1,14 @@
 #pragma once
+//
+//  seqObjects.h
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 7/18/13.
+//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,26 +26,10 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//
-//  seqObjects.h
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 7/18/13.
-//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
-//
-
 // include all the seq objects
 #include "bibseq/objects/seqObjects/seqInfo.hpp"
 #include "bibseq/objects/seqObjects/baseReadObject.hpp"
 #include "bibseq/objects/seqObjects/readObject.hpp"
 #include "bibseq/objects/seqObjects/sffObject.hpp"
-#include "bibseq/objects/seqObjects/baseCluster.hpp"
-#include "bibseq/objects/seqObjects/identicalCluster.hpp"
-#include "bibseq/objects/seqObjects/cluster.hpp"
-#include "bibseq/objects/seqObjects/sampleCluster.hpp"
-#include "bibseq/objects/seqObjects/populationCluster.hpp"
-#include "bibseq/objects/seqObjects/seqWithKmerInfo.hpp"
-#include "bibseq/objects/seqObjects/PairedRead.hpp"
-#include "bibseq/objects/seqObjects/PairedCluster.hpp"
-
+#include "bibseq/objects/seqObjects/Paired.h"
+#include "bibseq/objects/seqObjects/Clusters.h"

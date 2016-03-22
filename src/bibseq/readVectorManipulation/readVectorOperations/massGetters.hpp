@@ -1,7 +1,14 @@
 #pragma once
 //
+//  massGetters.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 11/18/13.
+//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,14 +26,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  massGetters.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 11/18/13.
-//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
-//
-
 namespace bibseq {
 namespace readVec {
 // getters
@@ -34,26 +33,26 @@ template <typename T>
 int getTotalReadCount(const std::vector<T>& reads, bool countRemove = false) {
   int count = 0;
   for (const auto& read : reads) {
-    if (read.remove) {
+    if (getRef(read).remove) {
       if (countRemove) {
-        count += read.seqBase_.cnt_;
+        count += getSeqBase(read).cnt_;
       }
     } else {
-      count += read.seqBase_.cnt_;
+      count += getSeqBase(read).cnt_;
     }
   }
   return count;
 }
 template<typename T>
 void allPrintSeqs(const std::vector<T> & reads, std::ostream & out = std::cout){
-	for_each(reads, [&](const T & read){ read.seqBase_.outPutSeq(out);});
+	for_each(reads, [&](const T & read){ getSeqBase(read).outPutSeq(out);});
 }
 
 template<typename T>
 std::vector<T> getSeqsWithNames(const std::vector<T> & reads, const VecStr & names){
 	std::vector<T> ans;
 	auto checker = [&](const T & read){
-		if(in(read.seqBase_.name_, names)){
+		if(in(getSeqBase(read).name_, names)){
 			ans.emplace_back(read);
 		}
 	};
@@ -79,8 +78,8 @@ uint32_t getReadVectorSize(const std::vector<T>& reads, bool countRemove = false
 
 template <typename T>
 void getMaxLength(const T& read, uint64_t & compare) {
-	if (read.seqBase_.seq_.length() > compare) {
-		compare = read.seqBase_.seq_.length();
+	if (getSeqBase(read).seq_.length() > compare) {
+		compare = getSeqBase(read).seq_.length();
 	}
 }
 template <typename T>
@@ -99,8 +98,8 @@ uint64_t getMaxLength(const std::vector<T>& reads) {
 
 template <typename T>
 void getMinLength(const T& read, uint64_t & compare) {
-	if (read.seqBase_.seq_.length() < compare) {
-		compare = read.seqBase_.seq_.length();
+	if (getSeqBase(read).seq_.length() < compare) {
+		compare = getSeqBase(read).seq_.length();
 	}
 }
 
@@ -124,7 +123,7 @@ template <typename T>
 VecStr getNames(const std::vector<T>& reads) {
   VecStr names;
   for (const auto& read : reads) {
-    names.push_back(read.seqBase_.name_);
+    names.emplace_back(getSeqBase(read).name_);
   }
   return names;
 }
@@ -134,7 +133,7 @@ size_t getReadIndexByName(const std::vector<T>& reads,
                           const std::string& name) {
   size_t index = 0;
   for (const auto& read : reads) {
-    if (read.seqBase_.name_ == name) {
+    if (getSeqBase(read).name_ == name) {
       return index;
     }
     ++index;
@@ -171,7 +170,7 @@ template <typename T>
 void getCountOfReadNameContaining(const std::vector<T>& reads,
                                   const std::string& contains, int& count) {
   for (const auto& read : reads) {
-    if (read.seqBase_.name_.find(contains) != std::string::npos) {
+    if (getSeqBase(read).name_.find(contains) != std::string::npos) {
       ++count;
     }
   }
@@ -182,8 +181,8 @@ template <typename T>
 void getReadCountOfReadNameContaining(const std::vector<T>& reads,
                                       const std::string& contains, int& count) {
   for (const auto& read : reads) {
-    if (read.seqBase_.name_.find(contains) != std::string::npos) {
-      count += read.seqBase_.cnt_;
+    if (getSeqBase(read).name_.find(contains) != std::string::npos) {
+      count += getSeqBase(read).cnt_;
     }
   }
   return;
@@ -193,7 +192,7 @@ template <typename T>
 void getCountOfReadSeqContainingExact(const std::vector<T>& reads,
                                       const std::string& contains, int& count) {
   for (const auto& read : reads) {
-    if (read.seqBase_.seq_.find(contains) != std::string::npos) {
+    if (getSeqBase(read).seq_.find(contains) != std::string::npos) {
       ++count;
     }
   }
@@ -205,8 +204,8 @@ void getReadCountOfReadSeqContainingExact(const std::vector<T>& reads,
                                           const std::string& contains,
                                           int& count) {
   for (const auto& read : reads) {
-    if (read.seqBase_.seq_.find(contains) != std::string::npos) {
-      count += read.seqBase_.cnt_;
+    if (getSeqBase(read).seq_.find(contains) != std::string::npos) {
+      count += getSeqBase(read).cnt_;
     }
   }
   return;
@@ -252,15 +251,7 @@ void updateQualCountsMultiple(
   });
   return;
 }
-template <typename T>
-void allPrintDescription(const std::vector<T>& reads, std::ostream& out,
-                         bool deep, const std::string& vecDelim = ",") {
-  std::string currentDelim = bibseq::outDelim;
-  setDelim(vecDelim);
-  for_each(reads, [&](const T& read) { read.printDescription(out, deep); });
-  setDelim(currentDelim);
-  return;
-}
+
 
 template<typename T>
 bool checkIfReadVecsAreSame(const std::vector<T> & reads1,
@@ -286,8 +277,8 @@ bool checkIfReadVecsAreSame(const std::vector<T> & reads1,
 		}
 		if(reads1[readPos].seqBase_.qual_ != reads2[readPos].seqBase_.qual_){
 			std::cout << "failed qual_ on read " << readPos << std::endl;
-			std::cout << "qual_ of 1: " << reads1[readPos].seqBase_.qual_ << std::endl;
-			std::cout << "qual_ of 2: " << reads2[readPos].seqBase_.qual_ << std::endl;
+			std::cout << "qual_ of 1: " << bib::conToStr(reads1[readPos].seqBase_.qual_,",") << std::endl;
+			std::cout << "qual_ of 2: " << bib::conToStr(reads2[readPos].seqBase_.qual_,",") << std::endl;
 			return false;
 		}
 		if(reads1[readPos].seqBase_.frac_ != reads2[readPos].seqBase_.frac_){

@@ -1,7 +1,15 @@
 #pragma once
 //
+//  readObject.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 7/24/12.
+//  Copyright (c) 2012 University of Massachusetts Medical School. All rights
+// reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,15 +27,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  readObject.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 7/24/12.
-//  Copyright (c) 2012 University of Massachusetts Medical School. All rights
-// reserved.
-//
-
 #include "bibseq/utils/utils.hpp"
 #include "bibseq/objects/counters/charCounter.hpp"
 #include "bibseq/objects/seqObjects/baseReadObject.hpp"
@@ -40,7 +39,7 @@ class readObject : public baseReadObject {
  public:
   // constructors
   // empty constructor
-  readObject() : baseReadObject() { initializeOthers(); }
+  readObject();
   readObject(const seqInfo& seqBase, bool processed = false);
 
 
@@ -50,13 +49,12 @@ class readObject : public baseReadObject {
 
 
 
-  std::vector<double> flowValues;
-  std::vector<double> processedFlowValues;
-  int numberOfFlows;
 
 
   std::string sampName;
   std::string expectsString;
+
+  std::unordered_map<std::string, std::string> meta_;
 
 
   double averageErrorRate;
@@ -65,12 +63,36 @@ class readObject : public baseReadObject {
   double fractionAboveQualCheck_;
   bool remove;
 
-  charCounterArray counter_;
+  charCounter counter_;
 
   std::string condensedSeq;
   std::vector<uint32_t> condensedSeqQual;
   std::vector<std::pair<uint32_t, uint32_t>> condensedSeqQualPos;
   std::vector<int> condensedSeqCount;
+
+	template<typename T>
+	void addMeta(const std::string & key, const T & val, bool replace) {
+		if (containsMeta(key) && !replace) {
+			std::stringstream ss;
+			ss << "Error in " << bib::bashCT::boldBlack(__PRETTY_FUNCTION__)
+					<< " attempting to add meta that's already in meta_, use replace = true to replace"
+					<< std::endl;
+			throw std::runtime_error { ss.str() };
+		} else {
+			meta_[key] = estd::to_string(val);
+		}
+	}
+  bool containsMeta(const std::string & key) const;
+	std::string getMeta(const std::string & key) const;
+	void processNameForMeta();
+	//should only be called when meta data is already present in name
+	void resetMetaInName();
+	template<typename T>
+	T getMeta(const std::string & key) const {
+		return bib::lexical_cast<T>(getMeta(key));
+	}
+
+	virtual Json::Value toJson() const;
 
 
   void adjustHomopolyerRunQualities();
@@ -103,8 +125,7 @@ class readObject : public baseReadObject {
   uint32_t getSumQual() const;
   virtual void updateName();
   virtual void setName(const std::string& newName);
-  void appendName(const std::string& add);
-  void setFractionName();
+  void appendName(const std::string& add);;
   std::string getStubName(bool removeChiFlag) const;
   std::string getReadId() const;
   std::string getOtherReadSampName(const readObject& cr) const;
@@ -115,10 +136,7 @@ class readObject : public baseReadObject {
   void replace(const std::string& toBeReplaced, const std::string& replaceWith,
                bool allOccurences = true);
 
-  uint32_t getNumberOfBasesFromFlow(const std::vector<double>& flows);
-  int clipToNinetyPercentOfFlows(size_t cutOff);
-  size_t findFirstNoisyFlow(const std::vector<double>& flows);
-  bool flowNoiseProcess(size_t cutoff);
+
 
   // Protein conversion
   void translate(bool complement, bool reverse, size_t start = 0);
@@ -143,14 +161,9 @@ class readObject : public baseReadObject {
   void updateQaulCountsAtPos(
       uint32_t pos, std::map<std::string, std::map<double, uint32_t>>& counts,
       int qualWindowSize, const std::array<double, 100>& qualErrorLookUp) const;
-  // various outputs
-  // void outPutFastq(std::ostream &fastqFile)const;
-  // void outPutSeq(std::ostream &fastaFile)const;
-  // void outPutQual(std::ostream &qualFile)const;
 
-  void outPutFlows(std::ostream& flowsFile) const;
-  void outPutFlowsRaw(std::ostream& flowdataFile) const;
-  void outPutPyroData(std::ostream& pyroNoiseFile) const;
+
+
   void outPutCondensedSeq(std::ostream& condensedSeqfile) const;
   void outPutCondensedQual(std::ostream& condensedQualFile) const;
   // check to seq to qual, output base and quality right next to each other
@@ -164,8 +177,10 @@ class readObject : public baseReadObject {
   bool operator<=(const readObject& otherRead) const;
   bool operator>=(const readObject& otherRead) const;
   // description
-  virtual void printDescription(std::ostream& out, bool deep = false) const;
   using size_type = baseReadObject::size_type;
+
+
+  virtual ~readObject();
 };
 
 template<>

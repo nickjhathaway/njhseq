@@ -1,7 +1,14 @@
 #pragma once
 //
+//  probabilityProfile.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 12/3/13.
+//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,16 +26,9 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  probabilityProfile.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 12/3/13.
-//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
-//
 #include "bibseq/utils.h"
 #include "bibseq/objects/counters/charCounter.hpp"
-#include "kmer.hpp"
+#include "bibseq/objects/kmer/kmer.hpp"
 namespace bibseq {
 class probabilityProfile {
 
@@ -40,7 +40,7 @@ public:
 	std::string consensus_;
 	int32_t score_ = 0;
 	uint32_t length_;
-	std::vector<charCounterArray> counts_;
+	std::vector<charCounter> counts_;
 	// functions
 private:
 	void initCounts();

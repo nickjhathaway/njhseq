@@ -1,7 +1,14 @@
 #pragma once
 //
+//  sorting.hpp
+//  sequenceTools
+//
+//  Created by Nick Hathaway on 2/3/13.
+//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,14 +26,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  sorting.hpp
-//  sequenceTools
-//
-//  Created by Nick Hathaway on 2/3/13.
-//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
-//
-
 #include "bibseq/utils.h"
 #include "bibseq/readVectorManipulation/readVectorOperations.h"
 
@@ -90,7 +89,7 @@ class readVecSorter {
   template <typename T>
   static void sortByQualCheck(std::vector<T>& vec, bool decending) {
   	sortReadVectorFunc<T>(vec, [](const T& first, const T& second) -> bool{
-      return first.fractionAboveQualCheck_ > second.fractionAboveQualCheck_;
+      return getRef(first).fractionAboveQualCheck_ > getRef(second).fractionAboveQualCheck_;
     }, decending);
   }
 
@@ -98,23 +97,23 @@ class readVecSorter {
   static void sortByTotalCountAE(std::vector<T>& vec, bool decending) {
   	sortReadVectorFunc<T>(vec, [](const T& first, const T& second) -> bool{
   		/*
-			if (first.seqBase_.cnt_ == second.seqBase_.cnt_) {
-				if (first.averageErrorRate < second.averageErrorRate) {
+			if (getRef(first).seqBase_.cnt_ == getRef(second).seqBase_.cnt_) {
+				if (getRef(first).averageErrorRate < getRef(second).averageErrorRate) {
 					return true;
 				} else {
 					return false;
 				}
 			} else {
-				return first.seqBase_.cnt_ > second.seqBase_.cnt_;
+				return getRef(first).seqBase_.cnt_ > getRef(second).seqBase_.cnt_;
 			}*/
-  		if (roundDecPlaces(first.seqBase_.cnt_, 2) == roundDecPlaces(second.seqBase_.cnt_, 2) ) {
-  			if (roundDecPlaces(first.averageErrorRate, 2)  < roundDecPlaces(second.averageErrorRate, 2) ) {
+  		if (roundDecPlaces(getRef(first).seqBase_.cnt_, 2) == roundDecPlaces(getRef(second).seqBase_.cnt_, 2) ) {
+  			if (roundDecPlaces(getRef(first).averageErrorRate, 2)  < roundDecPlaces(getRef(second).averageErrorRate, 2) ) {
   				return true;
   			} else {
   				return false;
   			}
   		} else {
-  			return roundDecPlaces(first.seqBase_.cnt_, 2)  > roundDecPlaces(second.seqBase_.cnt_, 2) ;
+  			return roundDecPlaces(getRef(first).seqBase_.cnt_, 2)  > roundDecPlaces(getRef(second).seqBase_.cnt_, 2) ;
   		}
     }, decending);
   }
@@ -122,37 +121,37 @@ class readVecSorter {
   template <typename T>
   static void sortBySeq(std::vector<T>& vec, bool decending) {
   	sortReadVectorFunc<T>(vec, [](const T& first, const T& second) {
-      return first.seqBase_.seq_ < second.seqBase_.seq_;
+      return getRef(first).seqBase_.seq_ < getRef(second).seqBase_.seq_;
     }, decending);
   }
 
   template <typename T>
   static void sortByName(std::vector<T>& vec, bool decending) {
   	sortReadVectorFunc<T>(vec, [](const T& first, const T& second)  {
-      return first.seqBase_.name_ < second.seqBase_.name_;
+      return getRef(first).seqBase_.name_ < getRef(second).seqBase_.name_;
     }, decending);
   }
   template <typename T>
   static void sortBySeqCondensed(std::vector<T>& vec, bool decending) {
     readVec::allSetCondensedSeq(vec);
     sortReadVectorFunc<T>(vec, [](const T& first, const T& second)  {
-      if (first.condensedSeq == second.condensedSeq) {
-        return first.seqBase_.seq_ < second.seqBase_.seq_;
+      if (getRef(first).condensedSeq == getRef(second).condensedSeq) {
+        return getRef(first).seqBase_.seq_ < getRef(second).seqBase_.seq_;
       } else {
-        return first.condensedSeq < second.condensedSeq;
+        return getRef(first).condensedSeq < getRef(second).condensedSeq;
       }
     }, decending);
   }
   template <typename T>
   static void sortBySeqSize(std::vector<T>& vec, bool decending) {
   	sortReadVectorFunc<T>(vec, [](const T& first, const T& second)  {
-      return first.seqBase_.seq_.size() < second.seqBase_.seq_.size();
+      return getRef(first).seqBase_.seq_.size() < getRef(second).seqBase_.seq_.size();
     }, decending);
   }
   template <typename T>
   static void sortByFraction(std::vector<T>& vec, bool decending) {
   	sortReadVectorFunc<T>(vec, [](const T& first, const T& second)  {
-      return first.seqBase_.frac_ > second.seqBase_.frac_;
+      return getRef(first).seqBase_.frac_ > getRef(second).seqBase_.frac_;
     }, decending);
   }
 };

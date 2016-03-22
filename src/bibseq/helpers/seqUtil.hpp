@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -30,10 +30,10 @@
 
 
 #include "bibseq/utils.h"
-#include "bibseq/objects/helperObjects/kmer.hpp"
+#include "bibseq/objects/kmer/kmer.hpp"
 #include "bibseq/seqToolsUtils/aminoAcidInfo.hpp"
 
-#include "bibseq/objects/dataContainers/table.hpp"
+#include "bibseq/objects/dataContainers/tables/table.hpp"
 #include "bibseq/objects/seqObjects/seqInfo.hpp"
 #include "bibseq/objects/counters/charCounter.hpp"
 
@@ -119,9 +119,9 @@ class seqUtil {
                                  int stepSize,
                                  const std::vector<uint32_t> &quality);
   static void processQualityWindowString(const std::string &qualityWindowString,
-                                         int &qualityWindowLength,
-                                         int &qualityWindowStep,
-                                         int &qualityWindowThres);
+                                         uint32_t &qualityWindowLength,
+																				 uint32_t &qualityWindowStep,
+																				 uint32_t &qualityWindowThres);
   static std::string findLongestSharedSubString(VecStr dnaStrings);
   static VecStr findLongestShardedMotif(VecStr dnaStrings);
   static double getAverageErrorRate(const std::vector<int> &qual);

@@ -1,6 +1,8 @@
+#include "runningParameters.hpp"
+#include "bibseq/objects/dataContainers/tables/table.hpp"
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,9 +20,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "runningParameters.hpp"
-#include "bibseq/objects/dataContainers/table.hpp"
-
 #include <bibcpp/bashUtils.h>
 
 namespace bibseq {
@@ -43,7 +42,7 @@ runningParameters::runningParameters(const std::vector<double>& parameter, uint3
 	  smallCheckStop_ = parameter[1];
 	  iterNumber_ = iterNumber;
 	  // error parameters
-	  errors_.distances_.percentIdentity_ = parameter[2];
+	  errors_.distances_.eventBasedIdentity_ = parameter[2];
 	} else {
 		if(parameter.size() != 8){
 			std::stringstream ss;
@@ -62,6 +61,7 @@ runningParameters::runningParameters(const std::vector<double>& parameter, uint3
 	  errors_.oneBaseIndel_ = parameter[2];
 	  errors_.twoBaseIndel_ = parameter[3];
 	  errors_.largeBaseIndel_ = parameter[4];
+
 	  errors_.hqMismatches_ = parameter[5];
 	  errors_.lqMismatches_ = parameter[6];
 	  errors_.lowKmerMismatches_ = parameter[7];
@@ -87,10 +87,10 @@ void runningParameters::printIterInfo(std::ostream & out, bool colorFormat, bool
 				<< cto::addBGColor(145) << " SizeCutOff "
 				<< cto::addBGColor(188) << " PerIdCutOff "<< cto::reset << std::endl;
 		std::cout
-		<< cto::addBGColor(145) << " " << centerText(to_string(iterNumber_), 9) << " "
-		<< cto::addBGColor(188) << " " << centerText(to_string(stopCheck_), 9) << " "
-		<< cto::addBGColor(145) << " " << centerText(to_string(smallCheckStop_), 10) << " "
-		<< cto::addBGColor(188) << " " << centerText(to_string(errors_.distances_.percentIdentity_ * 100) + "%", 11) << " "
+		<< cto::addBGColor(145) << " " << centerText(estd::to_string(iterNumber_), 9) << " "
+		<< cto::addBGColor(188) << " " << centerText(estd::to_string(stopCheck_), 9) << " "
+		<< cto::addBGColor(145) << " " << centerText(estd::to_string(smallCheckStop_), 10) << " "
+		<< cto::addBGColor(188) << " " << centerText(estd::to_string(errors_.distances_.eventBasedIdentity_ * 100) + "%", 11) << " "
 		<< cto::reset << std::endl;
 	}else{
 		std::cout << cto::bold
@@ -104,15 +104,15 @@ void runningParameters::printIterInfo(std::ostream & out, bool colorFormat, bool
 				<< cto::addBGColor(188) << " LQMismatches "
 				<< cto::addBGColor(145) << " LKMismatches "  << cto::reset << std::endl;
 		std::cout
-		<< cto::addBGColor(145) << " " << centerText(to_string(iterNumber_), 9) << " "
-		<< cto::addBGColor(188) << " " << centerText(to_string(stopCheck_), 9) << " "
-		<< cto::addBGColor(145) << " " << centerText(to_string(smallCheckStop_), 10) << " "
-		<< cto::addBGColor(188) << " " << centerText(to_string(errors_.oneBaseIndel_), 11) << " "
-		<< cto::addBGColor(145) << " " << centerText(to_string(errors_.twoBaseIndel_), 11) << " "
-		<< cto::addBGColor(188) << " " << centerText(to_string(errors_.largeBaseIndel_), 12) << " "
-		<< cto::addBGColor(145) << " " << centerText(to_string(errors_.hqMismatches_), 12) << " "
-		<< cto::addBGColor(188) << " " << centerText(to_string(errors_.lqMismatches_), 12) << " "
-		<< cto::addBGColor(145) << " " << centerText(to_string(errors_.lowKmerMismatches_), 12) << " "
+		<< cto::addBGColor(145) << " " << centerText(estd::to_string(iterNumber_), 9) << " "
+		<< cto::addBGColor(188) << " " << centerText(estd::to_string(stopCheck_), 9) << " "
+		<< cto::addBGColor(145) << " " << centerText(estd::to_string(smallCheckStop_), 10) << " "
+		<< cto::addBGColor(188) << " " << centerText(errors_.oneBaseIndel_ == std::numeric_limits<uint32_t>::max() ? "all" : estd::to_string(errors_.oneBaseIndel_), 11) << " "
+		<< cto::addBGColor(145) << " " << centerText(errors_.twoBaseIndel_ == std::numeric_limits<uint32_t>::max() ? "all" : estd::to_string(errors_.twoBaseIndel_), 11) << " "
+		<< cto::addBGColor(188) << " " << centerText(errors_.largeBaseIndel_ == std::numeric_limits<uint32_t>::max() ? "all" : estd::to_string(errors_.largeBaseIndel_), 12) << " "
+		<< cto::addBGColor(145) << " " << centerText(errors_.hqMismatches_ == std::numeric_limits<uint32_t>::max() ? "all" : estd::to_string(errors_.hqMismatches_), 12) << " "
+		<< cto::addBGColor(188) << " " << centerText(errors_.lqMismatches_ == std::numeric_limits<uint32_t>::max() ? "all" : estd::to_string(errors_.lqMismatches_), 12) << " "
+		<< cto::addBGColor(145) << " " << centerText(errors_.lowKmerMismatches_ == std::numeric_limits<uint32_t>::max() ? "all" : estd::to_string(errors_.lowKmerMismatches_), 12) << " "
 		<< cto::reset << std::endl;
 	}
 
@@ -153,8 +153,12 @@ std::map<int32_t, std::vector<double>> runningParameters::processParameters(cons
           tempVect.emplace_back(std::stod(row[colPos]));
         }
       } else {
-      	tempVect.emplace_back(std::stod(row[colPos]));
-      }
+      	if(row[colPos] == "all"){
+      		tempVect.emplace_back(std::numeric_limits<uint32_t>::max());
+      	}else{
+      		tempVect.emplace_back(std::stod(row[colPos]));
+      	}
+       }
     }
     ret.insert(std::make_pair(iters, tempVect));
     iters++;

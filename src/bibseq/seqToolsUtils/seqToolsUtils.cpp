@@ -1,5 +1,6 @@
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -17,32 +18,160 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
 
+#include "bibseq/IO/SeqIO.h"
 #include "seqToolsUtils.hpp"
-#include "bibseq/objects/seqObjects/cluster.hpp"
+#include "bibseq/objects/seqObjects/Clusters/cluster.hpp"
 #include "bibseq/seqToolsUtils/distCalc.hpp"
-#include "bibseq/helpers/kmerCalculator.hpp"
-#include "bibseq/IO/readObjectIOOpt.hpp"
+#include "bibseq/objects/kmer/kmerCalculator.hpp"
 #include "bibseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
 
-//////tools for dealing with multipleSampleCollapse
+
 namespace bibseq {
 
+void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString,
+		int counter) {
+	auto toks = tokenizeString(runCutOffString, ",");
+	if (toks.size() == 1) {
+		if (runCutOffString.back() == '%') {
+			runCutOff = std::round(
+					std::stof(runCutOffString.substr(0, runCutOffString.length() - 1))
+							* counter / 100);
+		} else {
+			runCutOff = std::stoi(runCutOffString);
+		}
+	} else {
+		if (toks[0].back() == '%') {
+			runCutOff = std::round(
+					std::stod(toks[0].substr(0, toks[0].length() - 1)) * counter / 100.0);
+		} else {
+			runCutOff = std::stoi(toks[0]);
+		}
+		int32_t hardCutOff = std::stoi(toks[1]);
+		if (hardCutOff > runCutOff) {
+			runCutOff = hardCutOff;
+		}
+	}
+}
+
+uint32_t processRunCutoff(const std::string& runCutOffString,
+                      uint64_t counter){
+	uint32_t ret = 0;
+	processRunCutoff(ret, runCutOffString, counter);
+  return ret;
+}
 
 
 
-Json::Value genMinTreeData(const std::vector<readObject> & reads, aligner & alignerObj){
-	std::function<uint32_t(const readObject &, const readObject &, aligner, bool)> misFun =
-			getMismatches<readObject>;
-	uint32_t numThreads = 2;
-	readDistGraph<uint32_t> graphMis(reads, numThreads, misFun, alignerObj, true);
+std::string genHtmlStrForPsuedoMintree(std::string jsonFileName){
+	std::string ret = "<!DOCTYPE html>"
+	"<meta charset=\"utf-8\">"
+	"<body>"
+	"<script src=\"http://d3js.org/d3.v3.min.js\"></script>"
+	"<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js\"></script>"
+	"<script src=\"http://bib8.umassmed.edu/~hathawan/js/psuedoMinTree.js\"></script>"
+	"<button id=\"save_svg\">Save as Svg</button>"
+	"<svg id = \"main\"></svg>"
+	"<script>"
+	"var jsonDat = \""+ jsonFileName + "\";"
+	"var add = \"#main\";"
+	"drawPsuedoMinTree(jsonDat, add);"
+	"var bName = \"#save_svg\";"
+	"addSvgSaveButton(bName, add);"
+	"</script>"
+	"</body>";
+	return ret;
+}
 
+std::string genHtmlStrForPsuedoMintree(std::string jsonFileName, std::string javaScriptFile){
+	std::string ret = "<!DOCTYPE html>"
+	"<meta charset=\"utf-8\">"
+	"<body>"
+	"<script src=\"http://d3js.org/d3.v3.min.js\"></script>"
+	"<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js\"></script>"
+	"<script src=\"" + javaScriptFile + "\"></script>"
+	"<button id=\"save_svg\">Save as Svg</button>"
+	"<svg id = \"main\"></svg>"
+	"<script>"
+	"var jsonDat = \""+ jsonFileName + "\";"
+	"var add = \"#main\";"
+	"drawPsuedoMinTree(jsonDat, add);"
+	"var bName = \"#save_svg\";"
+	"addSvgSaveButton(bName, add);"
+	"</script>"
+	"</body>";
+	return ret;
+}
+
+Json::Value genMinTreeData(const std::vector<readObject> & reads,
+		aligner & alignerObj,
+		std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners,
+		std::mutex & alignerLock, uint32_t numThreads, bool weightHomopolymers) {
+
+	std::function<
+			uint32_t(const readObject &, const readObject &,
+					std::unordered_map<std::string, std::unique_ptr<aligner>>&, aligner&,
+					bool&)> getMismatchesFunc =
+			[&alignerLock](const readObject & read1, const readObject & read2,std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners, aligner &alignerObj, bool & weightHomopolymers) {
+				alignerLock.lock();
+				auto threadId = estd::to_string(std::this_thread::get_id());
+				//std::cout << threadId<< std::endl;
+				if(aligners.find(threadId) == aligners.end()) {
+					aligners.emplace(threadId, std::make_unique<aligner>(alignerObj));
+				}
+				alignerLock.unlock();
+				aligners.at(threadId)->alignCache(read1.seqBase_,read2.seqBase_, false);
+				aligners.at(threadId)->profilePrimerAlignment(read1.seqBase_, read2.seqBase_, weightHomopolymers);
+				return aligners.at(threadId)->comp_.hqMismatches_;
+			};
+	auto distances = getDistanceNonConst(reads, numThreads, getMismatchesFunc,
+			aligners, alignerObj, weightHomopolymers);
+	readDistGraph<uint32_t> graphMis(distances, reads);
 	std::vector<std::string> popNames;
 	for (const auto & n : graphMis.nodes_) {
 		popNames.emplace_back(n->name_);
 	}
 	auto nameColors = getColorsForNames(popNames);
+	auto ret = graphMis.toJsonMismatchGraphAll(bib::color("#000000"), nameColors);
+	return ret;
+}
+
+
+Json::Value genMinTreeData(const std::vector<readObject> & reads, aligner & alignerObj){
+	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
+	uint32_t numThreads = 2;
+	bool weightHomopolymers = true;
+	std::mutex alignerLock;
+	std::function<uint32_t(const readObject &, const readObject &,std::unordered_map<std::string, std::unique_ptr<aligner>>& , aligner& , bool&)> getMismatchesFunc =
+			[&alignerLock](const readObject & read1, const readObject & read2,std::unordered_map<std::string, std::unique_ptr<aligner>>&  aligners, aligner &alignerObj, bool & weightHomopolymers) {
+		alignerLock.lock();
+		auto threadId = estd::to_string(std::this_thread::get_id());
+		//std::cout << threadId<< std::endl;
+		if(aligners.find(threadId) == aligners.end()){
+			aligners.emplace(threadId, std::make_unique<aligner>(alignerObj));
+		}
+		alignerLock.unlock();
+		aligners.at(threadId)->alignCache(read1.seqBase_,read2.seqBase_, false);
+		aligners.at(threadId)->profilePrimerAlignment(read1.seqBase_, read2.seqBase_, weightHomopolymers);
+				return aligners.at(threadId)->comp_.hqMismatches_;
+			};
+
+	auto distances = getDistanceNonConst(reads, numThreads, getMismatchesFunc, aligners, alignerObj, weightHomopolymers);
+	readDistGraph<uint32_t> graphMis(distances, reads);
+	std::vector<std::string> popNames;
+	for (const auto & n : graphMis.nodes_) {
+		popNames.emplace_back(n->name_);
+	}
+	bool debug = false;
+	auto nameColors = getColorsForNames(popNames);
+	for(const auto & alnObj : aligners){
+		if(debug){
+			std::cout << alnObj.first << ": " << alnObj.second->numberOfAlingmentsDone_ << std::endl;
+		}
+		if(alnObj.second->numberOfAlingmentsDone_ > 0){
+			alignerObj.alnHolder_.mergeOtherHolder(alnObj.second->alnHolder_);
+		}
+	}
 	return graphMis.toJsonMismatchGraphAll(bib::color("#000000"), nameColors);
 }
 
@@ -56,21 +185,27 @@ Json::Value genMinTreeData(const std::vector<readObject> & reads) {
 	return genMinTreeData(reads, alignerObj);
 }
 
-uint32_t countSeqs(const readObjectIOOptions & opts, bool verbose){
+uint32_t countSeqs(const SeqIOOptions & opts, bool verbose) {
 	uint32_t ret = 0;
-	if(bib::files::bfs::exists(opts.firstName_)){
-		readObjectIOOpt reader(opts);
+	if (bib::files::bfs::exists(opts.firstName_)) {
+		SeqIO reader(opts);
 		reader.openIn();
+		if(!reader.in_.inOpen()){
+			std::stringstream ss;
+			ss << "Error in " << __PRETTY_FUNCTION__ << " in opening file with options" << std::endl;
+			ss << opts.toJson() << std::endl;
+			throw std::runtime_error{ss.str()};
+		}
 		readObject read;
-		while(reader.readNextRead(read)){
+		while (reader.readNextRead(read)) {
 			ret += ::round(read.seqBase_.cnt_);
 		}
-	}else if(verbose){
-		std::cout << "File: " << opts.firstName_ << "doesn't exist, returning 0" << std::endl;
+	} else if (verbose) {
+		std::cout << "File: " << opts.firstName_ << "doesn't exist, returning 0"
+				<< std::endl;
 	}
 	return ret;
 }
-
 
 ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::string & indexToDir, const std::string & sampNames){
 	std::string nameDelim = "_extractor_";
@@ -148,8 +283,8 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 			mainTableExtractionStats = inStatsTab;
 			mainTableExtractionProfile = inProfileTab;
 		} else {
-			mainTableExtractionStats.rbind(inStatsTab);
-			mainTableExtractionProfile.rbind(inProfileTab);
+			mainTableExtractionStats.rbind(inStatsTab, false);
+			mainTableExtractionProfile.rbind(inProfileTab, false);
 		}
 		++count;
 	}
@@ -228,7 +363,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 	std::unordered_map<std::string, std::unordered_map<std::string, VecStr>> extractionInfo;
 
 	for (const auto &dir : dirs) {
-		auto fullDirName = bib::files::appendAsNeededRet(dirName, "/") + dir;
+		auto fullDirName = bib::appendAsNeededRet(dirName, "/") + dir;
 		table inProfileTab(fullDirName + "/extractionProfile.tab.txt", "\t", true);
 		//i have accidentally added one more tab than is needed to
 		//extractionProfile which makes it so all rows have an empty
@@ -256,8 +391,8 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 			mainTableExtractionStats = inStatsTab;
 			mainTableExtractionProfile = inProfileTab;
 		} else {
-			mainTableExtractionStats.rbind(inStatsTab);
-			mainTableExtractionProfile.rbind(inProfileTab);
+			mainTableExtractionStats.rbind(inStatsTab, false);
+			mainTableExtractionProfile.rbind(inProfileTab, false);
 		}
 		++count;
 	}
@@ -288,6 +423,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 	outSampleInfo.setColNamePositions();
 	return ExtractionInfo(mainTableExtractionStats, mainTableExtractionProfile, outSampleInfo);
 }
+
 
 
 
@@ -322,21 +458,21 @@ void setUpSampleDirs(const std::string& sampleNamesFilename,
 					std::pair<std::string, std::string> { rep, "" });
 		}
 	}
-	auto cwd = get_cwd();
+	auto cwd = bib::files::get_cwd();
 	try {
 		if (separatedDirs) {
 			for (auto & targetDirs : sampleDirWithSubDirs) {
 				std::cout << bib::bashCT::bold << "Making Target Dir: " << bib::bashCT::purple << topDir + targetDirs.first
 									<< bib::bashCT::reset << std::endl;
-				std::string targetDir = bib::files::makeDir(topDir, targetDirs.first);
+				std::string targetDir = bib::files::makeDir(topDir, targetDirs.first, false);
 				for (auto & sampDirs : targetDirs.second) {
 					std::cout << bib::bashCT::bold << "Making Samp Dir: " << bib::bashCT::green << targetDir + sampDirs.first
 										<< bib::bashCT::reset << std::endl;
-					std::string sampDir = bib::files::makeDir(targetDir, sampDirs.first);
+					std::string sampDir = bib::files::makeDir(targetDir, sampDirs.first, false);
 					for (auto & rep : sampDirs.second) {
 						std::cout << bib::bashCT::bold << "Making Rep Dir: " << bib::bashCT::blue << sampDir + rep.first
 											<< bib::bashCT::reset << std::endl;
-						std::string repDir = bib::files::makeDir(sampDir, rep.first);
+						std::string repDir = bib::files::makeDir(sampDir, rep.first, false);
 						rep.second = bib::files::join(cwd, repDir);
 					}
 				}
@@ -348,12 +484,12 @@ void setUpSampleDirs(const std::string& sampleNamesFilename,
 					if (!bib::files::bfs::exists(sampDir)) {
 						std::cout << bib::bashCT::bold << "Making Samp Dir: " << bib::bashCT::green << topDir + sampDirs.first
 											<< bib::bashCT::reset << std::endl;
-						bib::files::makeDir(topDir, sampDirs.first);
+						bib::files::makeDir(topDir, sampDirs.first, false);
 					}
 					for (auto & rep : sampDirs.second) {
-						std::cout << bib::bashCT::bold << "Making Rep Dir: " << bib::bashCT::blue << sampDir + rep.first
+						std::cout << bib::bashCT::bold << "Making Rep Dir: " << bib::bashCT::blue << bib::appendAsNeeded(sampDir, "/") + rep.first
 											<< bib::bashCT::reset << std::endl;
-						std::string repDir = bib::files::makeDir(sampDir, rep.first);
+						std::string repDir = bib::files::makeDir(sampDir, rep.first, false);
 						rep.second = bib::files::join(cwd, repDir);
 					}
 				}
@@ -366,7 +502,7 @@ void setUpSampleDirs(const std::string& sampleNamesFilename,
 	}
 	//log the locations
 	std::string indexDir = bib::files::makeDir(mainDirectoryName,
-			"locationByIndex");
+			"locationByIndex", false);
 	for (const auto & targetDirs : sampleDirWithSubDirs) {
 		std::ofstream indexFile;
 		openTextFile(indexFile, indexDir + targetDirs.first, ".tab.txt", false,
@@ -379,25 +515,7 @@ void setUpSampleDirs(const std::string& sampleNamesFilename,
 	}
 }
 
-std::string genHtmlStrForPsuedoMintree(std::string jsonFileName){
-	std::string ret = "<!DOCTYPE html>"
-	"<meta charset=\"utf-8\">"
-	"<body>"
-	"<script src=\"http://d3js.org/d3.v3.min.js\"></script>"
-	"<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js\"></script>"
-	"<script src=\"http://bib8.umassmed.edu/~hathawan/js/psuedoMinTree.js\"></script>"
-	"<button id=\"save_svg\">Save as Svg</button>"
-	"<svg id = \"main\"></svg>"
-	"<script>"
-	"var jsonDat = \""+ jsonFileName + "\";"
-	"var add = \"#main\";"
-	"drawPsuedoMinTree(jsonDat, add);"
-	"var bName = \"#save_svg\";"
-	"addSvgSaveButton(bName, add);"
-	"</script>"
-	"</body>";
-	return ret;
-}
+
 
 
 std::pair<uint32_t, uint32_t> getMaximumRounds(double cnt){
@@ -412,14 +530,8 @@ std::pair<uint32_t, uint32_t> getMaximumRounds(double cnt){
 }
 
 
-VecStr getRecurrenceStemNames(const VecStr& allNames) {
-  VecStr recurentNames = getStringsContains(allNames, "R");
-  VecStr recurentNamesNoRs;
-  for (const auto& sIter : recurentNames) {
-    recurentNamesNoRs.push_back(replaceString(sIter, "R", ""));
-  }
-  return getUniqueStrings(recurentNamesNoRs);
-}
+
+
 std::vector<char> getAAs(bool noStopCodon){
 	std::vector<char> ans = getVectorOfMapKeys(aminoAcidInfo::infos::allInfo);
 	if(noStopCodon){
@@ -429,38 +541,7 @@ std::vector<char> getAAs(bool noStopCodon){
 }
 
 
-void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString,
-                      int counter) {
-	auto toks = tokenizeString(runCutOffString, ",");
-	if(toks.size() == 1){
-	  if (runCutOffString.back() == '%') {
-	    runCutOff = std::round(
-	        std::stof(runCutOffString.substr(0, runCutOffString.length() - 1)) *
-	        counter / 100);
-	  } else {
-	    runCutOff = std::stoi(runCutOffString);
-	  }
-	}else{
-	  if (toks[0].back() == '%') {
-	    runCutOff = std::round(
-	        std::stod(toks[0].substr(0, toks[0].length() - 1)) *
-	        counter / 100.0);
-	  } else {
-	    runCutOff = std::stoi(toks[0]);
-	  }
-	  int32_t hardCutOff = std::stoi(toks[1]);
-	  if(hardCutOff > runCutOff){
-	  	runCutOff = hardCutOff;
-	  }
-	}
-}
 
-uint32_t processRunCutoff(const std::string& runCutOffString,
-                      uint64_t counter){
-	uint32_t ret = 0;
-	processRunCutoff(ret, runCutOffString, counter);
-  return ret;
-}
 
 
 void makeMultipleSampleDirectory(const std::string& barcodeFilename,
@@ -475,15 +556,15 @@ void makeMultipleSampleDirectory(const std::string& barcodeFilename,
   }
   auto longestSharedName = seqUtil::findLongestSharedSubString(barcodes);
   VecStr combinedNames;
-  std::string directoryName = bib::files::makeDir("./", mainDirectoryName);
+  std::string directoryName = bib::files::makeDir("./", mainDirectoryName, false);
   for (size_t i = 0; i < barcodes.size(); i += 2) {
     auto firstName = replaceString(barcodes[i], longestSharedName, "");
     auto secondName = replaceString(barcodes[i + 1], longestSharedName, "");
     auto combinedName = longestSharedName + firstName + secondName;
     combinedNames.push_back(combinedName);
-    auto combinedDirectoryName = bib::files::makeDir(directoryName, combinedName);
-    bib::files::makeDir(combinedDirectoryName, barcodes[i]);
-    bib::files::makeDir(combinedDirectoryName, barcodes[i + 1]);
+    auto combinedDirectoryName = bib::files::makeDir(directoryName, combinedName, false);
+    bib::files::makeDir(combinedDirectoryName, barcodes[i], false);
+    bib::files::makeDir(combinedDirectoryName, barcodes[i + 1], false);
   }
   // std::cout<<vectorToString(combinedNames)<<std::endl;
 }
@@ -519,7 +600,7 @@ void makeSampleDirectoriesWithSubDirectories(
       indexMap[dIter.first.first] = {};
     }
     for (const auto& sIter : dIter.second) {
-      auto currentWorkingDirectory = get_cwd();
+      auto currentWorkingDirectory = bib::files::get_cwd();
       indexMap[dIter.first.first]
           .push_back({sIter, currentWorkingDirectory + "/" + mainDirectoryName +
                                  dIter.first.second + "/" + sIter + "/"});
@@ -530,7 +611,7 @@ void makeSampleDirectoriesWithSubDirectories(
   std::cout << "Making following directories" << std::endl;
   std::cout << vectorToString(actualDirectoryNames, "\n");
   std::cout << std::endl;
-  std::string indexDir = bib::files::makeDir(mainDirectoryName, "locationByIndex");
+  std::string indexDir = bib::files::makeDir(mainDirectoryName, "locationByIndex", false);
   for (const auto& indexIter : indexMap) {
     std::ofstream indexFile;
     openTextFile(indexFile, indexDir + replaceString(indexIter.first),
@@ -541,7 +622,7 @@ void makeSampleDirectoriesWithSubDirectories(
     }
   }
   for (const auto& e : actualDirectoryNames) {
-  	bib::files::makeDir(mainDirectoryName, e);
+  	bib::files::makeDir(mainDirectoryName, e, false);
   }
 }
 
@@ -848,6 +929,7 @@ probabilityProfile randomlyFindBestProfile(const VecStr& dnaStrings,
                                            randomGenerator& gen) {
   VecStr randomMers;
   // bool needToSeed=true;
+
   std::vector<int> randomKmersNums =
       gen.unifRandVector(0, numberOfKmers, dnaStrings.size());
   uint32_t pos = 0;
@@ -1273,54 +1355,7 @@ int64_t getMinCoins(int64_t change, const std::vector<int64_t>& coins,
   return count;
 }
 
-void processAlnInfoInput(aligner& alignerObj,
-		const std::string& alnInfoDirName) {
-	if (alnInfoDirName != "") {
-		//std::cout << bib::bashCT::boldRed("here") << std::endl;
-		//std::lock_guard<std::mutex> lock(alignment::alnCacheDirSearchLock);
-		//std::cout << bib::bashCT::boldRed("here1") << std::endl;
-		alignment::alnCacheDirSearchLock.lock();
 
-		auto fullPath = bib::files::normalize(alnInfoDirName).string();
-		auto search = alignment::alnCacheDirLocks.find(fullPath);
-		if (search == alignment::alnCacheDirLocks.end()) {
-			alignment::alnCacheDirLocks.emplace(std::piecewise_construct,
-					std::make_tuple(fullPath), std::tuple<>());
-		}
-		auto realSearch = alignment::alnCacheDirLocks.find(fullPath);
-		std::lock_guard<std::mutex> lock(realSearch->second);
-		alignment::alnCacheDirSearchLock.unlock();
-		//std::cout << bib::bashCT::boldRed("here1.1") << std::endl;
-		int directoryStatus = mkdir(alnInfoDirName.c_str(),
-		S_IRWXU | S_IRWXG | S_IRWXO);
-		//std::cout << bib::bashCT::boldRed("here1.2") << std::endl;
-		if (directoryStatus != 0) {
-			//std::cout << bib::bashCT::boldRed("here1.3") << std::endl;
-			auto readInHoler = alnInfoMasterHolder(alnInfoDirName,
-					alignerObj.parts_.gapScores_, alignerObj.parts_.scoring_, false);
-			//std::cout << bib::bashCT::boldRed("here1.4") << std::endl;
-			//add local alignments
-			//std::cout << "Read in previous alns infos " << std::endl;
-			//std::cout << bib::bashCT::boldRed("here1.5") << std::endl;
-			for (const auto & lHolder : readInHoler.localHolder_) {
-				//std::cout << lHolder.first << std::endl;
-				alignerObj.alnHolder_.localHolder_[lHolder.first] = lHolder.second;
-			}
-			//std::cout << bib::bashCT::boldRed("here1.6") << std::endl;
-			//add global alignments
-			for (const auto & gHolder : readInHoler.globalHolder_) {
-				//std::cout << gHolder.first << std::endl;
-				alignerObj.alnHolder_.globalHolder_[gHolder.first] = gHolder.second;
-			}
-			//std::cout << bib::bashCT::boldRed("here1.7") << std::endl;
-			//alignerObj.alnHolders_ = alnInfoMasterHolder(alnInfoDirName);
-		} else {
-			//std::cout << bib::bashCT::boldRed("here1.8") << std::endl;
-			chmod(alnInfoDirName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-		}
-	}
-	//std::cout << bib::bashCT::boldRed("here3") << std::endl;
-}
 
 
 
@@ -1361,7 +1396,7 @@ std::vector<double> likelihoodForMedianQ(
     std::unordered_map<double, double>& likelihoods) {
   std::vector<double> ans;
   for (const auto& i : iter::range(qual.size())) {
-    double currentMedian = vectorMedian(getWindowQuals(qual, qWindowSize, i));
+    double currentMedian = vectorMedianCopy(getWindowQuals(qual, qWindowSize, i));
     ans.emplace_back(likelihoods.at(roundDecPlaces(currentMedian, 2)));
   }
   return ans;
@@ -1380,20 +1415,7 @@ double getChangeInHydro(const char& firstAA, const char& secondAA) {
   return std::abs(aminoAcidInfo::infos::allInfo.at(firstAA).acidHydrophobicity_ -
                   aminoAcidInfo::infos::allInfo.at(secondAA).acidHydrophobicity_);
 }
-cluster createClusterFromSimiliarReads(std::vector<readObject> similiarReads,
-                                       aligner& alignerObj) {
-  if (similiarReads.size() > 0) {
-    sort(similiarReads);
-    cluster output(similiarReads.front());
-    for (const auto& readPos : iter::range<uint32_t>(1, similiarReads.size())) {
-      output.addRead(similiarReads[readPos]);
-    }
-    output.calculateConsensus(alignerObj, true);
-    return output;
-  } else {
-    return cluster();
-  }
-}
+
 /*
 std::vector<double> getHydroChanges(const std::string& originalCodon,
                                     const VecStr& mutantCodons,
@@ -1607,8 +1629,8 @@ table getErrorDist(const table & errorTab){
 	table misTab(misCounts, VecStr{"errorNum", "count"});
 	misTab.addColumn(VecStr{"mismatch"}, "error");
 
-	delTab.rbind(insertTab);
-	delTab.rbind(misTab);
+	delTab.rbind(insertTab, false);
+	delTab.rbind(misTab, false);
 	delTab.sortTable("errorNum", true);
 	delTab.sortTable("error", true);
 	return delTab;
@@ -1662,7 +1684,7 @@ table getIndelDistribution(const table & indelTab){
 	insertTab.addColumn(VecStr{"insertion"}, "indel");
 	table delTab(delCounts, VecStr{"indelSize", "count"});
 	delTab.addColumn(VecStr{"deletion"}, "indel");
-	delTab.rbind(insertTab);
+	delTab.rbind(insertTab, false);
 	delTab.sortTable("indelSize", true);
 	delTab.sortTable("indel", true);
 	return delTab;
@@ -1676,42 +1698,6 @@ table getSeqPosTab(const std::string & str){
 	return out;
 }
 
-uint32_t processCutOffStr(const std::string& runCutOffString,
-  uint64_t readCount){
-	uint32_t runCutOff;
-  if (runCutOffString.back() == '%') {
-    runCutOff = std::round(
-        std::stod(runCutOffString.substr(0, runCutOffString.length() - 1)) *
-        readCount / 100.0);
-  } else {
-    runCutOff = std::stoi(runCutOffString);
-  }
-  return runCutOff;
-}
 
 
-
-
-uint32_t getAlnPos(const std::string & seq, uint32_t realSeqPos) {
-  uint32_t offSet = 0;
-  for (uint32_t i = 0; i < seq.size(); i++) {
-    if ((i - offSet) == realSeqPos) {
-      return i;
-    }
-    if (seq[i] == '-') {
-      ++offSet;
-    }
-  }
-  return seq.size();
-}
-
-uint32_t getRealPos(const std::string & seq, uint32_t seqAlnPos) {
-  uint32_t offSet = 0;
-  for (uint32_t i = 0; i < seqAlnPos; i++) {
-    if (seq[i] == '-') {
-      ++offSet;
-    }
-  }
-  return seqAlnPos - offSet;
-}
 }  // namespace bib

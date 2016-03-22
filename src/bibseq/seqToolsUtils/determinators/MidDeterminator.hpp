@@ -1,7 +1,13 @@
 #pragma once
+/*
+ * MidDeterminator.hpp
+ *
+ *  Created on: Jun 10, 2015
+ *      Author: nick
+ */
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,16 +25,9 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-/*
- * MidDeterminator.hpp
- *
- *  Created on: Jun 10, 2015
- *      Author: nick
- */
-
 #include "bibseq/objects/helperObjects/motif.hpp"
 #include "bibseq/objects/seqObjects/seqInfo.hpp"
-#include "bibseq/objects/dataContainers/table.hpp"
+#include "bibseq/objects/dataContainers/tables/table.hpp"
 
 
 namespace bibseq {

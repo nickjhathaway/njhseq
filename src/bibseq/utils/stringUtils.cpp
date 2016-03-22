@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -26,7 +26,6 @@
 #include <sstream>
 #include <iterator>
 #include <cppitertools/range.hpp>
-#include <cppitertools/reverse.hpp>
 
 #include "stringUtils.hpp"
 #include "bibseq/utils/numUtils.hpp"
@@ -40,51 +39,10 @@ void addToStr(std::string & str, const std::string & otherStr){
 	str.append(otherStr);
 }
 
-std::string get_cwd() {
-  // from http://stackoverflow.com/a/2869667
-  const size_t chunkSize = 255;
-  const int maxChunks =
-      10240;  // 2550 KiBs of current path are more than enough
-
-  char stackBuffer[chunkSize];  // Stack buffer for the "normal" case
-  if (getcwd(stackBuffer, sizeof(stackBuffer)) != NULL){
-  	std::string ret = std::string(stackBuffer);
-  	bib::files::appendAsNeeded(ret, "/");
-  	return ret;
-  }
-
-  if (errno != ERANGE) {
-    // It's not ERANGE, so we don't know how to handle it
-    throw std::runtime_error("Cannot determine the current path.");
-    // Of course you may choose a different error reporting method
-  }
-  // Ok, the stack buffer isn't long enough; fallback to heap allocation
-  for (int chunks = 2; chunks < maxChunks; chunks++) {
-    // With boost use scoped_ptr; in C++0x, use unique_ptr
-    // If you want to be less C++ but more efficient you may want to use realloc
-    std::unique_ptr<char> cwd (new char[chunkSize * chunks]);
-    if (getcwd(cwd.get(), chunkSize * chunks) != NULL) {
-    	std::string ret = std::string(cwd.get());
-    	bib::files::appendAsNeeded(ret, "/");
-    	return ret;
-    }
-    if (errno != ERANGE) {
-      // It's not ERANGE, so we don't know how to handle it
-      throw std::runtime_error("Cannot determine the current path.");
-      // Of course you may choose a different error reporting method
-    }
-  }
-  throw std::runtime_error(
-      "Cannot determine the current path; the path is apparently unreasonably "
-      "long");
-  // return "";
-}
-
-
 
 VecStr streamToVecStr(std::istream& stream) {
   VecStr lines;
-  for (std::string line; getline(stream, line);) {
+  for (std::string line; bib::files::crossPlatGetline(stream, line);) {
     lines.emplace_back(line);
   }
   return lines;

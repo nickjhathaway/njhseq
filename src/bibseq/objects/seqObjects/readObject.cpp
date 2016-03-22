@@ -1,6 +1,8 @@
+#include "readObject.hpp"
+
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,7 +20,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "readObject.hpp"
 namespace bibseq {
 
 
@@ -32,10 +33,117 @@ readObject::readObject(const seqInfo& seqBase, bool processed)
   //std::cout << seqBase_.frac_ << std::endl;
 }
 
+readObject::readObject() :
+		baseReadObject() {
+	initializeOthers();
+}
+
+
+void readObject::resetMetaInName() {
+	auto firstBracket = seqBase_.name_.find("[");
+	if (std::string::npos == firstBracket) {
+		std::stringstream ss;
+		ss << "Error in : " << __PRETTY_FUNCTION__ << ", could not find [ in"
+				<< seqBase_.name_ << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	auto secondBracket = seqBase_.name_.find("]", firstBracket);
+	if (std::string::npos == secondBracket) {
+		std::stringstream ss;
+		ss << "Error in : " << __PRETTY_FUNCTION__ << ", could not find ] in"
+				<< seqBase_.name_ << "after " << firstBracket << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	std::string newMeta = "[";
+	for (const auto & meta : meta_) {
+		if ("[" != newMeta) {
+			newMeta.append(";" + meta.first + "=" + meta.second);
+		} else {
+			newMeta.append(meta.first + "=" + meta.second);
+		}
+	}
+	newMeta.append("]");
+	seqBase_.name_ = seqBase_.name_.substr(0, firstBracket) + newMeta
+			+ seqBase_.name_.substr(secondBracket + 1);
+}
+
+void readObject::processNameForMeta(){
+	meta_.clear();
+	auto firstBracket = seqBase_.name_.find("[");
+	if(std::string::npos == firstBracket){
+		std::stringstream ss;
+		ss << "Error in : " << __PRETTY_FUNCTION__
+				<< ", could not find [ in" << seqBase_.name_ << std::endl;
+		throw std::runtime_error{ss.str()};
+	}
+	auto secondBracket = seqBase_.name_.find("]", firstBracket);
+	if(std::string::npos == secondBracket){
+		std::stringstream ss;
+		ss << "Error in : " << __PRETTY_FUNCTION__
+				<< ", could not find ] in" << seqBase_.name_  << "after " << firstBracket
+				<< std::endl;
+		throw std::runtime_error{ss.str()};
+	}
+	auto toks = tokenizeString(seqBase_.name_.substr(firstBracket + 1, secondBracket - firstBracket - 1), ";");
+	for(const auto & tok : toks){
+		auto subToks = tokenizeString(tok, "=");
+		if(2 != subToks.size()){
+			std::stringstream ss;
+			ss << "Error in : " << __PRETTY_FUNCTION__
+					<< "values should be separated by one =, not " << tok
+					<< std::endl;
+			throw std::runtime_error{ss.str()};
+		}else{
+			if(meta_.find(subToks[0]) != meta_.end()){
+				std::stringstream ss;
+				ss << "Error in : " << __PRETTY_FUNCTION__ << "key " << subToks[0]
+						<< " already in meta " << std::endl;
+				ss << "value is already: " << meta_.find(subToks[0])->first
+						<< ", attempt to add:  " << subToks[1] << std::endl;
+				throw std::runtime_error { ss.str() };
+			}else{
+				meta_.emplace(subToks[0], subToks[1]);
+			}
+		}
+	}
+}
+
+bool readObject::containsMeta(const std::string & key) const {
+	return meta_.find(key) != meta_.end();
+}
+
+std::string readObject::getMeta(const std::string & key) const {
+	auto search = meta_.find(key);
+	if (search != meta_.end()) {
+		return search->second;
+	}
+	return "";
+}
+
+
+Json::Value readObject::toJson()const{
+	Json::Value ret;
+	ret["class"] = bib::json::toJson("bibseq::baseReadObject");
+	ret["super"] = baseReadObject::toJson();
+	ret["sampName"] = bib::json::toJson(sampName);
+	ret["expectsString"] = bib::json::toJson(expectsString);
+	ret["meta_"] = bib::json::toJson(meta_);
+	ret["averageErrorRate"] = bib::json::toJson(averageErrorRate);
+	ret["fractionAboveQualCheck_"] = bib::json::toJson(fractionAboveQualCheck_);
+	ret["remove"] = bib::json::toJson(remove);
+	ret["counter_"] = bib::json::toJson(counter_);
+	ret["condensedSeq"] = bib::json::toJson(condensedSeq);
+	ret["condensedSeqQual"] = bib::json::toJson(condensedSeqQual);
+	ret["condensedSeqQualPos"] = bib::json::toJson(condensedSeqQualPos);
+	ret["condensedSeqCount"] = bib::json::toJson(condensedSeqCount);
+	return ret;
+}
+
 std::string readObject::getOtherReadSampName(const readObject& cr) const {
   VecStr toks = tokenizeString(cr.seqBase_.name_, ".");
   return replaceString(toks[0], "CHI_", "");
 }
+
 std::string readObject::getOwnSampName() const {
   VecStr toks = tokenizeString(seqBase_.name_, ".");
   return replaceString(toks[0], "CHI_", "");
@@ -51,18 +159,7 @@ void readObject::setName(const std::string& newName) {
   sampName = getOwnSampName();
 }
 
-void readObject::setFractionName() {
-  size_t tPos = seqBase_.name_.rfind("_t");
-  size_t fPos = seqBase_.name_.rfind("_f");
-  if (tPos == std::string::npos && fPos == std::string::npos) {
 
-  } else if (tPos == std::string::npos) {
-    seqBase_.name_ = seqBase_.name_.substr(0, fPos);
-  } else {
-    seqBase_.name_ = seqBase_.name_.substr(0, tPos);
-  }
-  seqBase_.name_ += "_f" + std::to_string(seqBase_.frac_);
-}
 std::string readObject::getReadId() const {
   size_t firstPeriod = seqBase_.name_.find(".");
   size_t firstUnder = seqBase_.name_.find("_", firstPeriod);
@@ -89,12 +186,12 @@ void readObject::processRead(bool processed) {
 
 
 void readObject::initializeOthers() {
-  flowValues.clear();
+
   condensedSeq = "";
   condensedSeqCount.clear();
   averageErrorRate = getAverageErrorRate();
   remove = false;
-  numberOfFlows = 0;
+
   //basesAboveQualCheck_ = 0;
   fractionAboveQualCheck_ = 0;
   sampName = getOwnSampName();
@@ -119,7 +216,6 @@ void readObject::clearObject() {
   seqBase_.name_ = "";
   seqBase_.seq_ = "";
   seqBase_.qual_.clear();
-  flowValues.clear();
   seqBase_.cnt_ = 0;
   condensedSeq = "";
   condensedSeqCount.clear();
@@ -225,20 +321,7 @@ std::vector<size_t> readObject::findSubsequenceOccurences(
   return findOccurences(seqBase_.seq_, search);
 }
 
-void readObject::outPutFlows(std::ostream& flowsFile) const {
-  flowsFile << ">" << seqBase_.name_ << std::endl;
-  flowsFile << vectorToString(flowValues) << std::endl;
-}
 
-void readObject::outPutFlowsRaw(std::ostream& out) const {
-  out << ">" << seqBase_.name_ << std::endl;
-  out << numberOfFlows << " " << vectorToString(flowValues) << std::endl;
-}
-
-void readObject::outPutPyroData(std::ostream& pyroNoiseFile) const {
-  pyroNoiseFile << seqBase_.name_ << " " << numberOfFlows << " "
-                << vectorToString(flowValues) << std::endl;
-}
 
 
 
@@ -268,7 +351,7 @@ void readObject::setLetterCount() {
 }
 
 void readObject::setLetterCount(const std::vector<char> & alph){
-	counter_ = charCounterArray(alph);
+	counter_ = charCounter(alph);
 	counter_.increaseCountByString(seqBase_.seq_, seqBase_.cnt_);
 	counter_.setFractions();
 }
@@ -400,78 +483,9 @@ void readObject::replace(const std::string& toBeReplaced,
   }
 }
 
-uint32_t readObject::getNumberOfBasesFromFlow(
-    const std::vector<double>& inFlows) {
-  uint32_t numOfBases = 0;
-  for (auto fIter = inFlows.begin(); fIter != inFlows.end(); ++fIter) {
-    if (fIter == inFlows.begin() && *fIter > 20) {
-      continue;
-    }
-    if ((*fIter) > 0.7) {
-      // non noisy signal increase bases count by nearest integer
-      numOfBases += std::round(*fIter);
-    }
-  }
-  return numOfBases;
-}
-int readObject::clipToNinetyPercentOfFlows(size_t cutOff) {
-  processedFlowValues = flowValues;
-  if (processedFlowValues.size() > cutOff) {
-    processedFlowValues.erase(processedFlowValues.begin() + cutOff,
-                              processedFlowValues.end());
-  }
-  std::cout << "Clipped to : " << processedFlowValues.size() << std::endl;
-  int clipTo = getNumberOfBasesFromFlow(flowValues);
-  // setClip(0, clipTo);
-  //exit(
-  return clipTo;
-}
 
-size_t readObject::findFirstNoisyFlow(const std::vector<double>& inFlows) {
-  int noise = 0;
-  int signal = 0;
-  int basesSinceSignal = 0;
-  size_t pos = 0;
-  for (std::vector<double>::const_iterator fIter = inFlows.begin();
-       fIter != inFlows.end(); ++fIter) {
 
-    if (*fIter > 0.5) {
-      if (*fIter < 0.7) {
-        ++noise;
-      } else {
-        ++signal;
-        basesSinceSignal = 0;
-      }
-    } else {
-      ++basesSinceSignal;
-    }
-    if (basesSinceSignal >= 4 || noise >= 1) {
-      break;
-    }
-    ++pos;
-  }
-  return pos;
-}
 
-bool readObject::flowNoiseProcess(size_t cutoff) {
-  size_t firstNoiseReadPos = findFirstNoisyFlow(flowValues);
-  if (firstNoiseReadPos < 360) {
-    return false;
-  }
-  if (firstNoiseReadPos < cutoff) {
-    cutoff = firstNoiseReadPos;
-  }
-  processedFlowValues = flowValues;
-  processedFlowValues.erase(processedFlowValues.begin() + cutoff,
-                            processedFlowValues.end());
-
-  auto numberOfBases = getNumberOfBasesFromFlow(processedFlowValues);
-  if (numberOfBases < seqBase_.seq_.size()) {
-    setClip(0, numberOfBases);
-  }
-
-  return true;
-}
 void readObject::translate(bool complement, bool reverse, size_t start ){
 	seqBase_.translate(complement, reverse, start);
 }
@@ -483,7 +497,7 @@ readObject readObject::translateRet(bool complement, bool reverse, size_t start 
 double readObject::getGCContent() {
   setLetterCount();
   counter_.calcGcContent();
-  return counter_.gcContent;
+  return counter_.gcContent_;
 }
 
 void readObject::adjustHomopolyerRunQualities() {
@@ -517,7 +531,7 @@ void readObject::updateQualWindowCounts(
   addOtherVec(currentQuals, seqBase_.getLeadQual(pos, qualWindowSize));
   addOtherVec(currentQuals, seqBase_.getTrailQual(pos, qualWindowSize));
   counts["mean"][roundDecPlaces(vectorMean(currentQuals), 2)] += seqBase_.cnt_;
-  counts["median"][roundDecPlaces(vectorMedian(currentQuals), 2)] +=
+  counts["median"][roundDecPlaces(vectorMedianRef(currentQuals), 2)] +=
       seqBase_.cnt_;
   counts["min"][roundDecPlaces(vectorMinimum(currentQuals), 2)] +=
       seqBase_.cnt_;
@@ -572,24 +586,8 @@ void readObject::updateQaulCountsAtPos(
 
 
 
-void readObject::printDescription(std::ostream& out, bool deep) const {
-  baseReadObject::printDescription(out);
-  out << "readObject{" << std::endl << "flowValues:" << flowValues << std::endl
-      << "processedFlowValues:" << processedFlowValues << std::endl
-      << "sampName:" << sampName << std::endl
-      << "expectsString:" << expectsString << std::endl
-      << "numberOfFlows:" << numberOfFlows << std::endl
-      << "averageErrorRate:" << averageErrorRate << std::endl
-      //<< "basesAboveQualCheck:" << basesAboveQualCheck_ << std::endl
-      << "fractionAboveQualCheck:" << fractionAboveQualCheck_ << std::endl
-      << "remove:" << remove << std::endl;
-  if (deep) {
-    counter_.printDescription(out, deep);
-  }
-  out << "condensedSeq:" << condensedSeq << std::endl
-      << "condensedSeqQual:" << condensedSeqQual << std::endl
-      << "condensedSeqCount:" << condensedSeqCount << std::endl;
-  out << "}" << std::endl;
-}
+
+
+readObject::~readObject(){}
 
 }  // namespace bib

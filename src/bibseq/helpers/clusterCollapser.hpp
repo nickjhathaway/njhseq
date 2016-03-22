@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -28,16 +28,12 @@
 //
 
 #include "bibseq/utils/utils.hpp"
-#include "bibseq/objects/seqObjects.h"
-#include "bibseq/objects/helperObjects/kmer.hpp"
+#include "bibseq/objects/seqObjects/Clusters/identicalCluster.hpp"
+#include "bibseq/objects/seqObjects/Clusters/cluster.hpp"
 #include "bibseq/alignment.h"
-#include "bibseq/helpers/kmerCalculator.hpp"
-#include "bibseq/helpers/seqUtil.hpp"
-#include "bibseq/IO/readObjectIO.hpp"
-#include "bibseq/seqToolsUtils.h"
-#include "bibseq/readVectorManipulation.h"
 
-#include <cppitertools/reverse.hpp>
+
+
 
 namespace bibseq {
 
@@ -49,29 +45,37 @@ class clusterCollapser {
   static std::vector<identicalCluster> collapseToUniqueReads(
         const std::vector<T> &input, const std::string &repQual);
 
-  // function to collpase to identical reads
+  template<typename T>
   static std::vector<identicalCluster> collapseIdenticalReads(
-      const std::vector<readObject> &seqList, const std::string &repQual,
-      const std::string &lower);
-
-
-
-
-
-  // mark chimeras
-  static std::vector<cluster> markChimeras(std::vector<cluster> &processedReads,
-                                           aligner &alignerObj,
-                                           double parentFreqs, bool kmersByPos,
-                                           int kLength, int runCutOff,
-                                           bool local, bool weighHomopolyer);
-
-  static void markChimerasAdvanced(std::vector<cluster> &processedReads,
-                                   aligner &alignerObj, double parentFreqs,
-                                   int runCutOff, bool local,
-                                   const comparison &chiOverlap,
-                                   uint32_t overLapSizeCutoff,
-                                   bool weighHomopolyer, uint32_t &chimeraCount,
-                                   uint32_t allowableError);
+      const std::vector<T> &reads, const std::string &repQual){
+    std::vector<identicalCluster> ret;
+    uint32_t count = 0;
+    for (const auto &read : reads) {
+    	if(!getSeqBase(read).on_){
+    		continue;
+    	}
+      ++count;
+      if (count == 1) {
+      	ret.emplace_back(getSeqBase(read));
+        continue;
+      }
+      bool foundMatch = false;
+      for (auto &clusterIter : ret) {
+        if (getSeqBase(read).seq_ == clusterIter.seqBase_.seq_) {
+          clusterIter.addRead(getSeqBase(read));
+          foundMatch = true;
+          break;
+        }
+      }
+      if (!foundMatch) {
+      	ret.emplace_back(getSeqBase(read));
+      }
+    }
+    identicalCluster::setIdneticalClusterQual(ret, repQual);
+    readVec::allSetLetterCount(ret);
+    readVec::allUpdateName(ret);
+    return ret;
+  }
 
   // cluster down on tandems
   static void collapseTandems(std::vector<cluster> &processedReads,
@@ -81,15 +85,19 @@ class clusterCollapser {
 };
 template<typename T>
 std::vector<identicalCluster> clusterCollapser::collapseToUniqueReads(
-        const std::vector<T> &input, const std::string &repQual){
+        const std::vector<T> &reads, const std::string &repQual){
 	std::vector<identicalCluster> output;
-	std::unordered_map<std::string, std::vector<T>> clusters;
-	for(const auto & read : input){
-		clusters[read.seqBase_.seq_].emplace_back(read);
+	std::unordered_map<std::string, size_t> clusters;
+	for(const auto & read : reads){
+		auto search = clusters.find(getSeqBase(read).seq_);
+		if(search == clusters.end()){
+			clusters[getSeqBase(read).seq_] = output.size();
+			output.emplace_back(getSeqBase(read));
+		}else{
+			output[search->second].addRead(getSeqBase(read));
+		}
 	}
-	for(const auto & clus : clusters){
-		output.emplace_back(identicalCluster(clus.second, repQual));
-	}
+	identicalCluster::setIdneticalClusterQual(output, repQual);
 	return output;
 }
 

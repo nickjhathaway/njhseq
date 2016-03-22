@@ -1,6 +1,7 @@
+#include "urlUtils.hpp"
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,10 +19,39 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "urlUtils.hpp"
-
 
 namespace bibseq {
+
+std::string urldecode(char const *begin, char const *end) {
+	//from cppcms 1.05
+	std::string result;
+	result.reserve(end - begin);
+	for (; begin < end; begin++) {
+		char c = *begin;
+		switch (c) {
+		case '+':
+			result += ' ';
+			break;
+		case '%':
+			if (end - begin >= 3 && xdigit(begin[1]) && xdigit(begin[2])) {
+				char buf[3] = { begin[1], begin[2], 0 };
+				int value;
+				sscanf(buf, "%x", &value);
+				result += char(value);
+				begin += 2;
+			}
+			break;
+		default:
+			result += c;
+		}
+	}
+	return result;
+}
+
+std::string urldecode(std::string const &s) {
+	//from cppcms 1.05
+	return urldecode(s.c_str(), s.c_str() + s.size());
+}
 
 size_t WriteCallback(char *contents, size_t size, size_t nmemb,
                      std::ostream *stream) {

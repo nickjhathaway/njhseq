@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,9 +18,90 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+/*
+ * alignerUtils.cpp
+ *
+ *  Created on: Nov 30, 2015
+ *      Author: nick
+ */
+
 #include "alignerUtils.hpp"
-#include <bibcpp/bashUtils.h>
+
 namespace bibseq {
 
 
-}  // namespace bib
+
+size_t getAlnPosForRealPos(const std::string & seq, size_t realSeqPos) {
+	if (0 == seq.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": seq size should not be zero" << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	if (realSeqPos >= seq.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__
+				<< ": realSeqPos is greater than or equal to seq size, seq size: "
+				<< seq.size() << ", realSeqPos: " << realSeqPos << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	size_t bases = 0;
+	for (size_t i = 0; i < seq.size(); ++i) {
+		if ('-' != seq[i]) {
+			++bases;
+		}
+		if (bases == realSeqPos + 1) {
+			return i;
+		}
+	}
+	if (realSeqPos >= bases) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__
+				<< ": realSeqPos is greater than or equal to the number of bases counted size, bases: "
+				<< bases << ", realSeqPos: " << realSeqPos << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	return seq.size() - 1;
+}
+
+size_t getRealPosForAlnPos(const std::string & seq, size_t seqAlnPos) {
+	if (0 == seq.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": seq size should not be zero" << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	if (seqAlnPos >= seq.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__
+				<< ": seqAlnPos is greater than or equal to seq size, seq size: "
+				<< seq.size() << ", seqAlnPos: " << seqAlnPos << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	size_t realPos = 0;
+	for (size_t i = 0; i <= seqAlnPos; ++i) {
+		if ('-' != seq[i]) {
+			++realPos;
+		}
+	}
+	//to account for further gaps at this position
+	if ('-' == seq[seqAlnPos] && 0 != realPos) {
+		++realPos;
+	}
+	if (realPos == 0) {
+		return std::numeric_limits<size_t>::max();
+	}
+	return realPos - 1;
+}
+
+size_t getRealPosForSeqForRefPos(const std::string & ref,
+		const std::string & seq, size_t refPos) {
+	return getRealPosForAlnPos(seq, getAlnPosForRealPos(ref, refPos));
+}
+
+size_t getRealPosForRefForSeqPos(const std::string & ref,
+		const std::string & seq, size_t seqPos) {
+	return getRealPosForAlnPos(ref, getAlnPosForRealPos(seq, seqPos));
+}
+
+
+}  // namespace bibseq
+

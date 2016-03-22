@@ -1,6 +1,14 @@
 #pragma once
+//
+//  baseContainer.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 3/7/14.
+//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,19 +26,9 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//
-//  baseContainer.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 3/7/14.
-//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
-//
-
 #include "bibseq/utils.h"
 #include "bibseq/objects/seqObjects/seqInfo.hpp"
-#include "bibseq/alignment/aligner.hpp"
-#include "bibseq/IO/readObjectIO.hpp"
+#include "bibseq/alignment/aligner.h"
 #include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
 
 
@@ -49,7 +47,7 @@ public:
 		for (const auto & m : mismatches_) {
 			out << ref.name_ << "\t" << m.first << "\t" << seqBase_.name_ << "\t"
 					<< m.second.refBase << "\t" << m.second.seqBase << "\t" <<seqInfo::getFastqString({m.second.seqQual},
-							readObjectIO::SangerQualOffset)
+							SangerQualOffset)
 					<< std::endl;
 		}
 		//insertions
@@ -57,14 +55,14 @@ public:
 			out << ref.name_ << "\t" << i.first << "\t" << seqBase_.name_ << "\t"
 					<< "-" << "\t" << i.second.gapedSequence_ << "\t"
 					<< seqInfo::getFastqString(i.second.qualities_,
-							readObjectIO::SangerQualOffset) << std::endl;
+							SangerQualOffset) << std::endl;
 		}
 		//deletions
 		for (const auto & d : deletions_) {
 			out << ref.name_ << "\t" << d.first << "\t" << seqBase_.name_ << "\t"
 					<< d.second.gapedSequence_ << "\t" << "_" << "\t"
 					<< seqInfo::getFastqString(d.second.qualities_,
-							readObjectIO::SangerQualOffset) << std::endl;
+							SangerQualOffset) << std::endl;
 		}
 	}
 	/*
@@ -98,20 +96,23 @@ public:
 	seqInfo seqBase_;
 	std::vector<variant> variants_;
 
-	void addVariant(const seqInfo & var, aligner & alignerObj, bool weighHomopolymer){
+	void addVariant(const seqInfo & var, aligner & alignerObj,
+			bool weighHomopolymer) {
 		variant varObj(var);
-		alignerObj.alignVec(seqBase_, var, false);
+		alignerObj.alignCache(seqBase_, var, false);
 		alignerObj.profilePrimerAlignment(seqBase_, var, weighHomopolymer);
-		for(const auto & m : alignerObj.mismatches_){
+		for (const auto & m : alignerObj.comp_.distances_.mismatches_) {
 			varObj.mismatches_.emplace(m.second.refBasePos, m.second);
 		}
-		for(const auto & g : alignerObj.alignmentGaps_){
-			if(g.second.ref_){
+		for (const auto & g : alignerObj.comp_.distances_.alignmentGaps_) {
+			if (g.second.ref_) {
 				//insertion
-				varObj.insertions_.emplace(getRealPos(seqBase_.seq_, g.first), g.second);
-			}else{
+				varObj.insertions_.emplace(getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, g.first),
+						g.second);
+			} else {
 				//deletion
-				varObj.deletions_.emplace(getRealPos(seqBase_.seq_, g.first),g.second);
+				varObj.deletions_.emplace(getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, g.first),
+						g.second);
 			}
 		}
 		variants_.emplace_back(varObj);
@@ -199,5 +200,5 @@ public:
 }  // namespace bib
 
 #ifndef NOT_HEADER_ONLY
-#include "refVariants.hpp"
+#include "refVariants.cpp"
 #endif

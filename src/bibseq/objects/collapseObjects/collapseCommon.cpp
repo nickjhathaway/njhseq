@@ -1,25 +1,4 @@
 //
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-//
-//
 //  collapseCommon.cpp
 //  sequenceTools
 //
@@ -35,7 +14,7 @@ void clusterSet::setSubClustersPositions() {
   uint32_t pos = 0;
   for (const auto& clus : clusters_) {
     for (const auto& read : clus.reads_) {
-      subClustersPositions_[read.getStubName(true)] = pos;
+      subClustersPositions_[read->getStubName(true)] = pos;
     }
     ++pos;
   }
@@ -49,19 +28,9 @@ void clusterSet::setSetInfo() {
 }
 
 // writing
-void clusterSet::writeClusters(std::string filename, std::string format,
-                               bool overWrite, bool exitOnFailure) const {
-	readObjectIOOptions options;
-	options.outFilename_ = filename;
-	options.outFormat_ = format;
-	options.append_ = false;
-	options.overWriteFile_ = overWrite;
-	options.exitOnFailureToWrite_ = exitOnFailure;
-  readObjectIO::write(clusters_, options);
-}
-
-void clusterSet::writeClusters(std::string filename, const readObjectIOOptions & ioOptions) const{
-	writeClusters(filename, ioOptions.outFormat_, ioOptions.overWriteFile_, ioOptions.exitOnFailureToWrite_);
+void clusterSet::writeClusters(std::string filename,
+		const SeqIOOptions & ioOptions) const {
+	SeqOutput::write(clusters_,filename, ioOptions);
 }
 
 table clusterSet::getReplicateInfo()const {

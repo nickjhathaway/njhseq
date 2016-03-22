@@ -1,6 +1,14 @@
 #pragma once
+//
+//  baseContainer.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 3/7/14.
+//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,15 +26,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//
-//  baseContainer.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 3/7/14.
-//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
-//
-
 #include "bibseq/utils.h"
 #include "bibseq/objects/seqObjects/seqInfo.hpp"
 namespace bibseq {
@@ -58,21 +57,7 @@ class baseContainer {
   		read.seqBase_.outPutFastq(outFile);
   	}
   }
-
-  // description
-  virtual void printDescription(std::ostream& out, bool deep) const {
-    out << "baseContainer{" << std::endl;
-    out << "seqBase_:" << std::endl;
-    seqBase_.printDescription(out, deep);
-    if (deep) {
-      out << "reads:{" << std::endl;
-      out << "std::vector<T> " << std::endl;
-      for (const auto& read : reads_) {
-        read.printDescription(out, deep);
-      }
-    }
-    out << "}" << std::endl;
-  }
+ virtual ~baseContainer(){}
 };
 
 }  // namespace bib

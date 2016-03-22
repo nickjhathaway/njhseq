@@ -1,7 +1,14 @@
 #pragma once
 //
+//  helperObjects.h
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 7/18/13.
+//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,22 +26,9 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  helperObjects.h
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 7/18/13.
-//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
-//
-
-
-#include "bibseq/objects/helperObjects/gaps.hpp"
-#include "bibseq/objects/helperObjects/kmer.hpp"
-#include "bibseq/objects/helperObjects/kmerInfo.hpp"
 #include "bibseq/objects/helperObjects/hpRun.hpp"
 
 #include "bibseq/objects/helperObjects/tandemRepeat.hpp"
-#include "bibseq/objects/helperObjects/mismatch.hpp"
 #include "bibseq/objects/helperObjects/probabilityProfile.hpp"
 
 #include "bibseq/objects/helperObjects/motif.hpp"

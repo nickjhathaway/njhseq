@@ -1,6 +1,12 @@
+/*
+ * motif.cpp
+ *
+ *  Created on: Mar 31, 2014
+ *      Author: nickhathaway
+ */
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,19 +24,25 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-/*
- * motif.cpp
- *
- *  Created on: Mar 31, 2014
- *      Author: nickhathaway
- */
-
 #include "motif.hpp"
 
 namespace bibseq {
 
 
-void motifSubUnit::setScoreArray(){
+motif::motifSubUnit::motifSubUnit():aas_(getUpperCaseLetters()), inclusive_(true){
+	setScoreArray();
+}
+motif::motifSubUnit::motifSubUnit(const std::vector<char> & aas, bool inclusive): aas_(aas), inclusive_(inclusive){
+	setScoreArray();
+}
+motif::motifSubUnit::motifSubUnit(const std::string & motifSub, bool inclusive): inclusive_(inclusive){
+	for(const auto & c : motifSub){
+		aas_.emplace_back(c);
+	}
+	setScoreArray();
+}
+
+void motif::motifSubUnit::setScoreArray(){
 	if(inclusive_){
 		// if inclusive give all other letters a score of zero and
 		// any in the input as a score of 1 for match
@@ -51,17 +63,17 @@ void motifSubUnit::setScoreArray(){
 		}
 	}
 }
-uint32_t motifSubUnit::scoreChar(char c) const{
+uint32_t motif::motifSubUnit::scoreChar(char c) const{
 	return score_[c - 'A'];
 }
-motifSubUnit motif::processInclusion(uint32_t start, uint32_t stop){
+motif::motifSubUnit motif::processInclusion(uint32_t start, uint32_t stop){
 	std::vector<char> include;
 	for(const auto & pos : iter::range(start + 1, stop)){
 		include.emplace_back(motifOriginal_[pos]);
 	}
 	return motifSubUnit(include, true);
 }
-motifSubUnit motif::processExclusion(uint32_t start, uint32_t stop){
+motif::motifSubUnit motif::processExclusion(uint32_t start, uint32_t stop){
 	std::vector<char> exclude;
 	for(const auto & pos : iter::range(start + 1, stop)){
 		exclude.emplace_back(motifOriginal_[pos]);
@@ -129,6 +141,12 @@ void motif::processMotif(){
   //getRange(0,2);
 
 }
+
+motif::motif(const std::string & inMotif): motifOriginal_(inMotif){
+	processMotif();
+}
+
+
 uint32_t motif::scoreMotif(const std::string & possibleMotif)const{
 	if(possibleMotif.size() !=  motifUnits_.size()){
 		std::cout << "motif size doesn't equal size of the check" << std::endl;
@@ -159,10 +177,10 @@ bool motif::passMotifParameter(const std::string & possibleMotif, uint32_t score
 	return scoreMotif(possibleMotif) >= scoreCutOff;
 }
 
-std::vector<uint32_t> motif::findPositions(const std::string & wholeProtein, uint32_t scoreCutOff)const{
+std::vector<size_t> motif::findPositions(const std::string & wholeProtein, uint32_t scoreCutOff)const{
 	uint32_t motifSize = motifUnits_.size();
-	uint32_t pos = 0;
-	std::vector<uint32_t> positions;
+	size_t pos = 0;
+	std::vector<size_t> positions;
 	while(pos + motifSize <= wholeProtein.size()){
 		if(passMotifParameter(wholeProtein.substr(pos, motifSize), scoreCutOff)){
 			positions.emplace_back(pos);
@@ -172,47 +190,38 @@ std::vector<uint32_t> motif::findPositions(const std::string & wholeProtein, uin
 	return positions;
 }
 
-std::vector<uint32_t> motif::findPositionsFull(const std::string & wholeProtein,
-		uint32_t allowableErrors)const{
+std::vector<size_t> motif::findPositionsFull(const std::string & wholeProtein,
+		uint32_t allowableErrors) const {
+	return findPositionsFull(wholeProtein, allowableErrors, 0,
+			wholeProtein.size());
+}
+
+std::vector<size_t> motif::findPositionsFull(const std::string & wholeProtein,
+		uint32_t allowableErrors, size_t start, size_t stop) const {
 	uint32_t sum = 0;
-	auto predTest = [&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
-		                   {
-		sum += 1 - mot.second.scoreChar(a);
-		return sum <= allowableErrors;
-		                   };
-	uint32_t pos = 0;
-	std::vector<uint32_t> positions;
+	auto predTest =
+			[&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
+			{
+				sum += 1 - mot.second.scoreChar(a);
+				return sum <= allowableErrors;
+			};
+	size_t pos = start;
+	std::vector<size_t> positions;
 	uint32_t motifSize = motifUnits_.size();
-	while(pos + motifUnits_.size() <= wholeProtein.size()){
+	while (pos + motifUnits_.size() <= stop) {
 		sum = 0;
-		if(std::equal(wholeProtein.begin() + pos, wholeProtein.begin() + motifSize + pos,
-				motifUnits_.begin(), predTest)){
+		if (std::equal(wholeProtein.begin() + pos,
+				wholeProtein.begin() + motifSize + pos, motifUnits_.begin(),
+				predTest)) {
 			positions.emplace_back(pos);
 		}
 		++pos;
 	}
 	return positions;
 }
-std::vector<uint32_t> motif::findPositionsFull(const std::string & wholeProtein,
-		uint32_t allowableErrors, uint32_t start, uint32_t stop) const{
-	uint32_t sum = 0;
-	auto predTest = [&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
-		                   {
-		sum += 1 - mot.second.scoreChar(a);
-		return sum <= allowableErrors;
-		                   };
-	uint32_t pos = start;
-	std::vector<uint32_t> positions;
-	uint32_t motifSize = motifUnits_.size();
-	while(pos + motifUnits_.size() <= stop){
-		sum = 0;
-		if(std::equal(wholeProtein.begin() + pos, wholeProtein.begin() + motifSize + pos,
-				motifUnits_.begin(), predTest)){
-			positions.emplace_back(pos);
-		}
-		++pos;
-	}
-	return positions;
+
+size_t motif::size()const{
+	return motifUnits_.size();
 }
 
 } /* namespace bibseq */

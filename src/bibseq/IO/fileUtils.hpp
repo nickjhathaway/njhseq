@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -49,16 +49,14 @@ std::map<std::string, std::pair<std::string, bool>> listFilesInDir(
 // check to see if a file exists
 bool fexists(const std::string &filename);
 
+// opening text files
 void openTextFile(std::ofstream &file, std::string filename,
-                  std::string fileExtention, bool overWrite,
-                  bool exitOnFailure);
-void openTextFile(std::ofstream &file, const IoOptions & options);
-template<typename OPTIONS>
+		std::string fileExtention, bool overWrite, bool exitOnFailure);
+void openTextFile(std::ofstream &file, const OutOptions & options);
 void openTextFile(std::ofstream &file, std::string filename,
-                  std::string fileExtention, OPTIONS outOptions){
-	openTextFile(file, filename, fileExtention,
-			outOptions.overWriteFile_, outOptions.exitOnFailureToWrite_);
-}
+		const OutOptions & outOptions);
+void openTextFile(std::ofstream &file, std::string filename,
+		std::string fileExtention, const OutOptions & outOptions);
 
 // runLog stuff
 void startRunLog(std::ofstream &runLog, const MapStrStr &inputCommands);
