@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,7 +19,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
 /*
  * BamToolsUtils.hpp
  *
@@ -31,15 +30,20 @@
 
 #include "bibseq/utils.h"
 #include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/alignment/alnCache/alnInfoHolder.hpp"
 
 namespace bibseq {
 
-seqInfo bamAlnToSeqInfo(const BamTools::BamAlignment & aln);
+seqInfo bamAlnToSeqInfo(const BamTools::BamAlignment & aln, bool complement);
 
-void bamWriteFasta(const BamTools::BamAlignment & aln,
-		std::ostream & out);
-void bamWriteFastq(const BamTools::BamAlignment & aln,
-		std::ostream & out);
+void bamWriteFasta(const BamTools::BamAlignment & aln, std::ostream & out,
+		bool complement);
+void bamWriteFastq(const BamTools::BamAlignment & aln, std::ostream & out,
+		bool complement);
+
+alnInfoLocal bamAlnToAlnInfoLocal(const std::vector<BamTools::CigarOp> & cigarData);
+
+std::unordered_map<size_t,alnInfoLocal> bamAlnToAlnInfoLocal(const BamTools::BamAlignment & bAln);
 
 
 namespace bamAlnFlagCheck {

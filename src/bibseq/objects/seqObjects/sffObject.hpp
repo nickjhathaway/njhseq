@@ -1,7 +1,14 @@
 #pragma once
 //
+//  sffObject.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 4/26/13.
+//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,14 +26,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  sffObject.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 4/26/13.
-//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
-//
-
 #include "bibseq/objects/seqObjects/readObject.hpp"
 
 namespace bibseq {
@@ -34,7 +33,7 @@ namespace bibseq {
 class sffObject : public readObject {
 
  public:
-  //sffObject() : readObject() { sffAdditionalInitialation(); }
+
   sffObject(const seqInfo &seqBase, bool processed = false)
       : readObject(seqBase) {
     processRead(processed);
@@ -79,10 +78,25 @@ class sffObject : public readObject {
 	std::string timestamp_;
 	std::string region_;
 	std::string xy_;
+	std::vector<uint32_t> baseFlowIndex_;
 	std::vector<uint32_t> flowIndex_;
 	std::vector<double> selectFlowValues;
+
+
+  std::vector<double> flowValues;
+  std::vector<double> processedFlowValues;
+  int numberOfFlows;
+
+  uint32_t getNumberOfBasesFromFlow(const std::vector<double>& flows);
+  int clipToNinetyPercentOfFlows(size_t cutOff);
+  size_t findFirstNoisyFlow(const std::vector<double>& flows);
+  bool flowNoiseProcess(size_t cutoff);
+  void outPutFlows(std::ostream& flowsFile) const;
+  void outPutFlowsRaw(std::ostream& flowdataFile) const;
+  void outPutPyroData(std::ostream& pyroNoiseFile) const;
+
+
 	//functions
-	virtual void printDescription(std::ostream & out, bool deep = false) const;
 	void printHeaderSffTxtStyle(std::ofstream& out);
 	void printSffTxtSeqData(std::ostream& out) ;
 	void decodeName();
@@ -109,8 +123,6 @@ struct sffBinaryHeader {
 	int printSffTxtStyle(std::ostream & out);
 	void printDescription(std::ostream & out, bool deep = false) const;
 };
-
-readObject convertSffObject(const sffObject& theOtherObject) ;
 
 }  // namespace bib
 

@@ -1,6 +1,15 @@
+
+#pragma once
+//
+//  vectorUtils.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 7/18/13.
+//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
+//
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,18 +27,7 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#pragma once
-//
-//  vectorUtils.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 7/18/13.
-//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
-//
 
-#include <vector>
-#include <cppitertools/reverse.hpp>
-#include <chrono>
 #include "bibseq/utils/stringUtils.hpp"
 #include "bibseq/utils/vectorCalculations.hpp"
 #include "bibseq/utils/numUtils.hpp"
@@ -432,20 +430,10 @@ std::vector<T> convertStringToVector(const std::string& str,
   return ans;
 }
 
-static std::string outDelim = "\t";
 
-void setDelim(const std::string& newDelim);
 
-template <typename T>
-std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec) {
-  if (!vec.empty()) {
-    for (auto i : iter::range(vec.size() - 1)) {
-      out << vec[i] << bibseq::outDelim;
-    }
-    out << vec.back();
-  }
-  return out;
-}
+
+
 template <typename T>
 VecStr numVecToVecStr(const std::vector<T>& nums) {
   VecStr ans;

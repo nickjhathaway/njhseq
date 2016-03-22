@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -89,17 +89,30 @@ public:
 	//functions
 
 	void setWithZeros();
-	void setWithSimple(int32_t match, int32_t mismatch);
-	void setWithCaseInsensitive(int32_t match, int32_t mismatch);
+
 	void setWithMap(const std::map<char, std::map<char, int32_t>> & mapScores);
 	void setWithUnoMap(const std::unordered_map<char, std::unordered_map<char, int32_t>> & mapScores);
 	void setWtihDNAArray(const int matchMatrix[4][4]);
 	void setWtihBlosum62();
 	void setWithPam250();
-	void setWithDegenScoring(int32_t matchScore, int32_t mismatchScore);
-	void setWithDegenScoringLessN();
-	void setWithDegenScoringNoNInRef();
+	void setWithSimple(int32_t match, int32_t mismatch);
+	void setWithSimpleCaseInsense(int32_t match, int32_t mismatch);
+
+	void setWithDegenScoringCaseSense(int32_t matchScore, int32_t mismatchScore);
 	void setWithDegenScoringCaseInsen(int32_t matchScore, int32_t mismatchScore);
+	void setWithDegenScoringLessNCaseInsen(int32_t matchScore, int32_t mismatchScore);
+	void setWithDegenScoringLessNCaseSense(int32_t matchScore, int32_t mismatchScore);
+
+	void setWithDegenScoringNoNInRefCaseSense(int32_t matchScore, int32_t mismatchScore);
+	void setWithDegenScoringNoNInRefCaseInsen(int32_t matchScore, int32_t mismatchScore);
+	void setWithDegenScoringNoNInRefCaseSenseLessN(int32_t matchScore, int32_t mismatchScore);
+	void setWithDegenScoringNoNInRefCaseInsenLessN(int32_t matchScore, int32_t mismatchScore);
+
+	void setWithDegenScoringNoNInSeqCaseSense(int32_t matchScore, int32_t mismatchScore);
+	void setWithDegenScoringNoNInSeqCaseInsen(int32_t matchScore, int32_t mismatchScore);
+	void setWithDegenScoringNoNInSeqCaseSenseLessN(int32_t matchScore, int32_t mismatchScore);
+	void setWithDegenScoringNoNInSeqCaseInsenLessN(int32_t matchScore, int32_t mismatchScore);
+
 	void setWithFilename(const std::string & filename);
 
 	std::vector<char> determineLetters()const;
@@ -107,14 +120,21 @@ public:
 	void printScores(const std::vector<char> & alphbet, std::ostream & out)const ;
 	void printScores(std::ostream & out)const;
 
+	std::array<std::array<double, 127>, 127> getRates(const std::vector<char> & alphbet)const;
+
+  /**@brief convert to json representation
+	 *
+	 * @return Json::Value object
+	 */
+	Json::Value toJson() const ;
 
 	//static creating matrixes
 	static substituteMatrix createDegenScoreMatrix(int32_t matchScore, int32_t mismatchScore);
 	static substituteMatrix createDegenScoreMatrixCaseInsensitive(int32_t matchScore, int32_t mismatchScore);
-	static substituteMatrix createDegenScoreMatrixLessN();
-	static substituteMatrix createDegenScoreMatrixNoNInRef();
+	static substituteMatrix createDegenScoreMatrixLessN(int32_t matchScore, int32_t mismatchScore);
+	static substituteMatrix createDegenScoreMatrixNoNInRef(int32_t matchScore, int32_t mismatchScore);
 	static substituteMatrix createScoreMatrix(int32_t matchScore, int32_t mismatchScore,
-			bool degenerativeScoring, bool caseInsensitive);
+			bool degenerativeScoring, bool degenLessN, bool caseInsensitive);
 };
 
 

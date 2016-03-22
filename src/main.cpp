@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,10 +18,9 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 //
 //  main.cpp
-//
+//  sequenceTools
 //
 //  Created by Nicholas Hathaway on 8/11/13.
 //  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
@@ -32,6 +31,5 @@
 
 int main(int argc, char* argv[]) {
   std::cout << "Hello bibseq" << std::endl;
-
   return 0;
 }

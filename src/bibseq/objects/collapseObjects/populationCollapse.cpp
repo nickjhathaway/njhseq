@@ -1,25 +1,4 @@
 //
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-//
 //  populationCollapse.cpp
 //  sequenceTools
 //
@@ -78,11 +57,8 @@ void populationCollapse::updateCollapsedInfos() {
 
 
 void populationCollapse::writeFinal(const std::string &outDirectory,
-                                    const std::string &outFormat,
-                                    bool overWrite,
-                                    bool exitOnFailureToWrite) const {
-  collapsed_.writeClusters(outDirectory + populationName_, outFormat, overWrite,
-                           exitOnFailureToWrite);
+		const SeqIOOptions & ioOptions) const {
+  collapsed_.writeClusters(outDirectory + populationName_, ioOptions);
 }
 
 uint32_t populationCollapse::numOfSamps()const{
@@ -101,17 +77,17 @@ void populationCollapse::renameClusters() {
 
   renameReadNames(collapsed_.clusters_, populationName_, true, false,false);
   for (auto &clus : collapsed_.clusters_) {
-    if (clusterVec::isClusterAtLeastHalfChimeric(clus.reads_)) {
+    if (clus.isClusterAtLeastHalfChimeric()) {
       clus.seqBase_.markAsChimeric();
     }
   }
   readVec::allUpdateName(collapsed_.clusters_);
 }
 
-void populationCollapse::writeFinalInitial(const std::string &outDirectory, const readObjectIOOptions & ioOptions)
+void populationCollapse::writeFinalInitial(const std::string &outDirectory, const SeqIOOptions & ioOptions)
     const {
   for (const auto &clus : collapsed_.clusters_) {
-    clus.writeOutClusters(outDirectory, ioOptions);
+    clus.writeClustersInDir(outDirectory, ioOptions);
   }
 }
 
@@ -148,7 +124,7 @@ void populationCollapse::renameToOtherPopNames(
     double bestScore = 0;
     uint32_t bestRefPos = std::numeric_limits<uint32_t>::max();
     for (const auto &refPos : iter::range(previousPop.size())) {
-      alignerObj.alignVec(previousPop[refPos], clus, false);
+      alignerObj.alignCache(previousPop[refPos], clus, false);
       alignerObj.profilePrimerAlignment(previousPop[refPos], clus,false);
       if(noErrors.passErrorProfile(alignerObj.comp_) &&  alignerObj.parts_.score_ > bestScore) {
         bestScore = alignerObj.parts_.score_;
@@ -159,7 +135,7 @@ void populationCollapse::renameToOtherPopNames(
       clus.seqBase_.name_ = previousPop[bestRefPos].seqBase_.name_;
       clus.updateName();
     }else{
-      clus.seqBase_.name_ = populationName_ + "." + estd::to_string(id);
+      clus.seqBase_.name_ = populationName_ + "." + leftPadNumStr<size_t>(id, collapsed_.clusters_.size());
       ++id;
       clus.updateName();
     }

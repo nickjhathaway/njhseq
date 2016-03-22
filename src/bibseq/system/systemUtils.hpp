@@ -1,7 +1,13 @@
 #pragma once
+/*
+ * systemUtils.hpp
+ *
+ *  Created on: Jan 18, 2015
+ *      Author: nickhathaway
+ */
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,13 +25,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-/*
- * systemUtils.hpp
- *
- *  Created on: Jan 18, 2015
- *      Author: nickhathaway
- */
-
 #include "bibseq/objects/seqObjects/readObject.hpp"
 namespace bibseq{
 /**@b put padding zeros into the quality to represent gaps in the seq
@@ -91,10 +90,10 @@ void muscleSeqs(std::vector<T> & seqs, const std::vector<uint64_t> & selected){
 		tempObjs = muscleSeqs(tmpname);
 	} catch (std::exception & e) {
 		//std::cerr << e.what() << std::endl;
-		bib::bfs::remove(tmpname);
+		bib::files::bfs::remove(tmpname);
 		throw;
 	}
-	bib::bfs::remove(tmpname);
+	bib::files::bfs::remove(tmpname);
 	//replace the sequences with the aligned sequences and adjust the qual
 	for(const auto & read : tempObjs){
 		/**@todo to preserve case, create glovalGapInfo from string and rearrange out sequence*/

@@ -1,6 +1,12 @@
+/*
+ * PrimerDeterminator.cpp
+ *
+ *  Created on: Jun 10, 2015
+ *      Author: nick
+ */
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,14 +24,8 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-/*
- * PrimerDeterminator.cpp
- *
- *  Created on: Jun 10, 2015
- *      Author: nick
- */
-
 #include "PrimerDeterminator.hpp"
+#include "bibseq/helpers/seqUtil.hpp"
 
 namespace bibseq {
 
@@ -72,8 +72,8 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info, uint3
 		alignerObj.profilePrimerAlignment(readBegin,
 				currentPrimer.second.reversePrimerInfoForDir_, weighHomopolyers);
 		if (forwardPosition.first <= withinPos
-				&& alignerObj.comp_.distances_.queryCoverage_
-						>= allowable.distances_.queryCoverage_
+				&& alignerObj.comp_.distances_.query_.coverage_
+						>= allowable.distances_.query_.coverage_
 				&& allowable.passErrorProfile(alignerObj.comp_)) {
 			if(withinPos != 0 && forwardPosition.first != 0){
 				info.setClip(forwardPosition.first, info.seq_.size() - 1);
@@ -109,8 +109,8 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 		alignerObj.profilePrimerAlignment(readBegin,
 				currentPrimer.second.forwardPrimerInfo_, weighHomopolyers);
 		if (forwardPosition.first <= withinPos
-				&& alignerObj.comp_.distances_.queryCoverage_
-						>= allowable.distances_.queryCoverage_
+				&& alignerObj.comp_.distances_.query_.coverage_
+						>= allowable.distances_.query_.coverage_
 				&& allowable.passErrorProfile(alignerObj.comp_)) {
 			if(withinPos != 0 && forwardPosition.first != 0){
 				info.setClip(forwardPosition.first,info.seq_.size() - 1);
@@ -154,8 +154,8 @@ bool PrimerDeterminator::checkForReversePrimer(seqInfo & info,
 	alignObj.profilePrimerAlignment(readEnd,
 			primers_[primerName].reversePrimerInfo_, weighHomopolyers);
 	bool primerGood = true;
-	if (alignObj.comp_.distances_.queryCoverage_
-			< allowable.distances_.queryCoverage_
+	if (alignObj.comp_.distances_.query_.coverage_
+			< allowable.distances_.query_.coverage_
 			|| !allowable.passErrorProfile(alignObj.comp_)) {
 		primerGood = false;
 	}
@@ -201,8 +201,8 @@ bool PrimerDeterminator::checkForForwardPrimerInRev(seqInfo & info, const std::s
 	alignObj.profilePrimerAlignment(readEnd,
 			primers_[primerName].forwardPrimerInfoRevDir_, weighHomopolyers);
 	bool primerGood = true;
-	if (alignObj.comp_.distances_.queryCoverage_
-			< allowable.distances_.queryCoverage_
+	if (alignObj.comp_.distances_.query_.coverage_
+			< allowable.distances_.query_.coverage_
 			|| !allowable.passErrorProfile(alignObj.comp_)) {
 		primerGood = false;
 	}

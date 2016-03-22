@@ -1,6 +1,7 @@
+#include "readChecker.hpp"
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,8 +19,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "readChecker.hpp"
-
 
 
 namespace bibseq {
@@ -115,10 +114,10 @@ bool readChecker::checkReadOnFrac(seqInfo & info, double fracCutOff,
 	}
 }
 
-bool readChecker::checkReadOnNucComp(seqInfo & info, const charCounterArray & counter, double fracDiff,
+bool readChecker::checkReadOnNucComp(seqInfo & info, const charCounter & counter, double fracDiff,
 		bool mark) {
 	std::string markWith = "_nucCompFrac>" + estd::to_string(fracDiff);
-	charCounterArray count(counter.alphabet_);
+	charCounter count(counter.alphabet_);
 	count.increaseCountByString(info.seq_);
 	count.setFractions();
 	if (counter.getFracDifference(count, counter.alphabet_) > fracDiff) {

@@ -1,7 +1,13 @@
 #pragma once
+/*
+ * UndirWeightedGraph.hpp
+ *
+ *  Created on: Dec 10, 2014
+ *      Author: nickhathaway
+ */
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,13 +25,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-/*
- * UndirWeightedGraph.hpp
- *
- *  Created on: Dec 10, 2014
- *      Author: nickhathaway
- */
-
 #include <bibcpp/jsonUtils.h>
 #include <bibcpp/graphics.h>
 
@@ -40,8 +39,13 @@ namespace bibseq {
 std::unordered_map<std::string,bib::color> getColorsForNames(const VecStr & popNames);
 void jsonTreeToDot(Json::Value treeData, std::ostream & outDot);
 
+/**@brief
+ *
+ * @todo need to go through and make sure checks for if edges and nodes are on for all functions
+ */
 template<typename DIST, typename VALUE>
 class njhUndirWeightedGraph {
+
 public:
 	class node;
 
@@ -66,8 +70,18 @@ public:
 		bool operator <(const edge & otherEdge){
 			return dist_ < otherEdge.dist_;
 		}
+
 		bool operator >(const edge & otherEdge){
 			return dist_ > otherEdge.dist_;
+		}
+
+		bool nodesOn() const {
+			for (const auto & n : nodeToNode_) {
+				if (!n.second.lock()->on_) {
+					return false;
+				}
+			}
+			return true;
 		}
 	}; // class edge
 
@@ -87,6 +101,12 @@ public:
 		uint32_t visitedAmount_ = 0;
 		uint32_t group_ = std::numeric_limits<uint32_t>::max();
 
+		void turnOff(){
+			on_ = false;
+			for(auto & e : edges_){
+				e->on_ = false;
+			}
+		}
 
 		void sortEdges(){
 			auto greaterComp = [](const std::shared_ptr<edge> & e1,
@@ -100,28 +120,30 @@ public:
 			std::sort(edges_.begin(), edges_.end(), comp);
 		}
 
-		void printEdges(std::ostream & out, bool printVisited){
-			for(const auto & e : edges_){
-				if(e->on_){
-					if(e->visited_ && printVisited){
-						out << name_ << " -- " << e->nodeToNode_[name_].lock()->name_  << " " << e->dist_ << "\n";
-					}else{
-						out << name_ << " -- " << e->nodeToNode_[name_].lock()->name_  << " " << e->dist_ << "\n";
+		void printEdges(std::ostream & out, bool printVisited) {
+			for (const auto & e : edges_) {
+				if (e->on_) {
+					if (e->visited_ && printVisited) {
+						out << name_ << " -- " << e->nodeToNode_[name_].lock()->name_ << " "
+								<< e->dist_ << "\n";
+					} else {
+						out << name_ << " -- " << e->nodeToNode_[name_].lock()->name_ << " "
+								<< e->dist_ << "\n";
 					}
 				}
 			}
 		}
 
-		DIST getAverageDist(){
+		DIST getAverageDist() {
 			DIST sum = 0;
 			double edgeNum = 0;
-			for(const auto & e : edges_){
-				if(e->on_){
+			for (const auto & e : edges_) {
+				if (e->on_) {
 					++edgeNum;
-					sum+= e->dist_;
+					sum += e->dist_;
 				}
 			}
-			return sum/edgeNum;
+			return sum / edgeNum;
 		}
 
 		DIST getAverageDist(std::function<DIST(std::vector<DIST>)> avgFunc){
@@ -153,7 +175,7 @@ public:
 
 		void printLastEdge(std::ostream & out, bool visitEdge){
 			if(!edges_.empty()){
-				for(const auto & e : iter::reverse(edges_)){
+				for(const auto & e : iter::reversed(edges_)){
 					if(e->on_){
 						if(!e->visited_){
 							out << name_ << " -- " << e->nodeToNode_[name_].lock()->name_
@@ -174,7 +196,7 @@ public:
 				visited_ = true;
 				++visitedAmount_;
 				for(auto & e : edges_){
-					if(e->on_ && !e->visited_){
+					if(e->nodeToNode_[name_].lock()->on_ && e->on_ && !e->visited_){
 						e->visited_ = true;
 						e->nodeToNode_[name_].lock()->visitAndGroupCons(currentGroup);
 					}
@@ -246,9 +268,12 @@ public:
 	std::unordered_map<std::string, uint64_t> nameToNodePos_;
 	uint32_t numberOfGroups_ = 1;
 
-	void addNode(const std::string & name, const VALUE & value){
-		nameToNodePos_[name] = nodes_.size();
-		nodes_.emplace_back(std::make_shared<node>(name, value));
+	void addNode(const std::string & uid, const VALUE & value){
+		if(bib::in(uid, nameToNodePos_)){
+			throw std::runtime_error{std::string(__PRETTY_FUNCTION__) + ": already contains node with uid: " + uid + ", can't have duplicate names"};
+		}
+		nameToNodePos_[uid] = nodes_.size();
+		nodes_.emplace_back(std::make_shared<node>(uid, value));
 	}
 
 	void addEdge(const std::string & name1,
@@ -353,6 +378,31 @@ public:
 		}
 	}
 
+	template<typename COMP>
+	void turnOnEdgesWtihComp(const DIST & cutOff, COMP comp) {
+		for (const auto & c : edges_) {
+			if(c->nodesOn()){
+				if (comp(c->dist_, cutOff)) {
+					c->on_ = true;
+				} else {
+					c->on_ = false;
+				}
+			}
+		}
+	}
+	template<typename COMP>
+	void turnOffEdgesWithComp(const DIST & cutOff, COMP comp) {
+		for (const auto & c : edges_) {
+			if(c->nodesOn()){
+				if (comp(c->dist_, cutOff)) {
+					c->on_ = false;
+				} else {
+					c->on_ = true;
+				}
+			}
+		}
+	}
+
 	void allSortEdges(){
 		for(const auto & n : nodes_){
 			n->sortEdges();
@@ -416,7 +466,7 @@ public:
 	void determineGroups(){
 		numberOfGroups_ = 0;
 		for(auto & n : nodes_){
-			if(!n->visited_){
+			if(n->on_ && !n->visited_){
 				n->visitAndGroupCons(numberOfGroups_);
 				++numberOfGroups_;
 			}
@@ -676,6 +726,7 @@ public:
 			std::function<DIST(const T & e1, const T& e2, Args...)> func,
 			const Args&... args) {
 			auto distances = getDistanceCopy(reads, numThreads, func, args...);
+
 		  for(const auto & pos : iter::range(reads.size())){
 		  	this->addNode(reads[pos].seqBase_.name_,
 		  			std::make_shared<seqInfo>(reads[pos].seqBase_));
@@ -817,6 +868,7 @@ public:
 		}
 		return graphJson;
 	}
+
 	Json::Value toJsonMismatchGraph(uint32_t groupCutOff,
 				uint32_t mismatchesAllowed,
 				bib::color backgroundColor, double hueStart, double hueStop,

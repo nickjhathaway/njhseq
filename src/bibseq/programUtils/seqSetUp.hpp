@@ -1,7 +1,14 @@
 #pragma once
 //
+//  seqSetUp.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 10/13/13.
+//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,98 +26,22 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  seqSetUp.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 10/13/13.
-//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
-//
-#include "bibseq/IO.h"
-#include "bibseq/alignment.h"
+#include "bibseq/programUtils/SeqSetUpPars.hpp"
+
 #include <bibcpp/progutils.h>
 namespace bibseq {
 
 class seqSetUp : public bib::progutils::programSetUp {
  public:
-  seqSetUp(int argc, char* argv[]);
-  seqSetUp(const bib::progutils::commandLineArguments& inputCommands);
-  seqSetUp(const MapStrStr& inputCommands);
-  void initializeDefaults();
+	using bib::progutils::programSetUp::programSetUp;
 
-  // seq read in names
-  readObjectIOOptions ioOptions_;
-  std::string seq_;
-  readObject seqObj_;
-  // directory name
-  std::string directoryName_;
-  bool overWriteDir_;
-
-  //reporting
-  bool verbose_;
-  bool debug_;
-  bool quiet_;
-
-  // reference filename
-  std::string refFilename_;
-  std::string refSecondName_;
-  std::string refFormat_;
-  bool refProcessed_;
-
-  // alignment for ref Info;
-  std::string gapRef_;
-  std::string gapLeftRef_;
-  std::string gapRightRef_;
-  gapScoringParameters gapInfoRef_;
-
-  // alignmentInfo;
-  std::string gap_;
-  std::string gapLeft_;
-  std::string gapRight_;
-  gapScoringParameters gapInfo_;
-
-  bool local_;
-  // scoring matrix
-  substituteMatrix scoring_;
-  int32_t generalMatch_;
-  int32_t generalMismatch_;
-
-  // alignment profiling
-  bool countEndGaps_;
-  bool weightHomopolymers_;
-  std::string qualThres_;
-  bool eventBased_;
-  uint32_t primaryQual_;
-  uint32_t secondaryQual_;
-  uint32_t qualThresWindow_;
-
-  // kmer options
-  uint32_t kLength_;
-  // kmer profiling
-  std::string runCutOffString_;
-  uint32_t runCutoff_;
-  bool kmersByPosition_;
-  bool expandKmerPos_;
-  uint32_t expandKmerSize_;
-
-  //alnment caching
-  std::string alnInfoDirName_;
-  std::string outAlnInfoDirName_;
-  bool writingOutAlnInfo_;
-
-  //general clustering options
-  bool skipOnLetterCounterDifference_;
-  double fractionDifferenceCutOff_;
-  bool adjustHomopolyerRuns_;
-  bool largestFirst_;
-  bool firstMatch_;
-  uint32_t bestMatchCheck_;
-
-  // private:
-
-
+  SeqSetUpPars pars_;
+  VecStr readInFormatsAvailable_ {"-sff", "-sffBin", "-fasta", "-fastq",
+  	"-bam", "-fastqgz", "-fastagz", "-fastq1", "-fastq2"};
+  void processQualityFiltering();
   bool processDefaultReader(bool readInNamesRequired = true);
-  bool processReadInNames(bool required = true);
+  bool processDefaultReader(const VecStr & formats, bool readInNamesRequired = true);
+  bool processReadInNames(const VecStr & formats, bool required = true);
   void processGap();
   void processGapRef();
   void processQualThres();
@@ -138,6 +69,9 @@ class seqSetUp : public bib::progutils::programSetUp {
   void processClusteringOptions();
   void processSkipOnNucComp();
   void processAdjustHRuns();
+
+  void processComparison(comparison & comp);
+
   // usage prints
   void printInputUsage(std::ostream& out);
   void printAdditionaInputUsage(std::ostream& out,
@@ -152,6 +86,7 @@ class seqSetUp : public bib::progutils::programSetUp {
   void printFileWritingUsage(std::ostream& out, bool all);
   void printAlnInfoDirUsage(std::ostream& out);
   void printAdditionalClusteringUsage(std::ostream& out);
+
 };
 }  // namespace bib
 

@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,18 +18,101 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include <bibseq/alignment/alignerUtils/comparison.hpp>
+#include "bibseq/alignment/alignerUtils/comparison.hpp"
 
 namespace bibseq {
-comparison::comparison()
-    : oneBaseIndel_(0.0),
-      twoBaseIndel_(0.0),
-      largeBaseIndel_(0.0),
-      hqMismatches_(0),
-      lqMismatches_(0),
-      lowKmerMismatches_(0),
-			highQualityMatches_(0),
-			lowQualityMatches_(0){}
+void DistanceMet::reset() {
+	identities_ = 0;
+	identity_ = 0;
+	covered_ = 0;
+	coverage_ = 0;
+}
+
+Json::Value DistanceMet::toJson()const{
+	Json::Value ret;
+	ret["class"] = bib::json::toJson("bibseq::DistanceMet");
+	ret["identities_"] = bib::json::toJson(identities_);
+	ret["identity_"] = bib::json::toJson(identity_);
+	ret["coverage_"] = bib::json::toJson(coverage_);
+	ret["covered_"] = bib::json::toJson(covered_);
+	return ret;
+}
+
+
+
+
+void DistanceComp::reset() {
+	basesInAln_ = 0;
+	percentMismatch_ = 0;
+	percentMatch_ = 0;
+	percentGaps_ = 0;
+	overLappingEvents_ = 0;
+	eventBasedIdentity_ = 0;
+	overLappingEventsHq_ = 0;
+	eventBasedIdentityHq_ = 0;
+
+
+	ref_.reset();
+	query_.reset();
+	mismatches_.clear();
+	lowKmerMismatches_.clear();
+	alignmentGaps_.clear();
+
+}
+
+uint32_t DistanceComp::getNumOfEvents(bool countLowKmer)const{
+	if(countLowKmer){
+		return alignmentGaps_.size() + mismatches_.size() + lowKmerMismatches_.size();
+	}
+	return alignmentGaps_.size() + mismatches_.size();
+}
+
+
+Json::Value DistanceComp::toJson()const{
+	Json::Value ret;
+	ret["class"] = bib::json::toJson("bibseq::DistanceComp");
+	ret["basesInAln_"] = bib::json::toJson(basesInAln_);
+	ret["percentMismatch_"] = bib::json::toJson(percentMismatch_);
+	ret["percentMatch_"] = bib::json::toJson(percentMatch_);
+	ret["percentGaps_"] = bib::json::toJson(percentGaps_);
+	ret["overLappingEvents_"] = bib::json::toJson(overLappingEvents_);
+	ret["eventBasedIdentity_"] = bib::json::toJson(eventBasedIdentity_);
+	ret["overLappingEventsHq_"] = bib::json::toJson(overLappingEventsHq_);
+	ret["eventBasedIdentityHq_"] = bib::json::toJson(eventBasedIdentityHq_);
+	ret["ref_"] = bib::json::toJson(ref_);
+	ret["query_"] = bib::json::toJson(query_);
+	ret["mismatches_"] = bib::json::toJson(mismatches_);
+	ret["lowKmerMismatches_"] = bib::json::toJson(lowKmerMismatches_);
+	ret["alignmentGaps_"] = bib::json::toJson(alignmentGaps_);
+	return ret;
+}
+
+void comparison::setEventBaseIdentity() {
+	distances_.overLappingEvents_ = highQualityMatches_ + lowQualityMatches_
+			+ hqMismatches_ + lqMismatches_ + lowKmerMismatches_
+			+ distances_.alignmentGaps_.size();
+	distances_.eventBasedIdentity_ = (highQualityMatches_ + lowQualityMatches_)
+			/ static_cast<double>(distances_.overLappingEvents_);
+}
+
+void comparison::setEventBaseIdentityHq() {
+	distances_.overLappingEventsHq_ = highQualityMatches_ + hqMismatches_
+			+ lowKmerMismatches_ + distances_.alignmentGaps_.size();
+	distances_.eventBasedIdentityHq_ = (highQualityMatches_)
+			/ static_cast<double>(distances_.overLappingEvents_);
+}
+
+void comparison::recalcMismatchQuality(const QualScorePars & pars){
+  hqMismatches_ = 0;
+  lqMismatches_ = 0;
+  for(const auto & mis : distances_.mismatches_){
+  	if(mis.second.highQuality(pars)){
+  		++hqMismatches_;
+  	}else{
+  		++lqMismatches_;
+  	}
+  }
+}
 
 void comparison::resetCounts() {
   oneBaseIndel_ = 0;
@@ -42,10 +125,22 @@ void comparison::resetCounts() {
   highQualityMatches_ = 0;
   lowQualityMatches_ = 0;
 
+  refName_ = "";
+  queryName_ = "";
+
   distances_.reset();
 }
 
 
+bool comparison::passIdAndErrorThreshold(const comparison& generatedError) const {
+	return (oneBaseIndel_ >= generatedError.oneBaseIndel_ &&
+	          twoBaseIndel_ >= generatedError.twoBaseIndel_ &&
+	          largeBaseIndel_ >= generatedError.largeBaseIndel_ &&
+	          hqMismatches_ >= generatedError.hqMismatches_ &&
+	          lqMismatches_ >= generatedError.lqMismatches_ &&
+	          lowKmerMismatches_ >= generatedError.lowKmerMismatches_ &&
+						generatedError.distances_.eventBasedIdentity_ >= distances_.eventBasedIdentity_);
+}
 
 bool comparison::passErrorProfile(const comparison& generatedError) const {
   return (oneBaseIndel_ >= generatedError.oneBaseIndel_ &&
@@ -57,22 +152,31 @@ bool comparison::passErrorProfile(const comparison& generatedError) const {
 }
 
 bool comparison::passIdThreshold(const comparison& generatedError) const {
-  return generatedError.distances_.eventBasedIdentity_ >= distances_.percentIdentity_;
+  return generatedError.distances_.eventBasedIdentity_ >= distances_.eventBasedIdentity_;
 }
 
-void comparison::printErrors(std::ostream& out) const {
-  out << oneBaseIndel_ << "\t" << twoBaseIndel_ << "\t" << largeBaseIndel_
-      << "\t" << hqMismatches_ << "\t" << lqMismatches_ << "\t"
-      << lowKmerMismatches_ << std::endl;
+
+Json::Value comparison::toJson() const{
+	Json::Value ret;
+	ret["class"] = bib::json::toJson("bibseq::comparison");
+	ret["oneBaseIndel_"] = bib::json::toJson(oneBaseIndel_);
+	ret["twoBaseIndel_"] = bib::json::toJson(twoBaseIndel_);
+	ret["largeBaseIndel_"] = bib::json::toJson(largeBaseIndel_);
+	ret["hqMismatches_"] = bib::json::toJson(hqMismatches_);
+	ret["lqMismatches_"] = bib::json::toJson(lqMismatches_);
+	ret["lowKmerMismatches_"] = bib::json::toJson(lowKmerMismatches_);
+	ret["highQualityMatches_"] = bib::json::toJson(highQualityMatches_);
+	ret["lowQualityMatches_"] = bib::json::toJson(lowQualityMatches_);
+	ret["distances_"] = bib::json::toJson(distances_);
+	ret["refName_"] = bib::json::toJson(refName_);
+	ret["queryName_"] = bib::json::toJson(queryName_);
+	return ret;
 }
-void comparison::printDescription(std::ostream& out, bool deep ) const {
-  out << "errorProfile{" << std::endl << "oneBaseIndel_:" << oneBaseIndel_
-      << std::endl << "twoBaseIndel_:" << twoBaseIndel_ << std::endl
-      << "largeBaseIndel_:" << largeBaseIndel_ << std::endl
-      << "hqMismatches_:" << hqMismatches_ << std::endl
-      << "lqMismatches_:" << lqMismatches_ << std::endl
-      << "lowKmerMismatches_:" << lowKmerMismatches_ << std::endl;
-  out << "}" << std::endl;
+
+std::ostream & operator <<(std::ostream & out, const comparison & comp) {
+	Json::FastWriter jWriter;
+	out << jWriter.write(comp.toJson()) << std::endl;
+	return out;
 }
 
 }  // namespace bibseq

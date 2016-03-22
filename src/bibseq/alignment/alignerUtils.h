@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -27,10 +27,12 @@
  */
 
 
-#include "bibseq/alignment/alignerUtils/alignerUtils.hpp"
-#include "bibseq/alignment/alignerUtils/comparison.hpp"
-#include "bibseq/alignment/alignerUtils/alignmentInfo.hpp"
-#include "bibseq/alignment/alignerUtils/gapScoring.hpp"
-#include "bibseq/alignment/alignerUtils/substituteMatrix.hpp"
 
+#include "bibseq/alignment/alignerUtils/comparison.hpp"
+#include "bibseq/alignment/alignerUtils/alignerUtils.hpp"
+#include "bibseq/alignment/alignerUtils/gapScoring.hpp"
+#include "bibseq/alignment/alignerUtils/QualScorePars.hpp"
+#include "bibseq/alignment/alignerUtils/substituteMatrix.hpp"
+#include "bibseq/alignment/alignerUtils/mismatch.hpp"
+#include "bibseq/alignment/alignerUtils/gaps.hpp"
 

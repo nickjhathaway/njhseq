@@ -1,25 +1,4 @@
 //
-//
-// bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
-//
-// This file is part of bibseq.
-//
-// bibseq is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// bibseq is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-//
 //  collapser.cpp
 //  sequenceTools
 //
@@ -28,23 +7,25 @@
 //
 
 #include "collapser.hpp"
-#include "bibseq/objects/seqObjects/seqWithKmerInfo.hpp"
 #include "bibseq/objects/helperObjects/nucCompCluster.hpp"
 #include "bibseq/helpers/profiler.hpp"
+#include "bibseq/objects/seqObjects/Clusters/clusterUtils.hpp"
 
 namespace bibseq {
 
-void collapser::runFullClustering(std::vector<cluster> & clusters,
-		bool onPerId, std::map<int, std::vector<double>> iteratorMap,
-		bool useNucComp,bool useMinLenNucComp, bool findBestNuc, const std::vector<double> & diffCutOffVec,
-		bool useKmerBinning, uint32_t kCompareLen, double kmerCutOff,
-		aligner & alignerObj, seqSetUp & setUp,
-		bool snapShots, const std::string & snapShotsDirName){
+
+void collapser::runFullClustering(std::vector<cluster> & clusters, bool onPerId,
+		std::map<int, std::vector<double>> iteratorMap,
+		std::map<int, std::vector<double>> binIteratorMap, bool useNucComp,
+		bool useMinLenNucComp, bool findBestNuc,
+		const std::vector<double> & diffCutOffVec, bool useKmerBinning,
+		uint32_t kCompareLen, double kmerCutOff, aligner & alignerObj,
+		const SeqSetUpPars & setUpPars, bool snapShots, const std::string & snapShotsDirName) {
   clusterVec::allSetFractionClusters(clusters);
   uint32_t minLen = readVec::getMinLength(clusters);
   if (useNucComp) {
   	//get the alphabet of the current cluster set and use that in the nuc comp setting
-  	charCounterArray allCounter;
+  	charCounter allCounter;
   	for(const auto & read : clusters){
   		allCounter.increaseCountByString(read.seqBase_.seq_, read.seqBase_.cnt_);
   	}
@@ -52,14 +33,14 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
   	auto alphabet = allCounter.alphabet_;
   	//set the verbosity to debug level
   	bool oldVerbose = opts_.verbose_;
-  	opts_.verbose_ = setUp.debug_;
+  	opts_.verbose_ = setUpPars.debug_;
   	//now cluster on nucleotide composition clusters
   	for(const auto & diffCutOff : diffCutOffVec){
     	std::vector<nucCompCluster> comps;
     	if(useMinLenNucComp){
-    		comps = clusterOnNucComp(clusters, minLen, alphabet, diffCutOff, findBestNuc, true, setUp.debug_);
+    		comps = clusterOnNucComp(clusters, minLen, alphabet, diffCutOff, findBestNuc, true, setUpPars.debug_);
     	}else{
-    		comps = clusterOnNucComp(clusters, alphabet, diffCutOff, findBestNuc, true, setUp.debug_);
+    		comps = clusterOnNucComp(clusters, alphabet, diffCutOff, findBestNuc, true, setUpPars.debug_);
     	}
 			if (oldVerbose) {
 				std::cout << "On Nucleotide Composition Bin difference of "
@@ -83,13 +64,13 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
     		}
     		//set the run cut off of low kmer frequency to the current count
     		auto oldRunCutoff = alignerObj.kMaps_.runCutOff_ ;
-    		uint32_t currentRunCutoff = processCutOffStr(setUp.runCutOffString_,currentReadCnt);
+    		uint32_t currentRunCutoff = processRunCutoff(setUpPars.runCutOffString_,currentReadCnt);
     		alignerObj.kMaps_.runCutOff_ = currentRunCutoff;
     		/**@todo need to sort here*/
     		if(onPerId){
-    			runClusteringOnId(clusters, comp.readPositions_, iteratorMap, alignerObj);
+    			runClusteringOnId(clusters, comp.readPositions_, binIteratorMap, alignerObj);
     		}else{
-    			runClustering(clusters, comp.readPositions_, iteratorMap, alignerObj);
+    			runClustering(clusters, comp.readPositions_, binIteratorMap, alignerObj);
     		}
     		alignerObj.kMaps_.runCutOff_ = oldRunCutoff;
     	}
@@ -100,71 +81,13 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
   	opts_.verbose_ = oldVerbose;
   	//remove all the clusters marked removed
   	clusters = readVecSplitter::splitVectorOnRemove(clusters).first;
-  } else if (useKmerBinning){
-  	//set verbosity at debug level
-  	bool oldVerbose = opts_.verbose_;
-  	opts_.verbose_ = setUp.debug_;
-  	//create vector of seqWtihKmerInfo reads to use to clusters by kmer distance
-  	std::vector<std::unique_ptr<seqWithKmerInfo>> reads;
-  	reads.reserve(clusters.size());
-  	for(const auto & read : clusters){
-  		reads.emplace_back(std::make_unique<seqWithKmerInfo>(read.seqBase_));
-  	}
-  	allSetKmers(reads, kCompareLen, false);
-  	std::vector<kmerClusterPos> kClusters;
-  	//now cluster reads based on kmers
-  	for(const auto & readPos : iter::range(reads.size())){
-  		if(setUp.debug_ && readPos % 50 == 0){
-  			std::cout << "currently on " << readPos << " of "
-  					<< reads.size() << std::endl;
-  		}
-  		bool foundMatch = false;
-  		for(auto & kClus : kClusters){
-  			foundMatch = kClus.compareRead(reads[readPos], readPos, kmerCutOff,
-  					false);
-  			if(foundMatch){
-  				break;
-  			}
-  		}
-  		if(!foundMatch){
-  			kClusters.emplace_back(kmerClusterPos(reads[readPos], readPos));
-  		}
-  	}
-  	//run clustering on the different kmer clustering
-  	uint32_t clusterCount = 0;
-  	for(auto & kClus : kClusters){
-  		++clusterCount;
-  		if(clusterCount % 50 == 0){
-  			std::cout << "On " << clusterCount << " of " << kClusters.size() << std::endl;
-  		}
-  		if(kClus.readPositions_.size() < 2){
-  			continue;
-  		}
-  		double currentReadCnt = 0;
-  		for(const auto & pos : kClus.readPositions_){
-  			currentReadCnt += clusters[pos].seqBase_.cnt_;
-  		}
-  		auto oldRunCutoff = alignerObj.kMaps_.runCutOff_ ;
-  		uint32_t currentRunCutoff = processCutOffStr(setUp.runCutOffString_,currentReadCnt );
-  		alignerObj.kMaps_.runCutOff_ = currentRunCutoff;
-  		/**@todo need to sort here*/
-  		if(onPerId){
-  			runClusteringOnId(clusters, kClus.readPositions_, iteratorMap, alignerObj);
-  		}else{
-  			runClustering(clusters, kClus.readPositions_, iteratorMap, alignerObj);
-  		}
-  		alignerObj.kMaps_.runCutOff_ = oldRunCutoff;
-  	}
-  	opts_.verbose_ = oldVerbose;
-  	//remove the clusters marked removed
-  	clusters = readVecSplitter::splitVectorOnRemove(clusters).first;
   }
 
   readVecSorter::sortReadVector(clusters, "totalCount");
   //create snapshots directory if taking snap shots
   std::string snapShotsDirectoryName = "";
   if (snapShots) {
-    snapShotsDirectoryName = bib::files::makeDir(setUp.directoryName_, snapShotsDirName);
+    snapShotsDirectoryName = bib::files::makeDir(setUpPars.directoryName_, snapShotsDirName, false);
   }
   for (uint32_t i = 1; i <= iteratorMap.size(); ++i) {
   	if(opts_.verbose_){
@@ -191,7 +114,7 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
         std::cout << "Starting with " << startingSizeOfReadVector << " clusters"
                   << std::endl;
       }
-      opts_.verbose_ = setUp.debug_;
+      opts_.verbose_ = setUpPars.debug_;
   		for (auto & condensedReads : byCondensed){
   			if (onPerId) {
   				collapseWithPerId(condensedReads.second, runPars, alignerObj, false);
@@ -224,32 +147,35 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
     //write out current iteration if taking snapshots
     if (snapShots) {
       std::string iterDir =
-          bib::files::makeDir(snapShotsDirectoryName, std::to_string(i));
+          bib::files::makeDir(snapShotsDirectoryName, std::to_string(i), false);
       std::vector<cluster> currentClusters =
           readVecSplitter::splitVectorOnRemove(clusters).first;
-      std::string seqName = bib::files::getFileName(setUp.ioOptions_.firstName_);
+      std::string seqName = bib::files::getFileName(setUpPars.ioOptions_.firstName_);
       renameReadNames(currentClusters, seqName, true, false);
-      readObjectIO::write(currentClusters, snapShotsDirectoryName + std::to_string(i),
-      		setUp.ioOptions_);
-      clusterVec::allWriteOutClusters(currentClusters, iterDir, setUp.ioOptions_);
-      if (setUp.refFilename_ == "") {
+      SeqOutput writer(SeqIOOptions(snapShotsDirectoryName + std::to_string(i),
+      		setUpPars.ioOptions_.outFormat_,setUpPars.ioOptions_.out_));
+      writer.openWrite(currentClusters);
+      clusterVec::allWriteClustersInDir(currentClusters, iterDir,setUpPars.ioOptions_ );
+      if (setUpPars.refIoOptions_.firstName_ == "") {
         profiler::getFractionInfoCluster(currentClusters, snapShotsDirectoryName,
                                   std::to_string(i) + ".tab.txt");
       } else {
         profiler::getFractionInfoCluster(currentClusters, snapShotsDirectoryName,
                                   std::to_string(i) + ".tab.txt",
-																	setUp.refFilename_, alignerObj, false,
+																	setUpPars.refIoOptions_.firstName_, alignerObj, false,
                                   true);
       }
     }
     //log info
+    /*
     if(opts_.verbose_){
     	std::cout << "Current duration: ";
-    	setUp.logRunTime(std::cout);
+    	setUpPars.logRunTime(std::cout);
     }
     setUp.rLog_ << "Current iteration: " << i << "\n";
     setUp.rLog_ << "\tCurrent duration: "; setUp.rLog_.logTotalTime(6);
     setUp.rLog_ << "\tCurrent clusters size " << sizeOfReadVector << "\n";
+    */
   }
   clusters = readVecSplitter::splitVectorOnRemove(clusters).first;
 }
@@ -286,18 +212,18 @@ void collapser::markChimerasAdvanced(std::vector<cluster> &processedReads,
           processedReads[subPos].seqBase_.cnt_ <= runCutOff) {
         continue;
       }
-      alignerObj.alignVec(processedReads[pos], processedReads[subPos], false);
+      alignerObj.alignCacheGlobal(processedReads[pos], processedReads[subPos]);
 			alignerObj.profileAlignment(processedReads[pos], processedReads[subPos],
 					11, true, false, true, false, opts_.weighHomopolyer_);
 			if(opts_.verbose_ && opts_.debug_){
-				std::cout << "alignerObj.mismatches_.size()" << alignerObj.mismatches_.size() << std::endl;
-				std::cout << "alignerObj.alignmentGaps_.size()" << alignerObj.alignmentGaps_.size() << std::endl;
+				std::cout << "alignerObj.mismatches_.size()" << alignerObj.comp_.distances_.mismatches_.size() << std::endl;
+				std::cout << "alignerObj.alignmentGaps_.size()" << alignerObj.comp_.distances_.alignmentGaps_.size() << std::endl;
 			}
-      if (alignerObj.mismatches_.size() > allowableError
+      if (alignerObj.comp_.distances_.mismatches_.size() > allowableError
       		|| alignerObj.comp_.twoBaseIndel_ > allowableError
 					|| alignerObj.comp_.largeBaseIndel_ > allowableError) {
-      	std::map<uint32_t, mismatch> savedMismatches = alignerObj.mismatches_;
-      	auto savedGapInfo = alignerObj.alignmentGaps_;
+      	std::map<uint32_t, mismatch> savedMismatches = alignerObj.comp_.distances_.mismatches_;
+      	auto savedGapInfo = alignerObj.comp_.distances_.alignmentGaps_;
       	if(savedMismatches.size() > allowableError){
         	bool passEnd = true;
         	bool passFront = true;
@@ -343,7 +269,7 @@ void collapser::markChimerasAdvanced(std::vector<cluster> &processedReads,
   							opts_.weighHomopolyer_, 0, g.second.startPos_);
   					if (chiOverlap.passErrorProfile(alignerObj.comp_)) {
   						processedReads[subPos].frontChiPos.insert(
-  								{ getRealPos(alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_), pos });
+  								{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_), pos });
   					}
           	break;
           }
@@ -361,19 +287,19 @@ void collapser::markChimerasAdvanced(std::vector<cluster> &processedReads,
   					if (chiOverlap.passErrorProfile(alignerObj.comp_)) {
   						if (g.second.ref_) {
   							processedReads[subPos].endChiPos.insert(
-  									{ getRealPos(alignerObj.alignObjectB_.seqBase_.seq_,
+  									{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
   											g.second.startPos_) + g.second.size_ - 1, pos });
   						} else {
   							/**@todo something else should probably happen if this is 0 */
   							if (0
-  									== getRealPos(alignerObj.alignObjectB_.seqBase_.seq_,
+  									== getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
   											g.second.startPos_)) {
   								processedReads[subPos].endChiPos.insert(
-  										{ getRealPos(alignerObj.alignObjectB_.seqBase_.seq_,
+  										{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
   												g.second.startPos_), pos });
   							} else {
   								processedReads[subPos].endChiPos.insert(
-  										{ getRealPos(alignerObj.alignObjectB_.seqBase_.seq_,
+  										{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
   												g.second.startPos_) - 1, pos });
   							}
   						}

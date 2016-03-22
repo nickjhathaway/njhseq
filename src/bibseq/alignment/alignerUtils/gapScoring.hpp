@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -42,8 +42,6 @@ public:
   gapScoringParameters(const std::string& gapAll) ;
   gapScoringParameters(const std::string& gap, const std::string& gapLeft,
                        const std::string& gapRight);
-  virtual ~gapScoringParameters(){}
-
   // members
   int32_t gapOpen_;
   int32_t gapExtend_;
@@ -58,12 +56,15 @@ public:
   void writePars(std::ostream& out) const;
   static void processGapStr(const std::string & gapStr, int32_t & open, int32_t & extend);
   bool operator==(const gapScoringParameters& otherPars) const;
-
   bool operator!=(const gapScoringParameters& otherPars) const;
-
   bool operator>(const gapScoringParameters& otherPars) const;
   bool operator<(const gapScoringParameters& otherPars) const;
-  virtual void printDescription(std::ostream& out, bool deep = false) const;
+
+  /**@brief convert to json representation
+   *
+   * @return Json::Value object
+   */
+	Json::Value toJson() const;
 
 };
 

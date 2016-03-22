@@ -1,6 +1,12 @@
+/*
+ * nucCompCluster.cpp
+ *
+ *  Created on: Apr 9, 2014
+ *      Author: nickhathaway
+ */
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -18,13 +24,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-/*
- * nucCompCluster.cpp
- *
- *  Created on: Apr 9, 2014
- *      Author: nickhathaway
- */
-
 #include "nucCompCluster.hpp"
 
 namespace bibseq {
@@ -111,49 +110,36 @@ table getInfoNucCompVec(std::vector<nucCompCluster>& comps){
   return outInfo;
 }
 
-std::vector<nucCompCluster>  clusterOnNucComp(const readObjectIOOptions & ioOptions,
+std::vector<nucCompCluster>  clusterOnNucComp(const SeqIOOptions & ioOptions,
 		const std::vector<char> & alphabet,
 		double diffCutOff, bool findBest, bool preSort,
 		bool verbose){
 	std::vector<nucCompCluster> comps;
-	std::ifstream inFile(ioOptions.firstName_);
-	readObjectIO reader;
+	SeqInput reader(ioOptions);
+	reader.openIn();
 	readObject read;
-  uint64_t pos = inFile.tellg();
+  uint64_t pos = reader.tellgPri();
   uint32_t count = 0;
-  /*if("fasta" == ioOptions.inFormat_){
-  	while(reader.readNextFastaStream(inFile,
-  			read, ioOptions.processed_)){
-  		read.setLetterCount(alphabet);
-    	if(count % 5000 == 0 && verbose){
-    		std::cout << "On " << pos << "\r";
-    		std::cout.flush();
-    	}
-    	findBestNucComp(read, pos, alphabet, diffCutOff, findBest, comps);
-    	pos = inFile.tellg();
-    	++count;
-  	}
-  	std::cout << std::endl;
-  }else */if ("fastq" == ioOptions.inFormat_){
-  	while(reader.readNextFastqStream(inFile, reader.SangerQualOffset,
-  			read, ioOptions.processed_)){
-  		read.setLetterCount(alphabet);
-    	if(count % 5000 == 0 && verbose){
-    		std::cout << "On " << count << "\r";
-    		std::cout.flush();
-    	}
-    	findBestNucComp(read, pos, alphabet, diffCutOff, findBest, comps);
-    	pos = inFile.tellg();
-    	++count;
-  	}
-  	std::cout << std::endl;
-  }else{
+
+  if (SeqIOOptions::inFormats::FASTQ != ioOptions.inFormat_
+  		&& SeqIOOptions::inFormats::FASTA != ioOptions.inFormat_){
   	std::stringstream ss;
   	ss << "clusterOnNucComp\n";
   	ss << "Currently only works on fastq files, improper format argument given\n";
-  	ss << ioOptions.inFormat_ << std::endl;
   	throw std::runtime_error{ss.str()};
   }
+	while (reader.readNextRead(read)) {
+		read.setLetterCount(alphabet);
+		if (count % 5000 == 0 && verbose) {
+			std::cout << "On " << count << "\r";
+			std::cout.flush();
+		}
+		findBestNucComp(read, pos, alphabet, diffCutOff, findBest, comps);
+		pos = reader.tellgPri();
+		++count;
+	}
+	std::cout << std::endl;
+
 
   sortNucCompVec(comps);
   collapseSimilarNucCompClusters(comps, diffCutOff, verbose);

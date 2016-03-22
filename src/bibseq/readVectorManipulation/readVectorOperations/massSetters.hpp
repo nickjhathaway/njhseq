@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -26,72 +26,96 @@
 //  Created by Nicholas Hathaway on 8/7/13.
 //  Copyright (c) 2013 Nick Hathaway. All rights reserved.
 //
-
+//#include "bibseq/objects/seqObjects/readObject.hpp"
 // mass setters
 namespace bibseq {
+template<typename T>
+const T & getRef(const T & val) {
+	return val;
+}
+
+template<typename T>
+const T & getRef(const std::shared_ptr<const T> & val) {
+	return getRef(*val);
+}
+
+template<typename T>
+const T & getRef(const std::unique_ptr<const T> & val) {
+	return getRef(*val);
+}
+
+template<typename T>
+T & getRef(T & val) {
+	return val;
+}
+
+template<typename T>
+T & getRef(const std::shared_ptr<T> & val) {
+	return getRef(*val);
+}
+
+template<typename T>
+T & getRef(const std::unique_ptr<T> & val) {
+	return getRef(*val);
+}
+
+template<typename T>
+T & getRef(std::shared_ptr<T> & val) {
+	return getRef(*val);
+}
+
+template<typename T>
+T & getRef(std::unique_ptr<T> & val) {
+	return getRef(*val);
+}
+
 namespace readVec {
+
+
+
 template <class T>
 void allSetCondensedSeq(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { read.createCondensedSeq(); });
+  for_each(reads, [](T& read) { getRef(read).createCondensedSeq(); });
 }
 
 template <class T>
 void allSetCondensedSeqCount(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { read.setCondensedCounter(); });
+  for_each(reads, [](T& read) { getRef(read).setCondensedCounter(); });
 }
 
 template <class T>
 void allSetLetterCount(std::vector<T>& reads) {
   for_each(reads, [](T& read) {
-    read.setLetterCount();
-    read.counter_.setFractions();
+  	getRef(read).setLetterCount();
+  	getRef(read).counter_.setFractions();
   });
 }
 template <class T>
 void allSetLetterCount(std::vector<T>& reads, const std::vector<char> & alph) {
   for_each(reads, [&](T& read) {
-    read.setLetterCount(alph);
-    read.counter_.setFractions(alph);
+  	getRef(read).setLetterCount(alph);
+  	getRef(read).counter_.setFractions(alph);
   });
 }
 
 template <class T>
 void allUpdateName(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { read.updateName(); });
+  for_each(reads, [](T& read) { getRef(read).updateName(); });
 }
 
 template <class T>
 void allSetFractionByTotalCount(std::vector<T>& reads) {
   int count = getTotalReadCount(reads);
-  for_each(reads, [&](T& read) { read.setFractionByCount(count); });
+  for_each(reads, [&](T& read) { getRef(read).setFractionByCount(count); });
 }
 
 template <class T>
 void allSetQualCheck(std::vector<T>& reads, int qualCheck) {
-  for_each(reads, [&](T& read) { read.setBaseCountOnQualCheck(qualCheck); });
+  for_each(reads, [&](T& read) { getRef(read).setBaseCountOnQualCheck(qualCheck); });
 }
 
-template <class T>
-void allSetFractionName(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { read.setFractionName(); });
-}
-template <class T>
-void allSetCumulativeFractionName(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { read.setCumulativeFractionName(); });
-}
 
-template <class T>
-void allSetNormalizedFractionName(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { read.setNormalizedFractionName(); });
-}
 
-template <class T>
-void allSetNormalizedFraction(std::vector<T>& reads,
-                              size_t totalNumberOfSamples) {
-  for (auto& read : reads) {
-    read.setNormalizedFraction(totalNumberOfSamples);
-  }
-}
 template <typename T>
 std::unordered_map<std::string, std::vector<T>> organizeByCondensedSeq(
     std::vector<T>& reads) {

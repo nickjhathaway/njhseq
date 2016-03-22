@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -37,7 +37,7 @@ bool cachedReader::refillBuffer(){
 	//std::cout << bib::bashCT::cyan << "refillBuffer" << bib::bashCT::reset  << std::endl;
 	lineNum_ = 0;
 	std::string tempStr;
-	while(lineNum_ < bufferMax_ && std::getline(is_, tempStr)){
+	while(lineNum_ < bufferMax_ && bib::files::crossPlatGetline(is_, tempStr)){
 		lineBuffer_[lineNum_] = tempStr;
 		//std::cout << "\tlineNum_: " << lineNum_ << std::endl;
 		//std::cout << "\t\t" << lineBuffer_[lineNum_] << std::endl;

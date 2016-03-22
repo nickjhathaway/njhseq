@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,7 +19,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-
 //
 //  readVecCheckers.hpp
 //
@@ -31,6 +30,7 @@
 #include "bibseq/readVectorManipulation/readVectorOperations.h"
 #include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
 #include "bibseq/objects/counters/charCounter.hpp"
+#include "bibseq/objects/kmer/kmerInfo.hpp"
 
 namespace bibseq {
 
@@ -60,7 +60,7 @@ public:
 			true);
 
 	static bool checkReadOnNucComp(seqInfo & info,
-			const charCounterArray & counter, double fracDiff, bool mark = true);
+			const charCounter & counter, double fracDiff, bool mark = true);
 
 	static bool checkReadOnSeqContaining(seqInfo & info, const std::string& str,
 			int occurences, bool mark = true);

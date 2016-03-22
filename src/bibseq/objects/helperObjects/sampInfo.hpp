@@ -1,7 +1,15 @@
 #pragma once
 //
+//  sampInfo.hpp
+//  sequenceTools
+//
+//  Created by Nick Hathaway on 05/03/15.
+//  Copyright (c) 2015 Nick Hathaway. All rights reserved.
+//
+
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,15 +27,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  sampInfo.hpp
-//  sequenceTools
-//
-//  Created by Nick Hathaway on 05/03/15.
-//  Copyright (c) 2015 Nick Hathaway. All rights reserved.
-//
-
-
 #include "bibseq/common/allSystemIncludes.h"
 #include "bibseq/objects/seqObjects/readObject.hpp"
 

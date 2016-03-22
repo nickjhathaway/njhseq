@@ -1,6 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -26,9 +26,9 @@ namespace bibseq {
 
 
 void consensusHelper::genConsensusFromCounters(seqInfo & info,
-		const std::map<uint32_t, charCounterArray> & counters,
-		const std::map<uint32_t, std::map<uint32_t, charCounterArray>> & insertions,
-		const std::map<int32_t, charCounterArray> & beginningGap) {
+		const std::map<uint32_t, charCounter> & counters,
+		const std::map<uint32_t, std::map<uint32_t, charCounter>> & insertions,
+		const std::map<int32_t, charCounter> & beginningGap) {
 	info.seq_.clear();
 	info.qual_.clear();
 	// first deal with any gaps in the beginning
@@ -36,12 +36,13 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 	for (const auto & bCount : beginningGap) {
 		uint32_t bestQuality = 0;
 		char bestBase = ' ';
+
 		bCount.second.getBest(bestBase, bestQuality);
 		if (bestBase == '-' || bCount.second.getTotalCount() < fortyPercent) {
 			continue;
 		}
 		info.seq_.push_back(bestBase);
-		info.qual_.emplace_back(bestQuality / bCount.second.getTotalCount());
+		info.qual_.emplace_back(bestQuality);
 	}
 	//read.seqBase_.outPutFastq(std::cout);
 	// the iterators to over the letter counter maps
@@ -70,8 +71,7 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 			continue;
 		}
 		info.seq_.push_back(bestBase);
-		info.qual_.emplace_back(
-				bestQuality / count.second.getTotalCount());
+		info.qual_.emplace_back(bestQuality);
 	}
 }
 

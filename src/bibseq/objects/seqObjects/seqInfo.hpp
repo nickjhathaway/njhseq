@@ -1,7 +1,14 @@
 #pragma once
 //
+//  seqInfo.hpp
+//  sequenceTools
+//
+//  Created by Nicholas Hathaway on 03/03/14.
+//  Copyright (c) 2014 Nicholas Hathaway. All rights reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,19 +26,13 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  seqInfo.hpp
-//  sequenceTools
-//
-//  Created by Nicholas Hathaway on 03/03/14.
-//  Copyright (c) 2014 Nicholas Hathaway. All rights reserved.
-//
 
-#include "bibseq/utils.h"
-#include "bibseq/alignment/alignerUtils/substituteMatrix.hpp"
 #include <bibcpp/jsonUtils.h>
 #include "bibseq/common/stdAddition.hpp"
-#include "bibseq/IO/readObjectIOOptions.hpp"
+#include "bibseq/utils.h"
+#include "bibseq/alignment/alignerUtils/substituteMatrix.hpp"
+#include "bibseq/IO/SeqIO/SeqIOOptions.hpp"
+#include "bibseq/alignment/alignerUtils/QualScorePars.hpp"
 
 namespace bibseq {
 
@@ -67,24 +68,23 @@ struct seqInfo {
   bool on_ = true;
 
   // functions
-  // get a sub-portion of the read
-  seqInfo getSubRead(uint32_t pos, uint32_t size) const;
-  seqInfo getSubRead(uint32_t pos) const;
-  // changing the seq and qual of the read
-  void prepend(const std::string& seq, const std::vector<uint32_t>& qual);
-  void append(const std::string& seq, const std::vector<uint32_t>& qual);
-  void prepend(const std::string& seq, uint32_t defaultQuality = 40);
-  void append(const std::string& seq, uint32_t defaultQuality = 40);
-  void prepend(const char & base, uint32_t quality = 40);
-  void append(const char & base, uint32_t quality = 40);
-  bool checkLeadQual(uint32_t pos, uint32_t secondayQual, uint32_t out = 5) const;
-  bool checkTrailQual(uint32_t pos, uint32_t secondayQual, uint32_t out = 5) const;
-  bool checkPrimaryQual(uint32_t pos, uint32_t primaryQual) const;
-  bool checkQual(uint32_t pos, uint32_t primaryQual, uint32_t secondayQual,
-  		uint32_t out = 5) const;
-  uint32_t findLowestNeighborhoodQual(uint32_t posA, uint32_t out = 5) const;
-  const std::vector<uint32_t> getLeadQual(uint32_t posA, uint32_t out = 5) const;
-  const std::vector<uint32_t> getTrailQual(uint32_t posA, uint32_t out = 5) const;
+	// get a sub-portion of the read
+	seqInfo getSubRead(uint32_t pos, uint32_t size) const;
+	seqInfo getSubRead(uint32_t pos) const;
+	// changing the seq and qual of the read
+	void prepend(const std::string& seq, const std::vector<uint32_t>& qual);
+	void append(const std::string& seq, const std::vector<uint32_t>& qual);
+	void prepend(const std::string& seq, uint32_t defaultQuality = 40);
+	void append(const std::string& seq, uint32_t defaultQuality = 40);
+	void prepend(const char & base, uint32_t quality = 40);
+	void append(const char & base, uint32_t quality = 40);
+	bool checkLeadQual(uint32_t pos, uint32_t secondayQual, uint32_t out) const;
+	bool checkTrailQual(uint32_t pos, uint32_t secondayQual, uint32_t out) const;
+	bool checkPrimaryQual(uint32_t pos, uint32_t primaryQual) const;
+	bool checkQual(uint32_t pos, const QualScorePars & qScorePars) const;
+	uint32_t findLowestNeighborhoodQual(uint32_t posA, uint32_t out) const;
+	const std::vector<uint32_t> getLeadQual(uint32_t posA, uint32_t out) const;
+	const std::vector<uint32_t> getTrailQual(uint32_t posA, uint32_t out) const;
   // get a quality string from vector
   std::string getQualString() const;
   std::string getFastqQualString(uint32_t offset) const;
@@ -101,7 +101,7 @@ struct seqInfo {
   void unmarkAsChimeric();
   //reverse complement read
   void reverseComplementRead(bool mark = false, bool regQualReverse = false);
-
+  void reverseHRunsQuals();
   //comparison
   bool degenCompare(const seqInfo & otherInfo,
   		const substituteMatrix & compareScores)const;
@@ -110,10 +110,7 @@ struct seqInfo {
   void outPutSeq(std::ostream& fastaFile) const;
   void outPutSeqAnsi(std::ostream& fastaFile) const;
   void outPutQual(std::ostream& qualFile) const;
-  void outPut(std::ostream& outFile,const readObjectIOOptions & options)const;
-  void outPut(std::ostream& outFile, std::ostream& outFile2,const readObjectIOOptions & options)const;
   // description
-  void printDescription(std::ostream& out, bool deep) const;
   Json::Value toJson()const;
   const static std::unordered_map<char, uint32_t> ansiBaseColor;
 
@@ -147,8 +144,68 @@ struct seqInfo {
 };
 
 template<>
-inline seqInfo::size_type len(const seqInfo & info){
+inline seqInfo::size_type len(const seqInfo & info) {
 	return info.seq_.size();
+}
+
+template<typename T>
+const seqInfo & getSeqBase(const T & read) {
+	return read.seqBase_;
+}
+
+template<>
+inline const seqInfo & getSeqBase(const seqInfo & read) {
+	return read;
+}
+
+template<typename T>
+const seqInfo & getSeqBase(const std::shared_ptr<const T> & read) {
+	return getSeqBase(*read);
+}
+
+template<typename T>
+const seqInfo & getSeqBase(const std::unique_ptr<const T> & read) {
+	return getSeqBase(*read);
+}
+
+template<typename T>
+seqInfo & getSeqBase(T & read) {
+	return read.seqBase_;
+}
+
+template<>
+inline seqInfo & getSeqBase(seqInfo & read) {
+	return read;
+}
+
+template<typename T>
+seqInfo & getSeqBase(const std::shared_ptr<T> & read) {
+	return getSeqBase(*read);
+}
+
+template<typename T>
+seqInfo & getSeqBase(const std::unique_ptr<T> & read) {
+	return getSeqBase(*read);
+}
+
+template<typename T>
+seqInfo & getSeqBase(std::shared_ptr<T> & read) {
+	return getSeqBase(*read);
+}
+
+template<typename T>
+seqInfo & getSeqBase(std::unique_ptr<T> & read) {
+	return getSeqBase(*read);
+}
+
+template<typename T>
+const seqInfo & getSeqBase(std::shared_ptr<const T> & read) {
+	return getSeqBase(*read);
+}
+
+template<typename T>
+const seqInfo & getSeqBase(std::unique_ptr<const T> & read) {
+	return getSeqBase(*read);
 }
 
 }  // namespace bibseq

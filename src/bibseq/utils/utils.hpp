@@ -1,7 +1,15 @@
 #pragma once
 //
+//  utils.hpp
+//  ampliconCluster
+//
+//  Created by Nick Hathaway on 8/31/12.
+//  Copyright (c) 2012 University of Massachusetts Medical School. All rights
+// reserved.
+//
+//
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -19,15 +27,6 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-//
-//  utils.hpp
-//  ampliconCluster
-//
-//  Created by Nick Hathaway on 8/31/12.
-//  Copyright (c) 2012 University of Massachusetts Medical School. All rights
-// reserved.
-//
-
 #include "bibseq/common.h"
 #include "bibseq/utils/bitSwaps.hpp"
 //////durations and date

@@ -1,7 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012, 2015 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 // Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
 //
 // This file is part of bibseq.
@@ -31,7 +31,7 @@
 #include "bibseq/utils.h"
 #include "bibseq/objects/seqObjects/seqInfo.hpp"
 #include "bibseq/objects/counters/charCounter.hpp"
-#include "bibseq/alignment/aligner.hpp"
+#include "bibseq/alignment/aligner.h"
 
 namespace bibseq {
 
@@ -40,16 +40,16 @@ class consensusHelper {
  public:
 
   static void genConsensusFromCounters(seqInfo & info,
-  		const std::map<uint32_t, charCounterArray> & counters,
-  		const std::map<uint32_t, std::map<uint32_t, charCounterArray>> & insertions,
-  		const std::map<int32_t, charCounterArray> & beginningGap);
+  		const std::map<uint32_t, charCounter> & counters,
+  		const std::map<uint32_t, std::map<uint32_t, charCounter>> & insertions,
+  		const std::map<int32_t, charCounter> & beginningGap);
 
   template<typename T, typename FUNC>
   static void increaseCounters(const seqInfo & seqBase, const std::vector<T> & reads,
   		FUNC getSeqInfo, aligner & alignerObj,
-  		std::map<uint32_t, charCounterArray> & counters,
-  		std::map<uint32_t, std::map<uint32_t, charCounterArray>> & insertions,
-  		std::map<int32_t, charCounterArray> & beginningGap) {
+  		std::map<uint32_t, charCounter> & counters,
+  		std::map<uint32_t, std::map<uint32_t, charCounter>> & insertions,
+  		std::map<int32_t, charCounter> & beginningGap) {
   	//std::cout << "increaseCounters start" << std::endl;
   	for (const auto & readPos : iter::range(reads.size())) {
   		//std::cout << "increaseCounters -2" << std::endl;
@@ -72,7 +72,7 @@ class consensusHelper {
 
   		read.outPutFastq(std::cout);*/
 
-  		alignerObj.alignVec(seqBase, read, false);
+  		alignerObj.alignCacheGlobal(seqBase, read);
   		// the offset for the insertions
   		uint32_t offSet = 0;
   		uint32_t currentOffset = 1;
@@ -112,10 +112,10 @@ class consensusHelper {
   		FUNC getSeqInfo, aligner & alignerObj) {
   	seqInfo ret = seqBase;
   	// create the map for letter counters for each position
-  	std::map<uint32_t, charCounterArray> counters;
+  	std::map<uint32_t, charCounter> counters;
   	// create a map in case of insertions
-  	std::map<uint32_t, std::map<uint32_t, charCounterArray>> insertions;
-  	std::map<int32_t, charCounterArray> beginningGap;
+  	std::map<uint32_t, std::map<uint32_t, charCounter>> insertions;
+  	std::map<int32_t, charCounter> beginningGap;
   	increaseCounters(seqBase, reads, getSeqInfo, alignerObj, counters,
   			insertions, beginningGap);
   	genConsensusFromCounters(ret, counters, insertions,
@@ -153,10 +153,10 @@ class consensusHelper {
     }
     //std::cout << "buildConsensus between4" << std::endl;
   	// create the map for letter counters for each position
-  	std::map<uint32_t, charCounterArray> counters;
+  	std::map<uint32_t, charCounter> counters;
   	// create a map in case of insertions
-  	std::map<uint32_t, std::map<uint32_t, charCounterArray>> insertions;
-  	std::map<int32_t, charCounterArray> beginningGap;
+  	std::map<uint32_t, std::map<uint32_t, charCounter>> insertions;
+  	std::map<int32_t, charCounter> beginningGap;
   	//std::cout << "buildConsensus between5" << std::endl;
   	increaseCounters(ret, reads, getSeqInfo, alignerObj, counters,
   			insertions, beginningGap);
