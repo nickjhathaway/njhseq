@@ -12,5 +12,7 @@ The majority of dependencies is downloaded by ./setup.py script but several of t
 ```
 ./configure.py 
 ./setup.py --compfile compfile.mk --outMakefile makefile-common.mk 
+make -j 4
+
 ```
 
