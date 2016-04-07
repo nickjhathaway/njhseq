@@ -1350,7 +1350,11 @@ class Setup:
                 url = packVer.getDownloadUrl()
                 dest = os.path.join(self.dirMaster_.ext_tars, packVer.nameVer_.name)
                 print ("Downloading " + CT.boldGreen(url) + " to " + CT.boldBlue(dest))
-                fnp = Utils.get_file(url, dest)
+                if pack.libType_.startswith("git"):
+                    fnp = Utils.get_file(url, dest)
+                else:
+                    fnp = Utils.get_file_if_size_diff(url, dest)
+                
         if os.listdir(os.path.join(self.dirMaster_.base_dir, "temp")) == []:
             shutil.rmtree(os.path.join(self.dirMaster_.base_dir, "temp"))
         print ("Now run \"./setup.py --compfile compfile.mk --outMakefile makefile-common.mk --noInternet\" to build libraries")
