@@ -174,38 +174,35 @@ class CPPLibPackage():
     def getLocalDir(self, version):
         if self.hasVersion(version):
             return self.versions_[version].bPaths_.local_dir
-        else:
-            raise Exception("Error in getLocalDir" + self.name_ + " doesn't have version " + str(version))
+        raise Exception("Error in getLocalDir" + self.name_ + " doesn't have version " + str(version))
     
     def getBuildSubDir(self, version):
         if self.hasVersion(version):
             return self.versions_[version].bPaths_.build_sub_dir
-        else:
-            raise Exception("Error in getBuildSubDir" + self.name_ + " doesn't have version " + str(version))
+        raise Exception("Error in getBuildSubDir" + self.name_ + " doesn't have version " + str(version))
     
     def getBuildDir(self, version):
         if self.hasVersion(version):
             return self.versions_[version].bPaths_.build_dir
-        else:
-            raise Exception("Error in getBuildDir" + self.name_ + " doesn't have version " + str(version))
+        raise Exception("Error in getBuildDir" + self.name_ + " doesn't have version " + str(version))
     
     def getGitRefs(self, url):
-        if self.libType_.startswith("git"):
-            cap = Utils.runAndCapture("git ls-remote {url}".format(url = url))
-            branches = []
-            tags = []
-            for line in cap.split("\n"):
-                if "" != line:
-                    lineSplit = line.split()
-                    if 2 == len(lineSplit):
-                        if "heads" in lineSplit[1]:
-                            branches.append(os.path.basename(lineSplit[1]))
-                        elif "tags" in lineSplit[1] and not lineSplit[1].endswith("^{}"):
-                            tags.append(os.path.basename(lineSplit[1]))
-            gRefs = GitRefs(branches, tags)
-            return (gRefs)
-        else:
+        if not self.libType_.startswith("git"):
             raise Exception("Library " + self.name_ + " is not a git library, type is : " + self.libType_)
+        cap = Utils.runAndCapture("git ls-remote {url}".format(url = url))
+        branches = []
+        tags = []
+        for line in cap.split("\n"):
+            if "" != line:
+                lineSplit = line.split()
+                if 2 == len(lineSplit):
+                    if "heads" in lineSplit[1]:
+                        branches.append(lineSplit[1][(lineSplit[1].find("heads/") + 6):])
+                    elif "tags" in lineSplit[1] and not lineSplit[1].endswith("^{}"):
+                        tags.append(lineSplit[1][(lineSplit[1].find("tags/") + 5):])
+        gRefs = GitRefs(branches, tags)
+        return (gRefs)
+            
 
 class Packages():
     '''class to hold and setup all the necessary paths for 
@@ -738,7 +735,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addVersion(url, ref)
                 pack.versions_[ref].additionalLdFlags_ = ["-lpthread", "-lz"]
                 if not Utils.isMac():
@@ -960,6 +957,8 @@ class Setup:
             self.noInternet_ = True
         self.__initSetUpFuncs()
         self.__processArgsForCompilers()
+        if args.clearCache:
+            self.clearCache()
         self.packages_ = Packages(self.extDirLoc, self.args) # path object to hold the paths for install
         self.__processArgsForSetupsNeeded()
         
@@ -1025,7 +1024,7 @@ class Setup:
             print set
             pack = self.__package(set)
             sys.stdout.write("\t")
-            sys.stdout.write(",".join(pack.getVersions()))
+            sys.stdout.write(",".join([p.replace("__", "/") for p in pack.getVersions()]))
             sys.stdout.write("\n")
             
     def printGitRefs(self):
@@ -1331,7 +1330,7 @@ class Setup:
                 Utils.fixDyLibOnMac(libPath)
         
     def __defaultBibBuild(self, package, version):
-        if "develop" == version or "release" in version:
+        if "develop" == version or "release" in version or "master" == version:
             self.__defaultBuild(package, version, False)
         else:
             self.__defaultBuild(package, version, True)
@@ -1495,11 +1494,11 @@ class Setup:
                 Utils.run(cloneCmd)
                 Utils.run_in_dir(tagCmd, tempDir)
                 Utils.run_in_dir(downloadCmd, tempDir)
-                if "develop" == set.version or set.version == "master":
+                if "develop" == set.version or "master" == set.version or "release" in set.version:
                     archiveCmd = "git archive --prefix={name}/ -o {downloadDir}/{version}.tar.gz HEAD".format(name = pack.name_, downloadDir = downloadDir, version = set.version)
                     Utils.run_in_dir(archiveCmd, tempDir)
                 shutil.rmtree(tempDir)
-            if pack.bibProject_ and (set.version == "develop" or set.version == "master"):
+            if pack.bibProject_ and ("develop" == set.version or "master" == set.version or "release" in set.version):
                 pass
             else:
                 url = packVer.getDownloadUrl()
@@ -1584,8 +1583,6 @@ def parse_args():
 def main():
     args = parse_args()
     s = Setup(args)
-    if args.clearCache:
-        s.clearCache()
     s.externalChecks()
     if(args.instRPackageName):
         s.installRPackageName(args.instRPackageName[0], s.packages_["r"].defaultVersion_)
