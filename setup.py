@@ -261,7 +261,7 @@ class Packages():
         else:
             
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addHeaderOnlyVersion(url, ref)
                 pack.versions_[ref].includePath_ = os.path.join(name, ref, name)
                 if not Utils.isMac():
@@ -284,7 +284,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addHeaderOnlyVersion(url, ref)
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
             with open(os.path.join(self.dirMaster_.cache_dir, name, name + '.pkl'), 'wb') as output:
@@ -304,7 +304,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addVersion(url, ref)
                 pack.versions_[ref].libPath_ = os.path.join(pack.versions_[ref].libPath_,name)
                 pack.versions_[ref].includePath_ = os.path.join(pack.versions_[ref].includePath_,name)
@@ -326,7 +326,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addVersion(url, ref)
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
             with open(os.path.join(self.dirMaster_.cache_dir, name, name + '.pkl'), 'wb') as output:
@@ -385,7 +385,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addHeaderOnlyVersion(url, ref)
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
             with open(os.path.join(self.dirMaster_.cache_dir, name, name + '.pkl'), 'wb') as output:
@@ -405,7 +405,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addHeaderOnlyVersion(url, ref)
                 pack.versions_[ref].includePath_ = os.path.join(joinNameVer(pack.versions_[ref].nameVer_), "single_include")
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
@@ -542,7 +542,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addHeaderOnlyVersion(url, ref)
                 pack.versions_[ref].additionalLdFlags_ = ["-lpthread"]
                 pack.versions_[ref].includePath_ = os.path.join(name, ref, name)
@@ -565,7 +565,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addVersion(url, ref)
                 pack.versions_[ref].additionalLdFlags_ = ["-lcurl"]
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
@@ -587,7 +587,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addVersion(url, ref)
                 pack.versions_[ref].additionalLdFlags_ = ["-lcurl"]
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
@@ -609,7 +609,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addVersion(url, ref)
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
             with open(os.path.join(self.dirMaster_.cache_dir, name, name + '.pkl'), 'wb') as output:
@@ -630,7 +630,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addVersion(url, ref)
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
             with open(os.path.join(self.dirMaster_.cache_dir, name, name + '.pkl'), 'wb') as output:
@@ -651,7 +651,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addVersion(url, ref)
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
             with open(os.path.join(self.dirMaster_.cache_dir, name, name + '.pkl'), 'wb') as output:
@@ -672,7 +672,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addVersion(url, ref)
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
             with open(os.path.join(self.dirMaster_.cache_dir, name, name + '.pkl'), 'wb') as output:
@@ -693,7 +693,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addVersion(url, ref)
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
             with open(os.path.join(self.dirMaster_.cache_dir, name, name + '.pkl'), 'wb') as output:
@@ -714,7 +714,7 @@ class Packages():
                     pack = pickle.load(input)
         else:
             refs = pack.getGitRefs(url)
-            for ref in refs.branches + refs.tags:
+            for ref in [b.replace("/", "__") for b in refs.branches] + refs.tags:
                 pack.addVersion(url, ref)
             Utils.mkdir(os.path.join(self.dirMaster_.cache_dir, name))
             with open(os.path.join(self.dirMaster_.cache_dir, name, name + '.pkl'), 'wb') as output:
