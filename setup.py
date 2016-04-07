@@ -849,17 +849,21 @@ class Packages():
                     if "" != pvLdFlags:
                         f.write("#" + packVer.name + ":" + packVer.version + " LDFLAGS\n")
                         f.write("LD_FLAGS += " + pvLdFlags + "\n")
+                    f.write("\n")
+                    f.flush()
         else:
             with open(filename, "a") as f:
                 f.write("#Utils\n")
                 f.write("# from http://stackoverflow.com/a/18258352\n")
                 f.write("rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))\n")
+                f.write("\n")
                 f.write("#Default CXXFLAGS\n")
                 f.write("COMLIBS += " + self.getDefaultIncludeFlags() + "\n")
                 dLdFlags = self.getDefaultLDFlags( )
                 if "" != dLdFlags:
                     f.write("#Default LDFLAGS\n")
                     f.write("LD_FLAGS += " + dLdFlags + "\n")
+                f.write("\n")
                 f.flush()
                 for packVer in packVers:
                     pack = self.package(packVer.name)
@@ -876,6 +880,8 @@ class Packages():
                     if "" != pvLdFlags:
                         f.write("#" + packVer.name + ":" + packVer.version + " LDFLAGS\n")
                         f.write("LD_FLAGS += " + pvLdFlags + "\n")
+                    f.write("\n")
+                    f.flush()
     
     def addPackage(self, packVers, packVer):
         packVer = LibNameVer(packVer.name, packVer.version.replace("/", "__"))
