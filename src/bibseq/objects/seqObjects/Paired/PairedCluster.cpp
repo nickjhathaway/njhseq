@@ -279,7 +279,9 @@ void collapseIdenticalPairedClusters(std::vector<PairedRead> & clusters,
 
 void PairedCluster::writeOutClusters(const std::string& directoryName,
 		const SeqIOOptions & ioOptions) const {
-	SeqOutput writer(ioOptions);
+	SeqOutput writer(
+			SeqIOOptions(directoryName + seqBase_.name_,
+					SeqIOOptions::outFormats::FASTQPAIRED, ioOptions.out_));
 	writer.openWrite(reads_);
 }
 
