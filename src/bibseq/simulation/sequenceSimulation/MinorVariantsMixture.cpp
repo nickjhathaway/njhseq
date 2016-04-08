@@ -402,7 +402,7 @@ void MinorVariantsMixture::createAbundancesForMixtures(
 					if (isDoubleStr(spAbTok)) {
 						auto abund = bib::lexical_cast<double>(spAbTok);
 						totalAbundance += abund;
-						mixturesAbundances_[mixName][variants_[spAbTokPos]->name_];
+						mixturesAbundances_[mixName][variants_[spAbTokPos]->name_] = abund;
 					} else {
 						std::stringstream ss;
 						ss << bib::bashCT::red << "Error with processing abundance: "
@@ -452,7 +452,6 @@ void MinorVariantsMixture::createAbundancesForMixtures(
 				throw std::runtime_error { ss.str() };
 			}
 		}
-
 		++mixtureNumber;
 	}
 }
@@ -516,8 +515,7 @@ void MinorVariantsMixture::writeFasta(const std::string & dirname)const{
 }
 
 void MinorVariantsMixture::writeFasta(const std::string & dirname, const std::string & filename)const{
-	SeqIOOptions opts;
-	opts.out_ = OutOptions(bib::files::join(dirname, filename),".fasta", "fasta");
+	SeqIOOptions opts = SeqIOOptions::genFastaOut(bib::files::join(dirname, filename));
 	SeqIO writer(opts);
 	writer.openOut();
 	writer.write(major_);

@@ -752,7 +752,7 @@ void profiler::getFractionInfo(const std::vector<CLUSTER>& reads,
                                bool weighHomopolyer) {
   std::ofstream outFile;
   openTextFile(outFile, directory + filename, ".tab.txt", false, false);
-  SeqIOOptions opts;
+  SeqIOOptions opts = SeqIOOptions::genFastaIn(refFilename);
   SeqInput reader(opts);
   reader.openIn();
   auto refReads = reader.readAllReads<readObject>();
@@ -777,7 +777,7 @@ void profiler::getFractionInfoCluster(const std::vector<CLUSTER>& reads,
                                bool weighHomopolyer) {
   std::ofstream outFile;
   openTextFile(outFile, directory + filename, ".tab.txt", false, false);
-  SeqIOOptions opts;
+  SeqIOOptions opts = SeqIOOptions::genFastaIn(refFilename);
   SeqInput reader(opts);
   reader.openIn();
   auto refReads = reader.readAllReads<readObject>();

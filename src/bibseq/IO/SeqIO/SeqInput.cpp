@@ -89,6 +89,10 @@ void SeqInput::openIn() {
 			if (!(*priReader_)) {
 				failedToOpen = true;
 			}
+			secReader_ = std::make_unique<std::ifstream>(ioOptions_.secondName_);
+			if (!(*secReader_)) {
+				failedToOpen = true;
+			}
 			break;
 		case SeqIOOptions::inFormats::FASTAGZ:
 		case SeqIOOptions::inFormats::FASTQGZ:
