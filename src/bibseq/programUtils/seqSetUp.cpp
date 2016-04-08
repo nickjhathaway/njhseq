@@ -453,6 +453,7 @@ bool seqSetUp::processSeq(std::string& inputSeq, const std::string& flag,
                           const std::string& parName, bool required) {
   bool passed = setOption(inputSeq, flag, parName, required);
   //std::cout <<"1 "<< inputSeq << std::endl;
+  std::string originalSeq = inputSeq;
   if (fexists(inputSeq)) {
   	std::ifstream inFile(inputSeq);
 
@@ -461,7 +462,7 @@ bool seqSetUp::processSeq(std::string& inputSeq, const std::string& flag,
     //std::cout << "2 "<< inputSeq << std::endl;
     if(inputSeq[0] == '>'){
     	//std::cout <<"3 "<< inputSeq << std::endl;
-    	SeqIOOptions opts = SeqIOOptions::genFastaIn(inputSeq);
+    	SeqIOOptions opts = SeqIOOptions::genFastaIn(originalSeq);
     	SeqInput reader(opts);
     	reader.openIn();
     	reader.readNextRead(pars_.seqObj_);

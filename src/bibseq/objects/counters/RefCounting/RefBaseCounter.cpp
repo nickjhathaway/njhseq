@@ -157,7 +157,7 @@ uint64_t RefBaseCounter::BaseCount::getLowQTotalCount() const {
 }
 
 double RefBaseCounter::BaseCount::getLowQFrac() const {
-	return getLowQFrac() / static_cast<double>(getTotalCount());
+	return getLowQTotalCount() / static_cast<double>(getTotalCount());
 }
 
 uint64_t RefBaseCounter::BaseCount::getPlusStrandTotalCount() const {
