@@ -28,3 +28,7 @@
 //
 #include "bibseq/objects/collapseObjects/sampleCollapse.hpp"
 #include "bibseq/objects/collapseObjects/populationCollapse.hpp"
+#include "bibseq/objects/collapseObjects/opts.h"
+#include "bibseq/objects/collapseObjects/SampleCollapseCollectionUtils.h"
+#include "bibseq/objects/collapseObjects/SampleCollapseCollection.hpp"
+

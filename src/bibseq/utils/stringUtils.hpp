@@ -32,14 +32,8 @@
 
 namespace bibseq {
 
-//finding substrings
-bool containsSubString(const std::string& str, const std::string& subString);
-bool endsWith(const std::string& a, const std::string& b);
-bool beginsWith(const std::string& str, const std::string& target);
 
 
-std::string getTimeFormat(double timeInSecondsOriginal, bool wordy,
-                          int secondsDecimalPlaces = 6);
 
 std::string getStringFromSubstrings(const std::string& seq,
                                     const std::vector<size_t>& positons,
@@ -50,9 +44,6 @@ void trimStringsAtFirstOccurence(VecStr& strings, const std::string& occurence);
 
 
 
-std::string replaceString(std::string theString,
-                          const std::string& replaceSpace = " ",
-                          const std::string& newSpace = "_");
 
 // remove lower case letters and their corresponding qualities from the
 // sequence.
@@ -63,7 +54,7 @@ VecStr tokenizeString(const std::string& str, const std::string& delim,
 std::vector<size_t> findOccurences(const std::string& target,
                                    const std::string& subSeq);
 
-int countOccurences(const std::string& target, const std::string& subSeq);
+uint32_t countOccurences(const std::string& target, const std::string& subSeq);
 
 void translateStringWithKey(std::string& str, MapStrStr& key);
 
@@ -154,8 +145,6 @@ std::string getPercentageString(T partial, TOT total) {
 	return ss.str();
 }
 
-// combiners
-std::string combineStrings(const VecStr& strings);
 
 // repeat string
 std::string repeatString(const std::string& stringToRepeat, uint32_t n);
@@ -175,11 +164,9 @@ VecStr checkTwoRotatingStrings(const std::string& str1, const std::string& str2,
                                int allowableMismatches);
 int numberOfMismatches(const std::string& str1, const std::string& str2);
 
-std::string intToHex(int i);
-uint32_t hexToInt(const std::string& hString);
 
-void rstrip(std::string & str, char c);
-std::string rstripReturn(std::string str, char c);
+
+
 
 void addToStr(std::string & str, char c);
 void addToStr(std::string & str, const std::string & otherStr);
@@ -230,8 +217,6 @@ struct strICaseCmp{
 uint32_t countBeginChar(const std::string & str);
 
 uint32_t countEndChar(const std::string & str);
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "stringUtils.cpp"
-#endif
+

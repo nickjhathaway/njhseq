@@ -32,20 +32,6 @@
 
 namespace bibseq {
 
-using bib::count_if;
-using bib::for_each;
-using bib::sort;
-using bib::reverse;
-using bib::contains;
-using bib::find;
-using bib::has;
-using bib::in;
-using bib::iota;
-using bib::shuffle;
-using estd::to_string;
-
-
-
 template<typename T>
 typename T::size_type len(const T & con){
 	return con.size();

@@ -37,26 +37,42 @@ public:
 	 *
 	 * @param line Line from output of repeat masker
 	 */
-	RepeatMaskerRecord(const std::string & line) ;
-	std::string originalLine_;
-	uint32_t swScore_;
+	RepeatMaskerRecord(const std::string & line);
+	std::string originalLine_; // the original input line
+	uint32_t swScore_; //local alignment score
 	double perSubstitutions_; //% substitutions in matching region compared to the consensus
 	double perDelection_; //% of bases opposite a gap in the query sequence (deleted bp)
 	double perInsertion_; //% of bases opposite a gap in the repeat consensus (inserted bp)
 	std::string nameOfQuery_; // This is info of sequence being compared to repeat element
-	uint32_t start_; // This is info of sequence being compared to repeat element
-	uint32_t end_; // This is info of sequence being compared to repeat element
-	std::pair<uint32_t,bool> numOfBasesLeftInQuery_; // This is info of sequence being compared to repeat element
+	uint32_t start_; // This is info of sequence being compared to repeat element, (1 based)
+	uint32_t end_; // This is info of sequence being compared to repeat element (1 based so therefore inclusive)
+	std::pair<uint32_t, bool> numOfBasesLeftInQuery_; // This is info of sequence being compared to repeat element
 	bool reverseStrand_;
 	std::string nameOfMatchedSeq_; // repeat element name
 	std::string repeatType_; // repeat element type (SINE/ALU, DNA/MER2_type, etc
-	std::pair<int32_t,bool> basesLeftInComplMatch_; // no. of bases in (complement of) the repeat consensus sequence prior to beginning of the match (so 0 means that the match extended all the way to the end of the repeat consensus sequence)
-	std::pair<uint32_t,bool> startInMatch_; //using top-strand numbering
-	std::pair<uint32_t,bool> endInMatch_;
-	uint32_t regionSegment_; //
+	std::pair<int32_t, bool> basesLeftInComplMatch_; // no. of bases in (complement of) the repeat consensus sequence prior to beginning of the match (so 0 means that the match extended all the way to the end of the repeat consensus sequence)
+	std::pair<uint32_t, bool> startInMatch_; // using top-strand numbering (1 based)
+	std::pair<uint32_t, bool> endInMatch_; // using top-strand numbering (1 based)
+	uint32_t regionSegment_; // region segment given by repeatmasker
 
-	std::string getDelimitedInfoStr(const std::string & delim)const;
-	std::string toBedStr() const ;
+	/**@brief to a delimited string for all fields
+	 *
+	 * @param delim the delimter to use
+	 * @return the line with the fields delimited
+	 */
+	std::string getDelimitedInfoStr(const std::string & delim) const;
+
+	/**@brief Converting to a bed string style line for 6 columns
+	 *
+	 * @return a tab delimited bed string
+	 */
+	std::string toBedStr() const;
+
+	/**@brief Convert to a json object
+	 *
+	 * @return Json::Value representing the class
+	 */
+	Json::Value toJson() const;
 };
 
 

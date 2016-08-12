@@ -19,11 +19,12 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/objects/seqObjects/baseReadObject.hpp"
+
+
+#include "bibseq/objects/seqObjects/BaseObjects/baseReadObject.hpp"
 #include "bibseq/objects/kmer/kmerMap.hpp"
 #include "bibseq/objects/helperObjects/tandemRepeat.hpp"
 #include "bibseq/alignment/alignerUtils.h"
-#include "bibseq/programUtils/runningParameters.hpp"
 #include "bibseq/alignment/alnCache/alnInfoHolder.hpp"
 #include "bibseq/alignment/aligner/alnParts.hpp"
 
@@ -42,38 +43,17 @@ class aligner {
 	/**@brief Default aligner, can handle alignments of up to 400 bps
 	 */
   aligner();
-	/**@brief Construct with all necessary objects for just alignment, limited profiling
-	 *
-	 * @param maxSize The maximum size expected of the strings to be aligned
-	 * @param gapPars The gap scoring parameters
-	 * @param subMatrix The scoring matrix for mismatches
-	 * @param countEndGaps Whether or not to count end gaps
-	 */
+
 	aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
           const substituteMatrix& scoreMatrix);
-	/**@brief Construct with all necessary objects for just alignment, limited profiling
-	 *
-	 * @param maxSize The maximum size expected of the strings to be aligned
-	 * @param gapPars The gap scoring parameters
-	 * @param subMatrix The scoring matrix for mismatches
-	 * @param countEndGaps Whether or not to count end gaps
-	 */
+
 	aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
           const substituteMatrix& scoreMatrix, bool countEndGaps);
 
-	/**@brief Construct with all necessary objects
-	 *
-	 * @param maxSize The maximum size expected of the strings to be aligned
-	 * @param gapPars The gap scoring parameters
-	 * @param subMatrix The scoring matrix for mismatches
-	 * @param inKmaps The kmer indexes for the sequences to be aligned
-	 * @param qScorePars The parameters for determining a low quality mismatch
-	 * @param countEndGaps Whether or not to count end gaps
-	 */
-
 	aligner(uint64_t maxSize, const gapScoringParameters & gapPars,
 			const substituteMatrix& subMatrix, const KmerMaps& kmaps,
-			QualScorePars qScorePars, bool countEndGaps);
+			QualScorePars qScorePars, bool countEndGaps,
+			bool weighHomopolymers);
 
 
 
@@ -91,7 +71,7 @@ class aligner {
 
   QualScorePars qScorePars_;
   bool countEndGaps_;
-
+  bool weighHomopolymers_;
 
   void resetAlnCache();
 
@@ -169,93 +149,64 @@ class aligner {
 		rearrangeObjs(getSeqBase(ref), getSeqBase(read), local);
 	}
 
-
-  void noAlignSetAndScore(const baseReadObject& objectA,
-                        const baseReadObject& objectB);
   void noAlignSetAndScore(const seqInfo& objectA,
                           const seqInfo& objectB);
+	template<typename READ1, typename READ2>
+	void noAlignSetAndScore(const READ1 & ref, const READ2 & read){
+		noAlignSetAndScore(getSeqBase(ref), getSeqBase(read));
+	}
 
   void scoreAlignment(bool editTheSame);
   bool CountEndGaps() { return countEndGaps_; }
   void setQual(QualScorePars qScorePars);
 
-  // kmer map setting
-  void setKmerMpas(const KmerMaps& inKmerMaps) { kMaps_ = inKmerMaps; }
-  KmerMaps getKmerMaps() { return kMaps_; }
-
   // Outputting
   void outPutParameterInfo(std::ostream& out) const;
 
 
-  void handleGapCountingInA(gap& currentGap, bool weighHomopolymers);
-  void handleGapCountingInB(gap& currentGap, bool weighHomopolymers);
-  // profile with low kmer checking
-  const comparison & profileAlignment(const baseReadObject& objectA,
-                        const baseReadObject& objectB, int kLength,
-                        bool kmersByPosition, bool checkKmer, bool usingQuality,
-                        bool doingMatchQuality, bool weighHomopolymers,
-                        uint32_t start = 0, uint32_t stop = 0);
+  void handleGapCountingInA(gap& currentGap);
+  void handleGapCountingInB(gap& currentGap);
 
-  const comparison & profileAlignment(const seqInfo& objectA, const seqInfo& objectB,
-                        int kLength, bool kmersByPosition, bool checkKmer,
-                        bool usingQuality, bool doingMatchQuality,
-                        bool weighHomopolymers, uint32_t start = 0,
-                        uint32_t stop = 0);
+	const comparison & profileAlignment(const seqInfo& objectA,
+			const seqInfo& objectB, bool checkKmer, bool usingQuality,
+			bool doingMatchQuality, uint32_t start = 0, uint32_t stop = 0);
+
 	template<typename READ1, typename READ2>
 	const comparison & profileAlignment(const READ1& objectA,
-			const READ2& objectB, int kLength, bool kmersByPosition, bool checkKmer,
-			bool usingQuality, bool doingMatchQuality, bool weighHomopolymers,
-			uint32_t start = 0, uint32_t stop = 0) {
-		return profileAlignment(getSeqBase(objectA), getSeqBase(objectB), kLength,
-				kmersByPosition, checkKmer, usingQuality, doingMatchQuality,
-				weighHomopolymers, start, stop);
+			const READ2& objectB, bool checkKmer, bool usingQuality,
+			bool doingMatchQuality, uint32_t start = 0, uint32_t stop = 0) {
+		return profileAlignment(getSeqBase(objectA), getSeqBase(objectB), checkKmer,
+				usingQuality, doingMatchQuality, start, stop);
 	}
 
 
-  const comparison & profilePrimerAlignment(const baseReadObject& objectA,
-                              const baseReadObject& objectB,
-                              bool weighHomopolymers);
   const comparison & profilePrimerAlignment(const seqInfo& objectA,
-                              const seqInfo& objectB,
-                              bool weighHomopolymers);
+			const seqInfo& objectB);
 	template<typename READ1, typename READ2>
-  const comparison & profilePrimerAlignment(const READ1& objectA,
-                              const READ2& objectB,
-                              bool weighHomopolymers){
-		return profilePrimerAlignment(getSeqBase(objectA), getSeqBase(objectB), weighHomopolymers);
+	const comparison & profilePrimerAlignment(const READ1& objectA,
+			const READ2& objectB) {
+		return profilePrimerAlignment(getSeqBase(objectA), getSeqBase(objectB));
 	}
 
-  comparison compareAlignment(const baseReadObject& objectA,
-                                         const baseReadObject& objectB,
-                                         const runningParameters& runParams,
-                                         bool checkKmers, bool kmersByPosition,
-                                         bool weighHomopolymers);
-  comparison compareAlignment(const seqInfo& objectA,
-                                         const seqInfo& objectB,
-                                         const runningParameters& runParams,
-                                         bool checkKmers, bool kmersByPosition,
-                                         bool weighHomopolymers);
+	comparison compareAlignment(const seqInfo& objectA, const seqInfo& objectB,
+			bool checkKmers);
+
 	template<typename READ1, typename READ2>
-  comparison compareAlignment(const READ1& objectA,
-                                         const READ2& objectB,
-                                         const runningParameters& runParams,
-                                         bool checkKmers, bool kmersByPosition,
-                                         bool weighHomopolymers){
-		return compareAlignment(getSeqBase(objectA), getSeqBase(objectB), runParams, checkKmers, kmersByPosition, weighHomopolymers);
+	comparison compareAlignment(const READ1& objectA, const READ2& objectB,
+			bool checkKmers) {
+		return compareAlignment(getSeqBase(objectA), getSeqBase(objectB),
+				checkKmers);
 	}
 
 
 
 
 
-  void setDefaultQualities() {
-  	qScorePars_.primaryQual_ = 20;
-  	qScorePars_.secondaryQual_ = 15;
-  	qScorePars_.qualThresWindow_ = 5;
-  };
+  void setDefaultQualities();
   void resetCounts();
   void resetAlignmentInfo();
   bool checkForTandemRepeatGap();
+
   static bool checkTwoEqualSeqs(const std::string& seq1,
                                 const std::string& seq2,
                                 int allowableMismatches);
@@ -280,16 +231,12 @@ class aligner {
   size_t getSeqPosForAlnBPos(size_t alnBPos);
 
  public:
-  void setGeneralScorring(int32_t generalMatch, int32_t generalMismatch){
-  	parts_.scoring_ = substituteMatrix(generalMatch, generalMismatch);
-  }
+  void setGeneralScorring(int32_t generalMatch, int32_t generalMismatch);
 
 };
 
 
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "aligner.cpp"
-#endif
+

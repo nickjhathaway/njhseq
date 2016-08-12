@@ -26,7 +26,8 @@
 //
 #include "randomFileCreator.hpp"
 #include "bibseq/simulation/randomStrGen.hpp"
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+
 namespace bibseq {
 
 // functions
@@ -36,14 +37,21 @@ namespace bibseq {
 void randomFileCreator::randomFile(uint32_t lenStart, uint32_t lenStop,
 		uint32_t numOfSeqs, bool processed, uint32_t bottomAmount,
 		uint32_t topAmount, bool fastq, std::ostream& out) {
+	bib::randomGenerator gen;
 
-	std::vector<seqInfo> infos(numOfSeqs);
+	std::vector<seqInfo> infos(numOfSeqs, seqInfo{});
 	auto seqStrs = simulation::randStrsRandLen(lenStart, lenStart, counter_,
 			rgen_, numOfSeqs);
 	for (const auto & pos : iter::range(numOfSeqs)) {
 		infos[pos] = seqInfo("Seq." + bib::leftPadNumStr(pos, numOfSeqs),
 				seqStrs[pos],
 				rgen_.unifRandVector(qualStart_, qualStop_, seqStrs[pos].size()));
+	}
+	if(processed){
+		for(const auto & pos : iter::range(numOfSeqs)){
+			infos[pos].cnt_ = gen.unifRand(bottomAmount, topAmount);
+			infos[pos].updateName();
+		}
 	}
 	for(const auto & info : infos){
 		if(fastq){

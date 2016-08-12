@@ -57,8 +57,6 @@ class otuContainer : public baseContainer<T> {
   // functions
 };
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "otuContainer.cpp"
-#endif
+

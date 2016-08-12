@@ -50,48 +50,46 @@ public:
 
 	std::map<std::string, primerInfo> primers_;
 
+	size_t getMaxPrimerSize() const;
+
 	template<typename T>
 	std::string determineForwardPrimer(T & read, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase,
-			bool weighHomopolyers){
-		return determineForwardPrimer(read.seqBase_, withinPos, alignerObj, allowable, forwardPrimerToLowerCase, weighHomopolyers);
+			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase){
+		return determineForwardPrimer(read.seqBase_, withinPos, alignerObj, allowable, forwardPrimerToLowerCase);
 	}
 	std::string determineForwardPrimer(seqInfo & info, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase,
-			bool weighHomopolyers);
+			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase);
 
 	template<typename T>
 	std::string determineWithReversePrimer(T & read, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase,
-			bool weighHomopolyers){
-		return determineWithReversePrimer(read.seqBase_, withinPos, alignerObj, allowable, forwardPrimerToLowerCase, weighHomopolyers);
+			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase){
+		return determineWithReversePrimer(read.seqBase_, withinPos, alignerObj, allowable, forwardPrimerToLowerCase);
 	}
 
 	std::string determineWithReversePrimer(seqInfo & info, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase,
-			bool weighHomopolyers);
+			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase);
 
 	template<typename T>
 	bool checkForReversePrimer(T & read, const std::string & primerName,
 			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-			bool weighHomopolyers, uint32_t within, bool trimExtra) {
-		return checkForReversePrimer(read.seqBase_, primerName, alignObj, allowable, reversePrimerToLowerCase, weighHomopolyers, within, trimExtra);
+			uint32_t within, bool trimExtra) {
+		return checkForReversePrimer(read.seqBase_, primerName, alignObj, allowable, reversePrimerToLowerCase, within, trimExtra);
 	}
 
 	bool checkForReversePrimer(seqInfo & info, const std::string & primerName,
 			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-      bool weighHomopolyers, uint32_t within, bool trimExtra);
+      uint32_t within, bool trimExtra);
 
 	template<typename T>
 	bool checkForForwardPrimerInRev(T & read, const std::string & primerName,
 			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-			bool weighHomopolyers, uint32_t within, bool trimExtra) {
-		return checkForForwardPrimerInRev(read.seqBase_, primerName, alignObj, allowable, reversePrimerToLowerCase, weighHomopolyers, within,trimExtra);
+			uint32_t within, bool trimExtra) {
+		return checkForForwardPrimerInRev(read.seqBase_, primerName, alignObj, allowable, reversePrimerToLowerCase, within,trimExtra);
 	}
 
 	bool checkForForwardPrimerInRev(seqInfo & info, const std::string & primerName,
 			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-      bool weighHomopolyers,uint32_t within, bool trimExtra);
+      uint32_t within, bool trimExtra);
 };
 
 } /* namespace bibseq */

@@ -139,9 +139,7 @@ public:
 
 
 
-} /* namespace bib */
+} /* namespace bibseq */
 
 
-#ifndef NOT_HEADER_ONLY
-#include "substituteMatrix.cpp"
-#endif
+

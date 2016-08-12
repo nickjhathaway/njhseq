@@ -41,19 +41,7 @@ readObject::readObject() :
 
 void readObject::resetMetaInName() {
 	auto firstBracket = seqBase_.name_.find("[");
-	if (std::string::npos == firstBracket) {
-		std::stringstream ss;
-		ss << "Error in : " << __PRETTY_FUNCTION__ << ", could not find [ in"
-				<< seqBase_.name_ << std::endl;
-		throw std::runtime_error { ss.str() };
-	}
 	auto secondBracket = seqBase_.name_.find("]", firstBracket);
-	if (std::string::npos == secondBracket) {
-		std::stringstream ss;
-		ss << "Error in : " << __PRETTY_FUNCTION__ << ", could not find ] in"
-				<< seqBase_.name_ << "after " << firstBracket << std::endl;
-		throw std::runtime_error { ss.str() };
-	}
 	std::string newMeta = "[";
 	for (const auto & meta : meta_) {
 		if ("[" != newMeta) {
@@ -63,49 +51,48 @@ void readObject::resetMetaInName() {
 		}
 	}
 	newMeta.append("]");
-	seqBase_.name_ = seqBase_.name_.substr(0, firstBracket) + newMeta
-			+ seqBase_.name_.substr(secondBracket + 1);
-}
-
-void readObject::processNameForMeta(){
-	meta_.clear();
-	auto firstBracket = seqBase_.name_.find("[");
-	if(std::string::npos == firstBracket){
-		std::stringstream ss;
-		ss << "Error in : " << __PRETTY_FUNCTION__
-				<< ", could not find [ in" << seqBase_.name_ << std::endl;
-		throw std::runtime_error{ss.str()};
-	}
-	auto secondBracket = seqBase_.name_.find("]", firstBracket);
-	if(std::string::npos == secondBracket){
-		std::stringstream ss;
-		ss << "Error in : " << __PRETTY_FUNCTION__
-				<< ", could not find ] in" << seqBase_.name_  << "after " << firstBracket
-				<< std::endl;
-		throw std::runtime_error{ss.str()};
-	}
-	auto toks = tokenizeString(seqBase_.name_.substr(firstBracket + 1, secondBracket - firstBracket - 1), ";");
-	for(const auto & tok : toks){
-		auto subToks = tokenizeString(tok, "=");
-		if(2 != subToks.size()){
-			std::stringstream ss;
-			ss << "Error in : " << __PRETTY_FUNCTION__
-					<< "values should be separated by one =, not " << tok
-					<< std::endl;
-			throw std::runtime_error{ss.str()};
-		}else{
-			if(meta_.find(subToks[0]) != meta_.end()){
-				std::stringstream ss;
-				ss << "Error in : " << __PRETTY_FUNCTION__ << "key " << subToks[0]
-						<< " already in meta " << std::endl;
-				ss << "value is already: " << meta_.find(subToks[0])->first
-						<< ", attempt to add:  " << subToks[1] << std::endl;
-				throw std::runtime_error { ss.str() };
-			}else{
-				meta_.emplace(subToks[0], subToks[1]);
+	if (std::string::npos != firstBracket
+			&& std::string::npos != secondBracket) {
+		seqBase_.name_ = seqBase_.name_.substr(0, firstBracket) + newMeta
+				+ seqBase_.name_.substr(secondBracket + 1);
+	} else {
+		auto countPat = seqBase_.name_.rfind("_t");
+		auto fracPat = seqBase_.name_.rfind("_f");
+		if (std::string::npos != countPat
+				&& countPat + 2 != seqBase_.name_.length()) {
+			auto rest = seqBase_.name_.substr(countPat + 2);
+			if (isDoubleStr(rest)) {
+				seqBase_.name_ = seqBase_.name_.substr(0, countPat) + newMeta
+						+ seqBase_.name_.substr(countPat);
 			}
+		} else if(std::string::npos != fracPat
+				&& fracPat + 2 != seqBase_.name_.length()){
+			auto rest = seqBase_.name_.substr(fracPat + 2);
+			if (isDoubleStr(rest)) {
+				seqBase_.name_ = seqBase_.name_.substr(0, fracPat) + newMeta
+						+ seqBase_.name_.substr(fracPat);
+			}
+		}else{
+			seqBase_.name_ = seqBase_.name_ + newMeta;
 		}
 	}
+}
+
+bool readObject::nameHasMetaData() const {
+	auto firstBracket = seqBase_.name_.find("[");
+	if (std::string::npos == firstBracket) {
+		return false;
+	}
+	auto secondBracket = seqBase_.name_.find("]", firstBracket);
+	if (std::string::npos == secondBracket) {
+		return false;
+	}
+	return true;
+}
+
+void readObject::processNameForMeta() {
+	meta_.clear();
+	seqBase_.processNameForMeta(meta_);
 }
 
 bool readObject::containsMeta(const std::string & key) const {
@@ -139,14 +126,10 @@ Json::Value readObject::toJson()const{
 	return ret;
 }
 
-std::string readObject::getOtherReadSampName(const readObject& cr) const {
-  VecStr toks = tokenizeString(cr.seqBase_.name_, ".");
-  return replaceString(toks[0], "CHI_", "");
-}
+
 
 std::string readObject::getOwnSampName() const {
-  VecStr toks = tokenizeString(seqBase_.name_, ".");
-  return replaceString(toks[0], "CHI_", "");
+  return seqBase_.getOwnSampName();
 }
 
 /// chagening the name of the cluster
@@ -161,9 +144,7 @@ void readObject::setName(const std::string& newName) {
 
 
 std::string readObject::getReadId() const {
-  size_t firstPeriod = seqBase_.name_.find(".");
-  size_t firstUnder = seqBase_.name_.find("_", firstPeriod);
-  return seqBase_.name_.substr(firstPeriod + 1, firstUnder - firstPeriod - 1);
+  return seqBase_.getReadId();
 }
 std::string readObject::getStubName(bool removeChiFlag) const {
   return seqBase_.getStubName(removeChiFlag);

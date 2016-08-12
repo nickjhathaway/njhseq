@@ -73,7 +73,7 @@ void adjustAlnSeqsQual(seqInfo & info){
 
 namespace sys{
 std::vector<readObject> muscleSeqs(const std::string & filename){
-	std::vector<std::string> cmds{"muscle","-in", filename};
+	std::vector<std::string> cmds { "muscle", "-quiet", "-in", filename };
 	auto rOut = bib::sys::run(cmds);
 	if(!rOut.success_){
 		std::stringstream sErr;

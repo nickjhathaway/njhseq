@@ -27,7 +27,9 @@
 //
 
 #include "bibseq/objects/kmer/kmer.hpp"
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+
+
 
 namespace bibseq {
 

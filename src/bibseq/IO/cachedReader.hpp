@@ -60,6 +60,4 @@ public:
 
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "cachedReader.cpp"
-#endif
+

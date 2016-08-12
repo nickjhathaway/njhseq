@@ -27,8 +27,9 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "bibseq/programUtils/SeqSetUpPars.hpp"
-
 #include <bibcpp/progutils.h>
+#include "bibseq/objects/collapseObjects/opts/CollapseIterations.hpp"
+
 namespace bibseq {
 
 class seqSetUp : public bib::progutils::programSetUp {
@@ -45,10 +46,10 @@ class seqSetUp : public bib::progutils::programSetUp {
   void processGap();
   void processGapRef();
   void processQualThres();
-  void processIteratorMap(std::string& parametersFile,
-                          std::map<int, std::vector<double>>& iteratorMap);
-  void processIteratorMapOnPerId(std::string& parametersFile,
-                          std::map<int, std::vector<double>>& iteratorMap);
+
+  CollapseIterations processIteratorMap(std::string& parametersFile);
+  CollapseIterations processIteratorMapOnPerId(std::string& parametersFile);
+
   void processKmerLenOptions();
   void processKmerProfilingOptions();
   void processScoringPars();
@@ -57,6 +58,7 @@ class seqSetUp : public bib::progutils::programSetUp {
                                   bool mustMakeDirectory);
   void processDirectoryOutputName(bool mustMakeDirectory);
   void processWritingOptions();
+  void processWritingOptions(OutOptions & opts);
   bool processRefFilename(bool required = false);
   bool processSeq(bool required = false);
   bool processSeq(std::string& inputSeq, const std::string& flag,
@@ -88,8 +90,6 @@ class seqSetUp : public bib::progutils::programSetUp {
   void printAdditionalClusteringUsage(std::ostream& out);
 
 };
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "seqSetUp.cpp"
-#endif
+

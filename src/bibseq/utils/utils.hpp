@@ -32,6 +32,8 @@
 //////durations and date
 namespace bibseq {
 
+namespace bfs = boost::filesystem;
+
 // will call printDescription on a vector of objects, most of the objects in seqTools have
 // such a function
 
@@ -117,7 +119,7 @@ void printTableOrganized(const std::vector<VecStr>& content,
 
 template <typename FIR, typename SEC>
 VecStr pairToVecStr(const std::pair<FIR, SEC>& p) {
-  return VecStr{to_string(p.first), to_string(p.second)};
+  return VecStr{estd::to_string(p.first), estd::to_string(p.second)};
 }
 
 
@@ -170,6 +172,3 @@ size_t getPeakRSS();
 size_t getCurrentRSS();
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "utils.cpp"
-#endif

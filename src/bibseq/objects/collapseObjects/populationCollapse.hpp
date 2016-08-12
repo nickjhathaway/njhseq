@@ -8,6 +8,8 @@
 //
 
 #include "bibseq/objects/collapseObjects/sampleCollapse.hpp"
+#include "bibseq/objects/collapseObjects/collapser.hpp"
+
 
 namespace bibseq {
 namespace collapse {
@@ -17,7 +19,10 @@ class populationCollapse {
   populationCollapse(const std::vector<sampleCluster> &inputClusters,
                      const std::string &populationName);
 
-  populationCollapse();
+  populationCollapse(const std::string &populationName);
+
+  //for when populationCollapse is initizlized without inputClusters;
+  void addInput(const std::vector<sampleCluster> &inputClusters);
   // members
   // the initial clusters of the sample
   clusterSet input_;
@@ -28,21 +33,16 @@ class populationCollapse {
 
   uint32_t numOfSamps()const;
   // clustering
-  void popCluster(collapser &collapserObj,
-                  std::map<int, std::vector<double>> iteratorMap,
+  void popCluster(const collapser &collapserObj,
+                  CollapseIterations iteratorMap,
                   const std::string &sortBy, aligner &alignerObj);
-  void popClusterOnId(collapser &collapserObj,
-                  std::map<int, std::vector<double>> iteratorMap,
-                  const std::string &sortBy, aligner &alignerObj);
-
 
   // update the initial infos
   void updateInitialInfos();
   // update the collapsed infos
   void updateCollapsedInfos();
 
-  void renameToOtherPopNames(const std::vector<readObject> &previousPop,
-                             aligner &alignerObj);
+  void renameToOtherPopNames(const std::vector<readObject> &previousPop);
   void renameClusters();
 
   void updateInfoWithSampCollapses(const std::map<std::string, sampleCollapse> & sampCollapses);
@@ -53,12 +53,12 @@ class populationCollapse {
   void writeFinalInitial(const std::string &outDirectory, const SeqIOOptions & ioOptions) const;
 
 
+  VecStr getPopInfoVec()const;
+  static VecStr getPopInfoHeaderVec();
 
 
 };
 }  // namspace collpase
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "populationCollapse.cpp"
-#endif
+

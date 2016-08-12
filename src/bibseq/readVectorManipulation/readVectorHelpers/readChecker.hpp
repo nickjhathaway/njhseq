@@ -34,54 +34,159 @@
 
 namespace bibseq {
 
-class readChecker {
+class ReadChecker {
 
 public:
-
-	static bool checkReadLenWithin(seqInfo & info, uint32_t basesWithin,
-			double givenLen, bool mark = true);
-
-	static bool checkReadLenBellow(seqInfo & info, uint32_t maxLen, bool mark =
-			true);
-
-	static bool checkReadLenAbove(seqInfo & info, uint32_t minLen, bool mark =
-			true);
-
-	static bool checkReadLenBetween(seqInfo & info, uint32_t maxLen,
-			uint32_t minLen, bool mark = true);
-
-	static bool checkReadQualCheck(seqInfo & info, uint32_t qualCutOff,
-			double qualFracCutOff, bool mark = true);
-
-	static bool checkReadOnCount(seqInfo & info, double countCutOff, bool mark =
-			true);
-
-	static bool checkReadOnFrac(seqInfo & info, double fracCutOff, bool mark =
-			true);
-
-	static bool checkReadOnNucComp(seqInfo & info,
-			const charCounter & counter, double fracDiff, bool mark = true);
-
-	static bool checkReadOnSeqContaining(seqInfo & info, const std::string& str,
-			int occurences, bool mark = true);
-
-	static bool checkReadOnNameContaining(seqInfo & info, const std::string& str,
-			bool mark = true);
-
-	static bool checkReadOnQualityWindow(seqInfo & info, int qualityWindowLength,
-			int qualityWindowStep, int qualityWindowThres, bool mark = true);
-
-	static bool checkReadOnQualityWindowTrim(seqInfo & info,
-			int qualityWindowLength, int qualityWindowStep, int qualityWindowThres,
-			uint32_t minLen, bool mark = true);
-
-	static bool checkReadOnNs(seqInfo & info, bool mark = true);
-
-	static bool checkReadOnKmerComp(seqInfo & info, kmerInfo compareInfo,
-			uint32_t kLength, double kmerCutoff, bool mark = true);
+	ReadChecker(std::string markWith, bool mark);
+	const std::string markWith_;
+	bool mark_ = true;
+	void markName(seqInfo & info) const;
+	virtual bool checkRead(seqInfo & info) const;
+	virtual ~ReadChecker();
 };
+
+class ReadCheckerLenWithin: public ReadChecker {
+public:
+	ReadCheckerLenWithin(uint32_t basesWithin, double givenLen, bool mark = true);
+	const uint32_t basesWithin_;
+	const double givenLen_;
+	virtual bool checkRead(seqInfo & info) const;
+	virtual ~ReadCheckerLenWithin();
+};
+
+class ReadCheckerLenBelow: public ReadChecker {
+public:
+	ReadCheckerLenBelow(uint32_t maxLen, bool mark = true);
+	const uint32_t maxLen_;
+	virtual bool checkRead(seqInfo & info) const;
+
+	virtual ~ReadCheckerLenBelow();
+};
+
+class ReadCheckerLenAbove: public ReadChecker {
+public:
+	ReadCheckerLenAbove(uint32_t minLen, bool mark = true);
+	const uint32_t minLen_;
+	virtual bool checkRead(seqInfo & info) const;
+	virtual ~ReadCheckerLenAbove();
+};
+
+class ReadCheckerLenBetween: public ReadChecker {
+public:
+	ReadCheckerLenBetween(uint32_t maxLen, uint32_t minLen, bool mark = true);
+	const uint32_t minLen_;
+	const uint32_t maxLen_;
+	virtual bool checkRead(seqInfo & info) const;
+
+	virtual ~ReadCheckerLenBetween();
+};
+
+class ReadCheckerQualCheck: public ReadChecker {
+public:
+	ReadCheckerQualCheck(uint32_t qualCutOff, double qualFracCutOff, bool mark =
+			true);
+	const uint32_t qualCutOff_;
+	const double qualFracCutOff_;
+	virtual bool checkRead(seqInfo & info) const;
+
+	virtual ~ReadCheckerQualCheck();
+};
+
+class ReadCheckerOnCount: public ReadChecker {
+public:
+	ReadCheckerOnCount(double countCutOff, bool mark = true);
+	const double countCutOff_;
+	virtual bool checkRead(seqInfo & info) const;
+
+	virtual ~ReadCheckerOnCount();
+};
+
+class ReadCheckerOnFrac: public ReadChecker {
+public:
+	ReadCheckerOnFrac(double fracCutOff, bool mark = true);
+	const double fracCutOff_;
+	virtual bool checkRead(seqInfo & info) const;
+
+	virtual ~ReadCheckerOnFrac();
+};
+
+class ReadCheckerOnNucComp: public ReadChecker {
+public:
+	ReadCheckerOnNucComp(charCounter counter, double fracDiff, bool mark = true);
+	const charCounter counter_;
+	const double fracDiff_;
+	virtual bool checkRead(seqInfo & info) const;
+
+	virtual ~ReadCheckerOnNucComp();
+};
+
+class ReadCheckerOnSeqContaining: public ReadChecker {
+public:
+	ReadCheckerOnSeqContaining(std::string str, uint32_t occurences, bool mark =
+			true);
+	const std::string str_;
+	const uint32_t occurences_;
+	virtual bool checkRead(seqInfo & info) const;
+
+	virtual ~ReadCheckerOnSeqContaining();
+};
+
+class ReadCheckerOnNameContaining: public ReadChecker {
+public:
+	ReadCheckerOnNameContaining(std::string str, bool mark = true);
+	const std::string str_;
+	virtual bool checkRead(seqInfo & info) const;
+
+	virtual ~ReadCheckerOnNameContaining();
+};
+
+class ReadCheckerOnQualityWindow: public ReadChecker {
+public:
+	ReadCheckerOnQualityWindow(uint32_t qualityWindowLength,
+			uint32_t qualityWindowStep, uint32_t qualityWindowThres,
+			bool mark = true);
+	const uint32_t qualityWindowLength_;
+	const uint32_t qualityWindowStep_;
+	const uint32_t qualityWindowThres_;
+	virtual bool checkRead(seqInfo & info) const;
+
+	virtual ~ReadCheckerOnQualityWindow();
+};
+
+class ReadCheckerOnQualityWindowTrim: public ReadChecker {
+public:
+	ReadCheckerOnQualityWindowTrim(uint32_t qualityWindowLength,
+			uint32_t qualityWindowStep, uint32_t qualityWindowThres, uint32_t minLen,
+			bool mark = true);
+	const uint32_t qualityWindowLength_;
+	const uint32_t qualityWindowStep_;
+	const uint32_t qualityWindowThres_;
+	const uint32_t minLen_;
+
+	virtual bool checkRead(seqInfo & info) const;
+
+	virtual ~ReadCheckerOnQualityWindowTrim();
+};
+
+class ReadCheckerOnNs: public ReadCheckerOnSeqContaining {
+public:
+	ReadCheckerOnNs(bool mark = true);
+
+	virtual ~ReadCheckerOnNs();
+};
+
+class ReadCheckerOnKmerComp: public ReadChecker {
+public:
+	ReadCheckerOnKmerComp(kmerInfo compareInfo, uint32_t kLength,
+			double kmerCutoff, bool mark = true);
+
+	const kmerInfo compareInfo_;
+	const uint32_t kLength_;
+	const double kmerCutoff_;
+	virtual bool checkRead(seqInfo & info) const;
+
+	virtual ~ReadCheckerOnKmerComp();
+};
+
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "readChecker.cpp"
-#endif

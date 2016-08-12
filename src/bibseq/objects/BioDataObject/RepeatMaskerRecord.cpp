@@ -43,7 +43,7 @@ std::pair<int32_t, bool> processNumberInParenthesesInt(std::string str){
 		return {std::stoi(str), false};
 	}
 }
-std::string reverseProcessNumberInParenthesesUint(std::pair<int32_t, bool> value){
+std::string reverseProcessNumberInParenthesesUint(std::pair<uint32_t, bool> value){
 	if(value.second){
 		return "(" + estd::to_string(value.first) + ")";
 	}else{
@@ -98,12 +98,22 @@ RepeatMaskerRecord::RepeatMaskerRecord(const std::string & line) :originalLine_(
 	nameOfMatchedSeq_ = toks[9];
 	//repeat type
 	repeatType_ = toks[10];
-	//how many bases left in repeat element, a number of zero means the match was to the end of the element
-	basesLeftInComplMatch_ =  processNumberInParenthesesInt(toks[11]);
-	//start in matching repeat element
-	startInMatch_ = processNumberInParenthesesUint(toks[12]);
+	if(reverseStrand_){
+		//how many bases left in repeat element, a number of zero means the match was to the end of the element
+		basesLeftInComplMatch_ =  processNumberInParenthesesInt(toks[11]);
+	}else{
+		//how many bases left in repeat element, a number of zero means the match was to the end of the element
+		basesLeftInComplMatch_ =  processNumberInParenthesesInt(toks[13]);
+	}
 	//end in the matching repeat element
-	endInMatch_ = processNumberInParenthesesUint(toks[13]);
+	endInMatch_ = processNumberInParenthesesUint(toks[12]);
+	if(reverseStrand_){
+		//start in matching repeat element
+		startInMatch_ = processNumberInParenthesesUint(toks[13]);
+	}else{
+		//start in matching repeat element
+		startInMatch_ = processNumberInParenthesesUint(toks[11]);
+	}
 	//repeat masker region
 	if(toks[14] == ""){
 		regionSegment_ = std::numeric_limits<uint32_t>::max();
@@ -116,27 +126,66 @@ RepeatMaskerRecord::RepeatMaskerRecord(const std::string & line) :originalLine_(
 	}
 }
 
-std::string RepeatMaskerRecord::getDelimitedInfoStr(const std::string & delim)const{
-	 std::string ret = vectorToString(
+std::string RepeatMaskerRecord::getDelimitedInfoStr(
+		const std::string & delim) const {
+	std::string ret = vectorToString(
 			toVecStr(swScore_, perSubstitutions_, perDelection_, perInsertion_,
 					nameOfQuery_, start_, end_,
 					reverseProcessNumberInParenthesesUint(numOfBasesLeftInQuery_)),
 			delim);
-	if(reverseStrand_){
-		//ret+= delim + "-";
-		ret+= delim + "C";
-	}else{
-		ret+= delim + "+";
+	if (reverseStrand_) {
+		ret += delim + "C";
+		ret += delim
+					+ vectorToString(
+							toVecStr(nameOfMatchedSeq_, repeatType_,
+									reverseProcessNumberInParenthesesInt(basesLeftInComplMatch_),
+									reverseProcessNumberInParenthesesUint(endInMatch_),
+									reverseProcessNumberInParenthesesUint(startInMatch_),
+									regionSegment_), delim);
+	} else {
+		ret += delim + "+";
+		ret += delim
+					+ vectorToString(
+							toVecStr(nameOfMatchedSeq_, repeatType_,
+									reverseProcessNumberInParenthesesUint(startInMatch_),
+									reverseProcessNumberInParenthesesUint(endInMatch_),
+									reverseProcessNumberInParenthesesInt(basesLeftInComplMatch_),
+									regionSegment_), delim);
 	}
-	ret += delim + vectorToString(toVecStr(nameOfMatchedSeq_, repeatType_, reverseProcessNumberInParenthesesInt(basesLeftInComplMatch_),
-			reverseProcessNumberInParenthesesUint(startInMatch_), reverseProcessNumberInParenthesesUint(endInMatch_), regionSegment_), delim);
 	return ret;
 }
 
 std::string RepeatMaskerRecord::toBedStr() const {
 	return vectorToString(
-			toVecStr(nameOfQuery_, start_, end_,
+			toVecStr(nameOfQuery_, start_ - 1, end_,
 					estd::to_string(regionSegment_) + "_" + nameOfMatchedSeq_,
-					nameOfMatchedSeq_, (reverseStrand_ ? "-" : "+")), "\t");
+					swScore_, (reverseStrand_ ? "-" : "+")), "\t");
 }
+
+
+Json::Value RepeatMaskerRecord::toJson() const {
+	Json::Value ret;
+	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
+	ret["originalLine_"] = bib::json::toJson(originalLine_);
+	ret["swScore_"] = bib::json::toJson(swScore_);
+	ret["perSubstitutions_"] = bib::json::toJson(perSubstitutions_);
+	ret["perDelection_"] = bib::json::toJson(perDelection_);
+	ret["perInsertion_"] = bib::json::toJson(perInsertion_);
+	ret["nameOfQuery_"] = bib::json::toJson(nameOfQuery_);
+	ret["start_"] = bib::json::toJson(start_);
+	ret["end_"] = bib::json::toJson(end_);
+	ret["numOfBasesLeftInQuery_"] = bib::json::toJson(
+			numOfBasesLeftInQuery_.first);
+	ret["reverseStrand_"] = bib::json::toJson((reverseStrand_ ? "-" : "+"));
+	ret["nameOfMatchedSeq_"] = bib::json::toJson(nameOfMatchedSeq_);
+	ret["repeatType_"] = bib::json::toJson(repeatType_);
+	ret["basesLeftInComplMatch_"] = bib::json::toJson(
+			basesLeftInComplMatch_.first);
+	ret["startInMatch_"] = bib::json::toJson(startInMatch_.first);
+	ret["endInMatch_"] = bib::json::toJson(endInMatch_.first);
+	ret["regionSegment_"] = bib::json::toJson(regionSegment_);
+	return ret;
+}
+
+
 } /* namespace bibseq */

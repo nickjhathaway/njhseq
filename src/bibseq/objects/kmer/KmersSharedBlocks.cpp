@@ -1,0 +1,94 @@
+/*
+ * KmersSharedBlocks.cpp
+ *
+ *  Created on: Dec 28, 2015
+ *      Author: nick
+ */
+
+//
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+#include "KmersSharedBlocks.hpp"
+
+namespace bibseq {
+
+KmersSharedBlocks::KmersSharedBlock::KmersSharedBlock(uint32_t refStart,
+		uint32_t start, uint32_t size) :
+		refStart_(refStart), start_(start), size_(size) {
+}
+
+KmersSharedBlocks::KmersSharedBlock::KmersSharedBlock() :
+		KmersSharedBlocks::KmersSharedBlock(std::numeric_limits<uint32_t>::max(),
+				std::numeric_limits<uint32_t>::max(),
+				std::numeric_limits<uint32_t>::max()) {
+
+}
+
+KmersSharedBlocks::KmersSharedBlock::operator bool() const {
+	return refStart_ != std::numeric_limits<uint32_t>::max();
+}
+
+Json::Value KmersSharedBlocks::KmersSharedBlock::toJson() const {
+	Json::Value ret;
+	ret["class"] = bib::getTypeName(*this);
+	ret["refStart_"] = refStart_;
+	ret["start_"] = start_;
+	ret["size_"] = size_;
+	return ret;
+}
+
+KmersSharedBlocks::KmersSharedBlocks(const std::string & name,
+		const std::string & seq, uint32_t kLen) :
+		seqBase_(std::make_shared<seqInfo>(name, seq)), kInfo_(
+				std::make_shared<kmerInfo>(seq, kLen, false)) {
+
+}
+
+void KmersSharedBlocks::addComp(uint32_t refPos, uint32_t seqPos){
+	if(currentComp_){
+		if(currentComp_.size_ + currentComp_.refStart_ != refPos
+				||currentComp_.size_ + currentComp_.start_ != seqPos ){
+			kComps_[currentComp_.refStart_] = currentComp_;
+			currentComp_ = {refPos, seqPos, 1};
+		}else{
+			++currentComp_.size_;
+		}
+	}else{
+		currentComp_ = {refPos, seqPos, 1};
+	}
+}
+
+void KmersSharedBlocks::finish() {
+	if (currentComp_) {
+		kComps_[currentComp_.refStart_] = currentComp_;
+		currentComp_ = KmersSharedBlock();
+	}
+}
+
+Json::Value KmersSharedBlocks::toJson() const {
+	Json::Value ret;
+	ret["name_"] = bib::json::toJson(seqBase_->name_);
+	ret["kLen_"] = bib::json::toJson(kInfo_->kLen_);
+	ret["kComps_"] = bib::json::toJson(kComps_);
+	return ret;
+}
+
+}  // namespace bibseq
+

@@ -29,6 +29,7 @@
 #include "bibseq/IO/SeqIO/SeqIOOptions.hpp"
 #include "bibseq/objects/seqObjects/readObject.hpp"
 #include "bibseq/alignment/alignerUtils.h"
+#include "bibseq/objects/collapseObjects/opts/CollapserOpts.hpp"
 
 namespace bibseq {
 struct QualFilteringPars {
@@ -84,18 +85,10 @@ public:
   int32_t generalMismatch_;
 
   // alignment profiling
-  bool countEndGaps_;
-  bool weightHomopolymers_;
   std::string qualThres_;
-  bool eventBased_;
   QualScorePars qScorePars_;
 
-  // kmer options
-  uint32_t kLength_;
   // kmer profiling
-  std::string runCutOffString_;
-  uint32_t runCutoff_;
-  bool kmersByPosition_;
   bool expandKmerPos_;
   uint32_t expandKmerSize_;
 
@@ -105,12 +98,9 @@ public:
   bool writingOutAlnInfo_;
 
   //general clustering options
-  bool skipOnLetterCounterDifference_;
-  double fractionDifferenceCutOff_;
-  bool adjustHomopolyerRuns_;
-  bool largestFirst_;
-  bool firstMatch_;
-  uint32_t bestMatchCheck_;
+  CollapserOpts colOpts_;
+
+  ChimeraOpts chiOpts_;
 
   //quality filtering
   QualFilteringPars qFilPars_;

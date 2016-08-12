@@ -43,16 +43,26 @@ private:
 
 public:
 	const TableIOOpts opts_; /**< the table input options*/
+
 	/**@brief constructor with the content of the of the file given by opts
 	 *
 	 * @param opts
 	 */
 	TableCache(const TableIOOpts & opts);
+
+	/**@brief construct the table with the the input table and options for writing
+	 *
+	 * @param opts The table input/output options
+	 * @param inputTable The input table
+	 */
+	TableCache(const TableIOOpts & opts, const table & inputTable);
+
 	/**@brief Copy constructor
 	 *
 	 * @param other table cache
 	 */
 	TableCache(const TableCache& other);
+
 	/**@brief Get the content of the file and update as needed
 	 *
 	 * @return the current content of the file
@@ -64,11 +74,18 @@ public:
 	 * @return
 	 */
 	bool needsUpdate() const ;
+
 	/**@brief Update file and return whether the file had to be updated
 	 *
 	 * @return Whether the file needed to be updated
 	 */
 	bool update();
+
+	/**@brief Write the table, and make sure the input options are what were written
+	 *
+	 */
+	void clearTable();
+
 };
 
 }  // namespace bibseq

@@ -109,8 +109,8 @@ class debGraph {
   void growPath(uint32_t& currentNode, uint64_t& explorableNodes);
   void printAdjacencyTable(std::ostream& out) const;
 };
-}
+} // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "debGraph.cpp"
-#endif
+
+
+

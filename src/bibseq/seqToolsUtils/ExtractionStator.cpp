@@ -43,13 +43,13 @@ ExtractionStator::ExtractionStator(uint32_t totalReadCount,
 
 
 void ExtractionStator::increaseFailedForward(const std::string & midName, const std::string & seqName){
-	bool rComp = containsSubString(seqName, "_Comp");
+	bool rComp =  bib::containsSubString(seqName, "_Comp");
 	++failedForward_[midName][rComp];
 }
 
 void ExtractionStator::increaseCounts(const std::string & midName, const std::string & seqName,
 		extractCase eCase) {
-	bool rComp = containsSubString(seqName, "_Comp");
+	bool rComp = bib::containsSubString(seqName, "_Comp");
 	switch (eCase) {
 	case extractCase::GOOD:
 		++counts_[midName][rComp].good_;
@@ -116,7 +116,7 @@ void ExtractionStator::outFailedForwardStats(std::ostream & out, const std::stri
 	for(auto & ff : failedForward_){
 		uint32_t total = 0;
 		for(auto & mid : counts_){
-			if(endsWith(mid.first, ff.first)){
+			if(bib::endsWith(mid.first, ff.first)){
 				total += mid.second[true].getTotal() + mid.second[false].getTotal();
 			}
 		}

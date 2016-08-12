@@ -57,8 +57,6 @@ class tandemRepeat {
   void outPutInfoFormated(std::ostream& out,const std::string & name, const std::string& delim = "\t",
                             bool first = false) const;
 };
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "tandemRepeat.cpp"
-#endif
+

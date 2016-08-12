@@ -126,7 +126,7 @@ std::unordered_map<std::string, std::shared_ptr<RefSeqGeneRecord>> getRefSeqRecs
 
 	while (std::getline(inputFile, line)) {
 		//skip comment lines
-		if(beginsWith(line, "#") || line == ""){
+		if(bib::beginsWith(line, "#") || line == ""){
 			continue;
 		}
 		try {

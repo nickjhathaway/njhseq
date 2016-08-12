@@ -33,10 +33,19 @@ std::vector<std::shared_ptr<GFFCore>> getGFFs(const std::string & filename) {
 	std::vector<std::shared_ptr<GFFCore>> ret;
 	DataFileReader reader(filename);
 	uint32_t count = 0;
+	std::string line = "";
 	std::shared_ptr<GFFCore> gff = reader.readNextRecord<GFFCore>();
 	while (gff) {
 		ret.emplace_back(gff);
-		if (bib::files::nextLineBeginsWith(reader.file_, "##FASTA")) {
+		bool end = false;
+		while('#' == reader.file_.peek()){
+			if (bib::files::nextLineBeginsWith(reader.file_, "##FASTA")) {
+				end = true;
+				break;
+			}
+			bib::files::crossPlatGetline(reader.file_, line);
+		}
+		if(end){
 			break;
 		}
 		gff = reader.readNextRecord<GFFCore>();

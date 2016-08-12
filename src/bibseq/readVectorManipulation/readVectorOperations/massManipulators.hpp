@@ -33,48 +33,48 @@ namespace bibseq {
 namespace readVec {
 template <typename T>
 void changeFrontEndToLowerCase(std::vector<T>& reads, int numberOfBases) {
-  for_each(reads, [&](T& read) {
+  bib::for_each(reads, [&](T& read) {
     changeSubStrToLowerFromBegining(getSeqBase(read).seq_, numberOfBases);
   });
 }
 
 template <typename T>
 void changeBackEndToLowerCase(std::vector<T>& reads, int numberOfBases) {
-  for_each(reads, [&](T& read) {
+  bib::for_each(reads, [&](T& read) {
   	changeSubStrToLowerToEnd(getSeqBase(read).seq_, getSeqBase(read).seq_.size() - numberOfBases);
   });
 }
 
 template <typename T>
 void allRemoveLowQualityBases(std::vector<T>& reads, int qualCutOff) {
-  for_each(reads,
+  bib::for_each(reads,
            [&](T& read) { getSeqBase(read).removeLowQualityBases(qualCutOff); });
 }
 
 template <typename T>
 void allAdjustHomopolymerRunsQualities(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { read.adjustHomopolyerRunQualities(); });
+  bib::for_each(reads, [](T& read) { read.adjustHomopolyerRunQualities(); });
 }
 template <typename T>
 void allReverseComplement(std::vector<T>& reads, bool mark = false) {
-	for_each(reads, [&](T & read) {getSeqBase(read).reverseComplementRead(mark);});
+	bib::for_each(reads, [&](T & read) {getSeqBase(read).reverseComplementRead(mark);});
 }
 
 template <typename T>
 void removeGapsFromReads(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { getSeqBase(read).removeGaps(); });
+  bib::for_each(reads, [](T& read) { getSeqBase(read).removeGaps(); });
 }
 // options to handle lower case letters
 template <typename T>
 void removeLowerCaseBases(std::vector<T>& reads) {
-  for_each(reads, [](T& read) {
+  bib::for_each(reads, [](T& read) {
     seqUtil::removeLowerCase(getSeqBase(read).seq_, getSeqBase(read).qual_);
   });
 }
 
 template <typename T>
 void lowerCaseBasesToUpperCase(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { stringToUpper(getSeqBase(read).seq_); });
+  bib::for_each(reads, [](T& read) { stringToUpper(getSeqBase(read).seq_); });
 }
 template <typename T>
 void handelLowerCaseBases(std::vector<T>& reads, const std::string& lower) {
@@ -101,7 +101,7 @@ void handelLowerCaseBases(T & read, const std::string& lower) {
 template<typename T>
 void translateAll(std::vector<T>& reads, bool complement, bool reverse,
 		size_t start = 0) {
-	for_each(reads, [&](T& read) {
+	bib::for_each(reads, [&](T& read) {
 		read.translate(complement, reverse, start);
 	});
 }
@@ -117,13 +117,13 @@ std::vector<T2> convertVec(const std::vector<T1>& vec) {
 template <typename T>
 void prependAll(std::vector<T>& reads, const std::string& seq,
                 const std::vector<uint32_t>& qual) {
-  for_each(reads, [&](T& read) { getSeqBase(read).prepend(seq, qual); });
+  bib::for_each(reads, [&](T& read) { getSeqBase(read).prepend(seq, qual); });
 }
 
 template <typename T>
 void appendAll(std::vector<T>& reads, const std::string& seq,
                const std::vector<uint32_t>& qual) {
-  for_each(reads, [&](T& read) { getSeqBase(read).append(seq, qual); });
+  bib::for_each(reads, [&](T& read) { getSeqBase(read).append(seq, qual); });
 }
 
 }  // namespace readVec

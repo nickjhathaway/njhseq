@@ -202,9 +202,8 @@ VecStr profiler::compareToRefSingle(const std::vector<REF>& inputRefs,
   VecStr ans;
 
   for (const auto& best : bestRead) {
-    alignerObj.alignCache(best, read, local);
-    alignerObj.profileAlignment(best, read, 11, true, false, false, false,
-                                weighHomopolyers);
+		alignerObj.alignCache(best, read, local);
+		alignerObj.profileAlignment(best, read, false, false, false);
     std::stringstream profile;
     profile << best.seqBase_.name_ << "," << alignerObj.comp_.oneBaseIndel_
             << "," << alignerObj.comp_.twoBaseIndel_ << ","
@@ -250,8 +249,7 @@ void profiler::compareToRef(std::vector<REF> inputRefs,
       alignerObj.alignCache(ref, input, local);
       double currentScore = 0;
       if(eventBased){
-        alignerObj.profileAlignment(ref, input, 2, false, false, true, false,
-                                          weighHomopolyers);
+        alignerObj.profileAlignment(ref, input, false, true, false);
       	currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
       }else{
       	currentScore = alignerObj.parts_.score_;
@@ -274,8 +272,7 @@ void profiler::compareToRef(std::vector<REF> inputRefs,
       tempFile << ">" << input.seqBase_.name_ << std::endl;
       tempFile << alignerObj.alignObjectB_.seqBase_.seq_ << std::endl;
       double score = 0;
-      alignerObj.profileAlignment(best, input, 2, false, false, true, false,
-                                        weighHomopolyers);
+      alignerObj.profileAlignment(best, input, false, true, false);
       if(eventBased){
       	score = alignerObj.comp_.distances_.eventBasedIdentity_;
       } else {
@@ -324,7 +321,7 @@ std::string profiler::getBestRef(const std::vector<REF> & inputRefs,
      if(eventBased){
        //alignerObj.profileAlignment(ref.seqBase_, read.seqBase_, 2, false, false, true, false,
          //                                weighHomopolyers);
-    	 alignerObj.profilePrimerAlignment(ref.seqBase_, read.seqBase_, weighHomopolyers);
+    	 alignerObj.profilePrimerAlignment(ref.seqBase_, read.seqBase_);
      	currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
      }else{
      	currentScore = alignerObj.parts_.score_;
@@ -348,7 +345,7 @@ std::string profiler::getBestRef(const std::vector<REF> & inputRefs,
      tempFile << ">" << read.seqBase_.name_ << std::endl;
      tempFile << alignerObj.alignObjectB_.seqBase_.seq_ << std::endl;*/
      double score = 0;
-     alignerObj.profilePrimerAlignment(best.seqBase_, read.seqBase_, weighHomopolyers);
+     alignerObj.profilePrimerAlignment(best.seqBase_, read.seqBase_);
      //alignerObj.profileAlignment(best.seqBase_, read.seqBase_, 2, false, false, true, false,
        //                                weighHomopolyers);
      if(eventBased){
@@ -891,8 +888,7 @@ void profiler::getMapInfo(const std::vector<CLUSTER>& reads,
         continue;
       }
       alignerObj.alignCache(clusIter.seqBase_, read.seqBase_, false);
-      alignerObj.profileAlignment(clusIter.seqBase_, read.seqBase_, 11, true, false, true, false,
-                                  true);
+      alignerObj.profileAlignment(clusIter.seqBase_, read.seqBase_, false, true, false);
       for (int i = 0; i < std::ceil(read.seqBase_.cnt_); ++i) {
         mismatches.emplace_back(alignerObj.comp_.hqMismatches_);
       }
@@ -933,18 +929,11 @@ void profiler::getMapInfo(const std::vector<CLUSTER>& reads,
         continue;
       }
       alignerObj.alignCache(clusIter.seqBase_, read.seqBase_, false);
-      alignerObj.profileAlignment(clusIter.seqBase_, read.seqBase_, 11, true, false, true, false,
-                                  true);
+      alignerObj.profileAlignment(clusIter.seqBase_, read.seqBase_, false, true, false);
       for (int i = 0; i < std::ceil(read.seqBase_.cnt_); ++i) {
         mismatches.emplace_back(alignerObj.comp_.hqMismatches_);
       }
-      /*
-       if ((int) read.seqBase_.cnt_ < read.seqBase_.cnt_){
-       mismatches.emplace_back(alignerObj.errors_.hqMismatches_ *
-       (read.seqBase_.cnt_ - (int) read.seqBase_.cnt_ ) );
-       }*/
     }
-
     outFile << seqName << "\t" << barcode << "\t" << expected << "\t"
             << clusIter.seqBase_.name_ << "\t" << clusIter.seqBase_.cnt_ << "\t"
             << (double)clusIter.seqBase_.cnt_ / totalReads << "\t"
@@ -954,8 +943,6 @@ void profiler::getMapInfo(const std::vector<CLUSTER>& reads,
   }
 }
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "profiler.cpp"
-#endif
+

@@ -29,8 +29,10 @@
 
 
 namespace bibseq {
-DNABaseCounter::DNABaseCounter() {
 
+DNABaseCounter::DNABaseCounter() {
+	bases_.fill(0);
+	baseFracs_.fill(0);
 }
 
 DNABaseCounter::DNABaseCounter(std::set<char> alphabet) :

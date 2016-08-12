@@ -85,6 +85,9 @@ public:
 	 */
 	void writeCache() {
 		for (const auto & reads : cache_) {
+			if(reads.second.empty()){
+				continue;
+			}
 			writers_.openWrite(reads.first, reads.second);
 		}
 		for (auto & reads : cache_) {
@@ -132,6 +135,15 @@ public:
 	void setOpenLimit(uint32_t fileOpenLimit){
 		writers_.setOpenLimit(fileOpenLimit);
 	}
+
+	/**@brief On destruction, close out writers which will also write the cache
+	 *
+	 */
+	~MultiSeqOutCache(){
+		closeOutForReopeningAll();
+	}
+
+
 private:
 
 	std::unordered_map<std::string, std::vector<T>> cache_; /**< The cache of reads*/

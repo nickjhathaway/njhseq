@@ -11,38 +11,61 @@ namespace bibseq {
 namespace collapse {
 
 
-populationCollapse::populationCollapse(){
-
-}
-populationCollapse::populationCollapse(const std::vector<sampleCluster> &inputClusters,
-                   const std::string &populationName)
-    : input_(clusterSet(inputClusters)), populationName_(populationName) {
-	if(containsSubString(populationName_, ".")){
-		throw std::runtime_error{"Error in populationCollapse::populationCollapse, populationName can't contain '.', " + populationName_};
-	}
-	for(auto & i : input_.clusters_){
-		i.setSampInfos(input_.info_.infos_);
+populationCollapse::populationCollapse(const std::string &populationName) :
+		populationName_(populationName) {
+	if (bib::containsSubString(populationName_, ".")) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ":Error populationName_ can't contain '.', "
+				<< populationName_ << "\n";
+		throw std::runtime_error { ss.str() };
 	}
 }
 
-void populationCollapse::popCluster(
-    collapser &collapserObj, std::map<int, std::vector<double>> iteratorMap,
-    const std::string &sortBy, aligner &alignerObj) {
-
-  collapsed_.clusters_ = collapserObj.collapseCluster(
-      input_.clusters_, iteratorMap, sortBy, alignerObj);
-  renameClusters();//before with the update right afterwards, the base name will no longer represent the underlying samples
-  updateCollapsedInfos();
+populationCollapse::populationCollapse(
+		const std::vector<sampleCluster> &inputClusters,
+		const std::string &populationName) :
+		input_(clusterSet(inputClusters)),
+		populationName_(populationName) {
+	if (bib::containsSubString(populationName_, ".")) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": Error populationName_ can't contain '.', "
+				<< populationName_ << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	for (auto & i : input_.clusters_) {
+		i.setSampInfosTotals(input_.info_.infos_);
+	}
+	for(auto & clus : input_.clusters_){
+		clus.updateSampInfosFracs();
+	}
 }
 
-void populationCollapse::popClusterOnId(collapser &collapserObj,
-                  std::map<int, std::vector<double>> iteratorMap,
-                  const std::string &sortBy, aligner &alignerObj){
-  collapsed_.clusters_ = collapserObj.collapseClusterOnPerId(
-      input_.clusters_, iteratorMap, sortBy, alignerObj);
-  renameClusters(); //before with the update right afterwards, the base name will no longer represent the underlying samples
-  updateCollapsedInfos();
+void populationCollapse::addInput(
+		const std::vector<sampleCluster> &inputClusters) {
+	input_ = clusterSet(inputClusters);
+
+	for (auto & i : input_.clusters_) {
+		i.setSampInfosTotals(input_.info_.infos_);
+	}
+	for(auto & clus : input_.clusters_){
+		clus.updateSampInfosFracs();
+	}
 }
+
+void populationCollapse::popCluster(const collapser &collapserObj,
+		CollapseIterations iteratorMap, const std::string &sortBy,
+		aligner &alignerObj) {
+
+	collapsed_.clusters_ = collapserObj.runClustering(input_.clusters_,
+			iteratorMap, alignerObj);
+	renameClusters(); //before with the update right afterwards, the base name will no longer represent the underlying samples
+	for(auto & clus : collapsed_.clusters_){
+		clus.updateSampInfosFracs();
+	}
+
+	updateCollapsedInfos();
+}
+
 
 // update the initial infos
 void populationCollapse::updateInitialInfos() {
@@ -58,10 +81,10 @@ void populationCollapse::updateCollapsedInfos() {
 
 void populationCollapse::writeFinal(const std::string &outDirectory,
 		const SeqIOOptions & ioOptions) const {
-  collapsed_.writeClusters(outDirectory + populationName_, ioOptions);
+	collapsed_.writeClusters(outDirectory + populationName_, ioOptions);
 }
 
-uint32_t populationCollapse::numOfSamps()const{
+uint32_t populationCollapse::numOfSamps() const {
 	return collapsed_.info_.infos_.size();
 }
 
@@ -92,7 +115,7 @@ void populationCollapse::writeFinalInitial(const std::string &outDirectory, cons
 }
 
 void populationCollapse::renameToOtherPopNames(
-    const std::vector<readObject> &previousPop, aligner &alignerObjIn) {
+    const std::vector<readObject> &previousPop) {
   // set up scoreing so gaps don't cost as much and end gaps don't cost anything
   gapScoringParameters refGapScore(3.0, 1, 0.0, 0.0, 0.0, 0.0);
 
@@ -100,6 +123,7 @@ void populationCollapse::renameToOtherPopNames(
   readVec::getMaxLength(previousPop, maxLen);
   readVec::getMaxLength(collapsed_.clusters_, maxLen);
   aligner alignerObj(maxLen, refGapScore, substituteMatrix(2,-2));
+
   comparison noErrors;
 
   VecStr alreadyTakenNames;
@@ -125,8 +149,8 @@ void populationCollapse::renameToOtherPopNames(
     uint32_t bestRefPos = std::numeric_limits<uint32_t>::max();
     for (const auto &refPos : iter::range(previousPop.size())) {
       alignerObj.alignCache(previousPop[refPos], clus, false);
-      alignerObj.profilePrimerAlignment(previousPop[refPos], clus,false);
-      if(noErrors.passErrorProfile(alignerObj.comp_) &&  alignerObj.parts_.score_ > bestScore) {
+      alignerObj.profilePrimerAlignment(previousPop[refPos], clus);
+      if(noErrors.passErrorProfile(alignerObj.comp_) && alignerObj.parts_.score_ > bestScore) {
         bestScore = alignerObj.parts_.score_;
         bestRefPos = refPos;
       }
@@ -155,8 +179,23 @@ void populationCollapse::updateInfoWithSampCollapses(const std::map<std::string,
 void populationCollapse::updateInfoWithSampCollapse(const sampleCollapse & sampCollapse){
 	//only update with non-zero collapses
 	if(sampCollapse.collapsed_.clusters_.size() >0){
-		collapsed_.info_.updateMoi(sampCollapse.collapsed_.clusters_.size());
+		collapsed_.info_.updateCoi(sampCollapse.collapsed_.clusters_.size());
 	}
 }
+
+
+VecStr populationCollapse::getPopInfoVec() const {
+	return toVecStr(collapsed_.info_.totalReadCount_,
+			collapsed_.info_.numberOfClusters_, collapsed_.info_.infos_.size(),
+			collapsed_.clusters_.size(), collapsed_.info_.getCoiInfoVec());
+}
+
+VecStr populationCollapse::getPopInfoHeaderVec() {
+	return toVecStr("p_TotalInputReadCnt", "p_TotalInputClusterCnt",
+			"p_TotalPopulationSampCnt", "p_TotalHaplotypes",
+			clusterSetInfo::getCoiInfoHeaderVec());
+}
+
+
 }  // namespace collapse
 }  // namespace bibseq

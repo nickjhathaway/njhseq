@@ -113,8 +113,8 @@ void PairedCluster::calculateConsensus(aligner & alignerObj, bool setToConsensus
 
 bool PairedCluster::compare(PairedCluster & otherRead,
 		aligner & alignerObj,
-		const comparison & errorThreshold,
-		const collapserOpts & collapserOptsObj){
+		const IterPar & errorThreshold,
+		const CollapserOpts & collapserOptsObj){
 	return compareRead(otherRead, alignerObj, errorThreshold, collapserOptsObj)
 			&& compareMate(otherRead, alignerObj, errorThreshold, collapserOptsObj);
 }
@@ -122,32 +122,31 @@ bool PairedCluster::compare(PairedCluster & otherRead,
 
 bool PairedCluster::compareRead(PairedCluster & otherRead,
 		aligner & alignerObj,
-		const comparison & errorThreshold,
-		const collapserOpts & collapserOptsObj){
+		const IterPar & errorThreshold,
+		const CollapserOpts & collapserOptsObj){
 	//std::cout << "compare read start" << std::endl;
-  if(collapserOptsObj.noAlign_){
+  if(collapserOptsObj.alignOpts_.noAlign_){
   	alignerObj.noAlignSetAndScore(seqBase_, otherRead.seqBase_);
   }else{
   	alignerObj.alignCacheGlobal(seqBase_, otherRead.seqBase_);
   }
 	//alignerObj.alignVec(seqBase_, otherRead.seqBase_, collapserOptsObj.local_);
 	alignerObj.profileAlignment(seqBase_, otherRead.seqBase_,
-			collapserOptsObj.kLength_,collapserOptsObj.kmersByPosition_,
-			collapserOptsObj.checkKmers_, true, false, collapserOptsObj.weighHomopolyer_);
+			collapserOptsObj.kmerOpts_.checkKmers_, true, false);
 	//std::cout << "compare read stop" << std::endl;
-	return errorThreshold.passErrorProfile(alignerObj.comp_);
+	return errorThreshold.passErrorCheck(alignerObj.comp_);
 }
 
 bool PairedCluster::compareMate(PairedCluster & otherRead,
 		aligner & alignerObj,
-		const comparison & errorThreshold,
-		const collapserOpts & collapserOptsObj){
+		const IterPar & errorThreshold,
+		const CollapserOpts & collapserOptsObj){
 	/*
 	std::cout << "compareMate start" << std::endl;
 	std::cout << alignerObj.parts_.maxSize_ << std::endl;
 	std::cout << mateSeqBase_.seq_.size( ) << std::endl;
 	std::cout << otherRead.seqBase_.seq_.size( ) << std::endl;*/
-  if(collapserOptsObj.noAlign_){
+  if(collapserOptsObj.alignOpts_.noAlign_){
   	alignerObj.noAlignSetAndScore(mateSeqBase_, otherRead.mateSeqBase_);
   }else{
   	alignerObj.alignCacheGlobal(mateSeqBase_, otherRead.mateSeqBase_);
@@ -155,62 +154,12 @@ bool PairedCluster::compareMate(PairedCluster & otherRead,
 	//alignerObj.alignVec(mateSeqBase_, otherRead.mateSeqBase_, collapserOptsObj.local_);
 	//std::cout << "compareMate inbetween" << std::endl;
 	alignerObj.profileAlignment(mateSeqBase_, otherRead.mateSeqBase_,
-			collapserOptsObj.kLength_,collapserOptsObj.kmersByPosition_,
-			collapserOptsObj.checkKmers_, true, false, collapserOptsObj.weighHomopolyer_);
+			collapserOptsObj.kmerOpts_.checkKmers_, true, false);
 	//std::cout << "compareMate stop" << std::endl;
-	return errorThreshold.passErrorProfile(alignerObj.comp_);
-}
-
-bool PairedCluster::compareId(PairedCluster & otherRead,
-		aligner & alignerObj,
-		const comparison & errorThreshold,
-		const collapserOpts & collapserOptsObj){
-	return compareReadId(otherRead, alignerObj, errorThreshold, collapserOptsObj)
-			&& compareMateId(otherRead, alignerObj, errorThreshold, collapserOptsObj);
+	return errorThreshold.passErrorCheck(alignerObj.comp_);
 }
 
 
-bool PairedCluster::compareReadId(PairedCluster & otherRead,
-		aligner & alignerObj,
-		const comparison & errorThreshold,
-		const collapserOpts & collapserOptsObj){
-	//std::cout << "compare read start" << std::endl;
-  if(collapserOptsObj.noAlign_){
-  	alignerObj.noAlignSetAndScore(seqBase_, otherRead.seqBase_);
-  }else{
-  	alignerObj.alignCacheGlobal(seqBase_, otherRead.seqBase_);
-  }
-	//alignerObj.alignVec(seqBase_, otherRead.seqBase_, collapserOptsObj.local_);
-	alignerObj.profileAlignment(seqBase_, otherRead.seqBase_,
-			collapserOptsObj.kLength_,collapserOptsObj.kmersByPosition_,
-			collapserOptsObj.checkKmers_, true, false, collapserOptsObj.weighHomopolyer_);
-	//std::cout << "compare read stop" << std::endl;
-	return errorThreshold.passIdThreshold(alignerObj.comp_);
-
-}
-
-bool PairedCluster::compareMateId(PairedCluster & otherRead,
-		aligner & alignerObj,
-		const comparison & errorThreshold,
-		const collapserOpts & collapserOptsObj){
-	/*
-	std::cout << "compareMate start" << std::endl;
-	std::cout << alignerObj.parts_.maxSize_ << std::endl;
-	std::cout << mateSeqBase_.seq_.size( ) << std::endl;
-	std::cout << otherRead.seqBase_.seq_.size( ) << std::endl;*/
-  if(collapserOptsObj.noAlign_){
-  	alignerObj.noAlignSetAndScore(mateSeqBase_, otherRead.mateSeqBase_);
-  }else{
-  	alignerObj.alignCacheGlobal(mateSeqBase_, otherRead.mateSeqBase_);
-  }
-	//alignerObj.alignVec(mateSeqBase_, otherRead.mateSeqBase_, collapserOptsObj.local_);
-	//std::cout << "compareMate inbetween" << std::endl;
-	alignerObj.profileAlignment(mateSeqBase_, otherRead.mateSeqBase_,
-			collapserOptsObj.kLength_,collapserOptsObj.kmersByPosition_,
-			collapserOptsObj.checkKmers_, true, false, collapserOptsObj.weighHomopolyer_);
-	//std::cout << "compareMate stop" << std::endl;
-	return errorThreshold.passIdThreshold(alignerObj.comp_);
-}
 
 void collapseIdenticalPairedClusters(std::vector<PairedRead> & clusters,
 		std::string qualRep){
@@ -272,7 +221,7 @@ void collapseIdenticalPairedClusters(std::vector<PairedRead> & clusters,
 		}
 	}
 	bib::sort(removeThese);
-	for(const auto & pos : iter::reverse(removeThese)){
+	for(const auto & pos : iter::reversed(removeThese)){
 		clusters.erase(clusters.begin() + pos);
 	}
 }

@@ -39,10 +39,13 @@ TableCache::TableCache(const TableIOOpts & opts) :
 	opts_(opts) {
 	//load();
 }
-/**@brief Copy constructor
- *
- * @param other
- */
+
+TableCache::TableCache(const TableIOOpts & opts, const table & inputTable) :
+		tab_(inputTable), opts_(opts) {
+
+}
+
+
 TableCache::TableCache(const TableCache& other) :
 	opts_(other.opts_) {
 	//load();
@@ -54,7 +57,7 @@ const table& TableCache::get() {
 
 
 bool TableCache::needsUpdate() const {
-	return time_ != bib::files::last_write_time(opts_.in_.inFilename_);
+	return tab_.empty() || time_ != bib::files::last_write_time(opts_.in_.inFilename_);
 }
 
 bool TableCache::update(){
@@ -64,6 +67,23 @@ bool TableCache::update(){
 	}
 	return false;
 }
+
+
+void TableCache::clearTable(){
+	if(!opts_.in_.inExists()){
+		//if the TableCache was created with an input table rather than by reading in a table
+		//check to see if the infile exist before clearing the table, if it doesn't, write the
+		//table so when TableChache::load() reads in it will read the correct table
+		auto optsCopy = opts_;
+		optsCopy.outDelim_ = opts_.inDelim_;
+		optsCopy.hasHeader_ = opts_.hasHeader_;
+		optsCopy.out_.outFilename_ = opts_.in_.inFilename_;
+		optsCopy.out_.outExtention_ = opts_.in_.inFilename_;
+		tab_.outPutContents(optsCopy);
+	}
+	tab_ = table();
+}
+
 
 
 }  // namespace bibseq

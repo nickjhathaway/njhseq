@@ -92,8 +92,6 @@ class mismatchProfile {
 };
 
 }  // simulation
-}  // bib
+}  // bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "errorProfile.cpp"
-#endif
+

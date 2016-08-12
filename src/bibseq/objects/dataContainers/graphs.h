@@ -30,3 +30,6 @@
 #include "bibseq/objects/dataContainers/graphs/debGraph.hpp"
 #include "bibseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
 #include "bibseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
+#include "bibseq/objects/dataContainers/graphs/SeqOverlapGraph.hpp"
+
+

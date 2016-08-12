@@ -27,9 +27,12 @@
  */
 
 #include <api/BamAlignment.h>
+#include <api/BamReader.h>
+#include <api/BamWriter.h>
 
 #include "bibseq/utils.h"
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/objects/dataContainers/tables/table.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
 #include "bibseq/alignment/alnCache/alnInfoHolder.hpp"
 
 namespace bibseq {
@@ -84,6 +87,17 @@ inline bool IsSecondMate(uint32_t flag) {
 }
 
 bool IsBamSorted(const std::string & filename);
+
+
+void checkBamOpenThrow(BamTools::BamReader & bReader);
+
+void loadBamIndexThrow(BamTools::BamReader & bReader);
+
+table refDataVecToTab(const std::vector<BamTools::RefData> & refInfos);
+std::vector<BamTools::RefData> tabToRefDataVec(const table & refDataTab);
+
+void logAlnInfo(std::ostream & out, BamTools::RefVector & refInfo,
+		const BamTools::BamAlignment & aln, std::string indent = "");
 
 } /* namespace bibseq */
 

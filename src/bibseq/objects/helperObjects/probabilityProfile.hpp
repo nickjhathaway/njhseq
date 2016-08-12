@@ -56,6 +56,4 @@ public:
 	void printProfile(std::ostream &out, const std::string &delim = " ");
 };
 } //namespace bibseq
-#ifndef NOT_HEADER_ONLY
-#include "probabilityProfile.cpp"
-#endif
+

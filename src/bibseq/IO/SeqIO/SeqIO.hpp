@@ -72,6 +72,3 @@ public:
 
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "SeqIO.cpp"
-#endif

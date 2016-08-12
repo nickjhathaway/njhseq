@@ -75,7 +75,5 @@ class nhGraph {
   std::multimap<uint, uint> getAdjacencyMap();
 };
 
-}  // namespace bib
-#ifndef NOT_HEADER_ONLY
-#include "nhGraph.cpp"
-#endif
+}  // namespace bibseq
+

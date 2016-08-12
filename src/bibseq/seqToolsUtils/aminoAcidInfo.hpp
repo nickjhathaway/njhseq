@@ -55,8 +55,8 @@ public:
 	double acidHydrophobicity_;
 	VecStr getInfo() const{
 		return VecStr{vectorToString(dnaCodons_, ","), vectorToString(rnaCodons_, ","),
-		to_string(numCodons_), to_string(letCode_), triCode_, fullName_, classification_,
-		to_string(weight_), to_string(acidHydrophobicity_)};
+		estd::to_string(numCodons_), estd::to_string(letCode_), triCode_, fullName_, classification_,
+		estd::to_string(weight_), estd::to_string(acidHydrophobicity_)};
 	}
 };
 
@@ -84,8 +84,6 @@ public:
 };
 
 }  // namespace aminoAcidInfo
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "aminoAcidInfo.cpp"
-#endif
+

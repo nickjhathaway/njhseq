@@ -27,13 +27,13 @@
 //
 #include "bibseq/objects/seqObjects/readObject.hpp"
 namespace bibseq{
-/**@b put padding zeros into the quality to represent gaps in the seq
+/**@brief put padding zeros into the quality to represent gaps in the seq
  *
  * @param info the sequence to readjust the quality for after being externally aligned
  */
 void adjustAlnSeqsQual(seqInfo & info);
 namespace sys{
-/**@b run muscle on this file
+/**@brief run muscle on this file
  *
  * @param filename name of the fasta file
  * @return a vector of the algined seqs
@@ -41,7 +41,7 @@ namespace sys{
 std::vector<readObject> muscleSeqs(const std::string & filename);
 
 
-/**@b muscle the sequences in seqs, leave the original seqs alone
+/**@brief muscle the sequences in seqs, leave the original seqs alone
  *
  * @param seqs the sequence to align
  * @return a vector of the alinged seqs
@@ -52,13 +52,13 @@ std::vector<readObject> muscleSeqsRet(std::vector<T> seqs){
 	return seqs;
 }
 
-/**@b muscle the sequences in seqs
+/**@brief muscle the sequences in seqs
  *
  * @param seqs the sequence to align
  * @param selected only muscle these selected sequences at these positions, will throw if out of range
  */
-template<typename T>
-void muscleSeqs(std::vector<T> & seqs, const std::vector<uint64_t> & selected){
+template<typename T, typename POSTYPE>
+void muscleSeqs(std::vector<T> & seqs, const std::vector<POSTYPE> & selected){
 	//create temporary file, the last 6 xs will be randomized characters
 	char *tmpname = strdup("/tmp/tmpfileXXXXXX");
 	mkstemp(tmpname);
@@ -77,7 +77,7 @@ void muscleSeqs(std::vector<T> & seqs, const std::vector<uint64_t> & selected){
 								+ estd::to_string(seqs.size()) };
 			}
 			//hack because muscle doesn't like stop codons
-			if(!containsSubString(seqs[pos].seqBase_.seq_, "*")){
+			if(!bib::containsSubString(seqs[pos].seqBase_.seq_, "*")){
 				tFile << ">" << pos << "\n";
 				tFile << seqs[pos].seqBase_.seq_ << "\n";
 			}
@@ -103,7 +103,7 @@ void muscleSeqs(std::vector<T> & seqs, const std::vector<uint64_t> & selected){
 	}
 }
 
-/**@b muscle the sequences in seqs
+/**@brief muscle the sequences in seqs
  *
  * @param seqs the sequence to align
  */

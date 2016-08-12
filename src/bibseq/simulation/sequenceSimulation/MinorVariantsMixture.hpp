@@ -26,7 +26,9 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <bibcpp/simulation/randomGenerator.hpp>
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+
+
 
 
 namespace bibseq {

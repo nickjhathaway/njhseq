@@ -29,9 +29,9 @@
 
 
 #include "bibseq/objects/kmer/kmer.hpp"
-#include "bibseq/objects/kmer/kmerInfo.hpp"
 #include "bibseq/objects/kmer/kmerMap.hpp"
 #include "bibseq/objects/kmer/kmerCalculator.hpp"
-
+#include "bibseq/objects/kmer/kmerInfo.hpp"
+#include "bibseq/objects/kmer/KmersSharedBlocks.hpp"
 
 

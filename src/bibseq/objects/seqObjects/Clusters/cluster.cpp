@@ -85,8 +85,8 @@ double cluster::getAverageSizeDifference() {
   return averageSizeDifference;
 }
 
-int cluster::getLargestSizeDifference() {
-  int largestSizeDifference = 0;
+size_t cluster::getLargestSizeDifference() {
+  size_t largestSizeDifference = 0;
   for (const auto& read : reads_) {
     if (uAbsdiff(read->seqBase_.seq_.length(),seqBase_.seq_.length()) >
         largestSizeDifference) {
@@ -99,7 +99,7 @@ int cluster::getLargestSizeDifference() {
 
 
 void cluster::outputInfoComp(const std::string& workingDir) const {
-  std::ofstream info(combineStrings({workingDir, seqBase_.name_}).c_str());
+  std::ofstream info(bib::files::make_path(workingDir, seqBase_.name_).string());
   if (!info) {
     std::cout << "Error in opening" << workingDir << seqBase_.name_
               << std::endl;

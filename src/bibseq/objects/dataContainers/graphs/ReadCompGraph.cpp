@@ -31,6 +31,125 @@
 
 namespace bibseq {
 
+
+std::map<uint32_t, std::vector<char>> ReadCompGraph::getVariantSnpLociMap(
+		const std::string & name, VecStr names, uint32_t expand) const {
+	std::map<uint32_t, std::set<char>> ret;
+	auto & n = nodes_[nameToNodePos_.at(name)];
+	for (const auto & e : n->edges_) {
+		if (bib::in(e->nodeToNode_.at(name).lock()->name_, names)) {
+			if (e->dist_.refName_ == name) {
+				for (const auto & m : e->dist_.distances_.mismatches_) {
+					ret[m.second.refBasePos].insert(m.second.seqBase);
+					if (expand > 0) {
+						for (const auto pos : iter::range<uint32_t>(1, expand + 1)) {
+							if (pos <= m.second.refBasePos) {
+								ret[m.second.refBasePos - pos].insert(m.second.seqBase);
+							}
+							if (pos + m.second.refBasePos < n->value_->seq_.size()) {
+								ret[m.second.refBasePos + pos].insert(m.second.seqBase);
+							}
+						}
+					}
+				}
+			} else {
+				for (const auto & m : e->dist_.distances_.mismatches_) {
+					ret[m.second.seqBasePos].insert(m.second.refBase);
+					if (expand > 0) {
+						for (const auto pos : iter::range<uint32_t>(1, expand + 1)) {
+							if (pos <= m.second.seqBasePos) {
+								ret[m.second.seqBasePos - pos].insert(m.second.refBase);
+							}
+							if (pos + m.second.seqBasePos < n->value_->seq_.size()) {
+								ret[m.second.seqBasePos + pos].insert(m.second.refBase);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	std::map<uint32_t, std::vector<char>> realRet;
+	for (const auto & l : ret) {
+		realRet[l.first] = std::vector<char> { l.second.begin(), l.second.end() };
+	}
+	return realRet;
+}
+
+std::map<uint32_t, std::vector<gap>> ReadCompGraph::getVariantIndelLociMap(
+		const std::string & name, VecStr names, uint32_t expand) const{
+	std::map<uint32_t, std::vector<gap>> ret;
+	auto & n = nodes_[nameToNodePos_.at(name)];
+	for (const auto & e : n->edges_) {
+		if (bib::in(e->nodeToNode_.at(name).lock()->name_, names)) {
+			if (e->dist_.refName_ == name) {
+				for (const auto & g : e->dist_.distances_.alignmentGaps_) {
+					auto mainSearch = ret.find(g.second.refPos_);
+					if(ret.end() == mainSearch ||
+							!bib::contains(mainSearch->second, g.second, [](const gap & g1, const gap & g2){ return g1.compare(g2);})){
+						ret[g.second.refPos_].emplace_back(g.second);
+					}
+					if (expand > 0) {
+						for (const auto pos : iter::range<uint32_t>(1, expand + 1)) {
+							if (pos <= g.second.refPos_) {
+								auto expandPos = g.second.refPos_ - pos;
+								auto expandSearch = ret.find(expandPos);
+								if (ret.end() == expandSearch
+										|| !bib::contains(expandSearch->second, g.second,
+												[](const gap & g1, const gap & g2) {return g1.compare(g2);})) {
+									ret[expandPos].emplace_back(g.second);
+								}
+							}
+							if (pos + g.second.refPos_ < n->value_->seq_.size()) {
+								auto expandPos = g.second.refPos_ + pos;
+								auto expandSearch = ret.find(expandPos);
+								if (ret.end() == expandSearch
+										|| !bib::contains(expandSearch->second, g.second,
+												[](const gap & g1, const gap & g2) {return g1.compare(g2);})) {
+									ret[expandPos].emplace_back(g.second);
+								}
+							}
+						}
+					}
+				}
+			} else {
+				for (const auto & g : e->dist_.distances_.alignmentGaps_) {
+					auto gapCopy = g.second;
+					gapCopy.switchSeqAndRef();
+					auto mainSearch = ret.find(gapCopy.refPos_);
+					if(ret.end() == mainSearch ||
+							!bib::contains(mainSearch->second, gapCopy, [](const gap & g1, const gap & g2){ return g1.compare(g2);})){
+						ret[gapCopy.refPos_].emplace_back(gapCopy);
+					}
+					if (expand > 0) {
+						for (const auto pos : iter::range<uint32_t>(1, expand + 1)) {
+							if (pos <= gapCopy.refPos_) {
+								auto expandPos = gapCopy.refPos_ - pos;
+								auto expandSearch = ret.find(expandPos);
+								if (ret.end() == expandSearch
+										|| !bib::contains(expandSearch->second, gapCopy,
+												[](const gap & g1, const gap & g2) {return g1.compare(g2);})) {
+									ret[expandPos].emplace_back(gapCopy);
+								}
+							}
+							if (pos + gapCopy.refPos_ < n->value_->seq_.size()) {
+								auto expandPos = gapCopy.refPos_ + pos;
+								auto expandSearch = ret.find(expandPos);
+								if (ret.end() == expandSearch
+										|| !bib::contains(expandSearch->second, gapCopy,
+												[](const gap & g1, const gap & g2) {return g1.compare(g2);})) {
+									ret[expandPos].emplace_back(gapCopy);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return ret;
+}
+
 comparison ReadCompGraph::setMinimumConnections(
 		std::function<void(comparison &)> modFunc,
 		std::function<bool(const comparison &, const comparison &)> compFunc) {
@@ -160,9 +279,11 @@ Json::Value createSnpNode(const std::string & snpName, uint32_t group,
 	ret["group"] = bib::json::toJson(group);
 	ret["ref"] = bib::json::toJson(comp.refName_);
 	ret["refBase"] = bib::json::toJson(estd::to_string(mis.refBase));
+	ret["refBaseQual"] = bib::json::toJson(estd::to_string(mis.refQual));
 	ret["refPos"] = bib::json::toJson(mis.refBasePos);
 	ret["seq"] = bib::json::toJson(comp.queryName_);
 	ret["seqBase"] = bib::json::toJson(estd::to_string(mis.seqBase));
+	ret["seqBaseQual"] = bib::json::toJson(estd::to_string(mis.seqQual));
 	ret["seqPos"] = bib::json::toJson(mis.seqBasePos);
 	return ret;
 }

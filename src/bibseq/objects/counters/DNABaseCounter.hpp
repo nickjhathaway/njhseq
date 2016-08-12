@@ -31,25 +31,30 @@
 
 namespace bibseq {
 
-template<typename T>
+/**@brief Class to hold counts for letters, by default upper case A to lowercase z
+ *
+ */
+template<typename T, char START = 'A', char END = 'z'>
 class LetArray {
-	std::array<T, 'z' - 'A'> bases_;
+	const char start_ = START;
+	const char end_ = END;
+	std::array<T, END - START> bases_;
 public:
 	// Element access.
 	T& operator[](char base) noexcept {
-		return bases_[base - 'A'];
+		return bases_[base - start_];
 	}
 
 	constexpr const T& operator[](char base) const noexcept {
-		return bases_[base - 'A'];
+		return bases_[base - start_];
 	}
 
 	T& at(char base) {
-		return bases_.at(base - 'A');
+		return bases_.at(base - start_);
 	}
 
 	constexpr const T& at(char base) const {
-		return bases_.at(base - 'A');
+		return bases_.at(base - start_);
 	}
 
   void fill(const T& val) {
@@ -72,8 +77,8 @@ public:
 
 
 	static std::vector<char> bases(){
-		std::vector<char> bases('z' - 'A');
-		std::iota(bases.begin(), bases.end(), 'A');
+		std::vector<char> bases(END - START);
+		std::iota(bases.begin(), bases.end(), START);
 		return bases;
 	}
 };

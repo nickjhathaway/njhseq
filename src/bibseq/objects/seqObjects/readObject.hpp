@@ -29,7 +29,7 @@
 //
 #include "bibseq/utils/utils.hpp"
 #include "bibseq/objects/counters/charCounter.hpp"
-#include "bibseq/objects/seqObjects/baseReadObject.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/baseReadObject.hpp"
 #include "bibseq/helpers/seqUtil.hpp"
 #include <cppitertools/range.hpp>
 namespace bibseq {
@@ -70,6 +70,7 @@ class readObject : public baseReadObject {
   std::vector<std::pair<uint32_t, uint32_t>> condensedSeqQualPos;
   std::vector<int> condensedSeqCount;
 
+  //meta data in name
 	template<typename T>
 	void addMeta(const std::string & key, const T & val, bool replace) {
 		if (containsMeta(key) && !replace) {
@@ -85,6 +86,7 @@ class readObject : public baseReadObject {
   bool containsMeta(const std::string & key) const;
 	std::string getMeta(const std::string & key) const;
 	void processNameForMeta();
+	bool nameHasMetaData() const;
 	//should only be called when meta data is already present in name
 	void resetMetaInName();
 	template<typename T>
@@ -128,7 +130,6 @@ class readObject : public baseReadObject {
   void appendName(const std::string& add);;
   std::string getStubName(bool removeChiFlag) const;
   std::string getReadId() const;
-  std::string getOtherReadSampName(const readObject& cr) const;
   std::string getOwnSampName() const;
   // find all occurences of the subsequence in the sequence
   std::vector<size_t> findSubsequenceOccurences(const std::string& findStr)
@@ -187,8 +188,6 @@ template<>
 inline readObject::size_type len(const readObject & read){
 	return read.seqBase_.seq_.size();
 }
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "readObject.cpp"
-#endif
+

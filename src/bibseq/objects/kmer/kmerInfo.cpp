@@ -31,6 +31,74 @@ kmerInfo::kmerInfo(const std::string & seq, uint32_t kLength, bool setReverse) :
 	setKmers(seq, kLength, setReverse);
 }
 
+kmerInfo::kmerInfo(const std::string & seq, uint32_t kLength,
+			size_t pos, uint32_t len, bool setReverse){
+	setKmersFromPortion(seq, kLength, pos, len, setReverse);
+}
+
+void kmerInfo::setKmersFromPortion(const std::string & seq, uint32_t kLength,
+		size_t pos, uint32_t len, bool setReverse){
+
+	//safety checks
+	//check pos
+	if (pos > seq.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": pos: " << pos
+				<< " is greater than seq size: " << seq.size() << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	//check len
+	if (pos + len > seq.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": pos: " << pos
+				<< " plus len: " << len << " is greater than seq size: " << seq.size() << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	//check to see if it will be possible to get a kmer
+	if(pos + kLength > seq.size()
+			|| kLength > len
+			){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": with pos: " << pos
+				<< ", kmer size of " << kLength
+				<< ",  a len of: " << len
+				<< ", and a seq size of " << seq.size()
+				<< " it is not possible to get kmers" << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+
+	//reset information
+	infoSet_ = true;
+	kLen_ = kLength;
+	seqLen_ = len;
+	seqPos_ = pos;
+	kmers_.clear();
+	kmersRevComp_.clear();
+	//set kmer information in the current direction
+	for (const auto & seqPos : iter::range(pos, pos + len - kLen_)) {
+		auto currentK = seq.substr(seqPos, kLen_);
+		auto k = kmers_.find(currentK);
+		if (k != kmers_.end()) {
+			k->second.addPosition(seqPos);
+		} else {
+			kmers_.emplace(currentK, kmer(currentK, seqPos));
+		}
+	}
+	//if needed set kmer information for the reverse direction
+	if (setReverse) {
+		std::string reverseComplement = seqUtil::reverseComplement(seq.substr(pos, len), "DNA");
+		for (const auto & seqPos : iter::range(reverseComplement.size() + 1 - kLen_)) {
+			auto currentK = reverseComplement.substr(seqPos, kLen_);
+			auto k = kmersRevComp_.find(currentK);
+			if (k != kmersRevComp_.end()) {
+				k->second.addPosition((seq.size() - pos - len) + seqPos);
+			} else {
+				kmersRevComp_.emplace(currentK, kmer(currentK, (seq.size() - pos - len) + seqPos));
+			}
+		}
+	}
+}
+
 void kmerInfo::setKmers(const std::string & seq, uint32_t kLength,
 		bool setReverse) {
 	//reset information
@@ -46,7 +114,7 @@ void kmerInfo::setKmers(const std::string & seq, uint32_t kLength,
 		if (k != kmers_.end()) {
 			k->second.addPosition(pos);
 		} else {
-			kmers_[currentK] = kmer(currentK, pos);
+			kmers_.emplace(currentK, kmer(currentK, pos));
 		}
 	}
 	//if needed set kmer information for the reverse direction
@@ -58,7 +126,7 @@ void kmerInfo::setKmers(const std::string & seq, uint32_t kLength,
 			if (k != kmersRevComp_.end()) {
 				k->second.addPosition(pos);
 			} else {
-				kmersRevComp_[currentK] = kmer(currentK, pos);
+				kmersRevComp_.emplace(currentK, kmer(currentK, pos));
 			}
 		}
 	}
@@ -91,8 +159,139 @@ std::pair<uint32_t, double> kmerInfo::compareKmersRevComp(
 						seqLen_) + 1 - kLen_)};
 }
 
+std::pair<uint32_t, double> kmerInfo::compareKmers(const kmerInfo & info,
+		uint32_t startPos, uint32_t windowSize) const {
+	/**@todo Consider putting in a check for windowSize vs kmersize and for startPos though it would be better to just check once outside of function*/
+	uint32_t kmersShared = 0;
+	//calculate the maximum number of kmers possibly shared in a window this size
+	double maxKMers = windowSize - kLen_ + 1;
+	//get kmers at this position
+	for (const auto & k : kmers_) {
+		uint32_t kmersInWindow = 0;
+		for (const auto & pos : k.second.positions_) {
+			if (pos >= startPos && pos <= (startPos + windowSize - kLen_)) {
+				++kmersInWindow;
+			}
+			if (pos > (startPos + windowSize - kLen_)) {
+				break;
+			}
+		}
+		//if this kmer isn't found at this position go on
+		if(kmersInWindow == 0){
+			continue;
+		}
+		uint32_t kmersInWindowOther = 0;
+		auto otherK = info.kmers_.find(k.first);
+		if (otherK != info.kmers_.end()) {
+			for (const auto & pos : otherK->second.positions_) {
+				if (pos >= startPos && pos <= (startPos + windowSize - kLen_)) {
+					++kmersInWindowOther;
+				}
+				if (pos > (startPos + windowSize - kLen_)) {
+					break;
+				}
+			}
+		}
+		kmersShared += std::min(kmersInWindow, kmersInWindowOther);
+	}
+	return {kmersShared, kmersShared/maxKMers};
+}
 
+std::pair<uint32_t, double> kmerInfo::compareKmers(const kmerInfo & info,
+		uint32_t startPos,uint32_t otherStartPos, uint32_t windowSize) const{
+	/**@todo Consider putting in a check for windowSize vs kmersize and for startPos though it would be better to just check once outside of function*/
+	uint32_t kmersShared = 0;
+	//calculate the maximum number of kmers possibly shared in a window this size
+	double maxKMers = windowSize - kLen_ + 1;
+	//get kmers at this position
+	for (const auto & k : kmers_) {
+		uint32_t kmersInWindow = 0;
+		for (const auto & pos : k.second.positions_) {
+			if (pos >= startPos && pos <= (startPos + windowSize - kLen_)) {
+				++kmersInWindow;
+			}
+			if (pos > (startPos + windowSize - kLen_)) {
+				break;
+			}
+		}
+		//if this kmer isn't found at this position go on
+		if(kmersInWindow == 0){
+			continue;
+		}
+		uint32_t kmersInWindowOther = 0;
+		auto otherK = info.kmers_.find(k.first);
+		if (otherK != info.kmers_.end()) {
+			for (const auto & pos : otherK->second.positions_) {
+				if (pos >= otherStartPos && pos <= (otherStartPos + windowSize - kLen_)) {
+					++kmersInWindowOther;
+				}
+				if (pos > (otherStartPos + windowSize - kLen_)) {
+					break;
+				}
+			}
+		}
+		kmersShared += std::min(kmersInWindow, kmersInWindowOther);
+	}
+	return {kmersShared, kmersShared/maxKMers};
+}
 
+std::pair<uint32_t, double> kmerInfo::compareSubKmersToFull(
+		const kmerInfo & info, uint32_t startPos, uint32_t windowSize) const {
+	uint32_t kmersShared = 0;
+	double maxKMers = windowSize - kLen_ + 1;
+	for (const auto & k : kmers_) {
+		uint32_t kmersInWindow = 0;
+		for (const auto & pos : k.second.positions_) {
+			if (pos >= startPos && pos <= (startPos + windowSize - kLen_)) {
+				++kmersInWindow;
+			}
+			if (pos > (startPos + windowSize - kLen_)) {
+				break;
+			}
+		}
+		uint32_t kmersInWindowOther = 0;
+		auto otherK = info.kmers_.find(k.first);
+		if (otherK != info.kmers_.end()) {
+			kmersInWindowOther = otherK->second.count_;
+		}
+		kmersShared += std::min(kmersInWindow, kmersInWindowOther);
+	}
+	return {kmersShared, kmersShared/maxKMers};
+}
 
+std::unordered_map<size_t, std::pair<uint32_t, double>> kmerInfo::slideCompareKmers(
+		const kmerInfo & info, uint32_t windowSize, uint32_t windowStepSize) const {
+	std::unordered_map<size_t, std::pair<uint32_t, double>> ret;
+	uint64_t minLen = std::min(seqLen_, info.seqLen_);
+	for (const auto & pos : iter::range<uint32_t>(0, minLen - windowSize + 1,
+			windowStepSize)) {
+		ret.emplace(pos,compareKmers(info, pos, windowSize));
+	}
+	return ret;
+}
+
+std::unordered_map<size_t, std::pair<uint32_t, double>> kmerInfo::slideCompareSubKmersToFull(
+		const kmerInfo & info, uint32_t windowSize, uint32_t windowStepSize) const {
+	std::unordered_map<size_t, std::pair<uint32_t, double>> ret;
+	for (const auto & pos : iter::range<uint32_t>(0, seqLen_ - windowSize + 1,
+			windowStepSize)) {
+		ret.emplace(pos,compareSubKmersToFull(info, pos, windowSize));
+	}
+	return ret;
+}
+
+std::unordered_map<size_t,std::unordered_map<size_t,std::pair<uint32_t, double>>> kmerInfo::slideCompareSubKmersToSubKmers(
+		const kmerInfo & info, uint32_t windowSize,
+		uint32_t windowStepSize) const{
+	std::unordered_map<size_t,std::unordered_map<size_t,std::pair<uint32_t, double>>> ret;
+	for (const auto & pos : iter::range<uint32_t>(0, seqLen_ - windowSize + 1,
+			windowStepSize)) {
+		for (const auto & otherPos : iter::range<uint32_t>(0, info.seqLen_ - windowSize + 1,
+				windowStepSize)) {
+			ret[pos][otherPos] = compareKmers(info, pos, otherPos, windowSize);
+		}
+	}
+	return ret;
+}
 
 }  // namespace bib

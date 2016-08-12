@@ -49,35 +49,56 @@ public:
 	 */
 	gap(uint32_t startPos, uint32_t refPos, uint32_t seqPos,
 			const std::string& gapedSequence, uint32_t firstQual, bool ref);
+
+	/*
+	 * members
+	 */
+
 	uint32_t startPos_; /**< Position in alignment not actual sequence */
-	uint32_t refPos_; /**< Position in actual sequence */
-	uint32_t seqPos_; /**< Position in actual sequence */
+	uint32_t refPos_; /**< Position in actual sequence, ref */
+	uint32_t seqPos_; /**< Position in actual sequence, seq */
 	uint32_t size_; /**< Position in actual sequence, will be ref pos or query */
 	std::string gapedSequence_; /**< The sequence that is missing */
 	std::vector<uint32_t> qualities_; /**< The quality scores of the gaped sequence */
 	bool ref_; /**< ref == true : insertion, ref == false: deletion*/
-	// functions
+
+	/*
+	 * functions
+	 */
+
 	/**@brief The header for gap::strInfo
 	 *
 	 * @param delim The delimiter to use
 	 * @return The header delimited with delim
 	 */
 	static std::string strInfoHeader(const std::string & delim);
+
 	/**@brief Create a delimited string of the gap info
 	 *
 	 * @param delim The delimiter to use
 	 * @return A delimited string
 	 */
 	std::string strInfo(const std::string & delim) const;
+
   /**@brief convert to json representation
    *
    * @return Json::Value object
    */
 	Json::Value toJson() const;
 
+	/**@brief function to switch the ref and seq position if perspective has changed
+	 *
+	 */
+	void switchSeqAndRef();
+
+	/**@brief comparator for gap, check refPos_, seqPos_, size_, gapedSequence_, and ref_
+	 *
+	 * @param otherGap the other gap to return to
+	 * @return true if refPos_, seqPos_, size_, gapedSequence_, and ref_ all matched
+	 */
+	bool compare(const gap & otherGap) const;
+
 };
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "gaps.cpp"
-#endif
+

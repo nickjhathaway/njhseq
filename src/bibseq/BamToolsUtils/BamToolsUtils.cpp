@@ -103,28 +103,29 @@ alnInfoLocal bamAlnToAlnInfoLocal(const std::vector<BamTools::CigarOp> & cigarDa
 	ret.addFromFile_ = false;
 	ret.score_ = std::numeric_limits<double>::max();
 	//first check for soft clips
-	bool softClipFront = false;
-	bool softClipBack = false;
-	bool hardClipFront = false;
-	bool hardClipBack = false;
+	//bool softClipFront = false;
+	//bool softClipBack = false;
+	//bool hardClipFront = false;
+	//bool hardClipBack = false;
 	if (cigarData.front().Type == 'H') {
-		hardClipFront = true;
+		//hardClipFront = true;
 		if (cigarData.size() > 1 && (cigarData.begin() + 1)->Type == 'S') {
-			softClipFront = true;
+			//softClipFront = true;
 			ret.localBStart_ = cigarData.front().Length;
 		}
 	} else if (cigarData.front().Type == 'S') {
-		softClipFront = true;
+		//softClipFront = true;
 		ret.localBStart_ = cigarData.front().Length;
 	}
-	if (cigarData.back().Type == 'H') {
+	/*
+	if(cigarData.back().Type == 'H') {
 		hardClipBack = true;
 		if (cigarData.size() > 1 && (cigarData.end() - 2)->Type == 'S') {
 			softClipBack = true;
 		}
 	} else if (cigarData.back().Type == 'S') {
 		softClipBack = true;
-	}
+	}*/
 
 	for(const auto & cData : cigarData){
 		switch (cData.Type) {
@@ -162,7 +163,7 @@ seqInfo bamAlnToSeqInfo(const BamTools::BamAlignment & aln, bool complement) {
 	auto ret = seqInfo(aln.Name, aln.QueryBases, aln.Qualities,
 			SangerQualOffset);
 	if (complement) {
-		ret.reverseComplementRead(false, false);
+		ret.reverseComplementRead(false, true);
 	}
 	return ret;
 }
@@ -208,6 +209,85 @@ bool IsBamSorted(const std::string & filename){
 		}
 	}
 	return true;
+}
+
+
+void checkBamOpenThrow(BamTools::BamReader & bReader) {
+	if (!bReader.IsOpen()) {
+		std::stringstream ss;
+		ss << "Error in opening " << bReader.GetFilename() << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+}
+
+void loadBamIndexThrow(BamTools::BamReader & bReader){
+	if(!bReader.LocateIndex()){
+		std::stringstream ss;
+		ss << "Error: can't find index for " << bReader.GetFilename() << std::endl;
+		ss << "Should be " << bReader.GetFilename() << ".bai" << std::endl;
+		throw std::runtime_error{ss.str()};
+	}
+}
+
+
+std::vector<BamTools::RefData> tabToRefDataVec(const table & refDataTab){
+	std::vector<BamTools::RefData> ret;
+	VecStr neededCols{"refId", "refName", "refLength"};
+	VecStr missing;
+	for(const auto & col : neededCols){
+		if(!bib::in(col, refDataTab.columnNames_)){
+			missing.emplace_back(col);
+		}
+	}
+
+	if (!missing.empty()) {
+		std::stringstream ss;
+		ss << "In: " << __PRETTY_FUNCTION__ << "Missing the following columns: "
+				<< bib::bashCT::boldRed(vectorToString(missing, ",")) << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	uint32_t id = 0;
+	for (const auto & row : refDataTab.content_) {
+		auto currentRefId = bib::lexical_cast<uint32_t>(row[refDataTab.getColPos("refId")]);
+		if (currentRefId != id) {
+			std::stringstream ss;
+			ss << "In: " << bib::bashCT::boldRed(__PRETTY_FUNCTION__)
+					<< ", RefIds are not in order, expected " << id << " but found "
+					<< currentRefId << " indstead" << std::endl;
+			throw std::runtime_error { ss.str() };
+		}
+		++id;
+		ret.emplace_back(row[refDataTab.getColPos("refName")],
+				bib::lexical_cast<int32_t>(row[refDataTab.getColPos("refLength")]));
+	}
+	return ret;
+}
+
+table refDataVecToTab(const std::vector<BamTools::RefData> & refInfos){
+	table ret(VecStr{"refId", "refName", "refLength"});
+	for(const auto pos : iter::range(refInfos.size())){
+		ret.addRow(pos, refInfos[pos].RefName, refInfos[pos].RefLength);
+	}
+	return ret;
+}
+
+void logAlnInfo(std::ostream & out, BamTools::RefVector & refInfo,
+		const BamTools::BamAlignment & aln, std::string indent ) {
+
+	out << indent << "aln.Name:                       " << aln.Name << std::endl;
+	out << indent << "aln.MapQuality:                 " << aln.MapQuality<< std::endl;
+	out << indent << "aln.IsFirstMate():              " << bib::colorBool(aln.IsFirstMate()) << std::endl;
+	out << indent << "aln.Position:                   " << aln.Position << std::endl;
+	out << indent << "refInfo[aln.RefID].RefName:     " << refInfo[aln.RefID].RefName << std::endl;
+	out << indent << "aln.GetEndPosition():           " << aln.GetEndPosition() << std::endl;
+	out << indent << "aln.IsReverseStrand():          " << bib::colorBool(aln.IsReverseStrand()) << std::endl;
+	out << indent << "aln.AlignedBases.size():        " << aln.AlignedBases.size() << std::endl;
+	out << indent << "aln.QueryBases.size():          " << aln.QueryBases.size() << std::endl;
+	out << indent << "aln.MatePosition:               " << aln.MatePosition << std::endl;
+	out << indent << "refInfo[aln.MateRefID].RefName: " << refInfo[aln.MateRefID].RefName << std::endl;
+	out << indent << "aln.IsMateReverseStrand():      " << bib::colorBool(aln.IsMateReverseStrand()) << std::endl;
+	out << indent << "aln.InsertSize:                 " << aln.InsertSize << std::endl << std::endl;
+
 }
 
 } /* namespace bibseq */
