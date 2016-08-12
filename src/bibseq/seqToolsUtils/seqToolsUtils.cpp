@@ -38,16 +38,16 @@ void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString,
 					std::stof(runCutOffString.substr(0, runCutOffString.length() - 1))
 							* counter / 100);
 		} else {
-			runCutOff = std::stoi(runCutOffString);
+			runCutOff = estd::stou(runCutOffString);
 		}
 	} else {
 		if (toks[0].back() == '%') {
 			runCutOff = std::round(
 					std::stod(toks[0].substr(0, toks[0].length() - 1)) * counter / 100.0);
 		} else {
-			runCutOff = std::stoi(toks[0]);
+			runCutOff = estd::stou(toks[0]);
 		}
-		int32_t hardCutOff = std::stoi(toks[1]);
+		uint32_t hardCutOff = estd::stou(toks[1]);
 		if (hardCutOff > runCutOff) {
 			runCutOff = hardCutOff;
 		}
@@ -106,13 +106,12 @@ std::string genHtmlStrForPsuedoMintree(std::string jsonFileName, std::string jav
 Json::Value genMinTreeData(const std::vector<readObject> & reads,
 		aligner & alignerObj,
 		std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners,
-		std::mutex & alignerLock, uint32_t numThreads, bool weightHomopolymers) {
+		std::mutex & alignerLock, uint32_t numThreads) {
 
 	std::function<
 			uint32_t(const readObject &, const readObject &,
-					std::unordered_map<std::string, std::unique_ptr<aligner>>&, aligner&,
-					bool&)> getMismatchesFunc =
-			[&alignerLock](const readObject & read1, const readObject & read2,std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners, aligner &alignerObj, bool & weightHomopolymers) {
+					std::unordered_map<std::string, std::unique_ptr<aligner>>&, aligner&)> getMismatchesFunc =
+			[&alignerLock](const readObject & read1, const readObject & read2,std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners, aligner &alignerObj) {
 				alignerLock.lock();
 				auto threadId = estd::to_string(std::this_thread::get_id());
 				//std::cout << threadId<< std::endl;
@@ -121,11 +120,11 @@ Json::Value genMinTreeData(const std::vector<readObject> & reads,
 				}
 				alignerLock.unlock();
 				aligners.at(threadId)->alignCache(read1.seqBase_,read2.seqBase_, false);
-				aligners.at(threadId)->profilePrimerAlignment(read1.seqBase_, read2.seqBase_, weightHomopolymers);
+				aligners.at(threadId)->profilePrimerAlignment(read1.seqBase_, read2.seqBase_);
 				return aligners.at(threadId)->comp_.hqMismatches_;
 			};
 	auto distances = getDistanceNonConst(reads, numThreads, getMismatchesFunc,
-			aligners, alignerObj, weightHomopolymers);
+			aligners, alignerObj);
 	readDistGraph<uint32_t> graphMis(distances, reads);
 	std::vector<std::string> popNames;
 	for (const auto & n : graphMis.nodes_) {
@@ -140,10 +139,9 @@ Json::Value genMinTreeData(const std::vector<readObject> & reads,
 Json::Value genMinTreeData(const std::vector<readObject> & reads, aligner & alignerObj){
 	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
 	uint32_t numThreads = 2;
-	bool weightHomopolymers = true;
 	std::mutex alignerLock;
-	std::function<uint32_t(const readObject &, const readObject &,std::unordered_map<std::string, std::unique_ptr<aligner>>& , aligner& , bool&)> getMismatchesFunc =
-			[&alignerLock](const readObject & read1, const readObject & read2,std::unordered_map<std::string, std::unique_ptr<aligner>>&  aligners, aligner &alignerObj, bool & weightHomopolymers) {
+	std::function<uint32_t(const readObject &, const readObject &,std::unordered_map<std::string, std::unique_ptr<aligner>>& , aligner& )> getMismatchesFunc =
+			[&alignerLock](const readObject & read1, const readObject & read2,std::unordered_map<std::string, std::unique_ptr<aligner>>&  aligners, aligner &alignerObj) {
 		alignerLock.lock();
 		auto threadId = estd::to_string(std::this_thread::get_id());
 		//std::cout << threadId<< std::endl;
@@ -152,11 +150,11 @@ Json::Value genMinTreeData(const std::vector<readObject> & reads, aligner & alig
 		}
 		alignerLock.unlock();
 		aligners.at(threadId)->alignCache(read1.seqBase_,read2.seqBase_, false);
-		aligners.at(threadId)->profilePrimerAlignment(read1.seqBase_, read2.seqBase_, weightHomopolymers);
+		aligners.at(threadId)->profilePrimerAlignment(read1.seqBase_, read2.seqBase_);
 				return aligners.at(threadId)->comp_.hqMismatches_;
 			};
 
-	auto distances = getDistanceNonConst(reads, numThreads, getMismatchesFunc, aligners, alignerObj, weightHomopolymers);
+	auto distances = getDistanceNonConst(reads, numThreads, getMismatchesFunc, aligners, alignerObj);
 	readDistGraph<uint32_t> graphMis(distances, reads);
 	std::vector<std::string> popNames;
 	for (const auto & n : graphMis.nodes_) {
@@ -180,7 +178,7 @@ Json::Value genMinTreeData(const std::vector<readObject> & reads) {
 	readVec::getMaxLength(reads, maxLength);
 	aligner alignerObj(maxLength, gapScoringParameters(5, 1),
 			substituteMatrix::createDegenScoreMatrix(2, -2));
-	std::function<uint32_t(const readObject &, const readObject &, aligner, bool)> misFun =
+	std::function<uint32_t(const readObject &, const readObject &, aligner)> misFun =
 			getMismatches<readObject>;
 	return genMinTreeData(reads, alignerObj);
 }
@@ -196,10 +194,18 @@ uint32_t countSeqs(const SeqIOOptions & opts, bool verbose) {
 			ss << opts.toJson() << std::endl;
 			throw std::runtime_error{ss.str()};
 		}
-		readObject read;
-		while (reader.readNextRead(read)) {
-			ret += ::round(read.seqBase_.cnt_);
+		if(SeqIOOptions::inFormats::FASTQPAIRED == opts.inFormat_){
+			PairedRead read;
+			while (reader.readNextRead(read)) {
+				ret += ::round(read.seqBase_.cnt_);
+			}
+		}else{
+			seqInfo read;
+			while (reader.readNextRead(read)) {
+				ret += ::round(read.cnt_);
+			}
 		}
+
 	} else if (verbose) {
 		std::cout << "File: " << opts.firstName_ << "doesn't exist, returning 0"
 				<< std::endl;
@@ -246,7 +252,7 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 				continue;
 			}
 			//Discrepancy  between people naming MID01 and MID1 so replacing MID0 with MID
-			sampleDirWithSubDirs[row[1]].emplace_back(replaceString(row[colPos], "MID0", "MID"), row[0]);
+			sampleDirWithSubDirs[row[1]].emplace_back(bib::replaceString(row[colPos], "MID0", "MID"), row[0]);
 		}
 	}
 
@@ -276,7 +282,7 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 		for(const auto & row : inProfileTab.content_){
 			auto midName = row[inProfileTab.getColPos("name")];
 			auto midPos = midName.rfind("MID");
-			midName = replaceString(midName.substr(midPos), "MID0", "MID");
+			midName = bib::replaceString(midName.substr(midPos), "MID0", "MID");
 			extractionInfo[row[inProfileTab.getColPos("IndexName")]][midName] = row;
 		}
 		if (count == 0) {
@@ -355,7 +361,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 				continue;
 			}
 			//Discrepancy  between people naming MID01 and MID1 so replacing MID0 with MID
-			sampleDirWithSubDirs[row[1]].emplace_back(replaceString(row[colPos], "MID0", "MID"), row[0]);
+			sampleDirWithSubDirs[row[1]].emplace_back(bib::replaceString(row[colPos], "MID0", "MID"), row[0]);
 		}
 	}
 
@@ -384,7 +390,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 		for(const auto & row : inProfileTab.content_){
 			auto midName = row[inProfileTab.getColPos("name")];
 			auto midPos = midName.rfind("MID");
-			midName = replaceString(midName.substr(midPos), "MID0", "MID");
+			midName = bib::replaceString(midName.substr(midPos), "MID0", "MID");
 			extractionInfo[row[inProfileTab.getColPos("IndexName")]][midName] = row;
 		}
 		if (count == 0) {
@@ -427,6 +433,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 
 
 
+
 void setUpSampleDirs(const std::string& sampleNamesFilename,
 		const std::string& mainDirectoryName, bool separatedDirs) {
 	auto topDir = bib::replaceString(mainDirectoryName, "./", "");
@@ -464,15 +471,15 @@ void setUpSampleDirs(const std::string& sampleNamesFilename,
 			for (auto & targetDirs : sampleDirWithSubDirs) {
 				std::cout << bib::bashCT::bold << "Making Target Dir: " << bib::bashCT::purple << topDir + targetDirs.first
 									<< bib::bashCT::reset << std::endl;
-				std::string targetDir = bib::files::makeDir(topDir, targetDirs.first, false);
+				std::string targetDir = bib::files::makeDir(topDir, bib::files::MkdirPar(targetDirs.first, false));
 				for (auto & sampDirs : targetDirs.second) {
 					std::cout << bib::bashCT::bold << "Making Samp Dir: " << bib::bashCT::green << targetDir + sampDirs.first
 										<< bib::bashCT::reset << std::endl;
-					std::string sampDir = bib::files::makeDir(targetDir, sampDirs.first, false);
+					std::string sampDir = bib::files::makeDir(targetDir, bib::files::MkdirPar(sampDirs.first, false));
 					for (auto & rep : sampDirs.second) {
 						std::cout << bib::bashCT::bold << "Making Rep Dir: " << bib::bashCT::blue << sampDir + rep.first
 											<< bib::bashCT::reset << std::endl;
-						std::string repDir = bib::files::makeDir(sampDir, rep.first, false);
+						std::string repDir = bib::files::makeDir(sampDir, bib::files::MkdirPar(rep.first, false));
 						rep.second = bib::files::join(cwd, repDir);
 					}
 				}
@@ -484,12 +491,12 @@ void setUpSampleDirs(const std::string& sampleNamesFilename,
 					if (!bib::files::bfs::exists(sampDir)) {
 						std::cout << bib::bashCT::bold << "Making Samp Dir: " << bib::bashCT::green << topDir + sampDirs.first
 											<< bib::bashCT::reset << std::endl;
-						bib::files::makeDir(topDir, sampDirs.first, false);
+						bib::files::makeDir(topDir, bib::files::MkdirPar(sampDirs.first, false));
 					}
 					for (auto & rep : sampDirs.second) {
 						std::cout << bib::bashCT::bold << "Making Rep Dir: " << bib::bashCT::blue << bib::appendAsNeeded(sampDir, "/") + rep.first
 											<< bib::bashCT::reset << std::endl;
-						std::string repDir = bib::files::makeDir(sampDir, rep.first, false);
+						std::string repDir = bib::files::makeDir(sampDir, bib::files::MkdirPar(rep.first, false));
 						rep.second = bib::files::join(cwd, repDir);
 					}
 				}
@@ -502,7 +509,7 @@ void setUpSampleDirs(const std::string& sampleNamesFilename,
 	}
 	//log the locations
 	std::string indexDir = bib::files::makeDir(mainDirectoryName,
-			"locationByIndex", false);
+			bib::files::MkdirPar("locationByIndex", false));
 	for (const auto & targetDirs : sampleDirWithSubDirs) {
 		std::ofstream indexFile;
 		openTextFile(indexFile, indexDir + targetDirs.first, ".tab.txt", false,
@@ -556,15 +563,15 @@ void makeMultipleSampleDirectory(const std::string& barcodeFilename,
   }
   auto longestSharedName = seqUtil::findLongestSharedSubString(barcodes);
   VecStr combinedNames;
-  std::string directoryName = bib::files::makeDir("./", mainDirectoryName, false);
+  std::string directoryName = bib::files::makeDir("./", bib::files::MkdirPar(mainDirectoryName, false));
   for (size_t i = 0; i < barcodes.size(); i += 2) {
-    auto firstName = replaceString(barcodes[i], longestSharedName, "");
-    auto secondName = replaceString(barcodes[i + 1], longestSharedName, "");
+    auto firstName = bib::replaceString(barcodes[i], longestSharedName, "");
+    auto secondName = bib::replaceString(barcodes[i + 1], longestSharedName, "");
     auto combinedName = longestSharedName + firstName + secondName;
     combinedNames.push_back(combinedName);
-    auto combinedDirectoryName = bib::files::makeDir(directoryName, combinedName, false);
-    bib::files::makeDir(combinedDirectoryName, barcodes[i], false);
-    bib::files::makeDir(combinedDirectoryName, barcodes[i + 1], false);
+    auto combinedDirectoryName = bib::files::makeDir(directoryName, bib::files::MkdirPar(combinedName, false));
+    bib::files::makeDir(combinedDirectoryName, bib::files::MkdirPar(barcodes[i], false));
+    bib::files::makeDir(combinedDirectoryName, bib::files::MkdirPar(barcodes[i + 1], false));
   }
   // std::cout<<vectorToString(combinedNames)<<std::endl;
 }
@@ -611,18 +618,18 @@ void makeSampleDirectoriesWithSubDirectories(
   std::cout << "Making following directories" << std::endl;
   std::cout << vectorToString(actualDirectoryNames, "\n");
   std::cout << std::endl;
-  std::string indexDir = bib::files::makeDir(mainDirectoryName, "locationByIndex", false);
+  std::string indexDir = bib::files::makeDir(mainDirectoryName, bib::files::MkdirPar("locationByIndex", false));
   for (const auto& indexIter : indexMap) {
     std::ofstream indexFile;
-    openTextFile(indexFile, indexDir + replaceString(indexIter.first),
+    openTextFile(indexFile, indexDir + bib::replaceString(indexIter.first, " ", "_"),
                  ".tab.txt", false, false);
     for (const auto& spIter : indexIter.second) {
       indexFile << spIter.first << "\t"
-                << replaceString(spIter.second, "./", "") << std::endl;
+                << bib::replaceString(spIter.second, "./", "") << std::endl;
     }
   }
   for (const auto& e : actualDirectoryNames) {
-  	bib::files::makeDir(mainDirectoryName, e, false);
+  	bib::files::makeDir(mainDirectoryName, bib::files::MkdirPar(e, false));
   }
 }
 
@@ -641,16 +648,22 @@ void processKrecName(readObject& read, bool post) {
 
 /////////tools for finding additional location output
 std::string makeIDNameComparable(const std::string& idName) {
-  std::string ans = replaceString(idName, "ID0", "");
-  ans = replaceString(ans, "M0", "M");
-  return replaceString(ans, "ID", "");
+  std::string ans = bib::replaceString(idName, "ID0", "");
+  ans = bib::replaceString(ans, "M0", "M");
+  return bib::replaceString(ans, "ID", "");
 }
 std::string findIdNameFromFileName(const std::string& filename) {
   auto periodPos = filename.rfind(".");
-  if (periodPos != std::string::npos && !isdigit(filename[periodPos - 1])) {
-    periodPos = filename.rfind("_");
-  }
   auto lastMPos = filename.rfind("M");
+  if (periodPos != std::string::npos && !isdigit(filename[periodPos - 1])) {
+    auto underScorePos = filename.rfind("_");
+    if(std::string::npos == underScorePos || lastMPos > underScorePos){
+    	periodPos = filename.rfind(".");
+    }else{
+    	periodPos = filename.rfind("_");
+    }
+  }
+
   if(lastMPos == std::string::npos){
   	return filename;
   }
@@ -926,7 +939,7 @@ int64_t getPossibleNumberOfProteins(
 probabilityProfile randomlyFindBestProfile(const VecStr& dnaStrings,
                                            const std::vector<VecStr>& allKmers,
                                            int numberOfKmers,
-                                           randomGenerator& gen) {
+                                           bib::randomGenerator& gen) {
   VecStr randomMers;
   // bool needToSeed=true;
 
@@ -955,12 +968,12 @@ probabilityProfile randomlyFindBestProfile(const VecStr& dnaStrings,
 
 probabilityProfile randomMotifSearch(const VecStr& dnaStrings, int kLength,
                                      int numberOfRuns, bool gibs, int gibsRuns,
-                                     randomGenerator& gen) {
+																		 bib::randomGenerator& gen) {
   std::vector<VecStr> allKmers;
   int numOfKmers = 0;
   for (const auto& dString : dnaStrings) {
     allKmers.push_back(kmerCalculator::getAllKmers(dString, kLength));
-    numOfKmers = (int)allKmers.back().size();
+    numOfKmers = allKmers.back().size();
   }
   probabilityProfile bestProfile =
       randomlyFindBestProfile(dnaStrings, allKmers, numOfKmers, gen);
@@ -984,7 +997,7 @@ probabilityProfile randomMotifSearch(const VecStr& dnaStrings, int kLength,
 }
 probabilityProfile randomlyFindBestProfileGibs(
     const VecStr& dnaStrings, const std::vector<VecStr>& allKmers,
-    int numberOfKmers, int runTimes, randomGenerator& gen) {
+    int numberOfKmers, int runTimes, bib::randomGenerator& gen) {
   VecStr randomMers;
   std::vector<int> randomKmersNums =
       gen.unifRandVector(0, numberOfKmers, dnaStrings.size());
@@ -1057,7 +1070,7 @@ bool trimCycle(std::vector<std::vector<int>>& nextCycle,
                const std::vector<int> specVec) {
   int pos = (int)nextCycle.size();
   std::vector<int> positions;
-  for (const auto& cycle : iter::reverse(nextCycle)) {
+  for (const auto& cycle : iter::reversed(nextCycle)) {
     --pos;
     auto currentFragments = getAllVecLinearFragments(cycle);
     std::map<int, int> fragmentWeightCounts;
@@ -1488,207 +1501,8 @@ VecStr createDegenStrs(const std::string & str){
 	return ans;
 }
 
-table getErrorFractionsCoded(const table & errorTab){
-	//error tab should have column names readName\trefName\treadCnt\tinsertions\tdeletions\tmismatchs
-	std::vector<double> readCounts = vecStrToVecNum<double>(errorTab.getColumn("readCnt"));
-	double readTotal = vectorSum(readCounts);
-	//goes insert, deletion, mismatch
-	std::map<std::tuple<uint32_t, uint32_t, uint32_t>, double> errorMap;
-	for(const auto & row : errorTab.content_){
-		uint32_t currentIn = std::stoul(row[3]);
-		uint32_t currentDel = std::stoul(row[4]);
-		uint32_t currentMis = std::stoul(row[5]);
-		uint32_t inCode = 0;
-		uint32_t delCode = 0;
-		uint32_t misCode = 0;
-		if(currentIn > 0){
-			inCode = 1;
-		}
-		if(currentDel > 0){
-			delCode = 1;
-		}
-		if(currentMis > 0){
-			misCode = 1;
-		}
-		double currentRCnt = std::stod(row[2]);
-		errorMap[std::make_tuple(inCode, delCode, misCode)] += currentRCnt;
-	}
-	table outErrorTabTest(VecStr{"insertion", "deletion", "mismatch", "cnt"});
-	for(const auto & currentError : errorMap){
-		outErrorTabTest.content_.emplace_back(VecStr{to_string(std::get<0>(currentError.first)),
-			to_string(std::get<1>(currentError.first)), to_string(std::get<2>(currentError.first)),
-		to_string(currentError.second/readTotal)});
-	}
-	return outErrorTabTest;
-}
-table getErrorFractions(const table & errorTab){
-	//error tab should have column names readName\trefName\treadCnt\tinsertions\tdeletions\tmismatchs
-	std::vector<double> readCounts = vecStrToVecNum<double>(errorTab.getColumn("readCnt"));
-	double readTotal = vectorSum(readCounts);
-	double insertionsCnt = 0;
-	double deletionsCnt = 0;
-	double misCnt = 0;
-	double onlyIndelCnt = 0;
-	double bothDelInCnt = 0;
-	double onlyMismatch = 0;
-	double mismatchIndelCnt = 0;
-	double allThree = 0;
-	double errorFree = 0;
-	for(const auto & row : errorTab.content_){
-		uint32_t currentIn = std::stoul(row[3]);
-		uint32_t currentDel = std::stoul(row[4]);
-		uint32_t currentMis = std::stoul(row[5]);
-		double currentRCnt = std::stod(row[2]);
 
-		if(currentIn> 0 ){
-			insertionsCnt += currentRCnt;
-		}
-		if(currentDel > 0 ){
-			deletionsCnt += currentRCnt;
-		}
-		if(currentMis > 0 ){
-			misCnt += currentRCnt;
-		}
-		if((currentIn + currentDel) > 0 && currentMis == 0){
-			onlyIndelCnt += currentRCnt;
-		}
-		if(currentIn > 0  && currentDel > 0){
-			bothDelInCnt += currentRCnt;
-		}
-		if(currentIn == 0  && currentDel == 0 && currentMis > 0){
-			onlyMismatch += currentRCnt;
-		}
-		if((currentIn + currentDel) > 0 && currentMis > 0){
-			mismatchIndelCnt += currentRCnt;
-		}
-		if(currentIn > 0  && currentDel > 0 && currentMis > 0){
-			allThree += currentRCnt;
-		}
-		if(currentIn == 0  && currentDel == 0 && currentMis == 0){
-			errorFree += currentRCnt;
-		}
-	}
-	table outErrorTab(VecStr{"errorFree", "insertions", "deletions", "mismatches",
-		"onlyIndel", "onlyMismatch", "mismatchIndel", "deletionAndInsert", "allThree"});
-	outErrorTab.content_.emplace_back(numVecToVecStr(std::vector<double>{errorFree/readTotal,
-		insertionsCnt/readTotal, deletionsCnt/readTotal, misCnt/readTotal, onlyIndelCnt/readTotal,
-	onlyMismatch/readTotal, mismatchIndelCnt/readTotal, bothDelInCnt/readTotal, allThree/readTotal}));
-	return outErrorTab;
-}
-table getIndelSizeStats(const table & indelTab){
-	// indel tab should have columnname s readName\trefName\treadCnt\tindel\tsize
-	//std::vector<double> readCounts = vecStrToVecNum<double>(indelTab.getColumn("readCnt"));
-	//double readTotal = vectorSum(readCounts);
-	std::vector<uint32_t> insertSizes;
-	std::vector<uint32_t> delSizes;
-	for(const auto & row : indelTab.content_){
-		if(row[3] == "insertion"){
-			addOtherVec(insertSizes, std::vector<uint32_t>(std::stoi(row[2]),std::stoi(row[4])));
-		}else if (row[3] == "deletion"){
-			addOtherVec(delSizes, std::vector<uint32_t>(std::stoi(row[2]),std::stoi(row[4])));
-		}else{
-			std::cout << " getAverageIndelSize " << std::endl;
-			std::cout << "this should not be happening" << std::endl;
-		}
-	}
-	auto insertStats = getStatsOnVec(insertSizes);
-	auto delStats = getStatsOnVec(delSizes);
-	table indelSizeStatsTab(VecStr{"indel", "minSize", "maxSize", "meanSize", "medianSize"});
-	indelSizeStatsTab.content_.emplace_back(VecStr{"insertion", to_string(insertStats["min"]),
-		to_string(insertStats["max"]), to_string(insertStats["mean"]), to_string(insertStats["median"])});
-	indelSizeStatsTab.content_.emplace_back(VecStr{"deletion", to_string(delStats["min"]),
-		to_string(delStats["max"]), to_string(delStats["mean"]), to_string(delStats["median"])});
-	return indelSizeStatsTab;
-}
-table getErrorDist(const table & errorTab){
-	//error tab should have column names readName\trefName\treadCnt\tinsertions\tdeletions\tmismatchs
-	std::unordered_map<uint32_t, uint32_t> insertCounts;
-	std::unordered_map<uint32_t, uint32_t> delCounts;
-	std::unordered_map<uint32_t, uint32_t> misCounts;
-	for(const auto & row : errorTab.content_){
-		uint32_t currentIn = std::stoul(row[3]);
-		uint32_t currentDel = std::stoul(row[4]);
-		uint32_t currentMis = std::stoul(row[5]);
-		if(currentIn> 0 ){
-			insertCounts[currentIn] += std::stoi(row[2]);
-		}
-		if(currentDel > 0 ){
-			delCounts[currentDel] += std::stoi(row[2]);
-		}
-		if(currentMis > 0 ){
-			misCounts[currentMis] += std::stoi(row[2]);
-		}
-	}
 
-	table insertTab(insertCounts, VecStr{"errorNum", "count"});
-	insertTab.addColumn(VecStr{"insertion"}, "error");
-
-	table delTab(delCounts, VecStr{"errorNum", "count"});
-	delTab.addColumn(VecStr{"deletion"}, "error");
-
-	table misTab(misCounts, VecStr{"errorNum", "count"});
-	misTab.addColumn(VecStr{"mismatch"}, "error");
-
-	delTab.rbind(insertTab, false);
-	delTab.rbind(misTab, false);
-	delTab.sortTable("errorNum", true);
-	delTab.sortTable("error", true);
-	return delTab;
-}
-table getErrorStats(const table & errorTab){
-	//error tab should have column names readName\trefName\treadCnt\tinsertions\tdeletions\tmismatchs
-	std::vector<uint32_t> misNum;
-	std::vector<uint32_t> insertNums;
-	std::vector<uint32_t> delNums;
-	for(const auto & row : errorTab.content_){
-		uint32_t currentIn = std::stoul(row[3]);
-		uint32_t currentDel = std::stoul(row[4]);
-		uint32_t currentMis = std::stoul(row[5]);
-		if(currentIn> 0 ){
-			addOtherVec(insertNums, std::vector<uint32_t>(std::stoi(row[2]), currentIn));
-		}
-		if(currentDel > 0 ){
-			addOtherVec(delNums, std::vector<uint32_t>(std::stoi(row[2]), currentDel));
-		}
-		if(currentMis > 0 ){
-			addOtherVec(misNum, std::vector<uint32_t>(std::stoi(row[2]), currentMis));
-		}
-	}
-	auto insertStats = getStatsOnVec(insertNums);
-	auto delStats = getStatsOnVec(delNums);
-	auto misStats = getStatsOnVec(misNum);
-	table errorNumStatsTab(VecStr{"error", "minNum", "maxNum", "meanNum", "medianNum"});
-	errorNumStatsTab.content_.emplace_back(VecStr{"insertion", to_string(insertStats["min"]),
-		to_string(insertStats["max"]), to_string(insertStats["mean"]), to_string(insertStats["median"])});
-	errorNumStatsTab.content_.emplace_back(VecStr{"deletion", to_string(delStats["min"]),
-		to_string(delStats["max"]), to_string(delStats["mean"]), to_string(delStats["median"])});
-	errorNumStatsTab.content_.emplace_back(VecStr{"mismatch", to_string(misStats["min"]),
-			to_string(misStats["max"]), to_string(misStats["mean"]), to_string(misStats["median"])});
-
-	return errorNumStatsTab;
-}
-table getIndelDistribution(const table & indelTab){
-	std::unordered_map<uint32_t, uint32_t> insertCounts;
-	std::unordered_map<uint32_t, uint32_t> delCounts;
-	for(const auto & row : indelTab.content_){
-		if(row[3] == "insertion"){
-			insertCounts[std::stoi(row[4])] += std::stoi(row[2]);
-		}else if (row[3] == "deletion"){
-			delCounts[std::stoi(row[4])] += std::stoi(row[2]);
-		}else{
-			std::cout << " getAverageIndelSize " << std::endl;
-			std::cout << "this should not be happening" << std::endl;
-		}
-	}
-	table insertTab(insertCounts, VecStr{"indelSize", "count"});
-	insertTab.addColumn(VecStr{"insertion"}, "indel");
-	table delTab(delCounts, VecStr{"indelSize", "count"});
-	delTab.addColumn(VecStr{"deletion"}, "indel");
-	delTab.rbind(insertTab, false);
-	delTab.sortTable("indelSize", true);
-	delTab.sortTable("indel", true);
-	return delTab;
-}
 
 table getSeqPosTab(const std::string & str){
 	table out(VecStr{"char", "pos"});

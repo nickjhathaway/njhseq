@@ -51,9 +51,10 @@ aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
 
 aligner::aligner(uint64_t maxSize, const gapScoringParameters & gapPars,
 		const substituteMatrix& subMatrix, const KmerMaps& kmaps,
-		QualScorePars qScorePars, bool countEndGaps) :
+		QualScorePars qScorePars, bool countEndGaps, bool weighHomopolymers) :
 		parts_(maxSize, gapPars, subMatrix), alnHolder_(gapPars, subMatrix), kMaps_(
-				kmaps), qScorePars_(qScorePars), countEndGaps_(countEndGaps) {
+				kmaps), qScorePars_(qScorePars), countEndGaps_(countEndGaps), weighHomopolymers_(
+				weighHomopolymers) {
 }
 
 void aligner::alignScoreLocal(const std::string& firstSeq,
@@ -228,8 +229,7 @@ void aligner::setQual(QualScorePars pars) {
 
 
 const comparison & aligner::profilePrimerAlignment(const seqInfo& objectA,
-                            const seqInfo& objectB,
-                            bool weighHomopolymers){
+                            const seqInfo& objectB){
   resetAlignmentInfo();
 	uint32_t firstOffset = 0;
 	uint32_t secondOffset = 0;
@@ -254,11 +254,11 @@ const comparison & aligner::profilePrimerAlignment(const seqInfo& objectA,
 			bool endGap = (newGap.startPos_ + newGap.size_ >= len(alignObjectA_)) || 0 == newGap.startPos_;
 			if (!endGap) {
 				gappedBasesInA += newGap.size_;
-				handleGapCountingInA(newGap, weighHomopolymers);
+				handleGapCountingInA(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 						std::make_pair(newGap.startPos_, newGap));
 			} else if (countEndGaps_) {
-				handleGapCountingInA(newGap, weighHomopolymers);
+				handleGapCountingInA(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 						std::make_pair(newGap.startPos_, newGap));
 			}
@@ -281,11 +281,11 @@ const comparison & aligner::profilePrimerAlignment(const seqInfo& objectA,
       bool endGap = (newGap.startPos_ + newGap.size_ >= len(alignObjectB_)) || 0 == newGap.startPos_;
 			if (!endGap) {
 				gappedBasesInB += newGap.size_;
-				handleGapCountingInB(newGap, weighHomopolymers);
+				handleGapCountingInB(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 										std::make_pair(newGap.startPos_, newGap));
 			}else if (countEndGaps_) {
-				handleGapCountingInB(newGap, weighHomopolymers);
+				handleGapCountingInB(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 										std::make_pair(newGap.startPos_, newGap));
 			}
@@ -309,51 +309,57 @@ const comparison & aligner::profilePrimerAlignment(const seqInfo& objectA,
     }
   }
 
-	uint32_t gappedEndA = 0;
-	if (alignObjectA_.seqBase_.seq_.back() == '-') {
-		gappedEndA += countEndChar(alignObjectA_.seqBase_.seq_);
-	}
+	uint32_t gappedLeftEndA = 0;
+	uint32_t gappedRightEndA = 0;
 	if (alignObjectA_.seqBase_.seq_.front() == '-') {
-		gappedEndA += countBeginChar(alignObjectA_.seqBase_.seq_);
+		gappedLeftEndA += countBeginChar(alignObjectA_.seqBase_.seq_);
 	}
-	uint32_t gappedEndB = 0;
-	if (alignObjectB_.seqBase_.seq_.back() == '-') {
-		gappedEndB += countEndChar(alignObjectB_.seqBase_.seq_);
+	if (alignObjectA_.seqBase_.seq_.back() == '-') {
+		gappedRightEndA += countEndChar(alignObjectA_.seqBase_.seq_);
 	}
+	uint32_t gappedEndA = gappedRightEndA + gappedLeftEndA;
+
+	uint32_t gappedLeftEndB = 0;
+	uint32_t gappedRightEndB = 0;
 	if (alignObjectB_.seqBase_.seq_.front() == '-') {
-		gappedEndB += countBeginChar(alignObjectB_.seqBase_.seq_);
+		gappedLeftEndB += countBeginChar(alignObjectB_.seqBase_.seq_);
 	}
+	if (alignObjectB_.seqBase_.seq_.back() == '-') {
+		gappedRightEndB += countEndChar(alignObjectB_.seqBase_.seq_);
+	}
+	uint32_t gappedEndB = gappedLeftEndB + gappedRightEndB;
+
+	uint32_t gappedEnd = gappedEndA + gappedEndB;
 
 	//objectA (ref)
-	comp_.distances_.ref_.covered_ = len(alignObjectA_) - gappedBasesInA - gappedEndB;
+	comp_.distances_.ref_.covered_ = len(alignObjectA_) - gappedBasesInA - gappedEnd;
 	comp_.distances_.ref_.coverage_ = static_cast<double>(comp_.distances_.ref_.covered_)/len(objectA);
 	comp_.distances_.ref_.identities_ = comp_.highQualityMatches_ + comp_.lowQualityMatches_;
 	comp_.distances_.ref_.identity_ = static_cast<double>(comp_.distances_.ref_.identities_)/len(objectA);
 	//objectB (query)
-	comp_.distances_.query_.covered_ = len(alignObjectB_) - gappedBasesInB - gappedEndA;
+	comp_.distances_.query_.covered_ = len(alignObjectB_) - gappedBasesInB - gappedEnd;
 	comp_.distances_.query_.coverage_ = static_cast<double>(comp_.distances_.query_.covered_)/len(objectB);
 	comp_.distances_.query_.identities_ = comp_.highQualityMatches_ + comp_.lowQualityMatches_;
 	comp_.distances_.query_.identity_ = static_cast<double>(comp_.distances_.query_.identities_)/len(objectB);
 	//of the overlapping alignment
-	comp_.distances_.basesInAln_ = len(alignObjectA_) - gappedEndA - gappedEndB;
+	comp_.distances_.basesInAln_ = len(alignObjectA_) - gappedEnd;
   comp_.distances_.percentMatch_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.basesInAln_);
   comp_.distances_.percentMismatch_ = (comp_.hqMismatches_ + comp_.lqMismatches_)/static_cast<double>(comp_.distances_.basesInAln_);
   comp_.distances_.percentGaps_ = (gappedBasesInA + gappedBasesInB)/static_cast<double>(comp_.distances_.basesInAln_);
   comp_.distances_.overLappingEvents_ = comp_.highQualityMatches_
 			+ comp_.lowQualityMatches_ + comp_.hqMismatches_ + comp_.lqMismatches_
 			+ comp_.lowKmerMismatches_ + comp_.distances_.alignmentGaps_.size();
-  comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
+  if(comp_.distances_.overLappingEvents_ == 0){
+  	comp_.distances_.eventBasedIdentity_ = 0;
+  }else{
+  	comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
+  }
+  comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;
   comp_.queryName_ = objectB.name_;
   return comp_;
 }
 
-// profile primer alignment
-const comparison & aligner::profilePrimerAlignment(const baseReadObject& objectA,
-                                     const baseReadObject& objectB,
-                                     bool weighHomopolymers) {
-	return profilePrimerAlignment(objectA.seqBase_, objectB.seqBase_, weighHomopolymers);
-}
 
 size_t aligner::getAlignPosForSeqAPos(size_t seqAPos){
 	return getAlnPosForRealPos(alignObjectA_.seqBase_.seq_, seqAPos);
@@ -369,22 +375,9 @@ size_t aligner::getSeqPosForAlnBPos(size_t alnBPos){
 	return getRealPosForAlnPos(alignObjectB_.seqBase_.seq_, alnBPos);
 }
 
-const comparison & aligner::profileAlignment(const baseReadObject& objectA,
-                               const baseReadObject& objectB, int kLength,
-                               bool kmersByPosition, bool checkKmer,
-                               bool usingQuality, bool doingMatchQuality,
-                               bool weighHomopolymers, uint32_t start,
-                               uint32_t stop) {
-  return profileAlignment(objectA.seqBase_, objectB.seqBase_, kLength, kmersByPosition,
-                   checkKmer, usingQuality, doingMatchQuality, weighHomopolymers,
-                   start, stop);
-}
-
-const comparison & aligner::profileAlignment(const seqInfo& objectA, const seqInfo& objectB,
-                               int kLength, bool kmersByPosition,
-                               bool checkKmer, bool usingQuality,
-                               bool doingMatchQuality, bool weighHomopolymers,
-                               uint32_t start, uint32_t stop) {
+const comparison & aligner::profileAlignment(const seqInfo& objectA,
+		const seqInfo& objectB, bool checkKmer, bool usingQuality,
+		bool doingMatchQuality, uint32_t start, uint32_t stop) {
   resetAlignmentInfo();
 	uint32_t firstOffset = 0;
 	uint32_t secondOffset = 0;
@@ -442,12 +435,12 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA, const seqIn
 			if (!endGap) {
 				gappedBasesInA += newGap.size_;
 				++numberOfGaps;
-				handleGapCountingInA(newGap, weighHomopolymers);
+				handleGapCountingInA(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 						std::make_pair(newGap.startPos_, newGap));
 			} else if (countEndGaps_) {
 				++numberOfGaps;
-				handleGapCountingInA(newGap, weighHomopolymers);
+				handleGapCountingInA(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 						std::make_pair(newGap.startPos_, newGap));
 			}
@@ -474,12 +467,12 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA, const seqIn
 			if (!endGap) {
 				++numberOfGaps;
 				gappedBasesInB += newGap.size_;
-				handleGapCountingInB(newGap, weighHomopolymers);
+				handleGapCountingInB(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 										std::make_pair(newGap.startPos_, newGap));
 			}else if (countEndGaps_) {
 				++numberOfGaps;
-				handleGapCountingInB(newGap, weighHomopolymers);
+				handleGapCountingInB(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 										std::make_pair(newGap.startPos_, newGap));
 			}
@@ -490,8 +483,10 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA, const seqIn
 			auto firstK = getKmerPos(i - firstOffset, kMaps_.kLength_, objectA.seq_);
 			auto secondK = getKmerPos(i - secondOffset, kMaps_.kLength_, objectB.seq_);
       if (usingQuality) {
-        if (objectA.checkQual(i - firstOffset, qScorePars_) &&
-            objectB.checkQual(i - secondOffset, qScorePars_)) {
+  			/*if (objectA.checkQual(i - firstOffset, qScorePars_)
+  					&& objectB.checkQual(i - secondOffset, qScorePars_)) {*/
+  			if (objectB.checkQual(i - secondOffset, qScorePars_)) {
+
           if (checkKmer &&
               (kMaps_.isKmerLowFreq(firstK)
   								|| kMaps_.isKmerLowFreq(secondK))) {
@@ -584,39 +579,52 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA, const seqIn
     }
   }
 
-	uint32_t gappedEndA = 0;
-	if (alignObjectA_.seqBase_.seq_.back() == '-') {
-		gappedEndA += countEndChar(alignObjectA_.seqBase_.seq_);
-	}
+	uint32_t gappedLeftEndA = 0;
+	uint32_t gappedRightEndA = 0;
 	if (alignObjectA_.seqBase_.seq_.front() == '-') {
-		gappedEndA += countBeginChar(alignObjectA_.seqBase_.seq_);
+		gappedLeftEndA += countBeginChar(alignObjectA_.seqBase_.seq_);
 	}
-	uint32_t gappedEndB = 0;
-	if (alignObjectB_.seqBase_.seq_.back() == '-') {
-		gappedEndB += countEndChar(alignObjectB_.seqBase_.seq_);
+	if (alignObjectA_.seqBase_.seq_.back() == '-') {
+		gappedRightEndA += countEndChar(alignObjectA_.seqBase_.seq_);
 	}
+	uint32_t gappedEndA = gappedRightEndA + gappedLeftEndA;
+
+	uint32_t gappedLeftEndB = 0;
+	uint32_t gappedRightEndB = 0;
 	if (alignObjectB_.seqBase_.seq_.front() == '-') {
-		gappedEndB += countBeginChar(alignObjectB_.seqBase_.seq_);
+		gappedLeftEndB += countBeginChar(alignObjectB_.seqBase_.seq_);
 	}
+	if (alignObjectB_.seqBase_.seq_.back() == '-') {
+		gappedRightEndB += countEndChar(alignObjectB_.seqBase_.seq_);
+	}
+	uint32_t gappedEndB = gappedLeftEndB + gappedRightEndB;
+
+	uint32_t gappedEnd = gappedEndA + gappedEndB;
+
 	//objectA (ref)
-	comp_.distances_.ref_.covered_ = len(alignObjectA_) - gappedBasesInA - gappedEndB;
+	comp_.distances_.ref_.covered_ = len(alignObjectA_) - gappedBasesInA - gappedEnd;
 	comp_.distances_.ref_.coverage_ = static_cast<double>(comp_.distances_.ref_.covered_)/len(objectA);
 	comp_.distances_.ref_.identities_ = comp_.highQualityMatches_ + comp_.lowQualityMatches_;
 	comp_.distances_.ref_.identity_ = static_cast<double>(comp_.distances_.ref_.identities_)/len(objectA);
 	//objectB (query)
-	comp_.distances_.query_.covered_ = len(alignObjectB_) - gappedBasesInB - gappedEndA;
+	comp_.distances_.query_.covered_ = len(alignObjectB_) - gappedBasesInB - gappedEnd;
 	comp_.distances_.query_.coverage_ = static_cast<double>(comp_.distances_.query_.covered_)/len(objectB);
 	comp_.distances_.query_.identities_ = comp_.highQualityMatches_ + comp_.lowQualityMatches_;
 	comp_.distances_.query_.identity_ = static_cast<double>(comp_.distances_.query_.identities_)/len(objectB);
 	//of the overlapping alignment
-	comp_.distances_.basesInAln_ = len(alignObjectA_) - gappedEndA - gappedEndB;
+	comp_.distances_.basesInAln_ = len(alignObjectA_) - gappedEnd;
   comp_.distances_.percentMatch_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.basesInAln_);
   comp_.distances_.percentMismatch_ = (comp_.hqMismatches_ + comp_.lqMismatches_)/static_cast<double>(comp_.distances_.basesInAln_);
   comp_.distances_.percentGaps_ = (gappedBasesInA + gappedBasesInB)/static_cast<double>(comp_.distances_.basesInAln_);
   comp_.distances_.overLappingEvents_ = comp_.highQualityMatches_
 			+ comp_.lowQualityMatches_ + comp_.hqMismatches_ + comp_.lqMismatches_
-			+ comp_.lowKmerMismatches_ + numberOfGaps;
-  comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
+			+ comp_.lowKmerMismatches_ + comp_.distances_.alignmentGaps_.size();
+  if(comp_.distances_.overLappingEvents_ == 0){
+  	comp_.distances_.eventBasedIdentity_ = 0;
+  }else{
+  	comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
+  }
+  comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;
   comp_.queryName_ = objectB.name_;
   return comp_;
@@ -627,17 +635,11 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA, const seqIn
 
 
 
-comparison aligner::compareAlignment(
-    const baseReadObject& objectA, const baseReadObject& objectB,
-    const runningParameters& runParams, bool checkKmers, bool kmersByPosition,
-    bool weighHomopolymers) {
-	return compareAlignment(objectA.seqBase_, objectB.seqBase_, runParams, checkKmers, kmersByPosition, weighHomopolymers);
-}
+
 
 comparison aligner::compareAlignment(
     const seqInfo& objectA, const seqInfo& objectB,
-    const runningParameters& runParams, bool checkKmers, bool kmersByPosition,
-    bool weighHomopolymers) {
+    bool checkKmers) {
 
 	resetAlignmentInfo();;
 	uint32_t firstOffset = 0;
@@ -657,7 +659,7 @@ comparison aligner::compareAlignment(
         newGap.gapedSequence_.append(
             alignObjectB_.seqBase_.seq_.substr(i + 1, 1));
         ++newGap.size_;
-        newGap.qualities_.emplace_back(alignObjectB_.seqBase_.qual_[i + 1]);
+        //newGap.qualities_.emplace_back(alignObjectB_.seqBase_.qual_[i + 1]);
         ++i;
         ++firstOffset;
       }
@@ -665,12 +667,12 @@ comparison aligner::compareAlignment(
 			if (!endGap) {
 				gappedBasesInA += newGap.size_;
 				++numberOfGaps;
-				handleGapCountingInA(newGap, weighHomopolymers);
+				handleGapCountingInA(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 						std::make_pair(newGap.startPos_, newGap));
 			} else if (countEndGaps_) {
 				++numberOfGaps;
-				handleGapCountingInA(newGap, weighHomopolymers);
+				handleGapCountingInA(newGap);
 			}
       continue;
     }
@@ -684,7 +686,7 @@ comparison aligner::compareAlignment(
         newGap.gapedSequence_.append(
             alignObjectA_.seqBase_.seq_.substr(i + 1, 1));
         ++newGap.size_;
-        newGap.qualities_.emplace_back(alignObjectA_.seqBase_.qual_[i + 1]);
+        //newGap.qualities_.emplace_back(alignObjectA_.seqBase_.qual_[i + 1]);
         ++i;
         ++secondOffset;
       }
@@ -692,18 +694,19 @@ comparison aligner::compareAlignment(
 			if (!endGap) {
 				++numberOfGaps;
 				gappedBasesInB += newGap.size_;
-				handleGapCountingInB(newGap, weighHomopolymers);
+				handleGapCountingInB(newGap);
 			} else if (countEndGaps_) {
 				++numberOfGaps;
-				handleGapCountingInB(newGap, weighHomopolymers);
+				handleGapCountingInB(newGap);
 			}
       continue;
     }
     /**@todo consider changing this to be scoringMatrix_[A][B] < 0
      *  instead to allow custom scoring matrix scores to determine mismatch */
 		if (alignObjectA_.seqBase_.seq_[i] != alignObjectB_.seqBase_.seq_[i]) {
-			if (objectA.checkQual(i - firstOffset, qScorePars_)
-					&& objectB.checkQual(i - secondOffset, qScorePars_)) {
+			/*if (objectA.checkQual(i - firstOffset, qScorePars_)
+					&& objectB.checkQual(i - secondOffset, qScorePars_)) {*/
+			if (objectB.checkQual(i - secondOffset, qScorePars_)) {
 				auto firstK = getKmerPos(i - firstOffset, kMaps_.kLength_,
 						objectA.seq_);
 				auto secondK = getKmerPos(i - secondOffset, kMaps_.kLength_,
@@ -724,46 +727,59 @@ comparison aligner::compareAlignment(
   }
 
 
-	uint32_t gappedEndA = 0;
-	if (alignObjectA_.seqBase_.seq_.back() == '-') {
-		gappedEndA += countEndChar(alignObjectA_.seqBase_.seq_);
-	}
+	uint32_t gappedLeftEndA = 0;
+	uint32_t gappedRightEndA = 0;
 	if (alignObjectA_.seqBase_.seq_.front() == '-') {
-		gappedEndA += countBeginChar(alignObjectA_.seqBase_.seq_);
+		gappedLeftEndA += countBeginChar(alignObjectA_.seqBase_.seq_);
 	}
-	uint32_t gappedEndB = 0;
-	if (alignObjectB_.seqBase_.seq_.back() == '-') {
-		gappedEndB += countEndChar(alignObjectB_.seqBase_.seq_);
+	if (alignObjectA_.seqBase_.seq_.back() == '-') {
+		gappedRightEndA += countEndChar(alignObjectA_.seqBase_.seq_);
 	}
+	uint32_t gappedEndA = gappedRightEndA + gappedLeftEndA;
+
+	uint32_t gappedLeftEndB = 0;
+	uint32_t gappedRightEndB = 0;
 	if (alignObjectB_.seqBase_.seq_.front() == '-') {
-		gappedEndB += countBeginChar(alignObjectB_.seqBase_.seq_);
+		gappedLeftEndB += countBeginChar(alignObjectB_.seqBase_.seq_);
 	}
+	if (alignObjectB_.seqBase_.seq_.back() == '-') {
+		gappedRightEndB += countEndChar(alignObjectB_.seqBase_.seq_);
+	}
+	uint32_t gappedEndB = gappedLeftEndB + gappedRightEndB;
+
+	uint32_t gappedEnd = gappedEndA + gappedEndB;
+
 	//objectA (ref)
-	comp_.distances_.ref_.covered_ = len(alignObjectA_) - gappedBasesInA - gappedEndB;
+	comp_.distances_.ref_.covered_ = len(alignObjectA_) - gappedBasesInA - gappedEnd;
 	comp_.distances_.ref_.coverage_ = static_cast<double>(comp_.distances_.ref_.covered_)/len(objectA);
 	comp_.distances_.ref_.identities_ = comp_.highQualityMatches_ + comp_.lowQualityMatches_;
 	comp_.distances_.ref_.identity_ = static_cast<double>(comp_.distances_.ref_.identities_)/len(objectA);
 	//objectB (query)
-	comp_.distances_.query_.covered_ = len(alignObjectB_) - gappedBasesInB - gappedEndA;
+	comp_.distances_.query_.covered_ = len(alignObjectB_) - gappedBasesInB - gappedEnd;
 	comp_.distances_.query_.coverage_ = static_cast<double>(comp_.distances_.query_.covered_)/len(objectB);
 	comp_.distances_.query_.identities_ = comp_.highQualityMatches_ + comp_.lowQualityMatches_;
 	comp_.distances_.query_.identity_ = static_cast<double>(comp_.distances_.query_.identities_)/len(objectB);
 	//of the overlapping alignment
-	comp_.distances_.basesInAln_ = len(alignObjectA_) - gappedEndA - gappedEndB;
+	comp_.distances_.basesInAln_ = len(alignObjectA_) - gappedEnd;
   comp_.distances_.percentMatch_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.basesInAln_);
   comp_.distances_.percentMismatch_ = (comp_.hqMismatches_ + comp_.lqMismatches_)/static_cast<double>(comp_.distances_.basesInAln_);
   comp_.distances_.percentGaps_ = (gappedBasesInA + gappedBasesInB)/static_cast<double>(comp_.distances_.basesInAln_);
   comp_.distances_.overLappingEvents_ = comp_.highQualityMatches_
 			+ comp_.lowQualityMatches_ + comp_.hqMismatches_ + comp_.lqMismatches_
-			+ comp_.lowKmerMismatches_ + numberOfGaps;
-  comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
+			+ comp_.lowKmerMismatches_ + comp_.distances_.alignmentGaps_.size();
+  if(comp_.distances_.overLappingEvents_ == 0){
+  	comp_.distances_.eventBasedIdentity_ = 0;
+  }else{
+  	comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
+  }
+  comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;
   comp_.queryName_ = objectB.name_;
   return comp_;
 }
 
-void aligner::handleGapCountingInA(gap& currentGap, bool weighHomopolymers) {
-	if (!seqUtil::isHomopolyer(currentGap.gapedSequence_) || !weighHomopolymers) {
+void aligner::handleGapCountingInA(gap& currentGap) {
+	if (!seqUtil::isHomopolyer(currentGap.gapedSequence_) || !weighHomopolymers_) {
 		if (currentGap.size_ >= 3) {
 			++comp_.largeBaseIndel_;
 		} else if (currentGap.size_ == 2) {
@@ -775,7 +791,7 @@ void aligner::handleGapCountingInA(gap& currentGap, bool weighHomopolymers) {
 		uint32_t alnABases = 0;
 		uint32_t alnBBases = 0;
 		// forwards
-		int cursor = 0;
+		uint32_t cursor = 0;
 		while ((currentGap.startPos_ + currentGap.size_ + cursor)
 				< alignObjectA_.seqBase_.seq_.size()
 				&& alignObjectA_.seqBase_.seq_[currentGap.startPos_ + currentGap.size_
@@ -835,8 +851,8 @@ void aligner::handleGapCountingInA(gap& currentGap, bool weighHomopolymers) {
 		}
 	}
 }
-void aligner::handleGapCountingInB(gap& currentGap, bool weighHomopolymers) {
-	if (!seqUtil::isHomopolyer(currentGap.gapedSequence_) || !weighHomopolymers) {
+void aligner::handleGapCountingInB(gap& currentGap) {
+	if (!seqUtil::isHomopolyer(currentGap.gapedSequence_) || !weighHomopolymers_) {
 		if (currentGap.size_ >= 3) {
 			++comp_.largeBaseIndel_;
 		} else if (currentGap.size_ == 2) {
@@ -848,7 +864,7 @@ void aligner::handleGapCountingInB(gap& currentGap, bool weighHomopolymers) {
 		uint32_t alnABases = 0;
 		uint32_t alnBBases = 0;
 		// forwards
-		int cursor = 0;
+		uint32_t cursor = 0;
 		while ((currentGap.startPos_ + currentGap.size_ + cursor)
 				< alignObjectB_.seqBase_.seq_.size()
 				&& alignObjectB_.seqBase_.seq_[currentGap.startPos_ + currentGap.size_
@@ -1288,11 +1304,6 @@ void aligner::scoreAlignment(bool editTheSame) {
   }
 }
 
-void aligner::noAlignSetAndScore(const baseReadObject& objectA,
-		const baseReadObject& objectB) {
-	noAlignSetAndScore(objectA.seqBase_, objectB.seqBase_);
-}
-
 void aligner::noAlignSetAndScore(const seqInfo& objectA,
 		const seqInfo& objectB) {
 	alignObjectA_.seqBase_ = objectA;
@@ -1365,6 +1376,16 @@ void aligner::processAlnInfoOutput(const std::string& outAlnInfoDirName, bool ve
 			processAlnInfoOutputNoCheck(outAlnInfoDirName, verbose);
 		}
 	}
+}
+
+void aligner::setDefaultQualities() {
+	qScorePars_.primaryQual_ = 20;
+	qScorePars_.secondaryQual_ = 15;
+	qScorePars_.qualThresWindow_ = 5;
+};
+
+void aligner::setGeneralScorring(int32_t generalMatch, int32_t generalMismatch){
+	parts_.scoring_ = substituteMatrix(generalMatch, generalMismatch);
 }
 
 

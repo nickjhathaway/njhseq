@@ -88,6 +88,10 @@ SeqIOOptions::outFormats SeqIOOptions::getOutFormat(const std::string & format){
 	return out;
 }
 
+std::string SeqIOOptions::getOutExtension() const{
+	return getOutExtension(outFormat_);
+}
+
 std::string SeqIOOptions::getOutExtension(outFormats format){
 	std::string out = "noformat";
 	std::stringstream ss;
@@ -296,14 +300,7 @@ SeqIOOptions::SeqIOOptions() {
 }
 
 SeqIOOptions::SeqIOOptions(const std::string & jsonStr) {
-	Json::Reader reader;
-	Json::Value root;
-	auto stats =  reader.parse(jsonStr,root);
-	if(!stats){
-		std::cerr << "Error in parsing jsonStr for readObjectIOOptions in " << __PRETTY_FUNCTION__ << std::endl;
-		std::cerr << jsonStr << std::endl;
-		throw bib::err::Exception(bib::err::F() << "Could not construct from jsonStr");
-	}
+	auto root = bib::json::parse(jsonStr);
 	firstName_ = root.get("firstName_", "").asString();
 	secondName_ = root.get("secondName_", "").asString();
 	inFormat_ = getInFormat(root.get("inFormat_", "").asString());

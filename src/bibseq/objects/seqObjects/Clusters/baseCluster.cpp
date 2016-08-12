@@ -214,65 +214,58 @@ readObject baseCluster::createRead() const {
 	return readObject(seqBase_);
 }
 
+std::string toSlimJsonErrors(const comparison & comp){
+	Json::Value ret;
+	ret["highQualityMatches_"] = comp.highQualityMatches_;
+	ret["hqMismatches_"] = comp.hqMismatches_;
+	ret["largeBaseIndel_"] = comp.largeBaseIndel_;
+	ret["lowKmerMismatches_"] = comp.lowKmerMismatches_;
+	ret["lowQualityMatches_"] = comp.lowQualityMatches_;
+	ret["lqMismatches_"] = comp.lqMismatches_;
+	ret["oneBaseIndel_"] = comp.oneBaseIndel_;
+	ret["twoBaseIndel_"] = comp.twoBaseIndel_;
+	Json::FastWriter jWriter;
+	return jWriter.write(ret);
+}
 
 
 bool baseCluster::compare(baseCluster & read, aligner & alignerObj,
-		const comparison & errorThreshold, const collapserOpts & collapserOptsObj) {
+		const IterPar & runParams, const CollapserOpts & collapserOptsObj) {
 	bool ret = false;
 	if (previousErrorChecks_.find(read.firstReadName_) != previousErrorChecks_.end()
 			&& read.previousErrorChecks_.find(firstReadName_)
 					!= read.previousErrorChecks_.end()) {
-		ret = errorThreshold.passErrorProfile(
+		ret = runParams.passErrorCheck(
 				read.previousErrorChecks_.at(firstReadName_));
+		//if(read.previousErrorChecks_.at(firstReadName_).distances_.eventBasedIdentity_ > .95 and read.seqBase_.cnt_ == 1 and !ret){
+		//	std::cout << toSlimJsonErrors(read.previousErrorChecks_.at(firstReadName_)) << std::endl;
+		//}
 	} else {
-    if(collapserOptsObj.noAlign_){
-    	alignerObj.noAlignSetAndScore(*this, read);
+    if(collapserOptsObj.alignOpts_.noAlign_){
+    	alignerObj.noAlignSetAndScore(seqBase_, read.seqBase_);
     }else{
-    	alignerObj.alignCacheGlobal(*this, read);
+    	alignerObj.alignCacheGlobal(seqBase_, read.seqBase_);
     }
-		alignerObj.profilePrimerAlignment(*this, read,
-				collapserOptsObj.weighHomopolyer_);
-		if (alignerObj.comp_.distances_.query_.coverage_ < 0.50
-				|| alignerObj.comp_.distances_.ref_.coverage_< 0.50) {
+		comparison currentProfile = alignerObj.compareAlignment(seqBase_, read.seqBase_,
+				 collapserOptsObj.kmerOpts_.checkKmers_);
+		if (currentProfile.distances_.query_.coverage_ < 0.50
+				|| currentProfile.distances_.ref_.coverage_< 0.50) {
 			ret = false;
 		} else {
-			comparison currentProfile = alignerObj.compareAlignment(*this, read,
-					runningParameters(), collapserOptsObj.checkKmers_,
-					collapserOptsObj.kmersByPosition_, collapserOptsObj.weighHomopolyer_);
 			read.previousErrorChecks_[firstReadName_] = currentProfile;
 			previousErrorChecks_[read.firstReadName_] = currentProfile;
-			ret = errorThreshold.passErrorProfile(currentProfile);
-		}
-	}
-	return ret;
-}
-
-bool baseCluster::compareId(baseCluster & read, aligner & alignerObj,
-		const comparison & errorThreshold, const collapserOpts & collapserOptsObj) {
-	bool ret = false;
-	if (previousErrorChecks_.find(read.firstReadName_) != previousErrorChecks_.end()
-			&& read.previousErrorChecks_.find(firstReadName_)
-					!= read.previousErrorChecks_.end()) {
-		ret = errorThreshold.passErrorProfile(
-				read.previousErrorChecks_.at(firstReadName_));
-	} else {
-    if(collapserOptsObj.noAlign_){
-    	alignerObj.noAlignSetAndScore(*this, read);
-    }else{
-    	alignerObj.alignCacheGlobal(*this, read);
-    }
-		alignerObj.profilePrimerAlignment(*this, read,
-				collapserOptsObj.weighHomopolyer_);
-		if (alignerObj.comp_.distances_.query_.coverage_ < 0.50
-				|| alignerObj.comp_.distances_.ref_.coverage_< 0.50) {
-			ret = false;
-		} else {
-			comparison currentProfile = alignerObj.compareAlignment(*this, read,
-					runningParameters(), collapserOptsObj.checkKmers_,
-					collapserOptsObj.kmersByPosition_, collapserOptsObj.weighHomopolyer_);
-			read.previousErrorChecks_[firstReadName_] = currentProfile;
-			previousErrorChecks_[read.firstReadName_] = currentProfile;
-			ret = errorThreshold.passIdThreshold(currentProfile);
+			//std::stringstream ss;
+			//ss << bib::json::toJson(currentProfile) << std::endl;;
+			//std::cout << bib::removeAllWhitespace(ss.str()) << std::endl;;
+			//ss.str("");
+			//ss << bib::json::toJson(runParams.errors_) << std::endl;
+			//std::cout << bib::removeAllWhitespace(ss.str()) << std::endl;;
+			ret = runParams.passErrorCheck(currentProfile);
+			//if (currentProfile.distances_.eventBasedIdentity_ > .95
+			//		&& read.seqBase_.cnt_ == 1 and !ret) {
+			//	std::cout << toSlimJsonErrors(currentProfile) << std::endl;
+			//}
+			//std::cout << ret << std::endl;
 		}
 	}
 	return ret;
@@ -286,7 +279,6 @@ bool baseCluster::isClusterCompletelyChimeric() {
   }
   return true;
 }
-
 
 bool baseCluster::isClusterAtLeastHalfChimeric() {
 	size_t chiCount = 0;

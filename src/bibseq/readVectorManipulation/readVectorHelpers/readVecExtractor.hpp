@@ -190,7 +190,7 @@ class readVecExtractor {
       // found
       for (auto& read : unrecognizedReads) {
         read.seqBase_.reverseComplementRead();
-        read.seqBase_.name_ = replaceString(read.seqBase_.name_, "_Comp", "");
+        read.seqBase_.name_ = bib::replaceString(read.seqBase_.name_, "_Comp", "");
       }
     }
 
@@ -237,7 +237,7 @@ class readVecExtractor {
         // found
         for (auto& read : revReadsUnRec) {
           read.seqBase_.reverseComplementRead();
-          read.seqBase_.name_ = replaceString(read.seqBase_.name_, "_Comp", "");
+          read.seqBase_.name_ = bib::replaceString(read.seqBase_.name_, "_Comp", "");
         }
       }
       if(errors < 1){
@@ -325,7 +325,7 @@ class readVecExtractor {
                                               const VecStr& names) {
     std::vector<T> ans;
     for (const auto& read : reads) {
-      if (contains(names, read.seqBase_.name_)) {
+      if (bib::contains(names, read.seqBase_.name_)) {
         ans.emplace_back(read);
       }
     }
@@ -336,7 +336,7 @@ class readVecExtractor {
                                               const VecStr& names) {
     std::vector<T> ans;
     for (const auto& read : reads) {
-      if (!contains(names, read.seqBase_.name_)) {
+      if (!bib::contains(names, read.seqBase_.name_)) {
         ans.emplace_back(read);
       }
     }
@@ -467,7 +467,7 @@ class readVecExtractor {
   				for(const auto & bar : barcodeMotifs){
   					auto positions = bar.second.findPositionsFull(read.seqBase_.seq_, err, forStop, forwardPosition.first);
   					if(!positions.empty()){
-  						appendStr = "_erNum:" + to_string(err);
+  						appendStr = "_erNum:" + estd::to_string(err);
   						matchBar = bar.first;
   						if(found){
   							//found multiple possible matches
@@ -480,7 +480,7 @@ class readVecExtractor {
   					}else if (checkComplement){
   						auto positionsComp = bar.second.findPositionsFull(readComp.seqBase_.seq_, err, forStopComp, forwardPosComp.first);
   						if(!positionsComp.empty()){
-  							appendStr = "_erNum:" + to_string(err) + "_Comp";
+  							appendStr = "_erNum:" + estd::to_string(err) + "_Comp";
   							matchBar = bar.first;
   							if(found){
   								//found multiple possible matches
@@ -504,7 +504,7 @@ class readVecExtractor {
   						}else{
   							readComp.trimFront(positions.back() + barcodeMotifs.at(matchBar).motifOriginal_.size());
   						}
-  						readComp.seqBase_.name_ = replaceString(readComp.seqBase_.name_, "_Comp", appendStr);
+  						readComp.seqBase_.name_ = bib::replaceString(readComp.seqBase_.name_, "_Comp", appendStr);
   						readsByMID[matchBar].emplace_back(readComp);
   					}else{
   						auto positions = barcodeMotifs.at(matchBar).findPositionsFull(read.seqBase_.seq_, err, forStop, forwardPosition.first);

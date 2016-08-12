@@ -72,8 +72,6 @@ class mutator {
       uint32_t &mutateCount, double commonRate );*/
 };
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "mutator.cpp"
-#endif
+

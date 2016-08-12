@@ -26,7 +26,7 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "bibseq/objects/helperObjects/motif.hpp"
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
 #include "bibseq/objects/dataContainers/tables/table.hpp"
 
 

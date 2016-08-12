@@ -189,14 +189,14 @@ class readVecSplitter {
                                                    bool mark = true) {
     std::vector<T> goodReads;
     for (const auto& read : vec) {
-      if (read.fractionAboveQualCheck_ >= cutOff) {
+      if (getSeqBase(read).getQualCheck(qualCheck) >= cutOff) {
         goodReads.push_back(read);
       } else {
         ++splitCount;
         badReads.push_back(read);
         if (mark) {
-          getSeqBase(badReads.back()).name_.append("_q" + to_string(qualCheck) + "<" +
-                                                std::to_string(cutOff));
+          getSeqBase(badReads.back()).name_.append("_q" + estd::to_string(qualCheck) + "<" +
+          		estd::to_string(cutOff));
         }
       }
     }
@@ -723,8 +723,6 @@ class readVecSplitter {
   minLength,maxLength, alreadySplitVectors.second,badReadsLength);
   };*/
 };
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "readVecSplitter.cpp"
-#endif
+

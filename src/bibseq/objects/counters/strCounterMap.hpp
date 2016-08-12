@@ -55,8 +55,6 @@ public:
 	void printFractionInfo(std::ostream & out) const;
 };
 
-} /* namespace bib */
+} /* namespace bibseq */
 
-#ifndef NOT_HEADER_ONLY
-#include "strCounterMap.cpp"
-#endif
+

@@ -71,7 +71,7 @@ std::vector<uint32_t> getPositionsOfSubStrTarget(const VecStr& vec,
   uint32_t pos = 0;
   std::vector<uint32_t> positions;
   for (const auto& iter : vec) {
-    if (containsSubString(iter, target)) {
+    if (bib::containsSubString(iter, target)) {
       positions.push_back(pos);
     }
     ++pos;
@@ -84,7 +84,7 @@ std::vector<uint32_t> getPositionsOfTargetStartsWith(
   uint32_t pos = 0;
   std::vector<uint32_t> positions;
   for (const auto& iter : vec) {
-    if (beginsWith(iter, target)) {
+    if (bib::beginsWith(iter, target)) {
       positions.push_back(pos);
     }
     ++pos;

@@ -76,6 +76,4 @@ static std::unordered_map<std::string, std::unique_ptr<std::shared_timed_mutex>>
 
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "alnInfoHolder.cpp"
-#endif
+

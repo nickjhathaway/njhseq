@@ -115,7 +115,7 @@ public:
 			ioOptions) const{
 		std::vector<T> outReads;
 		outReads.reserve(readPositions_.size());
-		SeqInput reader(ioOptions.firstName_);
+		SeqInput reader(ioOptions);
 		reader.openIn();
 		readObject read;
 		for(const auto & pos : readPositions_){
@@ -237,9 +237,7 @@ std::vector<nucCompCluster>  clusterOnNucComp(const SeqIOOptions &
 
 
 
-} /* namespace bib */
+} /* namespace bibseq */
 
 
-#ifndef NOT_HEADER_ONLY
-#include "nucCompCluster.cpp"
-#endif
+

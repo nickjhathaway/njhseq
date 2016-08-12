@@ -25,9 +25,10 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 #include "bibseq/objects/seqObjects/Paired/PairedRead.hpp"
 #include "bibseq/alignment/aligner.h"
-#include "bibseq/objects/collapseObjects/collapserOpts.hpp"
+#include "bibseq/objects/collapseObjects/opts.h"
 
 namespace bibseq {
 
@@ -75,33 +76,20 @@ public:
 
 	bool compare(PairedCluster & otherRead,
 			aligner & alignerObj,
-			const comparison & errorThreshold,
-			const collapserOpts & collapserOptsObj);
+			const IterPar & errorThreshold,
+			const CollapserOpts & collapserOptsObj);
 
 	bool compareRead(PairedCluster & otherRead,
 			aligner & alignerObj,
-			const comparison & errorThreshold,
-			const collapserOpts & collapserOptsObj);
+			const IterPar & errorThreshold,
+			const CollapserOpts & collapserOptsObj);
 
 	bool compareMate(PairedCluster & otherRead,
 			aligner & alignerObj,
-			const comparison & errorThreshold,
-			const collapserOpts & collapserOptsObj);
+			const IterPar & errorThreshold,
+			const CollapserOpts & collapserOptsObj);
 
-	bool compareId(PairedCluster & otherRead,
-			aligner & alignerObj,
-			const comparison & errorThreshold,
-			const collapserOpts & collapserOptsObj);
 
-	bool compareReadId(PairedCluster & otherRead,
-			aligner & alignerObj,
-			const comparison & errorThreshold,
-			const collapserOpts & collapserOptsObj);
-
-	bool compareMateId(PairedCluster & otherRead,
-			aligner & alignerObj,
-			const comparison & errorThreshold,
-			const collapserOpts & collapserOptsObj);
 
 	void writeOutClusters(const std::string& directoryName,const SeqIOOptions & ioOptions) const;
 	void writeOutClustersWithConsensus(std::ostream & firstOut,std::ostream & secondOut )const;
@@ -122,13 +110,13 @@ void clusterPairedClusters(std::vector<PairedCluster> & clusters,
 		aligner & alignerObj,
 		aligner & alignerObjMate,
 		comparison & errorThreshold,
-		const collapserOpts & collapserOptsObj);
+		const CollapserOpts & collapserOptsObj);
 
 
 
 
 std::vector<PairedCluster> runClustering(std::vector<PairedCluster> currentClusters,
-		const collapserOpts & collapserOptsObj, aligner & alignerObj, aligner & alignerObjMate,
+		const CollapserOpts & collapserOptsObj, aligner & alignerObj, aligner & alignerObjMate,
 		comparison & errorThreshold);
 
 

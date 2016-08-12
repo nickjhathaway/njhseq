@@ -31,6 +31,7 @@
 #include <bibcpp/files.h>
 namespace bibseq {
 
+
 class InOptions {
 public:
 	InOptions();
@@ -68,6 +69,9 @@ public:
 	bool exitOnFailureToWrite_ = true;
 
 	bool outExists() const;
+
+	bfs::path outName() const;
+
 	Json::Value toJson() const;
 };
 

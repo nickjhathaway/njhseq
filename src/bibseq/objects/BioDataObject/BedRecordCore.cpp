@@ -56,6 +56,18 @@ BedRecordCore::BedRecordCore(const std::string & line) {
 	}
 }
 
+BedRecordCore::BedRecordCore(std::string chrom, uint32_t chromStart,
+		uint32_t chromEnd, std::string name, double score, char strand) :
+		chrom_(chrom), chromStart_(chromStart), chromEnd_(chromEnd), name_(name), score_(
+				score), strand_(strand) {
+	if (strand_ != '+' && strand_ != '-') {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": Error strand must be + or - not " << strand_
+				<< "\n";
+		throw std::runtime_error { ss.str() };
+	}
+}
+
 BedRecordCore::BedRecordCore() :
 		chrom_(""), chromStart_(0), chromEnd_(0), name_(""), score_(0), strand_('+') {
 

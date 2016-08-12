@@ -15,8 +15,8 @@ namespace collapse {
 
 
 sampleCollapse::sampleCollapse(const std::vector<std::vector<bibseq::cluster>> &inputClusters,
-               const std::string &sampName, uint32_t sizeCutOff): sampName_(sampName) {
-  uint32_t singletCount = 0;
+               const std::string &sampName, uint32_t freqCutOff): sampName_(sampName) {
+  uint32_t lowFreqCount = 0;
   std::map<std::string, double> allSampCounts;
   for (auto &reads : inputClusters) {
   	//clusterVec::allSetFractionClusters(reads);
@@ -40,11 +40,11 @@ sampleCollapse::sampleCollapse(const std::vector<std::vector<bibseq::cluster>> &
   addOtherVec(input_.clusters_, sampleClusterReads);
 
   for(const auto & read : sampleClusterReads){
-  	if(read.seqBase_.cnt_ > sizeCutOff){
+  	if(read.seqBase_.cnt_ > freqCutOff){
   		collapsed_.clusters_.emplace_back(read);
   	}else{
   		excluded_.clusters_.emplace_back(read);
-  		++singletCount;
+  		++lowFreqCount;
   	}
   }
   updateInitialInfos();
@@ -72,23 +72,16 @@ void sampleCollapse::updateAfterExclustion() {
 }
 
 
-void sampleCollapse::cluster(collapser &collapserObj,
-                             std::map<int, std::vector<double>> iteratorMap,
-                             const std::string &sortBy, aligner &alignerObj) {
-  // std::cout <<"clus 1 " << std::endl;
-  collapsed_.clusters_ = collapserObj.collapseCluster(
-      collapsed_.clusters_, iteratorMap, sortBy, alignerObj);
-  // std::cout <<"clus 2 " << std::endl;
+void sampleCollapse::cluster(const collapser &collapserObj,
+		CollapseIterations iteratorMap, const std::string &sortBy,
+		aligner &alignerObj) {
+	// std::cout <<"clus 1 " << std::endl;
+	collapsed_.clusters_ = collapserObj.runClustering(collapsed_.clusters_,
+			iteratorMap, alignerObj);
+	// std::cout <<"clus 2 " << std::endl;
 }
 
-void sampleCollapse::clusterOnPerId(collapser &collapserObj,
-             std::map<int, std::vector<double>> iteratorMap,
-             const std::string &sortBy, aligner &alignerObj){
-  // std::cout <<"clus 1 " << std::endl;
-  collapsed_.clusters_ = collapserObj.collapseClusterOnPerId(
-      collapsed_.clusters_, iteratorMap, sortBy, alignerObj);
-  // std::cout <<"clus 2 " << std::endl;
-}
+
 
 // excludes
 void sampleCollapse::excludeChimeras(bool update) {
@@ -98,6 +91,7 @@ void sampleCollapse::excludeChimeras(bool update) {
       clus.remove = true;
     }
   }
+
   uint32_t chimeraNum = 0;
   //collapsed_.clusters_ = readVecSplitter::splitVectorOnRemoveAdd(
   //    collapsed_.clusters_, excluded_.clusters_, chimeraNum, "none", false);
@@ -137,7 +131,7 @@ void sampleCollapse::excludeFraction(double fractionCutOff, bool update) {
   }
 }
 
-void sampleCollapse::excludeBySampNum(uint64_t sampsRequired, bool update) {
+void sampleCollapse::excludeBySampNum(uint32_t sampsRequired, bool update) {
   uint32_t splitCount = 0;
   for (auto &clus : collapsed_.clusters_) {
     if (clus.numberOfRuns() < sampsRequired) {
@@ -163,25 +157,26 @@ void sampleCollapse::renameClusters(const std::string &sortBy) {
 }
 
 // output
-std::string sampleCollapse::getSimpleSampInfoHeader(const std::string & delim){
-	std::stringstream ss;
-	ss << "s_Name"
-				<< delim << "s_ReadCntTotUsed"
-				<< delim << "s_InputClusterCnt"
-				<< delim << "s_FinalClusterCnt"
-				<< delim << "c_clusterID";
-	return ss.str();
+std::string sampleCollapse::getSimpleSampInfoHeader(const std::string & delim) {
+	return bib::conToStr(getSimpleSampInfoHeaderVec(), delim);
 }
-std::string sampleCollapse::getSimpleSampInfo(uint32_t clusterId, const std::string &delim) const {
-  // sampName\treadsUsed(%total)\thapsUsed
-	std::stringstream ss;
-	ss << sampName_
-				<< delim << getPercentageString(collapsed_.info_.totalReadCount_,
-                                                  input_.info_.totalReadCount_)
-				<< delim << collapsed_.info_.numberOfClusters_
-				<< delim << collapsed_.clusters_.size()
-				<< delim << clusterId;
-	return ss.str();
+
+std::string sampleCollapse::getSimpleSampInfo(const std::string &delim) const {
+	// sampName\treadsUsed(%total)\thapsUsed
+	return bib::conToStr(getSimpleSampInfoVec(), delim);
+}
+
+VecStr sampleCollapse::getSimpleSampInfoVec() const {
+	return toVecStr(sampName_,
+			getPercentageString(collapsed_.info_.totalReadCount_,
+					input_.info_.totalReadCount_), collapsed_.info_.numberOfClusters_,
+			collapsed_.clusters_.size());
+}
+
+VecStr sampleCollapse::getSimpleSampInfoHeaderVec() {
+	return VecStr { "s_Name", "s_ReadCntTotUsed", "s_InputClusterCnt",
+			"s_FinalClusterCnt" };
+	//
 }
 
 
@@ -200,8 +195,9 @@ std::map<std::string, std::string, std::greater<std::string>> sampleCollapse::ge
 	uint32_t pos = 0;
 	for (const auto &clus : collapsed_.clusters_) {
 		std::stringstream currentInfo;
-		currentInfo << getSimpleSampInfo(pos, delim);
-		currentInfo << delim << clus.getSampleInfo(delim);
+		currentInfo << getSimpleSampInfo(delim);
+		currentInfo << delim << pos;
+		currentInfo << delim << clus.getClusterInfo(delim);
 		currentInfo << delim
 				<< clus.getRepsInfo(input_.info_.infos_, excluded_.info_.infos_,
 						collapsed_.info_.infos_, maxRepCount, checkingExpected, delim);

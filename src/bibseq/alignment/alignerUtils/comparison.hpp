@@ -163,8 +163,6 @@ std::ostream & operator <<(std::ostream & out, const comparison & comp);
 
 
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "comparisonProfile.cpp"
-#endif
+

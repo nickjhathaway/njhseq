@@ -731,58 +731,7 @@ VecStr seqUtil::findOpenFramesFromSeq(const std::string &seq) {
   return findAllOpenFrames(proteins);
 }
 
-std::map<std::string, std::pair<std::string, std::string>> seqUtil::readPrimers(
-    const std::string &idFileName, bool multiplex) {
-  std::map<std::string, std::pair<std::string, std::string>> ans;
-  table inTab(idFileName);
-  if (multiplex) {
-    std::map<std::string, std::pair<std::string, std::string>> primersNoIDs;
-    MapStrStr ids;
-    bool readingGene = false;
-    bool readingBarcode = false;
-    size_t barcodeSize = 0;
-    for (const auto &row : inTab.content_) {
-      if (stringToLowerReturn(row[0]) == "gene" ||
-      		stringToLowerReturn(row[0]) == "target" )  {
-        readingGene = true;
-        readingBarcode = false;
-        continue;
-      } else if (stringToLowerReturn(row[0]) == "id") {
-        readingGene = false;
-        readingBarcode = true;
-        continue;
-      } else {
-        if (readingGene) {
-          primersNoIDs.insert(
-              std::make_pair(row[0], std::make_pair(row[1], row[2])));
-        } else if (readingBarcode) {
-          barcodeSize = row[1].size();
-          ids.insert(std::make_pair(row[0], row[1]));
-        }
-      }
-    }
-    ans["barcodeSize"] = {"sizeIs", std::to_string(barcodeSize)};
 
-    for (const auto &primersNoIDsIter : primersNoIDs) {
-      for (const auto &idsIter : ids) {
-        auto key = combineStrings({primersNoIDsIter.first, idsIter.first});
-        ans[key] = {
-            combineStrings({idsIter.second, primersNoIDsIter.second.first}),
-            primersNoIDsIter.second.second};
-      }
-    }
-  } else {
-    for (const auto &row : inTab.content_) {
-      if (stringToLowerReturn(row[0]) == "gene") {
-        continue;
-      } else {
-        ans.insert(
-            std::make_pair(row[0], std::make_pair(row[1], row[2])));
-      }
-    }
-  }
-  return ans;
-}
 
 table seqUtil::readBarcodes(const std::string &idFileName,
                             const std::string &fileDelim, int &barcodeSize,
@@ -825,7 +774,8 @@ table seqUtil::readPrimers(const std::string &idFileName,
   bool readingGene = forceRead;
   bool readingBarcode = false;
   for (const auto &fIter : inTab.content_) {
-    if (stringToLowerReturn(fIter[0]) == "gene") {
+    if ("gene" == stringToLowerReturn(fIter[0]) ||
+    		"target" == stringToLowerReturn(fIter[0])) {
       readingGene = true;
       readingBarcode = false;
       continue;
@@ -1088,7 +1038,7 @@ bool seqUtil::doesSequenceContainDegenerativeBase(const std::string &seq) {
 std::string seqUtil::removeIntronsThenTranslate(std::string dna,
                                                 const VecStr &introns) {
   for (const auto &sIter : introns) {
-    dna = replaceString(dna, sIter, "");
+    dna = bib::replaceString(dna, sIter, "");
   }
   return convertToProtein(dna, 0, true);
 }
@@ -1521,14 +1471,14 @@ void seqUtil::printMismatchQualCountsFiles(
     }
   }
   for (const auto &count : counts) {
-    if (in(count.first, {"mean", "median", "base", "min"})) {
+    if (bib::in(count.first, {"mean", "median", "base", "min"})) {
       std::ofstream currentBigCountFile;
       openTextFile(currentBigCountFile,
                    workingDir + seqName + "_qualErrors_" + count.first,
                    ".tab.txt", overWrite, exitOnFailure);
       currentBigCountFile << "error\tqual\tweight" << std::endl;
       for (const auto &subCount : count.second) {
-        if (has(mismatchCounts[count.first], subCount.first)) {
+        if (bib::has(mismatchCounts[count.first], subCount.first)) {
           currentBigCountFile << 0 << "\t" << subCount.first << "\t"
                               << subCount.second - mismatchCounts[count.first]
                                                        .at(subCount.first)
@@ -1553,7 +1503,7 @@ seqUtil::getCountsForModel(
   std::map<std::string, std::unordered_map<std::string, std::vector<double>>>
       ans;
   for (const auto &count : counts) {
-    if (in(count.first, {"mean", "median", "base", "min"})) {
+    if (bib::in(count.first, {"mean", "median", "base", "min"})) {
       ans[count.first] = getCountsForSpecificModel(
           count.second, mismatchCounts.at(count.first));
     }
@@ -1567,7 +1517,7 @@ seqUtil::getCountsForSpecificModel(std::map<double, uint32_t> counts,
   std::ofstream currentBigCountFile;
   currentBigCountFile << "error\tqual\tweight" << std::endl;
   for (const auto &subCount : counts) {
-    if (has(mismatchCounts, subCount.first)) {
+    if (bib::has(mismatchCounts, subCount.first)) {
       currentCounts["error"].emplace_back(0);
       currentCounts["qual"].emplace_back(subCount.first);
       currentCounts["weight"]
@@ -1599,7 +1549,7 @@ seqUtil::getTrueErrorRate(
     std::map<std::string, std::map<double, uint32_t>> mismatchCounts) {
   std::map<std::string, std::unordered_map<double, double>> ans;
   for (const auto &count : counts) {
-    if (in(count.first, {"mean", "median", "base", "min"})) {
+    if (bib::in(count.first, {"mean", "median", "base", "min"})) {
       ans[count.first] = getTrueErrorRateSpecific(
           count.second, mismatchCounts.at(count.first));
     }
@@ -1611,7 +1561,7 @@ std::unordered_map<double, double> seqUtil::getTrueErrorRateSpecific(
     std::map<double, uint32_t> mismatchCounts) {
   std::unordered_map<double, double> currentCounts;
   for (const auto &subCount : counts) {
-    if (has(mismatchCounts, subCount.first)) {
+    if (bib::has(mismatchCounts, subCount.first)) {
       currentCounts[subCount.first] =
           (double)mismatchCounts.at(subCount.first) / subCount.second;
     } else {

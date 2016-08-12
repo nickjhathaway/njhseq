@@ -20,19 +20,56 @@
 //
 
 #include "SeqInput.hpp"
+#include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
+
 
 namespace bibseq {
 
+void SeqInput::buildIndex(const SeqIOOptions & ioOpts) {
+	SeqInput reader(ioOpts);
+	std::string outIndexName = ioOpts.firstName_ + ".idx.gz";
+	seqInfo info;
+	reader.openIn();
+	unsigned long long pos = 0;
+	std::vector<unsigned long long> index;
+	while (reader.readNextRead(info)) {
+		index.emplace_back(pos);
+		pos = reader.tellgPri();
+	}
+	bib::files::writePODvectorGz(outIndexName, index);
+}
+
+bool SeqInput::loadIndex() {
+	std::string outIndexName = ioOptions_.firstName_ + ".idx.gz";
+	bool indexNeedsUpdate = true;
+	if (bib::files::bfs::exists (outIndexName)) {
+		auto indexTime = bib::files::last_write_time(outIndexName);
+		auto fileTime = bib::files::last_write_time(
+				ioOptions_.firstName_);
+		if (fileTime < indexTime) {
+			indexNeedsUpdate = false;
+		}
+	}
+	if (indexNeedsUpdate) {
+		buildIndex(ioOptions_);
+		index_ = bib::files::readPODvectorGz<unsigned long long>(outIndexName);
+		indexLoad_ = true;
+	} else {
+		if(!indexLoad_){
+			index_ = bib::files::readPODvectorGz<unsigned long long>(outIndexName);
+			indexLoad_ = true;
+		}
+	}
+	return indexNeedsUpdate;
+}
 
 std::vector<readObject> SeqInput::getReferenceSeq(
     const SeqIOOptions & refOptions, uint64_t& maxLength) {
 	SeqInput refReader(refOptions);
-	refReader.openIn();
 	std::vector<readObject> reads = refReader.readAllReads<readObject>();
   readVec::getMaxLength(reads, maxLength);
   return reads;
 }
-
 
 
 SeqInput::SeqInput(const SeqIOOptions & options) :
@@ -61,19 +98,43 @@ void SeqInput::seekgSec(size_t pos){
 	secReader_->seekg(pos);
 }
 
+
+std::vector<unsigned long long> SeqInput::randomlySampleIndex(
+		bib::randomGenerator & gen, const std::string& sample) const {
+	uint32_t sampleNum = processRunCutoff(sample, index_.size());
+	return gen.unifRandSelectionVec(index_, sampleNum, false);
+}
+
+bool SeqInput::isFirstEmpty() const {
+	if (0 == bfs::file_size(ioOptions_.firstName_)) {
+		return true;
+	}
+	return false;
+}
+
+//will throw if second is blank
+bool SeqInput::isSecondEmpty() const{
+	if (0 == bfs::file_size(ioOptions_.secondName_)) {
+		return true;
+	}
+	return false;
+}
+
 void SeqInput::openIn() {
 	if (inOpen_) {
 		return;
 	}
 	if (!bib::files::bfs::exists(ioOptions_.firstName_)) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": Error file: " << ioOptions_.firstName_ << "doesn't exist\n";
+		ss << __PRETTY_FUNCTION__ << ": Error file: " << bib::bashCT::boldRed(ioOptions_.firstName_) << " doesn't exist\n";
 		if(ioOptions_.secondName_ != "" && !bib::files::bfs::exists(ioOptions_.secondName_)){
-			ss << __PRETTY_FUNCTION__ << ": Error file: " << ioOptions_.secondName_ << "doesn't exist\n";
+			ss << "and file: " << bib::bashCT::boldRed(ioOptions_.secondName_) << " doesn't exist\n";
 		}
 		throw std::runtime_error { ss.str() };
 	}
 	bool failedToOpen = false;
+	//bool firstEmpty = false;
+	//bool secondEmpty = false;
 	std::stringstream ssFormatCheck;
 	switch (ioOptions_.inFormat_) {
 		case SeqIOOptions::inFormats::FASTQ:
@@ -82,6 +143,10 @@ void SeqInput::openIn() {
 			if (!(*priReader_)) {
 				failedToOpen = true;
 			}
+			/*
+			if(0 == bfs::file_size(ioOptions_.firstName_)){
+				firstEmpty = true;
+			}*/
 			break;
 		case SeqIOOptions::inFormats::FASTQPAIRED:
 		case SeqIOOptions::inFormats::FASTAQUAL:
@@ -89,17 +154,28 @@ void SeqInput::openIn() {
 			if (!(*priReader_)) {
 				failedToOpen = true;
 			}
+			/*
+			if(0 == bfs::file_size(ioOptions_.firstName_)){
+				firstEmpty = true;
+			}*/
 			secReader_ = std::make_unique<std::ifstream>(ioOptions_.secondName_);
 			if (!(*secReader_)) {
 				failedToOpen = true;
 			}
+			/*
+			if(0 == bfs::file_size(ioOptions_.secondName_)){
+				secondEmpty = true;
+			}*/
 			break;
 		case SeqIOOptions::inFormats::FASTAGZ:
 		case SeqIOOptions::inFormats::FASTQGZ:
 			priGzReader_ = std::make_unique<bib::files::gzTextFileCpp<>>(ioOptions_.firstName_);
 			if (!(*priGzReader_)) {
 				failedToOpen = true;
-			}
+			}/*
+			if(0 == bfs::file_size(ioOptions_.firstName_)){
+				firstEmpty = true;
+			}*/
 			break;
 		case SeqIOOptions::inFormats::BAM:
 			bReader_ = std::make_unique<BamTools::BamReader>();
@@ -133,13 +209,24 @@ void SeqInput::openIn() {
 	}
 	if (failedToOpen) {
 		std::stringstream ss;
-		ss << "Error in opening : " << ioOptions_.firstName_;
+		ss << __PRETTY_FUNCTION__ << ": Error in opening : " << ioOptions_.firstName_;
 		if(""!= ioOptions_.secondName_) {
 			ss << " or " << ioOptions_.secondName_;
 		}
 		ss << "\n";
 		throw std::runtime_error { ss.str() };
-	}
+	}/*
+	if(firstEmpty || secondEmpty){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << "\n";
+		if(firstEmpty){
+			ss << "Error : " << bib::bashCT::boldRed(ioOptions_.firstName_) << " is empty\n";
+		}
+		if(secondEmpty){
+			ss << "Error : " << bib::bashCT::boldRed(ioOptions_.secondName_) << " is empty\n";
+		}
+		throw std::runtime_error { ss.str() };
+	}*/
 	inOpen_ = true;
 }
 
@@ -270,7 +357,7 @@ bool SeqInput::readNextFastaStream(std::istream & fastaFile, seqInfo& read,
 			bib::files::crossPlatGetline(fastaFile, line);
 			buildingSeq.append(line);
 		}
-		if (!includeSpaceInNames && name.find(" ") != std::string::npos) {
+		if (!ioOptions_.includeWhiteSpaceInName_ && name.find(" ") != std::string::npos) {
 			//not really safe if name starts with space but hopefully no would do that
 			read = seqInfo(name.substr(1, name.find(" ") - 1), buildingSeq);
 		} else {
@@ -282,7 +369,7 @@ bool SeqInput::readNextFastaStream(std::istream & fastaFile, seqInfo& read,
 		return true;
 	} else {
 		std::stringstream ss;
-		ss << "error in reading fasta file in " << __PRETTY_FUNCTION__ << ", line doesn't begin with >, starts with: "
+		ss << "error in reading fasta file, " << ioOptions_.firstName_ << " in " << __PRETTY_FUNCTION__ << ", line doesn't begin with >, starts with: "
 			 << std::endl;
 		ss << fastaFile.peek() << std::endl;
 		throw std::runtime_error { ss.str() };
@@ -303,7 +390,7 @@ bool SeqInput::readNextFastaStream(bib::files::gzTextFileCpp<> & fastaGzFile, se
 			fastaGzFile.getline(line);
 			buildingSeq.append(line);
 		}
-		if (!includeSpaceInNames && name.find(" ") != std::string::npos) {
+		if (!ioOptions_.includeWhiteSpaceInName_ && name.find(" ") != std::string::npos) {
 			//not really safe if name starts with space but hopefully no would do that
 			read = seqInfo(name.substr(1, name.find(" ") - 1), buildingSeq);
 		} else {
@@ -339,7 +426,7 @@ bool SeqInput::readNextQualStream(std::ifstream & qualFile,
 			bib::files::crossPlatGetline(qualFile, line);
 			buildingQual.append(line);
 		}
-		if (!includeSpaceInNames && name.find(" ") != std::string::npos) {
+		if (!ioOptions_.includeWhiteSpaceInName_ && name.find(" ") != std::string::npos) {
 			//not really safe if name starts with space but hopefully no would do that
 			name = name.substr(1, name.find(" ") - 1);
 		} else {
@@ -372,7 +459,7 @@ bool SeqInput::readNextQualStream(bib::files::gzTextFileCpp<> & qualFile,
 			qualFile.getline(line);
 			buildingQual.append(line);
 		}
-		if (!includeSpaceInNames && name.find(" ") != std::string::npos) {
+		if (!ioOptions_.includeWhiteSpaceInName_ && name.find(" ") != std::string::npos) {
 			//not really safe if name starts with space but hopefully no would do that
 			name = name.substr(1, name.find(" ") - 1);
 		} else {
@@ -502,7 +589,7 @@ bool SeqInput::readNextFastqStream(std::istream& is, uint32_t offSet,
 		seqInfo& read, bool processed) {
 	// assumes that there is no wrapping of lines, lines go name, seq, comments,
 	// qual
-	VecStr data(4);
+	VecStr data(4, "");
 	uint32_t count = 0;
 	while (!is.eof()) {
 		if (count > 3) {
@@ -519,7 +606,7 @@ bool SeqInput::readNextFastqStream(bib::files::gzTextFileCpp<>& fastqGzFile, uin
 		seqInfo& read, bool processed) {
 	// assumes that there is no wrapping of lines, lines go name, seq, comments,
 	// qual
-	VecStr data(4);
+	VecStr data(4, "");
 	uint32_t count = 0;
 	while (!fastqGzFile.done()) {
 		if (count > 3) {

@@ -42,8 +42,8 @@ void collapseSimilarNucCompClusters(std::vector<nucCompCluster>& comps,
   bool keepRemoving = true;
   while(keepRemoving){
     std::vector<uint32_t> clusterPositions(comps.size());
-    iota<uint32_t>(clusterPositions, 0);
-    reverse(clusterPositions);
+    bib::iota<uint32_t>(clusterPositions, 0);
+    bib::reverse(clusterPositions);
     std::vector<uint32_t> removeThese;
     for(const auto & compPos : clusterPositions){
   		double smallestDiff = std::numeric_limits<double>::max();
@@ -87,7 +87,7 @@ void collapseSimilarNucCompClusters(std::vector<nucCompCluster>& comps,
   sortNucCompVec(comps);
 }
 void sortNucCompVec(std::vector<nucCompCluster>& comps){
-  sort(comps, [&](const nucCompCluster & comp1,
+  bib::sort(comps, [&](const nucCompCluster & comp1,
   		const nucCompCluster & comp2){ return comp1.readCnt_ > comp2.readCnt_;});
 }
 table getInfoNucCompVec(std::vector<nucCompCluster>& comps){

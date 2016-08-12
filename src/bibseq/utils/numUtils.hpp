@@ -113,10 +113,6 @@ inline unsigned uAbsdiff(unsigned a, unsigned b) {
 	return (result ^ n) - n; // 'result' if n = 0; '-result' if n = 0xFFFFFFFF
 }
 
-} /* namespace bib */
-
-#ifndef NOT_HEADER_ONLY
-#include "numUtils.cpp"
-#endif
+} /* namespace bibseq */
 
 

@@ -51,15 +51,28 @@ std::string gap::strInfo(const std::string & delim) const {
 					gapedSequence_, vectorToString(qualities_, ",")), delim);
 }
 
+void gap::switchSeqAndRef(){
+	ref_ = !ref_;
+	auto oldRefPos = refPos_;
+	refPos_ = seqPos_;
+	seqPos_ = oldRefPos;
+}
+
+bool gap::compare(const gap & otherGap) const {
+	return seqPos_ == otherGap.seqPos_ && refPos_ == otherGap.refPos_
+			&& gapedSequence_ == otherGap.gapedSequence_ && ref_ == otherGap.ref_;
+}
+
 Json::Value gap::toJson() const {
 	Json::Value ret;
 	ret["class"] = bib::json::toJson("bibseq::gap");
 	ret["startPos_"] = bib::json::toJson(startPos_);
-	ret["refPos_"] = bib::json::toJson(refPos_);
-	ret["seqPos_"] = bib::json::toJson(seqPos_);
 	ret["size_"] = bib::json::toJson(size_);
 	ret["gapedSequence_"] = bib::json::toJson(gapedSequence_);
 	ret["qualities_"] = bib::json::toJson(qualities_);
+
+	ret["refPos_"] = bib::json::toJson(refPos_);
+	ret["seqPos_"] = bib::json::toJson(seqPos_);
 	ret["ref_"] = bib::json::toJson(ref_);
 	return ret;
 }

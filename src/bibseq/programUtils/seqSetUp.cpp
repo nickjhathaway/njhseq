@@ -22,7 +22,6 @@
 #include <bibcpp/files/fileUtilities.hpp>
 
 #include "seqSetUp.hpp"
-#include "bibseq/programUtils/runningParameters.hpp"
 #include "bibseq/IO/SeqIO/SeqInput.hpp"
 namespace bibseq {
 
@@ -58,9 +57,10 @@ void seqSetUp::processQualityFiltering() {
 void seqSetUp::processClusteringOptions(){
   processSkipOnNucComp();
   processAdjustHRuns();
-  setOption(pars_.largestFirst_,   "-largestFirst",   "Compare largest clusters first");
-  setOption(pars_.firstMatch_,     "-firstMatch",     "Settle for first Match in Clustering");
-  setOption(pars_.bestMatchCheck_, "-bestMatchCheck", "Best Match Check Number");
+  bool firstMatch = false;
+  setOption(firstMatch,     "-firstMatch",     "Settle for first Match in Clustering");
+  pars_.colOpts_.bestMatchOpts_.findingBestMatch_ = !firstMatch;
+  setOption(pars_.colOpts_.bestMatchOpts_.bestMatchCheck_, "-bestMatchCheck", "Best Match Check Number");
 }
 
 
@@ -119,59 +119,61 @@ void seqSetUp::processQualThres() {
             "Quality Threshold Window Length");
 }
 
-void seqSetUp::processIteratorMap(
-    std::string& parameters,
-    std::map<int, std::vector<double>>& iteratorMap) {
+CollapseIterations seqSetUp::processIteratorMap(std::string& parameters) {
 
-	if(!fexists(parameters)){
+	if (!fexists(parameters)) {
 		failed_ = true;
-		warnings_.emplace_back(bib::bashCT::red + bib::bashCT::bold
-				+ "File " + parameters + " doesn't exist"
-				+ bib::bashCT::reset);
+		warnings_.emplace_back(
+				bib::bashCT::red + bib::bashCT::bold + "File " + parameters
+						+ " doesn't exist" + bib::bashCT::reset);
 	}
-	iteratorMap = runningParameters::processParameters(parameters);
+	//std::cout << __PRETTY_FUNCTION__ << 1 << std::endl;
+	//CollapseIterations ret(parameters, false);
+	//std::cout << __PRETTY_FUNCTION__ << 2 << std::endl;
+	return {parameters, false};
 }
 
-void seqSetUp::processIteratorMapOnPerId(
-    std::string& parameters,
-    std::map<int, std::vector<double>>& iteratorMap) {
+CollapseIterations seqSetUp::processIteratorMapOnPerId(std::string& parameters) {
 
-	if(!fexists(parameters)){
+	if (!fexists(parameters)) {
 		failed_ = true;
-		warnings_.emplace_back(bib::bashCT::red + bib::bashCT::bold
-				+ "File " + parameters + " doesn't exist"
-				+ bib::bashCT::reset);
+		warnings_.emplace_back(
+				bib::bashCT::red + bib::bashCT::bold + "File " + parameters
+						+ " doesn't exist" + bib::bashCT::reset);
 	}
-	iteratorMap = runningParameters::processParametersPerId(parameters);
+	//std::cout << __PRETTY_FUNCTION__ << 1 << std::endl;
+	//CollapseIterations ret();
+	//std::cout << __PRETTY_FUNCTION__ << 2 << std::endl;
+	return {parameters, true};
 }
 
 void seqSetUp::processKmerLenOptions(){
-  setOption(pars_.kLength_, "-kLength", "Kmer Length");
+  setOption(pars_.colOpts_.kmerOpts_.kLength_, "-kLength", "Kmer Length");
 }
 
 void seqSetUp::processKmerProfilingOptions() {
-  setOption(pars_.runCutOffString_, "-runCutOff", "Kmer_frequencey_cutoff");
+  setOption(pars_.colOpts_.kmerOpts_.runCutOffString_, "-runCutOff", "Kmer_frequencey_cutoff");
   processKmerLenOptions();
   bool forKmerProfiling = true;
-  if (forKmerProfiling && pars_.kLength_ % 2 == 0) {
-  	pars_.kLength_--;
+  if (forKmerProfiling && pars_.colOpts_.kmerOpts_.kLength_ % 2 == 0) {
+  	pars_.colOpts_.kmerOpts_.kLength_--;
     warnings_.emplace_back("-kLength needs to be odd, not even, changing to " +
-                           estd::to_string(pars_.kLength_));
+                           estd::to_string(pars_.colOpts_.kmerOpts_.kLength_));
   }
   bool kAnywhere = false;
   setOption(kAnywhere, "-kAnywhere", "Count Kmers without regard for position");
-  pars_.kmersByPosition_ = !kAnywhere;
+  pars_.colOpts_.kmerOpts_.kmersByPosition_ = !kAnywhere;
   setOption(pars_.expandKmerPos_, "-expandKmerPos", "Expand Kmer Position Found At");
   setOption(pars_.expandKmerSize_, "-expandKmerSize", "Expand Kmer Size for extending where kmers where found");
 }
 
 void seqSetUp::processScoringPars() {
 	setOption(pars_.local_, "-local", "Local_alignment");
-	setOption(pars_.countEndGaps_, "-countEndGaps", "CountEndGaps");
+	setOption(pars_.colOpts_.alignOpts_.countEndGaps_, "-countEndGaps", "CountEndGaps");
 	bool noHomopolymerWeighting = false;
 	setOption(noHomopolymerWeighting, "-noHomopolymerWeighting",
 			"Don't do Homopolymer Weighting");
-	pars_.weightHomopolymers_ = !noHomopolymerWeighting;
+	pars_.colOpts_.iTOpts_.weighHomopolyer_ = !noHomopolymerWeighting;
 	std::string scoreMatrixFilename = "";
 	bool degenScoring = false;
 	bool caseInsensitive = false;
@@ -192,14 +194,14 @@ void seqSetUp::processScoringPars() {
 
 
 void seqSetUp::processSkipOnNucComp(){
-  setOption(pars_.skipOnLetterCounterDifference_, "-skip",
+  setOption(pars_.colOpts_.skipOpts_.skipOnLetterCounterDifference_, "-skip",
                   "skipOnLetterCounterDifference");
-  setOption(pars_.fractionDifferenceCutOff_, "-skipCutOff",
+  setOption(pars_.colOpts_.skipOpts_.fractionDifferenceCutOff_, "-skipCutOff",
                   "fractionDifferenceCutOff");
 }
 
 void seqSetUp::processAdjustHRuns(){
-  setOption(pars_.adjustHomopolyerRuns_,
+  setOption(pars_.colOpts_.iTOpts_.adjustHomopolyerRuns_,
             "-adjustHomopolyerRuns",
             "Adjust Homopolyer Runs To Be Same Qual");
 }
@@ -207,8 +209,12 @@ void seqSetUp::processAdjustHRuns(){
 bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 	std::stringstream formatWarnings;
 	bool foundUnrecFormat = false;
+
 	for (const auto & format : formats) {
-		if (!bib::in(format, readInFormatsAvailable_)) {
+		if (!bib::has(readInFormatsAvailable_, format,
+				[](const std::string & conVal, const std::string & inVal) {
+			return bib::strToLowerRet(bib::lstripRet(conVal, '-')) == bib::strToLowerRet(bib::lstripRet(inVal, '-'));
+		})) {
 			addWarning(
 					"Format: " + format + " is not an available sequence input format in "
 							+ std::string(__PRETTY_FUNCTION__));
@@ -220,7 +226,9 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 		return false;
 	}
 	VecStr readInFormatsFound;
-	if (gettingFlags_ || printingHelp_) {
+	if (commands_.gettingFlags()
+			|| commands_.printingHelp()
+			|| commands_.gettingVersion()) {
 		bib::progutils::Flag sffFlagOptions(pars_.ioOptions_.firstName_, "-sff",
 				"Input sequence filename, sff text file", required);
 		bib::progutils::Flag sffBinFlagOptions(pars_.ioOptions_.firstName_,
@@ -251,8 +259,8 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 		seqReadInFlags.addFlag(fastagzFlagOptions);
 		seqReadInFlags.addFlag(fastqFirstMateFlagOptions);
 		seqReadInFlags.addFlag(fastqSecondMateFlagOptions);
-		for(const auto & format : formats){
-			flags_.addFlag(seqReadInFlags.flags_.at(format));
+		for(const auto & formatFlag : seqReadInFlags.flags_){
+			flags_.addFlag(formatFlag.second);
 		}
 		if(bib::in(std::string("-fastq1"), formats) ){
 			flags_.addFlag(fastqComplSecondMateFlagOptions);
@@ -263,49 +271,50 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 	}
 	//compPerCutOff
 	//process format information
-	if(commands_.hasFlagCaseInsen("-fasta")){
+	//hasFlagCaseInsen(
+	if(commands_.hasFlagCaseInsenNoDash("-fasta")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTA;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTA;
 		pars_.ioOptions_.out_.outExtention_ = ".fasta";
 		readInFormatsFound.emplace_back("-fasta");
 	}
-	if(commands_.hasFlagCaseInsen("-sff")){
+	if(commands_.hasFlagCaseInsenNoDash("-sff")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::SFFTXT;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
 		pars_.ioOptions_.out_.outExtention_ = ".fastq";
 		readInFormatsFound.emplace_back("-sff");
 	}
-	if(commands_.hasFlagCaseInsen("-sffBin")){
+	if(commands_.hasFlagCaseInsenNoDash("-sffBin")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::SFFBIN;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
 		pars_.ioOptions_.out_.outExtention_ = ".fastq";
 		readInFormatsFound.emplace_back("-sffBin");
 	}
-	if(commands_.hasFlagCaseInsen("-bam")){
+	if(commands_.hasFlagCaseInsenNoDash("-bam")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::BAM;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
 		pars_.ioOptions_.out_.outExtention_ = ".fastq";
 		readInFormatsFound.emplace_back("-bam");
 	}
-	if(commands_.hasFlagCaseInsen("-fastq")){
+	if(commands_.hasFlagCaseInsenNoDash("-fastq")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQ;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
 		pars_.ioOptions_.out_.outExtention_ = ".fastq";
 		readInFormatsFound.emplace_back("-fastq");
 	}
-	if(commands_.hasFlagCaseInsen("-fastq1")){
+	if(commands_.hasFlagCaseInsenNoDash("-fastq1")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQPAIRED;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQPAIRED;
 		pars_.ioOptions_.out_.outExtention_ = ".fastq";
 		readInFormatsFound.emplace_back("-fastq1");
 	}
-	if(commands_.hasFlagCaseInsen("-fastqgz")){
+	if(commands_.hasFlagCaseInsenNoDash("-fastqgz")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQGZ;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
 		pars_.ioOptions_.out_.outExtention_ = ".fastq";
 		readInFormatsFound.emplace_back("-fastqgz");
 	}
-	if(commands_.hasFlagCaseInsen("-fastagz")){
+	if(commands_.hasFlagCaseInsenNoDash("-fastagz")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTAGZ;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTA;
 		pars_.ioOptions_.out_.outExtention_ = ".fasta";
@@ -337,7 +346,9 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 		}
     return false;
 	} else {
-		if (!gettingFlags_ && !printingHelp_){
+		if (!commands_.gettingFlags()
+				&& !commands_.printingHelp()
+				&& !commands_.gettingVersion()){
 			setOption(pars_.ioOptions_.firstName_, readInFormatsFound.front(), "In Sequence Filename");
 		}
 		if(readInFormatsFound.front() == "-fasta"){
@@ -374,7 +385,7 @@ void seqSetUp::processDirectoryOutputName(const std::string& defaultName,
   if (setOption(pars_.directoryName_, "-dout", "Output Directory Name")) {
     if (!failed_) {
     	//std::cout << pars_.directoryName_ << std::endl;
-      std::string newDirectoryName = replaceString(pars_.directoryName_, "TODAY", getCurrentDate()) +"/";
+      std::string newDirectoryName = bib::replaceString(pars_.directoryName_, "TODAY", getCurrentDate()) +"/";
     	if(bib::files::bfs::exists(newDirectoryName) && pars_.overWriteDir_){
     		bib::files::rmDirForce(newDirectoryName);
     	}else if(bib::files::bfs::exists(newDirectoryName) && !pars_.overWriteDir_){
@@ -387,18 +398,21 @@ void seqSetUp::processDirectoryOutputName(const std::string& defaultName,
   } else {
     if (mustMakeDirectory && !failed_) {
       std::string newDirectoryName = "./" +
-      		replaceString(defaultName, "TODAY", getCurrentDate()) +"/";
+      		bib::replaceString(defaultName, "TODAY", getCurrentDate()) +"/";
     	if(bib::files::bfs::exists(newDirectoryName) && pars_.overWriteDir_){
     		bib::files::rmDirForce(newDirectoryName);
+    	}else if(bib::files::bfs::exists(newDirectoryName) && !pars_.overWriteDir_){
+    		failed_ = true;
+    		addWarning("Directory: " + newDirectoryName  + " already exists, use --overWriteDir to over write it");
     	}
-    	pars_.directoryName_ = bib::files::makeDir("./", defaultName, pars_.overWriteDir_);
+    	pars_.directoryName_ = bib::files::makeDir("./", bib::files::MkdirPar(defaultName, pars_.overWriteDir_));
     }
   }
 }
 
 void seqSetUp::processDirectoryOutputName(bool mustMakeDirectory) {
   std::string seqName = bib::files::getFileName(pars_.ioOptions_.firstName_) + "_" +
-                        replaceString(commands_.getProgramName(), " ", "-") + "_" + getCurrentDate();
+  		bib::replaceString(commands_.getProgramName(), " ", "-") + "_" + getCurrentDate();
   processDirectoryOutputName(seqName, mustMakeDirectory);
 }
 
@@ -432,12 +446,19 @@ void seqSetUp::processWritingOptions() {
 	setOption(pars_.ioOptions_.out_.outFilename_, "-out", "Out Filename");
 }
 
+void seqSetUp::processWritingOptions(OutOptions & opts) {
+	setOption(opts.overWriteFile_, "--overWrite",
+			"Over Write Existing Files");
+	setOption(opts.append_, "--appendFile", "Append to file");
+	setOption(opts.outFilename_, "--out", "Out Filename");
+}
+
 bool seqSetUp::processRefFilename(bool required) {
 	setOption(pars_.refIoOptions_.processed_, "-refProcessed",
 			"Reference Name Has Abundance Info");
-	if (commands_.hasFlagCaseInsen("-refFastq")) {
+	if (commands_.hasFlagCaseInsenNoDash("-refFastq")) {
 		pars_.refIoOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQ;
-	} else if (commands_.hasFlagCaseInsen("-ref")) {
+	} else if (commands_.hasFlagCaseInsenNoDash("-ref")) {
 		pars_.refIoOptions_.inFormat_ = SeqIOOptions::inFormats::FASTA;;
 	}
 	processGapRef();
@@ -500,7 +521,9 @@ void seqSetUp::processAlignerDefualts() {
   processScoringPars();
   processKmerProfilingOptions();
   processAlnInfoInput();
-  setOption(pars_.eventBased_, "-eventBased", "Event Based Comparison");
+  bool alignScoreBased = false;
+  setOption(alignScoreBased, "--scoreBased", "Scored Based Comparison For Alignments(defualt:event based)");
+  pars_.colOpts_.alignOpts_.eventBased_ = !alignScoreBased;
 }
 
 void seqSetUp::processAlnInfoInput() {
@@ -569,7 +592,7 @@ void seqSetUp::printFileWritingUsage(std::ostream& out, bool all) {
 void seqSetUp::printKmerProfilingUsage(std::ostream& out) {
   // std::stringstream tempOut;
   out << bib::bashCT::bold <<"kmer options"<< bib::bashCT::reset << std::endl;
-  out << "1) -kLength [option]: The length of the k mer check, defaults to " << pars_.kLength_ << std::endl;
+  out << "1) -kLength [option]: The length of the k mer check, defaults to " << pars_.colOpts_.kmerOpts_.kLength_ << std::endl;
   out << "2) -kAnywhere : check any kmers found anywhere, defaults to "
          "checking for kmers at the position found" << std::endl;
   out << "3) -runCutOff [option]: kmer occurrence number cut off "

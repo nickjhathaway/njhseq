@@ -231,8 +231,6 @@ kmerCalculator::indexKmerForPosMap(const std::vector<PairedCluster>& reads, uint
 }
 
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "kmerCalculator.cpp"
-#endif
+

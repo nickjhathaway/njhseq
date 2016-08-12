@@ -274,8 +274,6 @@ VecStr randStrsRandLenRandPosMap(
 }
 
 }  // simulation
-}  // bib
+}  // bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "randomStrGen.cpp"
-#endif
+

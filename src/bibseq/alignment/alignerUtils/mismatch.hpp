@@ -38,10 +38,10 @@ namespace bibseq {
 class mismatch {
 
  public:
-  mismatch(const char& rBase, uint32_t rQual,
+  mismatch(const char rBase, uint32_t rQual,
            const std::vector<uint32_t>& rLeadQual,
            const std::vector<uint32_t>& rTrailQual, uint32_t rBasePos,
-           const char& sBase, uint32_t sQual,
+           const char sBase, uint32_t sQual,
            const std::vector<uint32_t>& sLeadQual,
            const std::vector<uint32_t>& sTrailQual, uint32_t sBasePos,
            int kFreqByPos, int kFreq)
@@ -87,8 +87,6 @@ class mismatch {
   static bool isMismatchTransition(const char& baseA, const char& baseB);
 
 };
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "mismatch.cpp"
-#endif
+

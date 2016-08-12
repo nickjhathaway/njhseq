@@ -82,8 +82,6 @@ std::string cleanOut(const std::string &in, uint32_t width,
 VecStr getNewestDirs(const std::string & dirName, const std::string & con);
 
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "fileUtils.cpp"
-#endif
+

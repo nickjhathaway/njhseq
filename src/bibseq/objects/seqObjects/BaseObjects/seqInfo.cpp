@@ -1,7 +1,7 @@
 #include "seqInfo.hpp"
 #include "bibseq/helpers/seqUtil.hpp"
 #include <bibcpp/bashUtils.h>
-#include <boost/math/special_functions/pow.hpp>
+
 //
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
@@ -258,7 +258,7 @@ void seqInfo::reverseComplementRead(bool mark, bool regQualReverse) {
 	if (mark) {
 		//if name already contains _Comp and then remove _Comp
 		if (name_.find("_Comp") != std::string::npos) {
-			name_ = replaceString(name_, "_Comp", "");
+			name_ = bib::replaceString(name_, "_Comp", "");
 		} else {
 			name_.append("_Comp");
 		}
@@ -434,7 +434,7 @@ void seqInfo::markAsChimeric() {
 
 void seqInfo::unmarkAsChimeric() {
 	if (name_.find("CHI") != std::string::npos) {
-		name_ = replaceString(name_, "CHI_", "");
+		name_ = bib::replaceString(name_, "CHI_", "");
 	}
 }
 
@@ -492,6 +492,12 @@ bool seqInfo::degenCompare(const seqInfo & otherInfo,
 	return std::equal(seq_.begin(), seq_.end(), otherInfo.seq_.begin(), comp);
 }
 
+std::string seqInfo::getReadId() const {
+  size_t firstPeriod = name_.find(".");
+  size_t firstUnder = name_.find("_", firstPeriod);
+  return name_.substr(firstPeriod + 1, firstUnder - firstPeriod - 1);
+}
+
 std::string seqInfo::getStubName(bool removeChiFlag) const {
 	size_t tPos = name_.rfind("_t");
 	size_t fPos = name_.rfind("_f");
@@ -511,7 +517,7 @@ std::string seqInfo::getStubName(bool removeChiFlag) const {
 	}
 
 	if (removeChiFlag) {
-		outString = replaceString(outString, "CHI_", "");
+		outString = bib::replaceString(outString, "CHI_", "");
 	}
 	return outString;
 }
@@ -563,6 +569,7 @@ void seqInfo::setClip(size_t leftPos, size_t rightPos) {
 void seqInfo::setClip(size_t rightPos) {
 	setClip(0, rightPos);
 }
+
 void seqInfo::setClip(const std::pair<int, int>& positions) {
 	setClip(positions.first, positions.second);
 }
@@ -570,6 +577,7 @@ void seqInfo::setClip(const std::pair<int, int>& positions) {
 void seqInfo::trimFront(size_t upToPosNotIncluding) {
 	setClip(upToPosNotIncluding, seq_.size() - 1);
 }
+
 void seqInfo::trimBack(size_t fromPositionIncluding) {
 	setClip(0, fromPositionIncluding - 1);
 
@@ -578,6 +586,7 @@ void seqInfo::trimBack(size_t fromPositionIncluding) {
 double seqInfo::getAverageQual() const {
 	return static_cast<double>(getSumQual()) / qual_.size();
 }
+
 /*
  double seqInfo::getAverageErrorRate() const {
  //return 0;
@@ -606,4 +615,77 @@ uint32_t seqInfo::getSumQual() const {
 	return sum;
 }
 
-}  // namespace bib
+std::string seqInfo::getOwnSampName() const {
+	//std::cout << name_ << std::endl;
+	std::string name = getStubName(true);
+	auto firstBracket = name_.find("[");
+	if (std::string::npos != firstBracket) {
+		name = name.substr(firstBracket);
+	}
+	//std::cout << name.substr(0,name.rfind(".")) << std::endl;
+	return name.substr(0,name.rfind("."));
+	/*
+	std::string name = name_;
+	auto firstBracket = name_.find("[");
+	if(std::string::npos != firstBracket){
+		name = name.substr(firstBracket);
+	}
+	VecStr toks = tokenizeString(name, ".");
+	return bib::replaceString(toks[0], "CHI_", "");
+	*/
+}
+
+void seqInfo::processNameForMeta(std::unordered_map<std::string, std::string> & meta)const{
+	auto firstBracket = name_.find("[");
+	if(std::string::npos == firstBracket){
+		std::stringstream ss;
+		ss << "Error in : " << __PRETTY_FUNCTION__
+				<< ", could not find [ in " << name_ << std::endl;
+		throw std::runtime_error{ss.str()};
+	}
+	auto secondBracket = name_.find("]", firstBracket);
+	if(std::string::npos == secondBracket){
+		std::stringstream ss;
+		ss << "Error in : " << __PRETTY_FUNCTION__
+				<< ", could not find ] in " << name_  << " after " << firstBracket
+				<< std::endl;
+		throw std::runtime_error{ss.str()};
+	}
+	auto toks = tokenizeString(name_.substr(firstBracket + 1, secondBracket - firstBracket - 1), ";");
+	for(const auto & tok : toks){
+		auto subToks = tokenizeString(tok, "=");
+		if(2 != subToks.size()){
+			std::stringstream ss;
+			ss << "Error in : " << __PRETTY_FUNCTION__
+					<< "values should be separated by one =, not " << tok
+					<< std::endl;
+			throw std::runtime_error{ss.str()};
+		}else{
+			if(meta.find(subToks[0]) != meta.end()){
+				std::stringstream ss;
+				ss << "Error in : " << __PRETTY_FUNCTION__ << ", key " << subToks[0]
+						<< " already in meta " << std::endl;
+				ss << "value is already: " << meta.find(subToks[0])->first
+						<< ", attempt to add:  " << subToks[1] << std::endl;
+				throw std::runtime_error { ss.str() };
+			}else{
+				meta.emplace(subToks[0], subToks[1]);
+			}
+		}
+	}
+}
+
+bool seqInfo::isChimeric() const {
+	return name_.find("CHI") != std::string::npos;
+}
+
+bool seqInfo::operator ==(const seqInfo & other) const{
+	return seq_ == other.seq_ &&
+			qual_ == other.qual_ &&
+			on_ == other.on_ &&
+			cnt_ == other.cnt_ &&
+			frac_ == other.frac_;
+}
+
+
+}  // namespace bibseq

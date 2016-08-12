@@ -137,9 +137,8 @@ void openTextFile(std::ofstream &file, std::string filename,
 }
 
 void openTextFile(std::ofstream &file, const OutOptions & options) {
-	auto outFilename = options.outFilename_;
-	bib::appendAsNeeded(outFilename, options.outExtention_);
-	bib::files::openTextFile(file, outFilename, options.overWriteFile_,
+
+	bib::files::openTextFile(file, options.outName().string(), options.overWriteFile_,
 			options.append_, options.exitOnFailureToWrite_);
 }
 

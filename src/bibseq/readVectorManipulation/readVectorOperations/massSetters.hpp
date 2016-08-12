@@ -75,24 +75,24 @@ namespace readVec {
 
 template <class T>
 void allSetCondensedSeq(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { getRef(read).createCondensedSeq(); });
+  bib::for_each(reads, [](T& read) { getRef(read).createCondensedSeq(); });
 }
 
 template <class T>
 void allSetCondensedSeqCount(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { getRef(read).setCondensedCounter(); });
+  bib::for_each(reads, [](T& read) { getRef(read).setCondensedCounter(); });
 }
 
 template <class T>
 void allSetLetterCount(std::vector<T>& reads) {
-  for_each(reads, [](T& read) {
+  bib::for_each(reads, [](T& read) {
   	getRef(read).setLetterCount();
   	getRef(read).counter_.setFractions();
   });
 }
 template <class T>
 void allSetLetterCount(std::vector<T>& reads, const std::vector<char> & alph) {
-  for_each(reads, [&](T& read) {
+  bib::for_each(reads, [&](T& read) {
   	getRef(read).setLetterCount(alph);
   	getRef(read).counter_.setFractions(alph);
   });
@@ -100,18 +100,18 @@ void allSetLetterCount(std::vector<T>& reads, const std::vector<char> & alph) {
 
 template <class T>
 void allUpdateName(std::vector<T>& reads) {
-  for_each(reads, [](T& read) { getRef(read).updateName(); });
+  bib::for_each(reads, [](T& read) { getRef(read).updateName(); });
 }
 
 template <class T>
 void allSetFractionByTotalCount(std::vector<T>& reads) {
   int count = getTotalReadCount(reads);
-  for_each(reads, [&](T& read) { getRef(read).setFractionByCount(count); });
+  bib::for_each(reads, [&](T& read) { getRef(read).setFractionByCount(count); });
 }
 
 template <class T>
 void allSetQualCheck(std::vector<T>& reads, int qualCheck) {
-  for_each(reads, [&](T& read) { getRef(read).setBaseCountOnQualCheck(qualCheck); });
+  bib::for_each(reads, [&](T& read) { getRef(read).setBaseCountOnQualCheck(qualCheck); });
 }
 
 

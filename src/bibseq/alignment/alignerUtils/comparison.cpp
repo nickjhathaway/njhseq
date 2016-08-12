@@ -91,15 +91,24 @@ void comparison::setEventBaseIdentity() {
 	distances_.overLappingEvents_ = highQualityMatches_ + lowQualityMatches_
 			+ hqMismatches_ + lqMismatches_ + lowKmerMismatches_
 			+ distances_.alignmentGaps_.size();
-	distances_.eventBasedIdentity_ = (highQualityMatches_ + lowQualityMatches_)
-			/ static_cast<double>(distances_.overLappingEvents_);
+	if (distances_.overLappingEvents_ == 0) {
+		distances_.eventBasedIdentity_ = 0;
+	} else {
+		distances_.eventBasedIdentity_ = (highQualityMatches_ + lowQualityMatches_)
+				/ static_cast<double>(distances_.overLappingEvents_);
+	}
+
 }
 
 void comparison::setEventBaseIdentityHq() {
 	distances_.overLappingEventsHq_ = highQualityMatches_ + hqMismatches_
 			+ lowKmerMismatches_ + distances_.alignmentGaps_.size();
-	distances_.eventBasedIdentityHq_ = (highQualityMatches_)
-			/ static_cast<double>(distances_.overLappingEvents_);
+	if (distances_.overLappingEventsHq_ == 0) {
+		distances_.eventBasedIdentityHq_ = 0;
+	} else {
+		distances_.eventBasedIdentityHq_ = (highQualityMatches_)
+				/ static_cast<double>(distances_.overLappingEventsHq_);
+	}
 }
 
 void comparison::recalcMismatchQuality(const QualScorePars & pars){

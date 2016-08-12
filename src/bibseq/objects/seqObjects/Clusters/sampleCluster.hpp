@@ -36,10 +36,52 @@ namespace bibseq {
 class sampleCluster : public cluster {
 
  public:
-  //template <typename T>
-  sampleCluster(const readObject& initializerRead, const std::map<std::string, sampInfo>& infos) ;
 
-  //sampleCluster(){}
+	//template <typename T>
+	sampleCluster(const seqInfo& initializerRead,
+			const std::map<std::string, sampInfo>& infos);
+
+	/** This is for reconstructing a sampleCluster from after writing it out
+	 *
+	 * @param initializerRead The seq base
+	 * @param seqs the seqs clustered into this cluster
+	 * @param infos the infos for the totals for the different replicates for this sample
+	 */
+	template<typename T>
+	sampleCluster(const seqInfo& initializerRead,
+			const std::vector<T> & seqs,
+			const std::map<std::string, sampInfo>& infos){
+		seqBase_ = initializerRead;
+
+		firstReadName_ = getSeqBase(seqs.front()).name_;
+		firstReadCount_ = getSeqBase(seqs.front()).cnt_;
+		seqBase_.cnt_ = 0;
+		sampName = getOwnSampName();
+
+		for (const auto & i : infos) {
+			sampInfos_[i.second.runName_] = sampInfo(i.second.runName_,
+					i.second.runReadCnt_);
+		}
+		for(const auto & seq : seqs){
+			sampleClusters_[getSeqBase(seq).getOwnSampName()].push_back(reads_.size());
+			sampInfos_[getSeqBase(seq).getOwnSampName()].update(getSeqBase(seq));
+			reads_.emplace_back(std::make_shared<readObject>(getSeqBase(seq)));
+		  // update the fraction and totalCounts
+		  seqBase_.cnt_ += getSeqBase(seq).cnt_;
+		  seqBase_.frac_ = getAveragedFrac(); //calculate average as the mean fraction between all samples
+		}
+
+
+		remove = false;
+		needToCalculateConsensus_ = false;
+	}
+
+	template<typename T>
+	sampleCluster(const T& initializerRead,
+			const std::map<std::string, sampInfo>& infos) :
+			sampleCluster(getSeqBase(initializerRead), infos) {
+
+	}
 
   virtual void updateName();
   virtual void setName(const std::string& newName);
@@ -52,6 +94,8 @@ class sampleCluster : public cluster {
   void update(const std::map<std::string, sampInfo>& infos);
 
   void updateFractionInfo();
+
+  void updateSampInfosFracs();
   // info
   uint32_t numberOfRuns()const;
 
@@ -74,9 +118,13 @@ class sampleCluster : public cluster {
   double getReadWeightedAveragedFrac()const;
 
   std::string getChimeraInfo(const std::string& delim = "\t") const;
+  VecStr getChimeraInfoVec() const;
 
-  std::string getSampleInfo(const std::string& delim = "\t") const;
-  static std::string getSampleInfoHeader(const std::string & delim = "\t");
+  std::string getClusterInfo(const std::string& delim = "\t") const;
+  static std::string getClusterInfoHeader(const std::string & delim = "\t");
+
+  VecStr getClusterInfoVec() const;
+  static VecStr getClusterInfoHeaderVec();
 
 	std::string getRepsInfo(const std::map<std::string, sampInfo> & input,
 			const std::map<std::string, sampInfo> & excluded,
@@ -85,26 +133,27 @@ class sampleCluster : public cluster {
 
   static std::string getRepsInfoHeader(uint32_t maxRunCount,bool checkingExpected, const std::string & delim = "\t");
 
-
-  std::string getPopInfo(double popReadCnt, uint32_t popClusNum,
-                                 uint32_t sampNum,const VecStr & forClusters,
-                                 const std::string& delim = "\t") const;
-
   std::string getPopInfo(double popReadCnt, uint32_t popClusNum,
                                  uint32_t sampNum,
                                  const std::string& delim = "\t") const;
 
+  VecStr getPopInfoVec(double popReadCnt, uint32_t popClusNum,
+                                 uint32_t sampNum) const;
+
   static std::string getPopInfoHeader(const std::string & delim = "\t");
+  static VecStr getPopInfoHeaderVec();
 
   std::string getFullPopInfo(double popReadCnt, uint32_t popClusNum,
-                                 uint32_t sampNum,uint32_t numOfHaps, const std::string& moiHeader,
+                                 uint32_t sampNum,uint32_t numOfHaps, const std::string& coiHeader,
                                  const std::string& delim = "\t") const;
 
-	std::string getFullPopInfo(double popReadCnt, uint32_t popClusNum,
-			uint32_t sampNum, uint32_t numOfUniHaps, const std::string& moiInfo,
-			const VecStr & forClusters, const std::string& delim = "\t") const;
+  static std::string getFullPopInfoHeader(const std::string& coiHeader, const std::string & delim = "\t");
 
-  static std::string getFullPopInfoHeader(const std::string& moiHeader, const std::string & delim = "\t");
+
+  VecStr getPopHapInfoVec(double popReadCnt, uint32_t sampNum) const;
+	static VecStr getPopHapInfoHeaderVec();
+
+
 
   void resetInfos();
 
@@ -116,6 +165,17 @@ public:
   void setSampInfos(const std::map<std::string, sampInfo> & sampInfos){
   	sampInfos_ = sampInfos;
   }
+
+  void setSampInfosTotals(const std::map<std::string, sampInfo> & sampInfos){
+  	sampInfos_ = sampInfos;
+  	for(auto & info : sampInfos_){
+  		info.second.resetBasicInfo();
+  	}
+		for (const auto & seq : reads_) {
+			sampInfos_[getSeqBase(seq).getOwnSampName()].update(getSeqBase(seq));
+		}
+  }
+
   template <typename T>
   static void updateAllClusters(std::vector<T>& clusters,
                                 const std::map<std::string, sampInfo>& infos) {
@@ -123,9 +183,15 @@ public:
       clus.update(infos);
     }
   }
+  using size_type = baseReadObject::size_type;
 };
-}  // namespace bib
 
-#ifndef NOT_HEADER_ONLY
-#include "sampleCluster.cpp"
-#endif
+
+template<>
+inline sampleCluster::size_type len(const sampleCluster & read){
+	return read.seqBase_.seq_.size();
+}
+
+}  // namespace bibseq
+
+

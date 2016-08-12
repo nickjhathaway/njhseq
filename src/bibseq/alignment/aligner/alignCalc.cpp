@@ -80,8 +80,8 @@ void alignCalc::runSmithSave(const std::string& objA, const std::string& objB,
   // get the lenth of the strings to create the alignment score matrix
   uint32_t lena = objA.size() + 1;
   uint32_t lenb = objB.size() + 1;
-  for (uint32_t i = 1; i < lena; i++) {
-    for (uint32_t j = 1; j < lenb; j++) {
+  for (uint32_t i = 1; i < lena; ++i) {
+    for (uint32_t j = 1; j < lenb; ++j) {
       char ptrFlag;
       // first set the upInherit score. If we are in the first row, this will
       // be
@@ -240,7 +240,7 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
   parts.ScoreMatrix_[0][0].leftInheritPtr = '\0';
   parts.ScoreMatrix_[0][0].diagInheritPtr = '\0';
   // initialize first column:
-  for (int32_t i = 1; i < parts.maxSize_; i++) {
+  for (uint32_t i = 1; i < parts.maxSize_; ++i) {
     if (i == 1) {
       parts.ScoreMatrix_[i][0].upInherit = - parts.gapScores_.gapLeftOpen_;
       parts.ScoreMatrix_[i][0].leftInherit = 0;
@@ -260,7 +260,7 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
     }
   }
   // initialize first row:
-  for (int32_t j = 1; j < parts.maxSize_; j++) {
+  for (uint32_t j = 1; j < parts.maxSize_; ++j) {
     if (j == 1) {
       parts.ScoreMatrix_[0][j].upInherit = 0;
       parts.ScoreMatrix_[0][j].leftInherit = - parts.gapScores_.gapLeftOpen_;

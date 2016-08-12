@@ -93,7 +93,5 @@ public:
 	size_t size()const;
 };
 
-} /* namespace bib */
-#ifndef NOT_HEADER_ONLY
-#include "motif.cpp"
-#endif
+} /* namespace bibseq */
+

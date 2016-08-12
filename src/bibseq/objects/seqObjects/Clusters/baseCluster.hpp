@@ -26,11 +26,13 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 #include "bibseq/objects/seqObjects/readObject.hpp"
 #include "bibseq/alignment.h"
 #include "bibseq/objects/helperObjects/probabilityProfile.hpp"
 #include "bibseq/simulation.h"
-#include "bibseq/objects/collapseObjects/collapserOpts.hpp"
+#include "bibseq/objects/collapseObjects/opts.h"
+
 
 namespace bibseq {
 
@@ -92,12 +94,8 @@ class baseCluster : public readObject {
     }
   }
   bool compare(baseCluster & read, aligner & alignerObj,
-  		const comparison & errorThreshold,
-  		const collapserOpts & collapserOptsObj);
-
-  bool compareId(baseCluster & read, aligner & alignerObj,
-  		const comparison & errorThreshold,
-  		const collapserOpts & collapserOptsObj);
+  		const IterPar & runParams,
+  		const CollapserOpts & collapserOptsObj);
 
   readObject createRead() const;
 
@@ -118,6 +116,4 @@ class baseCluster : public readObject {
 };
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "baseCluster.cpp"
-#endif
+

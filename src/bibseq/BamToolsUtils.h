@@ -25,4 +25,7 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+
+
 #include "bibseq/BamToolsUtils/BamToolsUtils.hpp"
+#include "bibseq/BamToolsUtils/BamAlnsCache.hpp"
