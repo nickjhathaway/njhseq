@@ -35,35 +35,72 @@ class sampInfo {
 public:
 
   sampInfo();
-  sampInfo(const readObject& cr);
+  sampInfo(const seqInfo& cr);
   sampInfo(const std::string & runName, double totalRunCnt);
   // updates
-  void update(const readObject& cr);
+
+  /**@brief Update info with this read
+   *
+   * @param cr The read to update info with
+   */
+  void update(const seqInfo& cr);
+
+  /**@brief Set runReadCnt to a new value
+   *
+   * @param runReadCnt The new total count for this sample
+   */
   void updateRunReadCnt(double runReadCnt);
+
+  /**@brief set fraction by doing readCnt_/runReadCnt_
+   *
+   */
   void updateFraction();
 
+  /**@brief reset all numbers but runReadCnt_ to zero
+   *
+   */
   void resetBasicInfo();
+
   // samp info
-
-  std::string runName_;
-  double runReadCnt_; //total number of reads associated with runName_(MID rep) in all clusters
-
-  double readCnt_; //amount of reads associated with runName_ (MID rep)
-  double fraction_; //fraction of rep reads in this cluster,
-  uint32_t numberOfClusters_;  //total number of clusters
+  std::string runName_; /**< The sample name associated with this info*/
+  double runReadCnt_; /**< total number of reads associated with runName_(MID rep) in all clusters */
+  // sub cluster info
+  double readCnt_; /**< amount of reads associated with runName_ (MID rep) */
+  double fraction_; /**< fraction of rep reads in this cluster, */
+  uint32_t numberOfClusters_;  /**< total number of sub clusters in this cluster */
   // chimeric info
-  double chiReadCnt_;
-  uint32_t chiNumberOfClusters_;
+  double chiReadCnt_; /**< The amount of chimeric reads for this cluster*/
+  uint32_t chiNumberOfClusters_; /**< The number of chimeric clusters for this cluster*/
 
+  /**@brief Get fraction, total read cnt, and cluster number
+   *
+   * @param delim The delimiter
+   * @return A sting with fraction, totalCnt, and cluster number delimited
+   */
   std::string getReadInfo(const std::string& delim = "\t") const;
+  /**@brief Get fraction re-calculated with cnt, total read cnt, and cluster number
+   *
+   * @param cnt The new sample total count
+   * @param delim The delimiter
+   * @return A sting with fraction, totalCnt, and cluster number delimited
+   */
   std::string getReadInfo(uint32_t cnt, const std::string& delim = "\t") const;
+  /**@brief Get chimeric fraction, total chimera read cnt, and chimera cluster number
+   *
+   * @param delim The delimiter
+   * @return A sting with chimeric fraction, total chimera read cnt, and chimera cluster number delimited
+   */
   std::string getChimeraInfo(const std::string& delim = "\t") const;
+  /**@brief Get chimeric fraction re-calculated with cnt, total chimera read cnt, and chimera cluster number
+   *
+   * @param cnt The new sample total count
+   * @param delim The delimiter
+   * @return A sting with chimeric fraction, total chimera read cnt, and chimera cluster number delimited
+   */
   std::string getChimeraInfo(uint32_t cnt, const std::string& delim = "\t") const;
 };
 
 
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "sampInfo.cpp"
-#endif
+

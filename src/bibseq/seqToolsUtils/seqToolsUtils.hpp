@@ -52,7 +52,7 @@ uint32_t processRunCutoff(const std::string& runCutOffString, uint64_t counter);
 
 template<typename T>
 Json::Value genDetailMinTreeData(const std::vector<T> & reads,
-		uint32_t numThreads, bool weightHomopolymers) {
+		uint32_t numThreads) {
 	uint64_t maxSize = 0;
 	readVec::getMaxLength(reads, maxSize);
 	aligner alignerObj = aligner(maxSize, gapScoringParameters(5, 1),
@@ -61,12 +61,12 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
 	std::mutex alignerLock;
 	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,
-			numThreads, weightHomopolymers, comparison(), false);
+			numThreads, comparison(), false);
 }
 
 template<typename T>
 Json::Value genDetailMinTreeData(const std::vector<T> & reads,
-		uint32_t numThreads, bool weightHomopolymers,
+		uint32_t numThreads,
 		const comparison &allowableErrors, bool settingEventsLimits) {
 	uint64_t maxSize = 0;
 	readVec::getMaxLength(reads, maxSize);
@@ -76,18 +76,18 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
 	std::mutex alignerLock;
 	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,
-			numThreads, weightHomopolymers, allowableErrors, settingEventsLimits);
+			numThreads, allowableErrors, settingEventsLimits);
 }
 
 template<typename T>
 Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 		aligner & alignerObj,
 		std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners,
-		std::mutex & alignerLock, uint32_t numThreads, bool weightHomopolymers,
+		std::mutex & alignerLock, uint32_t numThreads,
 		const comparison &allowableErrors, bool settingEventsLimits
 		){
 	auto graph = genReadComparisonGraph(reads, alignerObj, aligners, alignerLock,
-			numThreads, weightHomopolymers);
+			numThreads);
 	std::vector<std::string> popNames;
 	for (const auto & n : graph.nodes_) {
 		if (n->on_) {
@@ -111,21 +111,20 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 template<typename T>
 uint32_t getMismatches(const T & read1,
 				const T & read2,
-				aligner alignerObj, bool weightHomopolymers){
+				aligner alignerObj){
 	alignerObj.alignCache(read1.seqBase_,read2.seqBase_, false);
-	alignerObj.profilePrimerAlignment(read1.seqBase_, read2.seqBase_, weightHomopolymers);
+	alignerObj.profilePrimerAlignment(read1.seqBase_, read2.seqBase_);
 	return alignerObj.comp_.hqMismatches_;
 };
 Json::Value genMinTreeData(const std::vector<readObject> & reads,
 		aligner & alignerObj,
 		std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners,
-		std::mutex & alignerLock, uint32_t numThreads, bool weightHomopolymers);
+		std::mutex & alignerLock, uint32_t numThreads);
 
 Json::Value genMinTreeData(const std::vector<readObject> & reads);
 Json::Value genMinTreeData(const std::vector<readObject> & reads, aligner & alignerObj);
 std::string genHtmlStrForPsuedoMintree(std::string jsonFileName);
 std::string genHtmlStrForPsuedoMintree(std::string jsonFileName, std::string javaScriptFile);
-
 
 
 
@@ -153,7 +152,7 @@ static std::vector<readObject> createCondensedObjects(std::vector<T> reads) {
 }
 template<typename T>
 simulation::mismatchProfile simProfileWithReads(const std::vector<T> & reads, aligner & alignerObj,
-		randomGenerator & gen, uint32_t sampNum, bool local, bool ignoreGaps){
+		bib::randomGenerator & gen, uint32_t sampNum, bool local, bool ignoreGaps){
   std::vector<uint32_t> randomFirstPos = gen.unifRandVector<uint32_t>(0, len(reads),sampNum);
   std::vector<uint32_t> randomSecondPos = gen.unifRandVector<uint32_t>(0, len(reads),sampNum);
   simulation::mismatchProfile ret;
@@ -165,230 +164,6 @@ simulation::mismatchProfile simProfileWithReads(const std::vector<T> & reads, al
   }
   ret.setFractions();
   return ret;
-}
-
-
-
-
-
-
-
-template <typename T>
-void findForwardPrimerAndSort(
-    std::vector<T>& inputReads,
-    const std::map<std::string, std::pair<std::string, std::string>>& primers,
-    std::map<std::string, std::vector<T>>& reads,
-    std::vector<T>& unrecognizedPrimer, bool condensed) {
-  size_t maxSize = 0;
-  for (const auto& currentPrimer : primers) {
-    if (currentPrimer.second.first.size() > maxSize) {
-      maxSize = currentPrimer.second.first.size();
-    }
-  }
-  for (auto& read : inputReads) {
-    if (read.seqBase_.seq_.size() < maxSize) {
-      unrecognizedPrimer.push_back(read);
-    } else {
-
-      bool foundMatch = false;
-      for (const auto& currentPrimer : primers) {
-        if (currentPrimer.first == "barcodeSize") {
-          continue;
-        }
-        // find forward primer or if it isn't found to the unrecognized primer
-        // vector you go
-        std::string primerComparer;
-        std::string readComparer;
-        if (condensed) {
-          primerComparer = condenseSeqSimple(currentPrimer.second.first);
-          read.createCondensedSeq();
-          readComparer = read.condensedSeq.substr(0, primerComparer.size());
-        } else {
-          primerComparer = currentPrimer.second.first;
-          readComparer =
-              read.seqBase_.seq_.substr(0, currentPrimer.second.first.size());
-        }
-        if (primerComparer == readComparer) {
-          changeSubStrToLowerFromBegining(read.seqBase_.seq_,
-                                          currentPrimer.second.first.length());
-          if (reads.find(currentPrimer.first) == reads.end()) {
-            reads.insert({currentPrimer.first, {read}});
-          } else {
-            reads[currentPrimer.first].push_back(read);
-          }
-          foundMatch = true;
-          break;
-        }
-      }
-      if (!foundMatch) {
-        unrecognizedPrimer.push_back(read);
-      }
-    }
-  }
-}
-
-template <typename T>
-void findForwardPrimerAndSortDegenerative(
-    std::vector<T>& inputReads,
-    const std::map<std::string, std::pair<std::string, std::string>>& primers,
-    std::map<std::string, std::vector<T>>& reads,
-    std::vector<T>& unrecognizedPrimer,uint32_t variableStart,
-    double queryCoverage,
-    uint32_t numOfMismatches, double percentageGaps) {
-  uint64_t maxSize = 0;
-  for (const auto& currentPrimer : primers) {
-    if (currentPrimer.second.first.size() > maxSize) {
-      maxSize = currentPrimer.second.first.size();
-    }
-  }
-  uint64_t maxReadLength = 0;
-  readVec::getMaxLength(inputReads, maxReadLength);
-  auto scoringMatrixMap = substituteMatrix::createDegenScoreMatrix(1,-1);
-
-  // create alinger class object
-  auto gapPars = gapScoringParameters (7, 1, 7, 1, 7, 1);
-  aligner alignerObj =
-      aligner(maxReadLength, gapPars, scoringMatrixMap);
-
-  int count = 1;
-  std::cout << "Finding forward primer with degenerative bases in mind"
-            << std::endl;
-  for (auto& read : inputReads) {
-    if (count % 5000 == 0) {
-      std::cout << "Curently on " << count << " of " << inputReads.size()
-                << std::endl;
-    }
-    ++count;
-    if (read.seqBase_.seq_.size() < maxSize) {
-      unrecognizedPrimer.push_back(read);
-    } else {
-      bool foundMatch = false;
-      for (const auto& currentPrimer : primers) {
-        if (currentPrimer.first == "barcodeSize") {
-          continue;
-        }
-        // find forward primer or if it isn't found to the unrecognized primer
-        // vector you go
-        auto primer =
-            baseReadObject(seqInfo("primer", currentPrimer.second.first));
-        auto readBegin =
-                    baseReadObject(seqInfo("readBegin", read.seqBase_.seq_.substr(0, variableStart + maxSize)));
-        /*auto forwardPosition = alignerObj.findReversePrimer(read.seqBase_.seq_, primer.seqBase_.seq_);
-        alignerObj.rearrangeObjs(read.seqBase_, primer.seqBase_, true);
-        alignerObj.profilePrimerAlignment(read, primer, false);*/
-        auto forwardPosition = alignerObj.findReversePrimer(readBegin.seqBase_.seq_, primer.seqBase_.seq_);
-				alignerObj.rearrangeObjs(readBegin, primer.seqBase_, true);
-				alignerObj.profilePrimerAlignment(readBegin, primer, false);
-        if (forwardPosition.first <= variableStart
-            && alignerObj.comp_.distances_.query_.coverage_ >= queryCoverage
-            && alignerObj.comp_.distances_.percentGaps_ <= percentageGaps
-            && alignerObj.comp_.hqMismatches_ <= numOfMismatches) {
-          changeSubStrToLowerFromBegining(read.seqBase_.seq_,
-                                          currentPrimer.second.first.length());
-          reads[currentPrimer.first].emplace_back(read);
-          foundMatch = true;
-          break;
-        }
-      }
-      if (!foundMatch) {
-        unrecognizedPrimer.push_back(read);
-      }
-    }
-  }
-}
-
-/**@b
- *
- * @param read
- * @param reversePrimer
- * @param runParmas
- * @param alignObj
- * @param reverserPrimerToLowerCase
- * @param weighHomopolyers
- * @param queryCoverageCutOff
- * @param percentIdentityCutoff
- *
- * @todo needs to be optimized
- */
-template <typename T>
-void checkForReversePrimer(T& read, readObject& reversePrimer,
-                           runningParameters runParmas, aligner& alignObj,
-                           bool reverserPrimerToLowerCase,
-                           bool weighHomopolyers, double queryCoverageCutOff,
-                           double percentIdentityCutoff) {
-	/**@todo this function could possibly be remove */
-  auto rPos = alignObj.findReversePrimer(read, reversePrimer);
-  alignObj.rearrangeObjs(read.seqBase_, reversePrimer.seqBase_, true);
-  alignObj.profilePrimerAlignment(read, reversePrimer, weighHomopolyers);
-  bool primerGood = true;
-  if (alignObj.comp_.largeBaseIndel_ > runParmas.errors_.largeBaseIndel_ ||
-      alignObj.comp_.oneBaseIndel_ > runParmas.errors_.oneBaseIndel_ ||
-      alignObj.comp_.twoBaseIndel_ > runParmas.errors_.twoBaseIndel_) {
-    primerGood = false;
-  }
-  if (alignObj.comp_.distances_.percentMatch_ < percentIdentityCutoff) {
-    primerGood = false;
-  }
-  if (alignObj.comp_.distances_.query_.coverage_ < queryCoverageCutOff) {
-    primerGood = false;
-  }
-
-  read.remove = !primerGood;
-  read.seqBase_.on_ = primerGood;
-  if (primerGood) {
-    if (reverserPrimerToLowerCase) {
-      while (read.seqBase_.seq_[rPos.first] ==
-             read.seqBase_.seq_[rPos.first - 1]) {
-        --rPos.first;
-      }
-      changeSubStrToLowerToEnd(read.seqBase_.seq_, rPos.first);
-    }
-    read.setClip(0, rPos.second);
-  }
-}
-
-template<typename T>
-void checkForReversePrimer(std::vector<T>& reads, readObject& reversePrimer,
-		runningParameters runParmas, aligner& alignObj,
-		bool reverserPrimerToLowerCase, bool weighHomopolyers,
-		double queryCoverageCutOff, double percentIdentityCutoff) {
-	for (auto& read : reads) {
-		checkForReversePrimer(read, reversePrimer, runParmas, alignObj,
-				reverserPrimerToLowerCase, weighHomopolyers, queryCoverageCutOff,
-				percentIdentityCutoff);
-	}
-}
-
-
-
-
-
-template <typename T>
-void sortReadsBySeqFront(const std::vector<T>& inputReads,
-                         std::map<std::string, std::vector<readObject>>& reads,
-                         size_t compareSize, std::vector<T>& unrecognizedPrimer,
-                         size_t cutOffMinSize) {
-  std::map<std::string, std::vector<readObject>> tempReads;
-
-  for (const auto& read : inputReads) {
-    if (read.seqBase_.seq_.size() < compareSize) {
-      unrecognizedPrimer.push_back(read);
-    } else {
-      if (tempReads.find(read.seqBase_.seq_.substr(0, compareSize)) ==
-          tempReads.end()) {
-        tempReads.insert({read.seqBase_.seq_.substr(0, compareSize), {read}});
-      } else {
-        tempReads[read.seqBase_.seq_.substr(0, compareSize)].push_back(read);
-      }
-    }
-  }
-  for (const auto& read : tempReads) {
-    if (read.second.size() > cutOffMinSize) {
-      reads.insert(read);
-    } else {
-      addOtherVec(unrecognizedPrimer, read.second);
-    }
-  }
 }
 
 template <typename T>
@@ -413,7 +188,7 @@ void renameReadNames(std::vector<T>& reads, const std::string& stub,
     }
     read.seqBase_.name_ += "." + leftPadNumStr(count, maxSize);
     if (processed) {
-      read.seqBase_.name_ += "_t" + to_string(read.seqBase_.cnt_);
+      read.seqBase_.name_ += "_t" + estd::to_string(read.seqBase_.cnt_);
     }
     ++count;
   }
@@ -533,14 +308,14 @@ int64_t getPossibleNumberOfProteins(
     int64_t weight, std::unordered_map<int64_t, int64_t>& cache);
 probabilityProfile randomMotifSearch(const VecStr& dnaStrings, int kLength,
                                      int numberOfRuns, bool gibs, int gibsRuns,
-                                     randomGenerator& gen);
+																		 bib::randomGenerator& gen);
 probabilityProfile randomlyFindBestProfile(const VecStr& dnaStrings,
                                            const std::vector<VecStr>& allKmers,
                                            int numberOfKmers,
-                                           randomGenerator& gen);
+																					 bib::randomGenerator& gen);
 probabilityProfile randomlyFindBestProfileGibs(
     const VecStr& dnaStrings, const std::vector<VecStr>& allKmers,
-    int numberOfKmers, int runTimes, randomGenerator& gen);
+    int numberOfKmers, int runTimes, bib::randomGenerator& gen);
 
 template <typename T>
 std::vector<std::vector<T>> getAllVecCycloFragments(const std::vector<T>& vec) {
@@ -746,7 +521,7 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 	for(const auto & refPos : iter::range(len(refSeqs))){
 		auto & ref = refSeqs[refPos];
 		alignerObj.alignCache(ref.seqBase_, read.seqBase_, false);
-		alignerObj.profilePrimerAlignment(ref.seqBase_, read.seqBase_, weightHomopolymers);
+		alignerObj.profilePrimerAlignment(ref.seqBase_, read.seqBase_);
 		if(alignerObj.comp_.distances_.mismatches_.empty()){
 			foundAnExactMatch = true;
 			foundAChimera = false;
@@ -756,22 +531,24 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 	for(const auto & refPos : iter::range(len(refSeqs))){
 		auto & ref = refSeqs[refPos];
 		alignerObj.alignCache(ref.seqBase_, read.seqBase_, false);
-		alignerObj.profilePrimerAlignment(ref.seqBase_, read.seqBase_, weightHomopolymers);
+		alignerObj.profilePrimerAlignment(ref.seqBase_, read.seqBase_);
 		if(alignerObj.comp_.distances_.mismatches_.empty()){
 			foundAnExactMatch = true;
 			foundAChimera = false;
 		} else if(alignerObj.comp_.distances_.mismatches_.size() > 0 && !foundAnExactMatch){
 			auto savedMismatches = alignerObj.comp_.distances_.mismatches_;
 			//check front
-			alignerObj.profileAlignment(ref.seqBase_, read.seqBase_, 11, true, false, true, false,
-					weightHomopolymers, 0,
-					alignerObj.getAlignPosForSeqBPos(savedMismatches.begin()->second.seqBasePos));
+			alignerObj.profileAlignment(ref.seqBase_, read.seqBase_, false, true,
+					false, 0,
+					alignerObj.getAlignPosForSeqBPos(
+							savedMismatches.begin()->second.seqBasePos));
 			bool passFront = chiOverlap.passErrorProfile(alignerObj.comp_);
 
 			//check back
-			alignerObj.profileAlignment(ref.seqBase_, read.seqBase_, 11, true, false, true, false,
-					weightHomopolymers,
-								alignerObj.getAlignPosForSeqBPos(savedMismatches.rbegin()->second.seqBasePos + 1));
+			alignerObj.profileAlignment(ref.seqBase_, read.seqBase_, false, true,
+					false,
+					alignerObj.getAlignPosForSeqBPos(
+							savedMismatches.rbegin()->second.seqBasePos + 1));
 			bool passBack = chiOverlap.passErrorProfile(alignerObj.comp_);
 
 			auto firstRefAlignA = alignerObj.alignObjectA_;
@@ -789,11 +566,11 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 					//check to see if from the mismatch on from the other one ref matches
 					//to another ref
 					//when comparing to ref's need to make sure it's not the sure sequence actually ahah
-					alignerObj.profileAlignment(secondRef.seqBase_, read.seqBase_, 11, true, false, true, false, weightHomopolymers);
+					alignerObj.profileAlignment(secondRef.seqBase_, read.seqBase_, false, true, false);
 					if(alignerObj.comp_.distances_.mismatches_.size() < 1){
 						continue;
 					}
-					alignerObj.profileAlignment(secondRef.seqBase_, read.seqBase_, 11, true, false, true, false, weightHomopolymers,
+					alignerObj.profileAlignment(secondRef.seqBase_, read.seqBase_, false, true, false,
 												alignerObj.getAlignPosForSeqBPos(savedMismatches.begin()->second.seqBasePos));
 
 					//alignerObj.errors_.printDescription(std::cout, true);
@@ -806,10 +583,10 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 						inflectionPointPar2 = removeCharReturn(refTwoPortion, '-').size() - 1;
 
 						foundAChimera = true;
-						outInfo.content_.emplace_back(VecStr{read.seqBase_.name_, to_string(read.seqBase_.frac_),
-							to_string(inflectionPoint),
-							firstChiName, "1", to_string(inflectionPointPar1),
-							secondChiName, "1", to_string(inflectionPointPar2)});
+						outInfo.content_.emplace_back(VecStr{read.seqBase_.name_, estd::to_string(read.seqBase_.frac_),
+							estd::to_string(inflectionPoint),
+							firstChiName, "1", estd::to_string(inflectionPointPar1),
+							secondChiName, "1", estd::to_string(inflectionPointPar2)});
 						if(foundAChimera && breakAtFirst){
 							//VecStr{"readName", "fraction", "par1", "par1Frac", "par2", "par2Frac", "inflectionPoint"}
 							break;
@@ -828,11 +605,11 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 					}
 					alignerObj.alignCache(secondRef.seqBase_, read.seqBase_, false);
 					//when comparing to ref's need to make sure it's not the sure sequence actually ahah
-					alignerObj.profileAlignment(secondRef.seqBase_, read.seqBase_, 11, true, false, true, false, weightHomopolymers);
+					alignerObj.profileAlignment(secondRef.seqBase_, read.seqBase_, false, true, false);
 					if(alignerObj.comp_.distances_.mismatches_.size() < 1){
 						continue;
 					}
-					alignerObj.profileAlignment(secondRef.seqBase_, read.seqBase_, 11, true, false, true, false, weightHomopolymers,
+					alignerObj.profileAlignment(secondRef.seqBase_, read.seqBase_, false, true, false,
 												0, alignerObj.getAlignPosForSeqBPos(savedMismatches.rbegin()->second.seqBasePos + 1));
 					if(chiOverlap.passErrorProfile(alignerObj.comp_)){
 						foundAChimera = true;
@@ -842,10 +619,10 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 						inflectionPointPar1 = savedMismatches.rbegin()->second.refBasePos;
 						std::string refTwoPortion = alignerObj.alignObjectA_.seqBase_.seq_.substr(0, alignerObj.getAlignPosForSeqAPos(savedMismatches.rbegin()->second.refBasePos) + 1);
 						inflectionPointPar2 = removeCharReturn(refTwoPortion, '-').size() - 1;
-						outInfo.content_.emplace_back(VecStr{read.seqBase_.name_, to_string(read.seqBase_.frac_),
-							to_string(inflectionPoint),
-							firstChiName, "1", to_string(inflectionPointPar1),
-							secondChiName, "1", to_string(inflectionPointPar2)});
+						outInfo.content_.emplace_back(VecStr{read.seqBase_.name_, estd::to_string(read.seqBase_.frac_),
+							estd::to_string(inflectionPoint),
+							firstChiName, "1", estd::to_string(inflectionPointPar1),
+							secondChiName, "1", estd::to_string(inflectionPointPar2)});
 						if(foundAChimera && breakAtFirst){
 							break;
 						}
@@ -857,12 +634,8 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 	return foundAChimera;
 }
 
-table getErrorFractions(const table & errorTab);
-table getErrorFractionsCoded(const table & errorTab);
-table getIndelSizeStats(const table & indelTab);
-table getIndelDistribution(const table & indelTab);
-table getErrorStats(const table & errorTab);
-table getErrorDist(const table & errorTab);
+
+
 table getSeqPosTab(const std::string & str);
 
 
@@ -880,15 +653,21 @@ struct ExtractionInfo {
 					profileBySampTab) {
 
 	}
-	ExtractionInfo(){}
+	ExtractionInfo() {
+	}
 
 	table allStatsTab_;
 	table allProfileTab_;
 	table profileBySampTab_;
 };
 
-ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::string & indexToDir, const std::string & sampNames);
-ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, const std::string & indexToDir, const std::string & sampNames);
+ExtractionInfo collectExtractionInfo(const std::string & dirName,
+		const std::string & indexToDir, const std::string & sampNames);
+
+ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName,
+		const std::string & indexToDir, const std::string & sampNames);
+
+
 
 
 class readsWithSnps {
@@ -918,8 +697,12 @@ template<>
 inline readsWithSnps::size_type len(const readsWithSnps & reads){
 	return reads.readPositions_.size();
 }
+
+
+
+
+
+
 }  // namespace bib
 
-#ifndef NOT_HEADER_ONLY
-#include "seqToolsUtils.cpp"
-#endif
+

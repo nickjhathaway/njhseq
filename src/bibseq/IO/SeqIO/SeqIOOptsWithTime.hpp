@@ -53,6 +53,11 @@ public:
 	 * @param other table cache
 	 */
 	SeqIOOptsWithTime(const SeqIOOptsWithTime& other);
+
+	/**@brief Read in Whole File
+	 *
+	 * @return A vector of read objects from the seq io options
+	 */
 	template<typename T>
 	std::vector<T> get() {
 		time_ = bib::files::last_write_time(opts_.firstName_);
@@ -60,9 +65,22 @@ public:
 		return reader.readAllReads<T>();
 	}
 
+	/**@brief Get a number of reads from a read position (not file position) in the file
+	 *
+	 * @param pos The nth read to start getting reads from
+	 * @param number How many reads after pos to get
+	 * @return A vector of reads
+	 */
+	template<typename T>
+	std::vector<T> get(size_t pos, size_t number) {
+		time_ = bib::files::last_write_time(opts_.firstName_);
+		SeqInput reader(opts_);
+		return reader.getReads<T>(pos, number);
+	}
+
 	/**@brief Get a vector of pointers of type T from the file
 	 *
-	 * @return
+	 * @return A vector of shared pointers of read objects from the seq io options
 	 */
 	template<typename T>
 	std::vector<std::shared_ptr<T>> getPtrs() {
@@ -71,9 +89,22 @@ public:
 		return reader.readAllReadsPtrs<T>();
 	}
 
+	/**@brief Get a number of reads from a read position (not file position) in the file as a vector of shared pointers
+	 *
+	 * @param pos The nth read to start getting reads from
+	 * @param number How many reads after pos to get
+	 * @return A vector of shared pointers of reads
+	 */
+	template<typename T>
+	std::vector<std::shared_ptr<T>> getPtrs(size_t pos, size_t number) {
+		time_ = bib::files::last_write_time(opts_.firstName_);
+		SeqInput reader(opts_);
+		return reader.getReadsPtrs<T>(pos, number);
+	}
+
 	/**@brief Check to see if the file has changed since last get, will not modify the SeqIOOptsWithTime::time_
 	 *
-	 * @return
+	 * @return Whether the file has changed since the last read
 	 */
 	bool outDated() const;
 };

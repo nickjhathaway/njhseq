@@ -124,8 +124,6 @@ struct sffBinaryHeader {
 	void printDescription(std::ostream & out, bool deep = false) const;
 };
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "sffObject.cpp"
-#endif
+

@@ -18,16 +18,16 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 #include "ClustalReader.hpp"
+
 #include <bibcpp/bashUtils.h>
 
+
+#include "bibseq/readVectorManipulation.h"
+
+
 namespace bibseq {
-
-
-
-
-
-
 
 std::vector<readObject> ClustalReader::readClustal(std::string filename, bool processed) {
 	std::vector<readObject> ret;
@@ -64,13 +64,6 @@ std::vector<readObject> ClustalReader::readClustalNg(std::string filename, bool 
 	readVec::removeGapsFromReads(ret);
 	return ret;
 }
-
-
-
-
-
-
-
 
 
 }  // namespace bib

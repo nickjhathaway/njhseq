@@ -23,44 +23,39 @@
 //
 namespace bibseq {
 
-TableIOOpts::TableIOOpts() :
-		IoOptions(OutOptions("", ".txt", "txt")) {
 
+
+//adding rows
+
+void table::addRows(const std::vector<VecStr> & rows){
+	for(const auto & row : rows){
+		addRow(row);
+	}
 }
-TableIOOpts::TableIOOpts(const InOptions & inOpts) :
-		IoOptions(inOpts, OutOptions("", ".txt", "txt")) {
-
-}
-
-TableIOOpts::TableIOOpts(const OutOptions & outOpts) {
-
-}
-
-TableIOOpts::TableIOOpts(const InOptions & inOpts, const std::string & inDelim,
-		bool header) :
-		IoOptions(inOpts, OutOptions("", ".txt", "txt")), inDelim_(inDelim), hasHeader_(
-				header) {
-
-}
-
-TableIOOpts::TableIOOpts(const OutOptions & outOpts,
-		const std::string & outDelim, bool header) :
-		IoOptions(outOpts), outDelim_(outDelim), hasHeader_(header) {
-
+void table::addRow(const VecStr & row){
+	if(len(row) != nCol()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": Error size of adding row doesn't match column number" << std::endl;
+		ss << "Row size: " << len(row) << std::endl;
+		ss << "Number of columns " << nCol() << std::endl;
+		throw std::runtime_error{ss.str()};
+	}
+	content_.emplace_back(row);
 }
 
-TableIOOpts::TableIOOpts(const InOptions & inOpts, const OutOptions & outOpts) :
-		IoOptions(inOpts, outOpts) {
-
+//get lengths
+uint32_t table::nCol()const{
+	return columnNames_.size();
 }
 
-TableIOOpts::TableIOOpts(const InOptions & inOpts, const std::string & inDelim,
-		const OutOptions & outOpts, const std::string & outDelim, bool header) :
-		IoOptions(inOpts, outOpts), inDelim_(inDelim), outDelim_(outDelim), hasHeader_(
-				header) {
-
+uint32_t table::nRow()const{
+	return content_.size();
 }
 
+
+bool table::empty()const{
+	return content_.empty();
+}
 
 
 table::table(const TableIOOpts & opts) :
@@ -100,6 +95,13 @@ bool table::containsColumns(const VecStr & colNames)const{
 
 bool table::containsColumn(const uint32_t & colPos)const{
 	return colPos <= columnNames_.size();
+}
+
+void table::setRowSize(uint32_t rowSize){
+	for (auto i : iter::range(rowSize)) {
+		columnNames_.emplace_back("col." + leftPadNumStr(i, rowSize));
+	}
+	setColNamePositions();
 }
 
 void table::setColNamePositions(){
@@ -169,7 +171,7 @@ table::table(const std::string &filename, const std::string &inDelim,
   *this = table(textFile, inDelim, header);
   setColNamePositions();
 }
-void table::addPaddingToEndOfRows() {
+void table::addPaddingToEndOfRows(const std::string & padding) {
   size_t maxRowLength = 0;
   for (auto &iter : content_) {
     if (iter.size() > maxRowLength) {
@@ -178,21 +180,21 @@ void table::addPaddingToEndOfRows() {
   }
   for (auto &iter : content_) {
     if (iter.size() < maxRowLength) {
-      addOtherVec(iter, VecStr((int)maxRowLength - (int)iter.size(), ""));
+      addOtherVec(iter, VecStr(maxRowLength - iter.size(), padding));
     }
   }
 }
-void table::addPaddingZeros() {
+
+void table::fillWithZeros() {
   for (const auto &colPos : iter::range(columnNames_.size())) {
-    // size_t colPos = getFirstPositionOfTarget(columnNames_, colIter);
     std::vector<size_t> blankPositions;
     VecStr nonBlanks;
     size_t pos = 0;
-    for (const auto &fIter : content_) {
-      if (fIter[colPos] == "") {
+    for (const auto &row : content_) {
+      if (row[colPos] == "") {
         blankPositions.emplace_back(pos);
       } else {
-        nonBlanks.emplace_back(fIter[colPos]);
+        nonBlanks.emplace_back(row[colPos]);
       }
       ++pos;
     }
@@ -227,23 +229,24 @@ void table::addColumn(const VecStr & columnNew, const std::string & name){
 	setColNamePositions();
 	return;
 }
-void table::addZerosToEnds() {
-  uint32_t maxLength = 0;
-  for (const auto &row : content_) {
-    if (row.size() > maxLength) {
-      maxLength = row.size();
-    }
-  }
-  for (auto &row : content_) {
-    if (row.size() < maxLength) {
-    	for (uint32_t i = 0; i < maxLength - row.size(); ++i){
-      //for (const auto diff : iter::range(maxLength - row.size())) {
-        row.emplace_back("0");
-      }
-    }
-  }
+
+void table::padWithZeros() {
+  addPaddingToEndOfRows("0");
 }
+
 table table::getColumns(const VecStr &specificColumnNames) const{
+	VecStr missing;
+	for(const auto & col : specificColumnNames){
+		if(!bib::in(col, columnNames_)){
+			missing.emplace_back(col);
+		}
+	}
+	if(!missing.empty()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error, table doesn't contain the following columns: " << vectorToString(missing, ",") << std::endl;
+		ss << "Options are: " << vectorToString(columnNames_, "," ) << std::endl;
+		throw std::runtime_error{ss.str()};
+	}
   std::vector<uint32_t> positions =
       getPositionsMultipleTargets(columnNames_, specificColumnNames);
   return getColumns(positions);
@@ -361,26 +364,22 @@ table table::getRows(const std::vector<uint32_t> &specificRowPositions) const{
                columnNames_);
 }
 void table::outPutContents(TableIOOpts options) const {
-  if (options.outDelim_ == "tab") {
+  if ("tab" ==  options.outDelim_ ) {
     options.outDelim_ = "\t";
-  } else if (options.outDelim_ == "whitespace") {
+  } else if ("whitespace" == options.outDelim_) {
     options.outDelim_ = " ";
   }
-  if (options.out_.outFilename_ == "") {
+  if ("" == options.out_.outFilename_) {
     if (options.outOrganized_) {
       outPutContentOrganized(std::cout);
     } else {
       outPutContents(std::cout, options.outDelim_);
     }
   } else {
+  	bool writeHeader = hasHeader_ && !( bfs::exists(options.out_.outName()) && options.out_.append_);
     std::ofstream outFile;
     openTextFile(outFile, options.out_);
-    if (options.outDelim_ == "tab") {
-    	options.outDelim_ = "\t";
-    } else if (options.outDelim_ == "whitespace") {
-    	options.outDelim_ = " ";
-    }
-    if (hasHeader_ && !options.out_.append_) {
+    if (writeHeader) {
     	outFile << vectorToString(columnNames_, options.outDelim_) << "\n";
     }
     outputVectorOfVectors(content_, options.outDelim_, outFile);
@@ -835,7 +834,7 @@ table table::aggregateSimple(const std::string &columnName,
   if (function == "mean" || function == "median" || function == "min" ||
       function == "max" || function == "sum" || function == "std") {
     if (addZeros) {
-      addPaddingZeros();
+      fillWithZeros();
     }
     auto tables = splitTableOnColumn(columnName);
     std::map<std::string, table> stats;
@@ -872,7 +871,7 @@ table table::aggregateSimple(const std::string &columnName,
 
 std::vector<uint32_t> table::getNumericColumnPositions(bool addZeros) {
   if (addZeros) {
-    addPaddingZeros();
+  	fillWithZeros();
   }
   std::vector<uint32_t> ans;
   uint32_t pos = 0;
@@ -957,13 +956,12 @@ table table::cbind(const std::vector<table> &tables,
   }
 
   if (addZeros) {
-    ans.addPaddingZeros();
+    ans.fillWithZeros();
   }
   return ans;
 }
 std::map<std::string, uint32_t> table::countColumn(
     const std::string &columnName) {
-
   auto colPos = getPositionsOfTarget(columnNames_, columnName);
   if (colPos.empty()) {
   	std::stringstream ss;
@@ -1013,7 +1011,7 @@ void table::removeEmpty(bool addPadding) {
 	}
 	if(!emptyPositions.empty()){
 		bib::sort(emptyPositions);
-		for(const auto & pos : iter::reverse(emptyPositions)){
+		for(const auto & pos : iter::reversed(emptyPositions)){
 			content_.erase(content_.begin() + pos);
 		}
 	}

@@ -78,7 +78,7 @@ public:
 	}
 	template<typename T>
 	void inceaseCountByReads(const std::vector<T> & reads) {
-		for_each(reads, [&](const T & read) {increaseCountByRead(read);});
+		bib::for_each(reads, [&](const T & read) {increaseCountByRead(read);});
 	}
 
 	std::multimap<double, std::string, std::less<double>> createLikelihoodMaps(
@@ -93,8 +93,6 @@ public:
 };
 
 }
-/* namespace bib */
+/* namespace bibseq */
 
-#ifndef NOT_HEADER_ONLY
-#include "hrCounter.cpp"
-#endif
+

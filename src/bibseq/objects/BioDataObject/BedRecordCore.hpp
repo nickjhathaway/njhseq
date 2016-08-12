@@ -32,6 +32,7 @@ class BedRecordCore {
 public:
 
 	BedRecordCore(const std::string & line);
+	BedRecordCore(std::string chrom, uint32_t chromStart, uint32_t chromEnd, std::string name, double score, char strand);
 	BedRecordCore();
 
 	std::string chrom_;

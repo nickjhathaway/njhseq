@@ -45,18 +45,18 @@ int getTotalReadCount(const std::vector<T>& reads, bool countRemove = false) {
 }
 template<typename T>
 void allPrintSeqs(const std::vector<T> & reads, std::ostream & out = std::cout){
-	for_each(reads, [&](const T & read){ getSeqBase(read).outPutSeq(out);});
+	bib::for_each(reads, [&](const T & read){ getSeqBase(read).outPutSeq(out);});
 }
 
 template<typename T>
 std::vector<T> getSeqsWithNames(const std::vector<T> & reads, const VecStr & names){
 	std::vector<T> ans;
 	auto checker = [&](const T & read){
-		if(in(getSeqBase(read).name_, names)){
+		if(bib::in(getSeqBase(read).name_, names)){
 			ans.emplace_back(read);
 		}
 	};
-	for_each(reads, checker);
+	bib::for_each(reads, checker);
 	return ans;
 }
 
@@ -238,7 +238,7 @@ VecStr translateAllRet(const std::vector<T>& reads,bool complement, bool reverse
 template <typename T>
 void updateQaulCountsMultiple(const std::vector<T>& reads,
                               std::map<uint32_t, uint32_t>& qualCounts) {
-  for_each(reads, [&](const T& read) { read.updateQualCounts(qualCounts); });
+  bib::for_each(reads, [&](const T& read) { read.updateQualCounts(qualCounts); });
   return;
 }
 template <typename T>
@@ -246,7 +246,7 @@ void updateQualCountsMultiple(
     const std::vector<T> reads,
     std::map<std::string, std::map<double, uint32_t>>& counts,
     int qualWindowSize, std::array<double, 100> errorLookUp) {
-  for_each(reads, [&](const T& read) {
+  bib::for_each(reads, [&](const T& read) {
     read.updateQualCounts(counts, qualWindowSize, errorLookUp);
   });
   return;

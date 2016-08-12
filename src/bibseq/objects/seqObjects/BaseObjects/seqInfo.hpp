@@ -99,6 +99,9 @@ struct seqInfo {
   void updateName();
   void markAsChimeric();
   void unmarkAsChimeric();
+  //check for chiemric flag
+  bool isChimeric() const;
+
   //reverse complement read
   void reverseComplementRead(bool mark = false, bool regQualReverse = false);
   void reverseHRunsQuals();
@@ -116,6 +119,8 @@ struct seqInfo {
 
   std::string getStubName(bool removeChiFlag) const;
   void setName(const std::string& newName);
+
+  std::string getReadId() const;
 
   // Protein conversion
   void translate( bool complement, bool reverse, size_t start = 0);
@@ -138,6 +143,12 @@ struct seqInfo {
   double getAverageErrorRate() const;
   uint32_t getSumQual() const;
   double getQualCheck(uint32_t qualCutOff)const;
+  bool operator ==(const seqInfo & other) const;
+
+  //
+	std::string getOwnSampName() const;
+
+	void processNameForMeta(std::unordered_map<std::string, std::string> & meta)const;
 
   using size_type = std::string::size_type;
 
@@ -210,6 +221,4 @@ const seqInfo & getSeqBase(std::unique_ptr<const T> & read) {
 
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "seqInfo.cpp"
-#endif
+

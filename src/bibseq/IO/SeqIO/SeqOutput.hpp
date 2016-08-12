@@ -44,7 +44,6 @@ public:
 
 
 	SeqIOOptions ioOptions_;
-	bool includeSpaceInNames = true;
 
 	bool outOpen() const;
 	void openOut();

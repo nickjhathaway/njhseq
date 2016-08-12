@@ -26,6 +26,7 @@
 
 #include <api/BamReader.h> // bamtools
 #include <bibcpp.h>
+#include "bibseq/utils.h"
 #include "bibseq/concurrency/ConcurrentQueue.hpp"
 
 
@@ -33,7 +34,7 @@
 
 namespace bibseq {
 namespace concurrent {
-namespace bfs = boost::filesystem;
+
 
 typedef std::shared_ptr<BamTools::BamReader> PooledReader;
 

@@ -26,15 +26,15 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
 #include "bibseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
 #include "bibseq/alignment/alignerUtils/comparison.hpp"
 #include "bibseq/alignment/aligner.h"
 
-
 namespace bibseq {
 
-class ReadCompGraph : public njhUndirWeightedGraph<comparison, std::shared_ptr<seqInfo>>{
+class ReadCompGraph: public njhUndirWeightedGraph<comparison,
+		std::shared_ptr<seqInfo>> {
 public:
 	/**@brief Construct with a distance matrix and a vector of reads that were used to create the distances
 	 *
@@ -45,41 +45,45 @@ public:
 	 */
 	template<typename T>
 	ReadCompGraph(const std::vector<std::vector<comparison>> & distances,
-			const std::vector<T> & reads){
-	  for(const auto & pos : iter::range(reads.size())){
-	  	this->addNode(getSeqBase(reads[pos]).name_,
-	  			std::make_shared<seqInfo>(getSeqBase(reads[pos])));
-	  }
-	  for(const auto & pos : iter::range(distances.size())){
-	  	for(const auto & subPos : iter::range<uint64_t>(distances[pos].size())){
-	  		this->addEdge(getSeqBase(reads[pos]).name_,
-	  				getSeqBase(reads[subPos]).name_,
-	  				distances[pos][subPos]);
-	  	}
-	  }
+			const std::vector<T> & reads) {
+		for (const auto & pos : iter::range(reads.size())) {
+			this->addNode(getSeqBase(reads[pos]).name_,
+					std::make_shared<seqInfo>(getSeqBase(reads[pos])));
+		}
+		for (const auto & pos : iter::range(distances.size())) {
+			for (const auto & subPos : iter::range<uint64_t>(distances[pos].size())) {
+				this->addEdge(getSeqBase(reads[pos]).name_,
+						getSeqBase(reads[subPos]).name_, distances[pos][subPos]);
+			}
+		}
 	}
-	comparison setMinimumConnections(
-			std::function<void(comparison &)> modFunc,
+
+	std::map<uint32_t, std::vector<char>> getVariantSnpLociMap(
+			const std::string & name, VecStr names, uint32_t expand = 0) const;
+	std::map<uint32_t, std::vector<gap>> getVariantIndelLociMap(
+			const std::string & name, VecStr names, uint32_t expand = 0) const;
+
+	comparison setMinimumConnections(std::function<void(comparison &)> modFunc,
 			std::function<bool(const comparison &, const comparison &)> compFunc);
 	comparison setMinimumEventConnections();
 	comparison setMinimumHqMismatchConnections();
 
 	Json::Value toD3Json(bib::color backgroundColor,
-			const std::unordered_map<std::string, bib::color> & nameColors );
+			const std::unordered_map<std::string, bib::color> & nameColors);
 
 };
-
 
 template<typename T>
 ReadCompGraph genReadComparisonGraph(const std::vector<T> & reads,
 		aligner & alignerObj,
 		std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners,
-		std::mutex & alignerLock, uint32_t numThreads, bool weightHomopolymers) {
+		std::mutex & alignerLock, uint32_t numThreads) {
 	std::function<
-	comparison(const T &, const T &,
-					std::unordered_map<std::string, std::unique_ptr<aligner>>&, aligner&,
-					bool&)> getMismatchesFunc =
-			[&alignerLock](const T & read1, const T & read2,std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners, aligner &alignerObj, bool & weightHomopolymers) {
+			comparison(const T &, const T &,
+					std::unordered_map<std::string, std::unique_ptr<aligner>>&, aligner&)> getMismatchesFunc =
+			[&alignerLock](const T & read1, const T & read2,
+					std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners,
+					aligner &alignerObj) {
 				alignerLock.lock();
 				auto threadId = estd::to_string(std::this_thread::get_id());
 				//std::cout << threadId<< std::endl;
@@ -88,12 +92,21 @@ ReadCompGraph genReadComparisonGraph(const std::vector<T> & reads,
 				}
 				alignerLock.unlock();
 				aligners.at(threadId)->alignCache(getSeqBase(read1),getSeqBase(read2), false);
-				aligners.at(threadId)->profilePrimerAlignment(getSeqBase(read1), getSeqBase(read2), weightHomopolymers);
+				aligners.at(threadId)->profilePrimerAlignment(getSeqBase(read1), getSeqBase(read2));
 				return aligners.at(threadId)->comp_;
 			};
 	auto distances = getDistanceNonConst(reads, numThreads, getMismatchesFunc,
-			aligners, alignerObj, weightHomopolymers);
+			aligners, alignerObj);
 	return ReadCompGraph(distances, reads);
+}
+
+template<typename T>
+ReadCompGraph genReadComparisonGraph(const std::vector<T> & reads,
+		aligner & alignerObj, uint32_t numThreads) {
+	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
+	std::mutex alignerLock;
+	return genReadComparisonGraph(reads, alignerObj, aligners, alignerLock,
+			numThreads);
 }
 
 }  // namespace bibseq

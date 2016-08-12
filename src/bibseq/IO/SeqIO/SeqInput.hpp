@@ -40,6 +40,10 @@
 
 namespace bibseq {
 
+/**@brief Class that handles the reading of several different sequence type files
+ *
+ * @todo Make a class for each type of reader to simplify things and to avoid having to check the input type for each readNextRead call
+ */
 class SeqInput{
 public:
 
@@ -47,7 +51,6 @@ public:
 	SeqInput(const SeqInput& that);
 
 	SeqIOOptions ioOptions_;
-	bool includeSpaceInNames = true;
 
 	bool readNextRead(seqInfo & read);
 	bool readNextRead(PairedRead & read);
@@ -131,7 +134,82 @@ public:
 	static std::vector<readObject> getReferenceSeq(
 			const SeqIOOptions & refOptions, uint64_t& maxLength);
 
+	bool loadIndex();
+
+	template<typename T>
+	void getReadNoCheck(T & read, size_t pos){
+		seekgPri(index_[pos]);
+		readNextRead(read);
+	}
+
+	template<typename T>
+	void getRead(T & read, size_t pos) {
+		loadIndex();
+		if (pos >= index_.size()) {
+			std::stringstream ss;
+			ss << "In " << __PRETTY_FUNCTION__ << " pos: " << pos
+					<< " is greater than max: " << index_.size() << std::endl;
+			throw std::out_of_range(ss.str());
+		}
+		seekgPri(index_[pos]);
+		readNextRead(read);
+	}
+
+	template<typename T>
+	std::vector<T> getReads(size_t pos, size_t number) {
+		loadIndex();
+		if (pos >= index_.size()) {
+			std::stringstream ss;
+			ss << "In " << __PRETTY_FUNCTION__ << " pos: " << pos
+					<< " is greater than max: " << index_.size() - 1 << std::endl;
+			throw std::out_of_range(ss.str());
+		}
+		std::vector<T> ret;
+		seekgPri(index_[pos]);
+		uint32_t count = 0;
+		T read;
+		while (readNextRead(read) && count < number) {
+			ret.emplace_back(read);
+			++count;
+		}
+		return ret;
+	}
+
+	template<typename T>
+	std::vector<std::shared_ptr<T>> getReadsPtrs(size_t pos, size_t number) {
+		loadIndex();
+		if (pos >= index_.size()) {
+			std::stringstream ss;
+			ss << "In " << __PRETTY_FUNCTION__ << " pos: " << pos
+					<< " is greater than max: " << index_.size() - 1 << std::endl;
+			throw std::out_of_range(ss.str());
+		}
+		std::vector<std::shared_ptr<T>> ret;
+		seekgPri(index_[pos]);
+		uint32_t count = 0;
+		std::shared_ptr<T> read = std::make_shared<T>();
+		while (readNextRead(read) && count < number) {
+			ret.emplace_back(read);
+			++count;
+		}
+		return ret;
+	}
+
+	static void buildIndex(const SeqIOOptions & ioOpts);
+
+
+	std::vector<unsigned long long> randomlySampleIndex(
+			bib::randomGenerator & gen, const std::string& sample) const;
+
+	bool isFirstEmpty() const;
+
+	//will throw if second is blank
+	bool isSecondEmpty() const;
+
 private:
+
+	std::vector<unsigned long long> index_;
+	bool indexLoad_ = false;
 
 	std::unique_ptr<BamTools::BamReader> bReader_;
 	std::unique_ptr<BamTools::BamAlignment> aln_;
@@ -163,7 +241,7 @@ private:
 
 	bool readNextFastqStream(bib::files::gzTextFileCpp<>& fastqGzFile, uint32_t offSet, seqInfo& read,
 			bool processed);
-	bool readNextFastqStream(const VecStr & data,const uint32_t lCount, uint32_t offSet, seqInfo& read,
+	bool readNextFastqStream(const VecStr & data, const uint32_t lCount, uint32_t offSet, seqInfo& read,
 			bool processed);
 
 	bool readNextBam(BamTools::BamReader & bReader, seqInfo& read,
@@ -180,6 +258,15 @@ private:
 
 	friend class SeqIO;
 };
+
+template<typename T>
+std::vector<T> getSeqs(const std::string & name) {
+	SeqIOOptions popOpts;
+	popOpts.firstName_ = name;
+	popOpts.inFormat_ = SeqIOOptions::getInFormat(bib::files::getExtension(name));
+	SeqInput reader(popOpts);
+	return reader.readAllReads<T>();
+}
 
 
 }  // namespace bibseq

@@ -27,29 +27,51 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "bibseq/utils.h"
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+
 namespace bibseq {
 
+/**@brief Simple object that just has a seqInfo as a member,
+ *
+ * Most seq objects should inherit at least from this so that they all have seqBase_ as a member
+ *
+ */
 class baseReadObject {
 
 public:
+	/**@brief Constructs an empty object, seqBase_ is also just an empty seqInfo object
+	 *
+	 */
 	baseReadObject();
+	/**@brief Construct with seqInfo object that will used to set seqBase_
+	 *
+	 * @param seqBase The seqInfo object to set as the base of the object
+	 */
 	baseReadObject(const seqInfo& seqBase);
 
-	seqInfo seqBase_;
-	using size_type = seqInfo::size_type;
+	seqInfo seqBase_; /**< The actual workhorse of the class, has name, seq and count */
+
+	/**@brief Convert to jsoncpp object
+	 *
+	 * @return a jsoncpp value object representing the class
+	 */
 	virtual Json::Value toJson() const;
 
-	virtual ~baseReadObject(){}
+	virtual ~baseReadObject();
+
+	using size_type = seqInfo::size_type;
 };
 
+/**@brief template specfication of the len template function to return the length of the sequence stored in seqBase_
+ *
+ * @param read object to get the length of
+ * @return The length of the sequence
+ */
 template<>
 inline baseReadObject::size_type len(const baseReadObject & read){
 	return read.seqBase_.seq_.size();
 }
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "baseReadObject.cpp"
-#endif
+

@@ -71,6 +71,4 @@ public:
 
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "gapScoring.cpp"
-#endif
+

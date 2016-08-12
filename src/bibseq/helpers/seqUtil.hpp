@@ -34,7 +34,7 @@
 #include "bibseq/seqToolsUtils/aminoAcidInfo.hpp"
 
 #include "bibseq/objects/dataContainers/tables/table.hpp"
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
 #include "bibseq/objects/counters/charCounter.hpp"
 
 namespace bibseq {
@@ -81,9 +81,7 @@ class seqUtil {
   // translate phred score
   static char translatePhred(int qual);
   static int translatePhred(char qual);
-  // read in primers
-  static std::map<std::string, std::pair<std::string, std::string>> readPrimers(
-      const std::string &idFileName, bool multiplex);
+
   static table readPrimers(const std::string &idFileName,
                            const std::string &fileDelim,
                            bool forceRead = false);
@@ -218,6 +216,4 @@ class seqUtil {
 }; // class seqUtils
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "seqUtil.cpp"
-#endif
+

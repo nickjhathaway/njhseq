@@ -29,7 +29,7 @@
 
 
 #include "bibseq/utils.h"
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
 #include "bibseq/objects/counters/charCounter.hpp"
 #include "bibseq/alignment/aligner.h"
 
@@ -182,6 +182,4 @@ class consensusHelper {
 }; // class consensushelper
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "consensusHelper.cpp"
-#endif
+

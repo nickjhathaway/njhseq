@@ -51,8 +51,6 @@ class randomPopGen {
                  double basalErrorRate);
 };
 
-} /* namespace bib */
+} /* namespace bibseq */
 
-#ifndef NOT_HEADER_ONLY
-#include "randomPopGen.cpp"
-#endif
+

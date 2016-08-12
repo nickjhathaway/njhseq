@@ -74,94 +74,7 @@ std::vector<char> determineAlph(const std::string & str){
 bool allWhiteSpaceStr(const std::string & str){
 	return str.find_first_not_of(' ') == std::string::npos;
 }
-std::string getTimeFormat(double timeInSecondsOriginal, bool wordy,
-                          int secondsDecimalPlaces) {
-  std::stringstream duration;
-  double timeInSeconds = timeInSecondsOriginal;
-  if (timeInSeconds > 31536000) {
-    int years = (int)timeInSeconds / 31536000;
-    if (wordy) {
-      duration << "yrs:" << years << ",";
-    } else {
-      duration << years << ":";
-    }
-    timeInSeconds = timeInSeconds - years * 31536000.0;
-  }
-  if (timeInSeconds > 86400) {
-    int days = (int)timeInSeconds / 86400;
-    if (wordy) {
-      duration << "days:" << leftPadNumStr(days, 365) << ",";
-    } else {
-      duration << days << ":";
-    }
-    timeInSeconds = timeInSeconds - days * 86400.0;
-  } else if (timeInSecondsOriginal > 86400) {
-    if (wordy) {
-      duration << "days:000,";
-    } else {
-      duration << "000:";
-    }
-  }
-  if (timeInSeconds > 3600) {
-    int hrs = (int)timeInSeconds / 3600;
-    if (wordy) {
-      duration << "hrs:" << leftPadNumStr(hrs, 24) << ",";
-    } else {
-      duration << leftPadNumStr(hrs, 24) << ":";
-    }
-    timeInSeconds = timeInSeconds - hrs * 3600.0;
-  } else if (timeInSecondsOriginal > 3600.0) {
-    if (wordy) {
-      duration << "hrs:00,";
-    } else {
-      duration << "00:";
-    }
-  }
-  if (timeInSeconds > 60) {
-    int minutes = (int)timeInSeconds / 60;
-    if (wordy) {
-      duration << "mins:" << leftPadNumStr(minutes, 60) << ",";
-    } else {
-      duration << leftPadNumStr(minutes, 60) << ":";
-    }
 
-    timeInSeconds = timeInSeconds - minutes * 60.0;
-  } else if (timeInSecondsOriginal > 60) {
-    if (wordy) {
-      duration << "mins:00,";
-    } else {
-      duration << "00:";
-    }
-  }
-  if (timeInSeconds > 0) {
-    if (timeInSecondsOriginal < 1) {
-      if (wordy) {
-        duration << "secs:" << roundDecPlaces(timeInSeconds,
-                                              secondsDecimalPlaces);
-      } else {
-        duration << roundDecPlaces(timeInSeconds, secondsDecimalPlaces);
-      }
-    } else {
-      if (wordy) {
-        duration << "secs:"
-                 << leftPadNumStr(
-                        roundDecPlaces(timeInSeconds, secondsDecimalPlaces),
-                        60.0);
-      } else {
-        duration << leftPadNumStr(
-                        roundDecPlaces(timeInSeconds, secondsDecimalPlaces),
-                        60.0);
-      }
-    }
-  } else {
-    if (wordy) {
-      duration << "secs:00";
-    } else {
-      duration << "00";
-    }
-  }
-  return duration.str();
-}
 
 std::string getStringFromSubstrings(const std::string& seq,
                                     const std::vector<size_t>& positons,
@@ -200,24 +113,7 @@ void trimStringsAtFirstOccurence(VecStr& strings,
   }
 }
 
-bool containsSubString(const std::string& str, const std::string& subString) {
-  return (str.find(subString) != std::string::npos);
-}
 
-bool endsWith(const std::string& a, const std::string& b) {
-  // http://stackoverflow.com/a/874160
-  if (a.size() >= b.size()) {
-    return (0 == a.compare(a.size() - b.size(), b.size(), b));
-  }
-  return false;
-}
-
-bool beginsWith(const std::string& str, const std::string& target) {
-  if (target.size() <= str.size()){
-  	return (0 == str.compare(0, target.size(), target));
-  }
-  return false;
-}
 
 std::string replaceString(std::string theString,
                           const std::string& replaceSpace,
@@ -241,54 +137,12 @@ void removeChar(std::string& inputStr, const char& theChar) {
   return;
 }
 
-// remove lower case letters and their corresponding qualities from the
-// sequence.
-void rstrip(std::string & str, char c){
-	uint32_t pos = str.size();
-	while (pos != 0 && str[pos - 1] == c){
-		--pos;
-	}
-	if(pos != str.size()){
-		str.erase(str.begin() + pos, str.end());
-	}
-}
 
-std::string rstripReturn(std::string str, char c){
-	rstrip(str,c);
-	return str;
-}
+
+
 VecStr tokenizeString(const std::string& str, const std::string& delim,
                       bool addEmptyToEnd) {
-  VecStr output;
-  if("whitespace" == delim){
-    std::stringstream tempStream(str);
-    while (!tempStream.eof()) {
-      std::string tempName;
-      tempStream >> tempName;
-      output.emplace_back(tempName);
-    }
-  }else{
-    if (str.find(delim.c_str()) == std::string::npos) {
-      output.emplace_back(str);
-    } else {
-      std::size_t pos = str.find(delim, 0);
-      std::size_t oldPos = -delim.size();
-      while (pos != std::string::npos) {
-        output.emplace_back(
-            str.substr(oldPos + delim.size(), pos - oldPos - delim.size()));
-        oldPos = pos;
-        pos = str.find(delim, pos + 1);
-      }
-      if (oldPos + delim.size() == str.size()) {
-        if (addEmptyToEnd) {
-          output.emplace_back("");
-        }
-      } else {
-        output.emplace_back(str.substr(oldPos + delim.size(), str.size() - 1));
-      }
-    }
-  }
-  return output;
+	return bib::tokenizeString(str, delim, addEmptyToEnd);
 }
 
 std::vector<size_t> findOccurences(const std::string& target,
@@ -302,7 +156,7 @@ std::vector<size_t> findOccurences(const std::string& target,
   return indexs;
 }
 
-int countOccurences(const std::string& target, const std::string& subSeq) {
+uint32_t countOccurences(const std::string& target, const std::string& subSeq) {
   return findOccurences(target, subSeq).size();
 }
 
@@ -431,14 +285,6 @@ bool isVecOfDoubleStr(const VecStr& vec) {
 
 
 
-// combiners
-std::string combineStrings(const VecStr& strings) {
-  std::stringstream ans;
-  for (const auto& sIter : strings) {
-    ans << sIter;
-  }
-  return ans.str();
-}
 
 std::string repeatString(const std::string& stringToRepeat, uint32_t n) {
   std::ostringstream os;
@@ -565,33 +411,6 @@ VecStr processAlphStrVecStr(const std::string & alphabetStr, const std::string &
 	}
 	return ans;
 }
-
-/*
-uint32_t firstMismatch(const std::string& str1,
-                     const std::string& str2,
-                     char ignore){
-
-}
-uint32_t lastMismtach(const std::string& str1,
-                    const std::string& str2
-                    char ignore){
-
-}*/
-
-std::string intToHex(int i) {
-  std::stringstream stream;
-  // stream << "0x";
-  stream << std::setfill('0') << std::setw(2) << std::hex << i;
-  return stream.str();
-}
-uint32_t hexToInt(const std::string& hString) {
-  std::stringstream stream(hString);
-  uint32_t ans;
-  stream >> std::hex >> ans;
-  return ans;
-}
-
-
 
 uint32_t countBeginChar(const std::string & str){
 	if(str.length() == 0){

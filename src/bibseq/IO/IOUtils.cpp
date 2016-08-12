@@ -109,9 +109,15 @@ Json::Value OutOptions::toJson() const{
 	return ret;
 }
 
-bool OutOptions::outExists() const{
-	return boost::filesystem::exists(bib::appendAsNeededRet(outFilename_, outExtention_));
+bool OutOptions::outExists() const {
+	return boost::filesystem::exists(outName());
 }
+
+bfs::path OutOptions::outName() const {
+	return bfs::path(bib::appendAsNeededRet(outFilename_, outExtention_));
+}
+
+
 
 
 IoOptions::IoOptions():in_ (InOptions()), out_(OutOptions()){

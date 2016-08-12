@@ -47,14 +47,20 @@ public:
 		}
 		return ret;
 	}
+	template<typename T>
+	static uint32_t checkReadVecWithCheck(std::vector<T> & reads,
+			const std::unique_ptr<const ReadChecker> & checkerPtr) {
+		return checkReadVec(reads, [&checkerPtr](T & read)->bool {
+			return checkerPtr->checkRead(getSeqBase(read));
+		});
+	}
 
 	template<typename T>
 	static uint32_t checkReadVecLenWithin(std::vector<T> & reads,
 			uint32_t basesWithin, double givenLen, bool mark) {
-		return checkReadVec(reads,
-				[&basesWithin,&givenLen, &mark](T & read)->bool {
-					return readChecker::checkReadLenWithin(getSeqBase(read), basesWithin,givenLen,mark);
-				});
+		return checkReadVecWithCheck(reads,
+				std::make_unique<const ReadCheckerLenWithin>(basesWithin, givenLen,
+						mark));
 	}
 
 	template<typename T>
@@ -65,10 +71,9 @@ public:
 			lens.emplace_back(len(getSeqBase(read)));
 		}
 		double mean = vectorMean(lens);
-		return checkReadVec(reads,
-				[&basesWithin,&mean, &mark](T & read)->bool {
-					return readChecker::checkReadLenWithin(getSeqBase(read), basesWithin,mean,mark);
-				});
+		return checkReadVecWithCheck(reads,
+						std::make_unique<const ReadCheckerLenWithin>(basesWithin,mean,
+								mark));
 	}
 
 	template<typename T>
@@ -80,133 +85,109 @@ public:
 		double mean = vectorMean(lens);
 		double std = vectorStandardDeviationSamp(lens);
 		std *=2;
-		return checkReadVec(reads,
-				[&std,&mean, &mark](T & read)->bool {
-					return readChecker::checkReadLenWithin(getSeqBase(read), std,mean,mark);
-				});
+		return checkReadVecWithCheck(reads,
+						std::make_unique<const ReadCheckerLenWithin>(std,mean,
+								mark));
 	}
 
 	template<typename T>
 	static uint32_t checkReadVecLenAbove(std::vector<T> & reads,
 			uint32_t minLen, bool mark) {
-		return checkReadVec(reads,
-				[&minLen, &mark](T & read)->bool {
-					return readChecker::checkReadLenAbove(getSeqBase(read), minLen,mark);
-				});
+		return checkReadVecWithCheck(reads,
+						std::make_unique<const ReadCheckerLenAbove>(minLen,
+								mark));
 	}
 
 	template<typename T>
-	static uint32_t checkReadVecLenBellow(std::vector<T> & reads,
+	static uint32_t checkReadVecLenBelow(std::vector<T> & reads,
 			uint32_t maxLen, bool mark) {
-		return checkReadVec(reads,
-				[&maxLen, &mark](T & read)->bool {
-					return readChecker::checkReadLenBellow(getSeqBase(read), maxLen,mark);
-				});
+		return checkReadVecWithCheck(reads,
+						std::make_unique<const ReadCheckerLenBelow>(maxLen,
+								mark));
 	}
 
 	template<typename T>
 	static uint32_t checkReadVecLenBetween(std::vector<T> & reads,
 			uint32_t maxLen,uint32_t minLen, bool mark) {
-		return checkReadVec(reads,
-				[&maxLen,&minLen, &mark](T & read)->bool {
-					return readChecker::checkReadLenBetween(getSeqBase(read), maxLen,minLen,mark);
-				});
+		return checkReadVecWithCheck(reads,
+						std::make_unique<const ReadCheckerLenBetween>(maxLen,minLen,
+								mark));
 	}
 
 	template<typename T>
 	static uint32_t checkReadVecQualCheck(std::vector<T> & reads,
 			uint32_t qualCutOff, double qualFracCutOff, bool mark) {
-		return checkReadVec(reads,
-				[&qualCutOff,&qualFracCutOff, &mark](T & read)->bool {
-					return readChecker::checkReadQualCheck(getSeqBase(read), qualCutOff,qualFracCutOff,mark);
-				});
+		return checkReadVecWithCheck(reads,
+						std::make_unique<const ReadCheckerQualCheck>(qualCutOff, qualFracCutOff,
+								mark));
 	}
 
 	template<typename T>
 	static uint32_t checkReadVecOnCount(std::vector<T> & reads,
 			double countCutOff, bool mark) {
-		return checkReadVec(reads,
-				[&countCutOff, &mark](T & read)->bool {
-					return readChecker::checkReadOnCount(getSeqBase(read), countCutOff,mark);
-				});
+		return checkReadVecWithCheck(reads,
+				std::make_unique<const ReadCheckerOnCount>(countCutOff, mark));
 	}
 
 	template<typename T>
-	static uint32_t checkReadVecOnFrac(std::vector<T> & reads,
-			double fracCutOff, bool mark) {
-		return checkReadVec(reads,
-				[&fracCutOff, &mark](T & read)->bool {
-					return readChecker::checkReadOnFrac(getSeqBase(read), fracCutOff,mark);
-				});
+	static uint32_t checkReadVecOnFrac(std::vector<T> & reads, double fracCutOff,
+			bool mark) {
+		return checkReadVecWithCheck(reads,
+				std::make_unique<const ReadCheckerOnFrac>(fracCutOff, mark));
 	}
 
 	template<typename T>
 	static uint32_t checkReadOnNucComp(std::vector<T> & reads,
-			const charCounter & counter, double fracDiff, bool mark) {
-		return checkReadVec(reads,
-				[&counter, &fracDiff, &mark](T & read)->bool {
-					return readChecker::checkReadOnNucComp(getSeqBase(read), fracDiff,mark);
-				});
+			charCounter counter, double fracDiff, bool mark) {
+		return checkReadVecWithCheck(reads,
+				std::make_unique<const ReadCheckerOnNucComp>(std::move(counter),
+						fracDiff, mark));
 	}
 
 	template<typename T>
 	static uint32_t checkReadOnSeqContaining(std::vector<T> & reads,
 			const std::string& str, int32_t occurences, bool mark) {
-		return checkReadVec(reads,
-				[&str, &occurences, &mark](T & read)->bool {
-					return readChecker::checkReadOnSeqContaining(getSeqBase(read), str,occurences,mark);
-				});
+		return checkReadVecWithCheck(reads,
+				std::make_unique<const ReadCheckerOnSeqContaining>(str, occurences, mark));
 	}
 
 	template<typename T>
 	static uint32_t checkReadOnNameContaining(std::vector<T> & reads,
 			const std::string& str, bool mark) {
-		return checkReadVec(reads,
-				[&str, &mark](T & read)->bool {
-					return readChecker::checkReadOnNameContaining(getSeqBase(read), str,mark);
-				});
+		return checkReadVecWithCheck(reads,
+				std::make_unique<const ReadCheckerOnNameContaining>(str, mark));
 	}
 
 	template<typename T>
 	static uint32_t checkReadOnQualityWindow(std::vector<T> & reads,
-			int qualityWindowLength, int qualityWindowStep, int qualityWindowThres,
+			uint32_t qualityWindowLength, uint32_t qualityWindowStep, uint32_t qualityWindowThres,
 			bool mark) {
-		return checkReadVec(reads,
-				[&qualityWindowLength, &qualityWindowStep, &qualityWindowThres, &mark](T & read)->bool {
-					return readChecker::checkReadOnQualityWindow(getSeqBase(read),
-							qualityWindowLength,qualityWindowStep, qualityWindowThres,mark);
-				});
+		return checkReadVecWithCheck(reads,
+				std::make_unique<const ReadCheckerOnQualityWindow>(qualityWindowLength,qualityWindowStep, qualityWindowThres, mark));
 	}
 
 	template<typename T>
 	static uint32_t checkReadOnQualityWindowTrim(std::vector<T> & reads,
-			int qualityWindowLength, int qualityWindowStep, int qualityWindowThres,
+			uint32_t qualityWindowLength, uint32_t qualityWindowStep, uint32_t qualityWindowThres,
 			uint32_t minLen, bool mark) {
-		return checkReadVec(reads,
-				[&qualityWindowLength, &qualityWindowStep, &qualityWindowThres,&minLen, &mark](T & read)->bool {
-					return readChecker::checkReadOnQualityWindowTrim(getSeqBase(read),
-							qualityWindowLength,qualityWindowStep, qualityWindowThres, minLen,mark);
-				});
+		return checkReadVecWithCheck(reads,
+				std::make_unique<const ReadCheckerOnQualityWindowTrim>(qualityWindowLength,qualityWindowStep, qualityWindowThres, minLen, mark));
 	}
 
 	template<typename T>
 	static uint32_t checkReadOnNs(std::vector<T> & reads, bool mark) {
-		return checkReadVec(reads, [&mark](T & read)->bool {
-			return readChecker::checkReadOnNs(getSeqBase(read),mark);
-		});
+		return checkReadVecWithCheck(reads,
+				std::make_unique<const ReadCheckerOnNs>(mark));
 	}
 
 	template<typename T>
 	static uint32_t checkReadOnKmerComp(std::vector<T> & reads,kmerInfo compareInfo,
 			uint32_t kLength, double kmerCutoff, bool mark) {
-		return checkReadVec(reads, [&compareInfo,&kLength, &kmerCutoff,&mark](T & read)->bool {
-			return readChecker::checkReadOnKmerComp(getSeqBase(read).compareInfo,kLength, kmerCutoff,mark);
-		});
+		return checkReadVecWithCheck(reads,
+				std::make_unique<const ReadCheckerOnKmerComp>(std::move(compareInfo), kLength, kmerCutoff, mark));
 	}
 
 };
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "readVecChecker.cpp"
-#endif
+

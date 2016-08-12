@@ -36,6 +36,3 @@ class populationCluster : sampleCluster {
 
 }  // bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "populationCluster.cpp"
-#endif

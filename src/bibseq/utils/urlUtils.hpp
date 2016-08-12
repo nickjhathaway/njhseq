@@ -49,6 +49,3 @@ std::string urldecode(std::string const &s);
 
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "urlUtils.cpp"
-#endif

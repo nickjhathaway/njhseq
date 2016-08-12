@@ -97,20 +97,7 @@
 //#include <openssl/md5.h>
 #include <curl/curl.h>
 #include <cppitertools/range.hpp>
-
-#if __has_include("cppitertools/reverse.hpp")
-#include <cppitertools/reverse.hpp>
-#else
 #include <cppitertools/reversed.hpp>
-namespace iter {
-/**@todo simple fix for now, should just change all occurrences of reverse to reversed*/
-template <typename Container>
-iter::impl::Reverser<Container> reverse(Container&& container) {
-  return reversed(std::forward<Container>(container));
-}
-}  // namespace iter
-#endif
-
 #include <cppitertools/enumerate.hpp>
 
 //own files

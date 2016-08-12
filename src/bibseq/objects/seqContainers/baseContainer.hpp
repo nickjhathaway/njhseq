@@ -27,7 +27,8 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "bibseq/utils.h"
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+
 namespace bibseq {
 
 template <typename T>
@@ -60,8 +61,5 @@ class baseContainer {
  virtual ~baseContainer(){}
 };
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "baseContainer.cpp"
-#endif

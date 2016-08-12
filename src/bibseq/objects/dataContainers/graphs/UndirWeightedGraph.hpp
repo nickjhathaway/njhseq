@@ -29,7 +29,7 @@
 #include <bibcpp/graphics.h>
 
 #include "bibseq/common.h"
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
 #include "bibseq/seqToolsUtils/distCalc.hpp"
 
 
@@ -256,6 +256,16 @@ public:
 					}
 				}
 			}
+		}
+
+		uint32_t numConnections() const{
+			uint32_t ret = 0;
+			for(auto & e : edges_){
+				if(e->on_){
+					++ret;
+				}
+			}
+			return ret;
 		}
 
 
@@ -594,10 +604,14 @@ public:
 	  	}
 	  }
 	  groupsAboveCutOff = largeGroups.size();
-	  auto groupColors = bib::getColsBetweenInc(0, 360 - 360.0/groupsAboveCutOff, 0.5, 0.5, 1,1, groupsAboveCutOff);
-	  std::unordered_map<uint32_t, bib::color> gColors;
-	  for(auto e : iter::enumerate(largeGroups)){
-	  	gColors[e.element] = groupColors[e.index];
+	  std::vector<bib::color> groupColors;
+
+	  if(nameToColor.empty()){
+	  	groupColors = bib::getColsBetweenInc(0, 360 - 360.0/groupsAboveCutOff, 0.5, 0.5, 1,1, groupsAboveCutOff);
+		  std::unordered_map<uint32_t, bib::color> gColors;
+		  for(auto e : iter::enumerate(largeGroups)){
+		  	gColors[e.element] = groupColors[e.index];
+		  }
 	  }
 	  uint64_t pos = 0;
 	  for(const auto & n : nodes_){
@@ -607,12 +621,16 @@ public:
 		  	//std::cout << n->name_ << " : " << n->group_  << " : " << n->value_ << std::endl;
 		  	nodes[nCount]["name"] = bib::json::toJson(n->name_);
 		  	nodes[nCount]["group"] = bib::json::toJson(n->group_);
-		  	nodes[nCount]["color"] = bib::json::toJson(nameToColor[n->name_]);
-		  	nodes[nCount]["size"]  = 30;
+		  	if(nameToColor.empty()){
+		  		nodes[nCount]["color"] = bib::json::toJson(groupColors[n->group_].getHexStr());
+		  	}else{
+		  		nodes[nCount]["color"] = bib::json::toJson(nameToColor[n->name_]);
+		  	}
+		  	nodes[nCount]["size"]  = 30 ;
 		  	++nCount;
 	  	}
 	  }
-	  uint32_t lCount=0;
+	  uint32_t lCount = 0;
 		for(const auto & e : edges_){
 			if(e->on_){
 				if(groupCounts[e->nodeToNode_.begin()->second.lock()->group_] >= groupSizeCutOff){
@@ -620,7 +638,11 @@ public:
 					links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
 					links[lCount]["value"] = bib::json::toJson(e->dist_);
 					links[lCount]["on"] = bib::json::toJson(e->on_);
-					links[lCount]["color"] = bib::json::toJson(nameToColor[e->nodeToNode_.begin()->second.lock()->name_]);
+			  	if(nameToColor.empty()){
+			  		links[lCount]["color"] = bib::json::toJson(groupColors[e->nodeToNode_.begin()->second.lock()->group_].getHexStr());
+			  	}else{
+			  		links[lCount]["color"] = bib::json::toJson(nameToColor[e->nodeToNode_.begin()->second.lock()->name_]);
+			  	}
 					++lCount;
 				}
 			}
@@ -1078,6 +1100,11 @@ public:
 			return graphJson;
 		}
 };
+
+void genTreeHtml(std::ostream & out, const std::string & jsonFileName,
+		const std::string & treeJsFilename);
+
+void genSimpleTreeJs(std::ostream & out);
 
 
 

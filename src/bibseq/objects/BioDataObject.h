@@ -26,3 +26,5 @@
 #include "bibseq/objects/BioDataObject/RepeatMaskerRecord.hpp"
 #include "bibseq/objects/BioDataObject/swisProt.hpp"
 #include "bibseq/objects/BioDataObject/reading.hpp"
+#include "bibseq/objects/BioDataObject/BioDataFileIO.hpp"
+#include "bibseq/objects/BioDataObject/GenomicRegion.hpp"

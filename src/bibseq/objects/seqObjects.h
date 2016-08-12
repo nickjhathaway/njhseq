@@ -27,8 +27,8 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 // include all the seq objects
-#include "bibseq/objects/seqObjects/seqInfo.hpp"
-#include "bibseq/objects/seqObjects/baseReadObject.hpp"
+
+#include "bibseq/objects/seqObjects/BaseObjects.h"
 #include "bibseq/objects/seqObjects/readObject.hpp"
 #include "bibseq/objects/seqObjects/sffObject.hpp"
 #include "bibseq/objects/seqObjects/Paired.h"

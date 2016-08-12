@@ -2349,13 +2349,13 @@ void substituteMatrix::printScores(const std::vector<char> & alphabet,
 	VecStr head = {"let"};
 	VecStr alphStr (alphabet.size());
 	std::transform(alphabet.begin(), alphabet.end(), alphStr.begin(),
-			[&](const char & c){return to_string(c);});
+			[&](const char & c){return estd::to_string(c);});
 	addOtherVec(head, alphStr);
 	std::vector<VecStr> outContent;
 	for(const auto & let : alphabet){
-		VecStr currentRow = {to_string(let)};
+		VecStr currentRow = {estd::to_string(let)};
 		for(const auto & secondLet : alphabet){
-			currentRow.emplace_back(to_string(mat_[let][secondLet]));
+			currentRow.emplace_back(estd::to_string(mat_[let][secondLet]));
 		}
 		outContent.emplace_back(currentRow);
 	}
@@ -2366,13 +2366,13 @@ void substituteMatrix::printScores(std::ostream & out)const{
 	VecStr head = {"let"};
 	auto alphabet = determineLetters();
 	VecStr alphStr (alphabet.size());
-	std::transform(alphabet.begin(), alphabet.end(), alphStr.begin(), [&](const char & c){return to_string(c);});
+	std::transform(alphabet.begin(), alphabet.end(), alphStr.begin(), [&](const char & c){return estd::to_string(c);});
 	addOtherVec(head, alphStr);
 	std::vector<VecStr> outContent;
 	for(const auto & let : alphabet){
-		VecStr currentRow = {to_string(let)};
+		VecStr currentRow = {estd::to_string(let)};
 		for(const auto & secondLet : alphabet){
-			currentRow.emplace_back(to_string(mat_[let][secondLet]));
+			currentRow.emplace_back(estd::to_string(mat_[let][secondLet]));
 		}
 		outContent.emplace_back(currentRow);
 	}

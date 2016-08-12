@@ -42,9 +42,5 @@ class constants {
  public:
   static const std::array<double, 100> QualErrorArr;
 };
-}
-}  // namespace bib::simulation::
-
-#ifndef NOT_HEADER_ONLY
-#include "simulationCommon.cpp"
-#endif
+}  // namespace simulation
+}  // namespace bibseq

@@ -53,12 +53,7 @@ class cluster : public baseCluster {
   bool rejected_;
 
   //std::mutex mtx_;
-  // chimeras vectors
-  // key is the position at which they could be chimeric with the
-  // value which is the positions in the vector they are both in...
-  // not ideal way to do this i guess
-  std::multimap<uint32_t, uint32_t> frontChiPos;
-  std::multimap<uint32_t, uint32_t> endChiPos;
+
 
   std::vector<cluster> chimeras;
   std::vector<cluster> endChimeras;
@@ -71,7 +66,7 @@ class cluster : public baseCluster {
   int getBiggestReadSize();
 
   double getAverageSizeDifference();
-  int getLargestSizeDifference();
+  size_t getLargestSizeDifference();
 
 
 
@@ -149,7 +144,13 @@ class cluster : public baseCluster {
                              << vectorMedianCopy(sv.second.second) << std::endl;
     }
   }
+	using size_type = baseReadObject::size_type;
 };
+
+template<>
+inline cluster::size_type len(const cluster & read) {
+	return read.seqBase_.seq_.size();
+}
 
 
 template<typename T>
@@ -172,8 +173,6 @@ cluster getConsensus(const std::vector<T> & reads, aligner & alignerObj,
 	mainCluster.setName(name);
 	return mainCluster;
 }
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "cluster.cpp"
-#endif
+

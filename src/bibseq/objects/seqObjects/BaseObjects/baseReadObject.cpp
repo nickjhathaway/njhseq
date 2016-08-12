@@ -21,20 +21,22 @@
 //
 namespace bibseq {
 
-baseReadObject::baseReadObject() : seqBase_(seqInfo()) {}
-
-
-baseReadObject::baseReadObject(const seqInfo& seqBase) : seqBase_(seqBase) {
-  //std::cout << "baseReadObject constructor: " << std::endl;
-  //std::cout << seqBase_.name_ << std::endl;
-  //std::cout << seqBase_.cnt_ << std::endl;
-  //std::cout << seqBase_.frac_ << std::endl;
+baseReadObject::baseReadObject() :
+		seqBase_(seqInfo()) {
 }
 
-Json::Value baseReadObject::toJson()const{
+baseReadObject::baseReadObject(const seqInfo& seqBase) :
+		seqBase_(seqBase) {
+}
+
+Json::Value baseReadObject::toJson() const {
 	Json::Value ret;
 	ret["class"] = bib::json::toJson("bibseq::baseReadObject");
 	ret["seqBase_"] = bib::json::toJson(seqBase_);
 	return ret;
 }
-}  // namespace bib
+
+baseReadObject::~baseReadObject() {
+}
+
+}  // namespace bibseq

@@ -33,7 +33,7 @@ void clusterCollapser::collapseTandems(std::vector<cluster> &processedReads,
   //                                           runCutOff);
   //auto currentKMaps = alignerObj.getKmerMaps();
   //alignerObj.setKmerMpas(kMaps);
-  for (auto &clusIter : iter::reverse(processedReads)) {
+  for (auto &clusIter : iter::reversed(processedReads)) {
     ++counter;
     if (counter % 20 == 0) {
       std::cout << counter << " out of " << processedReads.size() << std::endl;
@@ -43,9 +43,7 @@ void clusterCollapser::collapseTandems(std::vector<cluster> &processedReads,
         continue;
       }
       alignerObj.alignCache(clusIterSecond, clusIter, local);
-      alignerObj.profileAlignment(clusIterSecond, clusIter, kLength,
-                                  kMersByPosition, true, true, false,
-                                  weighHomopolyer);
+      alignerObj.profileAlignment(clusIterSecond, clusIter, true, true, false);
       // alignerObj.outPutParameterInfo(std::cout);
       if (alignerObj.checkForTandemRepeatGap() &&
           alignerObj.comp_.hqMismatches_ < 1 &&

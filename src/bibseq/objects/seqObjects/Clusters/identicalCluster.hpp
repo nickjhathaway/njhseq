@@ -84,8 +84,6 @@ class identicalCluster : public baseCluster{
     }
   }
 };
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "identicalCluster.cpp"
-#endif
+

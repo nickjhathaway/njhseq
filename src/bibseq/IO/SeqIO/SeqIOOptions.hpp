@@ -71,7 +71,7 @@ struct SeqIOOptions {
    *
    * @param jsonStr The value stored in json
    */
-  SeqIOOptions(const std::string & jsonStr);
+  explicit SeqIOOptions(const std::string & jsonStr);
 
 
   bool inExists() const;
@@ -90,6 +90,8 @@ struct SeqIOOptions {
   static std::string getInFormat(inFormats format);
   static std::string getOutFormat(outFormats format);
   static std::string getOutExtension(outFormats format);
+
+  std::string getOutExtension() const;
 
   OutOptions out_;
 
@@ -124,6 +126,4 @@ struct SeqIOOptions {
 
 }  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "SeqIOOptions.cpp"
-#endif
+

@@ -27,12 +27,11 @@
 //  Copyright (c) 2012 Nick Hathaway. All rights reserved.
 //
 
-#include "bibseq/objects/seqObjects/sffObject.hpp"
-#include "bibseq/readVectorManipulation.h"
+
 #include <api/BamReader.h>
 #include <bibcpp/jsonUtils.h>
-#include "bibseq/IO/cachedReader.hpp"
-#include "bibseq/IO/SeqIO/SeqIOOptions.hpp"
+
+#include "bibseq/objects/seqObjects/readObject.hpp"
 
 namespace bibseq {
 
@@ -43,8 +42,5 @@ public:
 
 };
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "ClustalReader.cpp"
-#endif

@@ -28,27 +28,12 @@
 //
 #include "bibseq/utils.h"
 #include "bibseq/IO/IOUtils.hpp"
+#include "bibseq/objects/dataContainers/tables/TableIOOpts.hpp"
+
+
 namespace bibseq {
 
-class TableIOOpts: public IoOptions {
-public:
-	TableIOOpts();
-	TableIOOpts(const InOptions & inOpts);
-	TableIOOpts(const OutOptions & outOpts);
-	TableIOOpts(const InOptions & inOpts, const std::string & inDelim,
-			bool header);
-	TableIOOpts(const OutOptions & outOpts, const std::string & outDelim,
-			bool header);
-	TableIOOpts(const InOptions & inOpts, const OutOptions & outOpts);
-	TableIOOpts(const InOptions & inOpts, const std::string & inDelim,
-			const OutOptions & outOpts, const std::string & outDelim, bool header);
 
-	std::string inDelim_ = "whitespace";
-	std::string outDelim_ = "\t";
-	bool outOrganized_ = false;
-	bool hasHeader_ = false;
-
-};
 
 class table {
 public:
@@ -165,15 +150,17 @@ public:
 	bool hasHeader_;
 	std::string inDelim_;
 
+	void setRowSize(uint32_t rowSize);
 	void setColNamePositions();
 	uint32_t getColPos(const std::string & colName) const;
 	bool containsColumn(const std::string & colName) const;
 	bool containsColumns(const VecStr & colNames) const;
 	bool containsColumn(const uint32_t & colPos) const;
 	// to ensure all the rows have equal length
-	void addPaddingToEndOfRows();
-	void addPaddingZeros();
-	void addZerosToEnds();
+	void addPaddingToEndOfRows(const std::string & padding = "");
+	void padWithZeros();
+	void fillWithZeros();
+	//adding coluns
 	void addColumn(const VecStr & columnNew, const std::string & name);
 	void addSingleValueColumns(const VecStr & columnValues, const VecStr & columnNames);
 	template<typename T>
@@ -181,6 +168,25 @@ public:
 		VecStr add = numVecToVecStr(columnNew);
 		addColumn(add, name);
 	}
+	//adding rows
+	void addRows(const std::vector<VecStr> & rows);
+	void addRow(const VecStr & row);
+	template<typename... T>
+	void addRow(const T&... items){
+		if(sizeof...(items) != nCol()){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ": Error size of adding row doesn't match column number" << std::endl;
+			ss << "Row size: " << sizeof...(items) << std::endl;
+			ss << "Number of columns " << nCol() << std::endl;
+			throw std::runtime_error{ss.str()};
+		}
+		addRow(toVecStr(items...));
+	}
+	//get lengths
+	uint32_t nCol() const;
+	uint32_t nRow() const;
+	bool empty() const;
+
 	// outputs
 	void outPutContents(TableIOOpts options) const;
 	void outPutContents(std::ostream &out, std::string delim) const;
@@ -287,7 +293,7 @@ public:
 	}
 	template<typename UnaryPredicate>
 	table extractByComp(const std::string & columnName, UnaryPredicate p) const {
-		if (in(columnName, columnNames_)) {
+		if (bib::in(columnName, columnNames_)) {
 			uint32_t pos = getFirstPositionOfTarget(columnNames_, columnName);
 			return extractByComp(pos, p);
 		} else {
@@ -315,6 +321,4 @@ public:
 };
 }  // namespace bib
 
-#ifndef NOT_HEADER_ONLY
-#include "table.cpp"
-#endif
+

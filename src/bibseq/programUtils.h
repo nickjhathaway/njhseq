@@ -28,5 +28,5 @@
 //
 #include "bibseq/programUtils/seqSetUp.hpp"
 #include "bibseq/programUtils/SeqSetUpPars.hpp"
-#include "bibseq/programUtils/runningParameters.hpp"
+
 

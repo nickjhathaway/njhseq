@@ -80,10 +80,10 @@ void SeqSetUpPars::initializeDefaults() {
   gapInfoRef_.processGapStr(gapRightRef_, gapInfoRef_.gapRightOpen_, gapInfoRef_.gapRightExtend_);
   gapInfoRef_.setIdentifer();
   //
-  gap_ = "7,1";
+  gap_ = "5,1";
   gapInfo_.processGapStr(gap_, gapInfo_.gapOpen_, gapInfo_.gapExtend_);
 
-  gapLeft_ = "7,1";
+  gapLeft_ = "5,1";
   gapInfo_.processGapStr(gapLeft_, gapInfo_.gapLeftOpen_, gapInfo_.gapLeftExtend_);
 
   gapRight_ = "0,0";
@@ -95,36 +95,36 @@ void SeqSetUpPars::initializeDefaults() {
   generalMismatch_ = -2;
   scoring_ = substituteMatrix::createDegenScoreMatrix(1,-1);
   //
-  countEndGaps_ = false;
-  weightHomopolymers_ = true;
+  colOpts_.alignOpts_.countEndGaps_ = false;
+  colOpts_.iTOpts_.weighHomopolyer_ = true;
 
   qualThres_ = "20,15";
   qScorePars_.primaryQual_ = 20;
   qScorePars_.secondaryQual_ = 15;
   qScorePars_.qualThresWindow_ = 2;
 
-  eventBased_ = false;
+  colOpts_.alignOpts_.eventBased_ = true;
   //
   alnInfoDirName_ = "";
   outAlnInfoDirName_ = "";
   writingOutAlnInfo_ = false;
 
   //
-  runCutOffString_ = ".2%";
-  runCutoff_ = 1;
+  colOpts_.kmerOpts_.runCutOffString_ = ".2%";
+  colOpts_.kmerOpts_.runCutOff_ = 1;
 
-  kLength_ = 9;
-  kmersByPosition_ = true;
+
+  colOpts_.kmerOpts_.kLength_ = 9;
+  colOpts_.kmerOpts_.kmersByPosition_ = true;
   expandKmerPos_ = false;
   expandKmerSize_ = 5;
 
   //general clustering
-  skipOnLetterCounterDifference_ = false;
-  fractionDifferenceCutOff_ = 0.05;
-  adjustHomopolyerRuns_ = false;
-  largestFirst_ = false;
-  firstMatch_ = false;
-  bestMatchCheck_ = 10;
+  colOpts_.skipOpts_.skipOnLetterCounterDifference_ = false;
+  colOpts_.skipOpts_.fractionDifferenceCutOff_ = 0.05;
+  colOpts_.iTOpts_.adjustHomopolyerRuns_ = false;
+  colOpts_.bestMatchOpts_.findingBestMatch_= true;
+  colOpts_.bestMatchOpts_.bestMatchCheck_ = 10;
 
   //quality filtering
   qFilPars_.checkingQWindow = false;

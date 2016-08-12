@@ -8,263 +8,92 @@
 //
 
 #include "bibseq/utils.h"
-#include "bibseq/objects/collapseObjects/collapserOpts.hpp"
 #include "bibseq/alignment.h"
 #include "bibseq/seqToolsUtils.h"
 #include "bibseq/readVectorManipulation.h"
 #include "bibseq/objects/kmer/kmerCalculator.hpp"
 #include "bibseq/objects/seqObjects/Clusters/cluster.hpp"
-#include "bibseq/programUtils/seqSetUp.hpp"
+#include "bibseq/objects/collapseObjects/opts.h"
+#include "bibseq/objects/dataContainers/tables/table.hpp"
+
 
 namespace bibseq {
+
+
+
+struct SnapShotsOpts {
+	SnapShotsOpts(bool snapShots, const std::string & snapShotsDirName);
+	SnapShotsOpts();
+	bool snapShots_ = false;
+	std::string snapShotsDirName_ = "snapShots";
+};
 
 class collapser {
 
 public:
 	// constructor
-	collapser(bool findingBestMatch, uint32_t bestMatchCheck, bool local,
-			bool checkKmers, bool kmersByPosition, uint32_t runCutOff,
-			uint32_t kLength, bool verbose, bool smallestFirst,
-			bool condensedCollapse, bool weighHomopolyer,
-			bool skipOnLetterCounterDifference, double fractionDifferenceCutOff,
-			bool adjustHomopolyerRuns) :
-			opts_(findingBestMatch, bestMatchCheck, local, checkKmers,
-					kmersByPosition, runCutOff, kLength, verbose, smallestFirst,
-					condensedCollapse, weighHomopolyer, skipOnLetterCounterDifference,
-					fractionDifferenceCutOff, adjustHomopolyerRuns) {
-	}
-	collapser(const collapserOpts & opts) :
-			opts_(opts) {
-	}
 
-  collapserOpts opts_;
+	collapser(const CollapserOpts & opts);
+
+  CollapserOpts opts_;
 private:
-  template<class CLUSTER>
+	template<class CLUSTER>
 	void findMatch(CLUSTER &read, std::vector<CLUSTER> &comparingReads,
 			const std::vector<uint64_t> & positions,
-			const runningParameters &runParams, size_t &amountAdded,
-			aligner &alignerObj);
+			const IterPar &runParams, size_t & amountAdded,
+			aligner &alignerObj) const;
 
 	template<class CLUSTER>
-	void findMatchOnPerId(CLUSTER &read, std::vector<CLUSTER> &comparingReads,
-			const std::vector<uint64_t> & positions,
-			const runningParameters &runParams, size_t &amountAdded,
-			aligner &alignerObj);
+	void collapseWithParameters(std::vector<CLUSTER> &comparingReads,
+			const IterPar &runParams, aligner &alignerObj) const;
 
-
-  template <class CLUSTER>
-  void collapseWithParameters(std::vector<CLUSTER> &comparingReads,
-                                     const runningParameters &runParams,
-                                     aligner &alignerObj, bool sort);
-  template <class CLUSTER>
-  void collapseWithParameters(
-      std::vector<CLUSTER> &comparingReads, std::vector<uint64_t> & positions,
-      const runningParameters &runParams,
-      aligner &alignerObj);
-
-  template <class CLUSTER>
-	void collapseWithPerId(
-	    std::vector<CLUSTER> &comparingReads, const runningParameters &runParams,
-	    aligner &alignerObj, bool sort);
-
-  template <class CLUSTER>
-	void collapseWithPerId(
-	    std::vector<CLUSTER> &comparingReads,
-	    std::vector<uint64_t> & positions,
-	    const runningParameters &runParams,
-	    aligner &alignerObj);
-
+	template<class CLUSTER>
+	void collapseWithParameters(std::vector<CLUSTER> &comparingReads,
+			std::vector<uint64_t> & positions, const IterPar &runParams,
+			aligner &alignerObj) const;
 
 public:
 
-  template <class CLUSTER>
-  std::vector<CLUSTER> runClustering(std::vector<CLUSTER> &currentClusters,
-  		std::map<int, std::vector<double>> iteratorMap, aligner &alignerObj);
+	template<class CLUSTER>
+	std::vector<CLUSTER> runClustering(std::vector<CLUSTER> &currentClusters,
+			CollapseIterations iteratorMap,
+			aligner &alignerObj) const;
 
-  template <class CLUSTER>
-  void runClustering(std::vector<CLUSTER> &currentClusters,
-  		std::vector<uint64_t> & positons,
-  		std::map<int, std::vector<double>> iteratorMap, aligner &alignerObj);
-
-  template <class CLUSTER>
-  std::vector<CLUSTER> collapseCluster(
-      const std::vector<CLUSTER> & clusters,
-      std::map<int, std::vector<double>> iteratorMap, const std::string &sortBy,
-      aligner &alignerObj);
-
-  template <class CLUSTER>
-  std::vector<CLUSTER> collapseCluster(
-      std::vector<CLUSTER> clusters,
-      std::map<int, runningParameters> iteratorMap, const std::string &sortBy,
-      aligner &alignerObj);
+	template<class CLUSTER>
+	void runClustering(std::vector<CLUSTER> &currentClusters,
+			std::vector<uint64_t> & positons,
+			CollapseIterations iteratorMap,
+			aligner &alignerObj) const;
 
 
-  template <class CLUSTER>
-	void runClusteringOnId(std::vector<CLUSTER> &currentClusters,
-			std::vector<uint64_t> & positions,
-			std::map<int, std::vector<double>> iteratorMap,
-			aligner &alignerObj);
-  template <class CLUSTER>
-  std::vector<CLUSTER> collapseClusterOnPerId(
-      std::vector<CLUSTER> clusters,
-      std::map<int, runningParameters> iteratorMap, const std::string &sortBy,
-      aligner &alignerObj);
-  template <class CLUSTER>
-  std::vector<CLUSTER> collapseClusterOnPerId(
-      const std::vector<CLUSTER> & clusters,
-      std::map<int, std::vector<double>> iteratorMap, const std::string &sortBy,
-      aligner &alignerObj);
 
   void runFullClustering(std::vector<cluster> & clusters,
-  		bool onPerId, std::map<int, std::vector<double>> iteratorMap,
-			std::map<int, std::vector<double>> binIteratorMap,
-  		bool useNucComp,bool useMinLenNucComp, bool findBestNuc, const std::vector<double> & diffCutOffVec,
-  		bool useKmerBinning, uint32_t kCompareLen, double kmerCutOff,
-  		aligner & alignerObj, const SeqSetUpPars & setUpPars,
-			bool snapShots, const std::string & snapShotsDirName);
+			CollapseIterations iteratorMap, CollapseIterations binIteratorMap,
+			aligner & alignerObj, const std::string & mainDirectory,
+			SeqIOOptions ioOpts, SeqIOOptions refOpts,
+			const SnapShotsOpts & snapShotsOpts);
 
 
-  void markChimerasAdvanced(std::vector<cluster> &processedReads,
+
+  template<typename READ>
+  table markChimeras(std::vector<READ> &processedReads,
                                    aligner &alignerObj,
-																	 double parentFreqs,
-                                   int runCutOff,
-                                   const comparison &chiOverlap,
-                                   uint32_t overLapSizeCutoff,
-                                   uint32_t &chimeraCount,
-                                   uint32_t allowableError);
+																	 const ChimeraOpts & chiOpts) const;
 
-private:
-	template<class CLUSTER>
-	void findMatchOneOff(CLUSTER &read, std::vector<CLUSTER> &comparingReads,
-			const runningParameters &runParams, double fracCutoff,
-			size_t &amountAdded, aligner &alignerObj);
-	template<class CLUSTER>
-	std::vector<CLUSTER> collapseOneOffs(std::vector<CLUSTER> clusters,
-			runningParameters runParams, double fracCutOff, aligner &alignerObj);
+
+
 
 };
-
-template <class CLUSTER>
-void collapser::collapseWithPerId(
-    std::vector<CLUSTER> &comparingReads,
-    std::vector<uint64_t> & positions,
-    const runningParameters &runParams,
-    aligner &alignerObj) {
-	int32_t sizeOfReadVector = 0;
-	for(const auto & pos : positions){
-		if(!comparingReads[pos].remove){
-			++sizeOfReadVector;
-		}
-	}
-  if (sizeOfReadVector < 2) {
-    return;
-  }
-  if (opts_.verbose_){
-    std::cout << "Starting with " << sizeOfReadVector << " clusters"
-              << std::endl;
-  }
-  int clusterCounter = 0;
-  size_t amountAdded = 0;
-  if (opts_.smallestFirst_) {
-    for (const auto &reverseReadPos : iter::reverse(positions)) {
-    	auto & reverseRead = comparingReads[reverseReadPos];
-      if (reverseRead.remove) {
-        continue;
-      } else {
-        ++clusterCounter;
-      }
-      if (opts_.verbose_ && clusterCounter % 100 == 0) {
-        std::cout << "Currently on cluster " << clusterCounter << " of "
-                  << sizeOfReadVector << "\r";
-        std::cout.flush();
-      }
-      findMatchOnPerId(reverseRead, comparingReads, positions,
-      		runParams, amountAdded, alignerObj);
-    }
-  } else {
-    for (const auto &forwardReadPos : positions) {
-    	auto & forwardRead = comparingReads[forwardReadPos];
-      if (forwardRead.remove) {
-        continue;
-      } else {
-        ++clusterCounter;
-      }
-      if (opts_.verbose_ && clusterCounter % 100 == 0) {
-        std::cout << "Currently on cluster " << clusterCounter << " of "
-                  << sizeOfReadVector << "\r";
-        std::cout.flush();
-      }
-      findMatchOnPerId(forwardRead, comparingReads,positions,
-      		runParams, amountAdded,alignerObj);
-    }
-  }
-  bib::stopWatch watch;
-  watch.setLapName("updatingName");
-	for(const auto & pos : positions){
-		comparingReads[pos].updateName();
-	}
-
-	watch.startNewLap("allCalculateConsensus");
-	for(const auto & pos : positions){
-		comparingReads[pos].calculateConsensus(alignerObj, true);
-	}
-	watch.startNewLap("removeLowQualityBases");
-	if (opts_.removeLowQualityBases_) {
-		for(const auto & pos : positions){
-			comparingReads[pos].seqBase_.removeLowQualityBases(opts_.lowQualityBaseTrim_);
-		}
-	}
-	watch.startNewLap("adjustHomopolyerRuns");
-	if (opts_.adjustHomopolyerRuns_) {
-		for(const auto & pos : positions){
-			comparingReads[pos].adjustHomopolyerRunQualities();
-		}
-	}
-	/*
-	watch.startNewLap("sortReadVector");
-	auto comp = [&comparingReads](const uint64_t & pos1, const uint64_t & pos2){
-		return comparingReads[pos1] < comparingReads[pos2];
-	};
-	std::sort(positions.begin(), positions.end(), comp);
-	*/
-  if(opts_.debug_){
-  	watch.logLapTimes(std::cout, true, 6, true);
-  }
-  if (opts_.verbose_){
-  	if(clusterCounter >= 100){
-  		std::cout << std::endl;
-  	}
-    std::cout << "Collapsed down to " << sizeOfReadVector - amountAdded
-              << " clusters" << std::endl;
-  }
-}
-
-template<class CLUSTER>
-void collapser::collapseWithPerId(std::vector<CLUSTER> &comparingReads,
-		const runningParameters &runParams, aligner &alignerObj, bool sort) {
-	std::vector<uint64_t> positions(comparingReads.size());
-	bib::iota<uint64_t>(positions, 0);
-	collapseWithPerId(comparingReads, positions, runParams, alignerObj);
-	if(sort){
-		bib::stopWatch watch;
-		watch.setLapName("sorting vector");
-		readVecSorter::sortReadVector(comparingReads, "totalCount");
-		if(opts_.debug_){
-			watch.logLapTimes(std::cout, true, 6,true);
-		}
-	}
-}
-
 
 template <class CLUSTER>
 void collapser::findMatch(CLUSTER &read,
                                  std::vector<CLUSTER> &comparingReads,
                                  const std::vector<uint64_t> & positions,
-                                 const runningParameters &runParams,
+                                 const IterPar &runParams,
                                  size_t &amountAdded,
-																 aligner &alignerObj) {
-	//std::cout << "FindMatch start" << std::endl;
-  int count = -1;
+																 aligner &alignerObj) const{
+
+	uint32_t count = 0;
   double bestScore = 0;
   bool foundMatch = false;
   uint32_t bestSearching = 0;
@@ -274,59 +103,66 @@ void collapser::findMatch(CLUSTER &read,
       continue;
     }
   	auto & clus = comparingReads[clusPos];
-    if (clus.seqBase_.cnt_ <= runParams.smallCheckStop_) {
+
+  	if (clus.seqBase_.cnt_ <= runParams.smallCheckStop_) {
       continue;
-      //break;
     }
+
     if (clus.seqBase_.name_ == read.seqBase_.name_) {
       continue;
     }
-    if (opts_.skipOnLetterCounterDifference_) {
-      double sum = read.counter_.getFracDifference(clus.counter_,
-      		read.counter_.alphabet_);
-      if (sum > opts_.fractionDifferenceCutOff_) {
-        continue;
-      }
-    }
-    if (alignerObj.CountEndGaps()) {
-      if (std::abs(static_cast<int32_t>(read.seqBase_.seq_.length()) -
-      		static_cast<int32_t>(clus.seqBase_.seq_.length())) > 20) {
-        continue;
-      }
-    }
 
-    if (opts_.useReadLen_){
-      if (std::abs(static_cast<int32_t>(read.seqBase_.seq_.length()) -
-      		static_cast<int32_t>(clus.seqBase_.seq_.length())) > opts_.readLenDiff_) {
-        continue;
-      }
+  	if (clus.seqBase_.cnt_ < read.seqBase_.cnt_) {
+      continue;
     }
 
     if (foundMatch) {
       ++bestSearching;
     }
     ++count;
-    if (1 + count > runParams.stopCheck_ || bestSearching > opts_.bestMatchCheck_) {
+    if (count > runParams.stopCheck_ || bestSearching > opts_.bestMatchOpts_.bestMatchCheck_) {
       break;
     }
-    bool matching = clus.compare(read, alignerObj, runParams.errors_, opts_);
+
+    if (opts_.skipOpts_.skipOnLetterCounterDifference_) {
+      double sum = read.counter_.getFracDifference(clus.counter_,
+      		read.counter_.alphabet_);
+      if (sum > opts_.skipOpts_.fractionDifferenceCutOff_) {
+        continue;
+      }
+    }
+
+    if (alignerObj.CountEndGaps()) {
+      if (uAbsdiff(len(getSeqBase(read)), len(getSeqBase(clus))) > 20) {
+        continue;
+      }
+    }
+
+    if (opts_.skipOpts_.useReadLen_){
+      if (uAbsdiff(len(getSeqBase(read)), len(getSeqBase(clus))) > opts_.skipOpts_.readLenDiff_) {
+        continue;
+      }
+    }
+
+
+    bool matching = clus.compare(read, alignerObj, runParams, opts_);
     if (matching) {
       foundMatch = true;
-      if (opts_.findingBestMatch_) {
-        if(opts_.noAlign_){
+      if (opts_.bestMatchOpts_.findingBestMatch_) {
+        if(opts_.alignOpts_.noAlign_){
         	alignerObj.noAlignSetAndScore(clus, read);
         }else{
         	alignerObj.alignCacheGlobal(clus, read);
         }
       	double currentScore = 0;
-      	if(opts_.eventBased_){
-      		alignerObj.profilePrimerAlignment(clus, read, opts_.weighHomopolyer_);
+      	if(opts_.alignOpts_.eventBased_){
+      		alignerObj.profilePrimerAlignment(clus, read);
       		currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
       	}else{
       		currentScore = alignerObj.parts_.score_;
       	}
         if (currentScore > bestScore) {
-          bestScore = alignerObj.parts_.score_;
+          bestScore = currentScore;
           bestClusterPos = clusPos;
         }
       } else {
@@ -338,654 +174,390 @@ void collapser::findMatch(CLUSTER &read,
     }
   }
   if (foundMatch) {
-    if (opts_.findingBestMatch_) {
+    if (opts_.bestMatchOpts_.findingBestMatch_) {
     	if(bestClusterPos != std::numeric_limits<uint32_t>::max()){
     		comparingReads[bestClusterPos].addRead(read);
         read.remove = true;
         ++amountAdded;
     	}
     }
-  }
-}
-
-template <class CLUSTER>
-void collapser::findMatchOnPerId(CLUSTER &read,
-                                 std::vector<CLUSTER> &comparingReads,
-                                 const std::vector<uint64_t> & positions,
-                                 const runningParameters &runParams,
-                                 size_t &amountAdded, aligner &alignerObj) {
-  int count = -1;
-  double bestScore = 0;
-  bool foundMatch = false;
-  uint32_t bestSearching = 0;
-  uint32_t bestClusterPos = std::numeric_limits<uint32_t>::max();
-  for (const auto &clusPos : positions) {
-    if (comparingReads[clusPos].remove) {
-      continue;
-    }
-  	auto & clus = comparingReads[clusPos];
-    if (clus.seqBase_.cnt_ <= runParams.smallCheckStop_) {
-      continue;
-      //break;
-    }
-    if (clus.seqBase_.name_ == read.seqBase_.name_) {
-      continue;
-    }
-    if (opts_.skipOnLetterCounterDifference_) {
-      double sum = read.counter_.getFracDifference(clus.counter_,
-      		read.counter_.alphabet_);
-      if (sum > opts_.fractionDifferenceCutOff_) {
-        continue;
-      }
-    }
-    if (alignerObj.CountEndGaps()) {
-      if (std::abs(static_cast<int32_t>(read.seqBase_.seq_.length()) -
-      		static_cast<int32_t>(clus.seqBase_.seq_.length())) > 10) {
-        continue;
-      }
-    }
-
-    if (opts_.useReadLen_){
-      if (std::abs(static_cast<int32_t>(read.seqBase_.seq_.length()) -
-      		static_cast<int32_t>(clus.seqBase_.seq_.length())) > opts_.readLenDiff_) {
-        continue;
-      }
-    }
-
-    if (foundMatch) {
-      ++bestSearching;
-    }
-
-
-
-    ++count;
-    if (1 + count > runParams.stopCheck_ || bestSearching > opts_.bestMatchCheck_) {
-      break;
-    }
-
-
-    bool matching = clus.compareId(read, alignerObj,runParams.errors_,opts_);
-    if (matching) {
-      foundMatch = true;
-      if (opts_.findingBestMatch_) {
-        if(opts_.noAlign_){
-        	alignerObj.noAlignSetAndScore(clus, read);
-        }else{
-        	alignerObj.alignCacheGlobal(clus, read);
-        }
-      	double currentScore = 0;
-      	if(opts_.eventBased_){
-      		alignerObj.profilePrimerAlignment(clus, read, opts_.weighHomopolyer_);
-      		currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
-      	}else{
-      		currentScore = alignerObj.parts_.score_;
-      	}
-        if (currentScore > bestScore) {
-          bestScore = alignerObj.parts_.score_;
-          bestClusterPos = clusPos;
-        }
-      } else {
-        ++amountAdded;
-        clus.addRead(read);
-        //clus.allInputClusters.push_back(read);
-        read.remove = true;
-        break;
-      }
-    }
-  }
-  if (foundMatch) {
-    if (opts_.findingBestMatch_) {
-    	if(bestClusterPos != std::numeric_limits<uint32_t>::max()){
-    		comparingReads[bestClusterPos].addRead(read);
-    		//comparingReads[bestClusterPos].allInputClusters.emplace_back(read);
-        read.remove = true;
-        ++amountAdded;
-    	}
-    }
-  }
-}
-
-
-
-template <class CLUSTER>
-std::vector<CLUSTER> collapser::collapseClusterOnPerId(
-    std::vector<CLUSTER> clusters,
-    std::map<int, runningParameters> iteratorMap, const std::string &sortBy,
-    aligner &alignerObj){
-  // set kmer maps
-  //kmerMaps kMaps = kmerCalculator::indexKmerMpas(clusters, opts_.kLength_, opts_.runCutOff_);
-  //alignerObj.setKmerMpas(kMaps);
-  // go over the iterations collapsing down and down, sort the reads after each
-  // iteration
-  // and calculate a consensus after each one
-  readVec::allSetLetterCount(clusters);
-  for (uint32_t i = 1; i <= iteratorMap.size(); ++i) {
-    if (opts_.verbose_) {
-    	iteratorMap[i].printIterInfo(std::cout, true, true);
-    }
-    collapseWithPerId(clusters,iteratorMap[i], alignerObj, true);
-  }
-  return readVecSplitter::splitVectorOnRemove(clusters).first;
-}
-
-
-template <class CLUSTER>
-std::vector<CLUSTER> collapser::collapseClusterOnPerId(
-		const std::vector<CLUSTER> & clusters,
-    std::map<int, std::vector<double>> iteratorMap, const std::string &sortBy,
-    aligner &alignerObj) {
-	std::map<int, runningParameters> iteratorMapPars;
-	bool onPerId = false;
-	for(const auto & iteration : iteratorMap){
-		iteratorMapPars[iteration.first] = runningParameters(iteration.second,iteration.first,
-				readVec::getTotalReadCount(clusters), onPerId);
-	}
-  return collapseClusterOnPerId(clusters, iteratorMapPars, sortBy, alignerObj);
-}
-
-template <class CLUSTER>
-void collapser::runClusteringOnId(std::vector<CLUSTER> &currentClusters,
-		std::vector<uint64_t> & positions,
-		std::map<int, std::vector<double>> iteratorMap,
-		aligner &alignerObj){
-	{
-		bib::stopWatch watch;
-		auto comp = [&currentClusters](const uint64_t & pos1, const uint64_t & pos2){
-			return currentClusters[pos1] < currentClusters[pos2];
-		};
-		watch.setLapName("sortReadVector");
-		bib::sort(positions, comp);
-		if(opts_.debug_){
-			watch.logLapTimes(std::cout, true, 6, true);
-		}
-	}
-	for (uint32_t i = 1; i <= iteratorMap.size(); ++i) {
-		uint32_t sizeOfReadVector = 0;
-		for(const auto & pos : positions){
-			if(!currentClusters[pos].remove){
-				++sizeOfReadVector;
-			}
-		}
-		bool onPerId = false;
-		runningParameters runPars(iteratorMap[i], i, sizeOfReadVector, onPerId);
-		if(opts_.verbose_){
-			std::cout << std::endl;
-			runPars.printIterInfo(std::cout, true, true);
-		}
-		collapseWithPerId(currentClusters, positions, runPars, alignerObj);
-		{
-			bib::stopWatch watch;
-			auto comp = [&currentClusters](const uint64_t & pos1, const uint64_t & pos2){
-				return currentClusters[pos1] < currentClusters[pos2];
-			};
-			watch.setLapName("sortReadVector");
-			bib::sort(positions, comp);
-			if(opts_.debug_){
-				watch.logLapTimes(std::cout, true, 6, true);
-			}
-		}
-	}
-}
-
-
-template <class CLUSTER>
-std::vector<CLUSTER> collapser::runClustering(std::vector<CLUSTER> &currentClusters,
-		std::map<int, std::vector<double>> iteratorMap, aligner &alignerObj){
-	for (int i = 1; i <= iteratorMap.size(); ++i) {
-		uint32_t sizeOfReadVector = readVec::getReadVectorSize(currentClusters);
-		bool onPerId = false;
-		runningParameters runPars(iteratorMap[i],i, sizeOfReadVector, onPerId);
-		if(opts_.verbose_){
-			std::cout << std::endl;
-			runPars.printIterInfo(std::cout, true, false);
-		}
-		if (opts_.condensedCollapse_ && runPars.errors_.hqMismatches_ == 0 &&
-				runPars.errors_.lqMismatches_ == 0 &&
-				runPars.errors_.largeBaseIndel_ == 0) {
-			auto byCondensed = readVec::organizeByCondensedSeq(currentClusters);
-			for (auto& condensedReads : byCondensed) {
-				collapseWithParameters(condensedReads.second,runPars, alignerObj, false);
-			}
-			currentClusters.clear();
-			for (const auto& condensedReads : byCondensed) {
-				addOtherVec(currentClusters, condensedReads.second);
-			}
-			bib::stopWatch watch;
-			watch.setLapName("sorting vector");
-			readVecSorter::sortReadVector(currentClusters, "totalCount");
-			if(opts_.debug_){
-				watch.logLapTimes(std::cout, true, 6,true);
-			}
-		} else {
-			collapseWithParameters(currentClusters, runPars, alignerObj, true);
-		}
-	}
-	return readVecSplitter::splitVectorOnRemove(currentClusters).first;
-}
-
-template <class CLUSTER>
-void collapser::runClustering(std::vector<CLUSTER> &currentClusters,
-		std::vector<uint64_t> & positions,
-		std::map<int, std::vector<double>> iteratorMap,
-		aligner &alignerObj){
-	{
-		bib::stopWatch watch;
-		auto comp = [&currentClusters](const uint64_t & pos1, const uint64_t & pos2){
-			return currentClusters[pos1] < currentClusters[pos2];
-		};
-		watch.setLapName("sortReadVector");
-		bib::sort(positions, comp);
-		if(opts_.debug_){
-			watch.logLapTimes(std::cout, true, 6, true);
-		}
-	}
-	for (uint32_t i = 1; i <= iteratorMap.size(); ++i) {
-		uint32_t sizeOfReadVector = 0;
-		for(const auto & pos : positions){
-			if(!currentClusters[pos].remove){
-				++sizeOfReadVector;
-			}
-		}
-		bool onPerId = false;
-		runningParameters runPars(iteratorMap[i],i, sizeOfReadVector, onPerId);
-		if(opts_.verbose_){
-			std::cout << std::endl;
-			runPars.printIterInfo(std::cout, true, false);
-		}
-		if (opts_.condensedCollapse_ && runPars.errors_.hqMismatches_ == 0 &&
-				runPars.errors_.lqMismatches_ == 0 &&
-				runPars.errors_.largeBaseIndel_ == 0) {
-			auto byCondensed = readVec::organizeByCondensedSeqPositions(currentClusters, positions);
-			for (auto& condensedReads : byCondensed) {
-
-				collapseWithParameters(currentClusters,condensedReads.second,runPars, alignerObj);
-			}
-		} else {
-			collapseWithParameters(currentClusters, positions, runPars,alignerObj);
-		}
-		bib::stopWatch watch;
-		auto comp = [&currentClusters](const uint64_t & pos1, const uint64_t & pos2){
-			return currentClusters[pos1] < currentClusters[pos2];
-		};
-		watch.setLapName("sortReadVector");
-		bib::sort(positions, comp);
-		if(opts_.debug_){
-			watch.logLapTimes(std::cout, true, 6, true);
-		}
-	}
-}
-
-template <class CLUSTER>
-void collapser::collapseWithParameters(
-    std::vector<CLUSTER> &comparingReads, const runningParameters &runParams,
-    aligner &alignerObj, bool sort) {
-	std::vector<uint64_t> positions(comparingReads.size());
-	bib::iota<uint64_t>(positions, 0);
-	collapseWithParameters(comparingReads, positions, runParams, alignerObj);
-	if(sort){
-		bib::stopWatch watch;
-		watch.setLapName("sorting vector");
-		readVecSorter::sortReadVector(comparingReads, "totalCount");
-		if(opts_.debug_){
-			watch.logLapTimes(std::cout, true, 6,true);
-		}
-	}
-}
-
-template <class CLUSTER>
-void collapser::collapseWithParameters(
-    std::vector<CLUSTER> &comparingReads,
-    std::vector<uint64_t> & positions,
-    const runningParameters &runParams,
-    aligner &alignerObj) {
-	uint32_t sizeOfReadVector = 0;
-	for(const auto & pos : positions){
-		if(!comparingReads[pos].remove){
-			++sizeOfReadVector;
-		}
-	}
-  if (sizeOfReadVector < 2) {
-    return;
-  }
-  if (opts_.verbose_){
-    std::cout << "Starting with " << sizeOfReadVector << " clusters"
-              << std::endl;
-  }
-  int clusterCounter = 0;
-  size_t amountAdded = 0;
-  if (opts_.smallestFirst_) {
-    for (const auto &reverseReadPos : iter::reverse(positions)) {
-    	auto & reverseRead = comparingReads[reverseReadPos];
-      if (reverseRead.remove) {
-        continue;
-      } else {
-        clusterCounter++;
-      }
-      if (opts_.verbose_ && clusterCounter % 100 == 0) {
-        std::cout << "Currently on cluster " << clusterCounter << " of "
-                  << sizeOfReadVector << "\r";
-        std::cout.flush();
-      }
-      findMatch(reverseRead, comparingReads, positions,
-      		runParams, amountAdded, alignerObj);
-    }
-  } else {
-    for (const auto &forwardReadPos : positions) {
-    	auto & forwardRead = comparingReads[forwardReadPos];
-      if (forwardRead.remove) {
-        continue;
-      } else {
-        clusterCounter++;
-      }
-      if (opts_.verbose_ && clusterCounter % 100 == 0) {
-        std::cout << "Currently on cluster " << clusterCounter << " of "
-                  << sizeOfReadVector << "\r";
-        std::cout.flush();
-      }
-      findMatch(forwardRead, comparingReads,positions,
-      		runParams, amountAdded,
-                       alignerObj);
-    }
-  }
-
-  bib::stopWatch watch;
-  watch.setLapName("updatingName");
-	for(const auto & pos : positions){
-		comparingReads[pos].updateName();
-	}
-	watch.startNewLap("allCalculateConsensus");
-	for(const auto & pos : positions){
-		comparingReads[pos].calculateConsensus(alignerObj, true);
-	}
-	watch.startNewLap("removeLowQualityBases");
-	if (opts_.removeLowQualityBases_) {
-		for(const auto & pos : positions){
-			comparingReads[pos].seqBase_.removeLowQualityBases(opts_.lowQualityBaseTrim_);
-		}
-	}
-	watch.startNewLap("adjustHomopolyerRuns");
-	if (opts_.adjustHomopolyerRuns_) {
-		for(const auto & pos : positions){
-			comparingReads[pos].adjustHomopolyerRunQualities();
-		}
-	}
-	/*
-	watch.startNewLap("sortReadVector");
-	auto comp = [&comparingReads](const uint64_t & pos1, const uint64_t & pos2){
-		return comparingReads[pos1] < comparingReads[pos2];
-	};
-	bib::sort(positions, comp);
-	 */
-  if(opts_.debug_){
-  	watch.logLapTimes(std::cout, true, 6, true);
-  }
-
-  if (opts_.verbose_){
-  	if(clusterCounter >= 100){
-  		std::cout << std::endl;
-  	}
-  	 std::cout << "Collapsed down to " << sizeOfReadVector - amountAdded
-  	              << " clusters" << std::endl;
   }
 }
 
 
 template<class CLUSTER>
-std::vector<CLUSTER> collapser::collapseCluster(std::vector<CLUSTER> clusters,
-		std::map<int, runningParameters> iteratorMap, const std::string &sortBy,
-		aligner &alignerObj) {
-	//set kmer frequncy maps
-	bool expandKmerPos = false;
-	uint32_t expandKmerPosSize = 5;
-	KmerMaps kMaps = indexKmers(clusters, opts_.kLength_, opts_.runCutOff_, opts_.kmersByPosition_, expandKmerPos, expandKmerPosSize);
-	alignerObj.setKmerMpas(kMaps);
-	// go over the iterations collapsing down and down, sort the reads after each
-	// iteration
-	// and calculate a consensus after each one
-	readVec::allSetLetterCount(clusters);
-	for (uint32_t i = 1; i <= iteratorMap.size(); ++i) {
-		runningParameters runPars(iteratorMap[i]);
-		if (opts_.verbose_) {
-			runPars.printIterInfo(std::cout, true, false);
+void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
+		const IterPar &runParams, aligner &alignerObj) const {
+	std::vector<uint64_t> positions(comparingReads.size());
+	bib::iota<uint64_t>(positions, 0);
+	collapseWithParameters(comparingReads, positions, runParams, alignerObj);
+}
+
+template<class CLUSTER>
+void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
+		std::vector<uint64_t> & positions, const IterPar &runParams,
+		aligner &alignerObj) const {
+	uint32_t sizeOfReadVector = 0;
+	for (const auto & pos : positions) {
+		if (!comparingReads[pos].remove) {
+			++sizeOfReadVector;
 		}
-		if (opts_.condensedCollapse_ && runPars.errors_.hqMismatches_ == 0
-				&& runPars.errors_.lqMismatches_ == 0
-				&& runPars.errors_.largeBaseIndel_ == 0) {
-			auto byCondensed = readVec::organizeByCondensedSeq(clusters);
-			for (auto &condensedReads : byCondensed) {
-				collapseWithParameters(condensedReads.second, runPars, alignerObj, false);
-			}
-			clusters.clear();
-			for (const auto &condensedReads : byCondensed) {
-				addOtherVec(clusters, condensedReads.second);
-			}
-			bib::stopWatch watch;
-			watch.setLapName("sorting vector");
-			readVecSorter::sortReadVector(clusters, "totalCount");
-			if(opts_.debug_){
-				watch.logLapTimes(std::cout, true, 6,true);
+	}
+	if (sizeOfReadVector < 2) {
+		return;
+	}
+	if (opts_.verboseOpts_.verbose_) {
+		std::cout << "Starting with " << sizeOfReadVector << " clusters"
+				<< std::endl;
+	}
+	uint32_t clusterCounter = 0;
+	size_t amountAdded = 0;
+	for (const auto &reverseReadPos : iter::reversed(positions)) {
+		auto & reverseRead = comparingReads[reverseReadPos];
+		if (reverseRead.remove) {
+			continue;
+		} else {
+			++clusterCounter;
+		}
+		if (opts_.verboseOpts_.verbose_ && clusterCounter % 100 == 0) {
+			std::cout << "\r" << "Currently on cluster " << clusterCounter << " of "
+					<< sizeOfReadVector;
+			std::cout.flush();
+		}
+		findMatch(reverseRead, comparingReads, positions, runParams, amountAdded,
+				alignerObj);
+	}
+
+	bib::stopWatch watch;
+	watch.setLapName("updatingName");
+	for (const auto & pos : positions) {
+		comparingReads[pos].updateName();
+	}
+	watch.startNewLap("allCalculateConsensus");
+	for (const auto & pos : positions) {
+		comparingReads[pos].calculateConsensus(alignerObj, true);
+	}
+	watch.startNewLap("removeLowQualityBases");
+	if (opts_.iTOpts_.removeLowQualityBases_) {
+		for (const auto & pos : positions) {
+			comparingReads[pos].seqBase_.removeLowQualityBases(
+					opts_.iTOpts_.lowQualityBaseTrim_);
+		}
+	}
+	watch.startNewLap("adjustHomopolyerRuns");
+	if (opts_.iTOpts_.adjustHomopolyerRuns_) {
+		for (const auto & pos : positions) {
+			comparingReads[pos].adjustHomopolyerRunQualities();
+		}
+	}
+
+	if (opts_.verboseOpts_.debug_) {
+		watch.logLapTimes(std::cout, true, 6, true);
+	}
+
+	if (opts_.verboseOpts_.verbose_) {
+		if (clusterCounter >= 100) {
+			std::cout << std::endl;
+		}
+		std::cout << "Collapsed down to " << sizeOfReadVector - amountAdded
+				<< " clusters" << std::endl;
+	}
+}
+
+template<class CLUSTER>
+std::vector<CLUSTER> collapser::runClustering(
+		std::vector<CLUSTER> &currentClusters,
+		CollapseIterations iteratorMap, aligner &alignerObj) const {
+	for (const auto & iter : iteratorMap.iters_) {
+		if (opts_.verboseOpts_.verbose_) {
+			std::cout << std::endl;
+			iter.second.printIterInfo(std::cout, true);
+		}
+		if (iter.second.errors_.hqMismatches_ == 0
+				&& iter.second.errors_.lqMismatches_ == 0
+				&& iter.second.errors_.largeBaseIndel_ == 0) {
+			std::vector<uint64_t> positions(currentClusters.size());
+			bib::iota<uint64_t>(positions, 0);
+			auto byCondensed = readVec::organizeByCondensedSeqPositions(
+					currentClusters, positions);
+			for (auto& condensedReads : byCondensed) {
+				collapseWithParameters(currentClusters, condensedReads.second,
+						iter.second, alignerObj);
 			}
 		} else {
-			collapseWithParameters(clusters, runPars, alignerObj, true);
+			collapseWithParameters(currentClusters, iter.second, alignerObj);
+		}
+		bib::stopWatch watch;
+		watch.setLapName("sorting vector");
+		readVecSorter::sortReadVector(currentClusters, "totalCount");
+		if (opts_.verboseOpts_.debug_) {
+			watch.logLapTimes(std::cout, true, 6, true);
 		}
 	}
-	return readVecSplitter::splitVectorOnRemove(clusters).first;
+	return readVecSplitter::splitVectorOnRemove(currentClusters).first;
 }
 
-template <class CLUSTER>
-std::vector<CLUSTER> collapser::collapseCluster(
-    const std::vector<CLUSTER> & clusters,
-    std::map<int, std::vector<double>> iteratorMap, const std::string &sortBy,
-    aligner &alignerObj) {
-	std::map<int, runningParameters> iteratorMapPars;
-	bool onPerId = false;
-	for(const auto & iteration : iteratorMap){
-		iteratorMapPars[iteration.first] = runningParameters(iteration.second,iteration.first,
-				readVec::getTotalReadCount(clusters), onPerId);
+template<class CLUSTER>
+void collapser::runClustering(std::vector<CLUSTER> &currentClusters,
+		std::vector<uint64_t> & positions,
+		CollapseIterations iteratorMap,
+		aligner &alignerObj) const{
+	{
+		bib::stopWatch watch;
+		auto comp =
+				[&currentClusters](const uint64_t & pos1, const uint64_t & pos2) {
+					return currentClusters[pos1] < currentClusters[pos2];
+				};
+		watch.setLapName("sortReadVector");
+		bib::sort(positions, comp);
+		if (opts_.verboseOpts_.debug_) {
+			watch.logLapTimes(std::cout, true, 6, true);
+		}
 	}
-  return collapseCluster(clusters, iteratorMapPars, sortBy, alignerObj);
+	for (const auto & iter : iteratorMap.iters_) {
+		if (opts_.verboseOpts_.verbose_) {
+			std::cout << std::endl;
+			iter.second.printIterInfo(std::cout, true);
+		}
+		if (iter.second.errors_.hqMismatches_ == 0
+				&& iter.second.errors_.lqMismatches_ == 0
+				&& iter.second.errors_.largeBaseIndel_ == 0) {
+			auto byCondensed = readVec::organizeByCondensedSeqPositions(
+					currentClusters, positions);
+			for (auto& condensedReads : byCondensed) {
+				collapseWithParameters(currentClusters, condensedReads.second,
+						iter.second, alignerObj);
+			}
+		} else {
+			collapseWithParameters(currentClusters, positions, iter.second,
+					alignerObj);
+		}
+		bib::stopWatch watch;
+		auto comp =
+				[&currentClusters](const uint64_t & pos1, const uint64_t & pos2) {
+					return currentClusters[pos1] < currentClusters[pos2];
+				};
+		watch.setLapName("sortReadVector");
+		bib::sort(positions, comp);
+		if (opts_.verboseOpts_.debug_) {
+			watch.logLapTimes(std::cout, true, 6, true);
+		}
+	}
 }
 
+template<typename READ>
+table collapser::markChimeras(std::vector<READ> &processedReads,
+                                 aligner &alignerObj,
+																 const ChimeraOpts & chiOpts) const{
+	table ret(VecStr{"read", "parent1", "parent1SeqPos", "parent2", "parent2SeqPos"});
+	//assumes clusters are coming in sorted by total count
+	if(processedReads.size() <=2){
+		return ret;
+	}
+	if(opts_.verboseOpts_.verbose_){
+		std::cout << "Marking Chimeras" << std::endl;
+		std::cout << "Initial Pass" << std::endl;
+	}
+	//subPos is the position of the clusters to investigate for being possibly chimeric
+	for (const auto & subPos : iter::range<size_t>(2, processedReads.size())) {
+		if (opts_.verboseOpts_.verbose_) {
+			std::cout << subPos << ":" << processedReads.size() << "\r";
+			std::cout.flush();
+		}
+		//skip if the clusters to investigate fall below or is equal to the run cut off
+		//normally set to 1 as singlets are going to be thrown out anyways
+		if(getSeqBase(processedReads[subPos]).cnt_ <= chiOpts.runCutOff_){
+			continue;
+		}
+		std::multimap<size_t, size_t> endChiPos;
+		std::multimap<size_t, size_t> frontChiPos;
+		//pos is the position of the possible parents
+		for (const auto &pos : iter::range<size_t>(0, subPos)) {
+			if(opts_.verboseOpts_.verbose_ && opts_.verboseOpts_.debug_){
+				std::cout << std::endl;
+				std::cout << getSeqBase(processedReads[pos]).name_ << std::endl;
+				std::cout << getSeqBase(processedReads[subPos]).name_ << std::endl;
+				std::cout << "getSeqBase(processedReads[pos]).cnt_" << getSeqBase(processedReads[pos]).cnt_ << std::endl;
+				std::cout << "getSeqBase(processedReads[pos]).frac_" << getSeqBase(processedReads[pos]).frac_ << std::endl;
+				std::cout << "getSeqBase(processedReads[subPos]).cnt_" << getSeqBase(processedReads[subPos]).cnt_ << std::endl;
+				std::cout << "getSeqBase(processedReads[subPos]).frac_" << getSeqBase(processedReads[subPos]).frac_ << std::endl;
+			}
+			//skip if the proportion of reads is less than parentFreqs
+			if ((getSeqBase(processedReads[pos]).cnt_
+					/ getSeqBase(processedReads[subPos]).cnt_) < chiOpts.parentFreqs_) {
+				continue;
+			}
+			//skip if the same exact sequence
+			if(getSeqBase(processedReads[pos]).seq_ == getSeqBase(processedReads[subPos]).seq_){
+				continue;
+			}
+			//global align
+			alignerObj.alignCacheGlobal(processedReads[pos], processedReads[subPos]);
+			//profile alignment
+			alignerObj.profileAlignment(processedReads[pos], processedReads[subPos],
+					false, true, false);
+			if (opts_.verboseOpts_.verbose_ && opts_.verboseOpts_.debug_) {
+				std::cout << "alignerObj.mismatches_.size()"
+						<< alignerObj.comp_.distances_.mismatches_.size() << std::endl;
+				std::cout << "alignerObj.alignmentGaps_.size()"
+						<< alignerObj.comp_.distances_.alignmentGaps_.size() << std::endl;
+			}
+      if (alignerObj.comp_.distances_.mismatches_.size() > 0
+      		|| alignerObj.comp_.twoBaseIndel_ > 0
+					|| alignerObj.comp_.largeBaseIndel_ > 0) {
+      	//save the current mismatches and gap infos
+      	std::map<uint32_t, mismatch> savedMismatches = alignerObj.comp_.distances_.mismatches_;
+      	auto savedGapInfo = alignerObj.comp_.distances_.alignmentGaps_;
+      	size_t frontPos = 0;
+      	size_t endPos = std::numeric_limits<size_t>::max();
+      	if(savedMismatches.size() > 0){
+        	bool passEnd = true;
+        	bool passFront = true;
+					//check front until first mismatch
+					if (savedMismatches.begin()->second.seqBasePos + 1 <= chiOpts.overLapSizeCutoff_) {
+						passFront = false;
+					} else {
+						alignerObj.profileAlignment(processedReads[pos],
+								processedReads[subPos], false, true, false, 0,
+								savedMismatches.begin()->first);
+						passFront = chiOpts.chiOverlap_.passErrorProfile(alignerObj.comp_);
+						if (passFront) {
+							frontPos = savedMismatches.begin()->second.seqBasePos;
+							//processedReads[subPos].frontChiPos.insert( {
+								//	savedMismatches.begin()->second.seqBasePos, pos });
+						}
+					}
+					//check end from last mismatch
+					if (chiOpts.overLapSizeCutoff_
+							>= (len(getSeqBase(processedReads[subPos]))
+									- savedMismatches.rbegin()->second.seqBasePos)) {
+						passEnd = false;
+					} else {
+						alignerObj.profileAlignment(processedReads[pos],
+								processedReads[subPos], false, true, false,
+								savedMismatches.rbegin()->first + 1);
+						passEnd = chiOpts.chiOverlap_.passErrorProfile(alignerObj.comp_);
+						if (passEnd) {
+							endPos = savedMismatches.rbegin()->second.seqBasePos;
 
+							//processedReads[subPos].endChiPos.insert( {
+							//		savedMismatches.rbegin()->second.seqBasePos, pos });
+						}
+					}
+				}
 
+      	if(savedGapInfo.size() > 0){
+          //check front until first large gap
+          for(const auto & g : savedGapInfo){
+          	if(g.second.size_ <=1){
+          		continue;
+          	}
+          	if(g.second.seqPos_ + 1 <= chiOpts.overLapSizeCutoff_){
+          		continue;
+          	}
+  					alignerObj.profileAlignment(processedReads[pos],
+  							processedReads[subPos], false, true, false,
+								0, g.second.startPos_);
+  					if (chiOpts.chiOverlap_.passErrorProfile(alignerObj.comp_)) {
+  						size_t gapPos = getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_);
+  						if(gapPos > frontPos){
+  							frontPos = gapPos;
+  						}
+  						//processedReads[subPos].frontChiPos.insert(
+  						//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_), pos });
+  					}
+          	break;
+          }
 
-template <class CLUSTER>
-std::vector<CLUSTER> collapser::collapseOneOffs(
-    std::vector<CLUSTER> clusters, runningParameters runParams,
-    double fracCutOff, aligner &alignerObj) {
-	throw std::runtime_error{std::string(__PRETTY_FUNCTION__) + " not yet implemented"};
-  runParams.errors_.hqMismatches_ = 1;
-	bool expandKmerPos = false;
-	uint32_t expandKmerPosSize = 5;
-	KmerMaps kMaps = indexKmers(clusters, opts_.kLength_, opts_.runCutOff_, opts_.kmersByPosition_, expandKmerPos, expandKmerPosSize);
-  // std::cout <<"cc2" << std::endl;
-  alignerObj.setKmerMpas(kMaps);
-  // std::cout <<"cc3" << std::endl;
-  // go over the iterations collapsing down and down, sort the reads after each
-  // iteration
-  // and calculate a consensus after each one
+  				//check end from last large gap
+  				for (const auto & g : iter::reversed(savedGapInfo)) {
+  					if (g.second.size_ <= 1) {
+  						continue;
+  					}
+  					if(len(getSeqBase(processedReads[subPos])) - (g.second.seqPos_ + g.second.size_) <= chiOpts.overLapSizeCutoff_){
+  						continue;
+  					}
+  					alignerObj.profileAlignment(processedReads[pos],
+  							processedReads[subPos], false, true, false,
+								g.second.startPos_ + g.second.size_);
 
-  // std::cout <<"cc4" << std::endl;
-  int sizeOfReadVector = readVec::getReadVectorSize(clusters);
-  if (opts_.verbose_)
-    std::cout << "Starting with " << sizeOfReadVector << " clusters"
-              << std::endl;
-  int clusterCounter = 0;
-  size_t amountAdded = 0;
-  if (opts_.smallestFirst_) {
-    for (auto &reverseRead : iter::reverse(clusters)) {
-      if (reverseRead.remove) {
-        continue;
-      } else {
-        clusterCounter++;
-      }
-      if (opts_.verbose_ && clusterCounter % 100 == 0) {
-        std::cout << "Currently on cluster " << clusterCounter << " of "
-                  << sizeOfReadVector << std::endl;
-      }
-      findMatchQualKmer(reverseRead, clusters, runParams, amountAdded,
-                        alignerObj);
-    }
-  } else {
-    for (auto &forwardRead : clusters) {
-      if (forwardRead.remove) {
-        continue;
-      } else {
-        clusterCounter++;
-      }
-      if (opts_.verbose_ && clusterCounter % 100 == 0) {
-        std::cout << "Currently on cluster " << clusterCounter << " of "
-                  << sizeOfReadVector << std::endl;
-      }
-      findMatchQualKmer(forwardRead, clusters, runParams, amountAdded,
-                        alignerObj);
-    }
-  }
-  if (opts_.verbose_){
-  	if(clusterCounter >= 100){
-  		std::cout << std::endl;
-  	}
-  	 std::cout << "Collapsed down to " << sizeOfReadVector - amountAdded
-  	              << " clusters" << std::endl;
-  }
-  // collapser::collapseWithParameters(clusters, runPars, alignerObj);
-  readVec::allUpdateName(clusters);
-  readVecSorter::sortReadVector(clusters, "totalCount");
-  return readVecSplitter::splitVectorOnRemove(clusters).first;
-}
-
-
-
-
-
-
-template <class CLUSTER>
-void collapser::findMatchOneOff(CLUSTER &read,
-                                std::vector<CLUSTER> &comparingReads,
-                                const runningParameters &runParams,
-                                double fracCutoff, size_t &amountAdded,
-                                aligner &alignerObj) {
-	throw std::runtime_error{std::string(__PRETTY_FUNCTION__) + " not yet implemented"};
-	//std::cout << "FindMatch start" << std::endl;
-  int count = -1;
-  double bestScore = 0;
-  int bestSearching = 0;
-  bool foundMatch = false;
-  uint64_t bestClusterPos = std::numeric_limits<uint64_t>::max();
-  std::string bestCluster = "";
-  // std::cout <<"fm 1 " << std::endl;
-  for (const auto &clusPos : iter::range(comparingReads.size())) {
-  	auto & clus = comparingReads[clusPos];
-    if (clus.seqBase_.cnt_ <= runParams.smallCheckStop_) {
-      //continue;
-      break;
-    }
-    if (clus.seqBase_.name_ == read.seqBase_.name_) {
-      continue;
-    }
-    if (opts_.skipOnLetterCounterDifference_) {
-      double sum = read.counter_.getFracDifference(clus.counter_,
-      		read.counter_.alphabet_);
-      if (sum > opts_.fractionDifferenceCutOff_) {
-        continue;
-      }
-    }
-    if (alignerObj.CountEndGaps()) {
-      if (std::abs(static_cast<int32_t>(read.seqBase_.seq_.length()) -
-      		static_cast<int32_t>(clus.seqBase_.seq_.length())) > 10) {
-        continue;
-      }
-    }
-
-    if (opts_.useReadLen_){
-    	++count;
-      if (std::abs(static_cast<int32_t>(read.seqBase_.seq_.length()) -
-      		static_cast<int32_t>(clus.seqBase_.seq_.length())) > opts_.readLenDiff_) {
-        continue;
-      }
-    }
-
-    if (foundMatch) {
-      ++bestSearching;
-    }
-
-    if (clus.remove) {
-      continue;
-    } else {
-      ++count;
-    }
-
-    if (1 + count > runParams.stopCheck_ || bestSearching > opts_.bestMatchCheck_) {
-      break;
-    }
-    //bool matching = clus.compare(read, alignerObj, runParams.errors_, opts_);
-    bool matching = false;
-
-    if (clus.previousErrorChecks_.find(read.firstReadName_) !=
-            clus.previousErrorChecks_.end() &&
-        read.previousErrorChecks_.find(clus.firstReadName_) !=
-            read.previousErrorChecks_.end()) {
-      matching = runParams.errors_.passErrorProfile(
-          read.previousErrorChecks_.at(clus.firstReadName_));
-      if(opts_.noAlign_){
-      	alignerObj.noAlignSetAndScore(clus, read);
-      }else{
-      	alignerObj.alignCacheGlobal(clus, read);
-      }
-      //alignerObj.profilePrimerAlignment(clus, read, opts_.weighHomopolyer_);
-    } else {
-      if(opts_.noAlign_){
-      	alignerObj.noAlignSetAndScore(clus, read);
-      }else{
-      	alignerObj.alignCacheGlobal(clus, read);
-      }
-      alignerObj.profilePrimerAlignment(clus, read, opts_.weighHomopolyer_);
-      comparison currentProfile = alignerObj.compareAlignment(
-          clus, read, runParams, opts_.checkKmers_, opts_.kmersByPosition_,
-          opts_.weighHomopolyer_);
-      read.previousErrorChecks_[clus.firstReadName_] = currentProfile;
-      clus.previousErrorChecks_[read.firstReadName_] = currentProfile;
-      matching = runParams.errors_.passErrorProfile(currentProfile);
-    }
-
-    if (matching) {
-      foundMatch = true;
-      if (opts_.findingBestMatch_) {
-      	alignerObj.alignCacheGlobal(clus, read);
-      	double currentScore = 0;
-      	if(opts_.eventBased_){
-      		alignerObj.profilePrimerAlignment(clus, read, opts_.weighHomopolyer_);
-      		currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
-      	}else{
-      		currentScore = alignerObj.parts_.score_;
+  					if (chiOpts.chiOverlap_.passErrorProfile(alignerObj.comp_)) {
+  						size_t gapPos = 0;
+  						if (g.second.ref_) {
+  							gapPos = getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,g.second.startPos_) + g.second.size_ - 1;
+  							//processedReads[subPos].endChiPos.insert(
+  							//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
+  							//				g.second.startPos_) + g.second.size_ - 1, pos });
+  						} else {
+  							/**@todo something else should probably happen if this is 0 */
+  							if (0
+  									== getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
+  											g.second.startPos_)) {
+  								gapPos = getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_);
+  								//processedReads[subPos].endChiPos.insert(
+  								//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
+  								//				g.second.startPos_), pos });
+  							} else {
+  								gapPos = getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_) - 1;
+  								//processedReads[subPos].endChiPos.insert(
+  								//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
+  								//				g.second.startPos_) - 1, pos });
+  							}
+  						}
+  						if(gapPos < endPos){
+  							endPos = gapPos;
+  						}
+  					}
+  					break;
+  				}
+      	} // pass gaps size > 0
+      	//check to see if we have an endPos
+      	if(std::numeric_limits<size_t>::max() != endPos){
+      		endChiPos.insert({endPos, pos});
       	}
-        if (currentScore > bestScore) {
-          bestScore = alignerObj.parts_.score_;
-          bestClusterPos = clusPos;
-        }
-      } else {
-        ++amountAdded;
-        clus.addRead(read);
-        clus.allInputClusters.push_back(read);
-        read.remove = true;
-        break;
-      }
-    }
-
+      	//check to see if we have a frontPos
+				if (0 != frontPos) {
+					frontChiPos.insert({frontPos, pos});
+				}
+      } // pass has errors
+		} // pos loop
+		if(!endChiPos.empty() && ! frontChiPos.empty()){
+			if(endChiPos.begin()->first < frontChiPos.rbegin()-> first){
+				getSeqBase(processedReads[subPos]).markAsChimeric();
+				size_t endReadMinPos = endChiPos.begin()->second;
+				for(const auto & end : endChiPos){
+					if(end.first != endChiPos.begin()->first){
+						break;
+					}else{
+						if(end.second < endReadMinPos){
+							endReadMinPos = end.second;
+						}
+					}
+				}
+				size_t frontReadMinPos = frontChiPos.rbegin()->second;
+				for(const auto & front : iter::reversed(frontChiPos)){
+					if(front.first != frontChiPos.rbegin()->first){
+						break;
+					}else{
+						if(front.second < frontReadMinPos){
+							frontReadMinPos = front.second;
+						}
+					}
+				}
+				ret.content_.emplace_back(
+						toVecStr(getSeqBase(processedReads[subPos]).name_,
+								getSeqBase(processedReads[frontReadMinPos]).name_,
+								frontChiPos.rbegin()->first,
+								getSeqBase(processedReads[endReadMinPos]).name_,
+								endChiPos.begin()->first));
+			} // is chimeric loop
+		}
+  } // subPos loop
+  if(opts_.verboseOpts_.verbose_){
+  	std::cout << std::endl;
   }
-  if (foundMatch) {
-    if (opts_.findingBestMatch_) {
-      read.remove = true;
-      comparingReads[bestClusterPos].addRead(read);
-     // readVec::getReadByName(comparingReads, bestCluster).addRead(read);
-      ++amountAdded;
-    }
-  }
-  //std::cout << "FindMatch stop" << std::endl;
+  return ret;
 }
-
 
 }  // namespace bib
-#ifndef NOT_HEADER_ONLY
-#include "collapser.cpp"
-#endif
+

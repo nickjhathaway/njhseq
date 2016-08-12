@@ -103,8 +103,6 @@ std::vector<identicalCluster> clusterCollapser::collapseToUniqueReads(
 
 
 
-}  // namespace bib
+}  // namespace bibseq
 
-#ifndef NOT_HEADER_ONLY
-#include "clusterCollapser.cpp"
-#endif
+

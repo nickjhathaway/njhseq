@@ -46,9 +46,9 @@ public:
 	  for (const auto &file : allFiles) {
 	  	//std::cout << file.first << std::endl;
 	  	//std::cout << "INDEX_" + alnType +".txt" << std::endl;
-	    if (containsSubString(file.first, "README_" + alnType + ".txt")) {
+	    if (bib::containsSubString(file.first, "README_" + alnType + ".txt")) {
 	      readReadMeFile(file.first);
-	    } else if (containsSubString(file.first, "INDEX_" + alnType +".txt")) {
+	    } else if (bib::containsSubString(file.first, "INDEX_" + alnType +".txt")) {
 	      readIndex(file.first);
 	    }
 	  }
@@ -174,7 +174,7 @@ public:
 	      readingGaps = false;
 	    }
 	  }
-		std::vector<uint32_t> positions(arrayInVectors.size());
+		std::vector<uint32_t> positions(arrayInVectors.size(), 0);
 		std::iota(positions.begin(), positions.end(), 0);
 	  for (auto i : positions) {
 	    for (auto j : positions) {
@@ -186,8 +186,8 @@ public:
 	  //std::cout << "Reading " + alnType_  + " index file" << std::endl;
 	  std::ifstream inFile;
 	  inFile.open(indexFilename);
-	  std::vector<std::string> info(800);
-	  std::vector<std::string> inputGapInfo(3);
+	  std::vector<std::string> info(800, "");
+	  std::vector<std::string> inputGapInfo(3, "");
 	  std::string out;
 	  std::stringstream ss;
 	  std::vector<gapInfo> gInfos;
@@ -223,7 +223,7 @@ public:
 			outReadMeFile << "GapPars:" << std::endl;
 			gapPars_.writePars(outReadMeFile);
 			outReadMeFile << "ScoringArray:" << std::endl;
-			std::vector<uint32_t> positions(scoring_.mat_.size());
+			std::vector<uint32_t> positions(scoring_.mat_.size(), 0);
 			std::iota(positions.begin(), positions.end(), 0);
 			for (auto i : positions) {
 				for (auto j : positions) {

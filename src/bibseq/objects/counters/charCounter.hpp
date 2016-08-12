@@ -115,6 +115,4 @@ public:
 } /* namespace bibseq */
 
 
-#ifndef NOT_HEADER_ONLY
-#include "charCounter.cpp"
-#endif
+
