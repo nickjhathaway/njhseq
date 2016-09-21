@@ -7,7 +7,7 @@ from utils import Utils
 from genFuncs import genHelper
 def main():
     name = "bibseq"
-    libs = "bamtools:v2.4.0,bibcpp:develop,armadillo:6.200.3,TwoBit:develop,hts:1.3.1"
+    libs = "bamtools:v2.4.0,bibcpp:v2.4.0,armadillo:6.200.3,TwoBit:v2.0.4,hts:1.3.1"
     args = genHelper.parseNjhConfigureArgs()
     if Utils.isMac():
         if args.CC and "gcc" in args.CC[0]:
