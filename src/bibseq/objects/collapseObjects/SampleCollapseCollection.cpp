@@ -655,9 +655,15 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 	std::vector<VecStr> rows;
 	for (const auto& sampName : samples) {
 		setUpSampleFromPrevious(sampName);
-		auto currentInfos = sampleCollapses_.at(sampName)->getAllInfoMap(
-				checkingExpected, delim,
-				sampleCollapses_.at(sampName)->collapsed_.info_.infos_.size());
+		if (maxRunCount
+				< sampleCollapses_.at(sampName)->collapsed_.info_.infos_.size()) {
+			maxRunCount =
+					sampleCollapses_.at(sampName)->collapsed_.info_.infos_.size();
+		}
+		clearSample(sampName);
+	}
+	for (const auto& sampName : samples) {
+		setUpSampleFromPrevious(sampName);
 		for (const auto clusPos : iter::range(
 				sampleCollapses_.at(sampName)->collapsed_.clusters_.size())) {
 			const auto & clus =
@@ -681,14 +687,9 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 							sampleCollapses_.at(sampName)->input_.info_.infos_,
 							sampleCollapses_.at(sampName)->excluded_.info_.infos_,
 							sampleCollapses_.at(sampName)->collapsed_.info_.infos_,
-							sampleCollapses_.at(sampName)->collapsed_.numOfReps(),
+							maxRunCount,
 							checkingExpected, delim);
 			rows.emplace_back(tokenizeString(rowStream.str(), delim, true));
-		}
-		if (maxRunCount
-				< sampleCollapses_.at(sampName)->collapsed_.info_.infos_.size()) {
-			maxRunCount =
-					sampleCollapses_.at(sampName)->collapsed_.info_.infos_.size();
 		}
 		clearSample(sampName);
 	}
