@@ -58,10 +58,6 @@ std::vector<std::unique_ptr<seqWithKmerInfo>> createKmerReadVec(const std::vecto
 	return ret;
 }
 
-std::vector<std::vector<double>> getKmerAccerDistance(
-		std::vector<std::unique_ptr<seqWithKmerInfo>>& reads, uint32_t kmerStart,
-		uint32_t kmerStop, uint32_t numThreads, bool useKNumber, bool verbose);
-
 
 
 template<typename READ>
