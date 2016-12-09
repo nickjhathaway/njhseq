@@ -105,7 +105,7 @@ class readObject : public baseReadObject {
   void addQual(const std::string & stringQual, uint32_t offSet);
   void addQual(const std::vector<uint32_t> & quals);
 
-  void setFractionByCount(size_t totalNumberOfReads);
+  void setFractionByCount(double totalNumberOfReads);
 
   virtual double getQualCheck(uint32_t qualCutOff)const ;
   virtual void setBaseCountOnQualCheck(uint32_t qualCheck);

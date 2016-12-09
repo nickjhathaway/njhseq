@@ -30,7 +30,6 @@
 #include "bibseq/objects/seqObjects/readObject.hpp"
 #include "bibseq/alignment.h"
 #include "bibseq/objects/helperObjects/probabilityProfile.hpp"
-#include "bibseq/simulation.h"
 #include "bibseq/objects/collapseObjects/opts.h"
 
 

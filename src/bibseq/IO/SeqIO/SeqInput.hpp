@@ -28,7 +28,7 @@
 
 #include <api/BamReader.h>
 
-#include <bibcpp/files/gzTextFileCpp.hpp>
+#include <bibcpp/files/fileObjects.h>
 
 #include "bibseq/IO/cachedReader.hpp"
 #include "bibseq/objects/seqObjects/readObject.hpp"
@@ -157,6 +157,7 @@ public:
 
 	template<typename T>
 	std::vector<T> getReads(size_t pos, size_t number) {
+		openIn();
 		loadIndex();
 		if (pos >= index_.size()) {
 			std::stringstream ss;
@@ -177,6 +178,7 @@ public:
 
 	template<typename T>
 	std::vector<std::shared_ptr<T>> getReadsPtrs(size_t pos, size_t number) {
+		openIn();
 		loadIndex();
 		if (pos >= index_.size()) {
 			std::stringstream ss;

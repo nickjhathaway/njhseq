@@ -27,17 +27,21 @@ namespace bibseq {
 
 
 
+const VecStr seqSetUp::readInFormatsAvailable_ {"sff", "sffBin", "fasta", "fastq",
+	"bam", "fastqgz", "fastagz", "fastq1", "fastq2"};
 
 
-
-void seqSetUp::processComparison(comparison & comp) {
-	setOption(comp.oneBaseIndel_, "--oneBaseIndel", "Allowable one base indels");
-	setOption(comp.twoBaseIndel_, "--twoBaseIndel", "Allowable two base indels");
-	setOption(comp.largeBaseIndel_, "--largeBaseIndel",
+void seqSetUp::processComparison(comparison & comp, std::string stub) {
+	if("" != stub && '-' != stub.back()){
+		stub += "-";
+	}
+	setOption(comp.oneBaseIndel_, "--" + stub + "oneBaseIndel", "Allowable one base indels");
+	setOption(comp.twoBaseIndel_, "--" + stub + "twoBaseIndel", "Allowable two base indels");
+	setOption(comp.largeBaseIndel_, "--" + stub + "largeBaseIndel",
 			"Allowable large base indels (>2 bases)");
-	setOption(comp.lqMismatches_, "--lqMismatches",
+	setOption(comp.lqMismatches_, "--" + stub + "lqMismatches",
 			"Allowable low quality mismatches");
-	setOption(comp.hqMismatches_, "--hqMismatches",
+	setOption(comp.hqMismatches_, "--" + stub + "hqMismatches",
 			"Allowable high quality mismatches");
 }
 
@@ -194,9 +198,9 @@ void seqSetUp::processScoringPars() {
 
 
 void seqSetUp::processSkipOnNucComp(){
-  setOption(pars_.colOpts_.skipOpts_.skipOnLetterCounterDifference_, "-skip",
+  setOption(pars_.colOpts_.skipOpts_.skipOnLetterCounterDifference_, "--skip",
                   "skipOnLetterCounterDifference");
-  setOption(pars_.colOpts_.skipOpts_.fractionDifferenceCutOff_, "-skipCutOff",
+  setOption(pars_.colOpts_.skipOpts_.fractionDifferenceCutOff_, "--skipCutOff",
                   "fractionDifferenceCutOff");
 }
 
@@ -210,11 +214,12 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 	std::stringstream formatWarnings;
 	bool foundUnrecFormat = false;
 
+	auto formatChecker = [](const std::string & conVal, const std::string & inVal) {
+		return bib::strToLowerRet(bib::lstripRet(conVal, '-')) == bib::strToLowerRet(bib::lstripRet(inVal, '-'));
+	};
+
 	for (const auto & format : formats) {
-		if (!bib::has(readInFormatsAvailable_, format,
-				[](const std::string & conVal, const std::string & inVal) {
-			return bib::strToLowerRet(bib::lstripRet(conVal, '-')) == bib::strToLowerRet(bib::lstripRet(inVal, '-'));
-		})) {
+		if (!bib::has(readInFormatsAvailable_, format, formatChecker)) {
 			addWarning(
 					"Format: " + format + " is not an available sequence input format in "
 							+ std::string(__PRETTY_FUNCTION__));
@@ -229,25 +234,25 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 	if (commands_.gettingFlags()
 			|| commands_.printingHelp()
 			|| commands_.gettingVersion()) {
-		bib::progutils::Flag sffFlagOptions(pars_.ioOptions_.firstName_, "-sff",
+		bib::progutils::Flag sffFlagOptions(pars_.ioOptions_.firstName_, "--sff",
 				"Input sequence filename, sff text file", required);
 		bib::progutils::Flag sffBinFlagOptions(pars_.ioOptions_.firstName_,
-				"-sffBin", "Input sequence filename, sff binary file", required);
-		bib::progutils::Flag fastaFlagOptions(pars_.ioOptions_.firstName_, "-fasta",
+				"--sffBin", "Input sequence filename, sff binary file", required);
+		bib::progutils::Flag fastaFlagOptions(pars_.ioOptions_.firstName_, "--fasta",
 				"Input sequence filename, fasta text file", required);
-		bib::progutils::Flag fastqFlagOptions(pars_.ioOptions_.firstName_, "-fastq",
+		bib::progutils::Flag fastqFlagOptions(pars_.ioOptions_.firstName_, "--fastq",
 				"Input sequence filename, fastq text file", required);
-		bib::progutils::Flag fastqFirstMateFlagOptions(pars_.ioOptions_.firstName_, "-fastq1",
+		bib::progutils::Flag fastqFirstMateFlagOptions(pars_.ioOptions_.firstName_, "--fastq1",
 				"Input sequence filename, fastq first mate text file", required);
-		bib::progutils::Flag fastqSecondMateFlagOptions(pars_.ioOptions_.firstName_, "-fastq2",
+		bib::progutils::Flag fastqSecondMateFlagOptions(pars_.ioOptions_.firstName_, "--fastq2",
 				"Input sequence filename, fastq second mate text file", required);
-		bib::progutils::Flag fastqComplSecondMateFlagOptions(pars_.ioOptions_.complementMate_, "-complementMate",
+		bib::progutils::Flag fastqComplSecondMateFlagOptions(pars_.ioOptions_.complementMate_, "--complementMate",
 						"Complement second mate in paired reads", false);
 		bib::progutils::Flag fastqgzFlagOptions(pars_.ioOptions_.firstName_,
-				"-fastqgz", "Input sequence filename, fastq gzipped file", required);
+				"--fastqgz", "Input sequence filename, fastq gzipped file", required);
 		bib::progutils::Flag fastagzFlagOptions(pars_.ioOptions_.firstName_,
-				"-fastagz", "Input sequence filename, fasta gzipped file", required);
-		bib::progutils::Flag bamFlagOptions(pars_.ioOptions_.firstName_, "-bam",
+				"--fastagz", "Input sequence filename, fasta gzipped file", required);
+		bib::progutils::Flag bamFlagOptions(pars_.ioOptions_.firstName_, "--bam",
 				"Input sequence filename, bam file", required);
 		bib::progutils::flagHolder seqReadInFlags;
 		seqReadInFlags.addFlag(sffFlagOptions);
@@ -259,12 +264,18 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 		seqReadInFlags.addFlag(fastagzFlagOptions);
 		seqReadInFlags.addFlag(fastqFirstMateFlagOptions);
 		seqReadInFlags.addFlag(fastqSecondMateFlagOptions);
-		for(const auto & formatFlag : seqReadInFlags.flags_){
-			flags_.addFlag(formatFlag.second);
+
+		for (const auto & formatFlag : seqReadInFlags.flags_) {
+			if (bib::has(formats, formatFlag.second.flags_.front(), formatChecker)) {
+				flags_.addFlag(formatFlag.second);
+			}
 		}
-		if(bib::in(std::string("-fastq1"), formats) ){
+		std::string fastq1Flag = "--fastq1";
+		std::string fastq2Flag = "--fastq2";
+
+		if(bib::has(formats, fastq1Flag, formatChecker) ){
 			flags_.addFlag(fastqComplSecondMateFlagOptions);
-			if(!bib::in(std::string("-fastq2"), formats)){
+			if(!bib::has(formats, fastq2Flag, formatChecker)){
 				flags_.addFlag(fastqSecondMateFlagOptions);
 			}
 		}

@@ -32,6 +32,8 @@ void aligner::resetAlnCache(){
 aligner::aligner() :
 		parts_(alnParts()), alnHolder_(
 				alnInfoMasterHolder(parts_.gapScores_, parts_.scoring_)) {
+	countEndGaps_ = false;
+	weighHomopolymers_ = false;
 	setDefaultQualities();
 }
 
@@ -39,6 +41,8 @@ aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
 		const substituteMatrix& scoreMatrix) :
 		parts_(maxSize, gapPars, scoreMatrix), alnHolder_(
 				alnInfoMasterHolder(gapPars, scoreMatrix)) {
+	countEndGaps_ = false;
+	weighHomopolymers_ = false;
 	setDefaultQualities();
 }
 
@@ -46,6 +50,7 @@ aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
 		const substituteMatrix& scoreMatrix, bool countEndGaps) :
 		parts_(maxSize, gapPars, scoreMatrix), alnHolder_(
 				alnInfoMasterHolder(gapPars, scoreMatrix)), countEndGaps_(countEndGaps) {
+	weighHomopolymers_ = false;
 	setDefaultQualities();
 }
 

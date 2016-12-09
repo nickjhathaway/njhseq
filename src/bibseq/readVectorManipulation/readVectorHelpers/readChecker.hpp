@@ -30,7 +30,7 @@
 #include "bibseq/readVectorManipulation/readVectorOperations.h"
 #include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
 #include "bibseq/objects/counters/charCounter.hpp"
-#include "bibseq/objects/kmer/kmerInfo.hpp"
+#include "bibseq/objects/seqObjects/seqKmers/seqWithKmerInfo.hpp"
 
 namespace bibseq {
 

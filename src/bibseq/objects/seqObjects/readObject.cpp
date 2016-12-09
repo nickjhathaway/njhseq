@@ -79,15 +79,7 @@ void readObject::resetMetaInName() {
 }
 
 bool readObject::nameHasMetaData() const {
-	auto firstBracket = seqBase_.name_.find("[");
-	if (std::string::npos == firstBracket) {
-		return false;
-	}
-	auto secondBracket = seqBase_.name_.find("]", firstBracket);
-	if (std::string::npos == secondBracket) {
-		return false;
-	}
-	return true;
+	return seqBase_.nameHasMetaData();
 }
 
 void readObject::processNameForMeta() {
@@ -292,8 +284,8 @@ uint32_t readObject::getSumQual() const {
 	return seqBase_.getSumQual();
 }
 
-void readObject::setFractionByCount(size_t totalNumberOfReads) {
-  seqBase_.frac_ = seqBase_.cnt_ / totalNumberOfReads;
+void readObject::setFractionByCount(double totalNumberOfReads) {
+  seqBase_.setFractionByCount(totalNumberOfReads);
 }
 
 

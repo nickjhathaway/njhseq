@@ -41,31 +41,22 @@ namespace bibseq {
 class profiler {
 
  public:
-  // constructor
-  profiler() {}
+
 
   // compare to reference sequences
-  template <typename READ, typename REF>
-  static void compareToRef(std::vector<REF> refSeqs,
-                           std::vector<READ> compareSeqs, aligner& alignerObj,
-                           const std::string& workingDir, bool local,
-                           bool verbose, bool weighHomopolyers, bool eventBased
-                           );
-  template <typename READ, typename REF>
-  static VecStr compareToRefSingle(const std::vector<REF>& refSeqs,
-                                   const READ& read, aligner& alignerObj,
-                                   bool local, bool verbose,
-                                   bool weighHomopolyers);
+	template<typename READ, typename REF>
+	static VecStr compareToRefSingle(const std::vector<REF>& refSeqs,
+			const READ& read, bool local, bool eventBased);
 
-  template <typename READ, typename REF>
-  static std::string getBestRef(const std::vector<REF> & inputRefs,
-                              const READ & read,
-                              aligner& alignerObj,
-                              bool local,
-                              bool weighHomopolyers,
-                              bool eventBased,
-                              bool verbose,
-                              const std::string & delim);
+	template<typename READ, typename REF>
+	static VecStr compareToRefSingle(const std::vector<REF>& refSeqs,
+			const READ& read, aligner& alignerObj, bool local, bool eventBased);
+
+	template<typename READ, typename REF>
+	static void compareToRef(std::vector<REF> inputRefs,
+			std::vector<READ> inputClusters, aligner& alignerObj,
+			const std::string& workingDir, bool local, bool verbose, bool eventBased);
+
 
   // get info about read count breakdown.
   template <class CLUSTER>
@@ -92,12 +83,12 @@ class profiler {
                               const std::string& directory,
                               const std::string& filename,
                               const std::string& refFilename, aligner& alignObj,
-                              bool local, bool weighHomopolyer);
+                              bool local);
   template <class CLUSTER>
   static void getFractionInfo(const std::vector<CLUSTER>& reads,
                               std::ostream & out,
                               std::vector<readObject> & refSeqs, aligner& alignObj,
-                              bool local, bool weighHomopolyer);
+                              bool local);
   template <class CLUSTER>
   static void getFractionInfoCluster(const std::vector<CLUSTER>& reads,
                               const std::string& directory,
@@ -110,12 +101,12 @@ class profiler {
                               const std::string& directory,
                               const std::string& filename,
                               const std::string& refFilename, aligner& alignObj,
-                              bool local, bool weighHomopolyer);
+                              bool local);
   template <class CLUSTER>
   static void getFractionInfoCluster(const std::vector<CLUSTER>& reads,
                               std::ostream & out,
                               std::vector<readObject> & refSeqs, aligner& alignObj,
-                              bool local, bool weighHomopolyer);
+                              bool local);
 
   template <class T>
   static void addHPRuns(std::vector<T>& reads,
@@ -173,61 +164,81 @@ class profiler {
 };
 
 template <typename READ, typename REF>
-VecStr profiler::compareToRefSingle(const std::vector<REF>& inputRefs,
-                                    const READ& read, aligner& alignerObjIn,
-                                    bool local, bool verbose,
-                                    bool weighHomopolyers) {
-  // set the gap scoring for comaprions so alignment is semi-global
-	uint64_t maxReadLen = 0;
-	readVec::getMaxLength(read, maxReadLen	);
-	readVec::getMaxLength(inputRefs, maxReadLen	);
-	aligner alignerObj(maxReadLen,
-			gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2));
-	alignerObj.countEndGaps_ = false;
-  double bestScore = 0.0;
-  std::vector<readObject> bestRead;
-  for (const auto& input : inputRefs) {
-    if (read.seqBase_.name_ == input.seqBase_.name_) {
-      continue;
-    }
-    alignerObj.alignCache(input, read, local);
-    if (alignerObj.parts_.score_ != 0 && alignerObj.parts_.score_ == bestScore) {
-      bestRead.emplace_back(input);
-    } else if (alignerObj.parts_.score_ > bestScore) {
-      bestRead.clear();
-      bestRead.emplace_back(input);
-      bestScore = alignerObj.parts_.score_;
-    }
-  }
-  VecStr ans;
+VecStr profiler::compareToRefSingle(const std::vector<REF>& refSeqs,
+		const READ& read, aligner& alignerObj, bool local, bool eventBased) {
 
-  for (const auto& best : bestRead) {
+	double bestScore = std::numeric_limits<double>::min();
+	std::vector<uint32_t> bestReadPos;
+
+	for (const auto inputPos : iter::range(refSeqs.size())) {
+		const auto & input = refSeqs[inputPos];
+		if (getSeqBase(read).name_ == input.seqBase_.name_) {
+			continue;
+		}
+		alignerObj.alignCache(input, read, local);
+		double currentScore = 0;
+		if (eventBased) {
+			currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
+		} else {
+			currentScore = alignerObj.parts_.score_;
+		}
+		if (currentScore == bestScore) {
+			bestReadPos.emplace_back(inputPos);
+		} else if (alignerObj.parts_.score_ > bestScore) {
+			bestReadPos.clear();
+			bestReadPos.emplace_back(inputPos);
+			bestScore = alignerObj.parts_.score_;
+		}
+	}
+  VecStr ret;
+  for (const auto& bestPos : bestReadPos) {
+  	const auto & best = refSeqs[bestPos];
 		alignerObj.alignCache(best, read, local);
-		alignerObj.profileAlignment(best, read, false, false, false);
+		alignerObj.profilePrimerAlignment(best, read);
     std::stringstream profile;
-    profile << best.seqBase_.name_ << "," << alignerObj.comp_.oneBaseIndel_
-            << "," << alignerObj.comp_.twoBaseIndel_ << ","
-            << alignerObj.comp_.largeBaseIndel_ << ","
-            << alignerObj.comp_.hqMismatches_ +
-                   alignerObj.comp_.lqMismatches_;
-    ans.push_back(profile.str());
+    double score = 0;
+    if(eventBased){
+    	score = alignerObj.comp_.distances_.eventBasedIdentity_;
+    } else {
+    	score = alignerObj.parts_.score_;
+    }
+    profile << best.seqBase_.name_
+    		<< "," << score
+				<< "," << alignerObj.comp_.oneBaseIndel_
+				<< "," << alignerObj.comp_.twoBaseIndel_
+				<< "," << alignerObj.comp_.largeBaseIndel_
+				<< "," << alignerObj.comp_.lqMismatches_
+				<< "," << alignerObj.comp_.hqMismatches_;
+    ret.emplace_back(profile.str());
   }
-  return ans;
+  return ret;
+}
+
+template <typename READ, typename REF>
+VecStr profiler::compareToRefSingle(const std::vector<REF>& refSeqs,
+		const READ& read, bool local, bool eventBased) {
+  // set the gap scoring for comparisons so alignment is semi-global
+	uint64_t maxReadLen = 0;
+	readVec::getMaxLength(read, maxReadLen);
+	readVec::getMaxLength(refSeqs, maxReadLen);
+	aligner alignerObj(maxReadLen,
+			gapScoringParameters(5,1,0,0,0,0),
+			substituteMatrix(2,-2));
+	alignerObj.countEndGaps_ = false;
+	return compareToRefSingle(refSeqs, read, alignerObj, local, eventBased);
 }
 
 template <typename READ, typename REF>
 void profiler::compareToRef(std::vector<REF> inputRefs,
-                            std::vector<READ> inputClusters,
-                            aligner& alignerObj, const std::string& workingDir,
-                            bool local, bool verbose,
-                            bool weighHomopolyers, bool eventBased) {
+		std::vector<READ> inputClusters, aligner& alignerObj,
+		const std::string& workingDir, bool local, bool verbose, bool eventBased) {
   std::ofstream profileInfoFile;
   openTextFile(profileInfoFile, workingDir + "refComparisonInfo.tab.txt",
                ".txt", true, false);
   std::ofstream tempFile;
   openTextFile(tempFile, workingDir + "tempFilealns.fasta", ".fasta", true,
                false);
-  int counter = 0;
+  uint32_t counter = 0;
   profileInfoFile
       << "ReadNumber\tReadId\tReadFraction\tBestRef\tscore\t1bIndel\t2bI"
          "ndel\t>2bIndel\tlqMismatch\thqMismatch" << std::endl;
@@ -281,93 +292,18 @@ void profiler::compareToRef(std::vector<REF> inputRefs,
 
 
       profileInfoFile << counter << "\t" << input.seqBase_.name_ << "\t"
-                      << input.seqBase_.frac_ << "\t" << best.seqBase_.name_
-                      << "\t" << score << "\t"
-                      << alignerObj.comp_.oneBaseIndel_ << "\t"
-                      << alignerObj.comp_.twoBaseIndel_ << "\t"
-                      << alignerObj.comp_.largeBaseIndel_ << "\t"
-                      << alignerObj.comp_.lqMismatches_ << "\t"
-                      << alignerObj.comp_.hqMismatches_ << std::endl;
+					<< input.seqBase_.frac_ << "\t" << best.seqBase_.name_ << "\t"
+					<< score << "\t" << alignerObj.comp_.oneBaseIndel_ << "\t"
+					<< alignerObj.comp_.twoBaseIndel_ << "\t"
+					<< alignerObj.comp_.largeBaseIndel_ << "\t"
+					<< alignerObj.comp_.lqMismatches_ << "\t"
+					<< alignerObj.comp_.hqMismatches_ << std::endl;
     }
     counter++;
   }
 }
 
-template <typename READ, typename REF>
-std::string profiler::getBestRef(const std::vector<REF> & inputRefs,
-                            const READ & read,
-                            aligner& alignerObj,
-                            bool local,
-                            bool weighHomopolyers,
-                            bool eventBased,
-                            bool verbose,
-                            const std::string & delim) {
-  std::ofstream tempFile;
-  tempFile.open("tempFileAlns.fasta", std::ios::app);
-  //openTextFile(tempFile, "tempFileAlns.fasta", ".fasta", true,
-    //           false);
-/*BestRef\tscore\t1bIndel\t2bI"
-         "ndel\t>2bIndel\tlqMismatch\thqMismatch */
-	double bestScore = std::numeric_limits<double>::min();
-	std::vector<uint64_t> bestRead;
-	std::stringstream out;
-	for (const auto& refPos : iter::range(inputRefs.size())) {
-   	const auto & ref = inputRefs[refPos];
-     if (read.seqBase_.name_ == ref.seqBase_.name_) {
-       continue;
-     }
-     alignerObj.alignCache(ref.seqBase_, read.seqBase_, local);
-     double currentScore = 0;
-     if(eventBased){
-       //alignerObj.profileAlignment(ref.seqBase_, read.seqBase_, 2, false, false, true, false,
-         //                                weighHomopolyers);
-    	 alignerObj.profilePrimerAlignment(ref.seqBase_, read.seqBase_);
-     	currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
-     }else{
-     	currentScore = alignerObj.parts_.score_;
-     }
 
-     if (currentScore == bestScore) {
-       bestRead.push_back(refPos);
-     }
-     if (currentScore > bestScore) {
-       bestRead.clear();
-       bestRead.push_back(refPos);
-       bestScore = currentScore;
-     }
-   }
-   for (const auto& bestPos : bestRead) {
-   	const auto & best = inputRefs[bestPos];
-     alignerObj.alignCache(best.seqBase_, read.seqBase_, local);
-     /*
-     tempFile << ">" << best.seqBase_.name_ << std::endl;
-     tempFile << alignerObj.alignObjectA_.seqBase_.seq_ << std::endl;
-     tempFile << ">" << read.seqBase_.name_ << std::endl;
-     tempFile << alignerObj.alignObjectB_.seqBase_.seq_ << std::endl;*/
-     double score = 0;
-     alignerObj.profilePrimerAlignment(best.seqBase_, read.seqBase_);
-     //alignerObj.profileAlignment(best.seqBase_, read.seqBase_, 2, false, false, true, false,
-       //                                weighHomopolyers);
-     if(eventBased){
-     	score = alignerObj.comp_.distances_.eventBasedIdentity_;
-     } else {
-     	score = alignerObj.parts_.score_;
-     }
-     if(out.str() != ""){
-    	 out << ";";
-     }
-     out << best.seqBase_.name_;
-     if(verbose){
-    	 out << delim << score << delim
-           << alignerObj.comp_.oneBaseIndel_ << delim
-           << alignerObj.comp_.twoBaseIndel_ << delim
-           << alignerObj.comp_.largeBaseIndel_ << delim
-           << alignerObj.comp_.lqMismatches_ << delim
-           << alignerObj.comp_.hqMismatches_;
-     }
-   }
-   return out.str();
-}
 
 template <class T>
 void profiler::addHPRuns(std::vector<T>& reads,
@@ -745,8 +681,7 @@ void profiler::getFractionInfo(const std::vector<CLUSTER>& reads,
                                const std::string& directory,
                                const std::string& filename,
                                const std::string& refFilename,
-                               aligner& alignObj, bool local,
-                               bool weighHomopolyer) {
+                               aligner& alignObj, bool local) {
   std::ofstream outFile;
   openTextFile(outFile, directory + filename, ".tab.txt", false, false);
   SeqIOOptions opts = SeqIOOptions::genFastaIn(refFilename);
@@ -754,7 +689,7 @@ void profiler::getFractionInfo(const std::vector<CLUSTER>& reads,
   reader.openIn();
   auto refReads = reader.readAllReads<readObject>();
 
-  getFractionInfo(reads, outFile, refReads, alignObj, local, weighHomopolyer);
+  getFractionInfo(reads, outFile, refReads, alignObj, local);
 }
 
 template <class CLUSTER>
@@ -770,8 +705,7 @@ void profiler::getFractionInfoCluster(const std::vector<CLUSTER>& reads,
                                const std::string& directory,
                                const std::string& filename,
                                const std::string& refFilename,
-                               aligner& alignObj, bool local,
-                               bool weighHomopolyer) {
+                               aligner& alignObj, bool local) {
   std::ofstream outFile;
   openTextFile(outFile, directory + filename, ".tab.txt", false, false);
   SeqIOOptions opts = SeqIOOptions::genFastaIn(refFilename);
@@ -779,7 +713,7 @@ void profiler::getFractionInfoCluster(const std::vector<CLUSTER>& reads,
   reader.openIn();
   auto refReads = reader.readAllReads<readObject>();
 
-  getFractionInfoCluster(reads, outFile, refReads, alignObj, local, weighHomopolyer);
+  getFractionInfoCluster(reads, outFile, refReads, alignObj, local);
 }
 
 template <class CLUSTER>
@@ -823,7 +757,7 @@ template <class CLUSTER>
 void profiler::getFractionInfo(const std::vector<CLUSTER>& reads,
                             std::ostream & out,
                             std::vector<readObject> & refSeqs, aligner& alignObj,
-                            bool local, bool weighHomopolyer){
+                            bool local){
   out << "ClusterNumber\tClusterId\tClusterSize\tclusterFraction\tB"
              "estRef\t1bIndel\t2bIndel\t>2bIndel\tmismatch" << std::endl;
   int currentCluster = 0;
@@ -831,7 +765,7 @@ void profiler::getFractionInfo(const std::vector<CLUSTER>& reads,
 
   for (const auto& clusIter : reads) {
     VecStr expectsComp = compareToRefSingle(refSeqs, clusIter, alignObj,
-                                            local, false, weighHomopolyer);
+                                            local, false);
     out << currentCluster << "\t" << clusIter.seqBase_.name_ << "\t"
             << clusIter.seqBase_.cnt_ << "\t"
             << (double)clusIter.seqBase_.cnt_ / totalReads;
@@ -847,7 +781,7 @@ template <class CLUSTER>
 void profiler::getFractionInfoCluster(const std::vector<CLUSTER>& reads,
                             std::ostream & out,
                             std::vector<readObject> & refSeqs, aligner& alignObj,
-                            bool local, bool weighHomopolyer){
+                            bool local){
   out << "ClusterNumber\tClusterId\tClusterSize\tNumOfClusters\tclusterFraction\tB"
              "estRef\t1bIndel\t2bIndel\t>2bIndel\tmismatch" << std::endl;
   int currentCluster = 0;
@@ -855,7 +789,7 @@ void profiler::getFractionInfoCluster(const std::vector<CLUSTER>& reads,
 
   for (const auto& clusIter : reads) {
     VecStr expectsComp = compareToRefSingle(refSeqs, clusIter, alignObj,
-                                            local, false, weighHomopolyer);
+                                            local, false);
     out << currentCluster << "\t" << clusIter.seqBase_.name_ << "\t"
             << clusIter.seqBase_.cnt_ << "\t" << clusIter.reads_.size() << "\t"
             << (double)clusIter.seqBase_.cnt_ / totalReads;

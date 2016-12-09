@@ -19,7 +19,6 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "seqUtil.hpp"
-#include "bibseq/simulation/mutator.hpp"
 #include "bibseq/IO/fileUtils.hpp"
 
 namespace bibseq {
@@ -167,8 +166,9 @@ std::string seqUtil::reverseComplement(const std::string &seq,
       default:  // Should never get here.
         // Unrecognized base.
       	std::stringstream ss;
-        ss << "Error in reverseComplement.  Unknown base character = "
-                  << thisBase << ".  Exiting." << std::endl;
+        ss << __PRETTY_FUNCTION__ << " : Error, Unknown base character = "
+                  << thisBase << ".  Exiting." << "\n";
+        ss << "Whole string: " << seq << "\n";
         throw std::runtime_error{ss.str()};  // Stop right away.
         break;
     }
@@ -734,7 +734,8 @@ VecStr seqUtil::findOpenFramesFromSeq(const std::string &seq) {
 
 
 table seqUtil::readBarcodes(const std::string &idFileName,
-                            const std::string &fileDelim, int &barcodeSize,
+                            const std::string &fileDelim,
+														int &barcodeSize,
                             bool forceRead) {
 	table inTab(idFileName, fileDelim);
 	inTab.removeEmpty(false);
@@ -764,8 +765,10 @@ table seqUtil::readBarcodes(const std::string &idFileName,
   ans.setColNamePositions();
   return ans;
 }
+
 table seqUtil::readPrimers(const std::string &idFileName,
-                           const std::string &fileDelim, bool forceRead) {
+                           const std::string &fileDelim,
+													 bool forceRead) {
 	table inTab(idFileName, fileDelim);
 	inTab.removeEmpty(false);
   table ans;
@@ -787,6 +790,7 @@ table seqUtil::readPrimers(const std::string &idFileName,
       if (readingGene) {
         ans.content_.push_back(fIter);
       } else if (readingBarcode) {
+
       }
     }
   }
@@ -1160,59 +1164,8 @@ std::map<std::string, kmer> seqUtil::adjustKmerCountsForMismatches(
   return ans;
 }
 
-std::unordered_map<std::string, uint32_t> seqUtil::getFuzzyKmerCount(const std::string &seq,
-                                                      uint32_t kLength,
-                                                      uint32_t allowableMutations,
-                                                      bool checkComplement) {
-	std::unordered_map<std::string, uint32_t> ans;
-  std::unordered_map<std::string, VecStr> alreadyMutated;
-  for (auto i : iter::range(seq.size() - kLength + 1)) {
-    std::string currentKmer = seq.substr(i, kLength);
-    std::string currentKmerComplement = reverseComplement(currentKmer, "DNA");
-    if (alreadyMutated.find(currentKmer) == alreadyMutated.end()) {
-      if (allowableMutations == 1) {
-        alreadyMutated[currentKmer] =
-            mutator::getSingleMutations(currentKmer, true);
-        if (checkComplement) {
-          addOtherVec(alreadyMutated[currentKmer],
-                      mutator::getSingleMutations(currentKmerComplement, true));
-        }
-      } else if (allowableMutations == 2) {
-        alreadyMutated[currentKmer] =
-            mutator::getUpToDoubleMutations(currentKmer, true);
-        if (checkComplement) {
-          addOtherVec(
-              alreadyMutated[currentKmer],
-              mutator::getUpToDoubleMutations(currentKmerComplement, true));
-        }
-      } else if (allowableMutations == 3) {
-        alreadyMutated[currentKmer] =
-            mutator::getUpToTripleMutations(currentKmer, true);
-        if (checkComplement) {
-          addOtherVec(
-              alreadyMutated[currentKmer],
-              mutator::getUpToTripleMutations(currentKmerComplement, true));
-        }
-      } else if (allowableMutations == 0) {
-        // no mutations allowed don't add any mutated strings
-        alreadyMutated[currentKmer] = {};
-      } else {
-      	std::stringstream ss;
-        ss << "Only 1,2, or 3 mutation(s) supported, can't do "
-                  << allowableMutations << std::endl;
-        throw std::runtime_error{ss.str()};
-      }
-    }
-    ++ans[currentKmer];
-    if (checkComplement) {
-      ++ans[currentKmerComplement];
-    }
-    for (const auto &mutant : alreadyMutated[currentKmer]) {
-      ++ans[mutant];
-    }
-  }
-  return ans;
-}
+
+
 uint64_t seqUtil::getNumberOfPossibleDNAStrandsFromProtein(
     const std::string &protein) {
   uint64_t ans = 1;
@@ -1300,31 +1253,7 @@ void seqUtil::removeGaps(std::string &seq) {
   removeChar(seq, '-');
   return;
 }
-VecStr seqUtil::getFuzzySharedMotif(const VecStr &strs, uint32_t kLength,
-		uint32_t allowableMutations,
-                                    bool checkComplement) {
-  std::unordered_map<uint32_t, std::unordered_map<std::string, uint32_t>> kmers;
-  VecStr ans;
-  uint32_t count = 0;
-  for (const auto &str : strs) {
-    kmers[count] =
-        getFuzzyKmerCount(str, kLength, allowableMutations, checkComplement);
-    ++count;
-  }
-  for (const auto &firstMers : kmers[0]) {
-    bool eachContains = true;
-    for (auto i : iter::range(1, (int)kmers.size())) {
-      if (kmers[i].find(firstMers.first) == kmers[i].end()) {
-        eachContains = false;
-        break;
-      }
-    }
-    if (eachContains) {
-      ans.push_back(firstMers.first);
-    }
-  }
-  return ans;
-}
+
 std::unordered_map<uint64_t, std::string> seqUtil::findMinimumHammingDistance(
     const std::string &seq, const std::string &subSeq, int kLength) {
   std::unordered_map<uint64_t, std::string> ans;

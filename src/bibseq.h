@@ -20,15 +20,13 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "bibseq/alignment.h"
-#include "bibseq/BamToolsUtils.h"
-#include "bibseq/concurrency.h"
 #include "bibseq/helpers.h"
+#include "bibseq/concurrency.h"
 #include "bibseq/objects.h"
 #include "bibseq/IO.h"
 #include "bibseq/seqToolsUtils.h"
 #include "bibseq/programUtils.h"
 #include "bibseq/utils.h"
 #include "bibseq/readVectorManipulation.h"
-#include "bibseq/simulation.h"
 #include "bibseq/system.h"
 

@@ -90,6 +90,10 @@ struct seqInfo {
   std::string getFastqQualString(uint32_t offset) const;
   static std::string getFastqString(const std::vector<uint32_t>& quals,
                                     uint32_t offset);
+
+  //setting fraction
+  void setFractionByCount(double totalNumberOfReads);
+
   // remove base at position
   void removeBase(size_t pos);
   void removeLowQualityBases(uint32_t qualCutOff);
@@ -131,11 +135,27 @@ struct seqInfo {
   void addQual(const std::string & qualString);
   void addQual(const std::string & qualString, uint32_t offSet);
   void addQual(const std::vector<uint32_t> & quals);
-
-  void setClip(size_t leftPos, size_t rightPos);
-  void setClip(size_t rightPos);
-  void setClip(const std::pair<int, int>& positions);
+  /**@brief clip from the front and the back of the sequence
+   * no safety checks for whether these positions exist in the sequence
+   * @param upToPosNotIncluding clip the front of the up to this position but keep this position
+   * @param fromPositionNotIncluding clip the rest of the sequence after this position, keep this position
+   */
+  void setClip(size_t upToPosNotIncluding, size_t fromPositionNotIncluding);
+  /**@brief erase from a specific position a specific size
+   *
+   * @param position the positions from which to erase quality and sequence
+   * @param size the number to erase
+   */
+  void clipOut(size_t position, size_t size);
+  /**@brief trim the front up to this position, keep this position
+   *
+   * @param upToPosNotIncluding the position up to which to trim the front
+   */
   void trimFront(size_t upToPosNotIncluding);
+  /**@brief trim the back including this position
+   *
+   * @param fromPositionIncluding the position to start trimming the back at
+   */
   void trimBack(size_t fromPositionIncluding);
 
   // get various information about the qualities with the sequence
@@ -149,6 +169,7 @@ struct seqInfo {
 	std::string getOwnSampName() const;
 
 	void processNameForMeta(std::unordered_map<std::string, std::string> & meta)const;
+	bool nameHasMetaData() const;
 
   using size_type = std::string::size_type;
 

@@ -87,10 +87,18 @@ void AlignerPool::destoryAligners(){
 
 void AlignerPool::destoryAlignersNoLock(){
 	closing_ = true;
-	for (size_t i = 0; i < size_; ++i) {
-		PooledAligner aligner_ptr;
-		queue_.waitPop(aligner_ptr);
-		aligner_ptr->processAlnInfoOutput(outAlnDir_, false);
+	{
+		//merge the alignment of the other aligners into one and then write to avoid duplications
+		PooledAligner first_aligner_ptr;
+		queue_.waitPop(first_aligner_ptr);
+		if(size_ > 1){
+			for (size_t i = 1; i < size_; ++i) {
+				PooledAligner aligner_ptr;
+				queue_.waitPop(aligner_ptr);
+				first_aligner_ptr->alnHolder_.mergeOtherHolder(aligner_ptr->alnHolder_);
+			}
+		}
+		first_aligner_ptr->processAlnInfoOutput(outAlnDir_, false);
 	}
 }
 

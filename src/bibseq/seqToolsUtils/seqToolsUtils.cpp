@@ -434,9 +434,15 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 
 
 
-void setUpSampleDirs(const std::string& sampleNamesFilename,
-		const std::string& mainDirectoryName, bool separatedDirs) {
+void setUpSampleDirs(
+		const std::string& sampleNamesFilename,
+		const std::string& mainDirectoryName,
+		bool separatedDirs,
+		bool verbose) {
 	auto topDir = bib::replaceString(mainDirectoryName, "./", "");
+
+	bib::appendAsNeeded(topDir, "/");
+	bib::files::makeDirP(bib::files::MkdirPar(topDir));
 	table inTab(sampleNamesFilename, "whitespace", false);
 
 	//first key is target/index, second key is samp, value is vector of rep names and then the full path name for that rep
@@ -469,17 +475,31 @@ void setUpSampleDirs(const std::string& sampleNamesFilename,
 	try {
 		if (separatedDirs) {
 			for (auto & targetDirs : sampleDirWithSubDirs) {
-				std::cout << bib::bashCT::bold << "Making Target Dir: " << bib::bashCT::purple << topDir + targetDirs.first
-									<< bib::bashCT::reset << std::endl;
-				std::string targetDir = bib::files::makeDir(topDir, bib::files::MkdirPar(targetDirs.first, false));
+				if (verbose) {
+					std::cout << bib::bashCT::bold << "Making Target Dir: "
+							<< bib::bashCT::purple << topDir + targetDirs.first
+							<< bib::bashCT::reset << std::endl;
+				}
+				std::string targetDir = bib::files::makeDir(topDir,
+						bib::files::MkdirPar(targetDirs.first, false));
 				for (auto & sampDirs : targetDirs.second) {
-					std::cout << bib::bashCT::bold << "Making Samp Dir: " << bib::bashCT::green << targetDir + sampDirs.first
-										<< bib::bashCT::reset << std::endl;
-					std::string sampDir = bib::files::makeDir(targetDir, bib::files::MkdirPar(sampDirs.first, false));
+					if (verbose) {
+						std::cout << bib::bashCT::bold << "Making Samp Dir: "
+								<< bib::bashCT::green << targetDir + sampDirs.first
+								<< bib::bashCT::reset << std::endl;
+					}
+
+					std::string sampDir = bib::files::makeDir(targetDir,
+							bib::files::MkdirPar(sampDirs.first, false));
 					for (auto & rep : sampDirs.second) {
-						std::cout << bib::bashCT::bold << "Making Rep Dir: " << bib::bashCT::blue << sampDir + rep.first
-											<< bib::bashCT::reset << std::endl;
-						std::string repDir = bib::files::makeDir(sampDir, bib::files::MkdirPar(rep.first, false));
+						if (verbose) {
+							std::cout << bib::bashCT::bold << "Making Rep Dir: "
+									<< bib::bashCT::blue << sampDir + rep.first
+									<< bib::bashCT::reset << std::endl;
+						}
+
+						std::string repDir = bib::files::makeDir(sampDir,
+								bib::files::MkdirPar(rep.first, false));
 						rep.second = bib::files::join(cwd, repDir);
 					}
 				}
@@ -489,14 +509,25 @@ void setUpSampleDirs(const std::string& sampleNamesFilename,
 				for (auto & sampDirs : targetDirs.second) {
 					std::string sampDir = bib::files::join(topDir, sampDirs.first);
 					if (!bib::files::bfs::exists(sampDir)) {
-						std::cout << bib::bashCT::bold << "Making Samp Dir: " << bib::bashCT::green << topDir + sampDirs.first
-											<< bib::bashCT::reset << std::endl;
-						bib::files::makeDir(topDir, bib::files::MkdirPar(sampDirs.first, false));
+						if (verbose) {
+							std::cout << bib::bashCT::bold << "Making Samp Dir: "
+									<< bib::bashCT::green << topDir + sampDirs.first
+									<< bib::bashCT::reset << std::endl;
+						}
+
+						bib::files::makeDir(topDir,
+								bib::files::MkdirPar(sampDirs.first, false));
 					}
 					for (auto & rep : sampDirs.second) {
-						std::cout << bib::bashCT::bold << "Making Rep Dir: " << bib::bashCT::blue << bib::appendAsNeeded(sampDir, "/") + rep.first
-											<< bib::bashCT::reset << std::endl;
-						std::string repDir = bib::files::makeDir(sampDir, bib::files::MkdirPar(rep.first, false));
+						if (verbose) {
+							std::cout << bib::bashCT::bold << "Making Rep Dir: "
+									<< bib::bashCT::blue
+									<< bib::appendAsNeeded(sampDir, "/") + rep.first
+									<< bib::bashCT::reset << std::endl;
+						}
+
+						std::string repDir = bib::files::makeDir(sampDir,
+								bib::files::MkdirPar(rep.first, false));
 						rep.second = bib::files::join(cwd, repDir);
 					}
 				}
@@ -648,13 +679,14 @@ void processKrecName(readObject& read, bool post) {
 
 /////////tools for finding additional location output
 std::string makeIDNameComparable(const std::string& idName) {
-  std::string ans = bib::replaceString(idName, "ID0", "");
+  std::string ans = bib::replaceString(idName, "MID0", "M");
   ans = bib::replaceString(ans, "M0", "M");
-  return bib::replaceString(ans, "ID", "");
+  return bib::replaceString(ans, "MID", "M");
 }
 std::string findIdNameFromFileName(const std::string& filename) {
   auto periodPos = filename.rfind(".");
-  auto lastMPos = filename.rfind("M");
+  auto lastMPos = filename.rfind("MID");
+
   if (periodPos != std::string::npos && !isdigit(filename[periodPos - 1])) {
     auto underScorePos = filename.rfind("_");
     if(std::string::npos == underScorePos || lastMPos > underScorePos){
@@ -663,10 +695,11 @@ std::string findIdNameFromFileName(const std::string& filename) {
     	periodPos = filename.rfind("_");
     }
   }
-
+  //std::cout << "lastMPos: " << lastMPos << std::endl;
   if(lastMPos == std::string::npos){
   	return filename;
   }
+  //std::cout << filename.substr(lastMPos, periodPos - lastMPos) << std::endl;
   return filename.substr(lastMPos, periodPos - lastMPos);
 }
 std::string processFileNameForID(const std::string& fileName) {
@@ -680,7 +713,6 @@ std::string findAdditonalOutLocation(const std::string& locationFile,
   for (const auto& fIter : inTab.content_) {
     additionalOutNames[makeIDNameComparable(fIter[0])] = fIter[1];
   }
-
   return additionalOutNames[processFileNameForID(fileName)];
 }
 

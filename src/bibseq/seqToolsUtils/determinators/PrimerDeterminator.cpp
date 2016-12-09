@@ -173,6 +173,13 @@ bool PrimerDeterminator::checkForReversePrimer(seqInfo & info,
 	alignObj.profilePrimerAlignment(readEnd,
 			primers_[primerName].reversePrimerInfo_);
 	bool primerGood = true;
+	//std::cout << std::endl;
+	//std::cout << alignObj.comp_.distances_.query_.coverage_ << std::endl;
+	//std::cout << alignObj.comp_.hqMismatches_ << std::endl;
+	//alignObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+	//alignObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+	//primers_[primerName].reversePrimerInfo_.outPutSeqAnsi(std::cout);
+	//std::cout << std::endl;
 	if (alignObj.comp_.distances_.query_.coverage_
 			< allowable.distances_.query_.coverage_
 			|| !allowable.passErrorProfile(alignObj.comp_)) {

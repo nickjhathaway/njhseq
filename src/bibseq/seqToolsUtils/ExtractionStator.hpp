@@ -64,13 +64,14 @@ public:
    * @param smallFrags The number of reads that are small fragments
    */
 	ExtractionStator(uint32_t totalReadCount, uint32_t readsUnrecBarcode,
-			uint32_t smallFrags);
+			uint32_t readsUnrecBarcodePosContamination, uint32_t smallFrags);
 
 private:
   std::map<std::string,std::map<bool,extractCounts>> counts_; /**< The counts per MID and primer */
   std::map<std::string,std::map<bool,uint32_t>> failedForward_; /**< The counts of failing forward primer for MID */
   uint32_t totalReadCount_ = 0;
   uint32_t readsUnrecBarcode_ = 0;
+  uint32_t readsUnrecBarcodePosContamination_ = 0;
   uint32_t smallFrags_ = 0;
 public:
   /**@brief Increase the count failing the forward primer

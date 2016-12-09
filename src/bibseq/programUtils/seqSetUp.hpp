@@ -37,8 +37,7 @@ class seqSetUp : public bib::progutils::programSetUp {
 	using bib::progutils::programSetUp::programSetUp;
 
   SeqSetUpPars pars_;
-  VecStr readInFormatsAvailable_ {"-sff", "-sffBin", "-fasta", "-fastq",
-  	"-bam", "-fastqgz", "-fastagz", "-fastq1", "-fastq2"};
+  const static VecStr readInFormatsAvailable_;
   void processQualityFiltering();
   bool processDefaultReader(bool readInNamesRequired = true);
   bool processDefaultReader(const VecStr & formats, bool readInNamesRequired = true);
@@ -72,7 +71,12 @@ class seqSetUp : public bib::progutils::programSetUp {
   void processSkipOnNucComp();
   void processAdjustHRuns();
 
-  void processComparison(comparison & comp);
+  /**@brief the stub will be place before the flags
+   *
+   * @param comp the comparison object to set the errors for
+   * @param stub the stub to place before the setting flags
+   */
+  void processComparison(comparison & comp, std::string stub = "");
 
   // usage prints
   void printInputUsage(std::ostream& out);

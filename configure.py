@@ -6,8 +6,8 @@ sys.path.append("scripts/setUpScripts")
 from utils import Utils
 from genFuncs import genHelper
 def main():
-    name = "bibseqDev"
-    libs = "bamtools:develop,bibcpp:develop,armadillo:7.400.2,hts:1.3.1"
+    name = "bibseq"
+    libs = "bamtools:develop,bibcpp:develop,armadillo:7.500.2"
     args = genHelper.parseNjhConfigureArgs()
     if Utils.isMac():
         macv, _, _ = platform.mac_ver()

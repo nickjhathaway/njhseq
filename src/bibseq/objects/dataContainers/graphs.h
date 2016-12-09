@@ -26,10 +26,9 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "bibseq/objects/dataContainers/graphs/nhGraph.hpp"
-#include "bibseq/objects/dataContainers/graphs/debGraph.hpp"
+
 #include "bibseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
 #include "bibseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
-#include "bibseq/objects/dataContainers/graphs/SeqOverlapGraph.hpp"
+
 
 

@@ -228,7 +228,7 @@ std::vector<size_t> motif::findPositionsFull(const std::string & wholeProtein,
 	size_t pos = start;
 	std::vector<size_t> positions;
 	uint32_t motifSize = motifUnits_.size();
-	while (pos + motifUnits_.size() <= stop) {
+	while (pos + motifUnits_.size() <= stop && pos + motifSize <= wholeProtein.size()) {
 		sum = 0;
 		if (std::equal(wholeProtein.begin() + pos,
 				wholeProtein.begin() + motifSize + pos, motifUnits_.begin(),

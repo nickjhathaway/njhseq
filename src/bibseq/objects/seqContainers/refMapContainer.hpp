@@ -57,7 +57,7 @@ class refMapContainer : public baseContainer<T> {
   static std::vector<refMapContainer> createContainers(const std::vector<REFS> & reads){
   	std::vector<refMapContainer> refContainers;
   	for(const auto & read : reads){
-  		refContainers.emplace_back(refMapContainer<READS>(read.seqBase_));
+  		refContainers.emplace_back(read.seqBase_);
   	}
   	return refContainers;
   }

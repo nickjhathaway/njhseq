@@ -34,9 +34,6 @@
 #include "bibseq/helpers/seqUtil.hpp"
 #include "bibseq/utils.h"
 #include "bibseq/readVectorManipulation/readVectorHelpers/readVecSorter.hpp"
-#include "bibseq/simulation/simulationCommon.hpp"
-
-#include "bibseq/simulation/errorProfile.hpp"
 #include "bibseq/objects/helperObjects/probabilityProfile.hpp"
 #include "bibseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
 
@@ -135,7 +132,8 @@ uint32_t countSeqs(const SeqIOOptions & opts, bool verbose);
 void setUpSampleDirs(
     const std::string& sampleNamesFilename,
 		const std::string& mainDirectoryName,
-		bool separatedDirs);
+		bool separatedDirs,
+		bool verbose = true);
 
 std::pair<uint32_t,uint32_t> getMaximumRounds(double cnt);
 std::vector<char> getAAs(bool noStopCodon);
@@ -150,21 +148,7 @@ static std::vector<readObject> createCondensedObjects(std::vector<T> reads) {
   }
   return ans;
 }
-template<typename T>
-simulation::mismatchProfile simProfileWithReads(const std::vector<T> & reads, aligner & alignerObj,
-		bib::randomGenerator & gen, uint32_t sampNum, bool local, bool ignoreGaps){
-  std::vector<uint32_t> randomFirstPos = gen.unifRandVector<uint32_t>(0, len(reads),sampNum);
-  std::vector<uint32_t> randomSecondPos = gen.unifRandVector<uint32_t>(0, len(reads),sampNum);
-  simulation::mismatchProfile ret;
-  for(const auto & pos : iter::range(sampNum)){
-  	alignerObj.alignCache(reads[randomFirstPos[pos]],
-  			reads[randomSecondPos[pos]], local);
-  	ret.increaseCountAmount(alignerObj.alignObjectA_.seqBase_.seq_,
-  	  				alignerObj.alignObjectB_.seqBase_.seq_, 1);
-  }
-  ret.setFractions();
-  return ret;
-}
+
 
 template <typename T>
 void renameReadNames(std::vector<T>& reads, const std::string& stub,

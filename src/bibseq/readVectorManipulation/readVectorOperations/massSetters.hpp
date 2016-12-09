@@ -78,6 +78,13 @@ void allSetCondensedSeq(std::vector<T>& reads) {
   bib::for_each(reads, [](T& read) { getRef(read).createCondensedSeq(); });
 }
 
+template<class T>
+void allSetCondensedSeq(std::vector<T>& reads,
+		const std::vector<uint32_t> & positions) {
+	bib::for_each_pos(reads, positions,
+			[](T& read) {getRef(read).createCondensedSeq();});
+}
+
 template <class T>
 void allSetCondensedSeqCount(std::vector<T>& reads) {
   bib::for_each(reads, [](T& read) { getRef(read).setCondensedCounter(); });
@@ -104,9 +111,9 @@ void allUpdateName(std::vector<T>& reads) {
 }
 
 template <class T>
-void allSetFractionByTotalCount(std::vector<T>& reads) {
-  int count = getTotalReadCount(reads);
-  bib::for_each(reads, [&](T& read) { getRef(read).setFractionByCount(count); });
+void allSetFractionByTotalCount(std::vector<T>& seqs) {
+  double count = getTotalReadCount(seqs);
+  bib::for_each(seqs, [&](T& seq) { getSeqBase(seq).setFractionByCount(count); });
 }
 
 template <class T>

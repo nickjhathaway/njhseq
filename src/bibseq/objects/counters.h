@@ -22,8 +22,7 @@
 #include "bibseq/objects/counters/hrCounter.hpp"
 #include "bibseq/objects/counters/strCounterMap.hpp"
 #include "bibseq/objects/counters/charCounter.hpp"
-#include "bibseq/objects/counters/DNABaseCounter.hpp"
-#include "bibseq/objects/counters/RefCounting.h"
+
 
 
 

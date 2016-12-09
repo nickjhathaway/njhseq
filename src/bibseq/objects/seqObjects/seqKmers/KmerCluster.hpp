@@ -1,8 +1,8 @@
 #pragma once
 /*
- * randStrGen.hpp
+ * seqWithKmerInfo.hpp
  *
- *  Created on: Jul 27, 2014
+ *  Created on: Jul 29, 2014
  *      Author: nickhathaway
  */
 //
@@ -26,38 +26,40 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include <bibcpp/simulation/randObjGen.hpp>
-#include "bibseq/simulation/simulationCommon.hpp"
+
+#include "bibseq/objects/seqObjects/seqKmers/seqWithKmerInfo.hpp"
+#include "bibseq/IO/SeqIO/SeqIOOptions.hpp"
 
 namespace bibseq {
 
-class randStrGen {
+class kmerCluster {
 public:
-
 	//constructor
-	randStrGen(randomGenerator rGen,
-			const std::vector<char> & letters):
-				charGen_(bib::randObjectGen<char,uint32_t>(letters)),
-				rGen_(rGen){}
-
-	randStrGen(randomGenerator rGen,
-			const std::vector<char> & letters,
-			const std::vector<uint32_t> & counts):
-					charGen_(bib::randObjectGen<char, uint32_t>(letters,counts)),
-					rGen_(rGen){}
-
-private:
+	kmerCluster(std::unique_ptr<seqWithKmerInfo> & firstRead);
 	//members
-	bib::randObjectGen<char, uint32_t> charGen_;
-	randomGenerator rGen_;
-public:
+	std::unique_ptr<seqWithKmerInfo> mainRead_;
+	std::vector<std::unique_ptr<seqWithKmerInfo>> reads_;
+
 	//functions
-	std::string rStr(uint64_t size);
-	VecStr rStrs(uint64_t size, uint32_t num);
-	std::string rStr(uint64_t minSize, uint64_t maxSize);
-	VecStr rStrs(uint64_t minSize, uint64_t maxSize, uint32_t num);
+	bool compareRead(std::unique_ptr<seqWithKmerInfo> & read, double cutOff,
+			bool checkComplement);
+
+	void writeInfo(const SeqIOOptions & outOpts) const;
+};
+
+class kmerClusterPos {
+public:
+	//constructor
+	kmerClusterPos(std::unique_ptr<seqWithKmerInfo> & firstRead,
+			uint64_t firstReadPos);
+	//members
+	std::unique_ptr<seqWithKmerInfo> mainRead_;
+	std::vector<uint64_t> readPositions_;
+
+	//functions
+	bool compareRead(std::unique_ptr<seqWithKmerInfo> & read, uint64_t readPos,
+			double cutOff, bool checkComplement);
 };
 
 } /* namespace bib */
-
 

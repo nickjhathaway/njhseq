@@ -48,11 +48,11 @@ public:
 	bool outOrganized_ = false;
 	bool hasHeader_ = false;
 
-	static TableIOOpts genTabFileOut(const std::string & outFilename, bool header = true);
-	static TableIOOpts genTabFileIn(const std::string inFilename, bool header = true);
+	static TableIOOpts genTabFileOut(const bfs::path & outFilename, bool header = true);
+	static TableIOOpts genTabFileIn(const bfs::path & inFilename, bool header = true);
 
-	static TableIOOpts genCommaFileOut(const std::string & outFilename, bool header = true);
-	static TableIOOpts genCommaFileIn(const std::string inFilename, bool header = true);
+	static TableIOOpts genCommaFileOut(const bfs::path & outFilename, bool header = true);
+	static TableIOOpts genCommaFileIn(const bfs::path& inFilename, bool header = true);
 
 };
 

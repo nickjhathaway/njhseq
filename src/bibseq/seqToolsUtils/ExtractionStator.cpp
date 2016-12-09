@@ -33,11 +33,12 @@ namespace bibseq {
 ExtractionStator::ExtractionStator() {
 
 }
-;
+
 ExtractionStator::ExtractionStator(uint32_t totalReadCount,
-		uint32_t readsUnrecBarcode, uint32_t smallFrags) :
-		totalReadCount_(totalReadCount), readsUnrecBarcode_(readsUnrecBarcode), smallFrags_(
-				smallFrags) {
+		uint32_t readsUnrecBarcode, uint32_t readsUnrecBarcodePosContamination,
+		uint32_t smallFrags) :
+		totalReadCount_(totalReadCount), readsUnrecBarcode_(readsUnrecBarcode), readsUnrecBarcodePosContamination_(
+				readsUnrecBarcodePosContamination), smallFrags_(smallFrags) {
 
 }
 
@@ -144,6 +145,7 @@ void ExtractionStator::outTotalStats(std::ostream & out, const std::string & del
 	}
 	out << vectorToString(toVecStr(totalReadCount_,
 			getPercentageString(readsUnrecBarcode_, totalReadCount_),
+			getPercentageString(readsUnrecBarcodePosContamination_, totalReadCount_),
 			getPercentageString(smallFrags_, totalReadCount_),
 			getPercentageString(totalFailedForward, totalReadCount_),
 			getPercentageString(totalBadReads, totalReadCount_),

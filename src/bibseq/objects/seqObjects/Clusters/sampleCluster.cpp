@@ -39,6 +39,7 @@ sampleCluster::sampleCluster(const seqInfo& initializerRead,
 	updateInfoWithRead(*this, 0);
 	remove = false;
 	needToCalculateConsensus_ = false;
+	setLetterCount();
 }
 
 
@@ -62,6 +63,25 @@ void sampleCluster::updateInfoWithRead(const readObject& read, uint32_t pos) {
   sampInfos_[read.sampName].update(read.seqBase_);
 }
 
+
+std::unordered_map<std::string, std::unordered_map<std::string, double>> sampleCluster::getRepDisagreement() const {
+	std::unordered_map<std::string, std::unordered_map<std::string, double>> ret;
+	for (const auto & sInfo : sampInfos_) {
+		for (const auto & secondSInfo : sampInfos_) {
+			if (sInfo.first == secondSInfo.first) {
+				continue;
+			}
+			if (0 == sInfo.second.numberOfClusters_
+					|| 0 == secondSInfo.second.numberOfClusters_) {
+				continue;
+			}
+			ret[sInfo.first][secondSInfo.first] = sInfo.second.fraction_
+					- secondSInfo.second.fraction_;
+		}
+	}
+	return ret;
+}
+
 void sampleCluster::resetInfos(){
 	for(auto & info : sampInfos_){
 		info.second.resetBasicInfo();
@@ -74,12 +94,12 @@ void sampleCluster::resetInfos(){
 	}
 }
 
-uint32_t sampleCluster::numberOfRuns()const {
+uint32_t sampleCluster::numberOfRuns() const {
 	return sampleClusters_.size();
 }
 
 //
-double sampleCluster::getCumulativeFrac()const{
+double sampleCluster::getCumulativeFrac() const {
   std::vector<double> fracs;
   for(const auto & samp : sampleClusters_){
   	double fracSum = 0;
@@ -91,7 +111,7 @@ double sampleCluster::getCumulativeFrac()const{
   return vectorSum(fracs);
 }
 
-double sampleCluster::getAveragedFrac()const{
+double sampleCluster::getAveragedFrac() const {
   std::vector<double> fracs;
   for(const auto & samp : sampleClusters_){
   	double fracSum = 0;
@@ -267,20 +287,20 @@ std::string sampleCluster::getClusterInfo(const std::string& delim ) const{
 
 
 
-std::string sampleCluster::getRepsInfoHeader(uint32_t maxRunCount,bool checkingExpected, const std::string & delim){
+std::string sampleCluster::getRepsInfoHeader(uint32_t maxRunCount, bool checkingExpected, const std::string & delim){
 	std::stringstream ss;
   std::stringstream templateRunSring;
-  templateRunSring << "RNUM.name"
-  		<< delim << "RNUM.totalClusterCntExcluded"
-			<< delim << "RNUM.totalCntExcluded"
-			<< delim << "RNUM.totalFracExcluded"
-			<< delim << "RNUM.clusterCntChiExcluded"
-			<< delim << "RNUM.cntChiExcluded"
-			<< delim << "RNUM.fracChiExcluded"
-			<< delim << "RNUM.MapFrac"
-			<< delim << "RNUM.ReadCnt"
-			<< delim << "RNUM.ClusCnt"
-			<< delim << "RNUM.totalReadCnt";
+  templateRunSring << "RNUM_name"
+  		<< delim << "RNUM_totalClusterCntExcluded"
+			<< delim << "RNUM_totalCntExcluded"
+			<< delim << "RNUM_totalFracExcluded"
+			<< delim << "RNUM_clusterCntChiExcluded"
+			<< delim << "RNUM_cntChiExcluded"
+			<< delim << "RNUM_fracChiExcluded"
+			<< delim << "RNUM_MapFrac"
+			<< delim << "RNUM_ReadCnt"
+			<< delim << "RNUM_ClusCnt"
+			<< delim << "RNUM_totalReadCnt";
   for (uint32_t i = 1; i <= maxRunCount; ++i) {
   	if(i > 1){
   		ss << delim;
@@ -288,7 +308,7 @@ std::string sampleCluster::getRepsInfoHeader(uint32_t maxRunCount,bool checkingE
     ss << bib::replaceString(templateRunSring.str(), "NUM", std::to_string(i));
   }
   if(checkingExpected){
-  	ss << delim << "bestExpected";
+  	ss << delim << "c_bestExpected";
   }
 	return ss.str();
 }

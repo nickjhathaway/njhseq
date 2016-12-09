@@ -11,6 +11,5 @@
 
 #include "bibseq/objects/collapseObjects/SampleCollapseCollectionUtils/GroupMetaData.hpp"
 #include "bibseq/objects/collapseObjects/SampleCollapseCollectionUtils/PopNamesInfo.hpp"
-
-
+#include "bibseq/objects/collapseObjects/SampleCollapseCollectionUtils/AllGroupDataPaths.hpp"
 

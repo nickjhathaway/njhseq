@@ -31,10 +31,6 @@
 
 namespace bibseq {
 
-size_t WriteCallback(char* contents, size_t size, size_t nmemb,
-                     std::ostream* stream);
-std::string GetURL(const std::string url);
-void GetURLStream(const std::string url, std::ostream & out);
 
 
 bool inline xdigit(int c) {
