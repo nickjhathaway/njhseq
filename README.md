@@ -1,6 +1,6 @@
 bibseq
 ======
-Version 2.5.0
+Version 2.5.0-dev
 
 C++ library for dealing with dna sequence data and various other biological data create by students at Umass Medical School 
 
@@ -12,7 +12,7 @@ The majority of dependencies is downloaded by ./setup.py script but several of t
 ```
 ./configure.py 
 ./setup.py --compfile compfile.mk --outMakefile makefile-common.mk 
-make -j 4
+make 
 
 ```
 
