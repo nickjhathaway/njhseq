@@ -154,6 +154,8 @@ public:
 	void setColNamePositions();
 	uint32_t getColPos(const std::string & colName) const;
 	bool containsColumn(const std::string & colName) const;
+	bool containsColumn(const std::string & colName,
+			std::function<bool(const std::string&, const std::string &)> comp) const;
 	bool containsColumns(const VecStr & colNames) const;
 	bool containsColumn(const uint32_t & colPos) const;
 	// to ensure all the rows have equal length

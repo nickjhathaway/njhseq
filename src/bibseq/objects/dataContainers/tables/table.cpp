@@ -84,6 +84,13 @@ bool table::containsColumn(const std::string & colName)const{
 	return bib::in(colName, columnNames_);
 }
 
+
+
+bool table::containsColumn(const std::string & colName,
+		std::function<bool(const std::string&, const std::string &)> comp) const {
+	return bib::has(columnNames_, colName, comp);
+}
+
 bool table::containsColumns(const VecStr & colNames)const{
 	for(const auto & col : colNames){
 		if(!containsColumn(col)){
