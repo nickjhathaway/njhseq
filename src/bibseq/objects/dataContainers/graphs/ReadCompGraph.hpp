@@ -27,7 +27,7 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
-#include "bibseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
+#include "bibseq/objects/dataContainers/graphs/readDistGraph.hpp"
 #include "bibseq/alignment/alignerUtils/comparison.hpp"
 #include "bibseq/alignment/aligner.h"
 

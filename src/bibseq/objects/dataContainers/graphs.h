@@ -26,8 +26,9 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-
+#include "bibseq/objects/dataContainers/graphs/graphsCommon.hpp"
 #include "bibseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
+#include "bibseq/objects/dataContainers/graphs/readDistGraph.hpp"
 #include "bibseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
 
 
