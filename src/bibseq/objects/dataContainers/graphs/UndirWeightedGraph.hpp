@@ -225,7 +225,8 @@ public:
 			visited_ = true;
 			++visitedAmount_;
 			auto neighbors = getNeighborsEps(pars.eps_);
-			if (neighbors.size() >= pars.minEpNeighbors_) {
+			//based off the r implementation i think the origin point counts in the neighbor counts
+			if (neighbors.size() + 1 >= pars.minEpNeighbors_) {
 				for (auto & neigh : neighbors) {
 					neigh->on_ = true;
 					auto next = neigh->nodeToNode_[name_].lock();
@@ -250,7 +251,8 @@ public:
 					neighbors.push_back(e);
 				}
 			}
-			if (neighbors.size() >= pars.minEpNeighbors_) {
+			//based off the r implementation i think the origin point counts in the neighbor counts
+			if (neighbors.size() + 1 >= pars.minEpNeighbors_) {
 				group_ = currentGroup;
 				on_ = true;
 				for (auto & neigh : neighbors) {
