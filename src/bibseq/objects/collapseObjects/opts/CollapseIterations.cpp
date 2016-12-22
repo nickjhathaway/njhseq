@@ -367,6 +367,7 @@ CollapseIterations CollapseIterations::genOtuPars(uint32_t stopCheck, double per
 
 CollapseIterations CollapseIterations::genOtu99To97(uint32_t stopCheck, bool onHqPerId){
 	double stopCheckDbl = stopCheck;
+	uint32_t smallestClusToClusSize = 0;
 	std::vector<std::vector<double>> iters = {
 			{stopCheckDbl,3,.99},
 			{stopCheckDbl,3,.99},
@@ -377,15 +378,15 @@ CollapseIterations CollapseIterations::genOtu99To97(uint32_t stopCheck, bool onH
 			{stopCheckDbl,3,.97},
 			{stopCheckDbl,3,.97},
 			{stopCheckDbl,3,.97},
-			{stopCheckDbl,0,.99},
-			{stopCheckDbl,0,.99},
-			{stopCheckDbl,0,.99},
-			{stopCheckDbl,0,.98},
-			{stopCheckDbl,0,.98},
-			{stopCheckDbl,0,.98},
-			{stopCheckDbl,0,.97},
-			{stopCheckDbl,0,.97},
-			{stopCheckDbl,0,.97}
+			{stopCheckDbl,smallestClusToClusSize,.99},
+			{stopCheckDbl,smallestClusToClusSize,.99},
+			{stopCheckDbl,smallestClusToClusSize,.99},
+			{stopCheckDbl,smallestClusToClusSize,.98},
+			{stopCheckDbl,smallestClusToClusSize,.98},
+			{stopCheckDbl,smallestClusToClusSize,.98},
+			{stopCheckDbl,smallestClusToClusSize,.97},
+			{stopCheckDbl,smallestClusToClusSize,.97},
+			{stopCheckDbl,smallestClusToClusSize,.97}
 	};
 	CollapseIterations ret(true);
 	ret.onHqPerId_ = onHqPerId;
