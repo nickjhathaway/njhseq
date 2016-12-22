@@ -104,9 +104,9 @@ IterPar::IterPar(const IterPar& other) :
 
 void IterPar::setCompFunc() {
 	if (onPerId_) {
-		if(onHqPerId_){
-			comp_ = std::make_shared<CompareIDProfile>();
-		}else{
+		if (onHqPerId_) {
+			comp_ = std::make_shared<CompareIDHqProfile>();
+		} else {
 			comp_ = std::make_shared<CompareIDProfile>();
 		}
 	} else {
