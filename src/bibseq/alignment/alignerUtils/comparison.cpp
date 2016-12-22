@@ -170,11 +170,11 @@ bool comparison::passErrorProfile(const comparison& generatedError) const {
 }
 
 bool comparison::passIdThreshold(const comparison& generatedError) const {
-  return generatedError.distances_.eventBasedIdentity_ >= distances_.eventBasedIdentity_;
+  return roundDecPlaces(generatedError.distances_.eventBasedIdentity_, 3)  >= distances_.eventBasedIdentity_;
 }
 
 bool comparison::passIdThresholdHq(const comparison& generatedError) const {
-  return generatedError.distances_.eventBasedIdentityHq_ >= distances_.eventBasedIdentityHq_;
+  return roundDecPlaces(generatedError.distances_.eventBasedIdentityHq_,3) >= distances_.eventBasedIdentityHq_;
 }
 
 
