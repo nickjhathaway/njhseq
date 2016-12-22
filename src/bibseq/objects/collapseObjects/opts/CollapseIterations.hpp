@@ -60,6 +60,11 @@ public:
 	static CollapseIterations gen454ItDefaultPars(uint32_t stopCheck);
 	static CollapseIterations genIlluminaDefaultPars(uint32_t stopCheck);
 
+	static CollapseIterations gen454ItDefaultParsWithHqs(uint32_t stopCheck,
+			uint32_t hqMismatches);
+	static CollapseIterations genIlluminaDefaultParsWithHqs(uint32_t stopCheck,
+			uint32_t hqMismatches);
+
 	static CollapseIterations genStrictNoErrorsDefaultPars(uint32_t stopCheck);
 	static CollapseIterations genStrictDefaultPars(uint32_t stopCheck);
 	static CollapseIterations genStrictDefaultParsHq1(uint32_t stopCheck);
@@ -69,6 +74,8 @@ public:
 	static CollapseIterations genOtuPars(uint32_t stopCheck, double perId);
 
 	static CollapseIterations genOtu99To97(uint32_t stopCheck);
+
+	static CollapseIterations genOtu99(uint32_t stopCheck);
 
 	auto begin() const {
 		return iters_.begin();

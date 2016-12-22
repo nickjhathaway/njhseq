@@ -230,6 +230,85 @@ CollapseIterations CollapseIterations::genStrictDefaultPars(uint32_t stopCheck) 
 }
 
 
+CollapseIterations CollapseIterations::gen454ItDefaultParsWithHqs(
+		uint32_t stopCheck, uint32_t hqMismatches) {
+	double stopCheckDbl = stopCheck;
+	std::vector<std::vector<double>> iters = {
+			{stopCheckDbl,3,1,0,0,0,0,1},
+			{stopCheckDbl,3,2,0,0,0,0,1},
+			{stopCheckDbl,3,3,0,0,0,1,1},
+			{stopCheckDbl,3,4,0,.99,0,2,1},
+			{stopCheckDbl,3,5,0,.99,0,3,1},
+			{stopCheckDbl,3,6,0,.99,0,4,1},
+			{stopCheckDbl,3,7,1,.99,0,5,1},
+			{stopCheckDbl,3,7,2,.99,0,5,1},
+			{stopCheckDbl,3,7,3,.99,0,5,1},
+			{stopCheckDbl,3,7,4,.99,0,5,2},
+			{stopCheckDbl,3,7,5,.99,0,5,2}};
+	for(double hq : iter::range<uint32_t>(1, hqMismatches) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl,3,7,5,.99,hq,5,2});
+	}
+	addOtherVec(iters,std::vector<std::vector<double>>{{stopCheckDbl,0,1,0,0,0,0,1},
+			{stopCheckDbl,0,2,0,0,0,0,1},
+			{stopCheckDbl,0,3,0,0,0,1,1},
+			{stopCheckDbl,0,4,0,.99,0,2,1},
+			{stopCheckDbl,0,5,0,.99,0,3,1},
+			{stopCheckDbl,0,6,0,.99,0,4,1},
+			{stopCheckDbl,0,7,1,.99,0,5,1},
+			{stopCheckDbl,0,7,2,.99,0,5,1},
+			{stopCheckDbl,0,7,3,.99,0,5,1},
+			{stopCheckDbl,0,7,4,.99,0,5,2},
+			{stopCheckDbl,0,7,5,.99,0,5,2}
+		});
+	for(double hq : iter::range<uint32_t>(1, hqMismatches) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl,0,7,5,.99,hq,5,2});
+	}
+	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
+	CollapseIterations ret;
+	ret.addIterations(iters, false);
+	return ret;
+}
+
+CollapseIterations CollapseIterations::genIlluminaDefaultParsWithHqs(
+		uint32_t stopCheck, uint32_t hqMismatches) {
+	double stopCheckDbl = stopCheck;
+	std::vector<std::vector<double>> iters = {
+			{stopCheckDbl,3,1,0,0,0,0,1},
+			{stopCheckDbl,3,2,0,0,0,0,1},
+			{stopCheckDbl,3,2,0,0,0,1,1},
+			{stopCheckDbl,3,2,0,0,0,2,1},
+			{stopCheckDbl,3,2,0,0,0,8,1},
+			{stopCheckDbl,3,2,0,0,0,10,2},
+			{stopCheckDbl,3,2,0,0,0,12,2},
+			{stopCheckDbl,3,2,0,0,0,14,2},
+			{stopCheckDbl,3,2,0,0,0,14,2},
+			{stopCheckDbl,3,2,0,0,0,14,2} };
+	for(double hq : iter::range<uint32_t>(1, hqMismatches) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl,3,2,0,0,hq,14,2});
+	}
+	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
+	addOtherVec(iters,std::vector<std::vector<double>>{
+			{stopCheckDbl,0,1,0,0,0,0,1},
+			{stopCheckDbl,0,2,0,0,0,0,1},
+			{stopCheckDbl,0,2,0,0,0,1,1},
+			{stopCheckDbl,0,2,0,0,0,2,1},
+			{stopCheckDbl,0,2,0,0,0,8,1},
+			{stopCheckDbl,0,2,0,0,0,10,2},
+			{stopCheckDbl,0,2,0,0,0,12,2},
+			{stopCheckDbl,0,2,0,0,0,14,2},
+			{stopCheckDbl,0,2,0,0,0,14,2},
+			{stopCheckDbl,0,2,0,0,0,14,2}
+	});
+
+	for(double hq : iter::range<uint32_t>(1, hqMismatches) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl,0,2,0,0,hq,14,2});
+	}
+	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
+	CollapseIterations ret;
+	ret.addIterations(iters, false);
+	return ret;
+}
+
 CollapseIterations CollapseIterations::genStrictDefaultParsWithHqs(uint32_t stopCheck, uint32_t hqMismatches){
 	double stopCheckDbl = stopCheck;
 	std::vector<double> noErrorsAll = {stopCheckDbl, 0,0,0,0,0,0,0};
@@ -302,6 +381,11 @@ CollapseIterations CollapseIterations::genOtu99To97(uint32_t stopCheck){
 	CollapseIterations ret(true);
 	ret.addIterations(iters, true);
 	return ret;
+}
+
+
+CollapseIterations CollapseIterations::genOtu99(uint32_t stopCheck){
+	return genOtuPars(stopCheck, .99);
 }
 
 

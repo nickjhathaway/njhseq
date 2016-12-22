@@ -62,6 +62,8 @@ class seqSetUp : public bib::progutils::programSetUp {
   bool processSeq(bool required = false);
   bool processSeq(std::string& inputSeq, const std::string& flag,
                   const std::string& parName, bool required = false);
+  bool processSeq(seqInfo& inputSeq, const std::string& flag,
+                  const std::string& parName, bool required = false);
   bool processVerbose();
   bool processDebug();
   bool processQuiet();
