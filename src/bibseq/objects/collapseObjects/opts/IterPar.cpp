@@ -66,6 +66,7 @@ IterPar& IterPar::operator=(const IterPar & other) {
 	smallCheckStop_ = other.smallCheckStop_;
 	iterNumber_ = other.iterNumber_;
 	onPerId_ = other.onPerId_;
+	onHqPerId_ = other.onHqPerId_;
 	errors_ = other.errors_;
 
 	setCompFunc();
@@ -78,6 +79,7 @@ IterPar& IterPar::operator=(IterPar&& other) {
 	smallCheckStop_ = other.smallCheckStop_;
 	iterNumber_ = other.iterNumber_;
 	onPerId_ = other.onPerId_;
+	onHqPerId_ = other.onHqPerId_;
 	errors_ = other.errors_;
 	setCompFunc();
 	return *this;
@@ -94,7 +96,8 @@ IterPar& IterPar::operator=(IterPar&& other) {
 
 IterPar::IterPar(const IterPar& other) :
 		stopCheck_(other.stopCheck_), smallCheckStop_(other.smallCheckStop_), iterNumber_(
-				other.iterNumber_), onPerId_(other.onPerId_), errors_(other.errors_) {
+				other.iterNumber_), onPerId_(other.onPerId_), onHqPerId_(
+				other.onHqPerId_), errors_(other.errors_) {
 	//std::cout << "copy assignment of IterPar\n";
 	setCompFunc();
 }
@@ -184,13 +187,25 @@ void IterPar::printIterInfo(std::ostream & out, bool colorFormat) const{
 				<< cto::addBGColor(145) << " Iteration "
 				<< cto::addBGColor(188) << " StopAfter "
 				<< cto::addBGColor(145) << " SizeCutOff "
-				<< cto::addBGColor(188) << " PerIdCutOff "<< cto::reset << std::endl;
+				<< cto::addBGColor(188);
+		if(onHqPerId_){
+			std::cout << " HqPerIdCutOff "<< cto::reset << std::endl;
+		}else{
+			std::cout << " PerIdCutOff "<< cto::reset << std::endl;
+		}
+
 		std::cout
 		<< cto::addBGColor(145) << " " << centerText(estd::to_string(iterNumber_), 9) << " "
 		<< cto::addBGColor(188) << " " << centerText(estd::to_string(stopCheck_), 9) << " "
-		<< cto::addBGColor(145) << " " << centerText(estd::to_string(smallCheckStop_), 10) << " "
-		<< cto::addBGColor(188) << " " << centerText(estd::to_string(errors_.distances_.eventBasedIdentity_ * 100) + "%", 11) << " "
-		<< cto::reset << std::endl;
+		<< cto::addBGColor(145) << " " << centerText(estd::to_string(smallCheckStop_), 10) << " ";
+		if(onHqPerId_){
+			std::cout
+			<< cto::addBGColor(188) << " " << centerText(estd::to_string(errors_.distances_.eventBasedIdentity_ * 100) + "%", 13) << " ";
+		}else{
+			std::cout
+			<< cto::addBGColor(188) << " " << centerText(estd::to_string(errors_.distances_.eventBasedIdentity_ * 100) + "%", 11) << " ";
+		}
+		std::cout << cto::reset << std::endl;
 	}else{
 		std::cout << cto::bold
 				<< cto::addBGColor(145) << " Iteration "

@@ -113,7 +113,7 @@ void CollapseIterations::writePars(std::ostream & out) const {
 
 
 void CollapseIterations::addIteration(uint32_t iterNum, std::vector<double> pars){
-	auto ipar = IterPar(pars, iterNum, IterPar::PerIdPars{onPerId_, onHqPerId_});
+	IterPar ipar(pars, iterNum, IterPar::PerIdPars{onPerId_, onHqPerId_});
 	addIteration(iterNum, ipar);
 }
 
