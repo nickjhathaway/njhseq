@@ -93,7 +93,7 @@ CollapseIterations::CollapseIterations(const std::string & parametersFilename,
 				}
 			}
 		}
-		addIteration(iters, tempVect, onPerId);
+		addIteration(iters, tempVect);
 		++iters;
 	}
 }
@@ -112,8 +112,9 @@ void CollapseIterations::writePars(std::ostream & out) const {
 }
 
 
-void CollapseIterations::addIteration(uint32_t iterNum, std::vector<double> pars, bool onPerId){
-	addIteration(iterNum, IterPar(pars, iterNum, onPerId));
+void CollapseIterations::addIteration(uint32_t iterNum, std::vector<double> pars){
+	auto ipar = IterPar(pars, iterNum, IterPar::PerIdPars{onPerId_, onHqPerId_});
+	addIteration(iterNum, ipar);
 }
 
 void CollapseIterations::addIteration(uint32_t iterNum, const IterPar & par) {
@@ -133,10 +134,9 @@ void CollapseIterations::addIteration(const IterPar & par) {
 	addIteration(iterNum, par);
 }
 
-void CollapseIterations::addIterations(std::vector<std::vector<double>> pars,
-		bool onPerId) {
+void CollapseIterations::addIterations(std::vector<std::vector<double>> pars) {
 	for(const auto pos : iter::range(pars.size())){
-		addIteration(pos + 1, pars[pos], onPerId);
+		addIteration(pos + 1, pars[pos]);
 	}
 }
 
@@ -168,7 +168,7 @@ CollapseIterations CollapseIterations::gen454ItDefaultPars(uint32_t stopCheck) {
 			{stopCheckDbl,0,0,0,0,0,0,0}
 		};
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
 	return ret;
 }
 
@@ -198,7 +198,7 @@ CollapseIterations CollapseIterations::genIlluminaDefaultPars(uint32_t stopCheck
 			{stopCheckDbl,0,0,0,0,0,0,0}
 	};
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
 	return ret;
 }
 
@@ -211,7 +211,7 @@ CollapseIterations CollapseIterations::genStrictNoErrorsDefaultPars(uint32_t sto
 			{stopCheckDbl, 0,0,0,0,0,0,0}
 	};
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
 	return ret;
 }
 
@@ -225,7 +225,7 @@ CollapseIterations CollapseIterations::genStrictDefaultPars(uint32_t stopCheck) 
 			{stopCheckDbl, 0,0,0,0,0,0,0}
 	};
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
 	return ret;
 }
 
@@ -265,7 +265,7 @@ CollapseIterations CollapseIterations::gen454ItDefaultParsWithHqs(
 	}
 	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
 	return ret;
 }
 
@@ -305,7 +305,7 @@ CollapseIterations CollapseIterations::genIlluminaDefaultParsWithHqs(
 	}
 	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
 	return ret;
 }
 
@@ -327,7 +327,7 @@ CollapseIterations CollapseIterations::genStrictDefaultParsWithHqs(uint32_t stop
 	}
 	iters.push_back(noErrorsAll);
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
 	return ret;
 }
 
@@ -343,13 +343,13 @@ CollapseIterations CollapseIterations::genStrictDefaultParsHq1(uint32_t stopChec
 			{stopCheckDbl, 0,0,0,0,0,0,0}
 	};
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
 	return ret;
 }
 
 
 
-CollapseIterations CollapseIterations::genOtuPars(uint32_t stopCheck, double perId){
+CollapseIterations CollapseIterations::genOtuPars(uint32_t stopCheck, double perId, bool onHqPerId){
 	double stopCheckDbl = stopCheck;
 	std::vector<std::vector<double>> iters = {
 			{stopCheckDbl,3,perId},
@@ -360,11 +360,12 @@ CollapseIterations CollapseIterations::genOtuPars(uint32_t stopCheck, double per
 			{stopCheckDbl,0,perId}
 	};
 	CollapseIterations ret(true);
-	ret.addIterations(iters, true);
+	ret.onHqPerId_ = onHqPerId;
+	ret.addIterations(iters);
 	return ret;
 }
 
-CollapseIterations CollapseIterations::genOtu99To97(uint32_t stopCheck){
+CollapseIterations CollapseIterations::genOtu99To97(uint32_t stopCheck, bool onHqPerId){
 	double stopCheckDbl = stopCheck;
 	std::vector<std::vector<double>> iters = {
 			{stopCheckDbl,3,.99},
@@ -387,13 +388,14 @@ CollapseIterations CollapseIterations::genOtu99To97(uint32_t stopCheck){
 			{stopCheckDbl,0,.97}
 	};
 	CollapseIterations ret(true);
-	ret.addIterations(iters, true);
+	ret.onHqPerId_ = onHqPerId;
+	ret.addIterations(iters);
 	return ret;
 }
 
 
-CollapseIterations CollapseIterations::genOtu99(uint32_t stopCheck){
-	return genOtuPars(stopCheck, .99);
+CollapseIterations CollapseIterations::genOtu99(uint32_t stopCheck, bool onHqPerId){
+	return genOtuPars(stopCheck, .99, onHqPerId);
 }
 
 

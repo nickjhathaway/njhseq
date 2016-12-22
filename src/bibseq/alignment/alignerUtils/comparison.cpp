@@ -164,6 +164,10 @@ bool comparison::passIdThreshold(const comparison& generatedError) const {
   return generatedError.distances_.eventBasedIdentity_ >= distances_.eventBasedIdentity_;
 }
 
+bool comparison::passIdThresholdHq(const comparison& generatedError) const {
+  return generatedError.distances_.eventBasedIdentityHq_ >= distances_.eventBasedIdentityHq_;
+}
+
 
 Json::Value comparison::toJson() const{
 	Json::Value ret;

@@ -138,12 +138,21 @@ public:
    * @return Whether the generatedErrors fall below the errors in this comparison object
    */
 	bool passErrorProfile(const comparison& generatedError) const;
+
 	/**@brief Whether the generated errors pass the event based identity threshold held in this comparison
 	 *
 	 * @param generatedError The generated error profile in an alignment comparison
 	 * @return Whether the generatedErrors falls above event based identity threshold in this comparison object
 	 */
 	bool passIdThreshold(const comparison& generatedError) const;
+
+	/**@brief Whether the generated errors pass the event based identity threshold (calculated by using only hq errors) held in this comparison
+	 *
+	 * @param generatedError The generated error profile in an alignment comparison
+	 * @return Whether the generatedErrors falls above event based identity threshold in this comparison object
+	 */
+	bool passIdThresholdHq(const comparison& generatedError) const;
+
 	/**@brief Whether the generated errors pass the event based identity threshold and the errors held in this comparison
 	 *
 	 * @param generatedError The generated error profile in an alignment comparison

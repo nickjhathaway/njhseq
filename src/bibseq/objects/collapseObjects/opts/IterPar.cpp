@@ -29,8 +29,20 @@ bool CompareIDProfile::passErrors(const comparison & threshold,
 		const comparison & generated) {
 	return threshold.passIdThreshold(generated);
 }
+
 CompareIDProfile::~CompareIDProfile() {
 }
+
+bool CompareIDHqProfile::passErrors(const comparison & threshold,
+		const comparison & generated) {
+	return threshold.passIdThresholdHq(generated);
+}
+
+CompareIDHqProfile::~CompareIDHqProfile() {
+
+}
+
+
 
 bool CompareErrorProfile::passErrors(const comparison & threshold,
 		const comparison & generated) {
@@ -92,7 +104,11 @@ IterPar::IterPar(const IterPar& other) :
 
 void IterPar::setCompFunc() {
 	if (onPerId_) {
-		comp_ = std::make_shared<CompareIDProfile>();
+		if(onHqPerId_){
+			comp_ = std::make_shared<CompareIDProfile>();
+		}else{
+			comp_ = std::make_shared<CompareIDProfile>();
+		}
 	} else {
 		comp_ = std::make_shared<CompareErrorProfile>();
 	}
@@ -108,10 +124,13 @@ IterPar::IterPar() :
 }
 
 
-IterPar::IterPar(const std::vector<double>& parameter, uint32_t iterNumber,
-		bool onPerId):iterNumber_(iterNumber), onPerId_(onPerId) {
+IterPar::IterPar(const std::vector<double>& parameter,
+		uint32_t iterNumber,
+		const PerIdPars & perIdPars):iterNumber_(iterNumber),
+				onPerId_(perIdPars.onPerId_),
+				onHqPerId_(perIdPars.onHqPerId_) {
 	//check size
-	if (onPerId) {
+	if (onPerId_) {
 		if (parameter.size() != 3) {
 			std::stringstream ss;
 			ss
@@ -133,9 +152,10 @@ IterPar::IterPar(const std::vector<double>& parameter, uint32_t iterNumber,
   stopCheck_ = parameter[0];
   smallCheckStop_ = parameter[1];
 
-	if (onPerId) {
+	if (onPerId_) {
 	  // error parameters
 	  errors_.distances_.eventBasedIdentity_ = parameter[2];
+	  errors_.distances_.eventBasedIdentityHq_ = parameter[2];
 	} else {
 	  // error parameters
 	  errors_.oneBaseIndel_ = parameter[2];

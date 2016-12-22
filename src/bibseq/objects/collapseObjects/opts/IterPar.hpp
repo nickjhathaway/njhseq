@@ -45,6 +45,12 @@ struct CompareIDProfile: public CompareProfile {
 	virtual ~CompareIDProfile();
 };
 
+struct CompareIDHqProfile: public CompareProfile {
+	virtual bool passErrors(const comparison & threshold,
+			const comparison & generated);
+	virtual ~CompareIDHqProfile();
+};
+
 struct CompareErrorProfile: public CompareProfile {
 	virtual bool passErrors(const comparison & threshold,
 			const comparison & generated);
@@ -60,21 +66,24 @@ struct CompareIDAndErrorProfile: public CompareProfile {
 
 class IterPar {
 public:
+	struct PerIdPars{
+		bool onPerId_; //should be on if doing percent identity OTU clustering
+		bool onHqPerId_;// if this is on onPerId_ should be on as well, this being on indicates to do only high quality events
+	};
 	IterPar();
 	IterPar(const std::vector<double>& parameter, uint32_t iterNumber,
-			bool onPerId);
-
+			const PerIdPars & perIdPars);
 
 	IterPar& operator=(const IterPar & other);
 	IterPar& operator=(IterPar&& other);
 	IterPar(const IterPar& other);
-
 
 	// procedure parameters
 	uint32_t stopCheck_;
 	uint32_t smallCheckStop_;
 	uint32_t iterNumber_;
 	bool onPerId_ = false;
+	bool onHqPerId_ = false;
 	// error parameters
 	comparison errors_;
 private:
@@ -86,7 +95,7 @@ public:
 
 	void printIterInfo(std::ostream & out, bool colorFormat) const;
 
-	VecStr outputIterInfo()const;
+	VecStr outputIterInfo() const;
 	static VecStr outputIterInfoHeader(bool onPerId);
 
 };
