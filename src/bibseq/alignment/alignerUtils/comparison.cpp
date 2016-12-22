@@ -108,9 +108,10 @@ void comparison::setEventBaseIdentityHq() {
 
 	//high quality events being just high quality mismatches and high quality mismatches and indels
 	//if weighing for indel in homopolymer this will be taken into account and so will low freq k-mer mismatches;
-	double indelEvents = oneBaseIndel_ + twoBaseIndel_ + largeBaseIndel_;
+	//double indelEvents = oneBaseIndel_ + twoBaseIndel_ + largeBaseIndel_;
+	//distances_.overLappingEventsHq_ = highQualityMatches_ + hqMismatches_ + indelEvents;
 	distances_.overLappingEventsHq_ = highQualityMatches_ + hqMismatches_
-			+ indelEvents;
+			+ distances_.alignmentGaps_.size();
 	if (distances_.overLappingEventsHq_ == 0) {
 		distances_.eventBasedIdentityHq_ = 0;
 	} else {
