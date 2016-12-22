@@ -842,7 +842,7 @@ void aligner::handleGapCountingInA(gap& currentGap) {
 					/ ((alnABases * alignObjectA_.seqBase_.cnt_
 							+ alnBBases * alignObjectB_.seqBase_.cnt_)
 							/ (alignObjectA_.seqBase_.cnt_ + alignObjectB_.seqBase_.cnt_));*/
-			double currentScore = currentGap.size_ / (alnABases + alnBBases);
+			double currentScore = currentGap.size_ / static_cast<double>(alnABases + alnBBases);
 			if (currentGap.size_ >= 3) {
 				if (currentScore > 1) {
 					++comp_.largeBaseIndel_;
@@ -916,7 +916,7 @@ void aligner::handleGapCountingInB(gap& currentGap) {
 					/ ((alnABases * alignObjectA_.seqBase_.cnt_
 							+ alnBBases * alignObjectB_.seqBase_.cnt_)
 							/ (alignObjectA_.seqBase_.cnt_ + alignObjectB_.seqBase_.cnt_));*/
-			double currentScore = currentGap.size_ / (alnABases + alnBBases);
+			double currentScore = currentGap.size_ / static_cast<double>(alnABases + alnBBases);
 			if (currentGap.size_ >= 3) {
 				if (currentScore > 1) {
 					++comp_.largeBaseIndel_;
