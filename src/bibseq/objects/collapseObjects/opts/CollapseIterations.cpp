@@ -367,7 +367,7 @@ CollapseIterations CollapseIterations::genOtuPars(uint32_t stopCheck, double per
 
 CollapseIterations CollapseIterations::genOtu99To97(uint32_t stopCheck, bool onHqPerId){
 	double stopCheckDbl = stopCheck;
-	uint32_t smallestClusToClusSize = 0;
+	double smallestClusToClusSize = 0;
 	std::vector<std::vector<double>> iters = {
 			{stopCheckDbl,3,.99},
 			{stopCheckDbl,3,.99},
