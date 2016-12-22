@@ -294,7 +294,7 @@ void profiler::compareToRef(std::vector<REF> inputRefs,
       profileInfoFile << counter << "\t" << input.seqBase_.name_ << "\t"
 					<< input.seqBase_.frac_ << "\t" << best.seqBase_.name_
 					<< "\t" << score
-					<< "\t" << alignerObj.comp_.distances_.eventBasedIdentity_
+					<< "\t" << alignerObj.comp_.distances_.eventBasedIdentityHq_
 					<< "\t" << alignerObj.comp_.oneBaseIndel_ << "\t"
 					<< alignerObj.comp_.twoBaseIndel_ << "\t"
 					<< alignerObj.comp_.largeBaseIndel_ << "\t"
