@@ -248,9 +248,6 @@ bool baseCluster::compare(baseCluster & read, aligner & alignerObj,
     }
 		comparison currentProfile = alignerObj.compareAlignment(seqBase_, read.seqBase_,
 				 collapserOptsObj.kmerOpts_.checkKmers_);
-		if(bib::containsSubString(read.seqBase_.name_, "lib9_Major_seq.003834_5-2/1")){
-			std::cout << currentProfile.toJson() << std::endl;
-		}
 		if (currentProfile.distances_.query_.coverage_ < 0.50
 				|| currentProfile.distances_.ref_.coverage_< 0.50) {
 			ret = false;
