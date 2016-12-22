@@ -354,6 +354,8 @@ CollapseIterations CollapseIterations::genOtuPars(uint32_t stopCheck, double per
 	std::vector<std::vector<double>> iters = {
 			{stopCheckDbl,3,perId},
 			{stopCheckDbl,3,perId},
+			{stopCheckDbl,3,perId},
+			{stopCheckDbl,0,perId},
 			{stopCheckDbl,0,perId},
 			{stopCheckDbl,0,perId}
 	};
@@ -367,14 +369,20 @@ CollapseIterations CollapseIterations::genOtu99To97(uint32_t stopCheck){
 	std::vector<std::vector<double>> iters = {
 			{stopCheckDbl,3,.99},
 			{stopCheckDbl,3,.99},
+			{stopCheckDbl,3,.99},
+			{stopCheckDbl,3,.98},
 			{stopCheckDbl,3,.98},
 			{stopCheckDbl,3,.98},
 			{stopCheckDbl,3,.97},
 			{stopCheckDbl,3,.97},
+			{stopCheckDbl,3,.97},
+			{stopCheckDbl,0,.99},
 			{stopCheckDbl,0,.99},
 			{stopCheckDbl,0,.99},
 			{stopCheckDbl,0,.98},
 			{stopCheckDbl,0,.98},
+			{stopCheckDbl,0,.98},
+			{stopCheckDbl,0,.97},
 			{stopCheckDbl,0,.97},
 			{stopCheckDbl,0,.97}
 	};
