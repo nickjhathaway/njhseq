@@ -169,11 +169,16 @@ bool comparison::passErrorProfile(const comparison& generatedError) const {
           lowKmerMismatches_ >= generatedError.lowKmerMismatches_);
 }
 
+
 bool comparison::passIdThreshold(const comparison& generatedError) const {
+	//rounding to precision possible with normal read length for short amplicons;
+	/**@todo determine this with input read length*/
   return roundDecPlaces(generatedError.distances_.eventBasedIdentity_, 3)  >= distances_.eventBasedIdentity_;
 }
 
 bool comparison::passIdThresholdHq(const comparison& generatedError) const {
+	//rounding to precision possible with normal read length for short amplicons;
+	/**@todo determine this with input read length*/
   return roundDecPlaces(generatedError.distances_.eventBasedIdentityHq_,3) >= distances_.eventBasedIdentityHq_;
 }
 
