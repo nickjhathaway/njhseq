@@ -245,7 +245,7 @@ CollapseIterations CollapseIterations::gen454ItDefaultParsWithHqs(
 			{stopCheckDbl,3,7,3,.99,0,5,1},
 			{stopCheckDbl,3,7,4,.99,0,5,2},
 			{stopCheckDbl,3,7,5,.99,0,5,2}};
-	for(double hq : iter::range<uint32_t>(1, hqMismatches) ){
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
 		iters.emplace_back(std::vector<double>{stopCheckDbl,3,7,5,.99,hq,5,2});
 	}
 	addOtherVec(iters,std::vector<std::vector<double>>{{stopCheckDbl,0,1,0,0,0,0,1},
@@ -260,7 +260,7 @@ CollapseIterations CollapseIterations::gen454ItDefaultParsWithHqs(
 			{stopCheckDbl,0,7,4,.99,0,5,2},
 			{stopCheckDbl,0,7,5,.99,0,5,2}
 		});
-	for(double hq : iter::range<uint32_t>(1, hqMismatches) ){
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
 		iters.emplace_back(std::vector<double>{stopCheckDbl,0,7,5,.99,hq,5,2});
 	}
 	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
@@ -283,7 +283,7 @@ CollapseIterations CollapseIterations::genIlluminaDefaultParsWithHqs(
 			{stopCheckDbl,3,2,0,0,0,14,2},
 			{stopCheckDbl,3,2,0,0,0,14,2},
 			{stopCheckDbl,3,2,0,0,0,14,2} };
-	for(double hq : iter::range<uint32_t>(1, hqMismatches) ){
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
 		iters.emplace_back(std::vector<double>{stopCheckDbl,3,2,0,0,hq,14,2});
 	}
 	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
@@ -300,7 +300,7 @@ CollapseIterations CollapseIterations::genIlluminaDefaultParsWithHqs(
 			{stopCheckDbl,0,2,0,0,0,14,2}
 	});
 
-	for(double hq : iter::range<uint32_t>(1, hqMismatches) ){
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
 		iters.emplace_back(std::vector<double>{stopCheckDbl,0,2,0,0,hq,14,2});
 	}
 	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
