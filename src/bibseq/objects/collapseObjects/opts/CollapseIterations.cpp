@@ -247,6 +247,7 @@ CollapseIterations CollapseIterations::gen454ItDefaultParsWithHqs(
 			{stopCheckDbl,3,7,5,.99,0,5,2}};
 	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
 		iters.emplace_back(std::vector<double>{stopCheckDbl,3,7,5,.99,hq,5,2});
+		iters.emplace_back(std::vector<double>{stopCheckDbl,3,7,5,.99,hq,5,2});
 	}
 	addOtherVec(iters,std::vector<std::vector<double>>{{stopCheckDbl,0,1,0,0,0,0,1},
 			{stopCheckDbl,0,2,0,0,0,0,1},
@@ -261,6 +262,7 @@ CollapseIterations CollapseIterations::gen454ItDefaultParsWithHqs(
 			{stopCheckDbl,0,7,5,.99,0,5,2}
 		});
 	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl,0,7,5,.99,hq,5,2});
 		iters.emplace_back(std::vector<double>{stopCheckDbl,0,7,5,.99,hq,5,2});
 	}
 	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
@@ -285,6 +287,7 @@ CollapseIterations CollapseIterations::genIlluminaDefaultParsWithHqs(
 			{stopCheckDbl,3,2,0,0,0,14,2} };
 	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
 		iters.emplace_back(std::vector<double>{stopCheckDbl,3,2,0,0,hq,14,2});
+		iters.emplace_back(std::vector<double>{stopCheckDbl,3,2,0,0,hq,14,2});
 	}
 	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
 	addOtherVec(iters,std::vector<std::vector<double>>{
@@ -302,6 +305,7 @@ CollapseIterations CollapseIterations::genIlluminaDefaultParsWithHqs(
 
 	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
 		iters.emplace_back(std::vector<double>{stopCheckDbl,0,2,0,0,hq,14,2});
+		iters.emplace_back(std::vector<double>{stopCheckDbl,0,2,0,0,hq,14,2});
 	}
 	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
 	CollapseIterations ret;
@@ -318,11 +322,13 @@ CollapseIterations CollapseIterations::genStrictDefaultParsWithHqs(uint32_t stop
 	iters.push_back({stopCheckDbl, 3,1,1,0,0,1,0});
 	for(uint32_t hq : iter::range(hqMismatches)){
 		iters.push_back({stopCheckDbl, 3,1,1,0,hq + 1.0,hq + 1.0,0});
+		iters.push_back({stopCheckDbl, 3,1,1,0,hq + 1.0,hq + 1.0,0});
 	}
 	iters.push_back(noErrorsStopSize3);
 	iters.push_back(noErrorsAll);
 	iters.push_back({stopCheckDbl, 0,1,1,0,0,1,0});
 	for(uint32_t hq : iter::range(hqMismatches)){
+		iters.push_back({stopCheckDbl, 0,1,1,0,hq + 1.0,hq + 1.0,0});
 		iters.push_back({stopCheckDbl, 0,1,1,0,hq + 1.0,hq + 1.0,0});
 	}
 	iters.push_back(noErrorsAll);
