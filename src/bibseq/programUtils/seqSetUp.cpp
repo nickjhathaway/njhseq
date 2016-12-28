@@ -125,7 +125,7 @@ void seqSetUp::processQualThres() {
 
 CollapseIterations seqSetUp::processIteratorMap(std::string& parameters) {
 
-	if (!fexists(parameters)) {
+	if (!bfs::exists(parameters)) {
 		failed_ = true;
 		warnings_.emplace_back(
 				bib::bashCT::red + bib::bashCT::bold + "File " + parameters
@@ -139,7 +139,7 @@ CollapseIterations seqSetUp::processIteratorMap(std::string& parameters) {
 
 CollapseIterations seqSetUp::processIteratorMapOnPerId(std::string& parameters) {
 
-	if (!fexists(parameters)) {
+	if (!bfs::exists(parameters)) {
 		failed_ = true;
 		warnings_.emplace_back(
 				bib::bashCT::red + bib::bashCT::bold + "File " + parameters
@@ -246,8 +246,9 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 				"Input sequence filename, fastq first mate text file", required);
 		bib::progutils::Flag fastqSecondMateFlagOptions(pars_.ioOptions_.firstName_, "--fastq2",
 				"Input sequence filename, fastq second mate text file", required);
-		bib::progutils::Flag fastqComplSecondMateFlagOptions(pars_.ioOptions_.complementMate_, "--complementMate",
+		/*bib::progutils::Flag fastqComplSecondMateFlagOptions(pars_.ioOptions_.revComplMate_, "--complementMate",
 						"Complement second mate in paired reads", false);
+		*/
 		bib::progutils::Flag fastqgzFlagOptions(pars_.ioOptions_.firstName_,
 				"--fastqgz", "Input sequence filename, fastq gzipped file", required);
 		bib::progutils::Flag fastagzFlagOptions(pars_.ioOptions_.firstName_,
@@ -274,7 +275,7 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 		std::string fastq2Flag = "--fastq2";
 
 		if(bib::has(formats, fastq1Flag, formatChecker) ){
-			flags_.addFlag(fastqComplSecondMateFlagOptions);
+			//flags_.addFlag(fastqComplSecondMateFlagOptions);
 			if(!bib::has(formats, fastq2Flag, formatChecker)){
 				flags_.addFlag(fastqSecondMateFlagOptions);
 			}
@@ -374,8 +375,9 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 				addWarning("If supplying -fastq1 need to also have -fastq2");
 				failed_ = true;
 			}
-			setOption(pars_.ioOptions_.complementMate_, "-complementMate",
-					"Whether to complement the sequence in the mate file");
+			/*
+			setOption(pars_.ioOptions_.revComplMate_, "-complementMate",
+					"Whether to complement the sequence in the mate file");*/
 		}
 
 		std::string outFormat = "";

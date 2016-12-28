@@ -40,6 +40,10 @@ public:
 	// and on_ should be ignored and seqBase_ should be used instead
 	seqInfo mateSeqBase_;
 
+	bool mateRComplemented_ = false;
+
+	void toggleReverseComplement();
+
 	virtual double getQualCheck(uint32_t qualCutOff) const;
 
 	virtual void setBaseCountOnQualCheck(uint32_t qualCheck);

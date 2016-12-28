@@ -394,6 +394,16 @@ std::vector<MidDeterminator::midPos> MidDeterminator::determinePossibleMidPosCom
 }
 
 
+void MidDeterminator::processInfoWithMidPos(seqInfo & info,
+		const MidDeterminator::midPos & frontPos,
+		const MidDeterminator::midPos & backPos) {
+	info.trimBack(backPos.midPos_);
+	info.trimFront(frontPos.midPos_ + frontPos.barcodeSize_);
+	if(frontPos.inRevComp_){
+		info.reverseComplementRead(true, true);
+	}
+}
+
 void MidDeterminator::processInfoWithMidPos(seqInfo & info, const MidDeterminator::midPos & pos,
 		MidDeterminator::MidDeterminePars pars) {
 	/**@todo remove the same size other side, should add a better check for the other side barcode
@@ -415,19 +425,93 @@ void MidDeterminator::processInfoWithMidPos(seqInfo & info, const MidDeterminato
 	}
 }
 
-void MidDeterminator::processInfoWithMidPos(seqInfo & info,
-		const MidDeterminator::midPos & frontPos,
-		const MidDeterminator::midPos & backPos) {
-	info.trimBack(backPos.midPos_);
-	info.trimFront(frontPos.midPos_ + frontPos.barcodeSize_);
-	if(frontPos.inRevComp_){
-		info.reverseComplementRead(true, true);
+
+
+void MidDeterminator::processInfoWithMidPos(PairedRead & seq,
+		const MidDeterminator::midPos & firstPos,
+		const MidDeterminator::midPos & matePos) {
+	if(seq.mateRComplemented_){
+		seq.mateSeqBase_.trimBack(matePos.midPos_);
+	}else{
+		seq.mateSeqBase_.trimFront(matePos.midPos_ + matePos.barcodeSize_);
 	}
+	seq.seqBase_.trimFront(firstPos.midPos_ + firstPos.barcodeSize_);
+	if(firstPos.inRevComp_){
+		seq.seqBase_.reverseComplementRead(true, true);
+		seq.mateSeqBase_.reverseComplementRead(true, true);
+	}
+}
+
+void MidDeterminator::processInfoWithMidPos(PairedRead & seq,
+		const MidDeterminator::midPos & pos,
+		MidDeterminator::MidDeterminePars pars) {
+	/**@todo remove the same size other side, should add a better check for the other side barcode
+	 */
+
+
 }
 
 
 
-MidDeterminator::midPos MidDeterminator::fullDetermine(seqInfo & info, MidDeterminePars pars){
+
+
+std::pair<MidDeterminator::midPos, MidDeterminator::midPos>  MidDeterminator::fullDetermine(PairedRead & seq, MidDeterminePars pars){
+	/**@todo expensive way to do this for now */
+	uint32_t spacerSize = 20;
+	seqInfo tempSeq = seq.seqBase_;
+	tempSeq.append(std::string(spacerSize, 'X'));
+	if(seq.mateRComplemented_){
+		tempSeq.append(seq.mateSeqBase_.seq_);
+	}else{
+		tempSeq.append(seqUtil::reverseComplement(seq.mateSeqBase_.seq_, "DNA"));
+	}
+
+	auto positions = fullDetermine(tempSeq, pars);
+  if(positions.first){
+		if (positions.second) {
+			if(seq.mateRComplemented_){
+				positions.second.midPos_ = positions.second.midPos_ - len(seq.seqBase_) - spacerSize;
+			}else{
+				positions.second.midPos_ = len(tempSeq) - positions.second.midPos_ - positions.second.barcodeSize_;
+			}
+			processInfoWithMidPos(seq, positions.first, positions.second);
+		} else {
+			//processInfoWithMidPos(seq, positions.first, pars);
+			if (pars.variableStop_ > positions.first.midPos_ || (0 == pars.variableStop_ && 0 == positions.first.midPos_)) {
+				seq.seqBase_.trimFront(positions.first.midPos_ + positions.first.barcodeSize_);
+				if (pars.barcodesBothEnds_) {
+					if(seq.mateRComplemented_){
+						seq.mateSeqBase_.trimBack(len(seq.mateSeqBase_) - mids_.at(positions.first.midName_).bar_->size());
+					}else{
+						seq.mateSeqBase_.trimFront(mids_.at(positions.first.midName_).bar_->size());
+					}
+				}
+			} else {
+				if (seq.mateRComplemented_) {
+					positions.first.midPos_ = positions.first.midPos_
+							- len(seq.seqBase_) - spacerSize;
+					seq.mateSeqBase_.trimBack(positions.first.midPos_);
+				} else {
+					positions.first.midPos_ = len(tempSeq) - positions.first.midPos_
+							- positions.first.barcodeSize_;
+					seq.mateSeqBase_.trimFront(positions.first.midPos_ + positions.first.barcodeSize_);
+				}
+				if (pars.barcodesBothEnds_) {
+					seq.seqBase_.trimFront(mids_.at(positions.first.midName_).bar_->size());
+				}
+			}
+			if(positions.first.inRevComp_){
+				seq.seqBase_.reverseComplementRead(true, true);
+				seq.mateSeqBase_.reverseComplementRead(true, true);
+			}
+		}
+  }
+
+  return positions;
+}
+
+
+std::pair<MidDeterminator::midPos, MidDeterminator::midPos> MidDeterminator::fullDetermine(seqInfo & info, MidDeterminePars pars){
 	midPos ret;
 	midPos backPos;
   //determine possible mid positions;
@@ -482,7 +566,7 @@ MidDeterminator::midPos MidDeterminator::fullDetermine(seqInfo & info, MidDeterm
     	ret = best.front();
     }else if(2 == best.size()){
     	if(best[0].midName_ == best[1].midName_){
-    		/**@todo add way to allow for rev comp on one end and regular on the other if poeple's library's are like that*/
+    		/**@todo odd way to allow for rev comp on one end and regular on the other if poeple's library's are like that*/
     		/**@todo also this doesn't handle if both aren't the best, like if one had a mismatch but the other didn't */
     		if(mids_.at(best[0].midName_).rCompSame_){
     			if(best[0].midPos_ == best[1].midPos_){
@@ -522,7 +606,6 @@ MidDeterminator::midPos MidDeterminator::fullDetermine(seqInfo & info, MidDeterm
         			ret.fCase_ = midPos::FailureCase::MISMATCHING_DIRECTION;
         		}
     			}
-
     		}
     	}else{
     		//found two mids with different names
@@ -557,6 +640,7 @@ MidDeterminator::midPos MidDeterminator::fullDetermine(seqInfo & info, MidDeterm
   }else{
   	ret.fCase_ = midPos::FailureCase::NO_MATCHING;
   }
+
   if(ret){
 		if (backPos) {
 			processInfoWithMidPos(info, ret, backPos);
@@ -564,7 +648,8 @@ MidDeterminator::midPos MidDeterminator::fullDetermine(seqInfo & info, MidDeterm
 			processInfoWithMidPos(info, ret, pars);
 		}
   }
-  return ret;
+
+  return {ret, backPos};
 }
 
 void MidDeterminator::increaseFailedBarcodeCounts(

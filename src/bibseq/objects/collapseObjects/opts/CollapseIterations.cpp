@@ -79,18 +79,10 @@ CollapseIterations::CollapseIterations(const std::string & parametersFilename,
 		}
 		std::vector<double> tempVect;
 		for (const auto & colPos : iter::range(row.size())) {
-			if (colPos == 0) {
-				if (stringToLowerReturn(row[colPos]) == "all") {
-					tempVect.emplace_back(std::numeric_limits<uint32_t>::max());
-				} else {
-					tempVect.emplace_back(std::stod(row[colPos]));
-				}
+			if (stringToLowerReturn(row[colPos]) == "all") {
+				tempVect.emplace_back(std::numeric_limits<uint32_t>::max());
 			} else {
-				if (row[colPos] == "all") {
-					tempVect.emplace_back(std::numeric_limits<uint32_t>::max());
-				} else {
-					tempVect.emplace_back(std::stod(row[colPos]));
-				}
+				tempVect.emplace_back(std::stod(row[colPos]));
 			}
 		}
 		addIteration(iters, tempVect);

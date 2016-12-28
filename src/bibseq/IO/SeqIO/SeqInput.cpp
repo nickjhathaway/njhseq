@@ -296,7 +296,7 @@ bool SeqInput::readNextRead(seqInfo & read) {
 	return wasAbleToRead;
 }
 
-bool SeqInput::readNextRead(PairedRead & read) {
+bool SeqInput::readNextRead(PairedRead & seq) {
 	if (!inOpen_) {
 		throw std::runtime_error { "Error in " + std::string(__PRETTY_FUNCTION__)
 				+ ", attempted to read when in file " + ioOptions_.firstName_
@@ -304,13 +304,18 @@ bool SeqInput::readNextRead(PairedRead & read) {
 	}
 
 	if (SeqIOOptions::inFormats::FASTQPAIRED == ioOptions_.inFormat_) {
-		bool firstMate = readNextFastqStream(*priReader_, SangerQualOffset, read.seqBase_,
+		bool firstMate = readNextFastqStream(*priReader_, SangerQualOffset, seq.seqBase_,
 				ioOptions_.processed_);
-		bool secondMate = readNextFastqStream(*secReader_, SangerQualOffset, read.mateSeqBase_,
+		bool secondMate = readNextFastqStream(*secReader_, SangerQualOffset, seq.mateSeqBase_,
 				ioOptions_.processed_);
-		if(secondMate && ioOptions_.complementMate_){
-			read.mateSeqBase_.reverseComplementRead(false, true);
+		/*
+		 * i originally thought it might be a good idea to have the ability to reverse complement the mate as an option
+		 * when reading in but for now i think it's more trouble then anything else
+		if(secondMate && ioOptions_.revComplMate_){
+			seq.mateSeqBase_.reverseComplementRead(false, true);
 		}
+		seq.mateRComplemented_ = ioOptions_.revComplMate_;
+		*/
 		if((firstMate && secondMate) || (!firstMate && !secondMate)){
 			return firstMate && secondMate;
 		}else{

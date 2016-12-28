@@ -27,7 +27,7 @@
 //
 #include "bibseq/objects/dataContainers/tables/table.hpp"
 #include "bibseq/alignment/aligner.h"
-
+#include "bibseq/objects/seqObjects/Paired/PairedRead.hpp"
 
 namespace bibseq {
 

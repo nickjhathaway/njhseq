@@ -217,14 +217,30 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 		}
 	}
 
-	MapStrStr refCompInfos;
+	MapStrStr refCompInfosCollapsed;
+	MapStrStr refCompInfosExcluded;
 	if (bfs::exists(
 			bib::files::join(sampleDir.string(), "refCompInfos.tab.txt"))) {
 		table refCompTab(
 				bib::files::join(sampleDir.string(), "refCompInfos.tab.txt"), "\t",
 				true);
+		//std::cout << __PRETTY_FUNCTION__ << " " << sampleName << std::endl;
 		for (const auto & row : refCompTab.content_) {
-			refCompInfos[row[refCompTab.getColPos("read")]] =
+			//std::cout << "\t" << row[refCompTab.getColPos("read")] << " :  " <<  row[refCompTab.getColPos("bestExpected")] << std::endl;
+			refCompInfosCollapsed[row[refCompTab.getColPos("read")]] =
+					row[refCompTab.getColPos("bestExpected")];
+		}
+	}
+
+	if (bfs::exists(
+			bib::files::join(sampleDir.string(), "refCompInfosExcluded.tab.txt"))) {
+		table refCompTab(
+				bib::files::join(sampleDir.string(), "refCompInfosExcluded.tab.txt"), "\t",
+				true);
+		//std::cout << __PRETTY_FUNCTION__ << " " << sampleName << std::endl;
+		for (const auto & row : refCompTab.content_) {
+			//std::cout << "\t" << row[refCompTab.getColPos("read")] << " :  " <<  row[refCompTab.getColPos("bestExpected")] << std::endl;
+			refCompInfosExcluded[row[refCompTab.getColPos("read")]] =
 					row[refCompTab.getColPos("bestExpected")];
 		}
 	}
@@ -270,7 +286,7 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 			samp.collapsed_.clusters_.emplace_back(
 					sampleCluster(seq, subReads, finalSampInfos));
 			samp.collapsed_.clusters_.back().expectsString =
-					refCompInfos[samp.collapsed_.clusters_.back().seqBase_.name_];
+					refCompInfosCollapsed[samp.collapsed_.clusters_.back().seqBase_.name_];
 			for (const auto & subRead : subReads) {
 				samp.input_.clusters_.emplace_back(
 						sampleCluster(subRead, allSampInfos));
@@ -290,7 +306,7 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 			samp.excluded_.clusters_.emplace_back(
 					sampleCluster(seq, subReads, allSampInfos));
 			samp.excluded_.clusters_.back().expectsString =
-					refCompInfos[samp.excluded_.clusters_.back().seqBase_.name_];
+					refCompInfosExcluded[samp.excluded_.clusters_.back().seqBase_.name_];
 			for (const auto & subRead : subReads) {
 				samp.input_.clusters_.emplace_back(
 						sampleCluster(subRead, allSampInfos));
@@ -364,12 +380,8 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 	}
 	if (!samp->collapsed_.clusters_.empty()
 			&& "" != samp->collapsed_.clusters_.front().expectsString) {
-
 		std::map<std::string, std::string> refCompInfos;
 		for (const auto & clus : samp->collapsed_.clusters_) {
-			refCompInfos[clus.seqBase_.name_] = clus.expectsString;
-		}
-		for (const auto & clus : samp->excluded_.clusters_) {
 			refCompInfos[clus.seqBase_.name_] = clus.expectsString;
 		}
 		table refCompTab(refCompInfos, VecStr { "read", "bestExpected" });
@@ -377,6 +389,17 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 				TableIOOpts(
 						OutOptions(
 								bib::files::join(sampDir.string(), "refCompInfos.tab.txt")),
+						"\t", true));
+
+		std::map<std::string, std::string> refCompInfosExcluded;
+		for (const auto & clus : samp->excluded_.clusters_) {
+			refCompInfosExcluded[clus.seqBase_.name_] = clus.expectsString;
+		}
+		table refCompExcludedTab(refCompInfosExcluded, VecStr { "read", "bestExpected" });
+		refCompExcludedTab.outPutContents(
+				TableIOOpts(
+						OutOptions(
+								bib::files::join(sampDir.string(), "refCompInfosExcluded.tab.txt")),
 						"\t", true));
 	}
 	clearSample(sampleName);

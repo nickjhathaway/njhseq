@@ -27,6 +27,8 @@
 //
 #include "bibseq/objects/helperObjects/motif.hpp"
 #include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/Paired/PairedRead.hpp"
+
 #include "bibseq/objects/dataContainers/tables/table.hpp"
 
 
@@ -46,6 +48,7 @@ public:
 		uint32_t barcodeScore_;
 		bool inRevComp_ = false;
 		bool failure_ = false;
+		std::string altName_ = "";
 
 		enum class FailureCase{
 			NONE,
@@ -146,10 +149,19 @@ public:
 			const MidDeterminator::midPos & frontPos,
 			const MidDeterminator::midPos & backPos);
 
-	midPos fullDetermine(seqInfo & info, MidDeterminePars pars);
+	void processInfoWithMidPos(PairedRead & info,
+			const MidDeterminator::midPos & pos,
+			MidDeterminator::MidDeterminePars pars);
+
+	void processInfoWithMidPos(PairedRead & info,
+			const MidDeterminator::midPos & frontPos,
+			const MidDeterminator::midPos & backPos);
+
+	std::pair<midPos, midPos> fullDetermine(seqInfo & info, MidDeterminePars pars);
+	std::pair<midPos, midPos> fullDetermine(PairedRead & info, MidDeterminePars pars);
 
 	template<typename T>
-	midPos fullDetermine(T & read, MidDeterminePars pars){
+	std::pair<midPos, midPos> fullDetermine(T & read, MidDeterminePars pars){
 		return fullDetermine(getSeqBase(read), pars);
 	}
 

@@ -139,8 +139,8 @@ IterPar::IterPar(const std::vector<double>& parameter,
 			ss
 					<< cto::boldRed(
 							"Error in constructing runningParameters, size should be 3, not ")
-					<< parameter.size() << std::endl;
-			std::runtime_error { ss.str() };
+					<< parameter.size() << " when constructing a percent identity parameters" << std::endl;
+			throw std::runtime_error { ss.str() };
 		}
 	} else {
 		if (parameter.size() != 8) {
@@ -148,8 +148,9 @@ IterPar::IterPar(const std::vector<double>& parameter,
 			ss
 					<< cto::boldRed(
 							"Error in constructing runningParameters, size should be 8, not ")
-					<< parameter.size() << std::endl;
-			std::runtime_error { ss.str() };
+					<< parameter.size() << " check input parameters file or check to see if"
+							" --onPerId should be on if the input parameters file is for otu clustering"<< std::endl;
+			throw std::runtime_error { ss.str() };
 		}
 	}
   stopCheck_ = parameter[0];

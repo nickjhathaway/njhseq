@@ -151,7 +151,7 @@ void SeqOutput::writeNoCheck(const PairedRead & read) {
 	if (SeqIOOptions::outFormats::FASTQPAIRED == ioOptions_.outFormat_) {
 		read.seqBase_.outPutFastq(*primaryOut_);
 		seqInfo mateInfo = read.mateSeqBase_;
-		if(ioOptions_.complementMate_){
+		if(read.mateRComplemented_){
 			mateInfo.reverseComplementRead(false, true);
 		}
 		mateInfo.outPutFastq(*secondaryOut_);
