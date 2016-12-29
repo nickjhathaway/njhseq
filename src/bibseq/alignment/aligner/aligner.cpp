@@ -490,7 +490,9 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA,
       if (usingQuality) {
   			/*if (objectA.checkQual(i - firstOffset, qScorePars_)
   					&& objectB.checkQual(i - secondOffset, qScorePars_)) {*/
-  			if (objectB.checkQual(i - secondOffset, qScorePars_)) {
+  			/*if (objectB.checkQual(i - secondOffset, qScorePars_)) {*/
+  			if ( (objectA.cnt_ >= 3 || objectA.checkQual(i - firstOffset, qScorePars_) )
+  					&& objectB.checkQual(i - secondOffset, qScorePars_)) {
 
           if (checkKmer &&
               (kMaps_.isKmerLowFreq(firstK)
@@ -711,7 +713,9 @@ comparison aligner::compareAlignment(
 		if (alignObjectA_.seqBase_.seq_[i] != alignObjectB_.seqBase_.seq_[i]) {
 			/*if (objectA.checkQual(i - firstOffset, qScorePars_)
 					&& objectB.checkQual(i - secondOffset, qScorePars_)) {*/
-			if (objectB.checkQual(i - secondOffset, qScorePars_)) {
+			/*if (objectB.checkQual(i - secondOffset, qScorePars_)) {*/
+			if ( (objectA.cnt_ >= 3 || objectA.checkQual(i - firstOffset, qScorePars_) )
+					&& objectB.checkQual(i - secondOffset, qScorePars_)) {
 				auto firstK = getKmerPos(i - firstOffset, kMaps_.kLength_,
 						objectA.seq_);
 				auto secondK = getKmerPos(i - secondOffset, kMaps_.kLength_,
