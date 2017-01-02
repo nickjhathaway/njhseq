@@ -95,6 +95,11 @@ std::string readObject::getMeta(const std::string & key) const {
 	auto search = meta_.find(key);
 	if (search != meta_.end()) {
 		return search->second;
+	}else{
+		std::stringstream ss;
+		ss << __FILE__ << " - " << __LINE__ << " : " << __PRETTY_FUNCTION__ << ", error no meta field " << key << " for " << seqBase_.name_ << "\n";
+		ss << "Options are: " << bib::conToStr(bib::getVecOfMapKeys(meta_), ", ") << "\n";
+		throw std::runtime_error{ss.str()};
 	}
 	return "";
 }
@@ -102,7 +107,7 @@ std::string readObject::getMeta(const std::string & key) const {
 
 Json::Value readObject::toJson()const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson("bibseq::baseReadObject");
+	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
 	ret["super"] = baseReadObject::toJson();
 	ret["sampName"] = bib::json::toJson(sampName);
 	ret["expectsString"] = bib::json::toJson(expectsString);
