@@ -305,23 +305,32 @@ CollapseIterations CollapseIterations::genIlluminaDefaultParsWithHqs(
 	return ret;
 }
 
-CollapseIterations CollapseIterations::genStrictDefaultParsWithHqs(uint32_t stopCheck, uint32_t hqMismatches){
+CollapseIterations CollapseIterations::genStrictDefaultParsWithHqs(
+		uint32_t stopCheck, uint32_t hqMismatches, bool illumina) {
 	double stopCheckDbl = stopCheck;
-	std::vector<double> noErrorsAll = {stopCheckDbl, 0,0,0,0,0,0,0};
-	std::vector<double> noErrorsStopSize3 = {stopCheckDbl, 3,0,0,0,0,0,0};
+	std::vector<double> noErrorsAll = { stopCheckDbl, 0, 0, 0, 0, 0, 0, 0 };
+	std::vector<double> noErrorsStopSize3 = { stopCheckDbl, 3, 0, 0, 0, 0, 0, 0 };
 	std::vector<std::vector<double>> iters;
+	double indels = 1;
+	if (illumina) {
+		indels = 0;
+	}
 	iters.push_back(noErrorsStopSize3);
-	iters.push_back({stopCheckDbl, 3,1,1,0,0,1,0});
-	for(uint32_t hq : iter::range(hqMismatches)){
-		iters.push_back({stopCheckDbl, 3,1,1,0,hq + 1.0,hq + 1.0,0});
-		iters.push_back({stopCheckDbl, 3,1,1,0,hq + 1.0,hq + 1.0,0});
+	iters.push_back( { stopCheckDbl, 3, indels, indels, 0, 0, 1, 0 });
+	for (uint32_t hq : iter::range(hqMismatches)) {
+		iters.push_back(
+				{ stopCheckDbl, 3, indels, indels, 0, hq + 1.0, hq + 1.0, 0 });
+		iters.push_back(
+				{ stopCheckDbl, 3, indels, indels, 0, hq + 1.0, hq + 1.0, 0 });
 	}
 	iters.push_back(noErrorsStopSize3);
 	iters.push_back(noErrorsAll);
-	iters.push_back({stopCheckDbl, 0,1,1,0,0,1,0});
-	for(uint32_t hq : iter::range(hqMismatches)){
-		iters.push_back({stopCheckDbl, 0,1,1,0,hq + 1.0,hq + 1.0,0});
-		iters.push_back({stopCheckDbl, 0,1,1,0,hq + 1.0,hq + 1.0,0});
+	iters.push_back( { stopCheckDbl, 0, indels, indels, 0, 0, 1, 0 });
+	for (uint32_t hq : iter::range(hqMismatches)) {
+		iters.push_back(
+				{ stopCheckDbl, 0, indels, indels, 0, hq + 1.0, hq + 1.0, 0 });
+		iters.push_back(
+				{ stopCheckDbl, 0, indels, indels, 0, hq + 1.0, hq + 1.0, 0 });
 	}
 	iters.push_back(noErrorsAll);
 	CollapseIterations ret;
@@ -329,21 +338,7 @@ CollapseIterations CollapseIterations::genStrictDefaultParsWithHqs(uint32_t stop
 	return ret;
 }
 
-CollapseIterations CollapseIterations::genStrictDefaultParsHq1(uint32_t stopCheck) {
-	double stopCheckDbl = stopCheck;
-	std::vector<std::vector<double>> iters = {
-			{stopCheckDbl, 3,0,0,0,0,0,0},
-			{stopCheckDbl, 3,1,1,0,0,1,0},
-			{stopCheckDbl, 3,1,1,0,1,1,0},
-			{stopCheckDbl, 0,0,0,0,0,0,0},
-			{stopCheckDbl, 0,1,1,0,0,1,0},
-			{stopCheckDbl, 0,1,1,0,1,1,0},
-			{stopCheckDbl, 0,0,0,0,0,0,0}
-	};
-	CollapseIterations ret;
-	ret.addIterations(iters);
-	return ret;
-}
+
 
 
 

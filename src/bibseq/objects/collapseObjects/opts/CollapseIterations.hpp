@@ -68,9 +68,9 @@ public:
 
 	static CollapseIterations genStrictNoErrorsDefaultPars(uint32_t stopCheck);
 	static CollapseIterations genStrictDefaultPars(uint32_t stopCheck);
-	static CollapseIterations genStrictDefaultParsHq1(uint32_t stopCheck);
 
-	static CollapseIterations genStrictDefaultParsWithHqs(uint32_t stopCheck, uint32_t hqMismatches);
+
+	static CollapseIterations genStrictDefaultParsWithHqs(uint32_t stopCheck, uint32_t hqMismatches, bool illumina = false);
 
 	static CollapseIterations genOtuPars(uint32_t stopCheck, double perId, bool onHqPerId = false);
 
