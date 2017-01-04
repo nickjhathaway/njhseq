@@ -182,6 +182,9 @@ VecStr profiler::compareToRefSingle(const std::vector<REF>& refSeqs,
 		} else {
 			currentScore = alignerObj.parts_.score_;
 		}
+		std::cout << "name: " << getSeqBase(read).name_ << std::endl;
+		std::cout << "\tcurrentScore: "  << currentScore << std::endl;
+		std::cout << "\tbestScore: "  << bestScore << std::endl;
 		if (currentScore == bestScore) {
 			bestReadPos.emplace_back(inputPos);
 		} else if (currentScore > bestScore) {
