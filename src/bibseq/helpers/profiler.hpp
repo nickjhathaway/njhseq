@@ -167,7 +167,7 @@ template <typename READ, typename REF>
 VecStr profiler::compareToRefSingle(const std::vector<REF>& refSeqs,
 		const READ& read, aligner& alignerObj, bool local, bool eventBased) {
 
-	double bestScore = std::numeric_limits<double>::min();
+	double bestScore = std::numeric_limits<double>::lowest();
 	std::vector<uint32_t> bestReadPos;
 
 	for (const auto inputPos : iter::range(refSeqs.size())) {
@@ -182,9 +182,10 @@ VecStr profiler::compareToRefSingle(const std::vector<REF>& refSeqs,
 		} else {
 			currentScore = alignerObj.parts_.score_;
 		}
+		/*
 		std::cout << "name: " << getSeqBase(read).name_ << std::endl;
 		std::cout << "\tcurrentScore: "  << currentScore << std::endl;
-		std::cout << "\tbestScore: "  << bestScore << std::endl;
+		std::cout << "\tbestScore: "  << bestScore << std::endl;*/
 		if (currentScore == bestScore) {
 			bestReadPos.emplace_back(inputPos);
 		} else if (currentScore > bestScore) {
