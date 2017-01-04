@@ -172,7 +172,7 @@ VecStr profiler::compareToRefSingle(const std::vector<REF>& refSeqs,
 
 	for (const auto inputPos : iter::range(refSeqs.size())) {
 		const auto & input = refSeqs[inputPos];
-		if (getSeqBase(read).name_ == input.seqBase_.name_) {
+		if (getSeqBase(read).name_ == getSeqBase(input).name_) {
 			continue;
 		}
 		alignerObj.alignCache(input, read, local);
@@ -184,10 +184,10 @@ VecStr profiler::compareToRefSingle(const std::vector<REF>& refSeqs,
 		}
 		if (currentScore == bestScore) {
 			bestReadPos.emplace_back(inputPos);
-		} else if (alignerObj.parts_.score_ > bestScore) {
+		} else if (currentScore > bestScore) {
 			bestReadPos.clear();
 			bestReadPos.emplace_back(inputPos);
-			bestScore = alignerObj.parts_.score_;
+			bestScore = currentScore;
 		}
 	}
   VecStr ret;
