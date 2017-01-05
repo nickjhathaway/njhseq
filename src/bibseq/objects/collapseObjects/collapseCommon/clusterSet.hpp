@@ -39,7 +39,7 @@ public:
 
 			std::string bestRef = bib::conToStr(
 					profiler::compareToRefSingle(refSeqs, clus, alignerObj, local,
-							eventBased), ",");
+							eventBased), ";");
 
 			clus.expectsString = bestRef;
 

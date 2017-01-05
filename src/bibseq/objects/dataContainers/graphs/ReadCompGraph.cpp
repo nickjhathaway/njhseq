@@ -362,7 +362,7 @@ Json::Value ReadCompGraph::toD3Json(bib::color backgroundColor,
 	graphJson["backgroundColor"] = "#" + backgroundColor.hexStr_;
 	auto & nodes = graphJson["nodes"];
 	auto & links = graphJson["links"];
-	double maxReadCnt = std::numeric_limits<double>::min();
+	double maxReadCnt = std::numeric_limits<double>::lowest();
 	double total = 0;
 	for (const auto & n : this->nodes_) {
 		if (n->on_) {

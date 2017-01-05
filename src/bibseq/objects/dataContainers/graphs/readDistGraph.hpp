@@ -150,7 +150,7 @@ public:
 		bib::randomGenerator gen;
 	  uint64_t pos = 0;
 	  double minReadCnt = std::numeric_limits<double>::max();
-	  double maxReadCnt = std::numeric_limits<double>::min();
+	  double maxReadCnt = std::numeric_limits<double>::lowest();
 	  for(const auto & n : this->nodes_){
 	  	if(n->value_->cnt_ < minReadCnt){
 	  		minReadCnt = n->value_->cnt_;
@@ -235,7 +235,7 @@ public:
 		bib::randomGenerator gen;
 		uint64_t pos = 0;
 		double minReadCnt = std::numeric_limits<double>::max();
-		double maxReadCnt = std::numeric_limits<double>::min();
+		double maxReadCnt = std::numeric_limits<double>::lowest();
 		std::unordered_map<uint32_t, bib::color> groupColors;
 	  std::unordered_map<uint32_t, uint32_t> groupCounts;
 	  uint32_t numOfCutOffGroups = 0;
@@ -341,7 +341,7 @@ public:
 
 			uint64_t pos = 0;
 			double minReadCnt = std::numeric_limits<double>::max();
-			double maxReadCnt = std::numeric_limits<double>::min();
+			double maxReadCnt = std::numeric_limits<double>::lowest();
 			std::unordered_map<uint32_t, bib::color> groupColors;
 		  std::unordered_map<uint32_t, uint32_t> groupCounts;
 		  for(const auto & n : this->nodes_){

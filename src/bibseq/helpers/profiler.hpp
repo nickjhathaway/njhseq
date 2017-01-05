@@ -176,6 +176,7 @@ VecStr profiler::compareToRefSingle(const std::vector<REF>& refSeqs,
 			continue;
 		}
 		alignerObj.alignCache(input, read, local);
+		alignerObj.profilePrimerAlignment(input, read);
 		double currentScore = 0;
 		if (eventBased) {
 			currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
