@@ -68,6 +68,62 @@ void baseCluster::calculateConsensusToCurrent(aligner& alignerObj, bool setToCon
 
 
 
+class ConPath {
+public:
+	struct PosBase {
+		uint32_t pos_;
+		char base_;
+		std::string getUid() const {
+			return estd::to_string(pos_) + estd::to_string(base_);
+		}
+	};
+
+	ConPath(double count):count_(count){}
+
+	double count_ = 1;
+	std::vector<PosBase> bases_;
+	void addBase(uint32_t pos, char base){
+		addBase({pos, base});
+	}
+	void addBase(const PosBase & pb){
+		bases_.emplace_back(pb);
+	}
+
+	std::string getUid()const{
+		std::string ret = "";
+		for(const auto & pb : bases_){
+			ret += pb.getUid();
+		}
+		return ret;
+	}
+};
+
+class ConPathCounter {
+public:
+
+	std::unordered_map<std::string, ConPath> paths_;
+
+	void addConPath(const ConPath & path) {
+		auto search = paths_.find(path.getUid());
+		if (paths_.end() != search) {
+			search->second.count_ += path.count_;
+		} else {
+			paths_.emplace(path.getUid(), path);
+		}
+	}
+
+	ConPath getBestPath() const {
+		ConPath ret(0);
+		for (const auto & path : paths_) {
+			if (path.second.count_ > ret.count_) {
+				ret = path.second;
+			}
+		}
+		return ret;
+	}
+
+};
+
 
 void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 		aligner& alignerObj, bool setToConsensus) {
@@ -82,17 +138,77 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 	consensusHelper::increaseCounters(seqBase_, reads_, getSeqBase, alignerObj, counters,
 			insertions, beginningGap);
 	calcConsensusInfo_ = seqBase_;
-	for( auto & counter :counters){
+	for (auto & counter : counters) {
 		counter.second.resetAlphabet(true);
 	}
-	for( auto & counter :beginningGap){
+	for (auto & counter : beginningGap) {
 		counter.second.resetAlphabet(true);
 	}
-	for( auto & counter :insertions){
-		for( auto & subCounter : counter.second){
+	for (auto & counter : insertions) {
+		for (auto & subCounter : counter.second) {
 			subCounter.second.resetAlphabet(true);
 		}
 	}
+	for(auto & counter : counters){
+		counter.second.setFractions();
+	}
+	//find out if there are several locations with larger contention of majority rules
+	//consensus and therefore could lead to bad consensus building
+
+	double contentionCutOff = 0.1;
+	uint32_t countAbovepCutOff = 0;
+	std::vector<uint32_t> importantPositions;
+	for(const auto & counter : counters){
+		uint32_t count = 0;
+		for(const auto base : counter.second.alphabet_){
+			if(counter.second.fractions_[base] > contentionCutOff){
+				++count;
+				if(count >=2){
+					break;
+				}
+			}
+		}
+		if(count >=2){
+			++countAbovepCutOff;
+			importantPositions.emplace_back(counter.first);
+		}
+	}
+	//if there are several points of contention
+	if(countAbovepCutOff > 2){
+		//for debugging;
+		/*
+		std::ofstream outFile(firstReadName_ + "_baseCounts.tab.txt");
+		outFile << "pos\tbase\tcount\tfrac" << "\n";
+		for(const auto & counter : counters){
+			for(const auto base : counter.second.alphabet_){
+				outFile << counter.first
+						<< "\t" << base
+						<< "\t" << counter.second.chars_[base]
+						<< "\t" << counter.second.fractions_[base] <<"\n";
+			}
+		}*/
+		//count up the pathways that seqs take and pick the path most traveled as the consensus path
+		ConPathCounter counter;
+		for(const auto & seq : reads_){
+			ConPath currentPath(seq->seqBase_.cnt_);
+			alignerObj.alignCacheGlobal(seqBase_, seq);
+			for(const auto pos : importantPositions){
+				currentPath.addBase(pos, alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(pos)]);
+			}
+			counter.addConPath(currentPath);
+		}
+		auto bestPath = counter.getBestPath();
+		for(const auto & pb : bestPath.bases_){
+			auto & counter = counters.at(pb.pos_);
+			for(const auto base : counter.alphabet_){
+				if(base!= pb.base_){
+					counter.chars_[base] = 0;
+				}
+			}
+			counter.setFractions();
+		}
+	}
+
 	consensusHelper::genConsensusFromCounters(calcConsensusInfo_, counters, insertions,
 			beginningGap);
 	if (setToConsensus) {
