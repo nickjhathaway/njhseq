@@ -76,6 +76,14 @@ public:
 		std::string getUid() const {
 			return estd::to_string(pos_) + estd::to_string(base_);
 		}
+
+		Json::Value toJson() const {
+			Json::Value ret;
+			ret["class"] = bib::getTypeName(*this);
+			ret["pos_"] = bib::json::toJson(pos_);
+			ret["base_"] = bib::json::toJson(base_);
+			return ret;
+		}
 	};
 
 	ConPath(double count):count_(count){}
@@ -94,6 +102,14 @@ public:
 		for(const auto & pb : bases_){
 			ret += pb.getUid();
 		}
+		return ret;
+	}
+
+	Json::Value toJson() const {
+		Json::Value ret;
+		ret["class"] = bib::getTypeName(*this);
+		ret["count_"] = bib::json::toJson(count_);
+		ret["bases_"] = bib::json::toJson(bases_);
 		return ret;
 	}
 };
@@ -119,6 +135,13 @@ public:
 				ret = path.second;
 			}
 		}
+		return ret;
+	}
+
+	Json::Value toJson() const {
+		Json::Value ret;
+		ret["class"] = bib::getTypeName(*this);
+		ret["paths_"] = bib::json::toJson(paths_);
 		return ret;
 	}
 
@@ -152,62 +175,79 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 	for(auto & counter : counters){
 		counter.second.setFractions();
 	}
-	//find out if there are several locations with larger contention of majority rules
-	//consensus and therefore could lead to bad consensus building
 
-	double contentionCutOff = 0.1;
-	uint32_t countAbovepCutOff = 0;
-	std::vector<uint32_t> importantPositions;
-	for(const auto & counter : counters){
-		uint32_t count = 0;
-		for(const auto base : counter.second.alphabet_){
-			if(counter.second.fractions_[base] > contentionCutOff){
-				++count;
-				if(count >=2){
-					break;
-				}
-			}
-		}
-		if(count >=2){
-			++countAbovepCutOff;
-			importantPositions.emplace_back(counter.first);
-		}
-	}
-	//if there are several points of contention
-	if(countAbovepCutOff > 2){
-		//for debugging;
-		/*
-		std::ofstream outFile(firstReadName_ + "_baseCounts.tab.txt");
-		outFile << "pos\tbase\tcount\tfrac" << "\n";
+	if(seqBase_.cnt_ > 2){
+		//find out if there are several locations with larger contention of majority rules
+		//consensus and therefore could lead to bad consensus building
+		double contentionCutOff = 0.25;
+		uint32_t countAbovepCutOff = 0;
+		std::vector<uint32_t> importantPositions;
 		for(const auto & counter : counters){
+			uint32_t count = 0;
 			for(const auto base : counter.second.alphabet_){
-				outFile << counter.first
-						<< "\t" << base
-						<< "\t" << counter.second.chars_[base]
-						<< "\t" << counter.second.fractions_[base] <<"\n";
-			}
-		}*/
-		//count up the pathways that seqs take and pick the path most traveled as the consensus path
-		ConPathCounter counter;
-		for(const auto & seq : reads_){
-			ConPath currentPath(seq->seqBase_.cnt_);
-			alignerObj.alignCacheGlobal(seqBase_, seq);
-			for(const auto pos : importantPositions){
-				currentPath.addBase(pos, alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(pos)]);
-			}
-			counter.addConPath(currentPath);
-		}
-		auto bestPath = counter.getBestPath();
-		for(const auto & pb : bestPath.bases_){
-			auto & counter = counters.at(pb.pos_);
-			for(const auto base : counter.alphabet_){
-				if(base!= pb.base_){
-					counter.chars_[base] = 0;
+				if(counter.second.fractions_[base] > contentionCutOff){
+					++count;
+					if(count >=2){
+						break;
+					}
 				}
 			}
-			counter.setFractions();
+			if(count >=2){
+				++countAbovepCutOff;
+				importantPositions.emplace_back(counter.first);
+			}
+		}
+		//if there are several points of contention
+		if(countAbovepCutOff > 2){
+			//for debugging;
+			/*
+			std::ofstream outFile(firstReadName_ + "_baseCounts.tab.txt");
+			outFile << "pos\tbase\tcount\tfrac" << "\n";
+			for(const auto & counter : counters){
+				for(const auto base : counter.second.alphabet_){
+					outFile << counter.first
+							<< "\t" << base
+							<< "\t" << counter.second.chars_[base]
+							<< "\t" << counter.second.fractions_[base] <<"\n";
+				}
+			}*/
+			//count up the pathways that seqs take and pick the path most traveled as the consensus path
+			ConPathCounter pathCounter;
+			for(const auto & seq : reads_){
+				ConPath currentPath(seq->seqBase_.cnt_);
+				alignerObj.alignCacheGlobal(seqBase_, seq);
+				for(const auto pos : importantPositions){
+					currentPath.addBase(pos, alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(pos)]);
+				}
+				pathCounter.addConPath(currentPath);
+			}
+			auto bestPath = pathCounter.getBestPath();
+			//if there is just one supporting reads as the best path just do a majority's rule's consensus
+			if(bestPath.count_ > 1){
+				/*if("lib07_Minor.00_seq.0001_54-2_t1" == firstReadName_){
+					std::cout << "lib07_Minor.00_seq.0001_54-2_t1" << std::endl;
+					std::cout << "BestPath " << std::endl;
+					std::cout << bestPath.toJson() << std::endl;
+					std::cout << "All Paths" << std::endl;
+					std::cout << pathCounter.toJson() << std::endl;
+				}*/
+				for(const auto & pb : bestPath.bases_){
+					uint32_t otherCount = 0;
+					auto & counter = counters.at(pb.pos_);
+					for(const auto base : counter.alphabet_){
+						if(base!= pb.base_){
+							otherCount += counter.chars_[base];
+							counter.chars_[base] = 0;
+						}
+					}
+					//add the other's count so this becomes the majority
+					counter.chars_[pb.base_] += otherCount;
+					counter.setFractions();
+				}
+			}
 		}
 	}
+
 
 	consensusHelper::genConsensusFromCounters(calcConsensusInfo_, counters, insertions,
 			beginningGap);
