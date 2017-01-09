@@ -397,7 +397,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 		}
 
 		//if there are several points of contention
-		if(countAbovepCutOff > 2){
+		if(countAbovepCutOff >= 2){
 
 			//for debugging;
 			/*
