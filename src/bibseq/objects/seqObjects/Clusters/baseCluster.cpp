@@ -373,8 +373,8 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 		}
 	}
 
-	//if the count is just 3 then just a majority rules consensus
-	if(seqBase_.cnt_ > 3){
+	//if the count is just 2 then just a majority rules consensus
+	if(seqBase_.cnt_ > 2){
 		//find out if there are several locations with larger contention of majority rules
 		//consensus and therefore could lead to bad consensus building
 		double contentionCutOff = 0.25;
