@@ -46,8 +46,8 @@ class seqSetUp : public bib::progutils::programSetUp {
   void processGapRef();
   void processQualThres();
 
-  CollapseIterations processIteratorMap(std::string& parametersFile);
-  CollapseIterations processIteratorMapOnPerId(std::string& parametersFile);
+  CollapseIterations processIteratorMap(const bfs::path& parametersFile);
+  CollapseIterations processIteratorMapOnPerId(const bfs::path& parametersFile);
 
   void processKmerLenOptions();
   void processKmerProfilingOptions();

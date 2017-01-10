@@ -123,32 +123,32 @@ void seqSetUp::processQualThres() {
             "Quality Threshold Window Length");
 }
 
-CollapseIterations seqSetUp::processIteratorMap(std::string& parameters) {
+CollapseIterations seqSetUp::processIteratorMap(const bfs::path & parameters) {
 
 	if (!bfs::exists(parameters)) {
 		failed_ = true;
 		warnings_.emplace_back(
-				bib::bashCT::red + bib::bashCT::bold + "File " + parameters
+				bib::bashCT::red + bib::bashCT::bold + "File " + parameters.string()
 						+ " doesn't exist" + bib::bashCT::reset);
 	}
 	//std::cout << __PRETTY_FUNCTION__ << 1 << std::endl;
 	//CollapseIterations ret(parameters, false);
 	//std::cout << __PRETTY_FUNCTION__ << 2 << std::endl;
-	return {parameters, false};
+	return {parameters.string(), false};
 }
 
-CollapseIterations seqSetUp::processIteratorMapOnPerId(std::string& parameters) {
+CollapseIterations seqSetUp::processIteratorMapOnPerId(const bfs::path & parameters) {
 
 	if (!bfs::exists(parameters)) {
 		failed_ = true;
 		warnings_.emplace_back(
-				bib::bashCT::red + bib::bashCT::bold + "File " + parameters
+				bib::bashCT::red + bib::bashCT::bold + "File " + parameters.string()
 						+ " doesn't exist" + bib::bashCT::reset);
 	}
 	//std::cout << __PRETTY_FUNCTION__ << 1 << std::endl;
 	//CollapseIterations ret();
 	//std::cout << __PRETTY_FUNCTION__ << 2 << std::endl;
-	return {parameters, true};
+	return {parameters.string(), true};
 }
 
 void seqSetUp::processKmerLenOptions(){
