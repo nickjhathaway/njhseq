@@ -29,7 +29,7 @@
 
 #include "bibseq/alignment/aligner/alnParts.hpp"
 #include "bibseq/alignment/aligner/aligner.hpp"
-#include "aligner/alignCalc.hpp"
+#include "bibseq/alignment/aligner/alignCalc.hpp"
 
 
 
