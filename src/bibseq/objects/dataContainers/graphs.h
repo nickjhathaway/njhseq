@@ -30,6 +30,6 @@
 #include "bibseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
 #include "bibseq/objects/dataContainers/graphs/readDistGraph.hpp"
 #include "bibseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
-
+#include "bibseq/objects/dataContainers/graphs/ConBasePathGraph.hpp"
 
 

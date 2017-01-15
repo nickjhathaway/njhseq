@@ -23,6 +23,8 @@
 #include "bibseq/helpers/consensusHelper.hpp"
 #include "bibseq/readVectorManipulation/readVectorHelpers.h"
 #include "bibseq/IO/SeqIO/SeqOutput.hpp"
+#include "bibseq/objects/dataContainers/graphs/ConBasePathGraph.hpp"
+
 
 namespace bibseq {
 
@@ -68,280 +70,13 @@ void baseCluster::calculateConsensusToCurrent(aligner& alignerObj, bool setToCon
 
 
 
-class ConPath {
-public:
-	struct PosBase {
-		uint32_t pos_;
-		char base_;
-		std::string getUid() const {
-			return estd::to_string(pos_) + estd::to_string(base_);
-		}
-
-		Json::Value toJson() const {
-			Json::Value ret;
-			ret["class"] = bib::getTypeName(*this);
-			ret["pos_"] = bib::json::toJson(pos_);
-			ret["base_"] = bib::json::toJson(base_);
-			return ret;
-		}
-	};
-
-	ConPath(double count):count_(count){}
-
-	double count_ = 1;
-	std::vector<PosBase> bases_;
-	void addPosBase(uint32_t pos, char base){
-		addPosBase({pos, base});
-	}
-	void addPosBase(const PosBase & pb){
-		bases_.emplace_back(pb);
-	}
-
-	std::string getUid()const{
-		std::string ret = "";
-		for(const auto & pb : bases_){
-			ret += pb.getUid();
-		}
-		return ret;
-	}
-
-	Json::Value toJson() const {
-		Json::Value ret;
-		ret["class"] = bib::getTypeName(*this);
-		ret["count_"] = bib::json::toJson(count_);
-		ret["bases_"] = bib::json::toJson(bases_);
-		return ret;
-	}
-};
-
-class ConPathCounter {
-public:
-
-	std::unordered_map<std::string, ConPath> paths_;
-
-	void addConPath(const ConPath & path) {
-		auto search = paths_.find(path.getUid());
-		if (paths_.end() != search) {
-			search->second.count_ += path.count_;
-		} else {
-			paths_.emplace(path.getUid(), path);
-		}
-	}
-
-	ConPath getBestPath() const {
-		ConPath ret(0);
-		for (const auto & path : paths_) {
-			if (path.second.count_ > ret.count_) {
-				ret = path.second;
-			}
-		}
-		return ret;
-	}
-
-	Json::Value toJson() const {
-		Json::Value ret;
-		ret["class"] = bib::getTypeName(*this);
-		ret["paths_"] = bib::json::toJson(paths_);
-		return ret;
-	}
-
-};
 
 
 
-class ConBaseOverlapGraph {
-public:
-
-	class edge;
-	class node {
-	public:
-
-		node(const ConPath::PosBase & val,
-				double cnt, double frac) :
-				val_(val),
-				cnt_(cnt),
-				frac_(frac){
-		}
-		ConPath::PosBase val_;
-		double cnt_;
-		double frac_;
-
-		std::vector<std::shared_ptr<edge>> headEdges_;
-		std::vector<std::shared_ptr<edge>> tailEdges_;
-
-		uint32_t visitCount_ = 0;
-
-		void resetVisitCount();
-
-		void addHead(const std::shared_ptr<edge> & e) {
-			headEdges_.push_back(e);
-		}
-
-		void addTail(const std::shared_ptr<edge> & e) {
-			tailEdges_.push_back(e);
-		}
-
-		bool headless() const {
-			return headEdges_.empty();
-		}
-
-		bool tailless() const {
-			return tailEdges_.empty();
-		}
-
-		void addToWritingPath(std::ostream & out,
-				std::string currentPath) {
-			++visitCount_;
-			currentPath += val_.getUid();
-			if (tailless()) {
-				out << currentPath << std::endl;
-			}
-			for (const auto & tail : tailEdges_) {
-				tail->tail_.lock()->addToWritingPath(out, currentPath + " - " + estd::to_string(tail->cnt_) + " > ");
-			}
-		};
-		void addToPath(std::vector<ConPath> & paths,
-				ConPath currentPath) {
-			++visitCount_;
-			currentPath.addPosBase(val_.pos_, val_.base_);
-			if (tailless()) {
-				paths.emplace_back(currentPath);
-			}
-			for (const auto & tail : tailEdges_) {
-				auto tempPath = currentPath;
-				tempPath.count_ += tail->cnt_;
-				tail->tail_.lock()->addToPath(paths, tempPath);
-			}
-		};
-	};
-	class edge {
-	public:
-		edge(const std::shared_ptr<node> & head,
-				const std::shared_ptr<node> & tail,
-				double cnt) :
-				head_(head), tail_(tail),
-				cnt_(cnt){
-
-		};
-		std::weak_ptr<node> head_;
-		std::weak_ptr<node> tail_;
-		double cnt_;
-	};
-	std::unordered_map<std::string, std::shared_ptr<node>> nodes_;
-
-	void addNode(const ConPath::PosBase & n, double cnt, double frac) {
-		if (bib::has(nodes_, n.getUid())) {
-			std::stringstream ss;
-			ss << __PRETTY_FUNCTION__ << ": Error, alreay contains node with name "
-					<< n.getUid() << "\n";
-			throw std::runtime_error { ss.str() };
-		}
-		nodes_.emplace(n.getUid(), std::make_shared<node>(n, cnt, frac));
-	}
-
-	void addEdge(const std::string & head,
-			const std::string & tailName,
-			double cnt) {
-		/**@todo add way to check if edge already exists */
-		auto headNode = nodes_.at(head);
-		bool foundEdge = false;
-		for(const auto & tail : headNode->tailEdges_){
-			auto tailNode = tail->tail_.lock();
-			if(tailName == tailNode->val_.getUid() ){
-				foundEdge = true;
-				tail->cnt_ += cnt;
-				break;
-			}
-		}
-		if(!foundEdge){
-			auto tailNode = nodes_.at(tailName);
-			std::shared_ptr<edge> e = std::make_shared<edge>(headNode, tailNode, cnt);
-			headNode->addTail(e);
-			tailNode->addHead(e);
-		}
-	}
-
-	void writePaths(std::ostream & out) const {
-		/**@todo add way to check if there are any cycles or no headless nodes */
-		for (const auto & n : nodes_) {
-			if (n.second->headless()) {
-				n.second->addToWritingPath(out, "");
-			}
-		}
-		VecStr notVisitedNodes;
-		for (const auto & n : nodes_) {
-			if (n.second->visitCount_ == 0) {
-				notVisitedNodes.emplace_back(n.first);
-			}
-		}
-		if (!notVisitedNodes.empty()) {
-			std::stringstream ss;
-			ss << __PRETTY_FUNCTION__
-					<< ": Error, the following nodes weren't visited:\n";
-			ss << bib::conToStr(notVisitedNodes, ",") << "\n";
-			throw std::runtime_error { ss.str() };
-		}
-	}
-
-	std::vector<ConPath> getPaths() const {
-		std::vector<ConPath> ret;
-		/**@todo add way to check if there are any cycles or no headless nodes */
-		for (const auto & n : nodes_) {
-			if (n.second->headless()) {
-				n.second->addToPath(ret, ConPath{0});
-			}
-		}
-		VecStr notVisitedNodes;
-		for (const auto & n : nodes_) {
-			if (n.second->visitCount_ == 0) {
-				notVisitedNodes.emplace_back(n.first);
-			}
-		}
-		if (!notVisitedNodes.empty()) {
-			std::stringstream ss;
-			ss << __PRETTY_FUNCTION__
-					<< ": Error, the following nodes weren't visited:\n";
-			ss << bib::conToStr(notVisitedNodes, ",") << "\n";
-			throw std::runtime_error { ss.str() };
-		}
-		return ret;
-	}
-
-	Json::Value createSankeyOutput() const {
-		Json::Value ret;
-		std::vector<std::shared_ptr<node>> nodesVec;
-		std::unordered_map<std::string, uint32_t> nodePosition;
-		for (const auto & n : nodes_) {
-			nodePosition[n.first] = nodesVec.size();
-			nodesVec.push_back(n.second);
-		}
-		auto &nodes = ret["nodes"];
-		auto &links = ret["links"];
-
-		for (const auto & n : nodesVec) {
-			Json::Value nodeJson;
-			nodeJson["name"] = n->val_.getUid();
-			nodeJson["cnt"] = n->cnt_;
-			nodeJson["frac"] = n->frac_;
-			nodes.append(nodeJson);
-			double totalTail = 0;
-			for (const auto & tl : n->tailEdges_) {
-				totalTail += tl->cnt_;
-			}
-			for (const auto & tl : n->tailEdges_) {
-				Json::Value linkJsons;
-				linkJsons["source"] = nodePosition[tl->head_.lock()->val_.getUid()];
-				linkJsons["target"] = nodePosition[tl->tail_.lock()->val_.getUid()];
-				;
-				linkJsons["value"] = tl->cnt_ / totalTail;
-				links.append(linkJsons);
-			}
-		}
-		return ret;
-	}
 
 
-};
+
+
 
 
 
@@ -411,19 +146,19 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 							<< "\t" << counter.second.fractions_[base] <<"\n";
 				}
 			}*/
-			ConBaseOverlapGraph graph;
+			ConBasePathGraph graph;
 			for(const auto pos : importantPositions){
 				auto & counter = counters.at(pos);
 				for(const auto base : counter.alphabet_){
 					if(counter.chars_[base] > 0){
-						graph.addNode(ConPath::PosBase{pos, base},counter.chars_[base], counter.fractions_[base]);
+						graph.addNode(ConBasePathGraph::ConPath::PosBase{pos, base},counter.chars_[base], counter.fractions_[base]);
 					}
 				}
 			}
 			//count up the pathways that seqs take and pick the path most traveled as the consensus path
 			//ConPathCounter pathCounter;
 			for(const auto & seq : reads_){
-				ConPath currentPath(seq->seqBase_.cnt_);
+				ConBasePathGraph::ConPath currentPath(seq->seqBase_.cnt_);
 				alignerObj.alignCacheGlobal(seqBase_, seq);
 				for(const auto pos : importantPositions){
 					currentPath.addPosBase(pos, alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(pos)]);
@@ -434,7 +169,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 					auto headBase = alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(headPos)];
 					auto tailPos = importantPositions[pos + 1];
 					auto tailBase = alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(tailPos)];
-					graph.addEdge(ConPath::PosBase{headPos,headBase}.getUid(),ConPath::PosBase{tailPos,tailBase}.getUid(),seq->seqBase_.cnt_ );
+					graph.addEdge(ConBasePathGraph::ConPath::PosBase{headPos,headBase}.getUid(),ConBasePathGraph::ConPath::PosBase{tailPos,tailBase}.getUid(),seq->seqBase_.cnt_ );
 				}
 				//pathCounter.addConPath(currentPath);
 			}
@@ -446,7 +181,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 			graph.writePaths(outPathFile);
 			*/
 			auto paths = graph.getPaths();
-			std::vector<ConPath> bestPaths;
+			std::vector<ConBasePathGraph::ConPath> bestPaths;
 			double bestCount = 0;
 			for (const auto & path : paths) {
 				if(path.count_ > bestCount){
@@ -457,10 +192,10 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 					bestPaths.emplace_back(path);
 				}
 			}
-			ConPath bestPath(0);
+			ConBasePathGraph::ConPath bestPath(0);
 			if(bestPaths.size() > 1){
 				double bestImprovement = std::numeric_limits<double>::lowest();
-				std::vector<ConPath> secondaryBestPaths;
+				std::vector<ConBasePathGraph::ConPath> secondaryBestPaths;
 				for (const auto & path : bestPaths) {
 					//outPathFile << path.getUid() << " : " << path.count_ << std::endl;
 					double avgOppositeQual = 0;
