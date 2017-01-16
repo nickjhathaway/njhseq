@@ -552,10 +552,10 @@ void seqInfo::addQual(const std::vector<uint32_t> & quals) {
 	if (quals.size() != seq_.size()) {
 		std::stringstream ss;
 		ss << "adding qual size does not equal seq size, qualSize: " << quals.size()
-				<< ", seqSize: " << seq_.size() << ", for " << name_;
-		printVector(quals, "\n", ss);
+				<< ", seqSize: " << seq_.size() << ", for " << name_ << "\n";
+		printVector(quals, ", ", ss);
 		ss << seq_ << "\n";
-		throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
+		throw std::runtime_error { ss.str() };
 	}
 	qual_ = quals;
 }
