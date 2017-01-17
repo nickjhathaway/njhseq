@@ -29,4 +29,4 @@
 
 #include "bibseq/concurrency/ConcurrentQueue.hpp"
 #include "bibseq/concurrency/pools.h"
-
+#include "bibseq/concurrency/PairwisePairFactory.hpp"
