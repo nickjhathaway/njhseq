@@ -52,9 +52,8 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 		uint32_t numThreads) {
 	uint64_t maxSize = 0;
 	readVec::getMaxLength(reads, maxSize);
-	aligner alignerObj = aligner(maxSize, gapScoringParameters(5, 1),
+	aligner alignerObj(maxSize, gapScoringParameters(5, 1),
 			substituteMatrix(2, -2));
-	//alignerObj.processAlnInfoInput(setUp.pars_.alnInfoDirName_);
 	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
 	std::mutex alignerLock;
 	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,
@@ -67,9 +66,8 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 		const comparison &allowableErrors, bool settingEventsLimits) {
 	uint64_t maxSize = 0;
 	readVec::getMaxLength(reads, maxSize);
-	aligner alignerObj = aligner(maxSize, gapScoringParameters(5, 1),
+	aligner alignerObj(maxSize, gapScoringParameters(5, 1),
 			substituteMatrix(2, -2));
-	//alignerObj.processAlnInfoInput(setUp.pars_.alnInfoDirName_);
 	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
 	std::mutex alignerLock;
 	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,

@@ -360,6 +360,7 @@ Json::Value ReadCompGraph::toD3Json(bib::color backgroundColor,
 		const std::unordered_map<std::string, bib::color> & nameColors) {
 	Json::Value graphJson;
 	graphJson["backgroundColor"] = "#" + backgroundColor.hexStr_;
+	auto & totalDiffs = graphJson["totalDiffs"];
 	auto & nodes = graphJson["nodes"];
 	auto & links = graphJson["links"];
 	double maxReadCnt = std::numeric_limits<double>::lowest();
@@ -385,9 +386,11 @@ Json::Value ReadCompGraph::toD3Json(bib::color backgroundColor,
 			++nCount;
 		}
 	}
+	//std::unordered_map<std::string, uint32_t> totalDiffsCounter;
 	uint32_t lCount = 0;
 	for (const auto & e : this->edges_) {
 		if (e->on_) {
+			totalDiffs[e->dist_.refName_ + e->dist_.queryName_] = e->dist_.distances_.getNumOfEvents(false);
 			if (e->dist_.distances_.getNumOfEvents(false) == 0) {
 				auto lColor =
 						getColsBetweenExcludeClosest(
@@ -402,6 +405,7 @@ Json::Value ReadCompGraph::toD3Json(bib::color backgroundColor,
 								e->on_, lColor.front());
 				++lCount;
 			} else {
+
 				std::string lastName =
 						this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_;
 				auto lColors =
