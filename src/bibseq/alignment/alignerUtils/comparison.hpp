@@ -117,6 +117,8 @@ public:
   uint32_t highQualityMatches_ = 0; /**< Number of high quality matches*/
   uint32_t lowQualityMatches_ = 0; /**< Number of low quality matches*/
 
+  double alnScore_ = 0; /**< alnignment score*/
+
   DistanceComp distances_; /**< The distance metrics in the comparison of the two variants*/
 
   std::string refName_; /**< The name of the variant that goes first the alignment (alignObjectA) which is normally a reference/major variant*/

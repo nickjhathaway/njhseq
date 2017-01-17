@@ -73,6 +73,7 @@ void aligner::alignScoreCacheLocal(const std::string& firstSeq,
 	if (alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].getAlnInfo(
 			firstSeq, secondSeq, parts_.lHolder_)) {
 		parts_.score_ = parts_.lHolder_.score_;
+		comp_.alnScore_ = parts_.score_;
 	} else {
 		alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
 		alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
@@ -90,6 +91,7 @@ void aligner::alignScoreCacheGlobal(const std::string& firstSeq,
 	if (alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].getAlnInfo(
 			firstSeq, secondSeq, parts_.gHolder_)) {
 		parts_.score_ = parts_.gHolder_.score_;
+		comp_.alnScore_ = parts_.score_;
 	} else {
 		alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
 		alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
@@ -116,6 +118,7 @@ void aligner::alignScoreCache(const std::string& firstSeq, const std::string& se
   	if(alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_]
           .getAlnInfo(firstSeq, secondSeq, parts_.lHolder_)){
   		parts_.score_ = parts_.lHolder_.score_;
+  		comp_.alnScore_ = parts_.score_;
   	}else{
   		alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
   		alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(firstSeq, secondSeq, parts_.lHolder_);
@@ -125,6 +128,7 @@ void aligner::alignScoreCache(const std::string& firstSeq, const std::string& se
   	if(alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_]
   	            .getAlnInfo(firstSeq, secondSeq, parts_.gHolder_)){
   		parts_.score_ = parts_.gHolder_.score_;
+  		comp_.alnScore_ = parts_.score_;
 		}else{
 			alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
 			alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(firstSeq, secondSeq, parts_.gHolder_);
@@ -362,6 +366,7 @@ const comparison & aligner::profilePrimerAlignment(const seqInfo& objectA,
   comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;
   comp_.queryName_ = objectB.name_;
+  comp_.alnScore_ = parts_.score_;
   return comp_;
 }
 
@@ -634,6 +639,7 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA,
   comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;
   comp_.queryName_ = objectB.name_;
+  comp_.alnScore_ = parts_.score_;
   return comp_;
 }
 
@@ -784,6 +790,7 @@ comparison aligner::compareAlignment(
   comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;
   comp_.queryName_ = objectB.name_;
+  comp_.alnScore_ = parts_.score_;
   return comp_;
 }
 
@@ -1313,6 +1320,7 @@ void aligner::scoreAlignment(bool editTheSame) {
     parts_.score_ += parts_.scoring_.mat_[alignObjectA_.seqBase_.seq_[i]]
                            [alignObjectB_.seqBase_.seq_[i]];
   }
+  comp_.alnScore_ = parts_.score_;
 }
 
 void aligner::noAlignSetAndScore(const seqInfo& objectA,
