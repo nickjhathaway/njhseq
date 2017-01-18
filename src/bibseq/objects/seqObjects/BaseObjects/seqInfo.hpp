@@ -78,6 +78,9 @@ struct seqInfo {
 	void append(const std::string& seq, uint32_t defaultQuality = 40);
 	void prepend(const char & base, uint32_t quality = 40);
 	void append(const char & base, uint32_t quality = 40);
+
+	void insert(uint32_t pos, const seqInfo & otherInfo);
+
 	bool checkLeadQual(uint32_t pos, uint32_t secondayQual, uint32_t out) const;
 	bool checkTrailQual(uint32_t pos, uint32_t secondayQual, uint32_t out) const;
 	bool checkPrimaryQual(uint32_t pos, uint32_t primaryQual) const;

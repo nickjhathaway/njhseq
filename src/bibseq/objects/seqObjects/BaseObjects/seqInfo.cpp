@@ -210,6 +210,17 @@ void seqInfo::append(const char & base, uint32_t quality) {
 	qual_.emplace_back(quality);
 }
 
+void seqInfo::insert(uint32_t pos, const seqInfo & otherInfo){
+	if(pos >= len(*this)){
+		std::stringstream ss;
+		ss << __FILE__ << ": " << __LINE__ << " : " << __PRETTY_FUNCTION__ << ", error out of range insert" << "\n";
+		ss << "Position " << pos << " is greater than or equal to the length of the current sequence " << len(*this) << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	seq_.insert(seq_.begin() + pos, otherInfo.seq_.begin(), otherInfo.seq_.end());
+	qual_.insert(qual_.begin() + pos, otherInfo.qual_.begin(), otherInfo.qual_.end());
+}
+
 void seqInfo::reverseHRunsQuals() {
 	std::vector<std::vector<uint32_t>> quals;
 	std::vector<uint32_t> currentQuals;

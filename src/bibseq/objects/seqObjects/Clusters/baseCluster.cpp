@@ -78,10 +78,9 @@ void baseCluster::calculateConsensusToCurrent(aligner& alignerObj, bool setToCon
 
 
 
-
-
 void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 		aligner& alignerObj, bool setToConsensus) {
+
 	// create the map for letter counters for each position
 	std::map<uint32_t, charCounter> counters;
 	// create a map in case of insertions
@@ -92,6 +91,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 
 	consensusHelper::increaseCounters(seqBase_, reads_, getSeqBase, alignerObj, counters,
 			insertions, beginningGap);
+
 	calcConsensusInfo_ = seqBase_;
 	for (auto & counter : counters) {
 		counter.second.resetAlphabet(true);
@@ -110,6 +110,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 
 	//if the count is just 2 then just a majority rules consensus
 	if(seqBase_.cnt_ > 2){
+
 		//find out if there are several locations with larger contention of majority rules
 		//consensus and therefore could lead to bad consensus building
 		double contentionCutOff = 0.25;
@@ -146,6 +147,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 							<< "\t" << counter.second.fractions_[base] <<"\n";
 				}
 			}*/
+
 			ConBasePathGraph graph;
 			for(const auto pos : importantPositions){
 				auto & counter = counters.at(pos);
@@ -155,6 +157,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 					}
 				}
 			}
+
 			//count up the pathways that seqs take and pick the path most traveled as the consensus path
 			//ConPathCounter pathCounter;
 			for(const auto & seq : reads_){
@@ -163,6 +166,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 				for(const auto pos : importantPositions){
 					currentPath.addPosBase(pos, alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(pos)]);
 				}
+
 				bib::sort(importantPositions);
 				for(const auto pos : iter::range(importantPositions.size() - 1)){
 					auto headPos = importantPositions[pos];
@@ -171,6 +175,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 					auto tailBase = alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(tailPos)];
 					graph.addEdge(ConBasePathGraph::ConPath::PosBase{headPos,headBase}.getUid(),ConBasePathGraph::ConPath::PosBase{tailPos,tailBase}.getUid(),seq->seqBase_.cnt_ );
 				}
+
 				//pathCounter.addConPath(currentPath);
 			}
 			/*
@@ -183,6 +188,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 			auto paths = graph.getPaths();
 			std::vector<ConBasePathGraph::ConPath> bestPaths;
 			double bestCount = 0;
+
 			for (const auto & path : paths) {
 				if(path.count_ > bestCount){
 					bestCount = path.count_;
@@ -192,8 +198,10 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 					bestPaths.emplace_back(path);
 				}
 			}
+
 			ConBasePathGraph::ConPath bestPath(0);
 			if(bestPaths.size() > 1){
+
 				double bestImprovement = std::numeric_limits<double>::lowest();
 				std::vector<ConBasePathGraph::ConPath> secondaryBestPaths;
 				for (const auto & path : bestPaths) {
@@ -273,6 +281,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 
 	consensusHelper::genConsensusFromCounters(calcConsensusInfo_, counters, insertions,
 			beginningGap);
+
 	if (setToConsensus) {
 		if (seqBase_.seq_ != calcConsensusInfo_.seq_) {
 			seqBase_.seq_ = calcConsensusInfo_.seq_;

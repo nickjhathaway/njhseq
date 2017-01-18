@@ -244,9 +244,16 @@ void profiler::compareToRef(std::vector<REF> inputRefs,
   openTextFile(tempFile, workingDir + "tempFilealns.fasta", ".fasta", true,
                false);
   uint32_t counter = 0;
-  profileInfoFile
-      << "ReadNumber\tReadId\tReadFraction\tBestRef\tscore\thqScore\t1bIndel\t2bI"
-         "ndel\t>2bIndel\tlqMismatch\thqMismatch" << std::endl;
+  if(eventBased){
+    profileInfoFile
+        << "ReadNumber\tReadId\tReadFraction\tBestRef\tscore\talnScore\thqScore\t1bIndel\t2bI"
+           "ndel\t>2bIndel\tlqMismatch\thqMismatch" << std::endl;
+  }else{
+    profileInfoFile
+        << "ReadNumber\tReadId\tReadFraction\tBestRef\tscore\tperId\thqScore\t1bIndel\t2bI"
+           "ndel\t>2bIndel\tlqMismatch\thqMismatch" << std::endl;
+  }
+
 
   readVec::lowerCaseBasesToUpperCase(inputClusters);
   readVec::lowerCaseBasesToUpperCase(inputRefs);
@@ -298,7 +305,13 @@ void profiler::compareToRef(std::vector<REF> inputRefs,
 
       profileInfoFile << counter << "\t" << input.seqBase_.name_ << "\t"
 					<< input.seqBase_.frac_ << "\t" << best.seqBase_.name_
-					<< "\t" << score
+					<< "\t" << score;
+      if(eventBased){
+      	profileInfoFile << "\t" << alignerObj.parts_.score_;;
+      }else{
+      	profileInfoFile << "\t" << alignerObj.comp_.distances_.eventBasedIdentity_;;
+      }
+      profileInfoFile
 					<< "\t" << alignerObj.comp_.distances_.eventBasedIdentityHq_
 					<< "\t" << alignerObj.comp_.oneBaseIndel_ << "\t"
 					<< alignerObj.comp_.twoBaseIndel_ << "\t"
