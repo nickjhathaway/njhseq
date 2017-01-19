@@ -148,7 +148,7 @@ static std::vector<readObject> createCondensedObjects(std::vector<T> reads) {
 
 
 template <typename T>
-void renameReadNames(std::vector<T>& reads, const std::string& stub,
+std::unordered_map<std::string, std::string> renameReadNames(std::vector<T>& reads, const std::string& stub,
                      bool processed, bool keepChimeraFlag = true,
                      bool keepCompFlag = true,
                      const std::string& sortBy = "none") {
@@ -156,23 +156,29 @@ void renameReadNames(std::vector<T>& reads, const std::string& stub,
   if ("none" != sortBy) {
     readVecSorter::sortReadVector(reads, sortBy);
   }
+  VecStr originalNames = readVec::getNames(reads);
   uint64_t maxSize = reads.size();
-  for (auto& read : reads) {
-    bool chimera = read.seqBase_.name_.find("CHI") != std::string::npos;
-    bool comp = read.seqBase_.name_.find("_Comp") != std::string::npos;
-    read.seqBase_.name_ = stub;
+  for (auto& seq : reads) {
+    bool chimera = getSeqBase(seq).name_.find("CHI") != std::string::npos;
+    bool comp = getSeqBase(seq).name_.find("_Comp") != std::string::npos;
+    getSeqBase(seq).name_ = stub;
     if (chimera && keepChimeraFlag) {
-      read.seqBase_.markAsChimeric();
+    	getSeqBase(seq).markAsChimeric();
     }
     if (comp && keepCompFlag) {
-    	read.seqBase_.name_ += "_Comp";
+    	getSeqBase(seq).name_ += "_Comp";
     }
-    read.seqBase_.name_ += "." + leftPadNumStr(count, maxSize);
+    getSeqBase(seq).name_ += "." + leftPadNumStr(count, maxSize);
     if (processed) {
-      read.seqBase_.name_ += "_t" + estd::to_string(read.seqBase_.cnt_);
+    	getSeqBase(seq).name_ += "_t" + estd::to_string(getSeqBase(seq).cnt_);
     }
     ++count;
   }
+  std::unordered_map<std::string, std::string> ret;
+  for(const auto pos : iter::range(reads.size())){
+  	ret[getSeqBase(reads[pos]).name_] = originalNames[pos];
+  }
+  return ret;
 }
 
 template <typename T>
