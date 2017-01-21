@@ -262,7 +262,7 @@ void profiler::compareToRef(std::vector<REF> inputRefs,
       std::cout << "Currently on read " << counter + 1 << " out of "
                 << inputClusters.size() << std::endl;
     }
-    double bestScore = std::numeric_limits<double>::min();
+    double bestScore = std::numeric_limits<double>::lowest();
     std::vector<uint64_t> bestRead;
     for (const auto& refPos : iter::range(inputRefs.size())) {
     	const auto & ref = inputRefs[refPos];
