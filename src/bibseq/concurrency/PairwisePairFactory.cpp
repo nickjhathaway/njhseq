@@ -34,5 +34,23 @@ bool PairwisePairFactory::setNextPair(PairwisePair & pair) {
 	return true;
 }
 
+
+bool PairwisePairFactory::setNextPairs(PairwisePairVec & pairs, uint32_t num) {
+	std::lock_guard<std::mutex> lock(mut_);
+	if (current_ >= totalCompares_) {
+		return false;
+	}
+	uint32_t count = 0;
+	pairs.pairs_.clear();
+	while (count < num && current_ < totalCompares_) {
+		PairwisePair pair;
+		pair.setByTriangularIndex(current_, numOfElements_);
+		pairs.pairs_.emplace_back(pair);
+		++current_;
+		++count;
+	}
+	return true;
+}
+
 }  // namespace bibseq
 

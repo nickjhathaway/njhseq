@@ -20,6 +20,11 @@ public:
 
 	};
 
+	struct PairwisePairVec {
+
+		std::vector<PairwisePair> pairs_;
+	};
+
 	PairwisePairFactory(uint32_t numOfEleements);
 
 	const uint32_t numOfElements_;
@@ -28,6 +33,9 @@ public:
 	std::mutex mut_;
 
 	bool setNextPair(PairwisePair & pair);
+
+	bool setNextPairs(PairwisePairVec & pairs, uint32_t num);
+
 
 };
 
