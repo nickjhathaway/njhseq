@@ -67,6 +67,7 @@ public:
 			uint32_t hqMismatches);
 
 	static CollapseIterations genStrictNoErrorsDefaultPars(uint32_t stopCheck);
+	static CollapseIterations genStrictNoErrorsDefaultParsWithHqs(uint32_t stopCheck, uint32_t hqMismatches);
 	static CollapseIterations genStrictDefaultPars(uint32_t stopCheck);
 
 

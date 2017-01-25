@@ -232,23 +232,31 @@ void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
 	bib::stopWatch watch;
 	watch.setLapName("updatingName");
 	for (const auto & pos : positions) {
-		comparingReads[pos].updateName();
+		if(!comparingReads[pos].remove){
+			comparingReads[pos].updateName();
+		}
 	}
 	watch.startNewLap("allCalculateConsensus");
 	for (const auto & pos : positions) {
-		comparingReads[pos].calculateConsensus(alignerObj, true);
+		if(!comparingReads[pos].remove){
+			comparingReads[pos].calculateConsensus(alignerObj, true);
+		}
 	}
 	watch.startNewLap("removeLowQualityBases");
 	if (opts_.iTOpts_.removeLowQualityBases_) {
 		for (const auto & pos : positions) {
-			comparingReads[pos].seqBase_.removeLowQualityBases(
-					opts_.iTOpts_.lowQualityBaseTrim_);
+			if (!comparingReads[pos].remove) {
+				comparingReads[pos].seqBase_.removeLowQualityBases(
+				opts_.iTOpts_.lowQualityBaseTrim_);
+			}
 		}
 	}
 	watch.startNewLap("adjustHomopolyerRuns");
 	if (opts_.iTOpts_.adjustHomopolyerRuns_) {
 		for (const auto & pos : positions) {
-			comparingReads[pos].adjustHomopolyerRunQualities();
+			if (!comparingReads[pos].remove) {
+				comparingReads[pos].adjustHomopolyerRunQualities();
+			}
 		}
 	}
 
@@ -262,6 +270,9 @@ void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
 		}
 		std::cout << "Collapsed down to " << sizeOfReadVector - amountAdded
 				<< " clusters" << std::endl;
+	}
+	if(opts_.clusOpts_.converge_ && amountAdded > 0){
+		collapseWithParameters(comparingReads, positions, runParams, alignerObj);
 	}
 }
 

@@ -194,6 +194,29 @@ CollapseIterations CollapseIterations::genIlluminaDefaultPars(uint32_t stopCheck
 	return ret;
 }
 
+
+CollapseIterations CollapseIterations::genStrictNoErrorsDefaultParsWithHqs(uint32_t stopCheck, uint32_t hqMismatches){
+	double stopCheckDbl = stopCheck;
+	std::vector<std::vector<double>> iters = {
+			{stopCheckDbl, 3,0,0,0,0,0,0},
+			{stopCheckDbl, 3,0,0,0,0,0,0}};
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl, 3,0,0,0,hq,0,0});
+		iters.emplace_back(std::vector<double>{stopCheckDbl, 3,0,0,0,hq,0,0});
+	}
+	addOtherVec(iters, std::vector<std::vector<double>>{
+			{stopCheckDbl, 0,0,0,0,0,0,0},
+			{stopCheckDbl, 0,0,0,0,0,0,0}
+	});
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl, 0,0,0,0,hq,0,0});
+		iters.emplace_back(std::vector<double>{stopCheckDbl, 0,0,0,0,hq,0,0});
+	}
+	CollapseIterations ret;
+	ret.addIterations(iters);
+	return ret;
+}
+
 CollapseIterations CollapseIterations::genStrictNoErrorsDefaultPars(uint32_t stopCheck) {
 	double stopCheckDbl = stopCheck;
 	std::vector<std::vector<double>> iters = {

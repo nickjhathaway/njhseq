@@ -128,10 +128,10 @@ void SeqSetUpPars::initializeDefaults() {
 
   //quality filtering
   qFilPars_.checkingQWindow = false;
-  qFilPars_.qualWindow_ = "50,5,25";
+  qFilPars_.qualWindow_ = "50,5,20";
   qFilPars_.qualityWindowLength_ = 50;
   qFilPars_.qualityWindowStep_ = 5;
-  qFilPars_.qualityWindowThres_ = 25;
+  qFilPars_.qualityWindowThres_ = 20;
 
   qFilPars_.checkingQFrac_ = false;
   qFilPars_.qualCheck_ = 30;
