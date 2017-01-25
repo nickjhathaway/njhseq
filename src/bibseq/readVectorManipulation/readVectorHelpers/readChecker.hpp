@@ -30,7 +30,8 @@
 #include "bibseq/readVectorManipulation/readVectorOperations.h"
 #include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
 #include "bibseq/objects/counters/charCounter.hpp"
-#include "bibseq/objects/kmer/kmerInfo.hpp"
+#include "bibseq/objects/seqObjects/seqKmers/seqWithKmerInfo.hpp"
+#include "bibseq/objects/seqObjects/Paired/PairedRead.hpp"
 
 namespace bibseq {
 
@@ -42,6 +43,7 @@ public:
 	bool mark_ = true;
 	void markName(seqInfo & info) const;
 	virtual bool checkRead(seqInfo & info) const;
+	virtual bool checkRead(PairedRead & seq) const;
 	virtual ~ReadChecker();
 };
 
@@ -97,7 +99,7 @@ public:
 	ReadCheckerOnCount(double countCutOff, bool mark = true);
 	const double countCutOff_;
 	virtual bool checkRead(seqInfo & info) const;
-
+	virtual bool checkRead(PairedRead & seq) const;
 	virtual ~ReadCheckerOnCount();
 };
 
@@ -106,7 +108,7 @@ public:
 	ReadCheckerOnFrac(double fracCutOff, bool mark = true);
 	const double fracCutOff_;
 	virtual bool checkRead(seqInfo & info) const;
-
+	virtual bool checkRead(PairedRead & seq) const;
 	virtual ~ReadCheckerOnFrac();
 };
 
@@ -116,6 +118,7 @@ public:
 	const charCounter counter_;
 	const double fracDiff_;
 	virtual bool checkRead(seqInfo & info) const;
+	virtual bool checkRead(PairedRead & seq) const;
 
 	virtual ~ReadCheckerOnNucComp();
 };
@@ -127,7 +130,7 @@ public:
 	const std::string str_;
 	const uint32_t occurences_;
 	virtual bool checkRead(seqInfo & info) const;
-
+	virtual bool checkRead(PairedRead & seq) const;
 	virtual ~ReadCheckerOnSeqContaining();
 };
 
@@ -136,7 +139,7 @@ public:
 	ReadCheckerOnNameContaining(std::string str, bool mark = true);
 	const std::string str_;
 	virtual bool checkRead(seqInfo & info) const;
-
+	virtual bool checkRead(PairedRead & seq) const;
 	virtual ~ReadCheckerOnNameContaining();
 };
 
@@ -184,7 +187,7 @@ public:
 	const uint32_t kLength_;
 	const double kmerCutoff_;
 	virtual bool checkRead(seqInfo & info) const;
-
+	virtual bool checkRead(PairedRead & seq) const;
 	virtual ~ReadCheckerOnKmerComp();
 };
 

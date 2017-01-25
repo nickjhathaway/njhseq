@@ -33,12 +33,16 @@ public:
 
 	template<typename REF>
 	void checkAgainstExpected(const std::vector<REF>& refSeqs,
-			aligner& alignerObj, bool local, bool weighHomopolyers) {
+			aligner& alignerObj, bool local) {
 		bool eventBased = true;
 		for (auto& clus : clusters_) {
-			std::string bestRef = profiler::getBestRef(refSeqs, clus, alignerObj,
-					local, weighHomopolyers, eventBased, true, ",");
+
+			std::string bestRef = bib::conToStr(
+					profiler::compareToRefSingle(refSeqs, clus, alignerObj, local,
+							eventBased), ";");
+
 			clus.expectsString = bestRef;
+
 		}
 	}
 

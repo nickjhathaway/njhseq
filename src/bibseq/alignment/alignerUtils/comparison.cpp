@@ -101,8 +101,17 @@ void comparison::setEventBaseIdentity() {
 }
 
 void comparison::setEventBaseIdentityHq() {
-	distances_.overLappingEventsHq_ = highQualityMatches_ + hqMismatches_
-			+ lowKmerMismatches_ + distances_.alignmentGaps_.size();
+	//distances_.overLappingEventsHq_ = highQualityMatches_ + hqMismatches_
+	//		+ distances_.alignmentGaps_.size();
+	//distances_.overLappingEventsHq_ = highQualityMatches_ + hqMismatches_
+	//		+ lowKmerMismatches_ + distances_.alignmentGaps_.size();
+
+	//high quality events being just high quality mismatches and high quality mismatches and indels
+	//if weighing for indel in homopolymer this will be taken into account and so will low freq k-mer mismatches;
+	double indelEvents = oneBaseIndel_ + twoBaseIndel_ + largeBaseIndel_;
+	distances_.overLappingEventsHq_ = highQualityMatches_ + hqMismatches_ + indelEvents;
+	//distances_.overLappingEventsHq_ = highQualityMatches_ + hqMismatches_
+	//		+ distances_.alignmentGaps_.size();
 	if (distances_.overLappingEventsHq_ == 0) {
 		distances_.eventBasedIdentityHq_ = 0;
 	} else {
@@ -160,8 +169,17 @@ bool comparison::passErrorProfile(const comparison& generatedError) const {
           lowKmerMismatches_ >= generatedError.lowKmerMismatches_);
 }
 
+
 bool comparison::passIdThreshold(const comparison& generatedError) const {
-  return generatedError.distances_.eventBasedIdentity_ >= distances_.eventBasedIdentity_;
+	//rounding to precision possible with normal read length for short amplicons;
+	/**@todo determine this with input read length*/
+  return roundDecPlaces(generatedError.distances_.eventBasedIdentity_, 3)  >= distances_.eventBasedIdentity_;
+}
+
+bool comparison::passIdThresholdHq(const comparison& generatedError) const {
+	//rounding to precision possible with normal read length for short amplicons;
+	/**@todo determine this with input read length*/
+  return roundDecPlaces(generatedError.distances_.eventBasedIdentityHq_,3) >= distances_.eventBasedIdentityHq_;
 }
 
 

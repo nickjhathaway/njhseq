@@ -37,6 +37,18 @@ bool ReadChecker::checkRead(seqInfo & info) const {
 			+ ": ReadChecker base class should not be used it self" };
 }
 
+bool ReadChecker::checkRead(PairedRead & seq) const {
+	if(checkRead(seq.seqBase_)){
+		if(!checkRead(seq.mateSeqBase_)){
+			seq.seqBase_.on_ = false;
+			markName(seq.seqBase_);
+		}else{
+			return true;
+		}
+	}
+	return false;
+}
+
 ReadChecker::~ReadChecker() {
 }
 
@@ -88,7 +100,7 @@ ReadCheckerLenAbove::ReadCheckerLenAbove(uint32_t minLen, bool mark) :
 }
 
 bool ReadCheckerLenAbove::checkRead(seqInfo & info) const {
-	if (info.seq_.length() < minLen_) {
+	if (len(info) < minLen_) {
 		info.on_ = false;
 		markName(info);
 		return false;
@@ -97,6 +109,10 @@ bool ReadCheckerLenAbove::checkRead(seqInfo & info) const {
 		return true;
 	}
 }
+
+
+
+
 ReadCheckerLenAbove::~ReadCheckerLenAbove() {
 }
 
@@ -148,6 +164,8 @@ bool ReadCheckerQualCheck::checkRead(seqInfo & info) const {
 	}
 }
 
+
+
 ReadCheckerQualCheck::~ReadCheckerQualCheck() {
 }
 
@@ -167,6 +185,12 @@ bool ReadCheckerOnCount::checkRead(seqInfo & info) const {
 	}
 }
 
+bool ReadCheckerOnCount::checkRead(PairedRead & seq) const {
+	return checkRead(seq.seqBase_);
+}
+
+
+
 ReadCheckerOnCount::~ReadCheckerOnCount() {
 }
 
@@ -184,6 +208,10 @@ bool ReadCheckerOnFrac::checkRead(seqInfo & info) const {
 		info.on_ = true;
 		return true;
 	}
+}
+
+bool ReadCheckerOnFrac::checkRead(PairedRead & seq) const {
+	return checkRead(seq.seqBase_);
 }
 
 ReadCheckerOnFrac::~ReadCheckerOnFrac() {
@@ -210,7 +238,28 @@ bool ReadCheckerOnNucComp::checkRead(seqInfo & info) const {
 	}
 }
 
+bool ReadCheckerOnNucComp::checkRead(PairedRead & seq) const {
+	charCounter count(counter_.alphabet_);
+	count.increaseCountByString(seq.seqBase_.seq_);
+	if(seq.mateRComplemented_){
+		count.increaseCountByString(seq.mateSeqBase_.seq_);
+	}else{
+		count.increaseCountByString(seqUtil::reverseComplement(seq.mateSeqBase_.seq_, "DNA"));
+	}
+	count.setFractions();
+	if (counter_.getFracDifference(count, counter_.alphabet_) > fracDiff_) {
+		seq.seqBase_.on_ = false;
+		markName(seq.seqBase_);
+		return false;
+	} else {
+		seq.seqBase_.on_ = true;
+		return true;
+	}
+}
+
+
 ReadCheckerOnNucComp::~ReadCheckerOnNucComp() {
+
 }
 
 ReadCheckerOnSeqContaining::ReadCheckerOnSeqContaining(std::string str,
@@ -233,6 +282,18 @@ bool ReadCheckerOnSeqContaining::checkRead(seqInfo & info) const {
 	}
 }
 
+bool ReadCheckerOnSeqContaining::checkRead(PairedRead & seq) const {
+	if(checkRead(seq.seqBase_)){
+		if(!checkRead(seq.mateSeqBase_)){
+			seq.seqBase_.on_ = false;
+			markName(seq.seqBase_);
+		}else{
+			return true;
+		}
+	}
+	return false;
+}
+
 ReadCheckerOnSeqContaining::~ReadCheckerOnSeqContaining() {
 }
 
@@ -251,6 +312,12 @@ bool ReadCheckerOnNameContaining::checkRead(seqInfo & info) const {
 		return true;
 	}
 }
+
+bool ReadCheckerOnNameContaining::checkRead(PairedRead & seq) const {
+	return checkRead(seq.seqBase_);
+}
+
+
 
 ReadCheckerOnNameContaining::~ReadCheckerOnNameContaining() {
 }
@@ -323,7 +390,6 @@ ReadCheckerOnKmerComp::ReadCheckerOnKmerComp(kmerInfo compareInfo,
 }
 
 bool ReadCheckerOnKmerComp::checkRead(seqInfo & info) const {
-	Json::FastWriter jWriter;
 	kmerInfo currentInfo(info.seq_, kLength_, false);
 	auto dist = compareInfo_.compareKmers(currentInfo);
 	if (dist.second < kmerCutoff_) {
@@ -335,6 +401,30 @@ bool ReadCheckerOnKmerComp::checkRead(seqInfo & info) const {
 		return true;
 	}
 }
+
+bool ReadCheckerOnKmerComp::checkRead(PairedRead & seq) const {
+	/**@todo this might not be the best way to do this, doing some positional checks or something would be a little better
+	 *
+	 */
+	if(checkRead(seq.seqBase_)){
+		std::unique_ptr<kmerInfo> kInfo;
+		if(seq.mateRComplemented_){
+			kInfo = std::make_unique<kmerInfo>(seq.mateSeqBase_.seq_, kLength_, false);
+		}else{
+			kInfo = std::make_unique<kmerInfo>(seqUtil::reverseComplement(seq.mateSeqBase_.seq_, "DNA"), kLength_, false);
+		}
+		auto dist = compareInfo_.compareKmers(*kInfo);
+		if(dist.second < kmerCutoff_){
+			seq.seqBase_.on_ = false;
+			markName(seq.seqBase_);
+		}else{
+			return true;
+		}
+	}
+	return false;
+}
+
+//
 
 ReadCheckerOnKmerComp::~ReadCheckerOnKmerComp() {
 }

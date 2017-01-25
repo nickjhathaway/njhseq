@@ -296,7 +296,7 @@ bool SeqInput::readNextRead(seqInfo & read) {
 	return wasAbleToRead;
 }
 
-bool SeqInput::readNextRead(PairedRead & read) {
+bool SeqInput::readNextRead(PairedRead & seq) {
 	if (!inOpen_) {
 		throw std::runtime_error { "Error in " + std::string(__PRETTY_FUNCTION__)
 				+ ", attempted to read when in file " + ioOptions_.firstName_
@@ -304,13 +304,18 @@ bool SeqInput::readNextRead(PairedRead & read) {
 	}
 
 	if (SeqIOOptions::inFormats::FASTQPAIRED == ioOptions_.inFormat_) {
-		bool firstMate = readNextFastqStream(*priReader_, SangerQualOffset, read.seqBase_,
+		bool firstMate = readNextFastqStream(*priReader_, SangerQualOffset, seq.seqBase_,
 				ioOptions_.processed_);
-		bool secondMate = readNextFastqStream(*secReader_, SangerQualOffset, read.mateSeqBase_,
+		bool secondMate = readNextFastqStream(*secReader_, SangerQualOffset, seq.mateSeqBase_,
 				ioOptions_.processed_);
-		if(secondMate && ioOptions_.complementMate_){
-			read.mateSeqBase_.reverseComplementRead(false, true);
+		/*
+		 * i originally thought it might be a good idea to have the ability to reverse complement the mate as an option
+		 * when reading in but for now i think it's more trouble then anything else
+		if(secondMate && ioOptions_.revComplMate_){
+			seq.mateSeqBase_.reverseComplementRead(false, true);
 		}
+		seq.mateRComplemented_ = ioOptions_.revComplMate_;
+		*/
 		if((firstMate && secondMate) || (!firstMate && !secondMate)){
 			return firstMate && secondMate;
 		}else{
@@ -422,11 +427,17 @@ bool SeqInput::readNextQualStream(std::ifstream & qualFile,
 	std::string line = "";
 	if ('>' == qualFile.peek()) {
 		bib::files::crossPlatGetline(qualFile, name);
-		while (qualFile.peek() != std::ifstream::eofbit && qualFile.good() && qualFile.peek() != '>') {
+		while (qualFile.peek() != std::ifstream::eofbit && qualFile.good()
+				&& qualFile.peek() != '>') {
 			bib::files::crossPlatGetline(qualFile, line);
+			if ("" != buildingQual && ' ' != buildingQual.back()
+					&& ' ' != line.front()) {
+				buildingQual.push_back(' ');
+			}
 			buildingQual.append(line);
 		}
-		if (!ioOptions_.includeWhiteSpaceInName_ && name.find(" ") != std::string::npos) {
+		if (!ioOptions_.includeWhiteSpaceInName_
+				&& name.find(" ") != std::string::npos) {
 			//not really safe if name starts with space but hopefully no would do that
 			name = name.substr(1, name.find(" ") - 1);
 		} else {
@@ -436,8 +447,8 @@ bool SeqInput::readNextQualStream(std::ifstream & qualFile,
 		return true;
 	} else {
 		std::stringstream ss;
-		ss << "error in reading fasta file in " << __PRETTY_FUNCTION__ << ", line doesn't begin with >, starts with: "
-			 << std::endl;
+		ss << "error in reading fasta file in " << __PRETTY_FUNCTION__
+				<< ", line doesn't begin with >, starts with: " << std::endl;
 		ss << qualFile.peek() << std::endl;
 		throw std::runtime_error { ss.str() };
 		return false;
@@ -476,7 +487,7 @@ bool SeqInput::readNextQualStream(bib::files::gzTextFileCpp<> & qualFile,
 		return false;
 	}
 }
-
+//adding qual size does not equal seq size, qualSize
 
 bool SeqInput::readNextFastaQualStream(std::ifstream& fastaReader,
 		std::ifstream& qualReader, seqInfo & read, bool processed) {

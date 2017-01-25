@@ -128,6 +128,15 @@ VecStr getNames(const std::vector<T>& reads) {
   return names;
 }
 
+template<typename T>
+VecStr getSeqs(const std::vector<T> & reads){
+	VecStr ret;
+	for(const auto & seq : reads){
+		ret.emplace_back(getSeqBase(seq).seq_);
+	}
+	return ret;
+}
+
 template <typename T>
 size_t getReadIndexByName(const std::vector<T>& reads,
                           const std::string& name) {

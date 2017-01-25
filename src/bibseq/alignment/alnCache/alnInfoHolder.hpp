@@ -31,14 +31,15 @@
 
 
 #include "bibseq/alignment/alnCache/alnInfoHolderBase.hpp"
-#include <shared_mutex>
 
-#if __APPLE__ == 1 && __cpp_lib_shared_timed_mutex < 201402L
+
+#if __APPLE__ == 1 && __cpp_lib_shared_timed_mutex < 201402L && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ <= 101106
 #include <sharedMutex.h>
+#else
+#include <shared_mutex>
 #endif
 
 namespace bibseq {
-
 
 
 class alnInfoMasterHolder {

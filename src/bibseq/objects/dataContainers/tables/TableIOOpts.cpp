@@ -28,20 +28,20 @@
 
 namespace bibseq {
 
-TableIOOpts TableIOOpts::genTabFileOut(const std::string & outFilename, bool header){
-	return TableIOOpts(InOptions(), "\t", OutOptions(outFilename, ".tab.txt", "tab"), "\t", header);
+TableIOOpts TableIOOpts::genTabFileOut(const bfs::path & outFilename, bool header){
+	return TableIOOpts(InOptions(), "\t", OutOptions(outFilename.string(), ".tab.txt", "tab"), "\t", header);
 }
 
-TableIOOpts TableIOOpts::genTabFileIn(const std::string inFilename, bool header){
-	return TableIOOpts(InOptions(inFilename), "\t", OutOptions("", ".tab.txt", "tab"), "\t", header);
+TableIOOpts TableIOOpts::genTabFileIn(const bfs::path & inFilename, bool header){
+	return TableIOOpts(InOptions(inFilename.string()), "\t", OutOptions("", ".tab.txt", "tab"), "\t", header);
 }
 
-TableIOOpts TableIOOpts::genCommaFileOut(const std::string & outFilename, bool header){
-	return TableIOOpts(InOptions(), ",", OutOptions(outFilename, ".csv", "comma"), ",", header);
+TableIOOpts TableIOOpts::genCommaFileOut(const bfs::path & outFilename, bool header){
+	return TableIOOpts(InOptions(), ",", OutOptions(outFilename.string(), ".csv", "comma"), ",", header);
 }
 
-TableIOOpts TableIOOpts::genCommaFileIn(const std::string inFilename, bool header){
-	return TableIOOpts(InOptions(inFilename), ",", OutOptions("", ".csv", "comma"), ",", header);
+TableIOOpts TableIOOpts::genCommaFileIn(const bfs::path & inFilename, bool header){
+	return TableIOOpts(InOptions(inFilename.string()), ",", OutOptions("", ".csv", "comma"), ",", header);
 }
 
 TableIOOpts::TableIOOpts() :

@@ -33,7 +33,7 @@
 #include "bibseq/alignment/aligner.h"
 
 #include "bibseq/IO/SeqIO/SeqOutput.hpp"
-#include "bibseq/simulation/errorProfile.hpp"
+
 
 namespace bibseq {
 // class simulation::errorProfile;
@@ -159,11 +159,11 @@ cluster getConsensus(const std::vector<T> & reads, aligner & alignerObj,
 	if(reads.empty()){
 		return cluster();
 	}
-	cluster mainCluster(reads.begin()->seqBase_);
+	cluster mainCluster(getSeqBase(*reads.begin()));
 	if(reads.size() > 1){
 		std::vector<cluster> inClusters;
 		for(const auto & readPos : iter::range<uint64_t>(1,reads.size())){
-			inClusters.emplace_back(cluster(reads[readPos].seqBase_));
+			inClusters.emplace_back(cluster(getSeqBase(reads[readPos])));
 		}
 		for(const auto & clus : inClusters){
 			mainCluster.addRead(clus);

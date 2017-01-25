@@ -79,15 +79,7 @@ void readObject::resetMetaInName() {
 }
 
 bool readObject::nameHasMetaData() const {
-	auto firstBracket = seqBase_.name_.find("[");
-	if (std::string::npos == firstBracket) {
-		return false;
-	}
-	auto secondBracket = seqBase_.name_.find("]", firstBracket);
-	if (std::string::npos == secondBracket) {
-		return false;
-	}
-	return true;
+	return seqBase_.nameHasMetaData();
 }
 
 void readObject::processNameForMeta() {
@@ -103,6 +95,11 @@ std::string readObject::getMeta(const std::string & key) const {
 	auto search = meta_.find(key);
 	if (search != meta_.end()) {
 		return search->second;
+	}else{
+		std::stringstream ss;
+		ss << __FILE__ << " - " << __LINE__ << " : " << __PRETTY_FUNCTION__ << ", error no meta field " << key << " for " << seqBase_.name_ << "\n";
+		ss << "Options are: " << bib::conToStr(bib::getVecOfMapKeys(meta_), ", ") << "\n";
+		throw std::runtime_error{ss.str()};
 	}
 	return "";
 }
@@ -110,7 +107,7 @@ std::string readObject::getMeta(const std::string & key) const {
 
 Json::Value readObject::toJson()const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson("bibseq::baseReadObject");
+	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
 	ret["super"] = baseReadObject::toJson();
 	ret["sampName"] = bib::json::toJson(sampName);
 	ret["expectsString"] = bib::json::toJson(expectsString);
@@ -292,8 +289,8 @@ uint32_t readObject::getSumQual() const {
 	return seqBase_.getSumQual();
 }
 
-void readObject::setFractionByCount(size_t totalNumberOfReads) {
-  seqBase_.frac_ = seqBase_.cnt_ / totalNumberOfReads;
+void readObject::setFractionByCount(double totalNumberOfReads) {
+  seqBase_.setFractionByCount(totalNumberOfReads);
 }
 
 

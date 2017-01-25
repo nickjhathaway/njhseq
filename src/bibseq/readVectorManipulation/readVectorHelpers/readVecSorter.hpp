@@ -41,25 +41,67 @@ class readVecSorter {
     return;
   }
 
+	template<typename T>
+	static void sortReadVector(std::vector<T>& vec, const std::string& sortBy,
+			bool decending = true) {
+		if (sortBy == "averageError" || sortBy == "totalCount") {
+			sortByTotalCountAE<T>(vec, decending);
+		} else if (sortBy == "seq") {
+			sortBySeq<T>(vec, decending);
+		} else if (sortBy == "seqCondensed") {
+			sortBySeqCondensed<T>(vec, decending);
+		} else if (sortBy == "qualCheck") {
+			sortByQualCheck<T>(vec, decending);
+		} else if (sortBy == "size") {
+			sortBySeqSize<T>(vec, decending);
+		} else if (sortBy == "name") {
+			sortByName<T>(vec, decending);
+		} else if (sortBy == "fraction") {
+			sortByFraction<T>(vec, decending);
+		} else if (sortBy == "reverse") {
+			bib::reverse(vec);
+		} else {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ": Error unrecognized sort option: "
+					<< sortBy << ", not sorting" << std::endl;
+			throw std::runtime_error { ss.str() };
+		}
+	}
+
   template <typename T>
-  static void sortReadVector(std::vector<T>& vec, const std::string& sortBy, bool decending = true) {
+  static void sortReadVector(std::vector<T>& vec,
+  		const std::vector<uint32_t> & positions,
+  		const std::string& sortBy,
+			bool decending = true) {
     if (sortBy == "averageError" || sortBy == "totalCount") {
-      sortByTotalCountAE<T>(vec, decending);
+      sortByTotalCountAE<T>(vec,positions, decending);
     } else if (sortBy == "seq") {
-      sortBySeq<T>(vec, decending);
+      sortBySeq<T>(vec,positions, decending);
     } else if (sortBy == "seqCondensed") {
-      sortBySeqCondensed<T>(vec, decending);
+      sortBySeqCondensed<T>(vec,positions, decending);
     } else if (sortBy == "qualCheck") {
-      sortByQualCheck<T>(vec, decending);
+      sortByQualCheck<T>(vec,positions, decending);
     } else if (sortBy == "size") {
-      sortBySeqSize<T>(vec, decending);
+      sortBySeqSize<T>(vec,positions, decending);
     } else if (sortBy == "name") {
-      sortByName<T>(vec, decending);
+      sortByName<T>(vec,positions, decending);
     } else if (sortBy == "fraction") {
-      sortByFraction<T>(vec, decending);
+      sortByFraction<T>(vec,positions, decending);
+    } else if (sortBy == "reverse") {
+    	if(1 != positions.size()){
+    		auto sortedPositions = positions;
+    		bib::sort(sortedPositions);
+				for (const auto pos : iter::range(sortedPositions.size() / 2)) {
+					//std::cout << pos << ":" << sortedPositions[pos] << ":" << positions[positions.size() - 1 - pos] << std::endl;
+					std::iter_swap(vec.begin() + sortedPositions[pos],
+							vec.begin() + sortedPositions[sortedPositions.size() - 1 - pos]);
+				}
+    	}
     } else {
-      std::cout << "unrecognized sort option: " << sortBy << ", not sorting"
+    	std::stringstream ss;
+      ss << __PRETTY_FUNCTION__ << ": Error unrecognized sort option: " << sortBy << ", not sorting"
                 << std::endl;
+      throw std::runtime_error{ss.str()};
     }
   }
 
@@ -76,8 +118,10 @@ class readVecSorter {
     } else if (sortBy == "fraction") {
       sortByFraction<T>(vec, decending);
     } else {
-      std::cout << "unrecognized sort option: " << sortBy << ", not sorting"
+    	std::stringstream ss;
+      ss << __PRETTY_FUNCTION__ << ": Error unrecognized sort option: " << sortBy << ", not sorting"
                 << std::endl;
+      throw std::runtime_error{ss.str()};
     }
   }
 /*
@@ -102,6 +146,35 @@ class readVecSorter {
 		}
 	}
 
+	template <typename T, typename FUNC>
+	static void sortReadVectorFunc(std::vector<T>& vec,
+			const std::vector<uint32_t> & positions,
+			FUNC func,
+			bool decending = true) {
+		std::vector<uint32_t> sortedPositions = positions;
+		if (decending) {
+			std::sort(sortedPositions.begin(), sortedPositions.end(),
+					[&func, &vec](uint32_t pos1, uint32_t pos2){
+				return func(vec[pos1], vec[pos2]);
+			});
+		} else {
+			std::sort(sortedPositions.rbegin(), sortedPositions.rend(),
+					[&func, &vec](const uint32_t pos1, uint32_t pos2){
+				return func(vec[pos1], vec[pos2]);
+			});
+		}
+		/**@todo find an more efficient way of doing this that would avoid the copy */
+		std::unordered_map<uint32_t, T> tempCpy;
+		for(const auto pos : iter::range(sortedPositions.size())){
+			if(positions[pos] !=  sortedPositions[pos]){
+				tempCpy.emplace(pos, vec[sortedPositions[pos]]);
+			}
+		}
+		for(const auto&  pos : tempCpy){
+			vec[positions[pos.first]] = pos.second;
+		}
+	}
+
   // sorting functions
   template <typename T>
   static void sortByQualCheck(std::vector<T>& vec, bool decending) {
@@ -109,6 +182,15 @@ class readVecSorter {
       return getRef(first).fractionAboveQualCheck_ > getRef(second).fractionAboveQualCheck_;
     }, decending);
   }
+
+  template<typename T>
+	static void sortByQualCheck(std::vector<T>& vec,
+			const std::vector<uint32_t>& positions, bool decending) {
+		sortReadVectorFunc<T>(vec, positions,
+				[](const T& first, const T& second) -> bool {
+					return getRef(first).fractionAboveQualCheck_ > getRef(second).fractionAboveQualCheck_;
+				}, decending);
+	}
 
   template <typename T>
   static void sortByTotalCountAE(std::vector<T>& vec, bool decending) {
@@ -136,8 +218,9 @@ class readVecSorter {
   }
 
   template <typename T>
-  static void sortByTotalCount(std::vector<T>& vec, bool decending) {
-  	sortReadVectorFunc<T>(vec, [](const T& first, const T& second) -> bool{
+  static void sortByTotalCountAE(std::vector<T>& vec,
+  		const std::vector<uint32_t>& positions, bool decending) {
+  	sortReadVectorFunc<T>(vec, positions, [](const T& first, const T& second) -> bool{
   		/*
 			if (getSeqBase(first).cnt_ == getSeqBase(second).cnt_) {
 				if (getRef(first).averageErrorRate < getRef(second).averageErrorRate) {
@@ -148,6 +231,29 @@ class readVecSorter {
 			} else {
 				return getSeqBase(first).cnt_ > getSeqBase(second).cnt_;
 			}*/
+  		if (roundDecPlaces(getSeqBase(first).cnt_, 2) == roundDecPlaces(getSeqBase(second).cnt_, 2) ) {
+  			if (roundDecPlaces(getSeqBase(first).getAverageErrorRate(), 2)  < roundDecPlaces(getSeqBase(second).getAverageErrorRate(), 2) ) {
+  				return true;
+  			} else {
+  				return false;
+  			}
+  		} else {
+  			return roundDecPlaces(getSeqBase(first).cnt_, 2)  > roundDecPlaces(getSeqBase(second).cnt_, 2) ;
+  		}
+    }, decending);
+  }
+
+  template <typename T>
+  static void sortByTotalCount(std::vector<T>& vec, bool decending) {
+  	sortReadVectorFunc<T>(vec, [](const T& first, const T& second) -> bool{
+  		return roundDecPlaces(getSeqBase(first).cnt_, 2)  > roundDecPlaces(getSeqBase(second).cnt_, 2) ;
+    }, decending);
+  }
+
+  template <typename T>
+  static void sortByTotalCount(std::vector<T>& vec,
+  		const std::vector<uint32_t>& positions, bool decending) {
+  	sortReadVectorFunc<T>(vec,positions, [](const T& first, const T& second) -> bool{
   		return roundDecPlaces(getSeqBase(first).cnt_, 2)  > roundDecPlaces(getSeqBase(second).cnt_, 2) ;
     }, decending);
   }
@@ -160,11 +266,28 @@ class readVecSorter {
   }
 
   template <typename T>
+  static void sortBySeq(std::vector<T>& vec,
+  		const std::vector<uint32_t>& positions, bool decending) {
+  	sortReadVectorFunc<T>(vec,positions, [](const T& first, const T& second) {
+      return getSeqBase(first).seq_ < getSeqBase(second).seq_;
+    }, decending);
+  }
+
+  template <typename T>
   static void sortByName(std::vector<T>& vec, bool decending) {
   	sortReadVectorFunc<T>(vec, [](const T& first, const T& second)  {
       return getSeqBase(first).name_ < getSeqBase(second).name_;
     }, decending);
   }
+
+  template <typename T>
+  static void sortByName(std::vector<T>& vec,
+  		const std::vector<uint32_t>& positions, bool decending) {
+  	sortReadVectorFunc<T>(vec,positions, [](const T& first, const T& second)  {
+      return getSeqBase(first).name_ < getSeqBase(second).name_;
+    }, decending);
+  }
+
   template <typename T>
   static void sortBySeqCondensed(std::vector<T>& vec, bool decending) {
     readVec::allSetCondensedSeq(vec);
@@ -176,18 +299,48 @@ class readVecSorter {
       }
     }, decending);
   }
+
+  template <typename T>
+  static void sortBySeqCondensed(std::vector<T>& vec,
+  		const std::vector<uint32_t>& positions, bool decending) {
+    sortReadVectorFunc<T>(vec,positions, [](const T& first, const T& second)  {
+      if (condenseSeqSimple(getSeqBase(first).seq_) == condenseSeqSimple(getSeqBase(second).seq_)) {
+        return getSeqBase(first).seq_ < getSeqBase(second).seq_;
+      } else {
+        return condenseSeqSimple(getSeqBase(first).seq_) < condenseSeqSimple(getSeqBase(second).seq_);
+      }
+    }, decending);
+  }
+
   template <typename T>
   static void sortBySeqSize(std::vector<T>& vec, bool decending) {
   	sortReadVectorFunc<T>(vec, [](const T& first, const T& second)  {
       return getSeqBase(first).seq_.size() < getSeqBase(second).seq_.size();
     }, decending);
   }
+
+  template <typename T>
+  static void sortBySeqSize(std::vector<T>& vec,
+  		const std::vector<uint32_t>& positions, bool decending) {
+  	sortReadVectorFunc<T>(vec,positions, [](const T& first, const T& second)  {
+      return getSeqBase(first).seq_.size() < getSeqBase(second).seq_.size();
+    }, decending);
+  }
+
   template <typename T>
   static void sortByFraction(std::vector<T>& vec, bool decending) {
   	sortReadVectorFunc<T>(vec, [](const T& first, const T& second)  {
       return getSeqBase(first).frac_ > getSeqBase(second).frac_;
     }, decending);
   }
+
+  template <typename T>
+  static void sortByFraction(std::vector<T>& vec,
+  		const std::vector<uint32_t>& positions, bool decending) {
+  	sortReadVectorFunc<T>(vec,positions, [](const T& first, const T& second)  {
+      return getSeqBase(first).frac_ > getSeqBase(second).frac_;
+    }, decending);
+  }
 };
-}  // namespace bib
+}  // namespace bibseq
 

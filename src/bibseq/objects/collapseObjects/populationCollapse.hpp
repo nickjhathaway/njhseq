@@ -42,8 +42,11 @@ class populationCollapse {
   // update the collapsed infos
   void updateCollapsedInfos();
 
-  void renameToOtherPopNames(const std::vector<readObject> &previousPop);
-  void renameClusters();
+	void renameToOtherPopNames(const std::vector<readObject> &previousPop,
+			comparison allowableErrors = comparison());
+	void renameToOtherPopNames(const std::vector<readObject> &previousPop,
+			aligner & alignerObj, comparison allowableErrors = comparison());
+	void renameClusters();
 
   void updateInfoWithSampCollapses(const std::map<std::string, sampleCollapse> & sampCollapses);
   void updateInfoWithSampCollapse(const sampleCollapse & sampCollapses);

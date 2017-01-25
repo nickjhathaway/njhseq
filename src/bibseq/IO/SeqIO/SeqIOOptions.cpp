@@ -306,7 +306,7 @@ SeqIOOptions::SeqIOOptions(const std::string & jsonStr) {
 	inFormat_ = getInFormat(root.get("inFormat_", "").asString());
 	outFormat_ = getOutFormat(root.get("outFormat_", "").asString());
 	out_ = OutOptions(root.get("out_",""));
-	complementMate_ = root.get("complementMate_", false).asBool();
+	//revComplMate_ = root.get("complementMate_", false).asBool();
 	processed_ = root.get("processed_", false).asBool();
 	lowerCaseBases_ = root.get("lowerCaseBases_", "").asString();
 	removeGaps_ = root.get("removeGaps_", false).asBool();
@@ -321,7 +321,7 @@ Json::Value SeqIOOptions::toJson() const {
 	ret["inFormat_"] = bib::json::toJson(getInFormat(inFormat_));
 	ret["outFormat_"] = bib::json::toJson(getOutFormat(outFormat_));
 	ret["out_"] = out_.toJson();
-	ret["complementMate_"] = bib::json::toJson(complementMate_);
+	//ret["complementMate_"] = bib::json::toJson(revComplMate_);
 	ret["processed_"] = bib::json::toJson(processed_);
 	ret["lowerCaseBases_"] = bib::json::toJson(lowerCaseBases_);
 	ret["removeGaps_"] = bib::json::toJson(removeGaps_);

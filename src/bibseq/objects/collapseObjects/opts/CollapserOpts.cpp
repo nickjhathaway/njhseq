@@ -81,11 +81,18 @@ AlignOpts::AlignOpts(bool eventBased, bool countEndGaps, bool noAlign) :
 
 AlignOpts::AlignOpts() {}
 
-CollapserOpts::CollapserOpts(KmerOpts kmerOpts, BestMatchOpts bestMatchOpts, ITOpts iTOpts,
-		SkipOpts skipOpts, VerboseOpts verboseOpts, AlignOpts alignOpts, NucCompBinOpts nucCompBinOpts, KmerBinOpts kmerBinOpts) :
+ClusteringOpts::ClusteringOpts(bool converge):converge_(converge){}
+ClusteringOpts::ClusteringOpts(){}
+
+
+CollapserOpts::CollapserOpts(KmerOpts kmerOpts, BestMatchOpts bestMatchOpts,
+		ITOpts iTOpts, SkipOpts skipOpts, VerboseOpts verboseOpts,
+		AlignOpts alignOpts, NucCompBinOpts nucCompBinOpts, KmerBinOpts kmerBinOpts,
+		ClusteringOpts clusOpts) :
 		kmerOpts_(kmerOpts), bestMatchOpts_(bestMatchOpts), iTOpts_(iTOpts), skipOpts_(
-				skipOpts), verboseOpts_(verboseOpts), alignOpts_(alignOpts), nucCompBinOpts_(nucCompBinOpts),
-				kmerBinOpts_(kmerBinOpts){
+				skipOpts), verboseOpts_(verboseOpts), alignOpts_(alignOpts), nucCompBinOpts_(
+				nucCompBinOpts), kmerBinOpts_(kmerBinOpts),
+				clusOpts_(clusOpts){
 }
 
 CollapserOpts::CollapserOpts(){}

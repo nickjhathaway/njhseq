@@ -79,21 +79,13 @@ CollapseIterations::CollapseIterations(const std::string & parametersFilename,
 		}
 		std::vector<double> tempVect;
 		for (const auto & colPos : iter::range(row.size())) {
-			if (colPos == 0) {
-				if (stringToLowerReturn(row[colPos]) == "all") {
-					tempVect.emplace_back(std::numeric_limits<uint32_t>::max());
-				} else {
-					tempVect.emplace_back(std::stod(row[colPos]));
-				}
+			if (stringToLowerReturn(row[colPos]) == "all") {
+				tempVect.emplace_back(std::numeric_limits<uint32_t>::max());
 			} else {
-				if (row[colPos] == "all") {
-					tempVect.emplace_back(std::numeric_limits<uint32_t>::max());
-				} else {
-					tempVect.emplace_back(std::stod(row[colPos]));
-				}
+				tempVect.emplace_back(std::stod(row[colPos]));
 			}
 		}
-		addIteration(iters, tempVect, onPerId);
+		addIteration(iters, tempVect);
 		++iters;
 	}
 }
@@ -112,8 +104,9 @@ void CollapseIterations::writePars(std::ostream & out) const {
 }
 
 
-void CollapseIterations::addIteration(uint32_t iterNum, std::vector<double> pars, bool onPerId){
-	addIteration(iterNum, IterPar(pars, iterNum, onPerId));
+void CollapseIterations::addIteration(uint32_t iterNum, std::vector<double> pars){
+	IterPar ipar(pars, iterNum, IterPar::PerIdPars{onPerId_, onHqPerId_});
+	addIteration(iterNum, ipar);
 }
 
 void CollapseIterations::addIteration(uint32_t iterNum, const IterPar & par) {
@@ -133,10 +126,9 @@ void CollapseIterations::addIteration(const IterPar & par) {
 	addIteration(iterNum, par);
 }
 
-void CollapseIterations::addIterations(std::vector<std::vector<double>> pars,
-		bool onPerId) {
+void CollapseIterations::addIterations(std::vector<std::vector<double>> pars) {
 	for(const auto pos : iter::range(pars.size())){
-		addIteration(pos + 1, pars[pos], onPerId);
+		addIteration(pos + 1, pars[pos]);
 	}
 }
 
@@ -168,7 +160,7 @@ CollapseIterations CollapseIterations::gen454ItDefaultPars(uint32_t stopCheck) {
 			{stopCheckDbl,0,0,0,0,0,0,0}
 		};
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
 	return ret;
 }
 
@@ -198,7 +190,30 @@ CollapseIterations CollapseIterations::genIlluminaDefaultPars(uint32_t stopCheck
 			{stopCheckDbl,0,0,0,0,0,0,0}
 	};
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
+	return ret;
+}
+
+
+CollapseIterations CollapseIterations::genStrictNoErrorsDefaultParsWithHqs(uint32_t stopCheck, uint32_t hqMismatches){
+	double stopCheckDbl = stopCheck;
+	std::vector<std::vector<double>> iters = {
+			{stopCheckDbl, 3,0,0,0,0,0,0},
+			{stopCheckDbl, 3,0,0,0,0,0,0}};
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl, 3,0,0,0,hq,0,0});
+		iters.emplace_back(std::vector<double>{stopCheckDbl, 3,0,0,0,hq,0,0});
+	}
+	addOtherVec(iters, std::vector<std::vector<double>>{
+			{stopCheckDbl, 0,0,0,0,0,0,0},
+			{stopCheckDbl, 0,0,0,0,0,0,0}
+	});
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl, 0,0,0,0,hq,0,0});
+		iters.emplace_back(std::vector<double>{stopCheckDbl, 0,0,0,0,hq,0,0});
+	}
+	CollapseIterations ret;
+	ret.addIterations(iters);
 	return ret;
 }
 
@@ -211,7 +226,7 @@ CollapseIterations CollapseIterations::genStrictNoErrorsDefaultPars(uint32_t sto
 			{stopCheckDbl, 0,0,0,0,0,0,0}
 	};
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
 	return ret;
 }
 
@@ -221,45 +236,183 @@ CollapseIterations CollapseIterations::genStrictDefaultPars(uint32_t stopCheck) 
 			{stopCheckDbl, 3,0,0,0,0,0,0},
 			{stopCheckDbl, 3,1,1,0,0,1,0},
 			{stopCheckDbl, 0,0,0,0,0,0,0},
-			{stopCheckDbl, 0,1,1,0,0,1,0}
+			{stopCheckDbl, 0,1,1,0,0,1,0},
+			{stopCheckDbl, 0,0,0,0,0,0,0}
 	};
 	CollapseIterations ret;
-	ret.addIterations(iters, false);
+	ret.addIterations(iters);
 	return ret;
 }
 
-CollapseIterations CollapseIterations::genOtuPars(uint32_t stopCheck, double perId){
+
+CollapseIterations CollapseIterations::gen454ItDefaultParsWithHqs(
+		uint32_t stopCheck, uint32_t hqMismatches) {
+	double stopCheckDbl = stopCheck;
+	std::vector<std::vector<double>> iters = {
+			{stopCheckDbl,3,1,0,0,0,0,1},
+			{stopCheckDbl,3,2,0,0,0,0,1},
+			{stopCheckDbl,3,3,0,0,0,1,1},
+			{stopCheckDbl,3,4,0,.99,0,2,1},
+			{stopCheckDbl,3,5,0,.99,0,3,1},
+			{stopCheckDbl,3,6,0,.99,0,4,1},
+			{stopCheckDbl,3,7,1,.99,0,5,1},
+			{stopCheckDbl,3,7,2,.99,0,5,1},
+			{stopCheckDbl,3,7,3,.99,0,5,1},
+			{stopCheckDbl,3,7,4,.99,0,5,2},
+			{stopCheckDbl,3,7,5,.99,0,5,2}};
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl,3,7,5,.99,hq,5,2});
+		iters.emplace_back(std::vector<double>{stopCheckDbl,3,7,5,.99,hq,5,2});
+	}
+	addOtherVec(iters,std::vector<std::vector<double>>{{stopCheckDbl,0,1,0,0,0,0,1},
+			{stopCheckDbl,0,2,0,0,0,0,1},
+			{stopCheckDbl,0,3,0,0,0,1,1},
+			{stopCheckDbl,0,4,0,.99,0,2,1},
+			{stopCheckDbl,0,5,0,.99,0,3,1},
+			{stopCheckDbl,0,6,0,.99,0,4,1},
+			{stopCheckDbl,0,7,1,.99,0,5,1},
+			{stopCheckDbl,0,7,2,.99,0,5,1},
+			{stopCheckDbl,0,7,3,.99,0,5,1},
+			{stopCheckDbl,0,7,4,.99,0,5,2},
+			{stopCheckDbl,0,7,5,.99,0,5,2}
+		});
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl,0,7,5,.99,hq,5,2});
+		iters.emplace_back(std::vector<double>{stopCheckDbl,0,7,5,.99,hq,5,2});
+	}
+	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
+	CollapseIterations ret;
+	ret.addIterations(iters);
+	return ret;
+}
+
+CollapseIterations CollapseIterations::genIlluminaDefaultParsWithHqs(
+		uint32_t stopCheck, uint32_t hqMismatches) {
+	double stopCheckDbl = stopCheck;
+	std::vector<std::vector<double>> iters = {
+			{stopCheckDbl,3,1,0,0,0,0,1},
+			{stopCheckDbl,3,2,0,0,0,0,1},
+			{stopCheckDbl,3,2,0,0,0,1,1},
+			{stopCheckDbl,3,2,0,0,0,2,1},
+			{stopCheckDbl,3,2,0,0,0,8,1},
+			{stopCheckDbl,3,2,0,0,0,10,2},
+			{stopCheckDbl,3,2,0,0,0,12,2},
+			{stopCheckDbl,3,2,0,0,0,14,2},
+			{stopCheckDbl,3,2,0,0,0,14,2},
+			{stopCheckDbl,3,2,0,0,0,14,2} };
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl,3,2,0,0,hq,14,2});
+		iters.emplace_back(std::vector<double>{stopCheckDbl,3,2,0,0,hq,14,2});
+	}
+	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
+	addOtherVec(iters,std::vector<std::vector<double>>{
+			{stopCheckDbl,0,1,0,0,0,0,1},
+			{stopCheckDbl,0,2,0,0,0,0,1},
+			{stopCheckDbl,0,2,0,0,0,1,1},
+			{stopCheckDbl,0,2,0,0,0,2,1},
+			{stopCheckDbl,0,2,0,0,0,8,1},
+			{stopCheckDbl,0,2,0,0,0,10,2},
+			{stopCheckDbl,0,2,0,0,0,12,2},
+			{stopCheckDbl,0,2,0,0,0,14,2},
+			{stopCheckDbl,0,2,0,0,0,14,2},
+			{stopCheckDbl,0,2,0,0,0,14,2}
+	});
+
+	for(double hq : iter::range<uint32_t>(1, hqMismatches + 1) ){
+		iters.emplace_back(std::vector<double>{stopCheckDbl,0,2,0,0,hq,14,2});
+		iters.emplace_back(std::vector<double>{stopCheckDbl,0,2,0,0,hq,14,2});
+	}
+	iters.emplace_back(std::vector<double>{stopCheckDbl,0,0,0,0,0,0,0});
+	CollapseIterations ret;
+	ret.addIterations(iters);
+	return ret;
+}
+
+CollapseIterations CollapseIterations::genStrictDefaultParsWithHqs(
+		uint32_t stopCheck, uint32_t hqMismatches, bool illumina) {
+	double stopCheckDbl = stopCheck;
+	std::vector<double> noErrorsAll = { stopCheckDbl, 0, 0, 0, 0, 0, 0, 0 };
+	std::vector<double> noErrorsStopSize3 = { stopCheckDbl, 3, 0, 0, 0, 0, 0, 0 };
+	std::vector<std::vector<double>> iters;
+	double indels = 1;
+	if (illumina) {
+		indels = 0;
+	}
+	iters.push_back(noErrorsStopSize3);
+	iters.push_back( { stopCheckDbl, 3, indels, indels, 0, 0, 1, 0 });
+	for (uint32_t hq : iter::range(hqMismatches)) {
+		iters.push_back(
+				{ stopCheckDbl, 3, indels, indels, 0, hq + 1.0, hq + 1.0, 0 });
+		iters.push_back(
+				{ stopCheckDbl, 3, indels, indels, 0, hq + 1.0, hq + 1.0, 0 });
+	}
+	iters.push_back(noErrorsStopSize3);
+	iters.push_back(noErrorsAll);
+	iters.push_back( { stopCheckDbl, 0, indels, indels, 0, 0, 1, 0 });
+	for (uint32_t hq : iter::range(hqMismatches)) {
+		iters.push_back(
+				{ stopCheckDbl, 0, indels, indels, 0, hq + 1.0, hq + 1.0, 0 });
+		iters.push_back(
+				{ stopCheckDbl, 0, indels, indels, 0, hq + 1.0, hq + 1.0, 0 });
+	}
+	iters.push_back(noErrorsAll);
+	CollapseIterations ret;
+	ret.addIterations(iters);
+	return ret;
+}
+
+
+
+
+
+CollapseIterations CollapseIterations::genOtuPars(uint32_t stopCheck, double perId, bool onHqPerId){
 	double stopCheckDbl = stopCheck;
 	std::vector<std::vector<double>> iters = {
 			{stopCheckDbl,3,perId},
 			{stopCheckDbl,3,perId},
+			{stopCheckDbl,3,perId},
+			{stopCheckDbl,0,perId},
 			{stopCheckDbl,0,perId},
 			{stopCheckDbl,0,perId}
 	};
 	CollapseIterations ret(true);
-	ret.addIterations(iters, true);
+	ret.onHqPerId_ = onHqPerId;
+	ret.addIterations(iters);
 	return ret;
 }
 
-CollapseIterations CollapseIterations::genOtu99To97(uint32_t stopCheck){
+CollapseIterations CollapseIterations::genOtu99To97(uint32_t stopCheck, bool onHqPerId){
 	double stopCheckDbl = stopCheck;
+	double smallestClusToClusSize = 0;
 	std::vector<std::vector<double>> iters = {
 			{stopCheckDbl,3,.99},
 			{stopCheckDbl,3,.99},
+			{stopCheckDbl,3,.99},
+			{stopCheckDbl,3,.98},
 			{stopCheckDbl,3,.98},
 			{stopCheckDbl,3,.98},
 			{stopCheckDbl,3,.97},
 			{stopCheckDbl,3,.97},
-			{stopCheckDbl,0,.99},
-			{stopCheckDbl,0,.99},
-			{stopCheckDbl,0,.98},
-			{stopCheckDbl,0,.98},
-			{stopCheckDbl,0,.97},
-			{stopCheckDbl,0,.97}
+			{stopCheckDbl,3,.97},
+			{stopCheckDbl,smallestClusToClusSize,.99},
+			{stopCheckDbl,smallestClusToClusSize,.99},
+			{stopCheckDbl,smallestClusToClusSize,.99},
+			{stopCheckDbl,smallestClusToClusSize,.98},
+			{stopCheckDbl,smallestClusToClusSize,.98},
+			{stopCheckDbl,smallestClusToClusSize,.98},
+			{stopCheckDbl,smallestClusToClusSize,.97},
+			{stopCheckDbl,smallestClusToClusSize,.97},
+			{stopCheckDbl,smallestClusToClusSize,.97}
 	};
 	CollapseIterations ret(true);
-	ret.addIterations(iters, true);
+	ret.onHqPerId_ = onHqPerId;
+	ret.addIterations(iters);
 	return ret;
+}
+
+
+CollapseIterations CollapseIterations::genOtu99(uint32_t stopCheck, bool onHqPerId){
+	return genOtuPars(stopCheck, .99, onHqPerId);
 }
 
 

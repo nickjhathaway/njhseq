@@ -34,9 +34,6 @@
 #include "bibseq/helpers/seqUtil.hpp"
 #include "bibseq/utils.h"
 #include "bibseq/readVectorManipulation/readVectorHelpers/readVecSorter.hpp"
-#include "bibseq/simulation/simulationCommon.hpp"
-
-#include "bibseq/simulation/errorProfile.hpp"
 #include "bibseq/objects/helperObjects/probabilityProfile.hpp"
 #include "bibseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
 
@@ -55,9 +52,8 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 		uint32_t numThreads) {
 	uint64_t maxSize = 0;
 	readVec::getMaxLength(reads, maxSize);
-	aligner alignerObj = aligner(maxSize, gapScoringParameters(5, 1),
+	aligner alignerObj(maxSize, gapScoringParameters(5, 1),
 			substituteMatrix(2, -2));
-	//alignerObj.processAlnInfoInput(setUp.pars_.alnInfoDirName_);
 	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
 	std::mutex alignerLock;
 	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,
@@ -70,9 +66,8 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 		const comparison &allowableErrors, bool settingEventsLimits) {
 	uint64_t maxSize = 0;
 	readVec::getMaxLength(reads, maxSize);
-	aligner alignerObj = aligner(maxSize, gapScoringParameters(5, 1),
+	aligner alignerObj(maxSize, gapScoringParameters(5, 1),
 			substituteMatrix(2, -2));
-	//alignerObj.processAlnInfoInput(setUp.pars_.alnInfoDirName_);
 	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
 	std::mutex alignerLock;
 	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,
@@ -135,9 +130,9 @@ uint32_t countSeqs(const SeqIOOptions & opts, bool verbose);
 void setUpSampleDirs(
     const std::string& sampleNamesFilename,
 		const std::string& mainDirectoryName,
-		bool separatedDirs);
+		bool separatedDirs,
+		bool verbose = true);
 
-std::pair<uint32_t,uint32_t> getMaximumRounds(double cnt);
 std::vector<char> getAAs(bool noStopCodon);
 
 template <typename T>
@@ -150,24 +145,10 @@ static std::vector<readObject> createCondensedObjects(std::vector<T> reads) {
   }
   return ans;
 }
-template<typename T>
-simulation::mismatchProfile simProfileWithReads(const std::vector<T> & reads, aligner & alignerObj,
-		bib::randomGenerator & gen, uint32_t sampNum, bool local, bool ignoreGaps){
-  std::vector<uint32_t> randomFirstPos = gen.unifRandVector<uint32_t>(0, len(reads),sampNum);
-  std::vector<uint32_t> randomSecondPos = gen.unifRandVector<uint32_t>(0, len(reads),sampNum);
-  simulation::mismatchProfile ret;
-  for(const auto & pos : iter::range(sampNum)){
-  	alignerObj.alignCache(reads[randomFirstPos[pos]],
-  			reads[randomSecondPos[pos]], local);
-  	ret.increaseCountAmount(alignerObj.alignObjectA_.seqBase_.seq_,
-  	  				alignerObj.alignObjectB_.seqBase_.seq_, 1);
-  }
-  ret.setFractions();
-  return ret;
-}
+
 
 template <typename T>
-void renameReadNames(std::vector<T>& reads, const std::string& stub,
+std::unordered_map<std::string, std::string> renameReadNames(std::vector<T>& reads, const std::string& stub,
                      bool processed, bool keepChimeraFlag = true,
                      bool keepCompFlag = true,
                      const std::string& sortBy = "none") {
@@ -175,23 +156,29 @@ void renameReadNames(std::vector<T>& reads, const std::string& stub,
   if ("none" != sortBy) {
     readVecSorter::sortReadVector(reads, sortBy);
   }
+  VecStr originalNames = readVec::getNames(reads);
   uint64_t maxSize = reads.size();
-  for (auto& read : reads) {
-    bool chimera = read.seqBase_.name_.find("CHI") != std::string::npos;
-    bool comp = read.seqBase_.name_.find("_Comp") != std::string::npos;
-    read.seqBase_.name_ = stub;
+  for (auto& seq : reads) {
+    bool chimera = getSeqBase(seq).name_.find("CHI") != std::string::npos;
+    bool comp = getSeqBase(seq).name_.find("_Comp") != std::string::npos;
+    getSeqBase(seq).name_ = stub;
     if (chimera && keepChimeraFlag) {
-      read.seqBase_.markAsChimeric();
+    	getSeqBase(seq).markAsChimeric();
     }
     if (comp && keepCompFlag) {
-    	read.seqBase_.name_ += "_Comp";
+    	getSeqBase(seq).name_ += "_Comp";
     }
-    read.seqBase_.name_ += "." + leftPadNumStr(count, maxSize);
+    getSeqBase(seq).name_ += "." + leftPadNumStr(count, maxSize);
     if (processed) {
-      read.seqBase_.name_ += "_t" + estd::to_string(read.seqBase_.cnt_);
+    	getSeqBase(seq).name_ += "_t" + estd::to_string(getSeqBase(seq).cnt_);
     }
     ++count;
   }
+  std::unordered_map<std::string, std::string> ret;
+  for(const auto pos : iter::range(reads.size())){
+  	ret[getSeqBase(reads[pos]).name_] = originalNames[pos];
+  }
+  return ret;
 }
 
 template <typename T>
@@ -219,11 +206,6 @@ VecStr findLongestSharedSeqFromReads(const std::vector<T>& reads) {
   return seqUtil::findLongestShardedMotif(seqs);
 }
 
-void makeMultipleSampleDirectory(const std::string& barcodeFilename,
-                                 const std::string& mainDirectoryName);
-
-void makeSampleDirectoriesWithSubDirectories(const std::string&,
-                                             const std::string&);
 
 void processKrecName(readObject& read, bool post);
 
@@ -241,25 +223,7 @@ std::string findAdditonalOutLocation(const std::string& locationFile,
 
 
 ///
-VecStr getPossibleDNASubstringsForProtein(const std::string& seq,
-                                          const std::string& protein,
-                                          const std::string& seqType = "DNA");
-VecStr findPossibleDNA(const std::string& seq, const std::string& protein,
-                       const std::string& seqType = "DNA",
-                       bool checkComplement = true);
 
-VecStr getAllCycloProteinFragments(const std::string& protein);
-
-std::multimap<int, std::string> getProteinFragmentSpectrum(
-    const std::string& protein);
-
-std::vector<int> getRealPossibleWeights(const std::vector<int>& spectrum);
-
-
-
-VecStr organizeLexicallyKmers(const std::string& input, size_t colNum);
-VecStr organizeLexicallyKmers(const VecStr& input, int colNum);
-uint64_t smallestSizePossible(uint64_t weight);
 
 template <typename READ, typename REF>
 std::vector<baseReadObject> alignToSeq(const std::vector<READ>& reads,
@@ -304,98 +268,7 @@ VecStr alignToSeqStrings(const std::vector<READ>& reads, const REF& reference,
   return output;
 }
 
-int64_t getPossibleNumberOfProteins(
-    int64_t weight, std::unordered_map<int64_t, int64_t>& cache);
-probabilityProfile randomMotifSearch(const VecStr& dnaStrings, int kLength,
-                                     int numberOfRuns, bool gibs, int gibsRuns,
-																		 bib::randomGenerator& gen);
-probabilityProfile randomlyFindBestProfile(const VecStr& dnaStrings,
-                                           const std::vector<VecStr>& allKmers,
-                                           int numberOfKmers,
-																					 bib::randomGenerator& gen);
-probabilityProfile randomlyFindBestProfileGibs(
-    const VecStr& dnaStrings, const std::vector<VecStr>& allKmers,
-    int numberOfKmers, int runTimes, bib::randomGenerator& gen);
 
-template <typename T>
-std::vector<std::vector<T>> getAllVecCycloFragments(const std::vector<T>& vec) {
-  std::vector<std::vector<T>> ans;
-  ans.emplace_back(std::vector<int>(0));
-  for (auto i : iter::range<uint32_t>(1, vec.size())) {
-    for (auto j : iter::range(vec.size())) {
-      std::vector<T> currentFragment;
-      if (j + i > vec.size()) {
-        currentFragment =
-            catenateVectors(getSubVector(vec, j, vec.size() - j),
-                            getSubVector(vec, 0, i - (vec.size() - j)));
-      } else {
-        currentFragment = getSubVector(vec, j, i);
-      }
-      ans.push_back(currentFragment);
-    }
-  }
-  ans.push_back(vec);
-  std::sort(ans.begin(), ans.end());
-  return ans;
-}
-template <typename T>
-std::vector<std::vector<T>> getAllVecLinearFragments(
-    const std::vector<T>& vec) {
-  std::vector<std::vector<T>> ans;
-  ans.emplace_back(std::vector<int>(0));
-  for (auto i : iter::range<uint32_t>(1, vec.size())) {
-    for (auto j : iter::range(vec.size())) {
-      std::vector<T> currentFragment;
-      if (j + i > vec.size()) {
-
-      } else {
-        currentFragment = getSubVector(vec, j, i);
-        ans.push_back(currentFragment);
-      }
-    }
-  }
-  ans.push_back(vec);
-  std::sort(ans.begin(), ans.end());
-  return ans;
-}
-VecStr getAllLinearProteinFragments(const std::string& protein);
-std::vector<std::vector<int>> getPossibleProteinsForSpectrum(
-    const std::string& spectrum, bool useAllWeights = false);
-bool trimCycle(std::vector<std::vector<int>>& nextCycle,
-               std::vector<std::vector<int>>& matchesSpectrum,
-               const std::map<int, int>& spectrumToWeights,
-               const std::vector<int> specVec);
-std::vector<std::vector<int>> growNextCycle(
-    const std::vector<std::vector<int>>& previousCycle,
-    const std::vector<int>& possibleWeights);
-int scoreSpectrumAgreement(const std::map<int, int>& spectrum,
-                           const std::map<int, int>& currentSpectrum);
-std::multimap<int, std::vector<int>, std::greater<int>> growNextCycleScore(
-    const std::multimap<int, std::vector<int>, std::greater<int>>&
-        previousCycle,
-    const std::vector<int>& possibleWeights,
-    const std::map<int, int>& spectrumCounts, int parentMass, bool linear);
-std::multimap<int, std::vector<int>, std::greater<int>> trimCycleScore(
-    std::multimap<int, std::vector<int>, std::greater<int>>& nextCycle,
-    std::multimap<int, std::vector<int>, std::greater<int>>& matchesSpectrum,
-    int parentMass, int leaderBoardNumber, int& currentLeader);
-std::multimap<int, std::vector<int>, std::greater<int>>
-    getPossibleProteinsForSpectrum(const std::string& spectrum,
-                                   int leaderBoardNumber, bool verbose,
-                                   bool useAllWeights, bool convolution,
-                                   int convolutionCutOff, bool linear);
-std::map<int, int> getConvolutionWeights(std::vector<int> experimentalSpectrum,
-                                         int multiplicityCutOff,
-                                         int lowerBound = 57,
-                                         int upperBound = 200);
-std::vector<int> convolutionWeights(std::vector<int> experimentalSpectrum,
-                                    int multiplicityCutOff, int lowerBound = 57,
-                                    int upperBound = 200);
-std::vector<int> topConvolutionWeights(std::vector<int> experimentalSpectrum,
-                                       int mItems, int lowerBound = 57,
-                                       int upperBound = 200);
-int64_t getMinCoins(int64_t change, const std::vector<int64_t>& coins,
-                    std::unordered_map<int64_t, int64_t>& cache);
 
 
 
@@ -427,50 +300,6 @@ std::unordered_map<std::string, bib::color> getColorsForNames(
     ++count;
   }
   return colorsForName;
-}
-
-
-
-
-std::vector<uint32_t> getWindowQuals(const std::vector<uint32_t>& qual,
-                                     uint32_t qWindowSize, uint32_t pos);
-std::vector<double> likelihoodForBaseQ(
-    const std::vector<uint32_t>& qual,
-    std::unordered_map<double, double>& likelihoods);
-std::vector<double> likelihoodForMeanQ(
-    const std::vector<uint32_t>& qual, uint32_t qWindowSize,
-    std::unordered_map<double, double>& likelihoods);
-std::vector<double> likelihoodForMedianQ(
-    const std::vector<uint32_t>& qual, uint32_t qWindowSize,
-    std::unordered_map<double, double>& likelihoods);
-std::vector<double> likelihoodForMinQ(
-    const std::vector<uint32_t>& qual, uint32_t qWindowSize,
-    std::unordered_map<double, double>& likelihoods);
-
-double getChangeInHydro(const char& firstAA, const char& secondAA);
-template<typename T>
-std::vector<double> getHydroChanges(const std::string& originalCodon,
-                                    const VecStr& mutantCodons,
-                                    const T& code) {
-  std::vector<double> ans;
-  if (originalCodon.size() != 3) {
-    std::cout << "codon needs to be 3 bases" << std::endl;
-    std::cout << originalCodon << std::endl;
-    std::cout << originalCodon.size() << std::endl;
-    return ans;
-  }
-  char originalAA = code.at(originalCodon);
-  if (originalAA == '*') {
-    return ans;
-  }
-  for (const auto& codon : mutantCodons) {
-    char mutantAA = code.at(codon);
-    if (mutantAA == '*') {
-      continue;
-    }
-    ans.emplace_back(getChangeInHydro(originalAA, mutantAA));
-  }
-  return ans;
 }
 
 

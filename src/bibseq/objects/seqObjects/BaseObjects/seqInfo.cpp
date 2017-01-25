@@ -210,6 +210,17 @@ void seqInfo::append(const char & base, uint32_t quality) {
 	qual_.emplace_back(quality);
 }
 
+void seqInfo::insert(uint32_t pos, const seqInfo & otherInfo){
+	if(pos >= len(*this)){
+		std::stringstream ss;
+		ss << __FILE__ << ": " << __LINE__ << " : " << __PRETTY_FUNCTION__ << ", error out of range insert" << "\n";
+		ss << "Position " << pos << " is greater than or equal to the length of the current sequence " << len(*this) << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	seq_.insert(seq_.begin() + pos, otherInfo.seq_.begin(), otherInfo.seq_.end());
+	qual_.insert(qual_.begin() + pos, otherInfo.qual_.begin(), otherInfo.qual_.end());
+}
+
 void seqInfo::reverseHRunsQuals() {
 	std::vector<std::vector<uint32_t>> quals;
 	std::vector<uint32_t> currentQuals;
@@ -409,6 +420,11 @@ void seqInfo::removeGaps() {
 std::string seqInfo::getQualString() const {
 	return vectorToString(qual_);
 }
+
+void seqInfo::setFractionByCount(double totalNumberOfReads){
+	frac_ = cnt_/totalNumberOfReads;
+}
+
 std::string seqInfo::getFastqString(const std::vector<uint32_t>& quals,
 		uint32_t offset) {
 	std::string convertedQuals = "";
@@ -443,7 +459,7 @@ void seqInfo::outPutFastq(std::ostream& fastqFile) const {
 	fastqFile << "@" << name_ << "\n";
 	fastqFile << seq_ << "\n";
 	fastqFile << "+" << "\n";
-	fastqFile << getFastqQualString(33) << "\n";
+	fastqFile << getFastqQualString(SangerQualOffset) << "\n";
 }
 
 void seqInfo::outPutSeq(std::ostream& fastaFile) const {
@@ -547,10 +563,10 @@ void seqInfo::addQual(const std::vector<uint32_t> & quals) {
 	if (quals.size() != seq_.size()) {
 		std::stringstream ss;
 		ss << "adding qual size does not equal seq size, qualSize: " << quals.size()
-				<< ", seqSize: " << seq_.size() << ", for " << name_;
-		printVector(quals, "\n", ss);
+				<< ", seqSize: " << seq_.size() << ", for " << name_ << "\n";
+		printVector(quals, ", ", ss);
 		ss << seq_ << "\n";
-		throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
+		throw std::runtime_error { ss.str() };
 	}
 	qual_ = quals;
 }
@@ -561,17 +577,15 @@ double seqInfo::getQualCheck(uint32_t qualCutOff) const {
 	return static_cast<double>(count) / qual_.size();
 }
 
-void seqInfo::setClip(size_t leftPos, size_t rightPos) {
-	seq_ = seq_.substr(leftPos, rightPos - leftPos + 1);
-	qual_.erase(qual_.begin() + rightPos + 1, qual_.end());
-	qual_.erase(qual_.begin(), qual_.begin() + leftPos);
-}
-void seqInfo::setClip(size_t rightPos) {
-	setClip(0, rightPos);
+void seqInfo::setClip(size_t upToPosNotIncluding, size_t fromPositionNotIncluding) {
+	seq_ = seq_.substr(upToPosNotIncluding, fromPositionNotIncluding - upToPosNotIncluding + 1);
+	qual_.erase(qual_.begin() + fromPositionNotIncluding + 1, qual_.end());
+	qual_.erase(qual_.begin(), qual_.begin() + upToPosNotIncluding);
 }
 
-void seqInfo::setClip(const std::pair<int, int>& positions) {
-	setClip(positions.first, positions.second);
+void seqInfo::clipOut(size_t position, size_t size){
+	seq_.erase(seq_.begin() + position, seq_.begin() + position + size);
+	qual_.erase(qual_.begin() + position, qual_.begin() + position + size);
 }
 
 void seqInfo::trimFront(size_t upToPosNotIncluding) {
@@ -580,7 +594,6 @@ void seqInfo::trimFront(size_t upToPosNotIncluding) {
 
 void seqInfo::trimBack(size_t fromPositionIncluding) {
 	setClip(0, fromPositionIncluding - 1);
-
 }
 
 double seqInfo::getAverageQual() const {
@@ -633,6 +646,18 @@ std::string seqInfo::getOwnSampName() const {
 	VecStr toks = tokenizeString(name, ".");
 	return bib::replaceString(toks[0], "CHI_", "");
 	*/
+}
+
+bool seqInfo::nameHasMetaData() const {
+	auto firstBracket = name_.find("[");
+	if (std::string::npos == firstBracket) {
+		return false;
+	}
+	auto secondBracket = name_.find("]", firstBracket);
+	if (std::string::npos == secondBracket) {
+		return false;
+	}
+	return true;
 }
 
 void seqInfo::processNameForMeta(std::unordered_map<std::string, std::string> & meta)const{

@@ -35,87 +35,108 @@
 
 namespace bibseq {
 
-class readVecTrimmer {
 
- public:
+
+class readVecTrimmer {
+public:
+	struct trimSeqPars {
+		bool includeSequence_;
+		bool sequenceToLowerCase_;
+		bool removePreviousSameBases_;
+	};
+
+
   template <class T>
   static void trimToMaxLength(std::vector<T> &reads, size_t maxLength);
   template <class T>
   static void trimToMaxLength(T &read, size_t maxLength);
+  static void trimToMaxLength(seqInfo &read, size_t maxLength);
+
 
   template <class T>
   static void trimAtFirstQualScore(std::vector<T> &reads, const uint32_t qualCutOff);
   template <class T>
   static void trimAtFirstQualScore(T &read, const uint32_t qualCutOff);
+  static void trimAtFirstQualScore(seqInfo &read, const uint32_t qualCutOff);
+
+  template <class T>
+  static void trimAtFirstBase(std::vector<T> &reads, const char base);
+  template <class T>
+  static void trimAtFirstBase(T &read, const char base);
+  static void trimAtFirstBase(seqInfo &read, const char base);
+
+  template <class T>
+  static void trimAtLastBase(std::vector<T> &reads, const char base);
+  template <class T>
+  static void trimAtLastBase(T &read, const char base);
+  static void trimAtLastBase(seqInfo &read, const char base);
+
+  template <class T>
+  static void trimAtFirstSeq(std::vector<T> &reads, const std::string & seq);
+  template <class T>
+  static void trimAtFirstSeq(T &read, const std::string & seq);
+  static void trimAtFirstSeq(seqInfo &read, const std::string & seq);
+
+  template <class T>
+  static void trimAtLastSeq(std::vector<T> &reads, const std::string & seq);
+  template <class T>
+  static void trimAtLastSeq(T &read, const std::string & seq);
+  static void trimAtLastSeq(seqInfo &read, const std::string & seq);
 
   template <class T>
   static void trimOffEndBases(std::vector<T> &reads, size_t endBases);
   template <class T>
   static void trimOffEndBases(T &read, size_t endBases);
+  static void trimOffEndBases(seqInfo &read, size_t endBases);
 
   template <class T>
   static void trimOffForwardBases(std::vector<T> &reads, size_t forwardBases);
   template <class T>
   static void trimOffForwardBases(T &read, size_t forwardBases);
+  static void trimOffForwardBases(seqInfo &read, size_t forwardBases);
+
+  template <class T>
+  static void trimEnds(std::vector<T> &reads, size_t forwardBases, size_t endBases);
+  template <class T>
+  static void trimEnds(T &read, size_t forwardBases, size_t endBases);
+  static void trimEnds(seqInfo &read, size_t forwardBases, size_t endBases);
 
   template <class T>
   static void trimEndsOfReadsToSharedSeq(std::vector<T> &reads, bool verbose);
 
-  template <class T>
-  static void trimAtSequence(std::vector<T> &reads, readObject &reversePrimer,
-                             IterPar runParmas, aligner &alignObj,
-                             bool includeSequence, bool sequenceToLowerCase,
-                             bool weighHomopolyer, bool removePreviousSameBases);
-  template <class T>
-  static void trimBeforeSequence(std::vector<T> &reads, readObject &forwardSeq,
-                                 IterPar runParmas, aligner &alignObj,
-                                 bool includeSequence, bool sequenceToLowerCase,
-                                 bool weighHomopolyer, bool removePreviousSameBases);
-  template <class T>
-  static void trimBetweenSequences(std::vector<T> &reads,
-                                   readObject &forwardSeq, readObject &backSeq,
-                                   IterPar runParams,
-                                   aligner &alignObj, bool includeSequence,
-                                   bool sequenceToLowerCase,
-                                   bool weighHomopolyer, bool removePreviousSameBases);
+	template<class T>
+	static void trimAtSequence(std::vector<T> &reads,
+			seqInfo &reversePrimer, aligner &alignObj, comparison allowableErrors,
+			trimSeqPars tSeqPars);
+	template<class T>
+	static void trimAtSequence(T &read, seqInfo &reversePrimer,
+			aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars);
+	static void trimAtSequence(seqInfo &read, seqInfo &reversePrimer,
+			aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars);
+
+	template<class T>
+	static void trimBeforeSequence(std::vector<T> &reads,
+			seqInfo &forwardSeq, aligner &alignObj, comparison allowableErrors,
+			trimSeqPars tSeqPars);
+	template<class T>
+	static void trimBeforeSequence(T &read, seqInfo &forwardSeq,
+			aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars);
+	static void trimBeforeSequence(seqInfo &read, seqInfo &forwardSeq,
+			aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars);
+
+	template<class T>
+	static void trimBetweenSequences(std::vector<T> &reads,
+			seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
+			comparison allowableErrors, trimSeqPars tSeqPars);
+	template<class T>
+	static void trimBetweenSequences(T &read, seqInfo &forwardSeq,
+			seqInfo &backSeq, aligner &alignObj, comparison allowableErrors,
+			trimSeqPars tSeqPars);
+	static void trimBetweenSequences(seqInfo &read, seqInfo &forwardSeq,
+			seqInfo &backSeq, aligner &alignObj, comparison allowableErrors,
+			trimSeqPars tSeqPars);
 
 
-  template <class T>
-  static void trimAtSequenceIdentity(std::vector<T> &reads, readObject &reversePrimer,
-                             IterPar runParmas, aligner &alignObj,
-                             bool includeSequence, bool sequenceToLowerCase,
-                             bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff);
-  template <class T>
-  static void trimAtSequenceIdentity(T &read, readObject &reversePrimer,
-                             IterPar runParmas, aligner &alignObj,
-                             bool includeSequence, bool sequenceToLowerCase,
-                             bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff);
-  template <class T>
-  static void trimBetweenSequencesIdentity(T &read,
-                                   readObject &forwardSeq, readObject &backSeq,
-                                   IterPar runParams,
-                                   aligner &alignObj, bool includeSequence,
-                                   bool sequenceToLowerCase,
-                                   bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff);
-
-  template <class T>
-  static void trimBeforeSequenceIdentity(std::vector<T> &reads, readObject &forwardSeq,
-                                 IterPar runParmas, aligner &alignObj,
-                                 bool includeSequence, bool sequenceToLowerCase,
-                                 bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff);
-  template <class T>
-  static void trimBeforeSequenceIdentity(T &reads, readObject &forwardSeq,
-                                 IterPar runParmas, aligner &alignObj,
-                                 bool includeSequence, bool sequenceToLowerCase,
-                                 bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff);
-
-  template <class T>
-  static void trimBetweenSequencesIdentity(std::vector<T> &reads,
-                                   readObject &forwardSeq, readObject &backSeq,
-                                   IterPar runParams,
-                                   aligner &alignObj, bool includeSequence,
-                                   bool sequenceToLowerCase,
-                                   bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff);
 };
 
 template <class T>
@@ -126,10 +147,7 @@ void readVecTrimmer::trimToMaxLength(std::vector<T> &reads, size_t maxLength) {
 
 template <class T>
 void readVecTrimmer::trimToMaxLength(T &read, size_t maxLength) {
-  if (maxLength != 0 && getSeqBase(read).seq_.size() > maxLength - 1) {
-  	getSeqBase(read).setClip(0, maxLength - 1);
-  }
-  return;
+	trimToMaxLength(getSeqBase(read), maxLength);
 }
 
 template <class T>
@@ -140,11 +158,36 @@ void readVecTrimmer::trimAtFirstQualScore(std::vector<T> &reads, const uint32_t 
 
 template <class T>
 void readVecTrimmer::trimAtFirstQualScore(T &read, const uint32_t qualCutOff){
-	auto pos = std::find_if(getSeqBase(read).qual_.begin(), getSeqBase(read).qual_.end(), [&qualCutOff](uint32_t qual){ return qual <= qualCutOff;});
-	if(getSeqBase(read).qual_.end() != pos){
-		getSeqBase(read).trimBack(*pos);
-	}
+	trimAtFirstQualScore(getSeqBase(read), qualCutOff);
 }
+
+template <class T>
+void readVecTrimmer::trimAtFirstBase(std::vector<T> &reads, const char base){
+  bib::for_each(reads, [&](T & read){ trimAtFirstBase(read, base);} );
+  return;
+}
+
+template <class T>
+void readVecTrimmer::trimAtFirstBase(T &read, const char base){
+	trimAtFirstBase(getSeqBase(read), base);
+}
+
+template <class T>
+void readVecTrimmer::trimAtLastBase(T &read, const char base){
+	trimAtLastBase(getSeqBase(read), base);
+}
+
+template <class T>
+void readVecTrimmer::trimAtLastSeq(T &read, const std::string & seq){
+	trimAtLastSeq(getSeqBase(read), seq);
+}
+
+template <class T>
+void readVecTrimmer::trimAtFirstSeq(T &read, const std::string & seq){
+	trimAtFirstSeq(getSeqBase(read), seq);
+}
+
+
 
 template <class T>
 void readVecTrimmer::trimOffEndBases(std::vector<T> &reads, size_t endBases) {
@@ -153,7 +196,7 @@ void readVecTrimmer::trimOffEndBases(std::vector<T> &reads, size_t endBases) {
 }
 template <class T>
 void readVecTrimmer::trimOffEndBases(T &read, size_t endBases){
-	getSeqBase(read).trimBack(getSeqBase(read).seq_.size() - endBases);
+	trimOffEndBases(getSeqBase(read), endBases);
 }
 
 template <class T>
@@ -164,169 +207,74 @@ void readVecTrimmer::trimOffForwardBases(std::vector<T> &reads,
 }
 template <class T>
 void readVecTrimmer::trimOffForwardBases(T &read, size_t forwardBases) {
-	getSeqBase(read).trimFront(forwardBases);
+	trimOffForwardBases(getSeqBase(read), forwardBases)	;
   return;
 }
 
+template<class T>
+void readVecTrimmer::trimEnds(std::vector<T> &reads, size_t forwardBases,
+		size_t endBases) {
+	bib::for_each(reads, [&](T & read) {trimEnds(read, forwardBases, endBases);});
+}
+
 template <class T>
+void readVecTrimmer::trimEnds(T &read, size_t forwardBases,
+		size_t endBases) {
+	trimEnds(getSeqBase(read), forwardBases, endBases)	;
+  return;
+}
+
+template<class T>
 void readVecTrimmer::trimAtSequence(std::vector<T> &reads,
-                                    readObject &reversePrimer,
-                                    IterPar runParmas,
-                                    aligner &alignObj, bool includeSequence,
-                                    bool sequenceToLowerCase,
-                                    bool weighHomopolyer, bool removePreviousSameBases) {
-	bib::for_each(reads, [&](T& read){ trimAtSequenceIdentity(read, reversePrimer, runParmas, alignObj, includeSequence, sequenceToLowerCase,weighHomopolyer, removePreviousSameBases, 0.5) ;});
-  return;
-}
-template <class T>
-void readVecTrimmer::trimAtSequenceIdentity(T &read,
-                                    readObject &reversePrimer,
-                                    IterPar runParmas,
-                                    aligner &alignObj, bool includeSequence,
-                                    bool sequenceToLowerCase,
-                                    bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff) {
-	 	std::pair<int, int> rPos = alignObj.findReversePrimer(read, reversePrimer);
-	 	alignObj.rearrangeObjs(getSeqBase(read), reversePrimer.seqBase_, true);
-
-		alignObj.profilePrimerAlignment(read, reversePrimer);
-		bool passInspection = runParmas.errors_.passErrorProfile(alignObj.comp_);
-		if(alignObj.comp_.distances_.query_.coverage_ < queryCutOff){
-			passInspection = false;
-		}
-		/**@todo change this to seqBase_.on_*/
-		read.remove = !passInspection;
-		if (includeSequence) {
-			getSeqBase(read).setClip(0, rPos.second);
-			if (sequenceToLowerCase) {
-				if(removePreviousSameBases){
-					while (getSeqBase(read).seq_[rPos.first] ==
-								 getSeqBase(read).seq_[rPos.first - 1]) {
-						--rPos.first;
-					}
-				}
-				changeSubStrToLowerToEnd(getSeqBase(read).seq_, rPos.first);
-			}
-		} else {
-			if(removePreviousSameBases){
-				bool foundPrevious = false;
-				while (getSeqBase(read).seq_[rPos.first] ==
-										 getSeqBase(read).seq_[rPos.first - 1]) {
-					foundPrevious = true;
-					--rPos.first;
-				}
-
-				//set clip will keep the second postion you give it so you have to minus one more if you found any
-				if(foundPrevious){
-					--rPos.first;
-				}
-			}
-			getSeqBase(read).setClip(0, rPos.first - 1);
-		}
-  return;
+		seqInfo &reversePrimer, aligner &alignObj, comparison allowableErrors,
+		trimSeqPars tSeqPars) {
+	bib::for_each(reads,
+			[&](T& read) {trimAtSequenceIdentity(read, reversePrimer, alignObj, allowableErrors, tSeqPars);});
 }
 
-template <class T>
-void readVecTrimmer::trimAtSequenceIdentity(std::vector<T> &reads,
-                                    readObject &reversePrimer,
-                                    IterPar runParmas,
-                                    aligner &alignObj, bool includeSequence,
-                                    bool sequenceToLowerCase,
-                                    bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff) {
-	bib::for_each(reads, [&](T& read){ trimAtSequenceIdentity(read, reversePrimer, runParmas, alignObj, includeSequence,
-			sequenceToLowerCase,weighHomopolyer, removePreviousSameBases, queryCutOff) ;});
-  return;
-}
-
-template <class T>
-void readVecTrimmer::trimBeforeSequenceIdentity(T &read, readObject &forwardSeq,
-                               IterPar runParmas, aligner &alignObj,
-                               bool includeSequence, bool sequenceToLowerCase,
-                               bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff){
-  std::pair<int, int> fPos = alignObj.findReversePrimer(read, forwardSeq);
-  alignObj.rearrangeObjs(getSeqBase(read), forwardSeq.seqBase_, true);
-  //need to reordered and profile aligner
-  alignObj.profilePrimerAlignment(read, forwardSeq);
-	bool passInspection = runParmas.errors_.passErrorProfile(alignObj.comp_);
-	if(alignObj.comp_.distances_.query_.coverage_ < queryCutOff){
-		passInspection = false;
-	}
-	/**@todo change this to seqBase_.on_*/
-	read.remove = !passInspection;
-  if (includeSequence) {
-  	getSeqBase(read).trimFront(fPos.first);
-    if (sequenceToLowerCase) {
-    	if(removePreviousSameBases){
-        while (getSeqBase(read).seq_[fPos.second] ==
-               getSeqBase(read).seq_[fPos.second + 1]) {
-          ++fPos.second;
-        }
-    	}
-      changeSubStrToLowerFromBegining(getSeqBase(read).seq_, fPos.second);
-    }
-  } else {
-  	if(removePreviousSameBases){
-      while (getSeqBase(read).seq_[fPos.second] ==
-             getSeqBase(read).seq_[fPos.second + 1]) {
-        ++fPos.second;
-      }
-  	}
-  	getSeqBase(read).trimFront(fPos.second + 1);
-  }
-}
-template <class T>
-void readVecTrimmer::trimBetweenSequencesIdentity(T &read,
-                                 readObject &forwardSeq, readObject &backSeq,
-                                 IterPar runParams,
-                                 aligner &alignObj, bool includeSequence,
-                                 bool sequenceToLowerCase,
-                                 bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff){
-	trimAtSequenceIdentity(read, backSeq, runParams, alignObj, includeSequence, sequenceToLowerCase, weighHomopolyer, removePreviousSameBases, queryCutOff);
-	trimBeforeSequenceIdentity(read, forwardSeq, runParams, alignObj, includeSequence, sequenceToLowerCase, weighHomopolyer, removePreviousSameBases, queryCutOff);
-	return;
-}
-template <class T>
-void readVecTrimmer::trimBeforeSequenceIdentity(std::vector<T> &reads, readObject &forwardSeq,
-                               IterPar runParmas, aligner &alignObj,
-                               bool includeSequence, bool sequenceToLowerCase,
-                               bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff){
-	bib::for_each(reads, [&](T& read){ trimBeforeSequenceIdentity(read, forwardSeq, runParmas, alignObj, includeSequence,
-			sequenceToLowerCase,weighHomopolyer, removePreviousSameBases, queryCutOff) ;});
-	return;
-}
-template <class T>
-void readVecTrimmer::trimBetweenSequencesIdentity(std::vector<T> &reads,
-                                 readObject &forwardSeq, readObject &backSeq,
-                                 IterPar runParams,
-                                 aligner &alignObj, bool includeSequence,
-                                 bool sequenceToLowerCase,
-                                 bool weighHomopolyer, bool removePreviousSameBases, double queryCutOff){
-	bib::for_each(reads, [&](T& read){ trimBetweenSequencesIdentity(read, forwardSeq,backSeq, runParams, alignObj, includeSequence,
-			sequenceToLowerCase,weighHomopolyer, removePreviousSameBases, queryCutOff) ;});
-	return;
+template<class T>
+void readVecTrimmer::trimAtSequence(T &read, seqInfo &reversePrimer,
+		aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars) {
+	trimAtSequenceIdentity(getSeqBase(read), reversePrimer, alignObj,
+			allowableErrors, tSeqPars);
 }
 
 
-template <class T>
+template<class T>
 void readVecTrimmer::trimBeforeSequence(std::vector<T> &reads,
-                                        readObject &forwardSeq,
-                                        IterPar runParmas,
-                                        aligner &alignObj, bool includeSequence,
-                                        bool sequenceToLowerCase,
-                                        bool weighHomopolyer, bool removePreviousSameBases) {
-	bib::for_each(reads, [&](T& read){ trimBeforeSequenceIdentity(read, forwardSeq, runParmas, alignObj, includeSequence,
-			sequenceToLowerCase,weighHomopolyer, removePreviousSameBases, 0.5) ;});
-  return;
+		seqInfo &forwardSeq, aligner &alignObj, comparison allowableErrors,
+		trimSeqPars tSeqPars) {
+	bib::for_each(reads,
+			[&](T& read) {trimBeforeSequence(read, forwardSeq, alignObj, allowableErrors, tSeqPars);});
+}
+
+template<class T>
+void readVecTrimmer::trimBeforeSequence(T &read, seqInfo &forwardSeq,
+		aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars) {
+	trimAtSequenceIdentity(getSeqBase(read), forwardSeq, alignObj,
+			allowableErrors, tSeqPars);
 }
 
 template <class T>
 void readVecTrimmer::trimBetweenSequences(
-    std::vector<T> &reads, readObject &forwardSeq, readObject &backSeq,
-    IterPar runParams, aligner &alignObj, bool includeSequence,
-    bool sequenceToLowerCase, bool weighHomopolyer, bool removePreviousSameBases) {
-	bib::for_each(reads, [&](T& read){ trimBetweenSequencesIdentity(read, forwardSeq,backSeq, runParams, alignObj, includeSequence,
-			sequenceToLowerCase, weighHomopolyer, removePreviousSameBases, 0.5) ;});
+		std::vector<T> &reads,
+					seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
+					comparison allowableErrors, trimSeqPars tSeqPars) {
+	bib::for_each(reads, [&](T& read){ trimBetweenSequences(read, forwardSeq,backSeq, alignObj, allowableErrors) ;});
   return;
 }
+
+template <class T>
+void readVecTrimmer::trimBetweenSequences(T &read,
+		seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
+							comparison allowableErrors, trimSeqPars tSeqPars){
+	trimBetweenSequences(getSeqBase(read), forwardSeq, backSeq, alignObj, allowableErrors, tSeqPars);
+	return;
+}
+
+
+
+
 
 template <class T>
 void readVecTrimmer::trimEndsOfReadsToSharedSeq(std::vector<T> &reads,

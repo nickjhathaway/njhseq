@@ -94,8 +94,6 @@
 
 
 //non standard libraries
-//#include <openssl/md5.h>
-#include <curl/curl.h>
 #include <cppitertools/range.hpp>
 #include <cppitertools/reversed.hpp>
 #include <cppitertools/enumerate.hpp>

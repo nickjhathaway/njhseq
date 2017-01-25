@@ -62,6 +62,7 @@ void muscleSeqs(std::vector<T> & seqs, const std::vector<POSTYPE> & selected){
 	//create temporary file, the last 6 xs will be randomized characters
 	char *tmpname = strdup("/tmp/tmpfileXXXXXX");
 	mkstemp(tmpname);
+	uint32_t seqsWritten = 0;
 	{
 		std::ofstream tFile(tmpname);
 		if(!tFile){
@@ -78,28 +79,31 @@ void muscleSeqs(std::vector<T> & seqs, const std::vector<POSTYPE> & selected){
 			}
 			//hack because muscle doesn't like stop codons
 			if(!bib::containsSubString(seqs[pos].seqBase_.seq_, "*")){
+				++seqsWritten;
 				tFile << ">" << pos << "\n";
 				tFile << seqs[pos].seqBase_.seq_ << "\n";
 			}
 		}
 	}
-	std::vector<readObject> tempObjs;
-	tempObjs.reserve(seqs.size());
-	try {
-		//std::cout << tmpname << std::endl;
+	//this is for when there are no sequences written due to all having stop codons which muscle won't align;
+	if(seqsWritten > 0){
+		std::vector<readObject> tempObjs;
+		try {
+			tempObjs = muscleSeqs(tmpname);
+		} catch (std::exception & e) {
+			bib::files::bfs::remove(tmpname);
+			throw e;
+		}
+
 		tempObjs = muscleSeqs(tmpname);
-	} catch (std::exception & e) {
-		//std::cerr << e.what() << std::endl;
 		bib::files::bfs::remove(tmpname);
-		throw;
-	}
-	bib::files::bfs::remove(tmpname);
-	//replace the sequences with the aligned sequences and adjust the qual
-	for(const auto & read : tempObjs){
-		/**@todo to preserve case, create glovalGapInfo from string and rearrange out sequence*/
-		auto & currentRead = seqs[std::stoul(read.seqBase_.name_)];
-		currentRead.seqBase_.seq_ = read.seqBase_.seq_;
-		adjustAlnSeqsQual(currentRead.seqBase_);
+		//replace the sequences with the aligned sequences and adjust the qual
+		for(const auto & read : tempObjs){
+			/**@todo to preserve case, create glovalGapInfo from string and rearrange out sequence*/
+			auto & currentRead = seqs[std::stoul(read.seqBase_.name_)];
+			currentRead.seqBase_.seq_ = read.seqBase_.seq_;
+			adjustAlnSeqsQual(currentRead.seqBase_);
+		}
 	}
 }
 

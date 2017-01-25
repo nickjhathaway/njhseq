@@ -27,7 +27,7 @@
 //
 #include "bibseq/objects/dataContainers/tables/table.hpp"
 #include "bibseq/alignment/aligner.h"
-
+#include "bibseq/objects/seqObjects/Paired/PairedRead.hpp"
 
 namespace bibseq {
 
@@ -55,7 +55,7 @@ public:
 	template<typename T>
 	std::string determineForwardPrimer(T & read, uint32_t withinPos,
 			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase){
-		return determineForwardPrimer(read.seqBase_, withinPos, alignerObj, allowable, forwardPrimerToLowerCase);
+		return determineForwardPrimer(getSeqBase(read), withinPos, alignerObj, allowable, forwardPrimerToLowerCase);
 	}
 	std::string determineForwardPrimer(seqInfo & info, uint32_t withinPos,
 			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase);
@@ -63,7 +63,7 @@ public:
 	template<typename T>
 	std::string determineWithReversePrimer(T & read, uint32_t withinPos,
 			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase){
-		return determineWithReversePrimer(read.seqBase_, withinPos, alignerObj, allowable, forwardPrimerToLowerCase);
+		return determineWithReversePrimer(getSeqBase(read), withinPos, alignerObj, allowable, forwardPrimerToLowerCase);
 	}
 
 	std::string determineWithReversePrimer(seqInfo & info, uint32_t withinPos,
@@ -73,7 +73,7 @@ public:
 	bool checkForReversePrimer(T & read, const std::string & primerName,
 			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
 			uint32_t within, bool trimExtra) {
-		return checkForReversePrimer(read.seqBase_, primerName, alignObj, allowable, reversePrimerToLowerCase, within, trimExtra);
+		return checkForReversePrimer(getSeqBase(read), primerName, alignObj, allowable, reversePrimerToLowerCase, within, trimExtra);
 	}
 
 	bool checkForReversePrimer(seqInfo & info, const std::string & primerName,
@@ -84,7 +84,7 @@ public:
 	bool checkForForwardPrimerInRev(T & read, const std::string & primerName,
 			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
 			uint32_t within, bool trimExtra) {
-		return checkForForwardPrimerInRev(read.seqBase_, primerName, alignObj, allowable, reversePrimerToLowerCase, within,trimExtra);
+		return checkForForwardPrimerInRev(getSeqBase(read), primerName, alignObj, allowable, reversePrimerToLowerCase, within,trimExtra);
 	}
 
 	bool checkForForwardPrimerInRev(seqInfo & info, const std::string & primerName,

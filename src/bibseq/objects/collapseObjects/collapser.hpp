@@ -76,11 +76,12 @@ public:
 
 
   template<typename READ>
-  table markChimeras(std::vector<READ> &processedReads,
-                                   aligner &alignerObj,
-																	 const ChimeraOpts & chiOpts) const;
+	table markChimeras(std::vector<READ> &processedReads, aligner &alignerObj,
+			const ChimeraOpts & chiOpts) const;
 
 
+	table markChimerasTest(std::vector<cluster> &processedReads, aligner &alignerObj,
+			const ChimeraOpts & chiOpts) const;
 
 
 };
@@ -231,23 +232,31 @@ void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
 	bib::stopWatch watch;
 	watch.setLapName("updatingName");
 	for (const auto & pos : positions) {
-		comparingReads[pos].updateName();
+		if(!comparingReads[pos].remove){
+			comparingReads[pos].updateName();
+		}
 	}
 	watch.startNewLap("allCalculateConsensus");
 	for (const auto & pos : positions) {
-		comparingReads[pos].calculateConsensus(alignerObj, true);
+		if(!comparingReads[pos].remove){
+			comparingReads[pos].calculateConsensus(alignerObj, true);
+		}
 	}
 	watch.startNewLap("removeLowQualityBases");
 	if (opts_.iTOpts_.removeLowQualityBases_) {
 		for (const auto & pos : positions) {
-			comparingReads[pos].seqBase_.removeLowQualityBases(
-					opts_.iTOpts_.lowQualityBaseTrim_);
+			if (!comparingReads[pos].remove) {
+				comparingReads[pos].seqBase_.removeLowQualityBases(
+				opts_.iTOpts_.lowQualityBaseTrim_);
+			}
 		}
 	}
 	watch.startNewLap("adjustHomopolyerRuns");
 	if (opts_.iTOpts_.adjustHomopolyerRuns_) {
 		for (const auto & pos : positions) {
-			comparingReads[pos].adjustHomopolyerRunQualities();
+			if (!comparingReads[pos].remove) {
+				comparingReads[pos].adjustHomopolyerRunQualities();
+			}
 		}
 	}
 
@@ -261,6 +270,9 @@ void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
 		}
 		std::cout << "Collapsed down to " << sizeOfReadVector - amountAdded
 				<< " clusters" << std::endl;
+	}
+	if(opts_.clusOpts_.converge_ && amountAdded > 0){
+		collapseWithParameters(comparingReads, positions, runParams, alignerObj);
 	}
 }
 
@@ -402,11 +414,22 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 				std::cout << "alignerObj.alignmentGaps_.size()"
 						<< alignerObj.comp_.distances_.alignmentGaps_.size() << std::endl;
 			}
+    	std::map<uint32_t, mismatch> savedMismatches = alignerObj.comp_.distances_.mismatches_;
+    	//remove any low quality errors
+    	std::vector<uint32_t> lowQualMismatches;
+    	for(const auto & mis : savedMismatches){
+    		if(!mis.second.highQuality(alignerObj.qScorePars_)){
+    			lowQualMismatches.emplace_back(mis.first);
+    		}
+    	}
+    	for(const auto & er : lowQualMismatches){
+    		savedMismatches.erase(er);
+    	}
       if (alignerObj.comp_.distances_.mismatches_.size() > 0
       		|| alignerObj.comp_.twoBaseIndel_ > 0
 					|| alignerObj.comp_.largeBaseIndel_ > 0) {
       	//save the current mismatches and gap infos
-      	std::map<uint32_t, mismatch> savedMismatches = alignerObj.comp_.distances_.mismatches_;
+
       	auto savedGapInfo = alignerObj.comp_.distances_.alignmentGaps_;
       	size_t frontPos = 0;
       	size_t endPos = std::numeric_limits<size_t>::max();
@@ -521,6 +544,8 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 				}
       } // pass has errors
 		} // pos loop
+
+
 		if(!endChiPos.empty() && ! frontChiPos.empty()){
 			if(endChiPos.begin()->first < frontChiPos.rbegin()-> first){
 				getSeqBase(processedReads[subPos]).markAsChimeric();

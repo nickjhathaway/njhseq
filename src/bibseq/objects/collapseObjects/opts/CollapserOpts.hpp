@@ -95,14 +95,20 @@ struct AlignOpts {
 	bool noAlign_ = false;
 };
 
+struct ClusteringOpts{
+	ClusteringOpts(bool converge);
+	ClusteringOpts();
+	bool converge_ = false;
+};
 
 
 class CollapserOpts {
 public:
 	CollapserOpts(KmerOpts kmerOpts, BestMatchOpts bestMatchOpts, ITOpts iTOpts,
 			SkipOpts skipOpts, VerboseOpts verboseOpts, AlignOpts alignOpts,
-			NucCompBinOpts nucCompBinOpts, KmerBinOpts kmerBinOpts);
+			NucCompBinOpts nucCompBinOpts, KmerBinOpts kmerBinOpts, ClusteringOpts clusOpts);
 	CollapserOpts();
+
 
 	KmerOpts kmerOpts_;
 	BestMatchOpts bestMatchOpts_;
@@ -112,7 +118,7 @@ public:
 	AlignOpts alignOpts_;
 	NucCompBinOpts nucCompBinOpts_;
 	KmerBinOpts kmerBinOpts_;
-
+	ClusteringOpts clusOpts_;
 };
 
 } /* namespace bibseq */

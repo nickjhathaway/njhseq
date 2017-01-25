@@ -42,6 +42,10 @@ public:
 
 	const SeqIOOptions opts_; /**< the table input options*/
 
+	std::chrono::time_point<std::chrono::system_clock> getTime() const;
+
+	void setTime(const std::chrono::time_point<std::chrono::system_clock> & time);
+
 	/**@brief constructor with the content of the of the file given by opts
 	 *
 	 * @param opts
@@ -53,6 +57,8 @@ public:
 	 * @param other table cache
 	 */
 	SeqIOOptsWithTime(const SeqIOOptsWithTime& other);
+
+	SeqIOOptsWithTime(const SeqIOOptsWithTime&& other);
 
 	/**@brief Read in Whole File
 	 *

@@ -50,61 +50,39 @@ class consensusHelper {
   		std::map<uint32_t, charCounter> & counters,
   		std::map<uint32_t, std::map<uint32_t, charCounter>> & insertions,
   		std::map<int32_t, charCounter> & beginningGap) {
-  	//std::cout << "increaseCounters start" << std::endl;
   	for (const auto & readPos : iter::range(reads.size())) {
-  		//std::cout << "increaseCounters -2" << std::endl;
   		//use input function to get the seqInfo to compare to
   		const seqInfo & read = getSeqInfo(reads[readPos]);
-  		//seqInfo read = getSeqInfo(reads[readPos]);
-  		/*std::cout << "increaseCounters -1" << std::endl;
-  		seqBase.outPutFastq(std::cout);
-  		std::cout << seqBase.seq_.size() << std::endl;
-  		std::cout << read.seq_.size() << std::endl;
-  		std::cout << alignerObj.parts_.maxSize_ << std::endl;
-  		std::cout << read.seq_ << std::endl;
-  		std::cout << read.seq_ << std::endl;
-  		std::cout << read.qual_ << std::endl;
-  		std::cout << std::endl;
-  		std::cout << reads[readPos].seqBase_.seq_.size() << std::endl;
-  		std::cout << reads[readPos].seqBase_.seq_ << std::endl;
-  		std::cout << reads[readPos].seqBase_.seq_ << std::endl;
-  		std::cout << reads[readPos].seqBase_.qual_ << std::endl;
-
-  		read.outPutFastq(std::cout);*/
-
   		alignerObj.alignCacheGlobal(seqBase, read);
   		// the offset for the insertions
   		uint32_t offSet = 0;
   		uint32_t currentOffset = 1;
   		uint32_t start = 0;
-  		//std::cout << "increaseCounters 0" << std::endl;
   		//check to see if there is a gap at the beginning
+  		uint32_t readCnt = read.cnt_ < 1 ? 1 : std::round(read.cnt_);
   		if (alignerObj.alignObjectA_.seqBase_.seq_.front() == '-') {
   			start = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
   			for (uint32_t i = 0; i < start; ++i) {
-  				beginningGap[i - start].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += read.cnt_;
-  				beginningGap[i - start].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *read.cnt_;
+  				beginningGap[i - start].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += readCnt;
+  				beginningGap[i - start].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *readCnt;
   				++offSet;
   			}
   		}
-  		//std::cout << "increaseCounters 1" << std::endl;
   		for (uint32_t i = start; i < len(alignerObj.alignObjectB_); ++i) {
   			// if the longest reference has an insertion in it put it in the
   			// insertions letter counter map
   			if (alignerObj.alignObjectA_.seqBase_.seq_[i] == '-') {
-  				insertions[i - offSet][currentOffset].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += read.cnt_;
-  				insertions[i - offSet][currentOffset].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *read.cnt_;
+  				insertions[i - offSet][currentOffset].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += readCnt;
+  				insertions[i - offSet][currentOffset].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *readCnt;
   				++currentOffset;
   				++offSet;
   				continue;
   			}
   			currentOffset = 1;
-  			counters[i - offSet].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += read.cnt_;
-  			counters[i - offSet].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *read.cnt_;
+  			counters[i - offSet].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += readCnt;
+  			counters[i - offSet].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *readCnt;
   		}
-  		//std::cout << "increaseCounters 2" << std::endl;
   	}
-  	//std::cout << "increaseCounters stop" << std::endl;
   }
 
   template<typename T, typename FUNC>

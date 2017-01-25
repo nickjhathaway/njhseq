@@ -283,6 +283,9 @@ public:
 		}
 		for(const auto & s1 : other.infos_){
 			for(const auto & s2 : s1.second){
+				if(s2.second.addFromFile_){
+					continue;
+				}
 				if(!checkForAlnInfo(s1.first,s2.first)){
 					//does not already contain this alignment
 					addAlnInfo(s1.first, s2.first, s2.second);

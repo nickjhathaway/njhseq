@@ -31,4 +31,5 @@
 #include "bibseq/seqToolsUtils/aminoAcidInfo.hpp"
 #include "bibseq/seqToolsUtils/determinators.h"
 #include "bibseq/seqToolsUtils/ExtractionStator.hpp"
+#include "bibseq/seqToolsUtils/GeneSeqInfo.hpp"
 

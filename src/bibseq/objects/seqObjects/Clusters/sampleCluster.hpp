@@ -71,7 +71,7 @@ class sampleCluster : public cluster {
 		  seqBase_.frac_ = getAveragedFrac(); //calculate average as the mean fraction between all samples
 		}
 
-
+		setLetterCount();
 		remove = false;
 		needToCalculateConsensus_ = false;
 	}
@@ -97,10 +97,10 @@ class sampleCluster : public cluster {
 
   void updateSampInfosFracs();
   // info
-  uint32_t numberOfRuns()const;
+	uint32_t numberOfRuns() const;
 
-  double getAveragedFrac()const;
-  double getCumulativeFrac()const;
+	double getAveragedFrac() const;
+	double getCumulativeFrac() const;
 
   double getAveragedFrac(const VecStr & forClusters)const;
   double getCumulativeFrac(const VecStr & forClusters)const;
@@ -156,6 +156,8 @@ class sampleCluster : public cluster {
 
 
   void resetInfos();
+
+  std::unordered_map<std::string, std::unordered_map<std::string, double>> getRepDisagreement() const;
 
 protected:
   std::map<std::string, std::vector<uint32_t>> sampleClusters_;

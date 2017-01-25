@@ -50,5 +50,14 @@ bool PopNamesInfo::hasSample(const std::string & sample) const {
 }
 
 
+Json::Value PopNamesInfo::toJson() const{
+	Json::Value ret;
+	ret["class"] =           bib::json::toJson(bib::getTypeName(*this));
+	ret["samples_"] =        bib::json::toJson(samples_);
+	ret["populationName_"] = bib::json::toJson(populationName_);
+	return ret;
+}
+
+
 }  // namespace bibseq
 

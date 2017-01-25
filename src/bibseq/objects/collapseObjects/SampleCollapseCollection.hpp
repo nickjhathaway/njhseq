@@ -17,32 +17,63 @@ namespace collapse {
 
 
 
+
+
+
 class SampleCollapseCollection {
 
+
 public:
+
+	class RepFile {
+	public:
+		RepFile(const std::string & repName, const bfs::path & repFnp) :
+				repName_(repName), repFnp_(repFnp) {
+		}
+		std::string repName_;
+		bfs::path repFnp_;
+		bool reNameInput_ = true;
+	};
+
 	SampleCollapseCollection(SeqIOOptions inputOptions,
 			const bfs::path & inputDir,
 			const bfs::path & outputDir,
 			const PopNamesInfo & popNames,
 			uint32_t clusterSizeCutOff);
 
-	const SeqIOOptions inputOptions_;
-	const bfs::path masterInputDir_;
-	const bfs::path masterOutputDir_;
+	SampleCollapseCollection(const Json::Value & coreJson);
+
+	SeqIOOptions inputOptions_;
+	bfs::path masterInputDir_;
+	bfs::path masterOutputDir_;
+
 private:
 	bfs::path samplesOutputDir_;
 	bfs::path populationOutputDir_;
+	std::mutex mut_;
 public:
-	PopNamesInfo popNames_;
+	PopNamesInfo popNames_{"", VecStr{}};
 	uint32_t clusterSizeCutOff_;
 	std::map<std::string, std::shared_ptr<collapse::sampleCollapse>> sampleCollapses_;
-	std::shared_ptr<populationCollapse> popCollapse_;
+	std::unique_ptr<populationCollapse> popCollapse_;
 	std::unique_ptr<MultipleGroupMetaData> groupMetaData_;
+	std::unique_ptr<AllGroupDataPaths> groupDataPaths_;
+
+
 
 	void addGroupMetaData(const bfs::path & groupingsFile);
+	void createGroupInfoFiles();
+	bool groupMetaLoaded() const;
 
-	void setUpSample(const std::string & sampleName, aligner & alignerObj,
+	void setUpSample(const std::string & sampleName,
+			const std::vector<RepFile> & analysisFiles,
+			aligner & alignerObj,
 			const collapser & collapserObj, const ChimeraOpts & chiOpts);
+
+	void setUpSample(const std::string & sampleName,
+			aligner & alignerObj,
+			const collapser & collapserObj,
+			const ChimeraOpts & chiOpts);
 
 	void setUpSampleFromPrevious(const std::string & sampleName);
 
@@ -56,6 +87,9 @@ public:
 
 	bfs::path getSampleFinalHapsPath(const std::string & sampleName) const;
 	bfs::path getPopFinalHapsPath() const;
+
+	bfs::path getPopInfoPath() const;
+	bfs::path getSampInfoPath() const;
 
 	uint32_t numOfSamples() const;
 
@@ -71,14 +105,14 @@ public:
 			aligner & alignerObj, const collapser & collapserObj,
 			const CollapseIterations & popColIters);
 
-	void dumpPopulation();
-	void dumpPopulation(const bfs::path& outputPopDir);
+	void dumpPopulation(bool dumpTable = true);
+	void dumpPopulation(const bfs::path& outputPopDir, bool dumpTable = true);
 
 	void loadInPreviousPop();
 	void loadInPreviousPop(const std::set<std::string> & samples);
 	void loadInPreviousPop(const std::set<std::string> & samples, const bfs::path& outputPopDir);
 
-	void renamePopWithSeqs(const std::vector<readObject> & otherPopSeqs);
+	void renamePopWithSeqs(const std::vector<readObject> & otherPopSeqs, comparison allowableErrors = comparison());
 
 	void comparePopToRefSeqs(const std::vector<readObject> & expectedSeqs,
 			aligner & alignerObj);
@@ -95,13 +129,18 @@ public:
 
 	void symlinkInSampleFinals() const;
 
-	void createGroupInfoFiles();
+
 
 	void outputRepAgreementInfo();
 
 	double estimateNumberOfStrains(const std::set<std::string> & samples);
 
 	double calculatePIE(const std::set<std::string> & samples);
+
+	Json::Value toJsonCore() const;
+
+	void createCoreJsonFile() const;
+
 
 };
 

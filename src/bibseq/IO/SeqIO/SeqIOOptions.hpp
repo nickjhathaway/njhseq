@@ -95,7 +95,7 @@ struct SeqIOOptions {
 
   OutOptions out_;
 
-  bool complementMate_ = false;
+  //bool revComplMate_ = false;
 
   bool processed_ = false;
   std::string lowerCaseBases_;

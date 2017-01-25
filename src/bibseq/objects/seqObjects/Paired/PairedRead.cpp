@@ -37,6 +37,11 @@ PairedRead::PairedRead(const seqInfo & seqFirst, const seqInfo & seqSecond,
 
 }
 
+void PairedRead::toggleReverseComplement(){
+	mateSeqBase_.reverseComplementRead(true, true);
+	mateRComplemented_ = !mateRComplemented_;
+}
+
 double PairedRead::getQualCheck(uint32_t qualCutOff)const{
 	uint32_t count = bib::count_if(seqBase_.qual_, [&qualCutOff](uint32_t qual){ return qual >=qualCutOff;});
 	count += bib::count_if(mateSeqBase_.qual_, [&qualCutOff](uint32_t qual){ return qual >=qualCutOff;});
@@ -51,16 +56,18 @@ void PairedRead::setBaseCountOnQualCheck(uint32_t qualCheck){
 void PairedRead::setLetterCount() {
 	counter_.reset();
 	counter_.increaseCountByString(seqBase_.seq_, seqBase_.cnt_);
-	counter_.increaseCountByString(mateSeqBase_.seq_, seqBase_.cnt_);
+	if(mateRComplemented_){
+		counter_.increaseCountByString(mateSeqBase_.seq_, seqBase_.cnt_);
+	}else{
+		counter_.increaseCountByString(seqUtil::reverseComplement(mateSeqBase_.seq_, "DNA"), seqBase_.cnt_);
+	}
 	counter_.resetAlphabet(true);
 	counter_.setFractions();
 }
 
 void PairedRead::setLetterCount(const std::vector<char> & alph){
 	counter_ = charCounter(alph);
-	counter_.increaseCountByString(seqBase_.seq_, seqBase_.cnt_);
-	counter_.increaseCountByString(mateSeqBase_.seq_, seqBase_.cnt_);
-	counter_.setFractions();
+	setLetterCount();
 }
 
 

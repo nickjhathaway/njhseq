@@ -43,28 +43,41 @@ public:
 	std::map<uint32_t, IterPar> iters_;
 	std::map<uint32_t, uint32_t> itersNums_;
 	bool onPerId_ = false;
+	bool onHqPerId_ = false;
 
 
 	CollapseIterations& operator=(const CollapseIterations & other);
 	CollapseIterations& operator=(CollapseIterations&& other);
 	CollapseIterations(const CollapseIterations& other);
 
-	void addIteration(uint32_t iterNum, std::vector<double> pars, bool onPerId);
+	void addIteration(uint32_t iterNum, std::vector<double> pars);
 	void addIteration(uint32_t iterNum, const IterPar & par);
 	void addIteration(const IterPar & par);
 
-	void addIterations(std::vector<std::vector<double>> pars, bool onPerId);
+	void addIterations(std::vector<std::vector<double>> pars);
 
 	void writePars(std::ostream & out)const;
 
 	static CollapseIterations gen454ItDefaultPars(uint32_t stopCheck);
 	static CollapseIterations genIlluminaDefaultPars(uint32_t stopCheck);
 
-	static CollapseIterations genStrictNoErrorsDefaultPars(uint32_t stopCheck);
-	static CollapseIterations genStrictDefaultPars(uint32_t stopCheck);
-	static CollapseIterations genOtuPars(uint32_t stopCheck, double perId);
+	static CollapseIterations gen454ItDefaultParsWithHqs(uint32_t stopCheck,
+			uint32_t hqMismatches);
+	static CollapseIterations genIlluminaDefaultParsWithHqs(uint32_t stopCheck,
+			uint32_t hqMismatches);
 
-	static CollapseIterations genOtu99To97(uint32_t stopCheck);
+	static CollapseIterations genStrictNoErrorsDefaultPars(uint32_t stopCheck);
+	static CollapseIterations genStrictNoErrorsDefaultParsWithHqs(uint32_t stopCheck, uint32_t hqMismatches);
+	static CollapseIterations genStrictDefaultPars(uint32_t stopCheck);
+
+
+	static CollapseIterations genStrictDefaultParsWithHqs(uint32_t stopCheck, uint32_t hqMismatches, bool illumina = false);
+
+	static CollapseIterations genOtuPars(uint32_t stopCheck, double perId, bool onHqPerId = false);
+
+	static CollapseIterations genOtu99To97(uint32_t stopCheck, bool onHqPerId = false);
+
+	static CollapseIterations genOtu99(uint32_t stopCheck, bool onHqPerId = false);
 
 	auto begin() const {
 		return iters_.begin();

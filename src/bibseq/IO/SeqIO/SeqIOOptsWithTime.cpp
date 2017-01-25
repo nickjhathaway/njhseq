@@ -29,6 +29,13 @@
 #include "SeqIOOptsWithTime.hpp"
 namespace bibseq {
 
+std::chrono::time_point<std::chrono::system_clock> SeqIOOptsWithTime::getTime() const{
+	return time_;
+}
+
+void SeqIOOptsWithTime::setTime(const std::chrono::time_point<std::chrono::system_clock> & time){
+	time_ = time;
+}
 
 
 
@@ -38,6 +45,11 @@ SeqIOOptsWithTime::SeqIOOptsWithTime(const SeqIOOptions & opts) :
 }
 
 SeqIOOptsWithTime::SeqIOOptsWithTime(const SeqIOOptsWithTime& other) :
+		opts_(other.opts_) {
+
+}
+
+SeqIOOptsWithTime::SeqIOOptsWithTime(const SeqIOOptsWithTime&& other) :
 		opts_(other.opts_) {
 
 }

@@ -33,3 +33,7 @@
 #include "bibseq/objects/seqObjects/sffObject.hpp"
 #include "bibseq/objects/seqObjects/Paired.h"
 #include "bibseq/objects/seqObjects/Clusters.h"
+#include "bibseq/objects/seqObjects/seqKmers.h"
+
+
+

@@ -32,6 +32,8 @@ void aligner::resetAlnCache(){
 aligner::aligner() :
 		parts_(alnParts()), alnHolder_(
 				alnInfoMasterHolder(parts_.gapScores_, parts_.scoring_)) {
+	countEndGaps_ = false;
+	weighHomopolymers_ = false;
 	setDefaultQualities();
 }
 
@@ -39,6 +41,8 @@ aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
 		const substituteMatrix& scoreMatrix) :
 		parts_(maxSize, gapPars, scoreMatrix), alnHolder_(
 				alnInfoMasterHolder(gapPars, scoreMatrix)) {
+	countEndGaps_ = false;
+	weighHomopolymers_ = false;
 	setDefaultQualities();
 }
 
@@ -46,6 +50,7 @@ aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
 		const substituteMatrix& scoreMatrix, bool countEndGaps) :
 		parts_(maxSize, gapPars, scoreMatrix), alnHolder_(
 				alnInfoMasterHolder(gapPars, scoreMatrix)), countEndGaps_(countEndGaps) {
+	weighHomopolymers_ = false;
 	setDefaultQualities();
 }
 
@@ -68,6 +73,7 @@ void aligner::alignScoreCacheLocal(const std::string& firstSeq,
 	if (alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].getAlnInfo(
 			firstSeq, secondSeq, parts_.lHolder_)) {
 		parts_.score_ = parts_.lHolder_.score_;
+		comp_.alnScore_ = parts_.score_;
 	} else {
 		alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
 		alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
@@ -85,6 +91,7 @@ void aligner::alignScoreCacheGlobal(const std::string& firstSeq,
 	if (alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].getAlnInfo(
 			firstSeq, secondSeq, parts_.gHolder_)) {
 		parts_.score_ = parts_.gHolder_.score_;
+		comp_.alnScore_ = parts_.score_;
 	} else {
 		alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
 		alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
@@ -111,6 +118,7 @@ void aligner::alignScoreCache(const std::string& firstSeq, const std::string& se
   	if(alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_]
           .getAlnInfo(firstSeq, secondSeq, parts_.lHolder_)){
   		parts_.score_ = parts_.lHolder_.score_;
+  		comp_.alnScore_ = parts_.score_;
   	}else{
   		alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
   		alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(firstSeq, secondSeq, parts_.lHolder_);
@@ -120,6 +128,7 @@ void aligner::alignScoreCache(const std::string& firstSeq, const std::string& se
   	if(alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_]
   	            .getAlnInfo(firstSeq, secondSeq, parts_.gHolder_)){
   		parts_.score_ = parts_.gHolder_.score_;
+  		comp_.alnScore_ = parts_.score_;
 		}else{
 			alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
 			alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(firstSeq, secondSeq, parts_.gHolder_);
@@ -357,6 +366,7 @@ const comparison & aligner::profilePrimerAlignment(const seqInfo& objectA,
   comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;
   comp_.queryName_ = objectB.name_;
+  comp_.alnScore_ = parts_.score_;
   return comp_;
 }
 
@@ -485,7 +495,9 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA,
       if (usingQuality) {
   			/*if (objectA.checkQual(i - firstOffset, qScorePars_)
   					&& objectB.checkQual(i - secondOffset, qScorePars_)) {*/
-  			if (objectB.checkQual(i - secondOffset, qScorePars_)) {
+  			/*if (objectB.checkQual(i - secondOffset, qScorePars_)) {*/
+  			if ( (objectA.cnt_ >= 3 || objectA.checkQual(i - firstOffset, qScorePars_) )
+  					&& objectB.checkQual(i - secondOffset, qScorePars_)) {
 
           if (checkKmer &&
               (kMaps_.isKmerLowFreq(firstK)
@@ -627,6 +639,7 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA,
   comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;
   comp_.queryName_ = objectB.name_;
+  comp_.alnScore_ = parts_.score_;
   return comp_;
 }
 
@@ -706,7 +719,9 @@ comparison aligner::compareAlignment(
 		if (alignObjectA_.seqBase_.seq_[i] != alignObjectB_.seqBase_.seq_[i]) {
 			/*if (objectA.checkQual(i - firstOffset, qScorePars_)
 					&& objectB.checkQual(i - secondOffset, qScorePars_)) {*/
-			if (objectB.checkQual(i - secondOffset, qScorePars_)) {
+			/*if (objectB.checkQual(i - secondOffset, qScorePars_)) {*/
+			if ( (objectA.cnt_ >= 3 || objectA.checkQual(i - firstOffset, qScorePars_) )
+					&& objectB.checkQual(i - secondOffset, qScorePars_)) {
 				auto firstK = getKmerPos(i - firstOffset, kMaps_.kLength_,
 						objectA.seq_);
 				auto secondK = getKmerPos(i - secondOffset, kMaps_.kLength_,
@@ -775,6 +790,7 @@ comparison aligner::compareAlignment(
   comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;
   comp_.queryName_ = objectB.name_;
+  comp_.alnScore_ = parts_.score_;
   return comp_;
 }
 
@@ -833,10 +849,11 @@ void aligner::handleGapCountingInA(gap& currentGap) {
 				++comp_.oneBaseIndel_;
 			}
 		} else {
-			double currentScore = currentGap.size_
+			/*double currentScore = currentGap.size_
 					/ ((alnABases * alignObjectA_.seqBase_.cnt_
 							+ alnBBases * alignObjectB_.seqBase_.cnt_)
-							/ (alignObjectA_.seqBase_.cnt_ + alignObjectB_.seqBase_.cnt_));
+							/ (alignObjectA_.seqBase_.cnt_ + alignObjectB_.seqBase_.cnt_));*/
+			double currentScore = currentGap.size_ / static_cast<double>(alnABases + alnBBases);
 			if (currentGap.size_ >= 3) {
 				if (currentScore > 1) {
 					++comp_.largeBaseIndel_;
@@ -906,10 +923,11 @@ void aligner::handleGapCountingInB(gap& currentGap) {
 				++comp_.oneBaseIndel_;
 			}
 		} else {
-			double currentScore = currentGap.size_
+			/*double currentScore = currentGap.size_
 					/ ((alnABases * alignObjectA_.seqBase_.cnt_
 							+ alnBBases * alignObjectB_.seqBase_.cnt_)
-							/ (alignObjectA_.seqBase_.cnt_ + alignObjectB_.seqBase_.cnt_));
+							/ (alignObjectA_.seqBase_.cnt_ + alignObjectB_.seqBase_.cnt_));*/
+			double currentScore = currentGap.size_ / static_cast<double>(alnABases + alnBBases);
 			if (currentGap.size_ >= 3) {
 				if (currentScore > 1) {
 					++comp_.largeBaseIndel_;
@@ -1302,6 +1320,7 @@ void aligner::scoreAlignment(bool editTheSame) {
     parts_.score_ += parts_.scoring_.mat_[alignObjectA_.seqBase_.seq_[i]]
                            [alignObjectB_.seqBase_.seq_[i]];
   }
+  comp_.alnScore_ = parts_.score_;
 }
 
 void aligner::noAlignSetAndScore(const seqInfo& objectA,

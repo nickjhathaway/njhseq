@@ -42,8 +42,6 @@ namespace bibseq {
 class seqUtil {
 
  public:
-  // empty constructor, simply a class that holds some functions
-  seqUtil() {}
   // reverse complement RNA or DNA strand
   static std::string reverseComplement(const std::string &seq,
                                        const std::string &seqType);
@@ -137,15 +135,7 @@ class seqUtil {
   static bool checkTwoEqualSeqs(const std::string &seq1,
                                 const std::string &seq2,
                                 int allowableMismatches);
-  static std::map<std::string, kmer> adjustKmerCountsForMismatches(
-      const std::map<kmer, int> &kmers, int allowableMismatches);
-  static std::map<std::string, kmer> adjustKmerCountsForMismatches(
-      const std::map<std::string, kmer> &kmers, int allowableMismatches);
 
-  static std::unordered_map<std::string, uint32_t> getFuzzyKmerCount(const std::string &seq,
-                                                      uint32_t kLength,
-                                                      uint32_t allowableMutations,
-                                                      bool checkComplement);
 
   static void removeLowerCase(std::string &sequence,
                               std::vector<uint32_t> &quality);
@@ -153,15 +143,8 @@ class seqUtil {
   static std::pair<std::string, std::vector<uint32_t>> removeLowerCaseReturn(
       std::string sequence, std::vector<uint32_t> quality);
 
-  static int getCyclopeptideLengthFromSprectumLength(uint64_t length);
-  static std::vector<std::vector<char>> getPossibleCyclopeptideFromSpretrum(
-      const std::vector<int> &spectrum);
-  static int getNumberOfPossibleLinearPeptides(uint64_t lengthOfProtein);
   static std::string removeGapsReturn(const std::string &seq);
   static void removeGaps(std::string &seq);
-  static VecStr getFuzzySharedMotif(const VecStr &strs, uint32_t kLength,
-  		uint32_t allowableMutations,
-                                    bool checkComplement);
   static std::unordered_map<uint64_t, std::string> findMinimumHammingDistance(
       const std::string &seq, const std::string &subSeq, int kLength);
   static std::string createDegenerativeString(const VecStr &dnaString);
@@ -173,46 +156,12 @@ class seqUtil {
   static uint32_t countMismatchesInAlignment(const std::string &ref,
                                              const std::string &compare,
                                              const char &ignore = '-');
-  static void printQualCountsFiles(
-      const std::string &workingDir, const std::string &seqName,
-      std::map<std::string, std::map<double, uint32_t>> counts, bool overWrite,
-      bool exitOnFailure);
-  static void printMismatchQualCountsFiles(
-      const std::string &workingDir, const std::string &seqName,
-      std::map<std::string, std::map<double, uint32_t>> counts,
-      std::map<std::string, std::map<double, uint32_t>> mismatchCounts,
-      bool overWrite, bool exitOnFailure);
-  static std::map<std::string,
-                  std::unordered_map<std::string, std::vector<double>>>
-      getCountsForModel(
-          std::map<std::string, std::map<double, uint32_t>> counts,
-          std::map<std::string, std::map<double, uint32_t>> mismatchCounts);
 
-  static std::unordered_map<std::string, std::vector<double>>
-      getCountsForSpecificModel(std::map<double, uint32_t> counts,
-                                std::map<double, uint32_t> mismatchCounts);
-
-  static std::map<std::string, std::unordered_map<double, double>>
-      getTrueErrorRate(
-          std::map<std::string, std::map<double, uint32_t>> counts,
-          std::map<std::string, std::map<double, uint32_t>> mismatchCounts);
-  static std::unordered_map<double, double> getTrueErrorRateSpecific(
-      std::map<double, uint32_t> counts,
-      std::map<double, uint32_t> mismatchCounts);
 
   static void rstripRead(std::string & str,
   		std::vector<uint32_t> & qual, char c);
 
-  /*static void updateMismatchCounts(const std::string & consensus, const
-     std::string & mutatant,
-                                                                                                                                        const std::vector<uint32_t> & quals,  std::unordered_map<uint32_t, std::unordered_map<std::pair<char, char>, uint32_t>> & mutCounts);
-  */
-  /*
-  static double probabilityOfKmer(const std::string & kmer,const
-  std::unordered_map<uint, std::unordered_map<char, double>>& mapsOfProbs);
-  static std::vector<kmer> mostProbableKmers(const std::string & seq, int
-  kLength,const std::unordered_map<uint, std::unordered_map<char, double>>&
-  mapsOfProbs);*/
+
 }; // class seqUtils
 }  // namespace bibseq
 

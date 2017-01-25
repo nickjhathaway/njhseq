@@ -29,8 +29,20 @@ bool CompareIDProfile::passErrors(const comparison & threshold,
 		const comparison & generated) {
 	return threshold.passIdThreshold(generated);
 }
+
 CompareIDProfile::~CompareIDProfile() {
 }
+
+bool CompareIDHqProfile::passErrors(const comparison & threshold,
+		const comparison & generated) {
+	return threshold.passIdThresholdHq(generated);
+}
+
+CompareIDHqProfile::~CompareIDHqProfile() {
+
+}
+
+
 
 bool CompareErrorProfile::passErrors(const comparison & threshold,
 		const comparison & generated) {
@@ -54,6 +66,7 @@ IterPar& IterPar::operator=(const IterPar & other) {
 	smallCheckStop_ = other.smallCheckStop_;
 	iterNumber_ = other.iterNumber_;
 	onPerId_ = other.onPerId_;
+	onHqPerId_ = other.onHqPerId_;
 	errors_ = other.errors_;
 
 	setCompFunc();
@@ -66,6 +79,7 @@ IterPar& IterPar::operator=(IterPar&& other) {
 	smallCheckStop_ = other.smallCheckStop_;
 	iterNumber_ = other.iterNumber_;
 	onPerId_ = other.onPerId_;
+	onHqPerId_ = other.onHqPerId_;
 	errors_ = other.errors_;
 	setCompFunc();
 	return *this;
@@ -82,7 +96,8 @@ IterPar& IterPar::operator=(IterPar&& other) {
 
 IterPar::IterPar(const IterPar& other) :
 		stopCheck_(other.stopCheck_), smallCheckStop_(other.smallCheckStop_), iterNumber_(
-				other.iterNumber_), onPerId_(other.onPerId_), errors_(other.errors_) {
+				other.iterNumber_), onPerId_(other.onPerId_), onHqPerId_(
+				other.onHqPerId_), errors_(other.errors_) {
 	//std::cout << "copy assignment of IterPar\n";
 	setCompFunc();
 }
@@ -92,7 +107,11 @@ IterPar::IterPar(const IterPar& other) :
 
 void IterPar::setCompFunc() {
 	if (onPerId_) {
-		comp_ = std::make_shared<CompareIDProfile>();
+		if (onHqPerId_) {
+			comp_ = std::make_shared<CompareIDHqProfile>();
+		} else {
+			comp_ = std::make_shared<CompareIDProfile>();
+		}
 	} else {
 		comp_ = std::make_shared<CompareErrorProfile>();
 	}
@@ -108,17 +127,20 @@ IterPar::IterPar() :
 }
 
 
-IterPar::IterPar(const std::vector<double>& parameter, uint32_t iterNumber,
-		bool onPerId):iterNumber_(iterNumber), onPerId_(onPerId) {
+IterPar::IterPar(const std::vector<double>& parameter,
+		uint32_t iterNumber,
+		const PerIdPars & perIdPars):iterNumber_(iterNumber),
+				onPerId_(perIdPars.onPerId_),
+				onHqPerId_(perIdPars.onHqPerId_) {
 	//check size
-	if (onPerId) {
+	if (onPerId_) {
 		if (parameter.size() != 3) {
 			std::stringstream ss;
 			ss
 					<< cto::boldRed(
 							"Error in constructing runningParameters, size should be 3, not ")
-					<< parameter.size() << std::endl;
-			std::runtime_error { ss.str() };
+					<< parameter.size() << " when constructing a percent identity parameters" << std::endl;
+			throw std::runtime_error { ss.str() };
 		}
 	} else {
 		if (parameter.size() != 8) {
@@ -126,16 +148,18 @@ IterPar::IterPar(const std::vector<double>& parameter, uint32_t iterNumber,
 			ss
 					<< cto::boldRed(
 							"Error in constructing runningParameters, size should be 8, not ")
-					<< parameter.size() << std::endl;
-			std::runtime_error { ss.str() };
+					<< parameter.size() << " check input parameters file or check to see if"
+							" --onPerId should be on if the input parameters file is for otu clustering"<< std::endl;
+			throw std::runtime_error { ss.str() };
 		}
 	}
   stopCheck_ = parameter[0];
   smallCheckStop_ = parameter[1];
 
-	if (onPerId) {
+	if (onPerId_) {
 	  // error parameters
 	  errors_.distances_.eventBasedIdentity_ = parameter[2];
+	  errors_.distances_.eventBasedIdentityHq_ = parameter[2];
 	} else {
 	  // error parameters
 	  errors_.oneBaseIndel_ = parameter[2];
@@ -164,13 +188,25 @@ void IterPar::printIterInfo(std::ostream & out, bool colorFormat) const{
 				<< cto::addBGColor(145) << " Iteration "
 				<< cto::addBGColor(188) << " StopAfter "
 				<< cto::addBGColor(145) << " SizeCutOff "
-				<< cto::addBGColor(188) << " PerIdCutOff "<< cto::reset << std::endl;
+				<< cto::addBGColor(188);
+		if(onHqPerId_){
+			std::cout << " HqPerIdCutOff "<< cto::reset << std::endl;
+		}else{
+			std::cout << " PerIdCutOff "<< cto::reset << std::endl;
+		}
+
 		std::cout
 		<< cto::addBGColor(145) << " " << centerText(estd::to_string(iterNumber_), 9) << " "
 		<< cto::addBGColor(188) << " " << centerText(estd::to_string(stopCheck_), 9) << " "
-		<< cto::addBGColor(145) << " " << centerText(estd::to_string(smallCheckStop_), 10) << " "
-		<< cto::addBGColor(188) << " " << centerText(estd::to_string(errors_.distances_.eventBasedIdentity_ * 100) + "%", 11) << " "
-		<< cto::reset << std::endl;
+		<< cto::addBGColor(145) << " " << centerText(estd::to_string(smallCheckStop_), 10) << " ";
+		if(onHqPerId_){
+			std::cout
+			<< cto::addBGColor(188) << " " << centerText(estd::to_string(errors_.distances_.eventBasedIdentity_ * 100) + "%", 13) << " ";
+		}else{
+			std::cout
+			<< cto::addBGColor(188) << " " << centerText(estd::to_string(errors_.distances_.eventBasedIdentity_ * 100) + "%", 11) << " ";
+		}
+		std::cout << cto::reset << std::endl;
 	}else{
 		std::cout << cto::bold
 				<< cto::addBGColor(145) << " Iteration "

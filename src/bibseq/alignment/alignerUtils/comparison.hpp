@@ -117,6 +117,8 @@ public:
   uint32_t highQualityMatches_ = 0; /**< Number of high quality matches*/
   uint32_t lowQualityMatches_ = 0; /**< Number of low quality matches*/
 
+  double alnScore_ = 0; /**< alnignment score*/
+
   DistanceComp distances_; /**< The distance metrics in the comparison of the two variants*/
 
   std::string refName_; /**< The name of the variant that goes first the alignment (alignObjectA) which is normally a reference/major variant*/
@@ -138,12 +140,21 @@ public:
    * @return Whether the generatedErrors fall below the errors in this comparison object
    */
 	bool passErrorProfile(const comparison& generatedError) const;
+
 	/**@brief Whether the generated errors pass the event based identity threshold held in this comparison
 	 *
 	 * @param generatedError The generated error profile in an alignment comparison
 	 * @return Whether the generatedErrors falls above event based identity threshold in this comparison object
 	 */
 	bool passIdThreshold(const comparison& generatedError) const;
+
+	/**@brief Whether the generated errors pass the event based identity threshold (calculated by using only hq errors) held in this comparison
+	 *
+	 * @param generatedError The generated error profile in an alignment comparison
+	 * @return Whether the generatedErrors falls above event based identity threshold in this comparison object
+	 */
+	bool passIdThresholdHq(const comparison& generatedError) const;
+
 	/**@brief Whether the generated errors pass the event based identity threshold and the errors held in this comparison
 	 *
 	 * @param generatedError The generated error profile in an alignment comparison

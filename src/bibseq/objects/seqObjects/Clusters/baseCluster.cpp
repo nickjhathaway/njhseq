@@ -23,6 +23,8 @@
 #include "bibseq/helpers/consensusHelper.hpp"
 #include "bibseq/readVectorManipulation/readVectorHelpers.h"
 #include "bibseq/IO/SeqIO/SeqOutput.hpp"
+#include "bibseq/objects/dataContainers/graphs/ConBasePathGraph.hpp"
+
 
 namespace bibseq {
 
@@ -69,8 +71,16 @@ void baseCluster::calculateConsensusToCurrent(aligner& alignerObj, bool setToCon
 
 
 
+
+
+
+
+
+
+
 void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 		aligner& alignerObj, bool setToConsensus) {
+
 	// create the map for letter counters for each position
 	std::map<uint32_t, charCounter> counters;
 	// create a map in case of insertions
@@ -81,20 +91,197 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 
 	consensusHelper::increaseCounters(seqBase_, reads_, getSeqBase, alignerObj, counters,
 			insertions, beginningGap);
+
 	calcConsensusInfo_ = seqBase_;
-	for( auto & counter :counters){
+	for (auto & counter : counters) {
 		counter.second.resetAlphabet(true);
+		counter.second.setFractions();
 	}
-	for( auto & counter :beginningGap){
+	for (auto & counter : beginningGap) {
 		counter.second.resetAlphabet(true);
+		counter.second.setFractions();
 	}
-	for( auto & counter :insertions){
-		for( auto & subCounter : counter.second){
+	for (auto & counter : insertions) {
+		for (auto & subCounter : counter.second) {
 			subCounter.second.resetAlphabet(true);
+			subCounter.second.setFractions();
 		}
 	}
+
+	//if the count is just 2 then just a majority rules consensus
+	if(seqBase_.cnt_ > 2){
+
+		//find out if there are several locations with larger contention of majority rules
+		//consensus and therefore could lead to bad consensus building
+		double contentionCutOff = 0.25;
+		uint32_t countAbovepCutOff = 0;
+		std::vector<uint32_t> importantPositions;
+		for(const auto & counter : counters){
+			uint32_t count = 0;
+			for(const auto base : counter.second.alphabet_){
+				if(counter.second.fractions_[base] > contentionCutOff){
+					++count;
+					if(count >=2){
+						break;
+					}
+				}
+			}
+			if(count >=2){
+				++countAbovepCutOff;
+				importantPositions.emplace_back(counter.first);
+			}
+		}
+
+		//if there are several points of contention
+		if(countAbovepCutOff >= 2){
+
+			//for debugging;
+			/*
+			std::ofstream outFile(firstReadName_ + "_baseCounts.tab.txt");
+			outFile << "pos\tbase\tcount\tfrac" << "\n";
+			for(const auto & counter : counters){
+				for(const auto base : counter.second.alphabet_){
+					outFile << counter.first
+							<< "\t" << base
+							<< "\t" << counter.second.chars_[base]
+							<< "\t" << counter.second.fractions_[base] <<"\n";
+				}
+			}*/
+
+			ConBasePathGraph graph;
+			for(const auto pos : importantPositions){
+				auto & counter = counters.at(pos);
+				for(const auto base : counter.alphabet_){
+					if(counter.chars_[base] > 0){
+						graph.addNode(ConBasePathGraph::ConPath::PosBase{pos, base},counter.chars_[base], counter.fractions_[base]);
+					}
+				}
+			}
+
+			//count up the pathways that seqs take and pick the path most traveled as the consensus path
+			//ConPathCounter pathCounter;
+			for(const auto & seq : reads_){
+				ConBasePathGraph::ConPath currentPath(seq->seqBase_.cnt_);
+				alignerObj.alignCacheGlobal(seqBase_, seq);
+				for(const auto pos : importantPositions){
+					currentPath.addPosBase(pos, alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(pos)]);
+				}
+
+				bib::sort(importantPositions);
+				for(const auto pos : iter::range(importantPositions.size() - 1)){
+					auto headPos = importantPositions[pos];
+					auto headBase = alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(headPos)];
+					auto tailPos = importantPositions[pos + 1];
+					auto tailBase = alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(tailPos)];
+					graph.addEdge(ConBasePathGraph::ConPath::PosBase{headPos,headBase}.getUid(),ConBasePathGraph::ConPath::PosBase{tailPos,tailBase}.getUid(),seq->seqBase_.cnt_ );
+				}
+
+				//pathCounter.addConPath(currentPath);
+			}
+			/*
+			std::ofstream outPathFile(firstReadName_ + "_basePaths.tab.txt");
+			outPathFile << "Name: " << seqBase_.name_ << std::endl;
+			outPathFile << "cnt: " << seqBase_.cnt_ << std::endl;
+			outPathFile << "frac: " << seqBase_.frac_ << std::endl;
+			graph.writePaths(outPathFile);
+			*/
+			auto paths = graph.getPaths();
+			std::vector<ConBasePathGraph::ConPath> bestPaths;
+			double bestCount = 0;
+
+			for (const auto & path : paths) {
+				if(path.count_ > bestCount){
+					bestCount = path.count_;
+					bestPaths.clear();
+					bestPaths.emplace_back(path);
+				}else if (path.count_ == bestCount){
+					bestPaths.emplace_back(path);
+				}
+			}
+
+			ConBasePathGraph::ConPath bestPath(0);
+			if(bestPaths.size() > 1){
+
+				double bestImprovement = std::numeric_limits<double>::lowest();
+				std::vector<ConBasePathGraph::ConPath> secondaryBestPaths;
+				for (const auto & path : bestPaths) {
+					//outPathFile << path.getUid() << " : " << path.count_ << std::endl;
+					double avgOppositeQual = 0;
+					uint32_t baseCount = 0;
+					for (const auto & base : path.bases_) {
+						if('-' != base.base_){
+							++baseCount;
+							avgOppositeQual += counters.at(base.pos_).qualities_[base.base_]/static_cast<double>(counters.at(base.pos_).chars_[base.base_]) ;
+						}
+						//outPathFile << counters.at(base.pos_).qualities_[base.base_]/static_cast<double>(counters.at(base.pos_).chars_[base.base_]) << " ";
+					}
+					avgOppositeQual /=baseCount;
+					//outPathFile << avgOppositeQual;
+					//outPathFile << std::endl;
+					double avgPresentQual = 0;
+
+					for (const auto & base : path.bases_) {
+						avgPresentQual+=seqBase_.qual_[base.pos_];
+						//outPathFile << seqBase_.qual_[base.pos_] << " ";
+					}
+					avgPresentQual /= path.bases_.size();
+					//outPathFile << avgPresentQual;
+					//outPathFile << std::endl;
+					//outPathFile << avgOppositeQual - avgPresentQual << std::endl;
+					double qualImprovement = avgOppositeQual - avgPresentQual;
+
+					if(qualImprovement > bestImprovement){
+						bestImprovement = qualImprovement;
+						secondaryBestPaths.clear();
+						secondaryBestPaths.emplace_back(path);
+					}else if(qualImprovement == bestImprovement){
+						secondaryBestPaths.emplace_back(path);
+					}
+				}
+				bestPath = secondaryBestPaths.front();
+			}else if(bestPaths.size() == 1){
+				bestPath = bestPaths.front();
+			}else{
+				std::stringstream ss;
+				ss << __FILE__ << ":" << __LINE__ << " - " << __PRETTY_FUNCTION__ << "\n";
+				ss << "Error, bestPaths should contain at least 1 path" << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+
+			//auto bestPath = pathCounter.getBestPath();
+			//if there is just one supporting reads as the best path just do a majority's rule's consensus
+			if(bestPath.count_ > 1){
+				/*if("lib07_Minor.00_seq.0001_54-2_t1" == firstReadName_){
+					std::cout << "lib07_Minor.00_seq.0001_54-2_t1" << std::endl;
+					std::cout << "BestPath " << std::endl;
+					std::cout << bestPath.toJson() << std::endl;
+					std::cout << "All Paths" << std::endl;
+					std::cout << pathCounter.toJson() << std::endl;
+				}*/
+				for(const auto & pb : bestPath.bases_){
+					uint32_t otherCount = 0;
+					auto & counter = counters.at(pb.pos_);
+					for(const auto base : counter.alphabet_){
+						if(base!= pb.base_){
+							otherCount += counter.chars_[base];
+							counter.chars_[base] = 0;
+						}
+					}
+					//add the other's count so this becomes the majority
+					//add qualities as well so that quality doesn't artificially drop
+					double avgQual = counter.qualities_[pb.base_]/static_cast<double>(counter.chars_[pb.base_]);
+					counter.qualities_[pb.base_] += std::round(avgQual * otherCount);
+					counter.chars_[pb.base_] += otherCount;
+					counter.setFractions();
+				}
+			}
+		}
+	}
+
+
 	consensusHelper::genConsensusFromCounters(calcConsensusInfo_, counters, insertions,
 			beginningGap);
+
 	if (setToConsensus) {
 		if (seqBase_.seq_ != calcConsensusInfo_.seq_) {
 			seqBase_.seq_ = calcConsensusInfo_.seq_;
