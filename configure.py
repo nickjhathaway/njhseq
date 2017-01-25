@@ -16,7 +16,7 @@ def main():
             if args.CC and "gcc" in args.CC[0]:
                 pass
             else:
-                libs = libs + ",sharedMutex:release/v0.7"
+                libs = libs + ",sharedMutex:v0.7"
     cmd = genHelper.mkConfigCmd(name, libs, sys.argv)
     
     Utils.run(cmd)
