@@ -84,7 +84,7 @@ public:
 	 * @param inDelim The delimiter per line
 	 * @param header Whether the first line is a header
 	 */
-	table(const std::string &filename, const std::string &inDelim = "whitespace",
+	table(const bfs::path &filename, const std::string &inDelim = "whitespace",
 			bool header = false);
 
 	/**@b Construct with a file with lines separated by new line characters and each line is delimited

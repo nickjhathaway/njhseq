@@ -103,34 +103,21 @@ std::map<std::string, std::pair<std::string, bool>> listFilesInDir(
   }
   return files;
 }
-// check to see if a file exists
-bool fexists(const std::string &filename) {
-  /*boost::filesystem::path p(filename);
-  if(boost::filesystem::exists(p)){
-          std::cout << "exists" << std::endl;
-  }*/
-  std::ifstream ifile(filename.c_str());
-  if (ifile) {
-    return true;
-  } else {
-    return false;
-  }
-}
 
-void openTextFile(std::ofstream &file, std::string filename,
+
+void openTextFile(std::ofstream &file, bfs::path filename,
                   std::string fileExtention, bool overWrite,
                   bool exitOnFailure) {
-  bib::appendAsNeeded(filename, fileExtention);
-  bib::files::openTextFile(file, filename, overWrite, false, exitOnFailure);
+  bib::files::openTextFile(file, filename, fileExtention, overWrite, false, exitOnFailure);
 }
 
-void openTextFile(std::ofstream &file, std::string filename,
+void openTextFile(std::ofstream &file, bfs::path filename,
 		const OutOptions & outOptions){
 	openTextFile(file, filename, outOptions.outExtention_,
 			outOptions.overWriteFile_, outOptions.exitOnFailureToWrite_);
 }
 
-void openTextFile(std::ofstream &file, std::string filename,
+void openTextFile(std::ofstream &file, bfs::path filename,
                   std::string fileExtention, const OutOptions & outOptions){
 	openTextFile(file, filename, fileExtention,
 			outOptions.overWriteFile_, outOptions.exitOnFailureToWrite_);

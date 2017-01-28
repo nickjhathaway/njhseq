@@ -424,7 +424,7 @@ void seqSetUp::processDirectoryOutputName(const std::string& defaultName,
 }
 
 void seqSetUp::processDirectoryOutputName(bool mustMakeDirectory) {
-  std::string seqName = bib::files::getFileName(pars_.ioOptions_.firstName_) + "_" +
+  std::string seqName = bfs::basename(pars_.ioOptions_.firstName_) + "_" +
   		bib::replaceString(commands_.getProgramName(), " ", "-") + "_" + getCurrentDate();
   processDirectoryOutputName(seqName, mustMakeDirectory);
 }
@@ -488,7 +488,7 @@ bool seqSetUp::processSeq(std::string& inputSeq, const std::string& flag,
   bool passed = setOption(inputSeq, flag, parName, required);
   //std::cout <<"1 "<< inputSeq << std::endl;
   std::string originalSeq = inputSeq;
-  if (fexists(inputSeq)) {
+  if (bfs::exists(inputSeq)) {
   	std::ifstream inFile(inputSeq);
 
     inputSeq = bib::files::getFirstLine(inputSeq);

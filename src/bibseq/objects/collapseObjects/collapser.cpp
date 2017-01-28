@@ -450,7 +450,7 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
           bib::files::makeDir(snapShotsDirectoryName, bib::files::MkdirPar(std::to_string(iter.first), false));
       std::vector<cluster> currentClusters =
           readVecSplitter::splitVectorOnRemove(clusters).first;
-      std::string seqName = bib::files::getFileName(ioOpts.firstName_);
+      std::string seqName = bfs::basename(ioOpts.firstName_);
       renameReadNames(currentClusters, seqName, true, false);
       SeqOutput writer(SeqIOOptions(snapShotsDirectoryName + std::to_string(iter.first),
       		ioOpts.outFormat_,ioOpts.out_));
@@ -464,7 +464,7 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
         		currentClusters,
 						snapShotsDirectoryName,
 						std::to_string(iter.first) + ".tab.txt",
-						refOpts.firstName_,
+						refOpts.firstName_.string(),
 						alignerObj, false);
       }
     }

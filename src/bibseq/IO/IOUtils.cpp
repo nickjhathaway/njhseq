@@ -24,7 +24,7 @@ namespace bibseq {
 
 
 bool InOptions::inExists() const{
-	return boost::filesystem::exists(inFilename_);
+	return bfs::exists(inFilename_);
 }
 
 InOptions::InOptions() :
@@ -32,11 +32,11 @@ InOptions::InOptions() :
 
 }
 
-InOptions::InOptions(const std::string & filename) :
+InOptions::InOptions(const bfs::path & filename) :
 		inFilename_(filename), inExtention_(bib::files::bfs::extension(filename)) {
 }
 
-InOptions::InOptions(const std::string & filename,
+InOptions::InOptions(const bfs::path & filename,
 		const std::string & extention, const std::string & format) :
 		inFilename_(filename), inExtention_(extention), inFormat_(format) {
 }
@@ -61,24 +61,24 @@ OutOptions::OutOptions() :
 
 }
 
-OutOptions::OutOptions(const std::string & filename) :
+OutOptions::OutOptions(const bfs::path & filename) :
 		outFilename_(filename), outExtention_(bib::files::bfs::extension(filename)) {
 
 }
 
-OutOptions::OutOptions(const std::string & filename,
+OutOptions::OutOptions(const bfs::path & filename,
 		const std::string & extention) :
 		outFilename_(filename), outExtention_(extention) {
 
 }
 
-OutOptions::OutOptions(const std::string & filename,
+OutOptions::OutOptions(const bfs::path & filename,
 		const std::string & extention, const std::string & format) :
 		outFilename_(filename), outExtention_(extention), outFileFormat_(format) {
 
 }
 
-OutOptions::OutOptions(const std::string & filename,
+OutOptions::OutOptions(const bfs::path & filename,
 		const std::string & extention, const std::string & format, bool append,
 		bool overWriteFile, bool exitOnFailureToWrite) :
 		outFilename_(filename), outExtention_(extention), outFileFormat_(format), append_(
@@ -114,11 +114,8 @@ bool OutOptions::outExists() const {
 }
 
 bfs::path OutOptions::outName() const {
-	return bfs::path(bib::appendAsNeededRet(outFilename_, outExtention_));
+	return bfs::path(bib::appendAsNeededRet(outFilename_.string(), outExtention_));
 }
-
-
-
 
 IoOptions::IoOptions():in_ (InOptions()), out_(OutOptions()){
 
@@ -141,14 +138,14 @@ IoOptions::IoOptions(const Json::Value & val):in_(val.get("in_", "")), out_(val.
 
 
 
-void IoOptions::setInOptions(const std::string & filename, const std::string & extention,
+void IoOptions::setInOptions(const bfs::path & filename, const std::string & extention,
 		const std::string & format) {
 	in_.inFilename_ = filename;
 	in_.inExtention_ = extention;
 	in_.inFormat_ = format;
 }
 
-void IoOptions::setOutOptions(const std::string & filename, const std::string & extention,
+void IoOptions::setOutOptions(const bfs::path & filename, const std::string & extention,
 		const std::string & format) {
 	out_.outFilename_ = filename;
 	out_.outExtention_ = extention;

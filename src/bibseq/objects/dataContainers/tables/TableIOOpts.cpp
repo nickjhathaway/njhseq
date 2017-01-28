@@ -33,7 +33,7 @@ TableIOOpts TableIOOpts::genTabFileOut(const bfs::path & outFilename, bool heade
 }
 
 TableIOOpts TableIOOpts::genTabFileIn(const bfs::path & inFilename, bool header){
-	return TableIOOpts(InOptions(inFilename.string()), "\t", OutOptions("", ".tab.txt", "tab"), "\t", header);
+	return TableIOOpts(InOptions(inFilename), "\t", OutOptions("", ".tab.txt", "tab"), "\t", header);
 }
 
 TableIOOpts TableIOOpts::genCommaFileOut(const bfs::path & outFilename, bool header){
@@ -41,7 +41,7 @@ TableIOOpts TableIOOpts::genCommaFileOut(const bfs::path & outFilename, bool hea
 }
 
 TableIOOpts TableIOOpts::genCommaFileIn(const bfs::path & inFilename, bool header){
-	return TableIOOpts(InOptions(inFilename.string()), ",", OutOptions("", ".csv", "comma"), ",", header);
+	return TableIOOpts(InOptions(inFilename), ",", OutOptions("", ".csv", "comma"), ",", header);
 }
 
 TableIOOpts::TableIOOpts() :

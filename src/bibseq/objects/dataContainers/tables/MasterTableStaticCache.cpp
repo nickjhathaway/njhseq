@@ -30,23 +30,23 @@
 namespace bibseq {
 
 MasterTableStaticCache::MasterTableStaticCache(const TableIOOpts & opts,
-		const std::vector<boost::filesystem::path> & files) :
+		const std::vector<bfs::path> & files) :
 		opts_(opts), files_(files) {
 	bool outOutDated = outUpToDate();
 	if (outOutDated) {
 		loadTabs();
 	} else {
 		masterTab_ = table(
-				bib::appendAsNeededRet(opts_.out_.outFilename_,
+				bib::appendAsNeededRet(opts_.out_.outFilename_.string(),
 						opts_.out_.outExtention_), opts.outDelim_, opts_.hasHeader_);
 	}
 }
 
 bool MasterTableStaticCache::outUpToDate() const {
-	auto outFilename = bib::appendAsNeededRet(opts_.out_.outFilename_,
+	auto outFilename = bib::appendAsNeededRet(opts_.out_.outFilename_.string(),
 			opts_.out_.outExtention_);
 	bool outOutDated = false;
-	if (bib::files::bfs::exists(outFilename)) {
+	if (bfs::exists(outFilename)) {
 		auto outTime = bib::files::last_write_time(outFilename);
 		for (const auto & file : files_.files_) {
 			if (outTime < bib::files::last_write_time(file.fnp_)) {

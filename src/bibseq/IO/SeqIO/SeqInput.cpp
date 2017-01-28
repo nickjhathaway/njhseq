@@ -27,7 +27,7 @@ namespace bibseq {
 
 void SeqInput::buildIndex(const SeqIOOptions & ioOpts) {
 	SeqInput reader(ioOpts);
-	std::string outIndexName = ioOpts.firstName_ + ".idx.gz";
+	bfs::path outIndexName = ioOpts.firstName_.string() + ".idx.gz";
 	seqInfo info;
 	reader.openIn();
 	unsigned long long pos = 0;
@@ -40,7 +40,7 @@ void SeqInput::buildIndex(const SeqIOOptions & ioOpts) {
 }
 
 bool SeqInput::loadIndex() {
-	std::string outIndexName = ioOptions_.firstName_ + ".idx.gz";
+	bfs::path outIndexName = ioOptions_.firstName_.string() + ".idx.gz";
 	bool indexNeedsUpdate = true;
 	if (bib::files::bfs::exists (outIndexName)) {
 		auto indexTime = bib::files::last_write_time(outIndexName);
@@ -126,9 +126,9 @@ void SeqInput::openIn() {
 	}
 	if (!bib::files::bfs::exists(ioOptions_.firstName_)) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": Error file: " << bib::bashCT::boldRed(ioOptions_.firstName_) << " doesn't exist\n";
-		if(ioOptions_.secondName_ != "" && !bib::files::bfs::exists(ioOptions_.secondName_)){
-			ss << "and file: " << bib::bashCT::boldRed(ioOptions_.secondName_) << " doesn't exist\n";
+		ss << __PRETTY_FUNCTION__ << ": Error file: " << bib::bashCT::boldRed(ioOptions_.firstName_.string()) << " doesn't exist\n";
+		if( "" != ioOptions_.secondName_.string() && !bib::files::bfs::exists(ioOptions_.secondName_.string())){
+			ss << "and file: " << bib::bashCT::boldRed(ioOptions_.secondName_.string()) << " doesn't exist\n";
 		}
 		throw std::runtime_error { ss.str() };
 	}
@@ -139,7 +139,7 @@ void SeqInput::openIn() {
 	switch (ioOptions_.inFormat_) {
 		case SeqIOOptions::inFormats::FASTQ:
 		case SeqIOOptions::inFormats::FASTA:
-			priReader_ = std::make_unique<std::ifstream>(ioOptions_.firstName_);
+			priReader_ = std::make_unique<std::ifstream>(ioOptions_.firstName_.string());
 			if (!(*priReader_)) {
 				failedToOpen = true;
 			}
@@ -150,7 +150,7 @@ void SeqInput::openIn() {
 			break;
 		case SeqIOOptions::inFormats::FASTQPAIRED:
 		case SeqIOOptions::inFormats::FASTAQUAL:
-			priReader_ = std::make_unique<std::ifstream>(ioOptions_.firstName_);
+			priReader_ = std::make_unique<std::ifstream>(ioOptions_.firstName_.string());
 			if (!(*priReader_)) {
 				failedToOpen = true;
 			}
@@ -158,7 +158,7 @@ void SeqInput::openIn() {
 			if(0 == bfs::file_size(ioOptions_.firstName_)){
 				firstEmpty = true;
 			}*/
-			secReader_ = std::make_unique<std::ifstream>(ioOptions_.secondName_);
+			secReader_ = std::make_unique<std::ifstream>(ioOptions_.secondName_.string());
 			if (!(*secReader_)) {
 				failedToOpen = true;
 			}
@@ -169,7 +169,7 @@ void SeqInput::openIn() {
 			break;
 		case SeqIOOptions::inFormats::FASTAGZ:
 		case SeqIOOptions::inFormats::FASTQGZ:
-			priGzReader_ = std::make_unique<bib::files::gzTextFileCpp<>>(ioOptions_.firstName_);
+			priGzReader_ = std::make_unique<bib::files::gzTextFileCpp<>>(ioOptions_.firstName_.string());
 			if (!(*priGzReader_)) {
 				failedToOpen = true;
 			}/*
@@ -180,20 +180,20 @@ void SeqInput::openIn() {
 		case SeqIOOptions::inFormats::BAM:
 			bReader_ = std::make_unique<BamTools::BamReader>();
 			aln_ = std::make_unique<BamTools::BamAlignment>();
-			bReader_->Open(ioOptions_.firstName_);
+			bReader_->Open(ioOptions_.firstName_.string());
 			if (!bReader_->IsOpen()) {
 				failedToOpen = true;
 			}
 			break;
 		case SeqIOOptions::inFormats::SFFTXT:
-			priReader_ = std::make_unique<std::ifstream>(ioOptions_.firstName_);
+			priReader_ = std::make_unique<std::ifstream>(ioOptions_.firstName_.string());
 			if (!(*priReader_)) {
 				failedToOpen = true;
 			}
 			sffTxtHeader_ = std::make_unique<VecStr>(readSffTxtHeader(*priReader_));
 			break;
 		case SeqIOOptions::inFormats::SFFBIN:
-			priReader_ = std::make_unique<std::ifstream>(ioOptions_.firstName_,std::ios::binary);
+			priReader_ = std::make_unique<std::ifstream>(ioOptions_.firstName_.string(),std::ios::binary);
 			if (!(*priReader_)) {
 				failedToOpen = true;
 			}
@@ -247,7 +247,7 @@ void SeqInput::closeIn() {
 bool SeqInput::readNextRead(seqInfo & read) {
 	if (!inOpen_) {
 		throw std::runtime_error { "Error in " + std::string(__PRETTY_FUNCTION__)
-				+ ", attempted to read when in file " + ioOptions_.firstName_
+				+ ", attempted to read when in file " + ioOptions_.firstName_.string()
 				+ " hasn't been opened" };
 	}
 	std::stringstream ssFormatCheck;
@@ -299,7 +299,7 @@ bool SeqInput::readNextRead(seqInfo & read) {
 bool SeqInput::readNextRead(PairedRead & seq) {
 	if (!inOpen_) {
 		throw std::runtime_error { "Error in " + std::string(__PRETTY_FUNCTION__)
-				+ ", attempted to read when in file " + ioOptions_.firstName_
+				+ ", attempted to read when in file " + ioOptions_.firstName_.string()
 				+ " hasn't been opened" };
 	}
 

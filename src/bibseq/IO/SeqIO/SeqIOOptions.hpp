@@ -60,12 +60,14 @@ struct SeqIOOptions {
 
   SeqIOOptions();
 
-  SeqIOOptions(const std::string & firstName,
+  SeqIOOptions(const bfs::path & firstName,
   		inFormats inFormat, bool processed);
 
 	SeqIOOptions(const OutOptions & out, outFormats outFormat);
 
-	SeqIOOptions(const std::string & outFilename, outFormats outFormat, const OutOptions & out);
+	SeqIOOptions(const bfs::path & outFilename, outFormats outFormat);
+
+	SeqIOOptions(const bfs::path & outFilename, outFormats outFormat, const OutOptions & out);
 
 	/**@b Create from a json string
    *
@@ -77,8 +79,8 @@ struct SeqIOOptions {
   bool inExists() const;
 	bool outExists() const;
 
-  std::string firstName_;
-  std::string secondName_;
+  bfs::path firstName_;
+  bfs::path secondName_;
   //std::string inFormat_;
   inFormats inFormat_ = inFormats::NOFORMAT;
   outFormats outFormat_ = outFormats::NOFORMAT;
@@ -105,21 +107,23 @@ struct SeqIOOptions {
 
 
 
-  static SeqIOOptions genFastqIn(const std::string & inFilename, bool processed = false);
-  static SeqIOOptions genFastqOut(const std::string & outFilename);
-  static SeqIOOptions genFastqInOut(const std::string & inFilename,
-  		const std::string & outFilename, bool processed = false);
+  static SeqIOOptions genFastqIn(const bfs::path & inFilename, bool processed =
+			false);
+	static SeqIOOptions genFastqOut(const bfs::path & outFilename);
+	static SeqIOOptions genFastqInOut(const bfs::path & inFilename,
+			const bfs::path & outFilename, bool processed = false);
 
-  static SeqIOOptions genFastaIn(const std::string & inFilename, bool processed = false);
-  static SeqIOOptions genFastaOut(const std::string & outFilename);
-  static SeqIOOptions genFastaInOut(const std::string & inFilename,
-  		const std::string & outFilename, bool processed = false);
+	static SeqIOOptions genFastaIn(const bfs::path & inFilename, bool processed =
+			false);
+	static SeqIOOptions genFastaOut(const bfs::path & outFilename);
+	static SeqIOOptions genFastaInOut(const bfs::path & inFilename,
+			const bfs::path & outFilename, bool processed = false);
 
-  /**@b output options as json
-   *
-   * @return options represented in json
-   */
-  Json::Value toJson()const;
+	/**@b output options as json
+	 *
+	 * @return options represented in json
+	 */
+	Json::Value toJson() const;
 };
 
 

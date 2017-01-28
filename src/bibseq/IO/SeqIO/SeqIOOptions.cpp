@@ -30,7 +30,7 @@ bool SeqIOOptions::inExists() const{
 }
 
 bool SeqIOOptions::outExists() const{
-	return bib::files::bfs::exists(bib::appendAsNeededRet(out_.outFilename_, out_.outExtention_));
+	return out_.outExists();
 }
 
 SeqIOOptions::inFormats SeqIOOptions::getInFormat(const std::string & format){
@@ -42,7 +42,7 @@ SeqIOOptions::inFormats SeqIOOptions::getInFormat(const std::string & format){
 		in =  inFormats::FASTQPAIRED;
 	}  else if (format == "fastqgz") {
 		in =  inFormats::FASTQGZ;
-	} else if (format == "fasta") {
+	} else if (format == "fasta" || format == "fa") {
 		in =  inFormats::FASTA;
 	} else if (format == "fastagz") {
 		in =  inFormats::FASTAGZ;
@@ -66,7 +66,7 @@ SeqIOOptions::inFormats SeqIOOptions::getInFormat(const std::string & format){
 
 SeqIOOptions::outFormats SeqIOOptions::getOutFormat(const std::string & format){
 	outFormats out = outFormats::NOFORMAT;
-	if (format == "fasta") {
+	if (format == "fasta" || format == "fa") {
 		out = outFormats::FASTA;
 	} else if (format == "fastq") {
 		out = outFormats::FASTQ;
@@ -243,7 +243,7 @@ std::string SeqIOOptions::getOutFormat(outFormats format){
 	return out;
 }
 
-SeqIOOptions SeqIOOptions::genFastqIn(const std::string & inFilename, bool processed){
+SeqIOOptions SeqIOOptions::genFastqIn(const bfs::path & inFilename, bool processed){
 	SeqIOOptions ret;
 	ret.firstName_ = inFilename;
 	ret.inFormat_ = inFormats::FASTQ;
@@ -252,15 +252,15 @@ SeqIOOptions SeqIOOptions::genFastqIn(const std::string & inFilename, bool proce
 	ret.processed_ = processed;
 	return ret;
 }
-SeqIOOptions SeqIOOptions::genFastqInOut(const std::string & inFilename,
-		const std::string & outFilename, bool processed){
+SeqIOOptions SeqIOOptions::genFastqInOut(const bfs::path & inFilename,
+		const bfs::path & outFilename, bool processed){
 	SeqIOOptions ret = genFastqIn(inFilename);
 	ret.out_.outFilename_ =  outFilename;
 	ret.processed_ = processed;
 	return ret;
 }
 
-SeqIOOptions SeqIOOptions::genFastqOut(const std::string & outFilename){
+SeqIOOptions SeqIOOptions::genFastqOut(const bfs::path & outFilename){
 	SeqIOOptions ret;
 	ret.out_.outFilename_ = outFilename;
 	ret.inFormat_ = inFormats::FASTQ;
@@ -269,7 +269,7 @@ SeqIOOptions SeqIOOptions::genFastqOut(const std::string & outFilename){
 	return ret;
 }
 
-SeqIOOptions SeqIOOptions::genFastaIn(const std::string & inFilename, bool processed){
+SeqIOOptions SeqIOOptions::genFastaIn(const bfs::path & inFilename, bool processed){
 	SeqIOOptions ret;
 	ret.firstName_ = inFilename;
 	ret.inFormat_ = inFormats::FASTA;
@@ -278,15 +278,15 @@ SeqIOOptions SeqIOOptions::genFastaIn(const std::string & inFilename, bool proce
 	ret.processed_ = processed;
 	return ret;
 }
-SeqIOOptions SeqIOOptions::genFastaInOut(const std::string & inFilename,
-		const std::string & outFilename, bool processed){
+SeqIOOptions SeqIOOptions::genFastaInOut(const bfs::path & inFilename,
+		const bfs::path & outFilename, bool processed){
 	SeqIOOptions ret = genFastaIn(inFilename);
 	ret.out_.outFilename_ = outFilename;
 	ret.processed_ = processed;
 	return ret;
 }
 
-SeqIOOptions SeqIOOptions::genFastaOut(const std::string & outFilename){
+SeqIOOptions SeqIOOptions::genFastaOut(const bfs::path & outFilename){
 	SeqIOOptions ret;
 	ret.out_.outFilename_ = outFilename;
 	ret.inFormat_ = inFormats::FASTA;
@@ -330,18 +330,26 @@ Json::Value SeqIOOptions::toJson() const {
 	return ret;
 }
 
-SeqIOOptions::SeqIOOptions(const OutOptions & out, outFormats outFormat): outFormat_(outFormat), out_(out) {
+SeqIOOptions::SeqIOOptions(const OutOptions & out, outFormats outFormat) :
+		outFormat_(outFormat), out_(out) {
 
 }
 
-SeqIOOptions::SeqIOOptions(const std::string & outFilename,
-		outFormats outFormat, const OutOptions & out):outFormat_(outFormat),out_(out) {
+SeqIOOptions::SeqIOOptions(const bfs::path & outFilename, outFormats outFormat) :
+		outFormat_(outFormat), out_(outFilename) {
+
+}
+
+SeqIOOptions::SeqIOOptions(const bfs::path & outFilename, outFormats outFormat,
+		const OutOptions & out) :
+		outFormat_(outFormat), out_(out) {
 	out_.outFilename_ = outFilename;
 }
 
-SeqIOOptions::SeqIOOptions(const std::string & firstName,
-		 inFormats inFormat, bool processed) :
-		firstName_(firstName), inFormat_(inFormat),outFormat_(SeqIOOptions::getOutFormat(inFormat)), processed_(processed) {
+SeqIOOptions::SeqIOOptions(const bfs::path & firstName, inFormats inFormat,
+		bool processed) :
+		firstName_(firstName), inFormat_(inFormat), outFormat_(
+				SeqIOOptions::getOutFormat(inFormat)), processed_(processed) {
 
 }
 

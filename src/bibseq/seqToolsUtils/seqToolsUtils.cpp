@@ -270,7 +270,7 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 			}
 		}
 		table inStatsTab(dir + "/extractionStats.tab.txt", "\t", true);
-		std::string dirName = bib::files::getFileName(dir);
+		std::string dirName = bfs::basename(dir);
 		auto pos = dirName.find(nameDelim);
 		std::string indexName = nameToIndex[dirName.substr(0, pos)];
 		if (count == 0) {
@@ -507,7 +507,7 @@ void setUpSampleDirs(
 		} else {
 			for (auto & targetDirs : sampleDirWithSubDirs) {
 				for (auto & sampDirs : targetDirs.second) {
-					std::string sampDir = bib::files::join(topDir, sampDirs.first);
+					std::string sampDir = bib::files::join(topDir, sampDirs.first).string();
 					if (!bib::files::bfs::exists(sampDir)) {
 						if (verbose) {
 							std::cout << bib::bashCT::bold << "Making Samp Dir: "
@@ -528,7 +528,7 @@ void setUpSampleDirs(
 
 						std::string repDir = bib::files::makeDir(sampDir,
 								bib::files::MkdirPar(rep.first, false)).string();
-						rep.second = bib::files::join(cwd, repDir);
+						rep.second = bib::files::join(cwd, repDir).string();
 					}
 				}
 			}

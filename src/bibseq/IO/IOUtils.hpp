@@ -35,12 +35,12 @@ namespace bibseq {
 class InOptions {
 public:
 	InOptions();
-	InOptions(const std::string & filename);
-	InOptions(const std::string & filename, const std::string & extention,
+	InOptions(const bfs::path & filename);
+	InOptions(const bfs::path & filename, const std::string & extention,
 			const std::string & format);
 	explicit InOptions(const Json::Value & val);
 
-	std::string inFilename_;
+	bfs::path inFilename_;
 	std::string inExtention_;
 	std::string inFormat_;
 
@@ -51,16 +51,16 @@ public:
 class OutOptions {
 public:
 	OutOptions();
-	OutOptions(const std::string & filename);
-	OutOptions(const std::string & filename, const std::string & extention);
-	OutOptions(const std::string & filename, const std::string & extention,
+	OutOptions(const bfs::path & filename);
+	OutOptions(const bfs::path & filename, const std::string & extention);
+	OutOptions(const bfs::path & filename, const std::string & extention,
 			const std::string & format);
-	OutOptions(const std::string & filename, const std::string & extention,
+	OutOptions(const bfs::path & filename, const std::string & extention,
 			const std::string & format, bool append, bool overWriteFile,
 			bool exitOnFailureToWrite);
 	explicit OutOptions(const Json::Value & val);
 
-	std::string outFilename_;
+	bfs::path outFilename_;
 	std::string outExtention_;
 	std::string outFileFormat_;
 
@@ -88,10 +88,10 @@ public:
 
 
 
-	void setInOptions(const std::string & filename, const std::string & extention,
+	void setInOptions(const bfs::path & filename, const std::string & extention,
 			const std::string & format);
 
-	void setOutOptions(const std::string & filename,
+	void setOutOptions(const bfs::path & filename,
 			const std::string & extention, const std::string & format);
 
 	void setWritingOptions(bool append, bool overWriteFile,

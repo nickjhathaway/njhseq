@@ -46,16 +46,14 @@ int getdir(const std::string &dir,
 std::map<std::string, std::pair<std::string, bool>> listFilesInDir(
     const std::string &directoryName, bool recursive);
 
-// check to see if a file exists
-bool fexists(const std::string &filename);
 
 // opening text files
-void openTextFile(std::ofstream &file, std::string filename,
+void openTextFile(std::ofstream &file, bfs::path filename,
 		std::string fileExtention, bool overWrite, bool exitOnFailure);
 void openTextFile(std::ofstream &file, const OutOptions & options);
-void openTextFile(std::ofstream &file, std::string filename,
+void openTextFile(std::ofstream &file, bfs::path filename,
 		const OutOptions & outOptions);
-void openTextFile(std::ofstream &file, std::string filename,
+void openTextFile(std::ofstream &file, bfs::path filename,
 		std::string fileExtention, const OutOptions & outOptions);
 
 // runLog stuff

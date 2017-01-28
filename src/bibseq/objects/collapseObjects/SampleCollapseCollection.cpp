@@ -99,7 +99,7 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
 	auto sampleDir = bib::files::make_path(masterInputDir_, sampleName);
 	auto analysisFiles = bib::files::listAllFiles(sampleDir.string(), true, {
-			std::regex { "^" + inputOptions_.firstName_ + "$" } }, 2);
+			std::regex { "^" + inputOptions_.firstName_.string() + "$" } }, 2);
 
 	std::vector<RepFile> repFiles;
 	for (const auto & af : analysisFiles) {
@@ -354,12 +354,13 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 	//final
 	if(!samp->collapsed_.clusters_.empty()){
 		SeqIOOptions finalOutOpts(
-				bib::files::join(finalDir.string(), sampleName)
+				bib::files::join(finalDir.string(), sampleName).string()
 						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
+
 		SeqOutput::write(samp->collapsed_.clusters_, finalOutOpts);
 		for (const auto & clus : samp->collapsed_.clusters_) {
 			SeqIOOptions clusOutOpts(
-					bib::files::join(finalClustersDir.string(), clus.seqBase_.name_)
+					bib::files::join(finalClustersDir.string(), clus.seqBase_.name_).string()
 							+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
 			clus.writeClusters(clusOutOpts);
 		}
@@ -368,12 +369,12 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 	//excluded
 	if(!samp->excluded_.clusters_.empty()){
 		SeqIOOptions excluddOutOpts(
-				bib::files::join(excludedDir.string(), sampleName)
+				bib::files::join(excludedDir.string(), sampleName).string()
 						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
 		SeqOutput::write(samp->excluded_.clusters_, excluddOutOpts);
 		for (const auto & clus : samp->excluded_.clusters_) {
 			SeqIOOptions clusOutOpts(
-					bib::files::join(excludedClusteredDir.string(), clus.seqBase_.name_)
+					bib::files::join(excludedClusteredDir.string(), clus.seqBase_.name_).string()
 							+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
 			clus.writeClusters(clusOutOpts);
 		}
@@ -544,7 +545,7 @@ void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dum
 		bib::files::makeDir(bib::files::MkdirPar(popDir.string(), true));
 		bib::files::makeDir(bib::files::MkdirPar(popSubClusDir.string(), true));
 		SeqIOOptions popOutOpts(
-				bib::files::join(popDir.string(), "PopSeqs")
+				bib::files::join(popDir.string(), "PopSeqs").string()
 						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
 		SeqOutput::write(popCollapse_->collapsed_.clusters_, popOutOpts);
 		if (!popCollapse_->collapsed_.clusters_.empty()
@@ -565,7 +566,7 @@ void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dum
 		for (const auto & clus : popCollapse_->collapsed_.clusters_) {
 			clus.writeClusters(
 					SeqIOOptions(
-							bib::files::join(popSubClusDir.string(), clus.seqBase_.name_)
+							bib::files::join(popSubClusDir.string(), clus.seqBase_.name_).string()
 									+ inputOptions_.getOutExtension(), inputOptions_.outFormat_));
 			for (const auto & subClus : clus.reads_) {
 				readTotals[subClus->getOwnSampName()] += subClus->seqBase_.cnt_;
@@ -904,8 +905,8 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			for(const auto & popTab : popTabs){
 				auto subGroupDir = bib::files::make_path(mainGroupDir, popTab.first);
 				bib::files::makeDir(bib::files::MkdirPar(subGroupDir.string()));
-				popTab.second.outPutContents(TableIOOpts(OutOptions(bib::files::make_path(subGroupDir,"popFile.tab.txt").string()), "\t", true));
-				sampTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(bib::files::make_path(subGroupDir,"sampFile.tab.txt").string()), "\t", true));
+				popTab.second.outPutContents(TableIOOpts(OutOptions(bib::files::make_path(subGroupDir,"popFile.tab.txt")), "\t", true));
+				sampTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(bib::files::make_path(subGroupDir,"sampFile.tab.txt")), "\t", true));
 				std::ofstream subGroupMetaJsonFile;
 				openTextFile(subGroupMetaJsonFile,
 						bib::files::make_path(subGroupDir, "subGroupNamesData.json").string(),
@@ -920,7 +921,7 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			}
 			outTab = outTab.getUniqueRows();
 			outTab.sortTable("g_GroupName", false);
-			outTab.outPutContents(TableIOOpts(OutOptions(bib::files::make_path(mainGroupDir,"groupInfo.tab.txt").string()), "\t", true));
+			outTab.outPutContents(TableIOOpts(OutOptions(bib::files::make_path(mainGroupDir,"groupInfo.tab.txt")), "\t", true));
 		}
 
 		bool verbose = false;
@@ -1006,7 +1007,7 @@ double SampleCollapseCollection::calculatePIE(const std::set<std::string> & samp
 void SampleCollapseCollection::createCoreJsonFile() const{
 	auto coreJson = toJsonCore();
 	std::ofstream outCoreJsonFile;
-	OutOptions outOpts(bib::files::make_path(masterOutputDir_, "coreInfo.json").string());
+	OutOptions outOpts(bib::files::make_path(masterOutputDir_, "coreInfo.json"));
 	outOpts.overWriteFile_ = true;
 	openTextFile(outCoreJsonFile, outOpts);
 	outCoreJsonFile << coreJson << std::endl;

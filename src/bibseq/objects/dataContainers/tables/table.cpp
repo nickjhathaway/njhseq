@@ -59,7 +59,7 @@ bool table::empty()const{
 
 
 table::table(const TableIOOpts & opts) :
-		table(opts.in_.inFilename_, opts.inDelim_, opts.hasHeader_) {
+		table(opts.in_.inFilename_.string(), opts.inDelim_, opts.hasHeader_) {
 
 }
 
@@ -164,7 +164,7 @@ table::table(std::istream & in, const std::string &inDelim,
 	setColNamePositions();
 }
 
-table::table(const std::string &filename, const std::string &inDelim,
+table::table(const bfs::path &filename, const std::string &inDelim,
              bool header) {
   std::ifstream textFile(filename.c_str());
   if (!textFile) {
