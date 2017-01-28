@@ -480,27 +480,27 @@ void setUpSampleDirs(
 							<< bib::bashCT::purple << topDir + targetDirs.first
 							<< bib::bashCT::reset << std::endl;
 				}
-				std::string targetDir = bib::files::makeDir(topDir,
+				bfs::path targetDir = bib::files::makeDir(topDir,
 						bib::files::MkdirPar(targetDirs.first, false));
 				for (auto & sampDirs : targetDirs.second) {
 					if (verbose) {
 						std::cout << bib::bashCT::bold << "Making Samp Dir: "
-								<< bib::bashCT::green << targetDir + sampDirs.first
+								<< bib::bashCT::green << bib::files::make_path(targetDir,  sampDirs.first)
 								<< bib::bashCT::reset << std::endl;
 					}
 
-					std::string sampDir = bib::files::makeDir(targetDir,
+					bfs::path sampDir = bib::files::makeDir(targetDir,
 							bib::files::MkdirPar(sampDirs.first, false));
 					for (auto & rep : sampDirs.second) {
 						if (verbose) {
 							std::cout << bib::bashCT::bold << "Making Rep Dir: "
-									<< bib::bashCT::blue << sampDir + rep.first
+									<< bib::bashCT::blue <<  bib::files::make_path(sampDir, rep.first)
 									<< bib::bashCT::reset << std::endl;
 						}
 
-						std::string repDir = bib::files::makeDir(sampDir,
+						bfs::path repDir = bib::files::makeDir(sampDir,
 								bib::files::MkdirPar(rep.first, false));
-						rep.second = bib::files::join(cwd, repDir);
+						rep.second = bib::files::make_path(cwd, repDir).string();
 					}
 				}
 			}
@@ -527,7 +527,7 @@ void setUpSampleDirs(
 						}
 
 						std::string repDir = bib::files::makeDir(sampDir,
-								bib::files::MkdirPar(rep.first, false));
+								bib::files::MkdirPar(rep.first, false)).string();
 						rep.second = bib::files::join(cwd, repDir);
 					}
 				}
@@ -539,11 +539,11 @@ void setUpSampleDirs(
 		throw std::runtime_error { ss.str() };
 	}
 	//log the locations
-	std::string indexDir = bib::files::makeDir(mainDirectoryName,
+	bfs::path indexDir = bib::files::makeDir(mainDirectoryName,
 			bib::files::MkdirPar("locationByIndex", false));
 	for (const auto & targetDirs : sampleDirWithSubDirs) {
 		std::ofstream indexFile;
-		openTextFile(indexFile, indexDir + targetDirs.first, ".tab.txt", false,
+		openTextFile(indexFile, bib::files::make_path(indexDir, targetDirs.first).string(), ".tab.txt", false,
 				false);
 		for (const auto & sampDirs : targetDirs.second) {
 			for (auto & rep : sampDirs.second) {

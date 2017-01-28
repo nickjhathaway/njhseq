@@ -418,7 +418,7 @@ void seqSetUp::processDirectoryOutputName(const std::string& defaultName,
     		failed_ = true;
     		addWarning("Directory: " + newDirectoryName  + " already exists, use --overWriteDir to over write it");
     	}
-    	pars_.directoryName_ = bib::files::makeDir("./", bib::files::MkdirPar(defaultName, pars_.overWriteDir_));
+    	pars_.directoryName_ = bib::files::makeDir("./", bib::files::MkdirPar(defaultName, pars_.overWriteDir_)).string();
     }
   }
 }

@@ -934,7 +934,7 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 }
 
 void SampleCollapseCollection::outputRepAgreementInfo() {
-	std::string sampRepInfoDir = bib::files::makeDir(masterOutputDir_.string(),
+	bfs::path sampRepInfoDir = bib::files::makeDir(masterOutputDir_.string(),
 			bib::files::MkdirPar("sampRepAgreementInfo", true));
 	table rmseTab(VecStr { "sampleName", "RMSE" });
 	table repInfoTab(
@@ -956,11 +956,11 @@ void SampleCollapseCollection::outputRepAgreementInfo() {
 	}
 	repInfoTab.outPutContents(
 			TableIOOpts(
-					OutOptions(sampRepInfoDir + "replicatesFractions", ".tab.txt"), "\t",
+					OutOptions(sampRepInfoDir.string() + "replicatesFractions", ".tab.txt"), "\t",
 					repInfoTab.hasHeader_));
 	rmseTab.sortTable("RMSE", true);
 	rmseTab.outPutContents(
-			TableIOOpts(OutOptions(sampRepInfoDir + "RMSE.tab.txt", ".tab.txt"), "\t",
+			TableIOOpts(OutOptions(sampRepInfoDir.string() + "RMSE.tab.txt", ".tab.txt"), "\t",
 					rmseTab.hasHeader_));
 }
 
