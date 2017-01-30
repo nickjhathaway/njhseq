@@ -295,7 +295,7 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 		++count;
 	}
 
-	table outSampleInfo(catenateVectors(VecStr{"Sample"}, mainTableExtractionProfile.columnNames_));
+	table outSampleInfo(concatVecs(VecStr{"Sample"}, mainTableExtractionProfile.columnNames_));
 	for(const auto & samp : sampleDirWithSubDirs){
 		for(const auto & indexMidNames : samp.second){
 			auto addingRow = extractionInfo[indexMidNames.second][indexMidNames.first];
@@ -304,13 +304,13 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 			}
 			addingRow[mainTableExtractionProfile.getColPos("IndexName")] = indexMidNames.second;
 			addingRow[mainTableExtractionProfile.getColPos("name")] = indexMidNames.first;
-			outSampleInfo.content_.emplace_back(catenateVectors(VecStr{samp.first}, addingRow));
+			outSampleInfo.content_.emplace_back(concatVecs(VecStr{samp.first}, addingRow));
 		}
 	}
 
-	auto outSampleColName = catenateVectors(VecStr{"Sample"}, catenateVectors(VecStr{"IndexName"}, oldProfileColNames));
-	auto profileColNames = catenateVectors(VecStr{"IndexName"}, oldProfileColNames);
-	auto statsColName = catenateVectors(VecStr{"IndexName"}, oldStatsColNames);
+	auto outSampleColName = concatVecs(VecStr{"Sample"}, concatVecs(VecStr{"IndexName"}, oldProfileColNames));
+	auto profileColNames = concatVecs(VecStr{"IndexName"}, oldProfileColNames);
+	auto statsColName = concatVecs(VecStr{"IndexName"}, oldStatsColNames);
 
 
 	outSampleInfo = outSampleInfo.getColumns(outSampleColName);
@@ -403,7 +403,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 		++count;
 	}
 
-	table outSampleInfo(catenateVectors(VecStr{"Sample"}, mainTableExtractionProfile.columnNames_));
+	table outSampleInfo(concatVecs(VecStr{"Sample"}, mainTableExtractionProfile.columnNames_));
 	for(const auto & samp : sampleDirWithSubDirs){
 		for(const auto & indexMidNames : samp.second){
 			auto addingRow = extractionInfo[indexMidNames.second][indexMidNames.first];
@@ -412,13 +412,13 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 			}
 			addingRow[mainTableExtractionProfile.getColPos("IndexName")] = indexMidNames.second;
 			addingRow[mainTableExtractionProfile.getColPos("name")] = indexMidNames.first;
-			outSampleInfo.content_.emplace_back(catenateVectors(VecStr{samp.first}, addingRow));
+			outSampleInfo.content_.emplace_back(concatVecs(VecStr{samp.first}, addingRow));
 		}
 	}
 
-	auto outSampleColName = catenateVectors(VecStr{"Sample"}, catenateVectors(VecStr{"IndexName"}, oldProfileColNames));
-	auto profileColNames = catenateVectors(VecStr{"IndexName"}, oldProfileColNames);
-	auto statsColName = catenateVectors(VecStr{"IndexName"}, oldStatsColNames);
+	auto outSampleColName = concatVecs(VecStr{"Sample"}, concatVecs(VecStr{"IndexName"}, oldProfileColNames));
+	auto profileColNames = concatVecs(VecStr{"IndexName"}, oldProfileColNames);
+	auto statsColName = concatVecs(VecStr{"IndexName"}, oldStatsColNames);
 
 
 	outSampleInfo = outSampleInfo.getColumns(outSampleColName);

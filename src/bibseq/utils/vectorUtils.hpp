@@ -271,8 +271,9 @@ void outputVectorOfVectors(const std::vector<std::vector<T>>& vec,
 	}
 }
 
+//catenateVectors
 template<class T>
-const std::vector<T> catenateVectors(const std::vector<T>& vec1,
+const std::vector<T> concatVecs(const std::vector<T>& vec1,
 		const std::vector<T>& vec2) {
 	std::vector<T> ans;
 	ans.reserve(vec1.size() + vec2.size());
