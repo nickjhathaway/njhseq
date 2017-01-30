@@ -119,6 +119,17 @@ class alignCalc {
       }
     }
   }
+
+  template <typename T>
+  static void rearrangeGlobalQueryOnly(T& readB, const typename T::value_type fill,
+                              const alnInfoGlobal& gHolder) {
+    for (const auto& g : gHolder.gapInfos_) {
+      if (!g.gapInA_) {
+      	readB.insert(readB.begin() + g.pos_, g.size_, fill);
+      }
+    }
+  }
+
   template <typename T>
   static void rearrangeLocal(T& readA, T& readB, const typename T::value_type fill,
                              const alnInfoLocal& lHolder) {
