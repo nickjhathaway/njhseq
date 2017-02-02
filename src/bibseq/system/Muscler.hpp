@@ -7,7 +7,7 @@
  */
 
 #include <bibcpp/system.h>
-#include "bibseq/objects/seqObjects/baseObjects/seqInfo.hpp"
+#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
 #include "bibseq/alignment/alnCache/alnInfoGlobal.hpp"
 #include "bibseq/IO/SeqIO/SeqInput.hpp"
 #include "bibseq/alignment/aligner/alignCalc.hpp"
