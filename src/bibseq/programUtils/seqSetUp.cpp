@@ -409,17 +409,21 @@ void seqSetUp::processDirectoryOutputName(const std::string& defaultName,
     	pars_.directoryName_ = newDirectoryName;
     }
   } else {
-    if (mustMakeDirectory && !failed_) {
-      std::string newDirectoryName = "./" +
-      		bib::replaceString(defaultName, "TODAY", getCurrentDate()) +"/";
-    	if(bib::files::bfs::exists(newDirectoryName) && pars_.overWriteDir_){
-    		bib::files::rmDirForce(newDirectoryName);
-    	}else if(bib::files::bfs::exists(newDirectoryName) && !pars_.overWriteDir_){
-    		failed_ = true;
-    		addWarning("Directory: " + newDirectoryName  + " already exists, use --overWriteDir to over write it");
-    	}
-    	pars_.directoryName_ = bib::files::makeDir("./", bib::files::MkdirPar(defaultName, pars_.overWriteDir_)).string();
-    }
+		if (mustMakeDirectory && !failed_) {
+			std::string newDirectoryName = bib::replaceString(defaultName, "TODAY",
+					getCurrentDate()) + "/";
+			if (bib::files::bfs::exists(newDirectoryName) && pars_.overWriteDir_) {
+				bib::files::rmDirForce(newDirectoryName);
+			} else if (bib::files::bfs::exists(newDirectoryName)
+					&& !pars_.overWriteDir_) {
+				failed_ = true;
+				addWarning(
+						"Directory: " + newDirectoryName
+								+ " already exists, use --overWriteDir to over write it");
+			}
+			pars_.directoryName_ = bib::files::makeDir("./",
+					bib::files::MkdirPar(defaultName, pars_.overWriteDir_)).string();
+		}
   }
 }
 

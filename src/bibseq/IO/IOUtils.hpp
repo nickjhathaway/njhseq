@@ -73,6 +73,13 @@ public:
 	bfs::path outName() const;
 
 	Json::Value toJson() const;
+
+	std::shared_ptr<std::ofstream> openFile() const;
+	std::shared_ptr<std::ofstream> openExecutableFile() const;
+
+	void openFile(std::ofstream & out) const;
+	void openExecutableFile(std::ofstream & out) const;
+
 };
 
 class IoOptions {
@@ -96,6 +103,8 @@ public:
 
 	void setWritingOptions(bool append, bool overWriteFile,
 			bool exitOnFailureToWrite);
+
+
 
 	Json::Value toJson() const;
 

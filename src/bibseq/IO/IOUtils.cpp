@@ -96,6 +96,30 @@ OutOptions::OutOptions(const Json::Value & val){
 	append_ = val.get("append_", false).asBool();
 }
 
+
+
+std::shared_ptr<std::ofstream> OutOptions::openFile() const{
+	auto out = std::make_shared<std::ofstream>();
+	openFile(*out);
+	return out;
+}
+
+std::shared_ptr<std::ofstream> OutOptions::openExecutableFile() const{
+	auto out = std::make_shared<std::ofstream>();
+	openExecutableFile(*out);
+	return out;
+}
+
+void OutOptions::openFile(std::ofstream & out) const {
+	bib::files::openTextFile(out, outName(), overWriteFile_, append_,
+			exitOnFailureToWrite_);
+}
+
+void OutOptions::openExecutableFile(std::ofstream & out) const {
+	openFile(out);
+	bib::files::chmod775(outName());
+}
+
 Json::Value OutOptions::toJson() const{
 	Json::Value ret;
 

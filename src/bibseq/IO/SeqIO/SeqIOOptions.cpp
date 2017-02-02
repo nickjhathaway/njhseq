@@ -92,6 +92,59 @@ std::string SeqIOOptions::getOutExtension() const{
 	return getOutExtension(outFormat_);
 }
 
+bfs::path SeqIOOptions::getPriamryOutName() const{
+	return bib::appendAsNeededRet(out_.outFilename_.string(), getOutExtension(outFormat_));
+}
+
+bfs::path SeqIOOptions::getSecondaryOutName() const{
+	return bib::appendAsNeededRet(out_.outFilename_.string(), getOutExtensionSecondary(outFormat_));
+}
+
+
+std::string SeqIOOptions::getOutExtensionSecondary(outFormats format){
+	std::string out = "noformat";
+	std::stringstream ss;
+	switch (format) {
+	case outFormats::FASTQ:
+		ss << __PRETTY_FUNCTION__ << ": error, no secondary out for " << getOutFormat(format)
+						<< std::endl;
+				throw std::runtime_error { ss.str() };
+		break;
+	case outFormats::FASTA:
+		ss << __PRETTY_FUNCTION__ << ": error, no secondary out for " << getOutFormat(format)
+						<< std::endl;
+				throw std::runtime_error { ss.str() };
+		break;
+	case outFormats::FASTAQUAL:
+		out = ".qual";
+		break;
+	case outFormats::FASTQPAIRED:
+		out = "_R2.fastq";
+		break;
+	case outFormats::FLOW:
+		ss << __PRETTY_FUNCTION__ << ": error, no secondary out for " << getOutFormat(format)
+						<< std::endl;
+				throw std::runtime_error { ss.str() };
+		break;
+	case outFormats::FLOWMOTHUR:
+		ss << __PRETTY_FUNCTION__ << ": error, no secondary out for " << getOutFormat(format)
+						<< std::endl;
+				throw std::runtime_error { ss.str() };
+		break;
+	case outFormats::NOFORMAT:
+		ss << "Format set NORMAT in " << __PRETTY_FUNCTION__
+				<< std::endl;
+		throw std::runtime_error { ss.str() };
+		break;
+	default:
+		ss << "Unrecognized out file type or " << ", in " << __PRETTY_FUNCTION__
+				<< std::endl;
+		throw std::runtime_error { ss.str() };
+		break;
+	}
+	return out;
+}
+
 std::string SeqIOOptions::getOutExtension(outFormats format){
 	std::string out = "noformat";
 	std::stringstream ss;
@@ -207,6 +260,43 @@ SeqIOOptions::outFormats SeqIOOptions::getOutFormat(inFormats format){
 	}
 	return out;
 }
+
+SeqIOOptions::inFormats SeqIOOptions::getInFormat(outFormats format){
+	SeqIOOptions::inFormats out = SeqIOOptions::inFormats::NOFORMAT;
+	std::stringstream ss;
+	switch (format) {
+	case outFormats::FASTQ:
+		out = SeqIOOptions::inFormats::FASTQ;
+		break;
+	case outFormats::FASTA:
+		out = SeqIOOptions::inFormats::FASTA;
+		break;
+	case outFormats::FASTAQUAL:
+		out = SeqIOOptions::inFormats::FASTAQUAL;
+		break;
+	case outFormats::FASTQPAIRED:
+		out = SeqIOOptions::inFormats::FASTQPAIRED;
+		break;
+	case outFormats::FLOW:
+		out = SeqIOOptions::inFormats::SFFBIN;
+		break;
+	case outFormats::FLOWMOTHUR:
+		out = SeqIOOptions::inFormats::SFFBIN;
+		break;
+	case outFormats::NOFORMAT:
+		out = SeqIOOptions::inFormats::NOFORMAT;
+		break;
+	default:
+		ss << "Unrecognized out file type : " << ", in " << __PRETTY_FUNCTION__
+				<< std::endl;
+		throw std::runtime_error { ss.str() };
+		break;
+	}
+	return out;
+}
+
+
+
 std::string SeqIOOptions::getOutFormat(outFormats format){
 	std::string out = "noformat";
 	std::stringstream ss;
@@ -230,7 +320,7 @@ std::string SeqIOOptions::getOutFormat(outFormats format){
 		out = "flowMothur";
 		break;
 	case outFormats::NOFORMAT:
-		ss << "Format set NORMAT in " << __PRETTY_FUNCTION__
+		ss << "Format set NOFORMAT in " << __PRETTY_FUNCTION__
 				<< std::endl;
 		throw std::runtime_error { ss.str() };
 		break;
@@ -266,6 +356,16 @@ SeqIOOptions SeqIOOptions::genFastqOut(const bfs::path & outFilename){
 	ret.inFormat_ = inFormats::FASTQ;
 	ret.outFormat_ = outFormats::FASTQ;
 	ret.out_.outExtention_ = ".fastq";
+	return ret;
+}
+
+
+SeqIOOptions SeqIOOptions::genPairedOut(const bfs::path & outFilename){
+	SeqIOOptions ret;
+	ret.out_.outFilename_ = outFilename;
+	ret.inFormat_ = inFormats::FASTQPAIRED;
+	ret.outFormat_ = outFormats::FASTQPAIRED;
+	ret.out_.outExtention_ = "_R1.fastq";
 	return ret;
 }
 
@@ -332,24 +432,26 @@ Json::Value SeqIOOptions::toJson() const {
 
 SeqIOOptions::SeqIOOptions(const OutOptions & out, outFormats outFormat) :
 		outFormat_(outFormat), out_(out) {
-
+	inFormat_ = getInFormat(outFormat);
 }
 
 SeqIOOptions::SeqIOOptions(const bfs::path & outFilename, outFormats outFormat) :
 		outFormat_(outFormat), out_(outFilename) {
-
+	inFormat_ = getInFormat(outFormat);
 }
 
 SeqIOOptions::SeqIOOptions(const bfs::path & outFilename, outFormats outFormat,
 		const OutOptions & out) :
 		outFormat_(outFormat), out_(out) {
 	out_.outFilename_ = outFilename;
+	inFormat_ = getInFormat(outFormat);
 }
 
 SeqIOOptions::SeqIOOptions(const bfs::path & firstName, inFormats inFormat,
 		bool processed) :
 		firstName_(firstName), inFormat_(inFormat), outFormat_(
 				SeqIOOptions::getOutFormat(inFormat)), processed_(processed) {
+
 
 }
 

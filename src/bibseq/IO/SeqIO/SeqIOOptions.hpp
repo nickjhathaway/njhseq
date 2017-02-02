@@ -88,14 +88,19 @@ struct SeqIOOptions {
   static inFormats getInFormat(const std::string & format);
   static outFormats getOutFormat(const std::string & format);
   static outFormats getOutFormat(inFormats format);
+  static inFormats getInFormat(outFormats format);
 
   static std::string getInFormat(inFormats format);
   static std::string getOutFormat(outFormats format);
   static std::string getOutExtension(outFormats format);
+  static std::string getOutExtensionSecondary(outFormats format);
 
   std::string getOutExtension() const;
 
   OutOptions out_;
+
+  bfs::path getPriamryOutName() const;
+  bfs::path getSecondaryOutName() const;
 
   //bool revComplMate_ = false;
 
@@ -118,6 +123,8 @@ struct SeqIOOptions {
 	static SeqIOOptions genFastaOut(const bfs::path & outFilename);
 	static SeqIOOptions genFastaInOut(const bfs::path & inFilename,
 			const bfs::path & outFilename, bool processed = false);
+
+	static SeqIOOptions genPairedOut(const bfs::path & outFilename);
 
 	/**@b output options as json
 	 *
