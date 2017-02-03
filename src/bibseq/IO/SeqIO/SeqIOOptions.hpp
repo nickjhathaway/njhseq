@@ -125,6 +125,7 @@ struct SeqIOOptions {
 			const bfs::path & outFilename, bool processed = false);
 
 	static SeqIOOptions genPairedOut(const bfs::path & outFilename);
+	static SeqIOOptions genPairedIn(const bfs::path & r1reads, const bfs::path & r2reads);
 
 	/**@b output options as json
 	 *

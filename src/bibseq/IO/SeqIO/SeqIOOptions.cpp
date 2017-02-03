@@ -369,6 +369,16 @@ SeqIOOptions SeqIOOptions::genPairedOut(const bfs::path & outFilename){
 	return ret;
 }
 
+SeqIOOptions SeqIOOptions::genPairedIn(const bfs::path & r1reads, const bfs::path & r2reads){
+	SeqIOOptions ret;
+	ret.firstName_ = r1reads;
+	ret.secondName_ = r2reads;
+	ret.inFormat_ = inFormats::FASTQPAIRED;
+	ret.outFormat_ = outFormats::FASTQPAIRED;
+	ret.out_.outExtention_ = "_R1.fastq";
+	return ret;
+}
+
 SeqIOOptions SeqIOOptions::genFastaIn(const bfs::path & inFilename, bool processed){
 	SeqIOOptions ret;
 	ret.firstName_ = inFilename;
