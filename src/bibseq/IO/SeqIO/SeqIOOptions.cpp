@@ -454,6 +454,14 @@ SeqIOOptions::SeqIOOptions(const bfs::path & outFilename, outFormats outFormat,
 		const OutOptions & out) :
 		outFormat_(outFormat), out_(out) {
 	out_.outFilename_ = outFilename;
+	if("" == out_.outExtention_&&
+			outFormat != SeqIOOptions::outFormats::NOFORMAT){
+		out_.outExtention_ = getOutExtension(outFormat_);
+	}else if("" != out_.outExtention_ && !bib::beginsWith(out_.outExtention_,".f") &&
+			(outFormat == SeqIOOptions::outFormats::FASTA || outFormat == SeqIOOptions::outFormats::FASTQ)){
+		out_.outExtention_ = getOutExtension(outFormat_);
+	}
+
 	inFormat_ = getInFormat(outFormat);
 }
 

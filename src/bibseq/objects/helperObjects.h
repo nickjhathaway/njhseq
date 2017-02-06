@@ -36,3 +36,6 @@
 
 
 #include "bibseq/objects/helperObjects/sampInfo.hpp"
+
+#include "bibseq/objects/helperObjects/MetaDataInName.hpp"
+
