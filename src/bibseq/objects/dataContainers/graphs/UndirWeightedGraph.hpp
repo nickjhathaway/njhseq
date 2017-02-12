@@ -341,6 +341,22 @@ public:
 			group_ = std::numeric_limits<uint32_t>::max();
 		}
 
+		void removeOffEdges(){
+			std::vector<uint32_t> toRemove;
+			for(const auto & edgePos : iter::range(edges_.size())){
+				const auto & e = edges_[edgePos];
+				if(!e->on_){
+					toRemove.emplace_back(edgePos);
+				}
+			}
+			if(!toRemove.empty()){
+				std::sort(toRemove.rbegin(), toRemove.rend());
+				for(const auto & remove : toRemove){
+					edges_.erase(edges_.begin() + remove);
+				}
+			}
+		}
+
 	}; // class node
 
 
@@ -349,6 +365,55 @@ public:
 	std::vector<std::shared_ptr<edge>> edges_;
 	std::unordered_map<std::string, uint64_t> nameToNodePos_;
 	uint32_t numberOfGroups_ = 1;
+
+	void resetNodePositionMap(){
+		nameToNodePos_.clear();
+		for(const auto pos : iter::range(nodes_.size())){
+			nameToNodePos_[nodes_[pos]->name_] = pos;
+		}
+	}
+
+	void removeOffNodes(){
+		std::vector<uint32_t> toRemove;
+		for(const auto & nodePos : iter::range(nodes_.size())){
+			const auto & n = nodes_[nodePos];
+			if(!n->on_){
+				for(const auto & edge : n->edges_){
+					//also turn off edges so they can be removed as well
+					edge->on_ = false;
+				}
+				toRemove.emplace_back(nodePos);
+			}
+		}
+		if(!toRemove.empty()){
+			std::sort(toRemove.rbegin(), toRemove.rend());
+			for(const auto & remove : toRemove){
+				nodes_.erase(nodes_.begin() + remove);
+			}
+			removeOffEdges();
+			resetNodePositionMap();
+		}
+	}
+
+	void removeOffEdges(){
+		//remove edges from nodes
+		for(const auto & n : nodes_){
+			n->removeOffEdges();
+		}
+		std::vector<uint32_t> toRemove;
+		for(const auto & edgePos : iter::range(edges_.size())){
+			const auto & e = edges_[edgePos];
+			if(!e->on_){
+				toRemove.emplace_back(edgePos);
+			}
+		}
+		if(!toRemove.empty()){
+			std::sort(toRemove.rbegin(), toRemove.rend());
+			for(const auto & remove : toRemove){
+				edges_.erase(edges_.begin() + remove);
+			}
+		}
+	}
 
 	void addNode(const std::string & uid, const VALUE & value){
 		if(bib::in(uid, nameToNodePos_)){
