@@ -16,8 +16,12 @@ GroupMetaData::GroupMetaData(const std::string & name) :
 
 void GroupMetaData::addSampGroup(const std::string & sample,
 		const std::string & subGroup) {
-	subGroupToSamples_[subGroup].insert(sample);
-	sampleToSubGroup_[sample] = subGroup;
+	std::string insertingGroup = subGroup;
+	if(subGroup == ""){
+		insertingGroup = "NA";
+	}
+	subGroupToSamples_[insertingGroup].insert(sample);
+	sampleToSubGroup_[sample] = insertingGroup;
 }
 
 void GroupMetaData::setSubGroupsLevels() {
