@@ -499,4 +499,48 @@ bool baseCluster::isClusterAtLeastChimericCutOff(double cutOff) {
 	return false;
 }
 
+
+void baseCluster::removeReads(std::vector<uint32_t> readPositions){
+	std::sort(readPositions.rbegin(), readPositions.rend());
+	for(const auto & pos : readPositions){
+		removeRead(pos);
+	}
+}
+
+void baseCluster::removeRead(uint32_t readPos) {
+	if (readPos >= reads_.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error readPos: " << readPos
+				<< " out of range of reads size: " << reads_.size() << "\n";
+		throw std::out_of_range { ss.str() };
+	}
+	seqBase_.cnt_ -= reads_[readPos]->seqBase_.cnt_;
+	if (reads_[readPos]->seqBase_.name_ == firstReadName_) {
+		if (0 != readPos) {
+			firstReadName_ = reads_[0]->seqBase_.name_;
+			firstReadCount_ = reads_[0]->seqBase_.cnt_;
+		} else if (reads_.size() > 1) {
+			firstReadName_ = reads_[1]->seqBase_.name_;
+			firstReadCount_ = reads_[1]->seqBase_.cnt_;
+		}else{
+			firstReadName_ = "";
+		}
+	}
+	reads_.erase(reads_.begin() + readPos);
+	needToCalculateConsensus_ = true;
+	updateName();
+}
+
+
+void baseCluster::removeRead(const std::string & stubName){
+	uint32_t readPos = std::numeric_limits<uint32_t>::max();
+	for(const auto & pos : iter::range(reads_.size())){
+		if(reads_[pos]->getStubName(true) == stubName){
+			readPos = pos;
+			break;
+		}
+	}
+	removeRead(readPos);
+}
+
 }  // namespace bib

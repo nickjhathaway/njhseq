@@ -48,8 +48,9 @@ class cluster : public baseCluster {
 
   void addRead(const cluster &read);
 
-  void removeRead(const std::string &stubName);
-  void removeReads(const std::vector<readObject> &vec);
+
+
+
   bool rejected_;
 
   //std::mutex mtx_;
@@ -144,6 +145,15 @@ class cluster : public baseCluster {
                              << vectorMedianCopy(sv.second.second) << std::endl;
     }
   }
+
+	struct snpBreakoutPars {
+		uint32_t minSnps = 1;
+		double snpFreqCutOff = 0.01;
+		uint32_t hardCutOff = 3;
+		QualScorePars qScorePars;
+	};
+  std::vector<cluster> breakoutClustersBasedOnSnps(aligner & alignerObj, const snpBreakoutPars& pars );
+
 	using size_type = baseReadObject::size_type;
 };
 
