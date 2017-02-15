@@ -14,6 +14,9 @@
 namespace bibseq {
 
 
+
+
+
 template<typename DIST>
 class readDistGraph : public njhUndirWeightedGraph<DIST, std::shared_ptr<seqInfo>>{
 public:
@@ -68,6 +71,18 @@ public:
 	  				distances[pos][subPos]);
 	  	}
 	  }
+	}
+
+	/**@brief  Construct with just a vector of reads for edges to be added latter
+	 *
+	 * @param reads the seqsuences to construct with
+	 */
+	template<typename T>
+	readDistGraph(const std::vector<T> & reads) {
+		for (const auto & pos : iter::range(reads.size())) {
+			this->addNode(getSeqBase(reads[pos]).name_,
+					std::make_shared<seqInfo>(getSeqBase(reads[pos])));
+		}
 	}
 
 	template<typename T, typename... Args>

@@ -30,8 +30,6 @@
 
 
 namespace bibseq {
-
-
 /**@brief
  *
  * @todo need to go through and make sure checks for if edges and nodes are on for all functions
@@ -92,7 +90,7 @@ public:
 
 		node(const std::string & name,
 				const VALUE & value):name_(name), value_(value),
-				on_(true), visited_(false){
+				on_(true), visited_(false), corePoint_(false){
 
 		}
 		std::string name_;
@@ -100,6 +98,7 @@ public:
 		std::vector<std::shared_ptr<edge>> edges_;
 		bool on_;
 		bool visited_;
+		bool corePoint_;
 		uint32_t visitedAmount_ = 0;
 		uint32_t group_ = std::numeric_limits<uint32_t>::max();
 
@@ -227,15 +226,20 @@ public:
 			auto neighbors = getNeighborsEps(pars.eps_);
 			//based off the r implementation i think the origin point counts in the neighbor counts
 			if (neighbors.size() + 1 >= pars.minEpNeighbors_) {
+				corePoint_ = true;
 				for (auto & neigh : neighbors) {
-					neigh->on_ = true;
+
 					auto next = neigh->nodeToNode_[name_].lock();
 					if(std::numeric_limits<uint32_t>::max() == next->group_){
+						neigh->on_ = true;
 						next->group_ = currentGroup;
 						next->on_ = true;
 						if(!next->visited_){
 							next->dbscanSpread(currentGroup, pars);
 						}
+					}else if(group_ == next->group_){
+						//can turn on edges that connect same gorup
+						neigh->on_ = true;
 					}
 				}
 			}
@@ -245,23 +249,26 @@ public:
 			//should never have already been visited, maybe throw if it has?
 			visited_ = true;
 			++visitedAmount_;
-			std::vector<std::shared_ptr<edge>> neighbors;
-			for (auto & e : edges_) {
-				if (e->dist_ <= pars.eps_) {
-					neighbors.push_back(e);
-				}
-			}
+			auto neighbors = getNeighborsEps(pars.eps_);
 			//based off the r implementation i think the origin point counts in the neighbor counts
 			if (neighbors.size() + 1 >= pars.minEpNeighbors_) {
 				group_ = currentGroup;
 				on_ = true;
+				corePoint_ = true;
 				for (auto & neigh : neighbors) {
-					neigh->on_ = true;
+					//if neighbor is unassigned add
 					auto next = neigh->nodeToNode_[name_].lock();
-					next->group_ = currentGroup;
-					next->on_ = true;
-					if (!next->visited_) {
-						next->dbscanSpread(currentGroup, pars);
+					if(std::numeric_limits<uint32_t>::max() == next->group_){
+						neigh->on_ = true;
+
+						next->group_ = currentGroup;
+						next->on_ = true;
+						if (!next->visited_) {
+							next->dbscanSpread(currentGroup, pars);
+						}
+					}else if(group_ == next->group_){
+						//can turn on edges that connect same gorup
+						neigh->on_ = true;
 					}
 				}
 			} else {
@@ -271,9 +278,18 @@ public:
 		}
 
 		void determineHighestDistance(bool doTies){
-			if(!edges_.empty()){
+			if(!edges_.empty() && numConnections()> 0){
 				DIST best = edges_.front()->dist_;
-				std::vector<uint64_t> bestIndex = {std::numeric_limits<uint64_t>::max()};
+				std::vector<uint64_t> bestIndex = {0};
+				for(const auto & ePos : iter::range(edges_.size())){
+					const auto & e = edges_[ePos];
+					if(e->on_){
+						best = e->dist_;
+						bestIndex.clear();
+						bestIndex.emplace_back(ePos);
+						break;
+					}
+				}
 				for(const auto & e : iter::enumerate(edges_)){
 					if(e.element->on_){
 						if(e.element->dist_ > best){
@@ -285,22 +301,29 @@ public:
 						}
 					}
 				}
-				if(bestIndex.front() != std::numeric_limits<uint64_t>::max()){
-					if(doTies){
-						for(const auto & b : bestIndex){
-							edges_[b]->best_ = true;
-						}
-					}else{
-						edges_[bestIndex.front()]->best_ = true;
+				if(doTies){
+					for(const auto & b : bestIndex){
+						edges_[b]->best_ = true;
 					}
+				}else{
+					edges_[bestIndex.front()]->best_ = true;
 				}
 			}
 		}
 
 		void determineLowestDistance(bool doTies){
-			if(!edges_.empty()){
+			if(!edges_.empty() && numConnections()> 0){
 				DIST best = edges_.front()->dist_;
-				std::vector<uint64_t> bestIndex = {std::numeric_limits<uint64_t>::max()};
+				std::vector<uint64_t> bestIndex = {0};
+				for(const auto & ePos : iter::range(edges_.size())){
+					const auto & e = edges_[ePos];
+					if(e->on_){
+						best = e->dist_;
+						bestIndex.clear();
+						bestIndex.emplace_back(ePos);
+						break;
+					}
+				}
 				for(const auto & e : iter::enumerate(edges_)){
 					if(e.element->on_){
 						if(e.element->dist_ < best){
@@ -312,14 +335,12 @@ public:
 						}
 					}
 				}
-				if(bestIndex.front() != std::numeric_limits<uint64_t>::max()){
-					if(doTies){
-						for(const auto & b : bestIndex){
-							edges_[b]->best_ = true;
-						}
-					}else{
-						edges_[bestIndex.front()]->best_ = true;
+				if(doTies){
+					for(const auto & b : bestIndex){
+						edges_[b]->best_ = true;
 					}
+				}else{
+					edges_[bestIndex.front()]->best_ = true;
 				}
 			}
 		}
@@ -342,19 +363,9 @@ public:
 		}
 
 		void removeOffEdges(){
-			std::vector<uint32_t> toRemove;
-			for(const auto & edgePos : iter::range(edges_.size())){
-				const auto & e = edges_[edgePos];
-				if(!e->on_){
-					toRemove.emplace_back(edgePos);
-				}
-			}
-			if(!toRemove.empty()){
-				std::sort(toRemove.rbegin(), toRemove.rend());
-				for(const auto & remove : toRemove){
-					edges_.erase(edges_.begin() + remove);
-				}
-			}
+			edges_.erase(std::remove_if(edges_.begin(), edges_.end(), [](const std::shared_ptr<edge> & e){
+				return !e->on_;
+			}),edges_.end());
 		}
 
 	}; // class node
@@ -396,23 +407,13 @@ public:
 	}
 
 	void removeOffEdges(){
-		//remove edges from nodes
 		for(const auto & n : nodes_){
 			n->removeOffEdges();
 		}
-		std::vector<uint32_t> toRemove;
-		for(const auto & edgePos : iter::range(edges_.size())){
-			const auto & e = edges_[edgePos];
-			if(!e->on_){
-				toRemove.emplace_back(edgePos);
-			}
-		}
-		if(!toRemove.empty()){
-			std::sort(toRemove.rbegin(), toRemove.rend());
-			for(const auto & remove : toRemove){
-				edges_.erase(edges_.begin() + remove);
-			}
-		}
+
+		edges_.erase(std::remove_if(edges_.begin(), edges_.end(), [](const std::shared_ptr<edge> & e){
+			return !e->on_;
+		}), edges_.end());
 	}
 
 	void addNode(const std::string & uid, const VALUE & value){
@@ -544,6 +545,7 @@ public:
 			}
 		}
 	}
+
 	template<typename COMP>
 	void turnOffEdgesWithComp(const DIST & cutOff, COMP comp) {
 		for (const auto & c : edges_) {
@@ -656,6 +658,8 @@ public:
 	}
 
 	void dbscan(const dbscanPars & pars) {
+		//std::cout << __FILE__ << " : " << __LINE__ << " : " << __PRETTY_FUNCTION__ << std::endl;
+
 		//reset node's visited and group values
 		this->resetAllNodes();
 		//turn off whole graph
@@ -666,11 +670,21 @@ public:
 		for (auto & n : nodes_) {
 			//if the node has not be visited by an expand or spread try to expand it
 			if (!n->visited_) {
+				//std::cout << n->value_->name_ << std::endl;
 				n->dbscanExpand(numberOfGroups_, pars);
 				//if it was assigned a group and expanded, increase group number
 				if (std::numeric_limits<uint32_t>::max() != n->group_) {
 					++numberOfGroups_;
 				}
+			}
+		}
+	}
+
+	void assignNoiseNodesAGroup() {
+		for (auto & n : nodes_) {
+			if (std::numeric_limits<uint32_t>::max() == n->group_) {
+				n->group_ = numberOfGroups_;
+				++numberOfGroups_;
 			}
 		}
 	}
@@ -785,6 +799,7 @@ public:
 		  	//std::cout << n->name_ << " : " << n->group_  << " : " << n->value_ << std::endl;
 		  	nodes[nCount]["name"] = bib::json::toJson(n->name_);
 		  	nodes[nCount]["group"] = bib::json::toJson(n->group_);
+		  	nodes[nCount]["corePoint"] = bib::json::toJson(n->corePoint_);
 		  	if(nameToColor.empty()){
 		  		nodes[nCount]["color"] = bib::json::toJson(groupColors[n->group_].getHexStr());
 		  	}else{
@@ -837,8 +852,6 @@ public:
 		return toJson(groupSizeCutOff);
 	}
 }; //class njhUndirWeightedGraph
-
-
 
 
 
