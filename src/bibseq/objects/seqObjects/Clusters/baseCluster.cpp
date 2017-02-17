@@ -131,7 +131,39 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 				importantPositions.emplace_back(counter.first);
 			}
 		}
+		/* for debugging
+		if(seqBase_.name_ == "lib03_Pf3D7-AMA1-var0_seq.0001_2" ||
+				firstReadName_ == "lib03_Pf3D7-AMA1-var0_seq.0001_2"){
+			std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
+			std::cout << seqBase_.name_ << std::endl;
+			std::cout << "countAbovepCutOff: " << countAbovepCutOff << std::endl;
+			bfs::path counterFnp = firstReadName_ + "_baseCounts.tab.txt";
+			counterFnp = bib::files::findNonexitantFile(counterFnp.string());
+			std::ofstream outFile(counterFnp.string());
 
+			outFile << "pos\tbase\tcount\tfrac" << "\n";
+			for (const auto & counter : counters) {
+				for (const auto base : counter.second.alphabet_) {
+					outFile << counter.first << "\t" << base << "\t"
+							<< counter.second.chars_[base] << "\t"
+							<< counter.second.fractions_[base] << "\n";
+				}
+			}
+			bfs::path insert_counterFnp = firstReadName_ + "_insertBaseCounts.tab.txt";
+			insert_counterFnp = bib::files::findNonexitantFile(insert_counterFnp.string());
+			std::ofstream outInsertFile(insert_counterFnp.string());
+			outFile << "pos\tinsertPos\tbase\tcount\tfrac" << "\n";
+			for (const auto & insert : insertions) {
+				for (const auto & counter : insert.second) {
+					for (const auto base : counter.second.alphabet_) {
+						outInsertFile << insert.first << "\t"
+								<< counter.first << "\t" << base << "\t"
+								<< counter.second.chars_[base] << "\t"
+								<< counter.second.fractions_[base] << "\n";
+					}
+				}
+			}
+		}*/
 		//if there are several points of contention
 		if(countAbovepCutOff >= 2){
 

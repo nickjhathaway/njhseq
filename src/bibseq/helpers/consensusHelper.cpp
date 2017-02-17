@@ -53,10 +53,8 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 		char bestBase = ' ';
 		// if there is an insertion look at those if there is a majority of reads
 		// with that insertion
-
 		auto search = insertions.find(count.first);
 		if (search != insertions.end()) {
-
 			for (auto & counterInsert : search->second) {
 				bestQuality = 0;
 				bestBase = ' ';
@@ -70,7 +68,6 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 				}
 			}
 		}
-
 		count.second.getBest(bestBase, bestQuality);
 		if (bestBase == '-' || count.second.getTotalCount() < fortyPercent) {
 			continue;
