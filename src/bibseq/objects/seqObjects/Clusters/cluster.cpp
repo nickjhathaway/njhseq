@@ -114,7 +114,58 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 			}
 		}
 	}
-
+	std::unordered_map<uint32_t, std::unordered_map<char, uint32_t>> mismatchesAboveCutOff;
+		for (const auto & position : mismatches) {
+			for (const auto & base : position.second) {
+				if (base.second > pars.hardCutOff) {
+					mismatchesAboveCutOff[position.first][base.first] = base.second;
+				}
+			}
+		}
+		if (!mismatchesAboveCutOff.empty()) {
+			std::unordered_map<std::string, std::vector<uint32_t>> readsSnpUids;
+			for (const auto & subReadPos : iter::range(
+					reads_.size())) {
+				const auto & subRead = reads_[subReadPos];
+				alignerObj.alignCache(*this, subRead, false);
+				//count gaps and mismatches and get identity
+				alignerObj.profilePrimerAlignment(*this, subRead);
+				std::stringstream ss;
+				uint32_t snpCount = 0;
+				double freqSum = 0;
+				for (const auto & m : alignerObj.comp_.distances_.mismatches_) {
+					if (bib::in(m.second.seqBase,
+							mismatchesAboveCutOff[m.second.refBasePos])) {
+						++snpCount;
+						freqSum +=  mismatchesAboveCutOff[m.second.refBasePos][m.second.seqBase]/seqBase_.cnt_;
+						ss << m.second.refBasePos << ":" << m.second.seqBase << ";";
+					}
+				}
+				std::string snpProfileUid = ss.str();
+				if ("" != snpProfileUid &&
+						snpCount >= pars.minSnps &&
+						freqSum >= pars.snpFreqCutOff) {
+					readsSnpUids[snpProfileUid].emplace_back(subReadPos);
+				}
+			}
+			std::vector<uint32_t> readsToErase;
+			for (const auto & readsWithSnpUid : readsSnpUids) {
+				if (readsWithSnpUid.second.size() > pars.hardCutOff) {
+					//std::cout << readsWithSnpUid.first << " " << readsWithSnpUid.second.size() << std::endl;
+					std::vector<std::shared_ptr<readObject>> splitSeqs;
+					for(const auto & pos : readsWithSnpUid.second){
+						splitSeqs.push_back(reads_[pos]);
+						readsToErase.emplace_back(pos);
+					}
+					readVecSorter::sort(splitSeqs);
+					ret.emplace_back(getConsensus(splitSeqs, alignerObj, splitSeqs.front()->seqBase_.name_));
+				}
+			}
+			if(!readsToErase.empty()){
+				removeReads(readsToErase);
+			}
+		}
+	/*
 	std::unordered_map<uint32_t, std::vector<char>> mismatchesAboveCutOff;
 	for (const auto & position : mismatches) {
 		for (const auto & base : position.second) {
@@ -134,6 +185,7 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 			alignerObj.profilePrimerAlignment(*this, subRead);
 			std::stringstream ss;
 			uint32_t snpCount = 0;
+			double freqSum = 0;
 			for (const auto & m : alignerObj.comp_.distances_.mismatches_) {
 				if (bib::in(m.second.seqBase,
 						mismatchesAboveCutOff[m.second.refBasePos])) {
@@ -163,7 +215,7 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 		if(!readsToErase.empty()){
 			removeReads(readsToErase);
 		}
-	}
+	}*/
 	return ret;
 }
 
