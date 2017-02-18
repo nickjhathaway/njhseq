@@ -110,6 +110,11 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 
 	//if the count is just 2 then just a majority rules consensus
 	if(seqBase_.cnt_ > 2){
+		/*//for debugging
+		bool print = false;
+		if(bib::containsSubString(seqBase_.name_, "lib1_Minor.00_seq.0001_5")){
+			print = true;
+		}*/
 
 		//find out if there are several locations with larger contention of majority rules
 		//consensus and therefore could lead to bad consensus building
@@ -131,9 +136,8 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 				importantPositions.emplace_back(counter.first);
 			}
 		}
-		/* for debugging
-		if(seqBase_.name_ == "lib03_Pf3D7-AMA1-var0_seq.0001_2" ||
-				firstReadName_ == "lib03_Pf3D7-AMA1-var0_seq.0001_2"){
+		//for debugging
+		/*if(print){
 			std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 			std::cout << seqBase_.name_ << std::endl;
 			std::cout << "countAbovepCutOff: " << countAbovepCutOff << std::endl;
@@ -166,9 +170,12 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 		}*/
 		//if there are several points of contention
 		if(countAbovepCutOff >= 2){
-
 			//for debugging;
 			/*
+			if(print){
+				std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
+			}
+
 			std::ofstream outFile(firstReadName_ + "_baseCounts.tab.txt");
 			outFile << "pos\tbase\tcount\tfrac" << "\n";
 			for(const auto & counter : counters){
@@ -210,13 +217,17 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 
 				//pathCounter.addConPath(currentPath);
 			}
+			//for debugging;
 			/*
-			std::ofstream outPathFile(firstReadName_ + "_basePaths.tab.txt");
-			outPathFile << "Name: " << seqBase_.name_ << std::endl;
-			outPathFile << "cnt: " << seqBase_.cnt_ << std::endl;
-			outPathFile << "frac: " << seqBase_.frac_ << std::endl;
-			graph.writePaths(outPathFile);
-			*/
+			if(print){
+				std::ofstream outPathFile(firstReadName_ + "_basePaths.tab.txt");
+				outPathFile << "Name: " << seqBase_.name_ << std::endl;
+				outPathFile << "cnt: " << seqBase_.cnt_ << std::endl;
+				outPathFile << "frac: " << seqBase_.frac_ << std::endl;
+				graph.writePaths(outPathFile);
+			}*/
+
+
 			auto paths = graph.getPaths();
 			std::vector<ConBasePathGraph::ConPath> bestPaths;
 			double bestCount = 0;

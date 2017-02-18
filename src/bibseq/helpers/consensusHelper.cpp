@@ -32,6 +32,12 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 
 	info.seq_.clear();
 	info.qual_.clear();
+	//for debugging;
+	/*
+	bool print = false;
+	if(bib::containsSubString(info.name_, "lib1_Minor.00_seq.0001_5")){
+		print = true;
+	}*/
 	// first deal with any gaps in the beginning
 	double fortyPercent = 0.40 * info.cnt_;
 	for (const auto & bCount : beginningGap) {
@@ -69,6 +75,16 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 			}
 		}
 		count.second.getBest(bestBase, bestQuality);
+		//for debugging;
+		/*
+		if(print && count.first == 1472){
+			std::cout << __FILE__ << "  " << __LINE__ << "  " << __PRETTY_FUNCTION__ << std::endl;
+			std::cout << info.name_ << std::endl;
+			std::cout << "bestBase " << bestBase << std::endl;
+			std::cout << "bestQuality " << bestQuality << std::endl;
+			std::cout << "count.second.getTotalCount() " << count.second.getTotalCount() << std::endl;
+			std::cout << "fortyPercent " << fortyPercent << std::endl;
+		}*/
 		if (bestBase == '-' || count.second.getTotalCount() < fortyPercent) {
 			continue;
 		}

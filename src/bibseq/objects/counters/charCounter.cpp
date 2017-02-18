@@ -123,7 +123,8 @@ void charCounter::getBest(char &letter, uint32_t &quality) const {
 			quality-=(totalCount - chars_[letter]);
 		}
 	} else {
-		quality = qualities_[letter] / totalCount;
+		//quality = qualities_[letter] / totalCount;
+		quality = qualities_[letter] /  chars_[letter];
 	}
 }
 
