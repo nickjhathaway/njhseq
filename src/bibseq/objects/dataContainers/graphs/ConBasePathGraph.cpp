@@ -223,8 +223,8 @@ std::vector<ConBasePathGraph::ConPath> ConBasePathGraph::getPaths() const {
 	/**@todo add way to check if there are any cycles or no headless nodes */
 	for (const auto & n : nodes_) {
 		if (n.second->headless()) {
-			std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
-			std::cout << n.second->val_.toJson() << std::endl;
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
+			//std::cout << n.second->val_.toJson() << std::endl;
 			n.second->addToPath(ret, ConPath{0});
 		}
 	}
