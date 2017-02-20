@@ -80,6 +80,15 @@ void seqInfo::updateName() {
 	name_ += "_t" + estd::to_string(cnt_);
 }
 
+
+Json::Value seqInfo::toJsonJustInfo() const {
+	Json::Value ret;
+	ret["cnt"] = bib::json::toJson(cnt_);
+	ret["frac"] = bib::json::toJson(frac_);
+	ret["name"] = bib::json::toJson(name_);
+	ret["on"] = bib::json::toJson(on_);
+	return ret;
+}
 Json::Value seqInfo::toJson() const {
 	Json::Value ret;
 	ret["seq"] = bib::json::toJson(seq_);

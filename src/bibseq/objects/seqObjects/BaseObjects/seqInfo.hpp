@@ -114,15 +114,16 @@ struct seqInfo {
   void reverseHRunsQuals();
   //comparison
   bool degenCompare(const seqInfo & otherInfo,
-  		const substituteMatrix & compareScores)const;
-  // output
-  void outPutFastq(std::ostream& fastqFile) const;
-  void outPutSeq(std::ostream& fastaFile) const;
-  void outPutSeqAnsi(std::ostream& fastaFile) const;
-  void outPutQual(std::ostream& qualFile) const;
-  // description
-  Json::Value toJson()const;
-  const static std::unordered_map<char, uint32_t> ansiBaseColor;
+			const substituteMatrix & compareScores) const;
+	// output
+	void outPutFastq(std::ostream& fastqFile) const;
+	void outPutSeq(std::ostream& fastaFile) const;
+	void outPutSeqAnsi(std::ostream& fastaFile) const;
+	void outPutQual(std::ostream& qualFile) const;
+	// description
+	Json::Value toJson() const;
+	Json::Value toJsonJustInfo() const;
+	const static std::unordered_map<char, uint32_t> ansiBaseColor;
 
   std::string getStubName(bool removeChiFlag) const;
   void setName(const std::string& newName);
