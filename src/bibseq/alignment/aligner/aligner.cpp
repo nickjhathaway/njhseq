@@ -961,20 +961,20 @@ bool aligner::checkForTandemRepeatGap() {
          ++gapIter) {
       if (gapIter->second.size_ >= 3) {
         std::string search;
-        std::vector<tandemRepeat> gapTand =
+        std::vector<TandemRepeat> gapTand =
             findTandemRepeatsInSequence(gapIter->second.gapedSequence_);
         if (gapTand.empty()) {
           search = gapIter->second.gapedSequence_;
         } else {
-          search = gapTand[0].repeat;
+          search = gapTand[0].repeat_;
         }
         bool gapWithinTandem = false;
         if (alignObjectA_.seqBase_.seq_[gapIter->second.startPos_] == '-') {
-          tandemRepeat secondTandems = findTandemRepeatOfStrInSequence(
+          TandemRepeat secondTandems = findTandemRepeatOfStrInSequence(
               alignObjectB_.seqBase_.seq_, search);
-          if ((int)gapIter->second.startPos_ >= secondTandems.startPos &&
+          if ((int)gapIter->second.startPos_ >= secondTandems.startPos_ &&
               (int)gapIter->second.startPos_ + (int)gapIter->second.size_ - 1 <=
-                  secondTandems.stopPos) {
+                  secondTandems.stopPos_) {
             gapWithinTandem = true;
           }
           if (gapWithinTandem) {
@@ -982,11 +982,11 @@ bool aligner::checkForTandemRepeatGap() {
           }
         } else if (alignObjectB_.seqBase_.seq_[gapIter->second.startPos_] ==
                    '-') {
-          tandemRepeat secondTandems = findTandemRepeatOfStrInSequence(
+          TandemRepeat secondTandems = findTandemRepeatOfStrInSequence(
               alignObjectA_.seqBase_.seq_, search);
-          if ((int)gapIter->second.startPos_ >= secondTandems.startPos &&
+          if ((int)gapIter->second.startPos_ >= secondTandems.startPos_ &&
               (int)gapIter->second.startPos_ + (int)gapIter->second.size_ - 1 <=
-                  secondTandems.stopPos) {
+                  secondTandems.stopPos_) {
             gapWithinTandem = true;
           }
           if (gapWithinTandem) {
@@ -1002,12 +1002,12 @@ bool aligner::checkForTandemRepeatGap() {
   return check;
 }
 
-std::vector<tandemRepeat> aligner::findTandemRepeatsInSequence(
+std::vector<TandemRepeat> aligner::findTandemRepeatsInSequence(
     const std::string& str, int match, int mismatch, int gap,
     int minimumAlignScore) {
   uint32_t sizeChecker = 2;
-  std::vector<tandemRepeat> repeats;
-  std::vector<tandemRepeat>::iterator repIter;
+  std::vector<TandemRepeat> repeats;
+  std::vector<TandemRepeat>::iterator repIter;
   bool foundTandem = false;
   int startPos = 0;
   int pos = 0;
@@ -1054,15 +1054,15 @@ std::vector<tandemRepeat> aligner::findTandemRepeatsInSequence(
         stopPos = pos + sizeChecker - 1;
         bool alreadySmallerRepeat = false;
         for (repIter = repeats.begin(); repIter != repeats.end(); ++repIter) {
-          tandemRepeat tempRep =
-              findTandemRepeatOfStrInSequence(tandem, repIter->repeat);
-          if (tempRep.numberOfRepeats != 0) {
+          TandemRepeat tempRep =
+              findTandemRepeatOfStrInSequence(tandem, repIter->repeat_);
+          if (tempRep.numberOfRepeats_ != 0) {
             alreadySmallerRepeat = true;
             break;
           }
         }
         if (!alreadySmallerRepeat) {
-          repeats.push_back(tandemRepeat(tandem, numberOfRepeats, alignScore,
+          repeats.push_back(TandemRepeat(tandem, numberOfRepeats, alignScore,
                                          startPos, stopPos));
         }
         pos = stopPos;
@@ -1075,7 +1075,7 @@ std::vector<tandemRepeat> aligner::findTandemRepeatsInSequence(
   return repeats;
 }
 
-tandemRepeat aligner::findTandemRepeatOfStrInSequence(std::string str,
+TandemRepeat aligner::findTandemRepeatOfStrInSequence(std::string str,
                                                       std::string tandem,
                                                       int match, int mismatch,
                                                       int gap,
@@ -1122,14 +1122,14 @@ tandemRepeat aligner::findTandemRepeatOfStrInSequence(std::string str,
     ++pos;
   }
   if (!foundTandem) {
-    return (tandemRepeat("", numberOfRepeats, alignScore, 0, 0));
+    return (TandemRepeat("", numberOfRepeats, alignScore, 0, 0));
   } else {
     return (
-        tandemRepeat(tandem, numberOfRepeats, alignScore, startPos, stopPos));
+        TandemRepeat(tandem, numberOfRepeats, alignScore, startPos, stopPos));
   }
 }
 
-tandemRepeat aligner::findTandemRepeatOfStrInSequenceDegen(
+TandemRepeat aligner::findTandemRepeatOfStrInSequenceDegen(
     std::string str, std::string tandem, int match, int mismatch, int gap,
     int minimumAlignScore) {
   size_t sizeChecker = tandem.size();
@@ -1174,10 +1174,10 @@ tandemRepeat aligner::findTandemRepeatOfStrInSequenceDegen(
     ++pos;
   }
   if (!foundTandem) {
-    return (tandemRepeat("", numberOfRepeats, alignScore, 0, 0));
+    return (TandemRepeat("", numberOfRepeats, alignScore, 0, 0));
   } else {
     return (
-        tandemRepeat(tandem, numberOfRepeats, alignScore, startPos, stopPos));
+        TandemRepeat(tandem, numberOfRepeats, alignScore, startPos, stopPos));
   }
 }
 // limited right now for kmer checking

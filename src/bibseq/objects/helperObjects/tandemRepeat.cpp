@@ -1,5 +1,8 @@
 #include "tandemRepeat.hpp"
 #include <iostream>
+
+#include "bibseq/utils.h"
+
 //
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
@@ -22,33 +25,25 @@
 //
 namespace bibseq {
 
-void tandemRepeat::outPutInfo(std::ostream& out) const {
-  out << "Number of repeats: " << numberOfRepeats << std::endl;
-  out << "Start: " << startPos << " stop: " << stopPos << std::endl;
-  out << "Alignment score: " << alignScore << std::endl;
-  out << "Tandem: " << repeat << std::endl;
-  out << "Size of consensus: " << repeat.size() << std::endl;
+TandemRepeat::TandemRepeat(const std::string& rep, uint32_t numberOfRep,
+		int alignS, uint32_t startP, uint32_t stopP) :
+		repeat_(rep), numberOfRepeats_(numberOfRep), alignScore_(alignS), startPos_(
+				startP), stopPos_(stopP) {
+
 }
-void tandemRepeat::outPutInfoFormated(std::ostream& out,
-                                      const std::string& delim,
-                                      bool first) const {
-  // header is seq numberOfRepeats
-  if (first) {
-    out << "seq" << delim << "#ofRepeats" << delim << "seqSize" << delim << "alignScore" << delim << "start" << delim << "stop" << std::endl;
-  }
-  out << repeat << delim << numberOfRepeats << delim << repeat.size() << delim
-      << alignScore;
-  out << delim << startPos << delim << stopPos << std::endl;
+
+void TandemRepeat::outPutInfoFormated(std::ostream& out,
+		const std::string & name, const std::string& delim) const {
+	out
+			<< bib::conToStr(
+					toVecStr(name, repeat_, numberOfRepeats_, repeat_.size(), alignScore_,
+							startPos_, stopPos_), delim) << std::endl;
 }
-void tandemRepeat::outPutInfoFormated(std::ostream& out,const std::string & name,
-                                      const std::string& delim,
-                                      bool first) const {
-  // header is seq numberOfRepeats
-  if (first) {
-    out << "name" << delim << "seq" << delim << "#ofRepeats" << delim << "seqSize" << delim << "alignScore" << delim << "start" << delim << "stop" << std::endl;
-  }
-  out << name << delim << repeat << delim << numberOfRepeats << delim << repeat.size() << delim
-      << alignScore;
-  out << delim << startPos << delim << stopPos << std::endl;
+
+void TandemRepeat::outPutInfoFormatedHeader(std::ostream& out,
+		const std::string& delim) {
+	out << bib::conToStr(VecStr { "name", "seq", "NumOfRepeats", "seqSize",
+			"alignScore", "start", "stop" }, delim) << std::endl;
 }
+
 }  // namespace bib

@@ -203,32 +203,29 @@ class aligner {
 
 
   void setDefaultQualities();
-  void resetCounts();
-  void resetAlignmentInfo();
-  bool checkForTandemRepeatGap();
+	void resetCounts();
+	void resetAlignmentInfo();
+	bool checkForTandemRepeatGap();
 
-  static bool checkTwoEqualSeqs(const std::string& seq1,
-                                const std::string& seq2,
-                                int allowableMismatches);
-  // finding tandem repeats
-  std::vector<tandemRepeat> findTandemRepeatsInSequence(
-      const std::string& str, int match = 2, int mismatch = -2, int gap = -7,
-      int minimumAlignScore = 50);
-  tandemRepeat findTandemRepeatOfStrInSequence(std::string str,
-                                               std::string tandem,
-                                               int match = 2, int mismatch = -2,
-                                               int gap = -7,
-                                               int minimumAlignScore = 50);
-  tandemRepeat findTandemRepeatOfStrInSequenceDegen(
-      std::string str, std::string tandem, int match = 2, int mismatch = -2,
-      int gap = -7, int minimumAlignScore = 50);
-  static bool checkTwoStringsDegen(
-      const std::string& str1, const std::string& str2, int allowableMismatches,
-      const substituteMatrix& scoringArray);
-  size_t getAlignPosForSeqAPos(size_t seqAPos);
-  size_t getAlignPosForSeqBPos(size_t seqBPos);
-  size_t getSeqPosForAlnAPos(size_t alnAPos);
-  size_t getSeqPosForAlnBPos(size_t alnBPos);
+	static bool checkTwoEqualSeqs(const std::string& seq1,
+			const std::string& seq2, int allowableMismatches);
+	// finding tandem repeats
+	static std::vector<TandemRepeat> findTandemRepeatsInSequence(
+			const std::string& str, int match = 2, int mismatch = -2, int gap = -7,
+			int minimumAlignScore = 50);
+	static TandemRepeat findTandemRepeatOfStrInSequence(std::string str,
+			std::string tandem, int match = 2, int mismatch = -2, int gap = -7,
+			int minimumAlignScore = 50);
+	static TandemRepeat findTandemRepeatOfStrInSequenceDegen(std::string str,
+			std::string tandem, int match = 2, int mismatch = -2, int gap = -7,
+			int minimumAlignScore = 50);
+	static bool checkTwoStringsDegen(const std::string& str1,
+			const std::string& str2, int allowableMismatches,
+			const substituteMatrix& scoringArray);
+	size_t getAlignPosForSeqAPos(size_t seqAPos);
+	size_t getAlignPosForSeqBPos(size_t seqBPos);
+	size_t getSeqPosForAlnAPos(size_t alnAPos);
+	size_t getSeqPosForAlnBPos(size_t alnBPos);
 
  public:
   void setGeneralScorring(int32_t generalMatch, int32_t generalMismatch);

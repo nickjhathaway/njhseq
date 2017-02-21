@@ -296,13 +296,13 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 				outPathFile << "cnt: " << seqBase_.cnt_ << std::endl;
 				outPathFile << "frac: " << seqBase_.frac_ << std::endl;
 				graph.writePaths(outPathFile);
-			}*/
+			}
 
 			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 			{
 				std::ofstream outJson("conPaths.json");
 				outJson << graph.createSankeyOutput() << std::endl;;
-			}
+			}*/
 			auto paths = graph.getPaths();
 			std::vector<ConBasePathGraph::ConPath> bestPaths;
 			double bestCount = 0;
