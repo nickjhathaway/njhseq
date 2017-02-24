@@ -189,6 +189,7 @@ void populationCollapse::renameToOtherPopNames(
   readVec::getMaxLength(previousPop, maxLen);
   readVec::getMaxLength(collapsed_.clusters_, maxLen);
   aligner alignerObj(maxLen, refGapScore, substituteMatrix(2,-2));
+  alignerObj.weighHomopolymers_ = true;
   renameToOtherPopNames(previousPop, alignerObj, allowableErrors);
 
 }
