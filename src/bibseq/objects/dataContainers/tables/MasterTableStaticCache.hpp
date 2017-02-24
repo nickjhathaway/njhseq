@@ -63,6 +63,11 @@ public:
 	 */
 	void writeTab();
 
+	/**@brief write the table,gzipped
+	 * loads in the input files if it needs to and will write only if the out is out of date
+	 */
+	void writeTabGz();
+
 	/**@brief Checks to see if the out file is newer than input files and if it exists
 	 * not safe if overwriting the out file and the out file wasn't created from these input files
 	 * as it could be newer than the input files but not contain their contents

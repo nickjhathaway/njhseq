@@ -96,6 +96,18 @@ void MasterTableStaticCache::writeTab(){
 	}
 }
 
+void MasterTableStaticCache::writeTabGz(){
+	writeTab();
+
+	bfs::path gzPath = opts_.out_.outName().string() + ".gz";
+	if(!bfs::exists(gzPath) || bib::files::firstFileIsOlder(gzPath, opts_.out_.outName())){
+		auto gzOpts = IoOptions(InOptions(opts_.out_.outName()), OutOptions(gzPath));
+		gzOpts.out_.overWriteFile_ = opts_.out_.overWriteFile_;
+		gzZipFile(gzOpts);
+	}
+
+}
+
 }  // namespace bibseq
 
 
