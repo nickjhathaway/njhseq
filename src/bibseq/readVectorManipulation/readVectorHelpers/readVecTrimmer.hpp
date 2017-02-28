@@ -43,8 +43,9 @@ public:
 		bool includeSequence_;
 		bool sequenceToLowerCase_;
 		bool removePreviousSameBases_;
+		bool local_ = true;
+		uint32_t within_ = std::numeric_limits<uint32_t>::max();
 	};
-
 
   template <class T>
   static void trimToMaxLength(std::vector<T> &reads, size_t maxLength);
@@ -229,13 +230,13 @@ void readVecTrimmer::trimAtSequence(std::vector<T> &reads,
 		seqInfo &reversePrimer, aligner &alignObj, comparison allowableErrors,
 		trimSeqPars tSeqPars) {
 	bib::for_each(reads,
-			[&](T& read) {trimAtSequenceIdentity(read, reversePrimer, alignObj, allowableErrors, tSeqPars);});
+			[&](T& read) {trimAtSequence(read, reversePrimer, alignObj, allowableErrors, tSeqPars);});
 }
 
 template<class T>
 void readVecTrimmer::trimAtSequence(T &read, seqInfo &reversePrimer,
 		aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars) {
-	trimAtSequenceIdentity(getSeqBase(read), reversePrimer, alignObj,
+	trimAtSequence(getSeqBase(read), reversePrimer, alignObj,
 			allowableErrors, tSeqPars);
 }
 
@@ -251,7 +252,7 @@ void readVecTrimmer::trimBeforeSequence(std::vector<T> &reads,
 template<class T>
 void readVecTrimmer::trimBeforeSequence(T &read, seqInfo &forwardSeq,
 		aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars) {
-	trimAtSequenceIdentity(getSeqBase(read), forwardSeq, alignObj,
+	trimBeforeSequence(getSeqBase(read), forwardSeq, alignObj,
 			allowableErrors, tSeqPars);
 }
 
@@ -303,5 +304,32 @@ void readVecTrimmer::trimEndsOfReadsToSharedSeq(std::vector<T> &reads,
   }
   return;
 }
+
+
+struct FullTrimReadsPars {
+  // parameters
+	FullTrimReadsPars();
+	void initForKSharedTrim();
+
+  uint32_t maxLength = std::numeric_limits<uint32_t>::max();
+  uint32_t numberOfEndBases = std::numeric_limits<uint32_t>::max();
+  uint32_t numberOfFowardBases = std::numeric_limits<uint32_t>::max();
+  std::string backSeq = "";
+  std::string forwardSeq = "";
+  readVecTrimmer::trimSeqPars tSeqPars_;
+  comparison allowableErrors;
+  bool keepOnlyOn = false;
+
+  uint32_t kmerLength = 10;
+  uint32_t windowLength = 25;
+  uint32_t precision = 10;
+
+  char base = 'N';
+  uint32_t qual = 2;
+
+};
+
+
+
 }  // namespace bib
 
