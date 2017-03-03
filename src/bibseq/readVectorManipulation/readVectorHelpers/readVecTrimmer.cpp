@@ -99,7 +99,7 @@ void readVecTrimmer::trimEnds(seqInfo &seq, size_t forwardBases, size_t endBases
 }
 
 void readVecTrimmer::trimAtSequence(seqInfo &seq, seqInfo &reversePrimer,
-		aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars) {
+		aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
 	//first is position of the first base, second is the position of the last base of the match
 	std::pair<int, int> rPos;
 	if (tSeqPars.within_ >= len(seq)) {
@@ -205,7 +205,7 @@ void readVecTrimmer::trimAtSequence(seqInfo &seq, seqInfo &reversePrimer,
 }
 
 void readVecTrimmer::trimBeforeSequence(seqInfo &seq, seqInfo &forwardSeq,
-		aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars) {
+		aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
 	std::pair<int, int> fPos;
 	if (tSeqPars.within_ >= len(seq)) {
 		if (tSeqPars.local_) {
@@ -311,7 +311,7 @@ void readVecTrimmer::trimBeforeSequence(seqInfo &seq, seqInfo &forwardSeq,
 
 void readVecTrimmer::trimBetweenSequences(seqInfo &seq, seqInfo &forwardSeq,
 		seqInfo &backSeq, aligner &alignObj, comparison allowableErrors,
-		trimSeqPars tSeqPars) {
+		FullTrimReadsPars::trimSeqPars tSeqPars) {
 	trimAtSequence(seq, backSeq, alignObj, allowableErrors, tSeqPars);
 	if(seq.on_){
 		trimBeforeSequence(seq, forwardSeq, alignObj, allowableErrors, tSeqPars);
