@@ -26,37 +26,22 @@ std::vector<bib::color> getColsBetweenExcludeClosest(bib::color first,
 
 
 std::unordered_map<std::string,bib::color> getColorsForNames(const VecStr & popNames){
-	VecStr popNamesSorted = popNames;
-	bib::sort(popNamesSorted);
-	uint32_t numberToGenerate = 0;
-	if (popNames.size() > bib::colorspace::colorBindPalete.size()) {
-		numberToGenerate = popNames.size()
-				- bib::colorspace::colorBindPalete.size();
-	}
-	bibseq::VecStr popColorsStrs;
-	for (uint32_t pos = 0;
-			pos < std::min(popNames.size(), bib::colorspace::colorBindPalete.size());
-			++pos) {
-		popColorsStrs.emplace_back(bib::colorspace::colorBindPalete[pos]);
-	}
-	if(numberToGenerate > 0){
-		auto popColors = bib::njhColors(numberToGenerate);
-		bibseq::VecStr popColorsStrsAdding(popColors.size(), "");
-		uint32_t count = 0;
-		uint32_t halfCount = 0;
-		for(const auto & cPos : iter::range(popColors.size())) {
-			uint32_t pos = 0;
-			if(cPos %2 == 0) {
-				pos = popColors.size()/2 + halfCount;
-				++halfCount;
-			} else {
-				pos = count;
-				++count;
-			}
-			popColorsStrs[cPos] = "#" + popColors[pos].hexStr_;
-		}
-	}
 
+	auto popColors = bib::njhColors(popNames.size());
+	bibseq::VecStr popColorsStrs(popColors.size(), "");
+	uint32_t count = 0;
+	uint32_t halfCount = 0;
+	for(const auto & cPos : iter::range(popColors.size())) {
+		uint32_t pos = 0;
+		if(cPos %2 == 0) {
+			pos = popColors.size()/2 + halfCount;
+			++halfCount;
+		} else {
+			pos = count;
+			++count;
+		}
+		popColorsStrs[cPos] = "#" + popColors[pos].hexStr_;
+	}
 	std::unordered_map<std::string,bib::color> nameColors;
 	for(auto pos : iter::range(popNames.size())){
 		nameColors[popNames[pos]] = popColorsStrs[pos];
