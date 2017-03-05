@@ -64,6 +64,10 @@ std::shared_ptr<std::ofstream> OutOptions::openExecutableFile() const{
 	return out;
 }
 
+void OutOptions::openGzFile(bib::GZSTREAM::ogzstream & out) const{
+	bib::files::openGzFile(out, outName(), overWriteFile_);
+}
+
 void OutOptions::openFile(std::ofstream & out) const {
 	bib::files::openTextFile(out, outName(), overWriteFile_, append_,
 			exitOnFailureToWrite_);

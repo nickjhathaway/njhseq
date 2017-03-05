@@ -52,6 +52,9 @@ struct SeqIOOptions {
   	FASTQ,
 		FASTQPAIRED,
 		FASTA,
+		FASTQGZ, //not yet supported
+		FASTQPAIREDGZ, //not yet supported
+		FASTAGZ, //not yet supported
 		FASTAQUAL,
 		FLOW,
 		FLOWMOTHUR,

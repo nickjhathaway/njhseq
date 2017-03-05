@@ -43,6 +43,7 @@ public:
 	std::shared_ptr<std::ofstream> openFile() const;
 	std::shared_ptr<std::ofstream> openExecutableFile() const;
 
+	void openGzFile(bib::GZSTREAM::ogzstream & out) const;
 	void openFile(std::ofstream & out) const;
 	void openExecutableFile(std::ofstream & out) const;
 
