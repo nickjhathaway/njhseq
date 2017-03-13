@@ -28,5 +28,6 @@
 
 
 #include "bibseq/system/Muscler.hpp"
+#include "bibseq/system/BioCmdsUtils.hpp"
 #include "bibseq/system/systemUtils.hpp"
 
