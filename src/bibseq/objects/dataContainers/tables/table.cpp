@@ -390,6 +390,7 @@ void table::outPutContents(TableIOOpts options) const {
     	outFile << vectorToString(columnNames_, options.outDelim_) << "\n";
     }
     outputVectorOfVectors(content_, options.outDelim_, outFile);
+    outFile.flush();
   }
 }
 
