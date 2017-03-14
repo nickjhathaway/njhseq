@@ -705,7 +705,9 @@ public:
 	  return ret;
 	}
 
-	Json::Value toJson(uint32_t groupSizeCutOff){
+
+	Json::Value toJson(uint32_t groupSizeCutOff,
+			std::unordered_map<std::string, std::string> nameToColor = {}){
 	  Json::Value graphJson;
 	  auto & nodes = graphJson["nodes"];
 	  auto & links = graphJson["links"];
@@ -716,21 +718,20 @@ public:
 	  for(const auto & n : nodes_){
 	  	++groupCounts[n->group_];
 	  }
-	  uint32_t groupsAboveCutOff =0;
 	  std::set<uint32_t> largeGroups;
 	  for(const auto & n : nodes_){
 	  	if(groupCounts[n->group_] >= groupSizeCutOff){
 	  		largeGroups.emplace(n->group_);
 	  	}
 	  }
-	  groupsAboveCutOff = largeGroups.size();
+	  std::unordered_map<uint32_t, bib::color> gColors;
+	  uint32_t groupsAboveCutOff = largeGroups.size();
 	  std::vector<bib::color> groupColors;
 	  if(groupsAboveCutOff > 1){
 	  	groupColors = bib::getColsBetweenInc(0, 360 - 360.0/groupsAboveCutOff, 0.5, 0.5, 1,1, groupsAboveCutOff);
 	  }else{
 	  	groupColors = {bib::color{"#FF0000"}};
 	  }
-	  std::unordered_map<uint32_t, bib::color> gColors;
 	  for(auto e : iter::enumerate(largeGroups)){
 	  	gColors[e.element] = groupColors[e.index];
 	  }
@@ -742,66 +743,9 @@ public:
 		  	//std::cout << n->name_ << " : " << n->group_  << " : " << n->value_ << std::endl;
 		  	nodes[nCount]["name"] = bib::json::toJson(n->name_);
 		  	nodes[nCount]["group"] = bib::json::toJson(n->group_);
-		  	nodes[nCount]["color"] = bib::json::toJson("#" + gColors[n->group_].hexStr_);
-		  	nodes[nCount]["size"]  = 30;
-		  	++nCount;
-	  	}
-	  }
-	  uint32_t lCount=0;
-		for(const auto & e : edges_){
-			if(e->on_){
-				if(groupCounts[e->nodeToNode_.begin()->second.lock()->group_] >= groupSizeCutOff){
-					links[lCount]["source"] = bib::json::toJson(nameToNewPos[nodes_[nameToNodePos_[e->nodeToNode_.begin()->first]]->name_]);
-					links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
-					links[lCount]["value"] = bib::json::toJson(e->dist_);
-					links[lCount]["on"] = bib::json::toJson(e->on_);
-					links[lCount]["color"] = bib::json::toJson("#" + gColors[e->nodeToNode_.begin()->second.lock()->group_].hexStr_);
-					++lCount;
-				}
-			}
-		}
-		return graphJson;
-	}
-
-	Json::Value toJson(uint32_t groupSizeCutOff, std::unordered_map<std::string, std::string> nameToColor){
-	  Json::Value graphJson;
-	  auto & nodes = graphJson["nodes"];
-	  auto & links = graphJson["links"];
-	  uint32_t nCount = 0;
-	  std::unordered_map<uint32_t, uint32_t> groupCounts;
-	  std::unordered_map<std::string, uint64_t> nameToNewPos;
-
-	  for(const auto & n : nodes_){
-	  	++groupCounts[n->group_];
-	  }
-	  uint32_t groupsAboveCutOff =0;
-	  std::set<uint32_t> largeGroups;
-	  for(const auto & n : nodes_){
-	  	if(groupCounts[n->group_] >= groupSizeCutOff){
-	  		largeGroups.emplace(n->group_);
-	  	}
-	  }
-	  groupsAboveCutOff = largeGroups.size();
-	  std::vector<bib::color> groupColors;
-
-	  if(nameToColor.empty()){
-	  	groupColors = bib::getColsBetweenInc(0, 360 - 360.0/groupsAboveCutOff, 0.5, 0.5, 1,1, groupsAboveCutOff);
-		  std::unordered_map<uint32_t, bib::color> gColors;
-		  for(auto e : iter::enumerate(largeGroups)){
-		  	gColors[e.element] = groupColors[e.index];
-		  }
-	  }
-	  uint64_t pos = 0;
-	  for(const auto & n : nodes_){
-	  	if(groupCounts[n->group_] >= groupSizeCutOff){
-	  		nameToNewPos[n->name_] = pos;
-	  		++pos;
-		  	//std::cout << n->name_ << " : " << n->group_  << " : " << n->value_ << std::endl;
-		  	nodes[nCount]["name"] = bib::json::toJson(n->name_);
-		  	nodes[nCount]["group"] = bib::json::toJson(n->group_);
 		  	nodes[nCount]["corePoint"] = bib::json::toJson(n->corePoint_);
-		  	if(nameToColor.empty()){
-		  		nodes[nCount]["color"] = bib::json::toJson(groupColors[n->group_].getHexStr());
+		  	if(nameToColor.empty() || !bib::in(nameToColor[n->name_], nameToColor)){
+		  		nodes[nCount]["color"] = bib::json::toJson(gColors[n->group_].getHexStr());
 		  	}else{
 		  		nodes[nCount]["color"] = bib::json::toJson(nameToColor[n->name_]);
 		  	}
@@ -817,8 +761,8 @@ public:
 					links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
 					links[lCount]["value"] = bib::json::toJson(e->dist_);
 					links[lCount]["on"] = bib::json::toJson(e->on_);
-			  	if(nameToColor.empty()){
-			  		links[lCount]["color"] = bib::json::toJson(groupColors[e->nodeToNode_.begin()->second.lock()->group_].getHexStr());
+			  	if(nameToColor.empty() || !bib::in(e->nodeToNode_.begin()->second.lock()->name_, nameToColor)){
+			  		links[lCount]["color"] = bib::json::toJson(gColors[e->nodeToNode_.begin()->second.lock()->group_].getHexStr());
 			  	}else{
 			  		links[lCount]["color"] = bib::json::toJson(nameToColor[e->nodeToNode_.begin()->second.lock()->name_]);
 			  	}
