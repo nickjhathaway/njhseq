@@ -62,12 +62,12 @@ bib::sys::RunOutput BioCmdsUtils::runCmdCheck(const std::string & cmd,
 	if (!bfs::exists(check) || bib::files::firstFileIsOlder(check, input)) {
 		if (verbose_) {
 			std::cout << bib::bashCT::bold << bib::bashCT::blue << "Running: "
-					<< bib::bashCT::green << cmd << std::endl;
+					<< bib::bashCT::green << cmd << bib::bashCT::reset << std::endl;
 		}
 		if(bfs::exists(check)){
 			if (verbose_) {
 				std::cout << bib::bashCT::bold << bib::bashCT::blue << "\tRemoving out of date file: "
-										<< bib::bashCT::green << check << std::endl;
+										<< bib::bashCT::green << check  << bib::bashCT::reset << std::endl;
 			}
 			bfs::remove(check);
 		}
@@ -77,7 +77,7 @@ bib::sys::RunOutput BioCmdsUtils::runCmdCheck(const std::string & cmd,
 	} else {
 		if (verbose_) {
 			std::cout << bib::bashCT::bold << bib::bashCT::blue
-					<< "No need to run: " << bib::bashCT::green << cmd << std::endl;
+					<< "No need to run: " << bib::bashCT::green << cmd << bib::bashCT::reset << std::endl;
 		}
 	}
 	return bib::sys::RunOutput();
