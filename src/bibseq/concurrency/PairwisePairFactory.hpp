@@ -35,6 +35,10 @@ public:
 		std::vector<PairwisePair> pairs_;/**< A vector to hold the comparisons to be done*/
 	};
 
+	/**@brief Construct with the number of input elements that need to be compared
+	 *
+	 * @param numOfElements The number of elements to compare
+	 */
 	PairwisePairFactory(uint32_t numOfElements);
 
 	const uint32_t numOfElements_;/**< The total number of elements to compare */
