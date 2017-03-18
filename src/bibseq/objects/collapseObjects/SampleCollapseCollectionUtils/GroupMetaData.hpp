@@ -145,6 +145,8 @@ public:
 	std::vector<GroupPopInfo> getGroupPopInfos(const VecStr & samples);
 
 
+	bool hasMetaField(const std::string & metaField);
+
 };
 
 

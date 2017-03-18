@@ -247,6 +247,10 @@ std::vector<MultipleGroupMetaData::GroupPopInfo> MultipleGroupMetaData::getGroup
 }
 
 
+bool MultipleGroupMetaData::hasMetaField(const std::string & metaField){
+	return bib::in(metaField, groupData_);
+}
+
 }  // namespace bibseq
 
 
