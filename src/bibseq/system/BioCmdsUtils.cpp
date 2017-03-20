@@ -14,9 +14,20 @@ BioCmdsUtils::BioCmdsUtils() {
 BioCmdsUtils::BioCmdsUtils(bool verbose) :
 		verbose_(verbose) {
 }
-bool verbose_ = false;
+
+void checkGenomeFnpExistsThrow(const bfs::path & genomeFnp,
+		const std::string & funcName) {
+	if (!bfs::exists(genomeFnp)) {
+		std::stringstream ss;
+		ss << funcName << ", error, genome file: " << bib::bashCT::blue << genomeFnp
+				<< bib::bashCT::reset << bib::bashCT::red << ", doesn't exists "
+				<< bib::bashCT::reset << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+}
 
 bib::sys::RunOutput BioCmdsUtils::RunBowtie2Index(const bfs::path & genomeFnp) {
+	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bib::sys::requireExternalProgramThrow("bowtie2-build");
 	auto prefix = bfs::path(genomeFnp).replace_extension("");
 	std::string templateCmd = "bowtie2-build -q " + genomeFnp.string() + " "
@@ -26,6 +37,7 @@ bib::sys::RunOutput BioCmdsUtils::RunBowtie2Index(const bfs::path & genomeFnp) {
 }
 
 bib::sys::RunOutput BioCmdsUtils::RunBwaIndex(const bfs::path & genomeFnp) {
+	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bib::sys::requireExternalProgramThrow("bwa");
 	std::string templateCmd = "bwa index " + genomeFnp.string();
 	auto bwaCheckFile = genomeFnp.string() + ".bwt";
@@ -33,6 +45,7 @@ bib::sys::RunOutput BioCmdsUtils::RunBwaIndex(const bfs::path & genomeFnp) {
 }
 
 bib::sys::RunOutput BioCmdsUtils::RunSamtoolsFastaIndex(const bfs::path & genomeFnp) {
+	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bib::sys::requireExternalProgramThrow("samtools");
 	std::string templateCmd = "samtools faidx " + genomeFnp.string();
 	auto samCheckFile = genomeFnp.string() + ".fai";
@@ -40,6 +53,7 @@ bib::sys::RunOutput BioCmdsUtils::RunSamtoolsFastaIndex(const bfs::path & genome
 }
 
 bib::sys::RunOutput BioCmdsUtils::RunPicardFastaSeqDict(const bfs::path & genomeFnp) {
+	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bib::sys::requireExternalProgramThrow("picard");
 	auto prefix = bfs::path(genomeFnp).replace_extension("");
 	auto outFile = prefix.string() + ".dict";
@@ -49,6 +63,7 @@ bib::sys::RunOutput BioCmdsUtils::RunPicardFastaSeqDict(const bfs::path & genome
 }
 
 bib::sys::RunOutput BioCmdsUtils::RunFaToTwoBit(const bfs::path & genomeFnp) {
+	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bib::sys::requireExternalProgramThrow("TwoBit");
 	auto prefix = bfs::path(genomeFnp).replace_extension("");
 	auto outFile = prefix.string() + ".2bit";
@@ -85,6 +100,7 @@ bib::sys::RunOutput BioCmdsUtils::runCmdCheck(const std::string & cmd,
 
 bib::sys::RunOutput BioCmdsUtils::bowtie2Align(const SeqIOOptions & opts,
 		const bfs::path & genomeFnp, std::string additionalBowtie2Args) {
+	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bfs::path outputFnp = bib::appendAsNeededRet(opts.out_.outFilename_.string(),
 			".sorted.bam");
 	if (bfs::exists(outputFnp) && !opts.out_.overWriteFile_) {
