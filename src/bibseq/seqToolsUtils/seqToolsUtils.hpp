@@ -37,6 +37,9 @@
 #include "bibseq/objects/helperObjects/probabilityProfile.hpp"
 #include "bibseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
 
+
+#include "bibseq/objects/helperObjects/MetaDataInName.hpp"
+
 #include <bibcpp/graphics/colorUtils.hpp>
 
 
@@ -528,7 +531,15 @@ inline readsWithSnps::size_type len(const readsWithSnps & reads){
 }
 
 
-
+template<typename T>
+std::unordered_map<std::string, std::vector<T>> splitSeqsByMetaField(const std::vector<T> & seqs, const std::string & field){
+	std::unordered_map<std::string, std::vector<T>> ret;
+	for(const auto & seq : seqs){
+		MetaDataInName meta(getSeqBase(seq).name_);
+		ret[meta.getMeta(field)].emplace_back(seq);
+	}
+	return ret;
+}
 
 
 
