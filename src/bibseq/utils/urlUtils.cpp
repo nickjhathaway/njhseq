@@ -53,6 +53,19 @@ std::string urldecode(std::string const &s) {
 	return urldecode(s.c_str(), s.c_str() + s.size());
 }
 
+void urlencode(char const *b, char const *e, std::ostream &out) {
+	//from cppcms 1.05
+	std::ostream_iterator<char> it(out);
+	urlencode_impl(b, e, it);
+}
 
+std::string urlencode(const std::string &s) {
+	//from cppcms 1.05
+	std::string content;
+	content.reserve(3 * s.size());
+	std::back_insert_iterator<std::string> out(content);
+	urlencode_impl(s.c_str(), s.c_str() + s.size(), out);
+	return content;
+}
 
 }  // namespace bib
