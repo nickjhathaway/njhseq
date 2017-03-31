@@ -117,7 +117,7 @@ bib::sys::RunOutput BioCmdsUtils::bowtie2Align(const SeqIOOptions & opts,
 		additionalBowtie2Args += " -f ";
 	}
 	templateCmd << "bowtie2 -U " << opts.firstName_ << " -x " << genomePrefix
-			<< " " <<  additionalBowtie2Args << " | samtools view - -b " << "| samtools sort - -o " << outputFnp
+			<< " " <<  additionalBowtie2Args << " | samtools view - -b | samtools sort - -o " << outputFnp
 			<< " " << "&& samtools index " << outputFnp;
 	if (verbose_) {
 		std::cout << "Running: " << bib::bashCT::green << templateCmd.str()
