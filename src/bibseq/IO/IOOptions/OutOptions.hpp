@@ -34,6 +34,8 @@ public:
 	bool overWriteFile_ = false;
 	bool exitOnFailureToWrite_ = true;
 
+	void transferOverwriteOpts(const OutOptions & otherOptions);
+
 	bool outExists() const;
 
 	bfs::path outName() const;

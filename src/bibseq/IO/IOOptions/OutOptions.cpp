@@ -95,6 +95,12 @@ bool OutOptions::outExists() const {
 	return boost::filesystem::exists(outName());
 }
 
+void OutOptions::transferOverwriteOpts(const OutOptions & otherOptions){
+	overWriteFile_ = otherOptions.overWriteFile_;
+	append_ = otherOptions.append_;
+	exitOnFailureToWrite_ = otherOptions.exitOnFailureToWrite_;
+}
+
 
 bfs::path OutOptions::outName() const {
 	return bfs::path(bib::appendAsNeededRet(outFilename_.string(), outExtention_));
