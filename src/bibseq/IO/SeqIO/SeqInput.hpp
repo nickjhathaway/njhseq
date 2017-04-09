@@ -126,6 +126,7 @@ public:
 	bool inOpen() const;
 	void openIn();
 	void closeIn();
+	void reOpenIn();
 
 	std::mutex mut_;
 	std::unique_ptr<sffObject> lastSffRead_;

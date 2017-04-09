@@ -29,6 +29,7 @@
 
 #include "bibseq/objects/seqObjects.h"
 #include "bibseq/objects/kmer.h"
+#include "bibseq/objects/Meta.h"
 #include "bibseq/objects/helperObjects.h"
 #include "bibseq/objects/collapseObjects.h"
 #include "bibseq/objects/dataContainers.h"

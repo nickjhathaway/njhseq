@@ -244,6 +244,11 @@ void SeqInput::closeIn() {
 	}
 }
 
+void SeqInput::reOpenIn(){
+	closeIn();
+	openIn();
+}
+
 bool SeqInput::readNextRead(seqInfo & read) {
 	if (!inOpen_) {
 		throw std::runtime_error { "Error in " + std::string(__PRETTY_FUNCTION__)

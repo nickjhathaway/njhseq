@@ -38,7 +38,7 @@
 #include "bibseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
 
 
-#include "bibseq/objects/helperObjects/MetaDataInName.hpp"
+#include "bibseq/objects/Meta/MetaDataInName.hpp"
 
 #include <bibcpp/graphics/colorUtils.hpp>
 

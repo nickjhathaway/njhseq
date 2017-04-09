@@ -19,6 +19,14 @@ MetaDataInName::MetaDataInName(const std::string & str) {
 	processNameForMeta(str, false);
 }
 
+
+void MetaDataInName::addMeta(const MetaDataInName & otherMeta, bool replace) {
+	for(const auto & meta : otherMeta.meta_){
+		addMeta(meta.first, meta.second, replace);
+	}
+}
+
+
 void MetaDataInName::processNameForMeta(const std::string & name, bool replace){
 	auto firstBracket = name.find("[");
 	if(std::string::npos == firstBracket){

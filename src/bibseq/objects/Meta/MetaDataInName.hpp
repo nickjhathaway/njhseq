@@ -15,7 +15,7 @@ class MetaDataInName {
 public:
 
 	MetaDataInName();
-	MetaDataInName(const std::string & str) ;
+	MetaDataInName(const std::string & str);
 
 	std::unordered_map<std::string, std::string> meta_;
 
@@ -24,13 +24,15 @@ public:
 		if (containsMeta(key) && !replace) {
 			std::stringstream ss;
 			ss << "Error in " << bib::bashCT::boldBlack(__PRETTY_FUNCTION__)
-					<< " attempting to add meta that's already in meta_, use replace = true to replace"
+					<< " attempting to add meta, " << key << ", that's already in meta_, use replace = true to replace"
 					<< std::endl;
 			throw std::runtime_error { ss.str() };
 		} else {
 			meta_[key] = estd::to_string(val);
 		}
 	}
+
+	void addMeta(const MetaDataInName & otherMeta, bool replace);
 
 	template<typename T>
 	T getMeta(const std::string & key) const {

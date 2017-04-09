@@ -8,7 +8,7 @@
 
 
 
-#include "bibseq/objects/collapseObjects/SampleCollapseCollectionUtils/GroupMetaData.hpp"
+#include "bibseq/objects/Meta/MultipleGroupMetaData.hpp"
 
 
 
