@@ -184,6 +184,12 @@ bfs::path SampleCollapseCollection::getSampInfoPath() const {
 	/**@todo need to make this standard, currently set by SeekDeep processClusters*/
 	return bib::files::make_path(masterOutputDir_, "selectedClustersInfo.tab.txt");
 }
+bfs::path SampleCollapseCollection::getHapIdTabPath() const {
+	return bib::files::make_path(masterOutputDir_,
+			"hapIdTable.tab.txt");
+}
+
+
 
 void SampleCollapseCollection::setUpSampleFromPrevious(
 		const std::string & sampleName) {
@@ -854,10 +860,12 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			bib::files::makeDir(bib::files::MkdirPar(mainGroupDir.string(), true));
 			std::unordered_map<std::string, table> popTabs;
 			std::unordered_map<std::string, table> sampTabs;
+			std::unordered_map<std::string, table> hapIdTabs;
 			for(const auto & subGroup : group.second->subGroupToSamples_){
 				loadInPreviousPop(subGroup.second);
 				popTabs[subGroup.first] = genPopulationCollapseInfo();
 				sampTabs[subGroup.first] = genSampleCollapseInfo(subGroup.second);
+				hapIdTabs[subGroup.first] = genHapIdTable(subGroup.second);
 				popCollapse_ = nullptr;
 			}
 			std::unordered_map<std::string, VecStr> popUids;
@@ -907,6 +915,7 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 				bib::files::makeDir(bib::files::MkdirPar(subGroupDir.string()));
 				popTab.second.outPutContents(TableIOOpts(OutOptions(bib::files::make_path(subGroupDir,"popFile.tab.txt")), "\t", true));
 				sampTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(bib::files::make_path(subGroupDir,"sampFile.tab.txt")), "\t", true));
+				hapIdTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(bib::files::make_path(subGroupDir,"hapIdTable.tab.txt")), "\t", true));
 				std::ofstream subGroupMetaJsonFile;
 				openTextFile(subGroupMetaJsonFile,
 						bib::files::make_path(subGroupDir, "subGroupNamesData.json").string(),
@@ -1024,6 +1033,53 @@ Json::Value SampleCollapseCollection::toJsonCore() const{
 	ret["clusterSizeCutOff_"] = bib::json::toJson(clusterSizeCutOff_);
 	return ret;
 }
+
+
+table SampleCollapseCollection::genHapIdTable(){
+	return genHapIdTable(popNames_.samples_);
+}
+
+table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samples){
+
+	if(nullptr == popCollapse_){
+		loadInPreviousPop(samples);
+	}
+	VecStr popUidNames;
+	for(const auto & clus : popCollapse_->collapsed_.clusters_){
+		popUidNames.emplace_back(clus.getStubName(true));
+	}
+	bib::sort(popUidNames);
+	std::vector<std::vector<std::string>> inputContent = std::vector<std::vector<std::string>>{popUidNames.size(), std::vector<std::string>{}};
+	for(const auto & popPos : iter::range(popUidNames.size())){
+		inputContent[popPos].emplace_back(popUidNames[popPos]);
+	}
+	table ret(inputContent, VecStr{"#PopUID"});
+	for (const auto & samp : samples) {
+		setUpSampleFromPrevious(samp);
+		std::unordered_map<std::string, double> popUidToFrac;
+		for (const auto clusPos : iter::range(
+				sampleCollapses_.at(samp)->collapsed_.clusters_.size())) {
+			const auto & clus =
+					sampleCollapses_.at(samp)->collapsed_.clusters_[clusPos];
+			auto popUid = popCollapse_->collapsed_.clusters_[popCollapse_->collapsed_.subClustersPositions_.at(
+										clus.getStubName(true))].getStubName(true);
+			popUidToFrac[popUid] = clus.seqBase_.frac_;
+		}
+		VecStr addingCol;
+		for(const auto & pop : popUidNames){
+			auto search = popUidToFrac.find(pop);
+			if(popUidToFrac.end() != search){
+				addingCol.emplace_back(estd::to_string(search->second));
+			}else{
+				addingCol.emplace_back("0");
+			}
+		}
+		ret.addColumn(addingCol, samp);
+		clearSample(samp);
+	}
+	return ret;
+}
+
 
 }  // namespace collapse
 }  // namespace bibseq

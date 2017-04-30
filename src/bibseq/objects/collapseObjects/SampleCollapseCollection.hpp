@@ -90,6 +90,7 @@ public:
 
 	bfs::path getPopInfoPath() const;
 	bfs::path getSampInfoPath() const;
+	bfs::path getHapIdTabPath() const;
 
 	uint32_t numOfSamples() const;
 
@@ -129,7 +130,8 @@ public:
 
 	void symlinkInSampleFinals() const;
 
-
+	table genHapIdTable();
+	table genHapIdTable(const std::set<std::string> & samples);
 
 	void outputRepAgreementInfo();
 

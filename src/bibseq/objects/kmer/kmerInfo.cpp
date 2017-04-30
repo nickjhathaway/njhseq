@@ -75,6 +75,7 @@ void kmerInfo::setKmersFromPortion(const std::string & seq, uint32_t kLength,
 	kmers_.clear();
 	kmersRevComp_.clear();
 	//set kmer information in the current direction
+	/**@todo check if this needs a plus 1 */
 	for (const auto & seqPos : iter::range(pos, pos + len - kLen_)) {
 		auto currentK = seq.substr(seqPos, kLen_);
 		auto k = kmers_.find(currentK);
@@ -84,6 +85,7 @@ void kmerInfo::setKmersFromPortion(const std::string & seq, uint32_t kLength,
 			kmers_.emplace(currentK, kmer(currentK, seqPos));
 		}
 	}
+
 	//if needed set kmer information for the reverse direction
 	if (setReverse) {
 		std::string reverseComplement = seqUtil::reverseComplement(seq.substr(pos, len), "DNA");

@@ -16,7 +16,9 @@ AllGroupDataPaths::GroupDataPaths::SubGroupDataPaths::SubGroupDataPaths(
 		const bfs::path & mainDir) :
 		mainDir_(mainDir), popFileFnp_(
 				bib::files::make_path(mainDir, "popFile.tab.txt")), sampFileFnp_(
-				bib::files::make_path(mainDir, "sampFile.tab.txt")), subGroupNamesDataFnp_(
+				bib::files::make_path(mainDir, "sampFile.tab.txt")),
+				hapIdTabFnp_(bib::files::make_path(mainDir, "hapIdTable.tab.txt")),
+				subGroupNamesDataFnp_(
 				bib::files::make_path(mainDir, "subGroupNamesData.json")) {
 }
 
