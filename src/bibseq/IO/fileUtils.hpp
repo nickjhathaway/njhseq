@@ -39,6 +39,14 @@
 namespace bibseq {
 
 
+template<typename OPT>
+std::streambuf* determineOutBuf(std::ofstream & outFile,
+		const OPT & opts) {
+	return bib::files::determineOutBuf(outFile, opts.outFilename_,
+			opts.outExtention_, opts.overWriteFile_, opts.append_,
+			opts.exitOnFailureToWrite_);
+}
+
 
 int getdir(const std::string &dir,
            std::map<std::string, std::pair<std::string, bool>> &files);
