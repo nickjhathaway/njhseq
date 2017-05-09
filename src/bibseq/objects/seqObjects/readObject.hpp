@@ -54,8 +54,8 @@ class readObject : public baseReadObject {
   std::string sampName;
   std::string expectsString;
 
-  std::unordered_map<std::string, std::string> meta_;
-
+  //std::unordered_map<std::string, std::string> meta_;
+  MetaDataInName meta_;
 
   double averageErrorRate;
 
@@ -73,15 +73,7 @@ class readObject : public baseReadObject {
   //meta data in name
 	template<typename T>
 	void addMeta(const std::string & key, const T & val, bool replace) {
-		if (containsMeta(key) && !replace) {
-			std::stringstream ss;
-			ss << "Error in " << bib::bashCT::boldBlack(__PRETTY_FUNCTION__)
-					<< " attempting to add meta that's already in meta_, use replace = true to replace"
-					<< std::endl;
-			throw std::runtime_error { ss.str() };
-		} else {
-			meta_[key] = estd::to_string(val);
-		}
+		meta_.addMeta(key, val, replace);
 	}
   bool containsMeta(const std::string & key) const;
 	std::string getMeta(const std::string & key) const;
@@ -91,7 +83,7 @@ class readObject : public baseReadObject {
 	void resetMetaInName();
 	template<typename T>
 	T getMeta(const std::string & key) const {
-		return bib::lexical_cast<T>(getMeta(key));
+		return meta_.getMeta<T>(key);
 	}
 
 	virtual Json::Value toJson() const;

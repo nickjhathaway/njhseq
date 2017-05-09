@@ -114,6 +114,7 @@ public:
 	void loadInPreviousPop(const std::set<std::string> & samples, const bfs::path& outputPopDir);
 
 	void renamePopWithSeqs(const std::vector<readObject> & otherPopSeqs, comparison allowableErrors = comparison());
+	void addRefMetaToName(const std::vector<readObject> & otherPopSeqs, comparison allowableErrors = comparison());
 
 	void comparePopToRefSeqs(const std::vector<readObject> & expectedSeqs,
 			aligner & alignerObj);

@@ -647,12 +647,10 @@ void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & s
 		while (subReader.readNextRead(subSeq)) {
 			//a little hacky but has to be done for certain pipeline;
 			std::string inputSampleName = subSeq.getOwnSampName();
-			if(subSeq.nameHasMetaData()){
-				std::unordered_map<std::string, std::string> meta;
-				subSeq.processNameForMeta(meta);
-				auto search = meta.find("samp");
-				if(search != meta.end()){
-					inputSampleName = search->second;
+			if(MetaDataInName::nameHasMetaData(subSeq.name_)){
+				MetaDataInName meta(subSeq.name_);
+				if(meta.containsMeta("samp")){
+					inputSampleName = meta.getMeta("samp");
 				}
 			}
 			if (bib::in(inputSampleName, samples)) {
@@ -695,6 +693,12 @@ void SampleCollapseCollection::renamePopWithSeqs(
 		const std::vector<readObject> & otherPopSeqs, comparison allowableErrors) {
 	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
 	popCollapse_->renameToOtherPopNames(otherPopSeqs, allowableErrors);
+}
+
+void SampleCollapseCollection::addRefMetaToName(
+		const std::vector<readObject> & otherPopSeqs, comparison allowableErrors) {
+	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
+	popCollapse_->addRefMetaToName(otherPopSeqs, allowableErrors);
 }
 
 void SampleCollapseCollection::comparePopToRefSeqs(

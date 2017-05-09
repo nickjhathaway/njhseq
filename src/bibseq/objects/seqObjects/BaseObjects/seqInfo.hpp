@@ -33,6 +33,7 @@
 #include "bibseq/alignment/alignerUtils/substituteMatrix.hpp"
 #include "bibseq/IO/SeqIO/SeqIOOptions.hpp"
 #include "bibseq/alignment/alignerUtils/QualScorePars.hpp"
+#include "bibseq/objects/Meta/MetaDataInName.hpp"
 
 namespace bibseq {
 
@@ -174,6 +175,8 @@ struct seqInfo {
 
 	void processNameForMeta(std::unordered_map<std::string, std::string> & meta)const;
 	bool nameHasMetaData() const;
+
+	void resetMetaInName(const MetaDataInName & meta);
 
   using size_type = std::string::size_type;
 

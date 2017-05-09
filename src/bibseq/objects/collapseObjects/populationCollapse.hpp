@@ -46,6 +46,10 @@ class populationCollapse {
 			comparison allowableErrors = comparison());
 	void renameToOtherPopNames(const std::vector<readObject> &previousPop,
 			aligner & alignerObj, comparison allowableErrors = comparison());
+	void addRefMetaToName(const std::vector<readObject> &previousPop,
+			comparison allowableErrors = comparison());
+	void addRefMetaToName(const std::vector<readObject> &previousPop,
+			aligner & alignerObj, comparison allowableErrors = comparison());
 	void renameClusters();
 
   void updateInfoWithSampCollapses(const std::map<std::string, sampleCollapse> & sampCollapses);

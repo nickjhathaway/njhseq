@@ -544,6 +544,11 @@ std::string seqInfo::getStubName(bool removeChiFlag) const {
 	if (removeChiFlag) {
 		outString = bib::replaceString(outString, "CHI_", "");
 	}
+//	if (removeChiFlag) {
+//		if(MetaDataInName::nameHasMetaData(outString)){
+//			MetaDataInName::removeMetaDataInName(outString);
+//		}
+//	}
 	return outString;
 }
 
@@ -667,6 +672,34 @@ bool seqInfo::nameHasMetaData() const {
 		return false;
 	}
 	return true;
+}
+
+void seqInfo::resetMetaInName(const MetaDataInName & meta) {
+	if (meta.meta_.empty()) {
+		return;
+	}
+
+	if (MetaDataInName::nameHasMetaData(name_)) {
+		meta.resetMetaInName(name_);
+	} else {
+		std::string newMeta = meta.createMetaName();
+		//std::cout << name_ << std::endl;
+		//std::cout << newMeta << std::endl;
+		auto countPat = name_.rfind("_t");
+		auto fracPat = name_.rfind("_f");
+		if (std::string::npos != countPat && countPat + 2 != name_.length()
+				&& isDoubleStr(name_.substr(countPat + 2))) {
+			auto rest = name_.substr(countPat + 2);
+			name_ = name_.substr(0, countPat) + newMeta + name_.substr(countPat);
+		} else if (std::string::npos != fracPat && fracPat + 2 != name_.length()
+				&& isDoubleStr(name_.substr(fracPat + 2))) {
+			auto rest = name_.substr(fracPat + 2);
+			name_ = name_.substr(0, fracPat) + newMeta + name_.substr(fracPat);
+		} else {
+			name_ = name_ + newMeta;
+		}
+		//std::cout << name_ << std::endl << std::endl;
+	}
 }
 
 void seqInfo::processNameForMeta(std::unordered_map<std::string, std::string> & meta)const{

@@ -100,7 +100,7 @@ std::string MetaDataInName::createMetaName() const {
 }
 
 void MetaDataInName::resetMetaInName(std::string & name,
-		size_t pos) {
+		size_t pos) const{
 	auto firstBracket = name.find("[");
 	auto secondBracket = name.find("]", firstBracket);
 	std::string newMeta = createMetaName();
@@ -113,6 +113,17 @@ void MetaDataInName::resetMetaInName(std::string & name,
 			name.insert(name.begin() + pos, newMeta.begin(), newMeta.end());
 		} else {
 			name += newMeta;
+		}
+	}
+}
+
+void MetaDataInName::removeMetaDataInName(std::string & name){
+	if(nameHasMetaData(name)){
+		auto firstBracket = name.find("[");
+		auto secondBracket = name.find("]", firstBracket);
+		if (std::string::npos != firstBracket
+				&& std::string::npos != secondBracket) {
+			name = name.substr(0, firstBracket) + name.substr(secondBracket + 1);
 		}
 	}
 }
@@ -130,6 +141,14 @@ bool MetaDataInName::nameHasMetaData(const std::string & name) {
 		return false;
 	}
 	return true;
+}
+
+
+Json::Value MetaDataInName::toJson() const{
+	Json::Value ret;
+	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
+	ret["meta_"] = bib::json::toJson(meta_);
+	return ret;
 }
 
 }  // namespace bibseq
