@@ -147,11 +147,13 @@ void SeqOutput::openWrite(const seqInfo & read) {
 	writeNoCheck(read);
 }
 
-void SeqOutput::writeNoCheck(const PairedRead & read) {
+void SeqOutput::writeNoCheck(const PairedRead & seq) {
+
+
 	if (SeqIOOptions::outFormats::FASTQPAIRED == ioOptions_.outFormat_) {
-		read.seqBase_.outPutFastq(*primaryOut_);
-		seqInfo mateInfo = read.mateSeqBase_;
-		if(read.mateRComplemented_){
+		seq.seqBase_.outPutFastq(*primaryOut_);
+		seqInfo mateInfo = seq.mateSeqBase_;
+		if(seq.mateRComplemented_){
 			mateInfo.reverseComplementRead(false, true);
 		}
 		mateInfo.outPutFastq(*secondaryOut_);
@@ -164,8 +166,8 @@ void SeqOutput::writeNoCheck(const PairedRead & read) {
 
 void SeqOutput::write(const PairedRead & read) {
 	if (!outOpen_) {
-		throw std::runtime_error {
-				"Error in readObjectIOOpt, attempted to write when out files aren't open" };
+		throw std::runtime_error { "Error in " + std::string(__PRETTY_FUNCTION__)
+				+ ", attempted to write when out files aren't open" };
 	}
 	writeNoCheck(read);
 }

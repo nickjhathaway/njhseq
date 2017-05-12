@@ -88,7 +88,9 @@ public:
 			if(reads.second.empty()){
 				continue;
 			}
+			//std::cout << __PRETTY_FUNCTION__ << std::endl;
 			writers_.openWrite(reads.first, reads.second);
+			//std::cout << __PRETTY_FUNCTION__ << std::endl;
 		}
 		for (auto & reads : cache_) {
 			reads.second.clear();

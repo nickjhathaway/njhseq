@@ -313,14 +313,12 @@ bool SeqInput::readNextRead(PairedRead & seq) {
 				ioOptions_.processed_);
 		bool secondMate = readNextFastqStream(*secReader_, SangerQualOffset, seq.mateSeqBase_,
 				ioOptions_.processed_);
-		/*
-		 * i originally thought it might be a good idea to have the ability to reverse complement the mate as an option
-		 * when reading in but for now i think it's more trouble then anything else
 		if(secondMate && ioOptions_.revComplMate_){
 			seq.mateSeqBase_.reverseComplementRead(false, true);
 		}
+
 		seq.mateRComplemented_ = ioOptions_.revComplMate_;
-		*/
+
 		if((firstMate && secondMate) || (!firstMate && !secondMate)){
 			return firstMate && secondMate;
 		}else{

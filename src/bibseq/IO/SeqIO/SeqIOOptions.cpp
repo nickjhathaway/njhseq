@@ -431,7 +431,7 @@ Json::Value SeqIOOptions::toJson() const {
 	ret["inFormat_"] = bib::json::toJson(getInFormat(inFormat_));
 	ret["outFormat_"] = bib::json::toJson(getOutFormat(outFormat_));
 	ret["out_"] = out_.toJson();
-	//ret["complementMate_"] = bib::json::toJson(revComplMate_);
+	ret["revComplMate_"] = bib::json::toJson(revComplMate_);
 	ret["processed_"] = bib::json::toJson(processed_);
 	ret["lowerCaseBases_"] = bib::json::toJson(lowerCaseBases_);
 	ret["removeGaps_"] = bib::json::toJson(removeGaps_);
