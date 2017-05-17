@@ -31,6 +31,19 @@ public:
 			const bfs::path & genomeFnp, std::string additionalBowtie2Args =
 					"");
 
+
+	struct LastZPars{
+		double coverage = 90;
+		double identity = 50;
+		bfs::path genomeFnp = "";
+		std::string outFormat = "SAM";
+		std::string extraLastzArgs = "";
+	};
+	bib::sys::RunOutput lastzAlign(const SeqIOOptions & opts, const LastZPars & pars);
+
+
+
+
 	bib::sys::RunOutput runCmdCheck(const std::string & cmd,
 			const bfs::path & input, const bfs::path & check);
 
