@@ -25,11 +25,11 @@ public:
 	bib::sys::RunOutput RunSamtoolsFastaIndex(const bfs::path & genomeFnp);
 	bib::sys::RunOutput RunPicardFastaSeqDict(const bfs::path & genomeFnp);
 	bib::sys::RunOutput RunFaToTwoBit(const bfs::path & genomeFnp);
-
+	std::unordered_map<std::string, bib::sys::RunOutput> runAllPossibleIndexes(
+			const bfs::path & genomeFnp);
 
 	bib::sys::RunOutput bowtie2Align(const SeqIOOptions & opts,
-			const bfs::path & genomeFnp, std::string additionalBowtie2Args =
-					"");
+			const bfs::path & genomeFnp, std::string additionalBowtie2Args = "");
 
 	bib::sys::RunOutput runCmdCheck(const std::string & cmd,
 			const bfs::path & input, const bfs::path & check);

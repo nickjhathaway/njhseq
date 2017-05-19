@@ -6,6 +6,7 @@
  */
 
 #include "BioCmdsUtils.hpp"
+#include <unordered_map>
 
 namespace bibseq {
 
@@ -70,6 +71,27 @@ bib::sys::RunOutput BioCmdsUtils::RunFaToTwoBit(const bfs::path & genomeFnp) {
 	std::string templateCmd = "TwoBit faToTwoBit --in " + genomeFnp.string()
 			+ " --out " + outFile + " --overWrite";
 	return runCmdCheck(templateCmd, genomeFnp, outFile);
+}
+
+
+std::unordered_map<std::string, bib::sys::RunOutput> BioCmdsUtils::runAllPossibleIndexes(const bfs::path & genomeFnp){
+	std::unordered_map<std::string, bib::sys::RunOutput> outputs;
+	if(bib::sys::hasSysCommand("bowtie2")){
+		outputs.emplace("bowtie2", RunBowtie2Index(genomeFnp));
+	}
+	if(bib::sys::hasSysCommand("bwa")){
+		outputs.emplace("bwa", RunBwaIndex(genomeFnp));
+	}
+	if(bib::sys::hasSysCommand("samtools")){
+		outputs.emplace("samtools", RunSamtoolsFastaIndex(genomeFnp));
+	}
+	if(bib::sys::hasSysCommand("picard")){
+		outputs.emplace("picard", RunPicardFastaSeqDict(genomeFnp));
+	}
+	if(bib::sys::hasSysCommand("TwoBit")){
+		outputs.emplace("TwoBit", RunFaToTwoBit(genomeFnp));
+	}
+	return outputs;
 }
 
 bib::sys::RunOutput BioCmdsUtils::runCmdCheck(const std::string & cmd,
