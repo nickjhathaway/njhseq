@@ -105,7 +105,7 @@ struct SeqIOOptions {
   bfs::path getPriamryOutName() const;
   bfs::path getSecondaryOutName() const;
 
-  //bool revComplMate_ = false;
+  bool revComplMate_ = false;
 
   bool processed_ = false;
   std::string lowerCaseBases_;

@@ -87,6 +87,12 @@ public:
   static void trimAtFirstQualScore(seqInfo &read, const uint32_t qualCutOff);
 
   template <class T>
+  static void trimToLastQualScore(std::vector<T> &reads, const uint32_t qualCutOff);
+  template <class T>
+  static void trimToLastQualScore(T &read, const uint32_t qualCutOff);
+  static void trimToLastQualScore(seqInfo &read, const uint32_t qualCutOff);
+
+  template <class T>
   static void trimAtFirstBase(std::vector<T> &reads, const char base);
   template <class T>
   static void trimAtFirstBase(T &read, const char base);
@@ -202,9 +208,23 @@ void readVecTrimmer::trimAtFirstQualScore(std::vector<T> &reads, const uint32_t 
 }
 
 template <class T>
+void readVecTrimmer::trimToLastQualScore(std::vector<T> &reads, const uint32_t qualCutOff){
+  bib::for_each(reads, [&](T & read){ trimToLastQualScore(read, qualCutOff);} );
+  return;
+}
+
+
+
+template <class T>
 void readVecTrimmer::trimAtFirstQualScore(T &read, const uint32_t qualCutOff){
 	trimAtFirstQualScore(getSeqBase(read), qualCutOff);
 }
+
+template <class T>
+void readVecTrimmer::trimToLastQualScore(T &read, const uint32_t qualCutOff){
+	trimToLastQualScore(getSeqBase(read), qualCutOff);
+}
+
 
 template <class T>
 void readVecTrimmer::trimAtFirstBase(std::vector<T> &reads, const char base){

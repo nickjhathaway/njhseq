@@ -52,6 +52,23 @@ void readVecTrimmer::trimAtFirstQualScore(seqInfo &seq,
 	}
 }
 
+void readVecTrimmer::trimToLastQualScore(seqInfo &seq,
+		const uint32_t qualCutOff) {
+	if(0 == len(seq)){
+		return;
+	}
+	auto iter = std::find_if(seq.qual_.rbegin(), seq.qual_.rend(),
+			[&qualCutOff](uint32_t qual) {return qual <= qualCutOff;});
+
+	if (seq.qual_.rend() != iter) {
+		//position is 1 plus the actual found quality because seq.trimFront position is not inclusive
+		uint32_t position = seq.qual_.size() - (iter - seq.qual_.rbegin());
+		seq.trimFront(position);
+	}
+}
+
+
+
 void readVecTrimmer::trimAtLastBase(seqInfo &seq, const char base){
 	auto pos = seq.seq_.rfind(base);
 	if(std::string::npos != pos){

@@ -48,10 +48,14 @@ public:
 	std::string createMetaName() const;
 
 	void resetMetaInName(std::string & name,
-			size_t pos = std::numeric_limits<size_t>::max());
+			size_t pos = std::numeric_limits<size_t>::max()) const;
+
+	static void removeMetaDataInName(std::string & name);
 
 	static bool nameHasMetaData(const std::string & name);
 
+
+	Json::Value toJson() const;
 
 
 };

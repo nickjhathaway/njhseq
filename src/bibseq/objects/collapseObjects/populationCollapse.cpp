@@ -120,22 +120,22 @@ void populationCollapse::renameToOtherPopNames(const std::vector<readObject> &pr
   VecStr alreadyTakenNames;
   std::vector<uint32_t> alreadyTakenIds;
   std::map<std::string, std::vector<uint32_t>> previousIdsByExp;
-  for(const auto & read : previousPop){
-  	auto firstPer = read.seqBase_.name_.find(".");
-  	auto firstUnder = read.seqBase_.name_.find("_", firstPer);
+  for(const auto & popSeq : previousPop){
+  	auto firstPer = popSeq.seqBase_.name_.find(".");
+  	auto firstUnder = popSeq.seqBase_.name_.find("_", firstPer);
   	if(std::string::npos != firstUnder){
-    	alreadyTakenNames.emplace_back(read.seqBase_.name_.substr(0, firstUnder));
-    	auto prevId = bib::lexical_cast<uint32_t>(read.seqBase_.name_.substr(firstPer + 1, firstUnder - 1 - firstPer));
-    	auto prevExpName = read.seqBase_.name_.substr(0, firstPer);
+    	alreadyTakenNames.emplace_back(popSeq.seqBase_.name_.substr(0, firstUnder));
+    	auto prevId = bib::lexical_cast<uint32_t>(popSeq.seqBase_.name_.substr(firstPer + 1, firstUnder - 1 - firstPer));
+    	auto prevExpName = popSeq.seqBase_.name_.substr(0, firstPer);
     	alreadyTakenNames.emplace_back(prevExpName);
     	alreadyTakenIds.emplace_back(prevId);
     	previousIdsByExp[prevExpName].emplace_back(prevId);
   	}else if(std::string::npos == firstUnder && std::string::npos == firstPer){
-  		alreadyTakenNames.emplace_back(read.seqBase_.name_);
+  		alreadyTakenNames.emplace_back(popSeq.seqBase_.name_);
   	}else{
-    	alreadyTakenNames.emplace_back(read.seqBase_.name_);
-    	auto prevId = bib::lexical_cast<uint32_t>(read.seqBase_.name_.substr(firstPer + 1));
-    	auto prevExpName = read.seqBase_.name_.substr(0, firstPer);
+    	alreadyTakenNames.emplace_back(popSeq.seqBase_.name_);
+    	auto prevId = bib::lexical_cast<uint32_t>(popSeq.seqBase_.name_.substr(firstPer + 1));
+    	auto prevExpName = popSeq.seqBase_.name_.substr(0, firstPer);
     	alreadyTakenNames.emplace_back(prevExpName);
     	alreadyTakenIds.emplace_back(prevId);
     	previousIdsByExp[prevExpName].emplace_back(prevId);
@@ -194,6 +194,79 @@ void populationCollapse::renameToOtherPopNames(
 
 }
 
+
+void populationCollapse::addRefMetaToName(const std::vector<readObject> &previousPop,
+		comparison allowableErrors){
+  // set up scoring so gaps don't cost as much and end gaps don't cost anything
+  gapScoringParameters refGapScore(3.0, 1, 0.0, 0.0, 0.0, 0.0);
+
+  uint64_t maxLen = 0;
+  readVec::getMaxLength(previousPop, maxLen);
+  readVec::getMaxLength(collapsed_.clusters_, maxLen);
+  aligner alignerObj(maxLen, refGapScore, substituteMatrix(2,-2));
+  alignerObj.weighHomopolymers_ = true;
+  addRefMetaToName(previousPop, alignerObj, allowableErrors);
+
+}
+void populationCollapse::addRefMetaToName(const std::vector<readObject> &previousPop,
+		aligner & alignerObj, comparison allowableErrors){
+  VecStr alreadyTakenNames;
+  std::vector<uint32_t> alreadyTakenIds;
+  std::map<std::string, std::vector<uint32_t>> previousIdsByExp;
+  for(const auto & popSeq : previousPop){
+  	auto firstPer = popSeq.seqBase_.name_.find(".");
+  	auto firstUnder = popSeq.seqBase_.name_.find("_", firstPer);
+  	if(std::string::npos != firstUnder){
+    	alreadyTakenNames.emplace_back(popSeq.seqBase_.name_.substr(0, firstUnder));
+    	auto prevId = bib::lexical_cast<uint32_t>(popSeq.seqBase_.name_.substr(firstPer + 1, firstUnder - 1 - firstPer));
+    	auto prevExpName = popSeq.seqBase_.name_.substr(0, firstPer);
+    	alreadyTakenNames.emplace_back(prevExpName);
+    	alreadyTakenIds.emplace_back(prevId);
+    	previousIdsByExp[prevExpName].emplace_back(prevId);
+  	}else if(std::string::npos == firstUnder && std::string::npos == firstPer){
+  		alreadyTakenNames.emplace_back(popSeq.seqBase_.name_);
+  	}else{
+    	alreadyTakenNames.emplace_back(popSeq.seqBase_.name_);
+    	auto prevId = bib::lexical_cast<uint32_t>(popSeq.seqBase_.name_.substr(firstPer + 1));
+    	auto prevExpName = popSeq.seqBase_.name_.substr(0, firstPer);
+    	alreadyTakenNames.emplace_back(prevExpName);
+    	alreadyTakenIds.emplace_back(prevId);
+    	previousIdsByExp[prevExpName].emplace_back(prevId);
+  	}
+  }
+
+  uint32_t id = 0;
+  if(bib::in(populationName_, previousIdsByExp)){
+  	id = (*std::max_element(previousIdsByExp[populationName_].begin(), previousIdsByExp[populationName_].end())) + 1;
+  }
+  std::unordered_map<std::string, uint32_t> allIds;
+  auto names = readVec::getNames(previousPop);
+  for(const auto & name : names){
+  	allIds[name] = 0;
+  }
+  for (auto &clus : collapsed_.clusters_) {
+    double bestScore = 0;
+    uint32_t bestRefPos = std::numeric_limits<uint32_t>::max();
+    for (const auto &refPos : iter::range(previousPop.size())) {
+      alignerObj.alignCache(previousPop[refPos], clus, false);
+      alignerObj.profilePrimerAlignment(previousPop[refPos], clus);
+      if(allowableErrors.passErrorProfile(alignerObj.comp_) && alignerObj.parts_.score_ > bestScore) {
+        bestScore = alignerObj.parts_.score_;
+        bestRefPos = refPos;
+      }
+    }
+    if(bestRefPos != std::numeric_limits<uint32_t>::max()){
+      MetaDataInName meta;
+      if(MetaDataInName::nameHasMetaData(clus.seqBase_.name_)){
+      	meta.processNameForMeta(clus.seqBase_.name_, true);
+      }
+      meta.addMeta("ref", previousPop[bestRefPos].seqBase_.name_ + "." + leftPadNumStr<size_t>(allIds[previousPop[bestRefPos].seqBase_.name_], collapsed_.clusters_.size()));
+      clus.seqBase_.resetMetaInName(meta);
+      ++allIds[previousPop[bestRefPos].seqBase_.name_];
+      clus.updateName();
+    }
+  }
+}
 
 void populationCollapse::updateInfoWithSampCollapses(const std::map<std::string, sampleCollapse> & sampCollapses){
 	for(const auto & samp : sampCollapses){

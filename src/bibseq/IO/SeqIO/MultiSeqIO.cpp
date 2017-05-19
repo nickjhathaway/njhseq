@@ -25,6 +25,7 @@
  *      Author: nick
  */
 
+#include <unordered_map>
 
 #include "MultiSeqIO.hpp"
 
@@ -149,7 +150,16 @@ void MultiSeqIO::openOut(const std::string & uid){
 			//std::cout << __PRETTY_FUNCTION__ << 7 << std::endl;
 		} else {
 			//std::cout << __PRETTY_FUNCTION__ << 8 << std::endl;
-			++outCurrentlyOpen_;
+			if (readIos_.at(uid)->ioOptions_.outFormat_
+					    == SeqIOOptions::outFormats::FASTQPAIRED
+					|| readIos_.at(uid)->ioOptions_.outFormat_
+							== SeqIOOptions::outFormats::FASTQPAIREDGZ
+					|| readIos_.at(uid)->ioOptions_.outFormat_
+							== SeqIOOptions::outFormats::FASTAQUAL) {
+				outCurrentlyOpen_ += 2;
+			} else {
+				++outCurrentlyOpen_;
+			}
 			//std::cout << __PRETTY_FUNCTION__ << 9 << std::endl;
 		}
 		//std::cout << __PRETTY_FUNCTION__ << 10 << std::endl;
