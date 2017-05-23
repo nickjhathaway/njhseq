@@ -95,6 +95,7 @@ void SeqOutput::openOut() {
 				throw std::runtime_error { ss.str() };
 				break;
 		}
+
 		outOpen_ = true;
 	}
 }
@@ -115,7 +116,7 @@ void SeqOutput::closeOutForReopening() {
 void SeqOutput::write(const seqInfo & read) {
 	if (!outOpen_) {
 		throw std::runtime_error {
-				"Error in readObjectIOOpt, attempted to write when out files aren't open" };
+				"Error in readObjectIOOpt, attempted to write when out files aren't open, out file: " + ioOptions_.out_.outName().string() };
 	}
 	writeNoCheck(read);
 }
@@ -219,7 +220,7 @@ void SeqOutput::seekpPri(size_t pos){
 size_t SeqOutput::tellpSec(){
 	return secondaryOut_->tellp();
 }
-
+//Error in readObjectIOOpt, attempted to write when out files aren't open
 void SeqOutput::seekpSec(size_t pos){
 	secondaryOut_->seekp(pos);
 }

@@ -99,7 +99,7 @@ public:
 	void write(const std::vector<T> & reads) {
 		if (!outOpen_) {
 			throw std::runtime_error {
-					"Error in readObjectIOOpt, attempted to write when out files aren't open" };
+					"Error in readObjectIOOpt, attempted to write when out files aren't open, out file: " + ioOptions_.out_.outName().string() };
 		}
 		for (const auto & read : reads) {
 			writeNoCheck(read);
