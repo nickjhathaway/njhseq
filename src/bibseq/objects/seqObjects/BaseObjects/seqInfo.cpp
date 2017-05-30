@@ -653,6 +653,13 @@ uint32_t seqInfo::getSumQual() const {
 }
 
 std::string seqInfo::getOwnSampName() const {
+
+	if(MetaDataInName::nameHasMetaData(name_)){
+		MetaDataInName meta(name_);
+		if(meta.containsMeta("samp")){
+			return meta.getMeta("samp");
+		}
+	}
 	//std::cout << name_ << std::endl;
 	std::string name = getStubName(true);
 	auto firstBracket = name_.find("[");

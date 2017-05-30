@@ -39,14 +39,15 @@ sampleCollapse::sampleCollapse(const std::vector<std::vector<bibseq::cluster>> &
 
   addOtherVec(input_.clusters_, sampleClusterReads);
 
-  for(const auto & read : sampleClusterReads){
-  	if(read.seqBase_.cnt_ > freqCutOff){
-  		collapsed_.clusters_.emplace_back(read);
+  for(const auto & seq : sampleClusterReads){
+  	if(seq.seqBase_.cnt_ > freqCutOff){
+  		collapsed_.clusters_.emplace_back(seq);
   	}else{
-  		excluded_.clusters_.emplace_back(read);
+  		excluded_.clusters_.emplace_back(seq);
   		++lowFreqCount;
   	}
   }
+  //161104-miseq-D10-GHA-4
   updateInitialInfos();
   updateCollapsedInfos();
 }
