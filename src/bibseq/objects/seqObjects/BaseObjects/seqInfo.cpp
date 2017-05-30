@@ -301,6 +301,16 @@ void seqInfo::prepend(const std::string& seq,
 		throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
 	}
 }
+
+void seqInfo::prepend(const seqInfo & other){
+	prepend(other.seq_, other.qual_);
+}
+
+void seqInfo::append(const seqInfo & other){
+	append(other.seq_, other.qual_);
+}
+
+
 const std::vector<uint32_t> seqInfo::getLeadQual(uint32_t posA,
 		uint32_t out) const {
 	std::vector<uint32_t> ans;

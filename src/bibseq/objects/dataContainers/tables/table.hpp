@@ -276,6 +276,15 @@ public:
 	VecStr getColumnLevels(uint32_t colPos)const;
 	VecStr getColumnLevels(const std::string & colName)const;
 
+
+//	/**@brief Create a json array with members the column name
+//	 *
+//	 * @param columnName
+//	 * @return
+//	 */
+//
+//	Json::Value createJsonLookUpTable(const std::string & columnName, VecStr sub)const;
+
 	template<typename UnaryPredicate>
 	table extractByComp(uint32_t colPos, UnaryPredicate p) const {
 		table out(columnNames_);

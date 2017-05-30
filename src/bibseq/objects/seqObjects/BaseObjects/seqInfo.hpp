@@ -80,6 +80,9 @@ struct seqInfo {
 	void prepend(const char & base, uint32_t quality = 40);
 	void append(const char & base, uint32_t quality = 40);
 
+	void prepend(const seqInfo & other);
+	void append(const seqInfo & other);
+
 	void insert(uint32_t pos, const seqInfo & otherInfo);
 
 	bool checkLeadQual(uint32_t pos, uint32_t secondayQual, uint32_t out) const;
