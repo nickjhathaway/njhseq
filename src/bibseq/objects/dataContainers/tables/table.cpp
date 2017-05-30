@@ -660,12 +660,29 @@ void table::rbind(const table &otherTable, bool fill) {
 			return !bib::in(col, columnNames_);
 		;});
 	if(containsOtherColumns){
-		std::stringstream ss;
-		ss << "Error in : " << __PRETTY_FUNCTION__
-				<< ", adding a table that has contains column names this table doesn't have "<< std::endl;
-		ss << "Other table column names: " << bib::conToStr(otherTable.columnNames_) << std::endl;
-		ss << "This table column names: " << bib::conToStr(columnNames_) << std::endl;
-		throw std::runtime_error{ss.str()};
+		if(fill){
+			VecStr missingCols;
+			for(const auto & col : columnNames_){
+				if(!bib::in(col, otherTable.columnNames_)){
+					missingCols.emplace_back(col);
+				}
+			}
+			for(const auto & col : missingCols){
+				auto tempCol = otherTable.getColumn(col);
+				if (isVecOfDoubleStr(tempCol)) {
+					addColumn( { "0" }, col);
+				} else {
+					addColumn( { "" }, col);
+				}
+			}
+		}else{
+			std::stringstream ss;
+			ss << "Error in : " << __PRETTY_FUNCTION__
+					<< ", adding a table that has contains column names this table doesn't have "<< std::endl;
+			ss << "Other table column names: " << bib::conToStr(otherTable.columnNames_) << std::endl;
+			ss << "This table column names: " << bib::conToStr(columnNames_) << std::endl;
+			throw std::runtime_error{ss.str()};
+		}
 	}
 	bool missingColumNmaes = std::any_of(columnNames_.begin(),
 			columnNames_.end(), [&otherTable](const std::string & col){

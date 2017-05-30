@@ -34,14 +34,22 @@ namespace bibseq {
 
 class MasterTableStaticCache {
 public:
+	/**@brief Construct a table from all the input files in files and write to the options provided
+	 *
+	 * @param opts table output options
+	 * @param files the files to collect and combine into 1 master table
+	 */
 	MasterTableStaticCache(const TableIOOpts & opts,
-			const std::vector<boost::filesystem::path> & files);
+			const std::vector<boost::filesystem::path> & files,
+			bool fill = false);
 
-	TableIOOpts opts_;
+	TableIOOpts opts_;/**< the table output options */
+
+	bool fill_ = false;
 private:
-	FilesWithTime files_;
-	std::chrono::time_point<std::chrono::system_clock> updateTime_;
-	table masterTab_;
+	FilesWithTime files_; /**< files with last read in times */
+	std::chrono::time_point<std::chrono::system_clock> updateTime_; /**< the last time the master table was updated*/
+	table masterTab_; /**< the master table */
 private:
 	/**@brief checks to see if MasterTableStaticCache::masterTab_ needs to be updated
 	 * @return true if the master table needs to be updated

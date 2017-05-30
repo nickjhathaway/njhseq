@@ -30,8 +30,9 @@
 namespace bibseq {
 
 MasterTableStaticCache::MasterTableStaticCache(const TableIOOpts & opts,
-		const std::vector<bfs::path> & files) :
-		opts_(opts), files_(files) {
+		const std::vector<bfs::path> & files,
+		bool fill) :
+		opts_(opts), files_(files), fill_(fill) {
 	bool outOutDated = outUpToDate();
 	if (outOutDated) {
 		loadTabs();
@@ -74,7 +75,7 @@ bool MasterTableStaticCache::loadTabs(){
 			if (masterTab_.content_.empty()) {
 				masterTab_ = fileTab;
 			} else {
-				masterTab_.rbind(fileTab, false);
+				masterTab_.rbind(fileTab, fill_);
 			}
 		}
 		updateTime_ = std::chrono::system_clock::now();
