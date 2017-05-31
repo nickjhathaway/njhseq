@@ -54,8 +54,8 @@ struct seqInfo {
   seqInfo(const std::string& name, const std::string& seq,
           const std::vector<uint32_t>& qual, double cnt);
   seqInfo(const std::string& name, const std::string& seq);
-  seqInfo(const std::string& name, const std::string& seq,
-          const std::string& stringQual);
+//  seqInfo(const std::string& name, const std::string& seq,
+//          const std::string& stringQual);
   seqInfo(const std::string& name, const std::string& seq,
           const std::string& stringQual, uint32_t off_set);
   seqInfo(const std::string& name, const std::string& seq,

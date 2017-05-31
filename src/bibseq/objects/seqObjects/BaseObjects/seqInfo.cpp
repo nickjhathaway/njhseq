@@ -33,21 +33,32 @@ seqInfo::seqInfo(const std::string & name) :
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
 		const std::vector<uint32_t>& qual) :
 		name_(name), seq_(seq), qual_(qual), cnt_(1), frac_(0) {
+	if(qual_.size() != seq.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error seq and qual have to be the same size; seq: " << seq.size() << " qual: " << qual_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
+	}
 }
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
 		const std::vector<uint32_t>& qual, double cnt) :
 		name_(name), seq_(seq), qual_(qual), cnt_(cnt), frac_(0) {
+	if(qual_.size() != seq.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error seq and qual have to be the same size; seq: " << seq.size() << " qual: " << qual_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
+	}
 }
 seqInfo::seqInfo(const std::string& name, const std::string& seq) :
 		name_(name), seq_(seq), qual_(std::vector<uint32_t>(seq.size(), 40)), cnt_(
 				1), frac_(0) {
+
 }
 
-seqInfo::seqInfo(const std::string& name, const std::string& seq,
-		const std::string& stringQual) :
-		name_(name), seq_(seq), qual_(stringToVector<uint32_t>(stringQual)), cnt_(
-				1), frac_(0) {
-}
+//seqInfo::seqInfo(const std::string& name, const std::string& seq,
+//		const std::string& stringQual) :
+//		name_(name), seq_(seq), qual_(stringToVector<uint32_t>(stringQual)), cnt_(
+//				1), frac_(0) {
+//}
 
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
 		const std::string& stringQual, uint32_t off_set) :
@@ -55,10 +66,20 @@ seqInfo::seqInfo(const std::string& name, const std::string& seq,
 	for (const auto & c : stringQual) {
 		qual_.emplace_back(c - off_set);
 	}
+	if(qual_.size() != seq.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error seq and qual have to be the same size; seq: " << seq.size() << " qual: " << qual_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
+	}
 }
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
 		const std::vector<uint32_t>& qual, double cnt, double frac) :
 		name_(name), seq_(seq), qual_(qual), cnt_(cnt), frac_(frac) {
+	if(qual_.size() != seq.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error seq and qual have to be the same size; seq: " << seq.size() << " qual: " << qual_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
+	}
 }
 
 seqInfo seqInfo::getSubRead(uint32_t pos, uint32_t size) const {
