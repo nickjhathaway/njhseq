@@ -47,6 +47,7 @@ public:
 
 	void openGzFile(bib::GZSTREAM::ogzstream & out) const;
 	void openFile(std::ofstream & out) const;
+	void openBinaryFile(std::ofstream & out) const;
 	void openExecutableFile(std::ofstream & out) const;
 
 };

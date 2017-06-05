@@ -27,7 +27,8 @@
 #include "PairedRead.hpp"
 
 namespace bibseq {
-PairedRead::PairedRead():readObject(), mateSeqBase_(seqInfo()){
+PairedRead::PairedRead() :
+		readObject(), mateSeqBase_(seqInfo()) {
 
 }
 

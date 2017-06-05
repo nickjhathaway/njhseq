@@ -73,6 +73,13 @@ void OutOptions::openFile(std::ofstream & out) const {
 			exitOnFailureToWrite_);
 }
 
+void OutOptions::openBinaryFile(std::ofstream & out) const {
+	bib::files::openBinaryFile(out, outName(), overWriteFile_, append_,
+			exitOnFailureToWrite_);
+}
+
+
+
 void OutOptions::openExecutableFile(std::ofstream & out) const {
 	openFile(out);
 	bib::files::chmod775(outName());

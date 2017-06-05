@@ -428,8 +428,8 @@ Json::Value SeqIOOptions::toJson() const {
 	Json::Value ret;
 	ret["firstName_"] = bib::json::toJson(firstName_);
 	ret["secondName_"] = bib::json::toJson(secondName_);
-	ret["inFormat_"] = bib::json::toJson(getInFormat(inFormat_));
-	ret["outFormat_"] = bib::json::toJson(getOutFormat(outFormat_));
+	ret["inFormat_"] = bib::json::toJson(inFormat_ == inFormats::NOFORMAT ? std::string("NOFORMAT") : getInFormat(inFormat_));
+	ret["outFormat_"] = bib::json::toJson(outFormat_ == outFormats::NOFORMAT ? std::string("NOFORMAT") :getOutFormat(outFormat_));
 	ret["out_"] = out_.toJson();
 	ret["revComplMate_"] = bib::json::toJson(revComplMate_);
 	ret["processed_"] = bib::json::toJson(processed_);
