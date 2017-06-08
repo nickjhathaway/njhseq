@@ -26,6 +26,58 @@
 namespace bibseq {
 
 
+void readVecTrimmer::trimRstripQualScore(seqInfo &seq, const uint32_t qualCutOff){
+	if(!seq.qual_.empty()){
+		if(qualCutOff == seq.qual_.back()){
+			uint32_t pos = seq.qual_.size() - 1;
+			while(pos != 0 && qualCutOff == seq.qual_[pos - 1]){
+				--pos;
+			}
+			seq.trimBack(pos);
+		}
+	}
+}
+
+void readVecTrimmer::trimAtRstripBase(seqInfo &seq, const char base){
+	if(!seq.qual_.empty()){
+		if(base == seq.seq_.back()){
+			uint32_t pos = seq.seq_.size() - 1;
+			while(pos != 0 && base == seq.seq_[pos - 1]){
+				--pos;
+			}
+			seq.trimBack(pos);
+		}
+	}
+}
+
+
+
+void readVecTrimmer::trimLstripQualScore(seqInfo &seq, const uint32_t qualCutOff){
+	if(!seq.qual_.empty()){
+		if(qualCutOff == seq.qual_.front()){
+			uint32_t pos = 0;
+			while(pos + 1 != seq.qual_.size() && qualCutOff == seq.qual_[pos + 1]){
+				++pos;
+			}
+			seq.trimFront(pos + 1);
+		}
+	}
+}
+
+void readVecTrimmer::trimAtLstripBase(seqInfo &seq, const char base){
+	if(!seq.seq_.empty()){
+		if(base == seq.seq_.front()){
+			uint32_t pos = 0;
+			while(pos + 1 != seq.seq_.size() && base == seq.seq_[pos + 1]){
+				++pos;
+			}
+			seq.trimFront(pos + 1);
+		}
+	}
+}
+
+
+
 
 void readVecTrimmer::trimAtFirstBase(seqInfo &seq, const char base){
 	auto pos = seq.seq_.find(base);

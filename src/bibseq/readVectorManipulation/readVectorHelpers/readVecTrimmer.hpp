@@ -105,6 +105,31 @@ public:
   static void trimAtLastBase(seqInfo &read, const char base);
 
   template <class T>
+  static void trimLstripQualScore(std::vector<T> &reads, const uint32_t qualCutOff);
+  template <class T>
+  static void trimLstripQualScore(T &read, const uint32_t qualCutOff);
+  static void trimLstripQualScore(seqInfo &read, const uint32_t qualCutOff);
+
+
+  template <class T>
+  static void trimRstripQualScore(std::vector<T> &reads, const uint32_t qualCutOff);
+  template <class T>
+  static void trimRstripQualScore(T &read, const uint32_t qualCutOff);
+  static void trimRstripQualScore(seqInfo &read, const uint32_t qualCutOff);
+
+  template <class T>
+  static void trimAtLstripBase(std::vector<T> &reads, const char base);
+  template <class T>
+  static void trimAtLstripBase(T &read, const char base);
+  static void trimAtLstripBase(seqInfo &read, const char base);
+
+  template <class T>
+  static void trimAtRstripBase(std::vector<T> &reads, const char base);
+  template <class T>
+  static void trimAtRstripBase(T &read, const char base);
+  static void trimAtRstripBase(seqInfo &read, const char base);
+
+  template <class T>
   static void trimAtFirstSeq(std::vector<T> &reads, const std::string & seq);
   template <class T>
   static void trimAtFirstSeq(T &read, const std::string & seq);
@@ -241,6 +266,56 @@ template <class T>
 void readVecTrimmer::trimAtLastBase(T &read, const char base){
 	trimAtLastBase(getSeqBase(read), base);
 }
+
+
+template <class T>
+void readVecTrimmer::trimLstripQualScore(std::vector<T> &reads, const uint32_t qualCutOff){
+  bib::for_each(reads, [&](T & read){ trimLstripQualScore(read, qualCutOff);} );
+  return;
+}
+
+template <class T>
+void readVecTrimmer::trimLstripQualScore(T &read, const uint32_t qualCutOff){
+	trimLstripQualScore(getSeqBase(read), qualCutOff);
+}
+
+template <class T>
+void readVecTrimmer::trimRstripQualScore(std::vector<T> &reads, const uint32_t qualCutOff){
+  bib::for_each(reads, [&](T & read){ trimRstripQualScore(read, qualCutOff);} );
+  return;
+}
+
+template <class T>
+void readVecTrimmer::trimRstripQualScore(T &read, const uint32_t qualCutOff){
+	trimRstripQualScore(getSeqBase(read), qualCutOff);
+}
+
+template <class T>
+void readVecTrimmer::trimAtLstripBase(std::vector<T> &reads, const char base){
+  bib::for_each(reads, [&](T & read){ trimAtLstripBase(read, base);} );
+  return;
+}
+
+
+template <class T>
+void readVecTrimmer::trimAtLstripBase(T &read, const char base){
+	trimAtLstripBase(getSeqBase(read), base);
+}
+
+template <class T>
+void readVecTrimmer::trimAtRstripBase(std::vector<T> &reads, const char base){
+  bib::for_each(reads, [&](T & read){ trimAtRstripBase(read, base);} );
+  return;
+}
+
+
+template <class T>
+void readVecTrimmer::trimAtRstripBase(T &read, const char base){
+	trimAtRstripBase(getSeqBase(read), base);
+}
+
+
+
 
 template <class T>
 void readVecTrimmer::trimAtLastSeq(T &read, const std::string & seq){
