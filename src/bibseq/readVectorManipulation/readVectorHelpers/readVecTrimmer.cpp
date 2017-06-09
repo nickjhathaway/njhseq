@@ -26,7 +26,7 @@
 namespace bibseq {
 
 
-void readVecTrimmer::trimRstripQualScore(seqInfo &seq, const uint32_t qualCutOff){
+void readVecTrimmer::trimAtRstripQualScore(seqInfo &seq, const uint32_t qualCutOff){
 	if(!seq.qual_.empty()){
 		if(qualCutOff == seq.qual_.back()){
 			uint32_t pos = seq.qual_.size() - 1;
@@ -39,7 +39,7 @@ void readVecTrimmer::trimRstripQualScore(seqInfo &seq, const uint32_t qualCutOff
 }
 
 void readVecTrimmer::trimAtRstripBase(seqInfo &seq, const char base){
-	if(!seq.qual_.empty()){
+	if(!seq.seq_.empty()){
 		if(base == seq.seq_.back()){
 			uint32_t pos = seq.seq_.size() - 1;
 			while(pos != 0 && base == seq.seq_[pos - 1]){
@@ -52,7 +52,7 @@ void readVecTrimmer::trimAtRstripBase(seqInfo &seq, const char base){
 
 
 
-void readVecTrimmer::trimLstripQualScore(seqInfo &seq, const uint32_t qualCutOff){
+void readVecTrimmer::trimAtLstripQualScore(seqInfo &seq, const uint32_t qualCutOff){
 	if(!seq.qual_.empty()){
 		if(qualCutOff == seq.qual_.front()){
 			uint32_t pos = 0;
