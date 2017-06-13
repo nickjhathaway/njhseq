@@ -16,15 +16,15 @@ class PairwisePairFactory {
 
 public:
 	struct PairwisePair {
-		uint32_t row_ = std::numeric_limits<uint32_t>::max();/**< The row position in the output distance matrix, also the element index in the input */
-		uint32_t col_ = std::numeric_limits<uint32_t>::max();/**< The col position in the output distance matrix, also the element index in the input */
+		uint64_t row_ = std::numeric_limits<uint64_t>::max();/**< The row position in the output distance matrix, also the element index in the input */
+		uint64_t col_ = std::numeric_limits<uint64_t>::max();/**< The col position in the output distance matrix, also the element index in the input */
 
 		/**@brief Set the row and columns by the current comparison and the total number of input items
 		 *
 		 * @param k The current comparison number  (first comparison is 0, second is 1, third is 2, etc. goes to (n-1)*n/2
 		 * @param n The total number of items to compare with each other
 		 */
-		void setByTriangularIndex(uint32_t k, uint32_t n);
+		void setByTriangularIndex(uint64_t k, uint64_t n);
 
 	};
 
@@ -39,11 +39,11 @@ public:
 	 *
 	 * @param numOfElements The number of elements to compare
 	 */
-	PairwisePairFactory(uint32_t numOfElements);
+	PairwisePairFactory(uint64_t numOfElements);
 
-	const uint32_t numOfElements_;/**< The total number of elements to compare */
-	const uint32_t totalCompares_;/**< The total number of comparison that need to be made, (n-1)*n/2*/
-	uint32_t current_ = 0;/**< The current comparison the factor is on */
+	const uint64_t numOfElements_;/**< The total number of elements to compare */
+	const uint64_t totalCompares_;/**< The total number of comparison that need to be made, (n-1)*n/2*/
+	uint64_t current_ = 0;/**< The current comparison the factor is on */
 	std::mutex mut_;/**< A mutex to make access to the factor thread safe */
 
 	/**@brief Set the next pairwise comparison that needs to be done, locks
