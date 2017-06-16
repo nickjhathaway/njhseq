@@ -6,5 +6,11 @@
  */
 
 
+#include "BasicPointMatrix.hpp"
 
+namespace bibseq {
+
+
+
+}  // namespace bibseq
 

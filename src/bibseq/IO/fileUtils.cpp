@@ -307,4 +307,33 @@ std::string cleanOut(const std::string &in, uint32_t width,
 }
 
 
+void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & outopts){
+	std::ofstream outFile;
+	outopts.openBinaryFile(outFile);
+	//check files
+	std::stringstream ss;
+	bool failed = false;
+	for(const auto & fnp : fnps){
+		if(!bfs::exists(fnp)){
+			failed = true;
+			ss << __PRETTY_FUNCTION__ << " file " << fnp << " doesn't exist" << "\n";
+		}else{
+			std::ifstream testFile(fnp.string(), std::ios::in | std::ios::binary);
+			if(!testFile.is_open()){
+				failed = true;
+				ss << __PRETTY_FUNCTION__ << " problem opening file " << fnp << "\n";
+			}
+		}
+	}
+
+	if(failed){
+		throw std::runtime_error{ss.str()};
+	}
+	for(const auto & fnp : fnps){
+		std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
+		outFile << inFile.rdbuf();
+	}
+}
+
+
 }  // namespace bib

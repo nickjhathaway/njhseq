@@ -39,13 +39,7 @@
 namespace bibseq {
 
 
-template<typename OPT>
-std::streambuf* determineOutBuf(std::ofstream & outFile,
-		const OPT & opts) {
-	return bib::files::determineOutBuf(outFile, opts.outFilename_,
-			opts.outExtention_, opts.overWriteFile_, opts.append_,
-			opts.exitOnFailureToWrite_);
-}
+
 
 
 int getdir(const std::string &dir,
@@ -86,6 +80,19 @@ std::string cleanOut(const std::string &in, uint32_t width,
                      uint32_t indentAmount);
 
 VecStr getNewestDirs(const std::string & dirName, const std::string & con);
+
+
+template<typename OPT>
+std::streambuf* determineOutBuf(std::ofstream & outFile,
+		const OPT & opts) {
+	return bib::files::determineOutBuf(outFile, opts.outFilename_,
+			opts.outExtention_, opts.overWriteFile_, opts.append_,
+			opts.exitOnFailureToWrite_);
+}
+
+
+
+void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & outopts);
 
 
 }  // namespace bibseq

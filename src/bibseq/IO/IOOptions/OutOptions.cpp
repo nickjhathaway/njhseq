@@ -114,6 +114,13 @@ bfs::path OutOptions::outName() const {
 }
 
 
+std::streambuf* OutOptions::determineOutBuf(std::ofstream & outFile) {
+	return bib::files::determineOutBuf(outFile, outFilename_,
+			outExtention_, overWriteFile_, append_,
+			exitOnFailureToWrite_);
+}
+
+
 }  // namespace bibseq
 
 

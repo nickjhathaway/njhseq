@@ -50,6 +50,18 @@ public:
 	void openBinaryFile(std::ofstream & out) const;
 	void openExecutableFile(std::ofstream & out) const;
 
+
+	/**@brief Will return the stream buffer for either the supplied std::ofstream if outFilename_ is not blank or std::cout
+	 *
+	 * used to construct a std::ostream object that will write to either the file if needed or to std::cout if outFilename_ is blank
+	 *
+	 * @param outFile the outFile that might be opened
+	 * @return the stream buffer of either outFile or std::cout
+	 */
+	std::streambuf* determineOutBuf(std::ofstream & outFile);
+
+
+
 };
 
 
