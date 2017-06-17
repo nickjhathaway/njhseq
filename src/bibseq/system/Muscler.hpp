@@ -470,7 +470,7 @@ public:
 		std::vector<seqInfo> alignedRefs = std::vector<seqInfo>(allSeqs.begin(), allSeqs.begin() + refSeqs.size());
 		auto refStartsStop = getMAlnStartsAndStops(alignedRefs);
 
-		auto allSeqStart = getMAlnStartsAndStops(allSeqs);
+
 		auto minPosEle = std::min_element(refStartsStop.begin(), refStartsStop.end(), [](const StartStopMALNPos & pos1, const StartStopMALNPos & pos2){
 			return pos1.start_ < pos2.start_;
 		});
@@ -478,8 +478,12 @@ public:
 			return pos1.stop_ < pos2.stop_;
 		});
 
-		uint32_t trimEnd = len(getSeqBase(allSeqs.front())) - maxPosEle->stop_ + 1;
+		auto allSeqStart = getMAlnStartsAndStops(allSeqs);
+
+
+		uint32_t trimEnd = len(getSeqBase(allSeqs.front())) - maxPosEle->stop_ - 1;
 		uint32_t trimFront = minPosEle->start_;
+
 		readVecTrimmer::trimEnds(allSeqs, trimFront, trimEnd);
 		for(const auto seqPos : iter::range(len(allSeqs))){
 			if(allSeqStart[seqPos].start_ >  minPosEle->start_| allSeqStart[seqPos].stop_  < maxPosEle->stop_ ){
@@ -489,6 +493,8 @@ public:
 			}
 		}
 		readVec::removeGapsFromReads(allSeqs);
+
+
 		for(const auto pos : iter::range(refSeqs.size(), allSeqs.size())){
 			const auto inputSeqPos =  pos - refSeqs.size();
 			getSeqBase(inputSeqs[inputSeqPos] ) = allSeqs[pos];
