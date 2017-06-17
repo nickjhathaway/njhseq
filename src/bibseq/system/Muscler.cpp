@@ -93,4 +93,75 @@ Muscler::MusPosSize::MusPosSize(size_t pos, uint32_t size) :
 		pos_(pos), size_(size) {
 }
 
+
+
+Muscler::AlnPosScore::AlnPosScore(size_t pos) :
+	pos_(pos) {
+}
+
+
+void Muscler::AlnPosScore::setCounts() {
+	counter_.resetAlphabet(true);
+	counter_.setFractions();
+	for (const auto & let : counter_.alphabet_) {
+		if ('-' == let) {
+			gapCount_ += counter_.chars_[let];
+		} else {
+			baseCount_ += counter_.chars_[let];
+		}
+	}
+}
+
+uint32_t Muscler::AlnPosScore::getSpanningCount() const{
+	return baseCount_ + gapCount_;
+}
+
+Muscler::AlnPosScoreStreak::AlnPosScoreStreak() :
+		start_(std::numeric_limits<uint32_t>::max()), end_(
+				std::numeric_limits<uint32_t>::max()) {
+
+}
+Muscler::AlnPosScoreStreak::AlnPosScoreStreak(const std::shared_ptr<AlnPosScore> & firstScore) :
+		start_(firstScore->pos_), end_(firstScore->pos_ + 1), scores_{firstScore} {
+
+}
+
+uint32_t Muscler::AlnPosScoreStreak::getLne() const{
+	return end_ - start_;
+}
+
+
+std::vector<Muscler::AlnPosScoreStreak> Muscler::getAlignmentStreaksPositions(const std::vector<std::shared_ptr<AlnPosScore>> & scores,
+		const std::function<bool(const std::shared_ptr<AlnPosScore>&)> & scorePred,
+		uint32_t streakLenCutOff){
+	std::vector<AlnPosScoreStreak> streaks;
+	if(scores.empty()){
+		return streaks;
+	}
+
+	auto startCut = std::find_if(scores.begin(), scores.end(), scorePred);
+	auto endCut = std::find_if(scores.rbegin(), scores.rend(), scorePred);
+	uint32_t startCutSeqPos =  startCut - scores.begin();
+	uint32_t stopCutSeqPos  = len(scores) - (endCut - scores.rbegin()) - 1;
+
+	AlnPosScoreStreak currentStreak(scores[startCutSeqPos]);
+	for(const auto & streakSearchPos : iter::range(startCutSeqPos + 1, stopCutSeqPos + 1)){
+		if(scorePred(scores[streakSearchPos])){
+			if(currentStreak.end_ == scores[streakSearchPos]->pos_){
+				++currentStreak.end_;
+				currentStreak.scores_.emplace_back(scores[streakSearchPos]);
+			}else{
+				if(currentStreak.getLne() >= streakLenCutOff){
+					streaks.emplace_back(currentStreak);
+				}
+				currentStreak = AlnPosScoreStreak(scores[streakSearchPos]);
+			}
+		}
+	}
+	if(currentStreak.getLne() >= streakLenCutOff){
+		streaks.emplace_back(currentStreak);
+	}
+	return streaks;
+}
+
 } /* namespace bibseq */

@@ -11,7 +11,7 @@
 #include "bibseq/alignment/alnCache/alnInfoGlobal.hpp"
 #include "bibseq/IO/SeqIO/SeqInput.hpp"
 #include "bibseq/alignment/aligner/alignCalc.hpp"
-
+#include "bibseq/readVectorManipulation/readVectorHelpers/readVecTrimmer.hpp"
 
 namespace bibseq {
 
@@ -218,6 +218,283 @@ public:
 		bib::iota<uint64_t>(allSelected, 0);
 		muscleSeqs(seqs, allSelected);
 	}
+
+
+	struct StartStopMALNPos{
+		uint32_t start_;
+		uint32_t stop_;
+	};
+
+	/**@brief Find the first and last non gap base in a seqs that have been multiple algined
+	 *
+	 * @param alnSeqs the vector of aligned seqs
+	 * @return the start and stops
+	 */
+	template<typename T>
+	static std::vector<StartStopMALNPos> getMAlnStartsAndStops(const std::vector<T> & alnSeqs){
+		std::vector<StartStopMALNPos> ret;
+		for(const auto & seq : alnSeqs){
+			StartStopMALNPos pos;
+			pos.start_ = getSeqBase(seq).seq_.find_first_not_of('-');
+			pos.stop_ = getSeqBase(seq).seq_.find_last_not_of('-');
+			ret.emplace_back(pos);
+		}
+		return ret;
+	}
+
+	/**@brief The pileup at a multiple alignment position
+	 *
+	 */
+	struct AlnPosScore {
+
+		AlnPosScore(seqInfo::size_type pos);
+
+		seqInfo::size_type pos_;/**< The position in the multiple alignment */
+
+
+		charCounter counter_ { std::vector<char> { 'A', 'C', 'G', 'T', '-' } };
+
+
+		uint32_t baseCount_ = 0;/**< The number of bases here*/
+		uint32_t gapCount_ = 0;/**< The number of gaps here*/
+
+		/**@brief Set the number of bases and gaps at this position from the counter_ object
+		 *
+		 */
+		void setCounts();
+
+		/**@brief The number of bases and gaps here
+		 *
+		 * @return the count of bases and gaps,
+		 */
+		uint32_t getSpanningCount() const;
+
+
+	};
+
+	template<typename T>
+	static void checkAlignSeqsLensThrow(const std::vector<T> & alnSeqs, const std::string & funcName){
+		bool failed = false;
+		std::stringstream ss;
+		ss << funcName << ", errors found, all input seqs must have the same length" << "\n";
+		for(const auto seqPos : iter::range(alnSeqs.size())){
+			const auto & seq = alnSeqs[seqPos];
+			if(len(getSeqBase(seq)) != len(getSeqBase(alnSeqs.front()))){
+				failed = true;
+				ss << "Pos: " << seqPos << ", Name " << getSeqBase(alnSeqs[seqPos]).name_ << "\n";
+			}
+		}
+		if(failed){
+			throw std::runtime_error{ss.str()};
+		}
+	}
+
+	/**@brief Score each position in the multiple alignment, don't count gaps at the end and beginging of seqs so spanning counts can be calculated
+	 *
+	 * @param alnSeqs the aligned seqs
+	 * @return a vector of counts per position
+	 */
+	template<typename T>
+	static std::vector<std::shared_ptr<AlnPosScore>> getPileupCounts(
+			const std::vector<T> & alnSeqs) {
+
+		checkAlignSeqsLensThrow(alnSeqs, __PRETTY_FUNCTION__);
+
+		auto startsAndStops = getMAlnStartsAndStops(alnSeqs);
+		std::vector<std::shared_ptr<AlnPosScore>> ret;
+		for (const auto basePos : iter::range(len(alnSeqs.front()))) {
+			std::shared_ptr<AlnPosScore> score = std::make_shared<AlnPosScore>(
+					basePos);
+			for (const auto seqPos : iter::range(alnSeqs.size())) {
+				const auto & seq = alnSeqs[seqPos];
+				if (basePos >= startsAndStops[seqPos].start_
+						&& basePos <= startsAndStops[seqPos].stop_) {
+					score->counter_.increaseCountOfBase(seq.seq_[basePos]);
+				}
+			}
+			score->setCounts();
+			ret.emplace_back(score);
+		}
+		return ret;
+	}
+
+	/**@brief A streak of multiple alignment positions that pass a certain predicate
+	 *
+	 */
+	struct AlnPosScoreStreak {
+		AlnPosScoreStreak();
+		AlnPosScoreStreak(const std::shared_ptr<AlnPosScore> & firstScore);
+		uint32_t start_;
+		uint32_t end_;
+		uint32_t getLne() const;
+		std::vector<std::shared_ptr<AlnPosScore>> scores_;
+
+	};
+
+	/**@brief Get streaks of positions that pass a certain predicate
+	 *
+	 * @param scores the scores to get streaks from
+	 * @param scorePred the predicate, a function object takes a std::shared_ptr<AlnPosScore> and returns a bool
+	 * @param streakLenCutOff the length a streak must reach to be included in the streaks
+	 * @return a vector of streaks that pass the predicate and length cut off
+	 */
+	static std::vector<AlnPosScoreStreak> getAlignmentStreaksPositions(
+			const std::vector<std::shared_ptr<AlnPosScore>> & scores,
+			const std::function<bool(const std::shared_ptr<AlnPosScore>&)> & scorePred,
+			uint32_t streakLenCutOff);
+
+	/**@brief Get streaks of positions that pass a certain predicate
+	 *
+	 * @param alnSeqs the aligned seqs that scores will then be calculated from and then evauluated for streaks
+	 * @param scorePred the predicate, a function object takes a std::shared_ptr<AlnPosScore> and returns a bool
+	 * @param streakLenCutOff the length a streak must reach to be included in the streaks
+	 * @return a vector of streaks that pass the predicate and length cut off
+	 */
+	template<typename T>
+	static std::vector<AlnPosScoreStreak> getAlignmentStreaksPositions(
+			const std::vector<T> & alnSeqs,
+			const std::function<bool(const std::shared_ptr<AlnPosScore>&)> & scorePred,
+			uint32_t streakLenCutOff){
+		auto scores = getPileupCounts(alnSeqs);
+		return getAlignmentStreaksPositions(scores, scorePred, streakLenCutOff);
+	}
+
+
+	/**@brief Trim multiple aligned sequences (must be same length)
+	 *
+	 * @param alnSeqs the alignment seqs to trim
+	 * @param streaks the streaks calculated
+	 */
+	template<typename T>
+	static void trimAlnSeqsToFirstAndLastStreak(std::vector<T> & alnSeqs,
+			const std::vector<AlnPosScoreStreak> & streaks
+			){
+		if(alnSeqs.empty()){
+			return;
+		}
+		if(streaks.empty()){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error, streaks shouldn't be empty" << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		checkAlignSeqsLensThrow(alnSeqs, __PRETTY_FUNCTION__);
+		auto startsAndStops = getMAlnStartsAndStops(alnSeqs);
+
+		uint32_t trimEnd = len(getSeqBase(alnSeqs.front())) - streaks.back().end_;
+		uint32_t trimFront = streaks.front().start_;
+		readVecTrimmer::trimEnds(alnSeqs, trimFront, trimEnd);
+		for(const auto seqPos : iter::range(len(alnSeqs))){
+			if(startsAndStops[seqPos].start_ >  streaks.front().start_ | startsAndStops[seqPos].stop_ + 1 < streaks.back().end_){
+				alnSeqs[seqPos].on_ = false;
+			}else{
+				alnSeqs[seqPos].on_ = true;
+			}
+		}
+		readVec::removeGapsFromReads(alnSeqs);
+	}
+
+
+	/**@brief Trim seqs to streaks calculated by a streak length cutoff and score predicate
+	 *
+	 * @param alnSeqs the alignment streaks
+	 * @param scorePred the predicate to consider an alignment position
+	 * @param streakLenCutOff the number of position in a row that must pass the predicate to be considered a streak
+	 */
+	template<typename T>
+	static void trimAlnSeqsToFirstAndLastStreak(std::vector<T> & alnSeqs,
+			const std::function<bool(const std::shared_ptr<AlnPosScore>&)> & scorePred,
+						uint32_t streakLenCutOff
+			){
+		if(alnSeqs.empty()){
+			return;
+		}
+		auto streaks = getAlignmentStreaksPositions(alnSeqs, scorePred, streakLenCutOff);
+		trimAlnSeqsToFirstAndLastStreak(alnSeqs, streaks);
+	}
+
+
+	/**@brief Write out scores of multiple alignment
+	 *
+	 * @param out the out file
+	 * @param alnSeqs the aligned seqs
+	 * @param scores the scores from the alignemnt
+	 */
+	template<typename T>
+	static void writeScores(std::ostream & out, const std::vector<T> & alnSeqs, const std::vector<std::shared_ptr<AlnPosScore>> & scores ){
+		auto totalInputSeqs = len(alnSeqs);
+		out << "position\tentropy\tbaseCount\tbaseFrac\tgapCount\tspanningCount\tpercentSpanning\ttotalReadCount" << std::endl;
+		for(const auto scorePos : iter::range(scores.size())){
+			auto & score = scores[scorePos];
+			out << score->pos_
+					<< "\t" << score->counter_.computeEntrophy()
+					<< "\t" << score->baseCount_
+					<< "\t" << static_cast<double>(score->baseCount_)/score->getSpanningCount()
+					<< "\t" << score->gapCount_
+					<< "\t" << score->getSpanningCount()
+					<< "\t" << static_cast<double>(score->getSpanningCount())/totalInputSeqs
+					<< "\t" << totalInputSeqs << std::endl;
+		}
+	}
+
+	/**@brief Trim Input seqeunces to the min start and max stop of a multiple alignment to reference sequences
+	 *
+	 * @param inputSeqs the input sequences to trim
+	 * @param refSeqs the ref seqeunce to trim to
+	 */
+	template<typename INPUTSEQ, typename REF>
+	void trimSeqsToMultiAlnRef(std::vector<INPUTSEQ> & inputSeqs,
+			const std::vector<REF> & refSeqs) {
+		bool fail = false;
+		std::stringstream ss;
+		if (refSeqs.empty()) {
+			fail = true;
+			ss << __PRETTY_FUNCTION__ << ", error refSeqs is empty " << "\n";
+		}
+
+		if (inputSeqs.empty()) {
+			fail = true;
+			ss << __PRETTY_FUNCTION__ << ", error inputSeqs is emtpy " << "\n";
+		}
+		if (fail) {
+			throw std::runtime_error { ss.str() };
+		}
+		std::vector<seqInfo> allSeqs;
+		for(const auto & refSeq : refSeqs){
+			allSeqs.emplace_back(getSeqBase(refSeq));
+		}
+		for(const auto & inputSeq : inputSeqs){
+			allSeqs.emplace_back(getSeqBase(inputSeq));
+		}
+		muscleSeqs(allSeqs);
+
+		std::vector<seqInfo> alignedRefs = std::vector<seqInfo>(allSeqs.begin(), allSeqs.begin() + refSeqs.size());
+		auto refStartsStop = getMAlnStartsAndStops(alignedRefs);
+
+		auto allSeqStart = getMAlnStartsAndStops(allSeqs);
+		auto minPosEle = std::min_element(refStartsStop.begin(), refStartsStop.end(), [](const StartStopMALNPos & pos1, const StartStopMALNPos & pos2){
+			return pos1.start_ < pos2.start_;
+		});
+		auto maxPosEle = std::max_element(refStartsStop.begin(), refStartsStop.end(), [](const StartStopMALNPos & pos1, const StartStopMALNPos & pos2){
+			return pos1.stop_ < pos2.stop_;
+		});
+
+		uint32_t trimEnd = len(getSeqBase(allSeqs.front())) - maxPosEle->stop_ + 1;
+		uint32_t trimFront = minPosEle->start_;
+		readVecTrimmer::trimEnds(allSeqs, trimFront, trimEnd);
+		for(const auto seqPos : iter::range(len(allSeqs))){
+			if(allSeqStart[seqPos].start_ >  minPosEle->start_| allSeqStart[seqPos].stop_  < maxPosEle->stop_ ){
+				allSeqs[seqPos].on_ = false;
+			}else{
+				allSeqs[seqPos].on_ = true;
+			}
+		}
+		readVec::removeGapsFromReads(allSeqs);
+		for(const auto pos : iter::range(refSeqs.size(), allSeqs.size())){
+			const auto inputSeqPos =  pos - refSeqs.size();
+			getSeqBase(inputSeqs[inputSeqPos] ) = allSeqs[pos];
+		}
+	}
+
 
 };
 
