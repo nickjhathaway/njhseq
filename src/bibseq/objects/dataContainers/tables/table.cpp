@@ -1109,4 +1109,22 @@ table table::extractNumColGreater(uint32_t colPos, double cutOff)const{
   return extractByComp(colPos, comp);
 }
 
+
+void table::checkForColumnsThrow(const VecStr & requiredColumns, const std::string & funcName) const{
+	VecStr columnsNotFound;
+	for (const auto & col : requiredColumns) {
+		if (!bib::in(col, columnNames_)) {
+			columnsNotFound.emplace_back(col);
+		}
+	}
+	if (!columnsNotFound.empty()) {
+		std::stringstream ss;
+		ss << "Need to have " << vectorToString(requiredColumns, ",") << std::endl;
+		ss << "Did not find " << vectorToString(columnsNotFound, ",") << std::endl;
+		ss << "Only have " << vectorToString(columnNames_, ",")
+				<< std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+}
+
 }  // namespace bib

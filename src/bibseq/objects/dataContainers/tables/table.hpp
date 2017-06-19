@@ -329,6 +329,10 @@ public:
 	auto end() {
 		return content_.end();
 	}
+
+	void checkForColumnsThrow(const VecStr & requiredColumns,
+			const std::string & funcName) const;
+
 };
 }  // namespace bib
 

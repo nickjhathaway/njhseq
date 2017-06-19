@@ -27,7 +27,7 @@ void checkGenomeFnpExistsThrow(const bfs::path & genomeFnp,
 	}
 }
 
-bib::sys::RunOutput BioCmdsUtils::RunBowtie2Index(const bfs::path & genomeFnp) {
+bib::sys::RunOutput BioCmdsUtils::RunBowtie2Index(const bfs::path & genomeFnp) const {
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bib::sys::requireExternalProgramThrow("bowtie2-build");
 	auto prefix = bfs::path(genomeFnp).replace_extension("");
@@ -37,7 +37,7 @@ bib::sys::RunOutput BioCmdsUtils::RunBowtie2Index(const bfs::path & genomeFnp) {
 	return runCmdCheck(templateCmd, genomeFnp, bowtie2CheckFile);
 }
 
-bib::sys::RunOutput BioCmdsUtils::RunBwaIndex(const bfs::path & genomeFnp) {
+bib::sys::RunOutput BioCmdsUtils::RunBwaIndex(const bfs::path & genomeFnp) const {
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bib::sys::requireExternalProgramThrow("bwa");
 	std::string templateCmd = "bwa index " + genomeFnp.string();
@@ -45,7 +45,7 @@ bib::sys::RunOutput BioCmdsUtils::RunBwaIndex(const bfs::path & genomeFnp) {
 	return runCmdCheck(templateCmd, genomeFnp, bwaCheckFile);
 }
 
-bib::sys::RunOutput BioCmdsUtils::RunSamtoolsFastaIndex(const bfs::path & genomeFnp) {
+bib::sys::RunOutput BioCmdsUtils::RunSamtoolsFastaIndex(const bfs::path & genomeFnp) const {
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bib::sys::requireExternalProgramThrow("samtools");
 	std::string templateCmd = "samtools faidx " + genomeFnp.string();
@@ -53,7 +53,7 @@ bib::sys::RunOutput BioCmdsUtils::RunSamtoolsFastaIndex(const bfs::path & genome
 	return runCmdCheck(templateCmd, genomeFnp, samCheckFile);
 }
 
-bib::sys::RunOutput BioCmdsUtils::RunPicardFastaSeqDict(const bfs::path & genomeFnp) {
+bib::sys::RunOutput BioCmdsUtils::RunPicardFastaSeqDict(const bfs::path & genomeFnp) const {
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bib::sys::requireExternalProgramThrow("picard");
 	auto prefix = bfs::path(genomeFnp).replace_extension("");
@@ -63,7 +63,7 @@ bib::sys::RunOutput BioCmdsUtils::RunPicardFastaSeqDict(const bfs::path & genome
 	return runCmdCheck(templateCmd, genomeFnp, outFile);
 }
 
-bib::sys::RunOutput BioCmdsUtils::RunFaToTwoBit(const bfs::path & genomeFnp) {
+bib::sys::RunOutput BioCmdsUtils::RunFaToTwoBit(const bfs::path & genomeFnp) const {
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bib::sys::requireExternalProgramThrow("TwoBit");
 	auto prefix = bfs::path(genomeFnp).replace_extension("");
@@ -74,7 +74,7 @@ bib::sys::RunOutput BioCmdsUtils::RunFaToTwoBit(const bfs::path & genomeFnp) {
 }
 
 
-std::unordered_map<std::string, bib::sys::RunOutput> BioCmdsUtils::runAllPossibleIndexes(const bfs::path & genomeFnp){
+std::unordered_map<std::string, bib::sys::RunOutput> BioCmdsUtils::runAllPossibleIndexes(const bfs::path & genomeFnp) const {
 	std::unordered_map<std::string, bib::sys::RunOutput> outputs;
 	if(bib::sys::hasSysCommand("bowtie2")){
 		outputs.emplace("bowtie2", RunBowtie2Index(genomeFnp));
@@ -95,7 +95,7 @@ std::unordered_map<std::string, bib::sys::RunOutput> BioCmdsUtils::runAllPossibl
 }
 
 bib::sys::RunOutput BioCmdsUtils::runCmdCheck(const std::string & cmd,
-		const bfs::path & input, const bfs::path & check) {
+		const bfs::path & input, const bfs::path & check) const {
 	if (!bfs::exists(check) || bib::files::firstFileIsOlder(check, input)) {
 		if (verbose_) {
 			std::cout << bib::bashCT::bold << bib::bashCT::blue << "Running: "
@@ -121,7 +121,7 @@ bib::sys::RunOutput BioCmdsUtils::runCmdCheck(const std::string & cmd,
 }
 
 bib::sys::RunOutput BioCmdsUtils::bowtie2Align(const SeqIOOptions & opts,
-		const bfs::path & genomeFnp, std::string additionalBowtie2Args) {
+		const bfs::path & genomeFnp, std::string additionalBowtie2Args) const {
 
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bfs::path outputFnp = bib::appendAsNeededRet(opts.out_.outFilename_.string(),
@@ -151,7 +151,7 @@ bib::sys::RunOutput BioCmdsUtils::bowtie2Align(const SeqIOOptions & opts,
 	return ret;
 }
 
-bib::sys::RunOutput BioCmdsUtils::lastzAlign(const SeqIOOptions & opts, const LastZPars & pars){
+bib::sys::RunOutput BioCmdsUtils::lastzAlign(const SeqIOOptions & opts, const LastZPars & pars) const {
 	checkGenomeFnpExistsThrow(pars.genomeFnp, __PRETTY_FUNCTION__);
 	bfs::path outputFnp = bib::appendAsNeededRet(opts.out_.outFilename_.string(),
 			".sorted.bam");
@@ -178,7 +178,7 @@ bib::sys::RunOutput BioCmdsUtils::lastzAlign(const SeqIOOptions & opts, const La
 }
 
 void BioCmdsUtils::checkRunOutThrow(const bib::sys::RunOutput & runOut,
-		const std::string & funcName) {
+		const std::string & funcName)  {
 	if (!runOut.success_) {
 		std::stringstream ss;
 		ss << funcName << " error in running " << runOut.cmd_ << "\n";
