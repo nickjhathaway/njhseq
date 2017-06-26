@@ -436,10 +436,10 @@ public:
 		}
 	}
 
-	/**@brief Trim Input seqeunces to the min start and max stop of a multiple alignment to reference sequences
+	/**@brief Trim Input sequences to the approaximate end and starts of a multiple alignment to reference sequences
 	 *
 	 * @param inputSeqs the input sequences to trim
-	 * @param refSeqs the ref seqeunce to trim to
+	 * @param refSeqs the ref sequence to trim to
 	 */
 	template<typename INPUTSEQ, typename REF>
 	void trimSeqsToMultiAlnRef(std::vector<INPUTSEQ> & inputSeqs,
@@ -468,40 +468,39 @@ public:
 		muscleSeqs(allSeqs);
 
 		std::vector<seqInfo> alignedRefs = std::vector<seqInfo>(allSeqs.begin(), allSeqs.begin() + refSeqs.size());
-		auto refStartsStop = getMAlnStartsAndStops(alignedRefs);
 
 
-		auto minPosEle = std::min_element(refStartsStop.begin(), refStartsStop.end(), [](const StartStopMALNPos & pos1, const StartStopMALNPos & pos2){
-			return pos1.start_ < pos2.start_;
-		});
-		auto maxPosEle = std::max_element(refStartsStop.begin(), refStartsStop.end(), [](const StartStopMALNPos & pos1, const StartStopMALNPos & pos2){
-			return pos1.stop_ < pos2.stop_;
-		});
+		uint32_t streakLenCutOff = 3; // at least 3 positions in a row must pass the threshold below
+		double spanningCutOff = .50; // at least 50% of the ref seqs must start here
+		double baseCutOff = .50; // at least 50% of the bases at this location must have a base
+		uint32_t hardGapCutOff = 2; //there must at least be 2 refs here
 
-		auto allSeqStart = getMAlnStartsAndStops(allSeqs);
-
-
-		uint32_t trimEnd = len(getSeqBase(allSeqs.front())) - maxPosEle->stop_ - 1;
-		uint32_t trimFront = minPosEle->start_;
-
-		readVecTrimmer::trimEnds(allSeqs, trimFront, trimEnd);
-		for(const auto seqPos : iter::range(len(allSeqs))){
-			if(allSeqStart[seqPos].start_ >  minPosEle->start_| allSeqStart[seqPos].stop_  < maxPosEle->stop_ ){
-				allSeqs[seqPos].on_ = false;
+		auto totalInputSeqs = len(alignedRefs);
+		std::function<bool(const std::shared_ptr<Muscler::AlnPosScore> &)> scorePred = [&baseCutOff,&hardGapCutOff,&totalInputSeqs,&spanningCutOff](const std::shared_ptr<Muscler::AlnPosScore> & score){
+			if((static_cast<double>(score->baseCount_)/score->getSpanningCount() >= baseCutOff | score->gapCount_ <= hardGapCutOff) &&
+					static_cast<double>(score->getSpanningCount())/totalInputSeqs > spanningCutOff){
+				return true;
 			}else{
-				allSeqs[seqPos].on_ = true;
+				return false;
+			}
+		};
+
+		auto refStartsStop = getMAlnStartsAndStops(alignedRefs);
+		//count up each location
+		auto scores = Muscler::getPileupCounts(alignedRefs);
+		auto streaks = Muscler::getAlignmentStreaksPositions(alignedRefs, scorePred, streakLenCutOff);
+
+		if(streaks.empty()){
+			std::cerr << "No streaks passed current filters, try being less stringent" << std::endl;
+		}else{
+			Muscler::trimAlnSeqsToFirstAndLastStreak(allSeqs, streaks);
+			readVec::removeGapsFromReads(allSeqs);
+			for(const auto pos : iter::range(refSeqs.size(), allSeqs.size())){
+				const auto inputSeqPos =  pos - refSeqs.size();
+				getSeqBase(inputSeqs[inputSeqPos] ) = allSeqs[pos];
 			}
 		}
-		readVec::removeGapsFromReads(allSeqs);
-
-
-		for(const auto pos : iter::range(refSeqs.size(), allSeqs.size())){
-			const auto inputSeqPos =  pos - refSeqs.size();
-			getSeqBase(inputSeqs[inputSeqPos] ) = allSeqs[pos];
-		}
 	}
-
-
 };
 
 } /* namespace bibseq */
