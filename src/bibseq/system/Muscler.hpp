@@ -132,13 +132,19 @@ public:
 			const std::unordered_map<uint32_t, MusPosSize> & posSizes){
 		//create temporary file, the last 6 xs will be randomized characters
 		char *tmpname = strdup("/tmp/tmpfileXXXXXX");
-		auto mkTempRet = mkstemp(tmpname);
-		if(-1 == mkTempRet){
+//		auto mkTempRet = mkstemp(tmpname);
+//		if(-1 == mkTempRet){
+//			std::stringstream sErr;
+//			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << tmpname << "\n";
+//			throw std::runtime_error{sErr.str()};
+//		}
+//		close(mkTempRet);
+		auto mkTempRet = mktemp(tmpname);
+		if(nullptr == mkTempRet){
 			std::stringstream sErr;
 			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << tmpname << "\n";
 			throw std::runtime_error{sErr.str()};
 		}
-		close(mkTempRet);
 		uint32_t seqsWritten = 0;
 		std::unordered_map<uint32_t, std::shared_ptr<seqInfo>> subInfos;
 		{
