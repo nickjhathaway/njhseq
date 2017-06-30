@@ -202,7 +202,7 @@ public:
 				}
 			} catch (std::exception & e) {
 				bib::files::bfs::remove(tmpname);
-				throw e;
+				throw std::runtime_error{e.what()};
 			}
 			bib::files::bfs::remove(tmpname);
 		}
