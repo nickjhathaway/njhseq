@@ -132,7 +132,13 @@ public:
 			const std::unordered_map<uint32_t, MusPosSize> & posSizes){
 		//create temporary file, the last 6 xs will be randomized characters
 		char *tmpname = strdup("/tmp/tmpfileXXXXXX");
-		mkstemp(tmpname);
+		auto mkTempRet = mkstemp(tmpname);
+		if(-1 == mkTempRet){
+			std::stringstream sErr;
+			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << tmpname << "\n";
+			throw std::runtime_error{sErr.str()};
+		}
+		close(mkTempRet);
 		uint32_t seqsWritten = 0;
 		std::unordered_map<uint32_t, std::shared_ptr<seqInfo>> subInfos;
 		{
@@ -179,6 +185,7 @@ public:
 				auto rOut = bib::sys::run(cmds);
 				if(!rOut.success_){
 					std::stringstream sErr;
+					sErr << __PRETTY_FUNCTION__ << ", error " << "\n";
 					sErr << bib::bashCT::red << "failure:" << std::endl;
 					sErr << rOut.stdErr_ << std::endl;
 					sErr << bib::bashCT::reset << std::endl;
@@ -201,11 +208,12 @@ public:
 					getSeqBase(seqs[pos]).insert(posSizes.at(pos).pos_, *(subInfos[pos]));
 				}
 			} catch (std::exception & e) {
+				std::cerr << e.what() << std::endl;
 				bib::files::bfs::remove(tmpname);
 				throw std::runtime_error{e.what()};
 			}
-			bib::files::bfs::remove(tmpname);
 		}
+		bib::files::bfs::remove(tmpname);
 	}
 
 	/**@brief muscle the sequences in seqs
