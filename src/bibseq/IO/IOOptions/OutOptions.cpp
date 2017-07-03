@@ -81,7 +81,22 @@ void OutOptions::openGzFile(bib::GZSTREAM::ogzstream & outFileGz) const{
 	}
 }
 
-
+void OutOptions::openBinaryGzFile(bib::GZSTREAM::ogzstream & outFileGz) const{
+	if (bfs::exists(outName()) && !overWriteFile_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error, "<< outName() << " already exists";
+		throw std::runtime_error { ss.str() };
+	} else {
+		outFileGz.open(outName(), std::ios::out | std::ios::binary);
+		if (!outFileGz) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " error in opening " << outName();
+			throw std::runtime_error { ss.str() };
+		} else {
+			bfs::permissions(outName(), permissions_);
+		}
+	}
+}
 
 void OutOptions::openFile(std::ofstream & outFile) const {
 	if (bfs::exists(outName()) && !overWriteFile_) {
@@ -163,24 +178,49 @@ bfs::path OutOptions::outName() const {
 	return bfs::path(bib::appendAsNeededRet(outFilename_.string(), outExtention_));
 }
 
-
-std::streambuf* OutOptions::determineOutBuf(std::ofstream & outFile) {
+std::streambuf* OutOptions::determineOutBuf(std::ofstream & outFile) const {
 	if ("" != outFilename_) {
-		openFile(outFile);
+		if (binary_) {
+			openBinaryFile(outFile);
+		} else {
+			openFile(outFile);
+		}
 		return outFile.rdbuf();
-	}else{
+	} else {
+		return std::cout.rdbuf();
+	}
+}
+
+std::streambuf* OutOptions::determineOutBuf(
+		bib::GZSTREAM::ogzstream & outFileGz) const {
+	if ("" != outFilename_) {
+		if (binary_) {
+			openBinaryGzFile(outFileGz);
+		} else {
+			openGzFile(outFileGz);
+		}
+		return outFileGz.rdbuf();
+	} else {
 		return std::cout.rdbuf();
 	}
 }
 
 std::streambuf* OutOptions::determineOutBuf(std::ofstream & outFile,
-		bib::GZSTREAM::ogzstream & outFileGz) {
+		bib::GZSTREAM::ogzstream & outFileGz) const {
 	if ("" != outFilename_) {
-		if(".gz" == outExtention_){
-			openGzFile(outFileGz);
+		if (".gz" == outExtention_) {
+			if (binary_) {
+				openBinaryGzFile(outFileGz);
+			} else {
+				openGzFile(outFileGz);
+			}
 			return outFileGz.rdbuf();
-		}else{
-			openFile(outFile);
+		} else {
+			if (binary_) {
+				openBinaryFile(outFile);
+			} else {
+				openFile(outFile);
+			}
 			return outFile.rdbuf();
 		}
 	} else {
@@ -188,15 +228,6 @@ std::streambuf* OutOptions::determineOutBuf(std::ofstream & outFile,
 	}
 }
 
-std::streambuf* OutOptions::determineOutBuf(std::ofstream & outFile,
-		bib::GZSTREAM::ogzstream & outFileGz) {
-	if ("" != outFilename_) {
-		openGzFile(outFileGz);
-		return outFileGz.rdbuf();
-	} else {
-		return std::cout.rdbuf();
-	}
-}
 
 
 }  // namespace bibseq

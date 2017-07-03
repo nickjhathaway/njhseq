@@ -33,7 +33,7 @@ public:
 	bool append_ = false;
 	bool overWriteFile_ = false;
 	bool exitOnFailureToWrite_ = true;
-
+	bool binary_ = false;
 	bfs::perms permissions_{bfs::owner_read | bfs::owner_write | bfs::group_read | bfs::group_write | bfs::others_read};
 
 	void transferOverwriteOpts(const OutOptions & otherOptions);
@@ -55,9 +55,6 @@ public:
 
 	void openExecutableFile(std::ofstream & out) const;
 
-
-
-
 	/**@brief Will return the stream buffer for either the supplied std::ofstream if outFilename_ is not blank or std::cout
 	 *
 	 * used to construct a std::ostream object that will write to either the file if needed or to std::cout if outFilename_ is blank
@@ -65,12 +62,23 @@ public:
 	 * @param outFile the outFile that might be opened
 	 * @return the stream buffer of either outFile or std::cout
 	 */
-	std::streambuf* determineOutBuf(std::ofstream & outFile);
+	std::streambuf* determineOutBuf(std::ofstream & outFile) const;
 
-	std::streambuf* determineOutBuf(bib::GZSTREAM::ogzstream & outFileGz);
+	/**@brief Will return stream buffer for either the supplied bib::GZSTREAM::ogzstream object if outFilename_ is not blank or std::cout
+	 *
+	 * @param outFileGz the outFile that might be opened
+	 * @return the buffer of either the outfile or std::cout
+	 */
+	std::streambuf* determineOutBuf(bib::GZSTREAM::ogzstream & outFileGz) const;
 
+	/**@brief Will return the stream buffer for either the supplied std::ofstream or bib::GZSTREAM::ogzstream if outFilename_ is not blank  and based on the file extension or std::cout
+	 *
+	 * @param outFile the regular out file that might be opened
+	 * @param outFileGz the gz out file that might be opened
+	 * @return the buffer or std::cout, outFile or outFileGz
+	 */
 	std::streambuf* determineOutBuf(std::ofstream & outFile,
-			bib::GZSTREAM::ogzstream & outFileGz);
+			bib::GZSTREAM::ogzstream & outFileGz) const;
 
 };
 
