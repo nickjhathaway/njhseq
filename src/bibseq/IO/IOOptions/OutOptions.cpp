@@ -64,25 +64,74 @@ std::shared_ptr<std::ofstream> OutOptions::openExecutableFile() const{
 	return out;
 }
 
-void OutOptions::openGzFile(bib::GZSTREAM::ogzstream & out) const{
-	bib::files::openGzFile(out, outName(), overWriteFile_);
+void OutOptions::openGzFile(bib::GZSTREAM::ogzstream & outFileGz) const{
+	if (bfs::exists(outName()) && !overWriteFile_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error, "<< outName() << " already exists";
+		throw std::runtime_error { ss.str() };
+	} else {
+		outFileGz.open(outName());
+		if (!outFileGz) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " error in opening " << outName();
+			throw std::runtime_error { ss.str() };
+		} else {
+			bfs::permissions(outName(), permissions_);
+		}
+	}
 }
 
-void OutOptions::openFile(std::ofstream & out) const {
-	bib::files::openTextFile(out, outName(), overWriteFile_, append_,
-			exitOnFailureToWrite_);
+
+
+void OutOptions::openFile(std::ofstream & outFile) const {
+	if (bfs::exists(outName()) && !overWriteFile_) {
+		if (append_) {
+			outFile.open(outName().string(), std::ios::app);
+		} else {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " error, "<< outName() << " already exists";
+			throw std::runtime_error { ss.str() };
+		}
+	} else {
+		outFile.open(outName().string());
+		if (!outFile) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " error in opening " << outName();
+			throw std::runtime_error { ss.str() };
+		} else {
+			bfs::permissions(outName(), permissions_);
+		}
+	}
 }
 
-void OutOptions::openBinaryFile(std::ofstream & out) const {
-	bib::files::openBinaryFile(out, outName(), overWriteFile_, append_,
-			exitOnFailureToWrite_);
+void OutOptions::openBinaryFile(std::ofstream & outFile) const {
+	if (bfs::exists(outName()) && !overWriteFile_) {
+		if (append_) {
+			outFile.open(outName().string(), std::ios::binary | std::ios::app);
+		} else {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " error, "<< outName() << " already exists";
+			throw std::runtime_error { ss.str() };
+		}
+	} else {
+		outFile.open(outName().string(), std::ios::binary);
+		if (!outFile) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " error in opening " << outName();
+			throw std::runtime_error { ss.str() };
+		} else {
+			bfs::permissions(outName(), permissions_);
+		}
+	}
 }
+
+
 
 
 
 void OutOptions::openExecutableFile(std::ofstream & out) const {
 	openFile(out);
-	bib::files::chmod775(outName());
+	bfs::permissions(outName(), permissions_ | bfs::owner_exe | bfs::group_exe | bfs::others_exe);
 }
 
 Json::Value OutOptions::toJson() const{
@@ -95,6 +144,7 @@ Json::Value OutOptions::toJson() const{
 	ret["append_"] = bib::json::toJson(append_);
 	ret["overWriteFile_"] = bib::json::toJson(overWriteFile_);
 	ret["exitOnFailureToWrite_"] = bib::json::toJson(exitOnFailureToWrite_);
+	ret["permissions_"] = bib::json::toJson(bib::octToDec(permissions_));
 	return ret;
 }
 
@@ -115,9 +165,37 @@ bfs::path OutOptions::outName() const {
 
 
 std::streambuf* OutOptions::determineOutBuf(std::ofstream & outFile) {
-	return bib::files::determineOutBuf(outFile, outFilename_,
-			outExtention_, overWriteFile_, append_,
-			exitOnFailureToWrite_);
+	if ("" != outFilename_) {
+		openFile(outFile);
+		return outFile.rdbuf();
+	}else{
+		return std::cout.rdbuf();
+	}
+}
+
+std::streambuf* OutOptions::determineOutBuf(std::ofstream & outFile,
+		bib::GZSTREAM::ogzstream & outFileGz) {
+	if ("" != outFilename_) {
+		if(".gz" == outExtention_){
+			openGzFile(outFileGz);
+			return outFileGz.rdbuf();
+		}else{
+			openFile(outFile);
+			return outFile.rdbuf();
+		}
+	} else {
+		return std::cout.rdbuf();
+	}
+}
+
+std::streambuf* OutOptions::determineOutBuf(std::ofstream & outFile,
+		bib::GZSTREAM::ogzstream & outFileGz) {
+	if ("" != outFilename_) {
+		openGzFile(outFileGz);
+		return outFileGz.rdbuf();
+	} else {
+		return std::cout.rdbuf();
+	}
 }
 
 

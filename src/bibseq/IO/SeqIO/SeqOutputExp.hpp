@@ -102,7 +102,7 @@ public:
 			throw std::runtime_error {
 					"Error in readObjectIOOpt, attempted to write when out files aren't open, out file: " + ioOptions_.out_.outName().string() };
 		}
-		for (const auto & read : reads) {
+		for (const auto & seq : reads) {
 			writeNoCheck(seq);
 		}
 	}
@@ -112,14 +112,14 @@ public:
 		if (!outOpen_) {
 			openOut();
 		}
-		for (const auto & read : reads) {
+		for (const auto & seq : reads) {
 			writeNoCheck(seq);
 		}
 	}
 
 	template<typename T>
 	void writeNoCheck(const std::vector<T> & reads) {
-		for (const auto & read : reads) {
+		for (const auto & seq : reads) {
 			writeNoCheck(seq);
 		}
 	}
@@ -160,11 +160,14 @@ public:
 private:
 	bool outOpen_ = false;
 
-	std::unique_ptr<std::ostream> primaryOut_;
-	std::unique_ptr<std::ostream> secondaryOut_;
+//	std::unique_ptr<std::ostream> primaryOut_;
+//	std::unique_ptr<std::ostream> secondaryOut_;
+//
+//	std::unique_ptr<std::ofstream> primaryFileOut_;
+//	std::unique_ptr<std::ofstream> secondaryFileOut_;
 
-	std::unique_ptr<std::ofstream> primaryFileOut_;
-	std::unique_ptr<std::ofstream> secondaryFileOut_;
+		std::unique_ptr<std::ofstream> primaryOut_;
+		std::unique_ptr<std::ofstream> secondaryOut_;
 
 	std::unique_ptr<bib::GZSTREAM::ogzstream> primaryGzOut_;
 	std::unique_ptr<bib::GZSTREAM::ogzstream> secondaryGzOut_;

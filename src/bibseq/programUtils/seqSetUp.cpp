@@ -460,14 +460,18 @@ void seqSetUp::processWritingOptions() {
 	setOption(pars_.ioOptions_.out_.overWriteFile_, "-overWrite",
 			"Over Write Existing Files");
 	setOption(pars_.ioOptions_.out_.append_, "-appendFile", "Append to file");
-	setOption(pars_.ioOptions_.out_.outFilename_, "-out", "Out Filename");
+	if (setOption(pars_.ioOptions_.out_.outFilename_, "-out", "Out Filename")) {
+		pars_.ioOptions_.out_.outExtention_ =
+				pars_.ioOptions_.out_.outFilename_.extension().string();
+	}
 }
 
 void seqSetUp::processWritingOptions(OutOptions & opts) {
-	setOption(opts.overWriteFile_, "--overWrite",
-			"Over Write Existing Files");
+	setOption(opts.overWriteFile_, "--overWrite", "Over Write Existing Files");
 	setOption(opts.append_, "--appendFile", "Append to file");
-	setOption(opts.outFilename_, "--out", "Out Filename");
+	if (setOption(opts.outFilename_, "-out", "Out Filename")) {
+		opts.outExtention_ = opts.outFilename_.extension().string();
+	}
 }
 
 bool seqSetUp::processRefFilename(bool required) {

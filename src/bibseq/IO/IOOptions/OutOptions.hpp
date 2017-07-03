@@ -34,6 +34,8 @@ public:
 	bool overWriteFile_ = false;
 	bool exitOnFailureToWrite_ = true;
 
+	bfs::perms permissions_{bfs::owner_read | bfs::owner_write | bfs::group_read | bfs::group_write | bfs::others_read};
+
 	void transferOverwriteOpts(const OutOptions & otherOptions);
 
 	bool outExists() const;
@@ -46,9 +48,14 @@ public:
 	std::shared_ptr<std::ofstream> openExecutableFile() const;
 
 	void openGzFile(bib::GZSTREAM::ogzstream & out) const;
+	void openBinaryGzFile(bib::GZSTREAM::ogzstream & out) const;
+
 	void openFile(std::ofstream & out) const;
 	void openBinaryFile(std::ofstream & out) const;
+
 	void openExecutableFile(std::ofstream & out) const;
+
+
 
 
 	/**@brief Will return the stream buffer for either the supplied std::ofstream if outFilename_ is not blank or std::cout
@@ -60,7 +67,10 @@ public:
 	 */
 	std::streambuf* determineOutBuf(std::ofstream & outFile);
 
+	std::streambuf* determineOutBuf(bib::GZSTREAM::ogzstream & outFileGz);
 
+	std::streambuf* determineOutBuf(std::ofstream & outFile,
+			bib::GZSTREAM::ogzstream & outFileGz);
 
 };
 
