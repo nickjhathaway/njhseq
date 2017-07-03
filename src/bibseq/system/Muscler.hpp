@@ -202,7 +202,7 @@ public:
 				SeqInput reader(opts);
 				seqInfo seq;
 				while(reader.readNextFastaStream(ss, seq,false)){
-					uint32_t pos = bib::lexical_cast<uint32_t>(seq.name_);
+					uint32_t pos = estd::stou(seq.name_);
 					auto gAlnInfo = genGlobalAlnInfo(seq.seq_);
 					alignCalc::rearrangeGlobalQueryOnly(subInfos[pos]->seq_, '-', gAlnInfo );
 					alignCalc::rearrangeGlobalQueryOnly(subInfos[pos]->qual_, 0, gAlnInfo );

@@ -125,7 +125,7 @@ void populationCollapse::renameToOtherPopNames(const std::vector<readObject> &pr
   	auto firstUnder = popSeq.seqBase_.name_.find("_", firstPer);
   	if(std::string::npos != firstUnder){
     	alreadyTakenNames.emplace_back(popSeq.seqBase_.name_.substr(0, firstUnder));
-    	auto prevId = bib::lexical_cast<uint32_t>(popSeq.seqBase_.name_.substr(firstPer + 1, firstUnder - 1 - firstPer));
+    	auto prevId = estd::stou(popSeq.seqBase_.name_.substr(firstPer + 1, firstUnder - 1 - firstPer));
     	auto prevExpName = popSeq.seqBase_.name_.substr(0, firstPer);
     	alreadyTakenNames.emplace_back(prevExpName);
     	alreadyTakenIds.emplace_back(prevId);
@@ -134,7 +134,7 @@ void populationCollapse::renameToOtherPopNames(const std::vector<readObject> &pr
   		alreadyTakenNames.emplace_back(popSeq.seqBase_.name_);
   	}else{
     	alreadyTakenNames.emplace_back(popSeq.seqBase_.name_);
-    	auto prevId = bib::lexical_cast<uint32_t>(popSeq.seqBase_.name_.substr(firstPer + 1));
+    	auto prevId = estd::stou(popSeq.seqBase_.name_.substr(firstPer + 1));
     	auto prevExpName = popSeq.seqBase_.name_.substr(0, firstPer);
     	alreadyTakenNames.emplace_back(prevExpName);
     	alreadyTakenIds.emplace_back(prevId);
@@ -218,7 +218,7 @@ void populationCollapse::addRefMetaToName(const std::vector<readObject> &previou
   	auto firstUnder = popSeq.seqBase_.name_.find("_", firstPer);
   	if(std::string::npos != firstUnder){
     	alreadyTakenNames.emplace_back(popSeq.seqBase_.name_.substr(0, firstUnder));
-    	auto prevId = bib::lexical_cast<uint32_t>(popSeq.seqBase_.name_.substr(firstPer + 1, firstUnder - 1 - firstPer));
+    	auto prevId = estd::stou(popSeq.seqBase_.name_.substr(firstPer + 1, firstUnder - 1 - firstPer));
     	auto prevExpName = popSeq.seqBase_.name_.substr(0, firstPer);
     	alreadyTakenNames.emplace_back(prevExpName);
     	alreadyTakenIds.emplace_back(prevId);
@@ -227,7 +227,7 @@ void populationCollapse::addRefMetaToName(const std::vector<readObject> &previou
   		alreadyTakenNames.emplace_back(popSeq.seqBase_.name_);
   	}else{
     	alreadyTakenNames.emplace_back(popSeq.seqBase_.name_);
-    	auto prevId = bib::lexical_cast<uint32_t>(popSeq.seqBase_.name_.substr(firstPer + 1));
+    	auto prevId = estd::stou(popSeq.seqBase_.name_.substr(firstPer + 1));
     	auto prevExpName = popSeq.seqBase_.name_.substr(0, firstPer);
     	alreadyTakenNames.emplace_back(prevExpName);
     	alreadyTakenIds.emplace_back(prevId);
