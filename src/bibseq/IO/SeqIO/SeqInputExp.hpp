@@ -47,6 +47,7 @@ namespace bibseq {
 
 
 class SeqInputExp{
+	std::function<bool(seqInfo &)> firstTimeReaderFunc_;
 	std::function<bool(seqInfo &)> readerFunc_;
 public:
 
@@ -54,6 +55,8 @@ public:
 	SeqInputExp(const SeqInputExp& that);
 
 	SeqIOOptions ioOptions_;
+
+	void setReaderFunc();
 
 	bool readNextRead(seqInfo & read);
 	bool readNextRead(PairedRead & read);
