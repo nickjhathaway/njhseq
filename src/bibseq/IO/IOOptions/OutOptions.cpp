@@ -156,6 +156,7 @@ Json::Value OutOptions::toJson() const{
 	ret["outExtention_"] = bib::json::toJson(outExtention_);
 	ret["outFileFormat_"] = bib::json::toJson(outFileFormat_);
 
+	ret["binary_"] = bib::json::toJson(binary_);
 	ret["append_"] = bib::json::toJson(append_);
 	ret["overWriteFile_"] = bib::json::toJson(overWriteFile_);
 	ret["exitOnFailureToWrite_"] = bib::json::toJson(exitOnFailureToWrite_);
