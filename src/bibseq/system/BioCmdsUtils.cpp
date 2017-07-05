@@ -276,6 +276,10 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 		needToRun = true;
 	}
 	if(needToRun){
+		auto zipFile = [](IoOptions opts){
+			gzZipFile(opts); //zip file from in_ to file in out_
+			bfs::remove(opts.in_.inFilename_); //remove original file
+		};
 		std::stringstream ss;
 		if(12 != newLines){
 			extraSraArgs += " --gzip ";
@@ -306,11 +310,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			firstMateIoOpts.out_.overWriteFile_ = true;
 			std::unique_ptr<std::thread> gzFirstMateTh;
 			if(pars.gzip_){
-				gzFirstMateTh = std::make_unique<std::thread>([&firstMateIoOpts]() {
-					gzZipFile(firstMateIoOpts);
-					bfs::remove(firstMateIoOpts.in_.inFilename_);
-				});
-
+				gzFirstMateTh = std::make_unique<std::thread>(zipFile, firstMateIoOpts);
 			}
 			bfs::path currentSecondMateFnp = bib::files::replaceExtension(outputStub, "_3.fastq");
 			auto secondMateIn = SeqIOOptions::genFastqIn(currentSecondMateFnp);
