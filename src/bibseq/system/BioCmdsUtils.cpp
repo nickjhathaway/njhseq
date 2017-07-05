@@ -299,7 +299,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					bfs::copy(currentBarcodeFnp, checkFileBarcodes);
 				}
 			}
-			std::shared_ptr<std::thread> gzFirstMateTh;
+			std::unique_ptr<std::thread> gzFirstMateTh;
 			if(pars.gzip_){
 
 				auto currentFirstMateFnp = bib::files::replaceExtension(outputStub,
@@ -307,7 +307,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 				IoOptions firstMateIoOpts { InOptions(currentFirstMateFnp), OutOptions(
 						checkFile1) };
 				firstMateIoOpts.out_.overWriteFile_ = true;
-				gzFirstMateTh = std::make_shared<std::thread>([&firstMateIoOpts]() {
+				gzFirstMateTh = std::make_unique<std::thread>([&firstMateIoOpts]() {
 					gzZipFile(firstMateIoOpts);
 					bfs::remove(firstMateIoOpts.in_.inFilename_);
 				});
