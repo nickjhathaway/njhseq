@@ -217,7 +217,11 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 		extraSraArgs += " --skip-technical ";
 		//
 	}
+	if(pars.gzip_){
+		extraSraArgs = bib::replaceString(extraSraArgs, "--gzip", "");
+	}
 	auto outputStub = bib::files::make_path(pars.outputDir_, pars.sraFnp_.filename());
+
 	bfs::path checkFile1        = bib::files::replaceExtension(outputStub, "_1.fastq");
 	bfs::path checkFile2        = bib::files::replaceExtension(outputStub, "_2.fastq");
 	bfs::path checkFileBarcodes = bib::files::replaceExtension(outputStub, "_barcodes.fastq");
@@ -227,6 +231,10 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 		checkFileBarcodes = checkFileBarcodes.string() + ".gz";
 		ret.isGzipped_ = true;
 	}
+	bfs::path orgFirstMateFnp  = bib::files::replaceExtension(outputStub, "_1.fastq");
+	bfs::path orgBarcodesFnp   = "";
+	bfs::path orgSecondMateFnp = "";
+
 	bool needToRun = true;
 	ret.firstMateFnp_ = checkFile1;
 	if (4 == newLines) {
@@ -244,6 +252,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 				bib::files::firstFileIsOlder(pars.sraFnp_, checkFile2)){
 			needToRun = false;
 		}
+		orgSecondMateFnp = bib::files::replaceExtension(outputStub, "_2.fastq");
 	} else if (12 == newLines) {
 		ret.secondMateFnp_ = checkFile2;
 		if(pars.exportBarCode_){
@@ -256,6 +265,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					bib::files::firstFileIsOlder(pars.sraFnp_, checkFileBarcodes)){
 				needToRun = false;
 			}
+
 		}else{
 			if(bfs::exists(checkFile1) &&
 					bfs::exists(checkFile2) &&
@@ -264,6 +274,8 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 				needToRun = false;
 			}
 		}
+		orgBarcodesFnp   = bib::files::replaceExtension(outputStub, "_2.fastq");
+		orgSecondMateFnp = bib::files::replaceExtension(outputStub, "_3.fastq");
 		ret.isPairedEnd_ = true;
 	} else {
 		std::stringstream ss;
@@ -281,21 +293,18 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			bfs::remove(opts.in_.inFilename_); //remove original file
 		};
 		std::stringstream ss;
-		if(12 != newLines && pars.gzip_){
-			extraSraArgs += " --gzip ";
-		}
 		ss << fastqDumpCmd_ << " --split-files --defline-seq '@$sn/$ri' --outdir " << pars.outputDir_
 				<< " " << extraSraArgs << " " << pars.sraFnp_;
 		auto runOutput = bib::sys::run({ss.str()});
 		checkRunOutThrow(runOutput, __PRETTY_FUNCTION__);
 		if(12 == newLines){
+			std::unique_ptr<std::thread> gzBarcodeTh;
 			//now to fix the crazy that is the SRA way of dump things with three files
 			if(pars.exportBarCode_){
 				bfs::path currentBarcodeFnp = bib::files::replaceExtension(outputStub, "_2.fastq");
 				if(pars.gzip_){
 					IoOptions barIoOpts{InOptions(currentBarcodeFnp), OutOptions(checkFileBarcodes)};
-					barIoOpts.out_.overWriteFile_ = true;
-					gzZipFile(barIoOpts);
+					gzBarcodeTh = std::make_unique<std::thread>(zipFile, barIoOpts);
 				}else{
 					if(bfs::exists(checkFileBarcodes)){
 						bfs::remove(checkFileBarcodes);
@@ -303,9 +312,8 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					bfs::copy(currentBarcodeFnp, checkFileBarcodes);
 				}
 			}
-			auto currentFirstMateFnp = bib::files::replaceExtension(outputStub,
-					"_1.fastq");
-			IoOptions firstMateIoOpts { InOptions(currentFirstMateFnp), OutOptions(
+
+			IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
 					checkFile1) };
 			firstMateIoOpts.out_.overWriteFile_ = true;
 			std::unique_ptr<std::thread> gzFirstMateTh;
@@ -328,6 +336,29 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			bfs::remove(currentSecondMateFnp);
 			if(pars.gzip_){
 				gzFirstMateTh->join();
+				if(pars.exportBarCode_){
+					gzBarcodeTh->join();
+				}
+			}
+		}else if(4 == newLines){
+			if(pars.gzip_){
+				IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
+						checkFile1) };
+				firstMateIoOpts.out_.overWriteFile_ = true;
+				zipFile(firstMateIoOpts);
+			}
+		}else if(8 == newLines){
+			if(pars.gzip_){
+				IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
+						checkFile1) };
+				firstMateIoOpts.out_.overWriteFile_ = true;
+				IoOptions secondMateIoOpts { InOptions(orgSecondMateFnp), OutOptions(
+						checkFile2) };
+				secondMateIoOpts.out_.overWriteFile_ = true;
+				std::thread firstMateTh(zipFile, firstMateIoOpts);
+				std::thread secondMateTh(zipFile, secondMateIoOpts);
+				firstMateTh.join();
+				secondMateTh.join();
 			}
 		}
 	}
