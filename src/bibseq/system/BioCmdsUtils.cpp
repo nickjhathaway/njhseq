@@ -215,7 +215,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 	} else if (!bib::containsSubString(pars.extraSraOptions_,
 			"--skip-technical")) {
 		extraSraArgs += " --skip-technical ";
-
+		//
 	}
 	auto outputStub = bib::files::make_path(pars.outputDir_, pars.sraFnp_.filename());
 	bfs::path checkFile1        = bib::files::replaceExtension(outputStub, "_1.fastq");
@@ -299,11 +299,18 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					bfs::copy(currentBarcodeFnp, checkFileBarcodes);
 				}
 			}
+			std::shared_ptr<std::thread> gzFirstMateTh;
 			if(pars.gzip_){
-				auto currentFirstMateFnp = bib::files::replaceExtension(outputStub, "_1.fastq");
-				IoOptions firstMateIoOpts{InOptions(currentFirstMateFnp), OutOptions(checkFile1)};
+
+				auto currentFirstMateFnp = bib::files::replaceExtension(outputStub,
+						"_1.fastq");
+				IoOptions firstMateIoOpts { InOptions(currentFirstMateFnp), OutOptions(
+						checkFile1) };
 				firstMateIoOpts.out_.overWriteFile_ = true;
-				gzZipFile(firstMateIoOpts);
+				gzFirstMateTh = std::make_shared<std::thread>([&firstMateIoOpts]() {
+					gzZipFile(firstMateIoOpts);
+				});
+
 			}
 			bfs::path currentSecondMateFnp = bib::files::replaceExtension(outputStub, "_3.fastq");
 			auto secondMateIn = SeqIOOptions::genFastqIn(currentSecondMateFnp);
@@ -319,6 +326,9 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			}
 			reader.closeIn();
 			bfs::remove(currentSecondMateFnp);
+			if(pars.gzip_){
+				gzFirstMateTh->join();
+			}
 		}
 	}
 
