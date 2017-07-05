@@ -307,11 +307,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			std::unique_ptr<std::thread> gzFirstMateTh;
 			if(pars.gzip_){
 				gzFirstMateTh = std::make_unique<std::thread>([&firstMateIoOpts]() {
-					//bib::GZSTREAM::ogzstream out;
-					//gzZipFile(firstMateIoOpts);
-					std::cout << firstMateIoOpts.out_.outName() << std::endl;
-					//bib::GZSTREAM::ogzstream outStream(firstMateIoOpts.out_.outName());
-					//outStream << bib::files::get_file_contents(firstMateIoOpts.in_.inFilename_, false);
+					gzZipFile(firstMateIoOpts);
 					bfs::remove(firstMateIoOpts.in_.inFilename_);
 				});
 
