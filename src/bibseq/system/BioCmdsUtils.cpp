@@ -281,7 +281,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			bfs::remove(opts.in_.inFilename_); //remove original file
 		};
 		std::stringstream ss;
-		if(12 != newLines){
+		if(12 != newLines && pars.gzip_){
 			extraSraArgs += " --gzip ";
 		}
 		ss << fastqDumpCmd_ << " --split-files --defline-seq '@$sn/$ri' --outdir " << pars.outputDir_
