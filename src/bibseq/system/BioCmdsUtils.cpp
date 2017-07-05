@@ -311,7 +311,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					//bib::GZSTREAM::ogzstream out;
 					//gzZipFile(firstMateIoOpts);
 					bib::GZSTREAM::ogzstream outStream(firstMateIoOpts.out_.outName());
-					outStream << bib::files::get_file_contents(firstMateIoOpts.in_.inFilename_, false);
+					//outStream << bib::files::get_file_contents(firstMateIoOpts.in_.inFilename_, false);
 					bfs::remove(firstMateIoOpts.in_.inFilename_);
 				});
 
