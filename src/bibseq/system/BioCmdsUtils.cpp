@@ -216,7 +216,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			"--skip-technical")) {
 		extraSraArgs += " --skip-technical ";
 	}
-	auto outputStub = bib::files::make_path(pars.outputDir, pars.sraFnp_);
+	auto outputStub = bib::files::make_path(pars.outputDir_, pars.sraFnp_);
 	bfs::path checkFile1        = bib::files::replaceExtension(outputStub, "_1.fastq");
 	bfs::path checkFile2        = bib::files::replaceExtension(outputStub, "_2.fastq");
 	bfs::path checkFileBarcodes = bib::files::replaceExtension(outputStub, "_barcodes.fastq");
@@ -271,12 +271,15 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 				<< "\n";
 		throw std::runtime_error { ss.str() };
 	}
+	if(pars.force_){
+		needToRun = true;
+	}
 	if(needToRun){
 		std::stringstream ss;
 		if(12 != newLines){
 			extraSraArgs += " --gzip ";
 		}
-		ss << fastqDumpCmd_ << " --split-files --defline-seq '@$sn/$ri' --outdir " << pars.outputDir
+		ss << fastqDumpCmd_ << " --split-files --defline-seq '@$sn/$ri' --outdir " << pars.outputDir_
 				<< " " << extraSraArgs << " " << pars.sraFnp_;
 		auto runOutput = bib::sys::run({ss.str()});
 		checkRunOutThrow(runOutput, __PRETTY_FUNCTION__);

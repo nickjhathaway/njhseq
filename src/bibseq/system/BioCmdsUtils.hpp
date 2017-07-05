@@ -49,7 +49,7 @@ public:
 		bfs::path sraFnp_;
 
 		std::string extraSraOptions_ = "";
-		bfs::path outputDir = "./";
+		bfs::path outputDir_ = "./";
 		bool exportBarCode_ = false;
 		bool gzip_ = false;
 		bool force_ = false;
