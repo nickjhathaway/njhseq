@@ -180,7 +180,20 @@ bib::sys::RunOutput BioCmdsUtils::lastzAlign(const SeqIOOptions & opts, const La
 	return ret;
 }
 
+Json::Value BioCmdsUtils::FastqDumpResults::toJson() const{
+	Json::Value ret;
 
+	ret["class"] = bib::typeStr(*this);
+	ret["firstMateFnp_"] = bib::json::toJson(firstMateFnp_);
+	ret["barcodeFnp_"] = bib::json::toJson(barcodeFnp_);
+	ret["secondMateFnp_"] = bib::json::toJson(secondMateFnp_);
+	ret["isGzipped_"] = bib::json::toJson(isGzipped_);
+	ret["isPairedEnd_"] = bib::json::toJson(isPairedEnd_);
+	ret["output_"] = bib::json::toJson(output_);
+
+
+	return ret;
+}
 BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & pars) const{
 	BioCmdsUtils::FastqDumpResults ret;
 	if(!bfs::exists(pars.sraFnp_)){

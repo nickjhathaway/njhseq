@@ -64,6 +64,7 @@ public:
 		bool isPairedEnd_ = false;
 		bib::sys::RunOutput output_;
 
+		Json::Value toJson() const;
 	};
 
 	FastqDumpResults runFastqDump(const FastqDumpPars & pars) const;
