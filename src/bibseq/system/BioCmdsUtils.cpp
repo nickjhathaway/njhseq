@@ -8,6 +8,9 @@
 #include "BioCmdsUtils.hpp"
 #include <unordered_map>
 
+#include "bibseq/IO/SeqIO.h"
+#include "bibseq/IO/OutputStream.hpp"
+
 namespace bibseq {
 
 BioCmdsUtils::BioCmdsUtils() {
@@ -175,6 +178,150 @@ bib::sys::RunOutput BioCmdsUtils::lastzAlign(const SeqIOOptions & opts, const La
 	auto ret = bib::sys::run( { lastzCmd.str() });
 	BioCmdsUtils::checkRunOutThrow(ret, __PRETTY_FUNCTION__);
 	return ret;
+}
+
+
+BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & pars) const{
+	BioCmdsUtils::FastqDumpResults ret;
+	if(!bfs::exists(pars.sraFnp_)){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << pars.sraFnp_ << " doesn't exist" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	bib::sys::requireExternalProgramThrow(fastqDumpCmd_);
+	std::stringstream cmd;
+	cmd <<  fastqDumpCmd_ << " --log-level 0 -X 1 -Z --split-spot " << pars.sraFnp_;
+	auto cmdOutput = bib::sys::run({cmd.str()});
+	BioCmdsUtils::checkRunOutThrow(cmdOutput, __PRETTY_FUNCTION__);
+	//bib::sys::run trim end white space so have to add one;
+	uint32_t newLines = countOccurences(cmdOutput.stdOut_, "\n") + 1;
+
+	std::string extraSraArgs = pars.extraSraOptions_;
+	if (pars.exportBarCode_) {
+		extraSraArgs = bib::replaceString(extraSraArgs, "--skip-technical", "");
+	} else if (!bib::containsSubString(pars.extraSraOptions_,
+			"--skip-technical")) {
+		extraSraArgs += " --skip-technical ";
+	}
+	bfs::path checkFile1        = bib::files::replaceExtension(pars.sraFnp_, "_1.fastq");
+	bfs::path checkFile2        = bib::files::replaceExtension(pars.sraFnp_, "_2.fastq");
+	bfs::path checkFileBarcodes = bib::files::replaceExtension(pars.sraFnp_, "_barcodes.fastq");
+	if(pars.gzip_){
+		checkFile1 = checkFile1.string() + ".gz";
+		checkFile2 = checkFile2.string() + ".gz";
+		checkFileBarcodes = checkFileBarcodes.string() + ".gz";
+		ret.isGzipped_ = true;
+	}
+	bool needToRun = true;
+	ret.firstMateFnp_ = checkFile1;
+	if (4 == newLines) {
+		ret.isPairedEnd_ = false;
+		if(bfs::exists(checkFile1) &&
+				bib::files::firstFileIsOlder(pars.sraFnp_, checkFile1)){
+			needToRun = false;
+		}
+	} else if (8 == newLines) {
+		ret.secondMateFnp_ = checkFile2;
+		ret.isPairedEnd_ = true;
+		if(bfs::exists(checkFile1) &&
+				bfs::exists(checkFile2) &&
+				bib::files::firstFileIsOlder(pars.sraFnp_, checkFile1)&&
+				bib::files::firstFileIsOlder(pars.sraFnp_, checkFile2)){
+			needToRun = false;
+		}
+	} else if (12 == newLines) {
+		ret.secondMateFnp_ = checkFile2;
+		if(pars.exportBarCode_){
+			ret.barcodeFnp_ = checkFileBarcodes;
+			if(bfs::exists(checkFile1) &&
+					bfs::exists(checkFile2) &&
+					bfs::exists(checkFileBarcodes) &&
+					bib::files::firstFileIsOlder(pars.sraFnp_, checkFile1)&&
+					bib::files::firstFileIsOlder(pars.sraFnp_, checkFile2)&&
+					bib::files::firstFileIsOlder(pars.sraFnp_, checkFileBarcodes)){
+				needToRun = false;
+			}
+		}else{
+			if(bfs::exists(checkFile1) &&
+					bfs::exists(checkFile2) &&
+					bib::files::firstFileIsOlder(pars.sraFnp_, checkFile1)&&
+					bib::files::firstFileIsOlder(pars.sraFnp_, checkFile2)){
+				needToRun = false;
+			}
+		}
+		ret.isPairedEnd_ = true;
+	} else {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error with " << cmd.str()
+				<< " was expecting 4, 8, or 12 lines but got " << newLines << " instead "
+				<< "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	if(needToRun){
+		std::stringstream ss;
+		if(12 != newLines){
+			extraSraArgs += " --gzip ";
+		}
+		ss << fastqDumpCmd_ << " --split-files --defline-seq '@$sn/$ri' " << extraSraArgs << " " << pars.sraFnp_;
+		auto runOutput = bib::sys::run({ss.str()});
+		checkRunOutThrow(runOutput, __PRETTY_FUNCTION__);
+		if(12 == newLines){
+			//now to fix the crazy that is the SRA way of dump things with three files
+			if(pars.exportBarCode_){
+				bfs::path currentBarcodeFnp = bib::files::replaceExtension(pars.sraFnp_, "_2.fastq");
+				if(pars.gzip_){
+					IoOptions barIoOpts{InOptions(currentBarcodeFnp), OutOptions(checkFileBarcodes)};
+					barIoOpts.out_.overWriteFile_ = true;
+					gzZipFile(barIoOpts);
+				}else{
+					if(bfs::exists(checkFileBarcodes)){
+						bfs::remove(checkFileBarcodes);
+					}
+					bfs::copy(currentBarcodeFnp, checkFileBarcodes);
+				}
+			}
+			if(pars.gzip_){
+				auto currentFirstMateFnp = bib::files::replaceExtension(pars.sraFnp_, "_1.fastq");
+				IoOptions firstMateIoOpts{InOptions(currentFirstMateFnp), OutOptions(checkFile1)};
+				firstMateIoOpts.out_.overWriteFile_ = true;
+				gzZipFile(firstMateIoOpts);
+			}
+			bfs::path currentSecondMateFnp = bib::files::replaceExtension(pars.sraFnp_, "_3.fastq");
+			auto secondMateIn = SeqIOOptions::genFastqIn(currentSecondMateFnp);
+			SeqInputExp reader{secondMateIn};
+			seqInfo seq;
+			OutOptions secondMateOutOpts(checkFile2);
+			OutputStream secondMateOut(secondMateOutOpts);
+			reader.openIn();
+			while(reader.readNextRead(seq)){
+				seq.name_.back() = '2';
+				seq.outPutFastq(secondMateOut);
+			}
+		}
+	}
+
+	return ret;
+}
+
+bool BioCmdsUtils::isSRAPairedEnd(const bfs::path & sraFnp) const{
+	if(!bfs::exists(sraFnp)){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << sraFnp << " doesn't exist" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	bib::sys::requireExternalProgramThrow(fastqDumpCmd_);
+	std::stringstream cmd;
+	cmd <<  fastqDumpCmd_ << " --log-level 0 -X 1 -Z --split-spot " << sraFnp;
+	auto cmdOutput = bib::sys::run({cmd.str()});
+	BioCmdsUtils::checkRunOutThrow(cmdOutput, __PRETTY_FUNCTION__);
+	//bib::sys::run trim end white space so have to add one;
+	uint32_t newLines = countOccurences(cmdOutput.stdOut_, "\n") + 1;
+	if(8 == newLines || 12 == newLines){
+		//check for 8 or 12, 12 means triple file _1 forward mate, _2 barcode, _3 reverse mate
+		//could also be solved by checking for only 8 and using --skip-technical in the command to skip the barcode file
+		return true;
+	}
+	return false;
 }
 
 void BioCmdsUtils::checkRunOutThrow(const bib::sys::RunOutput & runOut,

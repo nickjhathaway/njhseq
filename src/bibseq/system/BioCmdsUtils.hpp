@@ -19,6 +19,7 @@ public:
 	BioCmdsUtils();
 	BioCmdsUtils(bool verbose);
 	bool verbose_ = false;
+	std::string fastqDumpCmd_ = "fastq-dump";
 
 	bib::sys::RunOutput RunBowtie2Index(const bfs::path & genomeFnp) const;
 	bib::sys::RunOutput RunBwaIndex(const bfs::path & genomeFnp) const;
@@ -39,10 +40,33 @@ public:
 		std::string outFormat = "SAM";
 		std::string extraLastzArgs = "";
 	};
-	bib::sys::RunOutput lastzAlign(const SeqIOOptions & opts, const LastZPars & pars)const ;
+	bib::sys::RunOutput lastzAlign(const SeqIOOptions & opts, const LastZPars & pars) const ;
 
 
+	bool isSRAPairedEnd(const bfs::path & sraFnp) const;
 
+	struct FastqDumpPars{
+		bfs::path sraFnp_;
+
+		std::string extraSraOptions_ = "";
+
+		bool exportBarCode_ = false;
+		bool gzip_ = false;
+		bool force_ = false;
+	};
+
+	struct FastqDumpResults{
+		bfs::path firstMateFnp_;
+		bfs::path barcodeFnp_;
+		bfs::path secondMateFnp_;
+
+		bool isGzipped_ = false;
+		bool isPairedEnd_ = false;
+		bib::sys::RunOutput output_;
+
+	};
+
+	FastqDumpResults runFastqDump(const FastqDumpPars & pars) const;
 
 	bib::sys::RunOutput runCmdCheck(const std::string & cmd,
 			const bfs::path & input, const bfs::path & check) const;
