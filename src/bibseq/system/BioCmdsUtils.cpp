@@ -215,8 +215,9 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 	} else if (!bib::containsSubString(pars.extraSraOptions_,
 			"--skip-technical")) {
 		extraSraArgs += " --skip-technical ";
+
 	}
-	auto outputStub = bib::files::make_path(pars.outputDir_, pars.sraFnp_);
+	auto outputStub = bib::files::make_path(pars.outputDir_, pars.sraFnp_.filename());
 	bfs::path checkFile1        = bib::files::replaceExtension(outputStub, "_1.fastq");
 	bfs::path checkFile2        = bib::files::replaceExtension(outputStub, "_2.fastq");
 	bfs::path checkFileBarcodes = bib::files::replaceExtension(outputStub, "_barcodes.fastq");
@@ -309,12 +310,15 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			SeqInputExp reader{secondMateIn};
 			seqInfo seq;
 			OutOptions secondMateOutOpts(checkFile2);
+			secondMateOutOpts.overWriteFile_ = true;
 			OutputStream secondMateOut(secondMateOutOpts);
 			reader.openIn();
 			while(reader.readNextRead(seq)){
 				seq.name_.back() = '2';
 				seq.outPutFastq(secondMateOut);
 			}
+			reader.closeIn();
+			bfs::remove(currentSecondMateFnp);
 		}
 	}
 

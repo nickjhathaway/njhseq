@@ -17,5 +17,13 @@ OutputStream::OutputStream(const OutOptions & outOpts) : std::ostream(std::cout.
 	rdbuf(outOpts_.determineOutBuf(*outFile_, *outFileGz_));
 }
 
+OutputStream::~OutputStream(){
+	//first flush current buffer before closing files, not sure if this is actually needed
+	flush();
+
+	outFile_ = nullptr;
+	outFileGz_ = nullptr;
+}
+
 
 } /* namespace bibseq */

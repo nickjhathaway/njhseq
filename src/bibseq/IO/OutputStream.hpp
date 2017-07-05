@@ -18,6 +18,7 @@ public:
 	std::unique_ptr<bib::GZSTREAM::ogzstream> outFileGz_;
 	std::unique_ptr<std::ofstream> outFile_;
 
+	~OutputStream();
 };
 
 
