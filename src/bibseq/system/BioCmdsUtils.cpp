@@ -308,7 +308,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 						checkFile1) };
 				firstMateIoOpts.out_.overWriteFile_ = true;
 				gzFirstMateTh = std::make_unique<std::thread>([&firstMateIoOpts]() {
-					gzZipFile(firstMateIoOpts);
+					//gzZipFile(firstMateIoOpts);
 					bfs::remove(firstMateIoOpts.in_.inFilename_);
 				});
 
