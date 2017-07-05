@@ -216,9 +216,10 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			"--skip-technical")) {
 		extraSraArgs += " --skip-technical ";
 	}
-	bfs::path checkFile1        = bib::files::replaceExtension(pars.sraFnp_, "_1.fastq");
-	bfs::path checkFile2        = bib::files::replaceExtension(pars.sraFnp_, "_2.fastq");
-	bfs::path checkFileBarcodes = bib::files::replaceExtension(pars.sraFnp_, "_barcodes.fastq");
+	auto outputStub = bib::files::make_path(pars.outputDir, pars.sraFnp_);
+	bfs::path checkFile1        = bib::files::replaceExtension(outputStub, "_1.fastq");
+	bfs::path checkFile2        = bib::files::replaceExtension(outputStub, "_2.fastq");
+	bfs::path checkFileBarcodes = bib::files::replaceExtension(outputStub, "_barcodes.fastq");
 	if(pars.gzip_){
 		checkFile1 = checkFile1.string() + ".gz";
 		checkFile2 = checkFile2.string() + ".gz";
@@ -275,13 +276,14 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 		if(12 != newLines){
 			extraSraArgs += " --gzip ";
 		}
-		ss << fastqDumpCmd_ << " --split-files --defline-seq '@$sn/$ri' " << extraSraArgs << " " << pars.sraFnp_;
+		ss << fastqDumpCmd_ << " --split-files --defline-seq '@$sn/$ri' --outdir " << pars.outputDir
+				<< " " << extraSraArgs << " " << pars.sraFnp_;
 		auto runOutput = bib::sys::run({ss.str()});
 		checkRunOutThrow(runOutput, __PRETTY_FUNCTION__);
 		if(12 == newLines){
 			//now to fix the crazy that is the SRA way of dump things with three files
 			if(pars.exportBarCode_){
-				bfs::path currentBarcodeFnp = bib::files::replaceExtension(pars.sraFnp_, "_2.fastq");
+				bfs::path currentBarcodeFnp = bib::files::replaceExtension(outputStub, "_2.fastq");
 				if(pars.gzip_){
 					IoOptions barIoOpts{InOptions(currentBarcodeFnp), OutOptions(checkFileBarcodes)};
 					barIoOpts.out_.overWriteFile_ = true;
@@ -294,12 +296,12 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 				}
 			}
 			if(pars.gzip_){
-				auto currentFirstMateFnp = bib::files::replaceExtension(pars.sraFnp_, "_1.fastq");
+				auto currentFirstMateFnp = bib::files::replaceExtension(outputStub, "_1.fastq");
 				IoOptions firstMateIoOpts{InOptions(currentFirstMateFnp), OutOptions(checkFile1)};
 				firstMateIoOpts.out_.overWriteFile_ = true;
 				gzZipFile(firstMateIoOpts);
 			}
-			bfs::path currentSecondMateFnp = bib::files::replaceExtension(pars.sraFnp_, "_3.fastq");
+			bfs::path currentSecondMateFnp = bib::files::replaceExtension(outputStub, "_3.fastq");
 			auto secondMateIn = SeqIOOptions::genFastqIn(currentSecondMateFnp);
 			SeqInputExp reader{secondMateIn};
 			seqInfo seq;

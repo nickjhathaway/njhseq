@@ -49,7 +49,7 @@ public:
 		bfs::path sraFnp_;
 
 		std::string extraSraOptions_ = "";
-
+		bfs::path outputDir = "./";
 		bool exportBarCode_ = false;
 		bool gzip_ = false;
 		bool force_ = false;
@@ -59,6 +59,8 @@ public:
 		bfs::path firstMateFnp_;
 		bfs::path barcodeFnp_;
 		bfs::path secondMateFnp_;
+
+
 
 		bool isGzipped_ = false;
 		bool isPairedEnd_ = false;
