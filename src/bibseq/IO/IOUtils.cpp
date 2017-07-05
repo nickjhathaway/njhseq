@@ -30,8 +30,23 @@ void gzZipFile(const IoOptions & opts){
 				<< " already exists, use --overWrite to overwrite it" << "\n";
 		throw std::runtime_error { ss.str() };
 	}
-	bib::GZSTREAM::ogzstream outStream(opts.out_.outName());
-	outStream << bib::files::get_file_contents(opts.in_.inFilename_, false);
+//	bib::GZSTREAM::ogzstream outStream(opts.out_.outName());
+//	outStream << bib::files::get_file_contents(opts.in_.inFilename_, false);
+	//read in chunks so that the entire file doesn't have to be read in if it's very large
+	/**@todo find an apprioprate chunkSize or */
+	uint32_t chunkSize = 4096 * 10;
+	bib::GZSTREAM::ogzstream outstream;
+	opts.out_.openGzFile(outstream);
+	std::ifstream infile(opts.in_.inFilename_.string(), std::ios::binary);
+	std::vector<char> buffer(chunkSize);
+	infile.read(buffer.data(), sizeof(char) * chunkSize);
+	std::streamsize bytes = infile.gcount();
+
+	while(bytes > 0){
+		outstream.write(buffer.data(), bytes * sizeof(char));
+		infile.read(buffer.data(), sizeof(char) * chunkSize);
+		bytes = infile.gcount();
+	}
 }
 
 
