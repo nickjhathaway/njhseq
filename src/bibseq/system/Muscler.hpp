@@ -484,7 +484,7 @@ public:
 
 		std::vector<seqInfo> alignedRefs = std::vector<seqInfo>(allSeqs.begin(), allSeqs.begin() + refSeqs.size());
 
-
+		//[^\|]\|[^|]
 		uint32_t streakLenCutOff = 3; // at least 3 positions in a row must pass the threshold below
 		double spanningCutOff = .50; // at least 50% of the ref seqs must start here
 		double baseCutOff = .50; // at least 50% of the bases at this location must have a base
@@ -497,7 +497,7 @@ public:
 				return true;
 			}else{
 				return false;
-			}
+			}//" | "
 		};
 
 		auto refStartsStop = getMAlnStartsAndStops(alignedRefs);
