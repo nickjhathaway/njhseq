@@ -398,7 +398,8 @@ public:
 		uint32_t trimFront = streaks.front().start_;
 		readVecTrimmer::trimEnds(alnSeqs, trimFront, trimEnd);
 		for(const auto seqPos : iter::range(len(alnSeqs))){
-			if(startsAndStops[seqPos].start_ >  streaks.front().start_ | startsAndStops[seqPos].stop_ + 1 < streaks.back().end_){
+			if((startsAndStops[seqPos].start_ >  streaks.front().start_) ||
+					(startsAndStops[seqPos].stop_ + 1 < streaks.back().end_)){
 				alnSeqs[seqPos].on_ = false;
 			}else{
 				alnSeqs[seqPos].on_ = true;
@@ -487,11 +488,11 @@ public:
 		uint32_t streakLenCutOff = 3; // at least 3 positions in a row must pass the threshold below
 		double spanningCutOff = .50; // at least 50% of the ref seqs must start here
 		double baseCutOff = .50; // at least 50% of the bases at this location must have a base
-		uint32_t hardGapCutOff = 2; //there must at least be 2 refs here
+		uint32_t hardGapCutOff = 2; //there can't be two gaps here
 
 		auto totalInputSeqs = len(alignedRefs);
 		std::function<bool(const std::shared_ptr<Muscler::AlnPosScore> &)> scorePred = [&baseCutOff,&hardGapCutOff,&totalInputSeqs,&spanningCutOff](const std::shared_ptr<Muscler::AlnPosScore> & score){
-			if((static_cast<double>(score->baseCount_)/score->getSpanningCount() >= baseCutOff | score->gapCount_ <= hardGapCutOff) &&
+			if((static_cast<double>(score->baseCount_)/score->getSpanningCount() >= baseCutOff || score->gapCount_ <= hardGapCutOff) &&
 					static_cast<double>(score->getSpanningCount())/totalInputSeqs > spanningCutOff){
 				return true;
 			}else{
