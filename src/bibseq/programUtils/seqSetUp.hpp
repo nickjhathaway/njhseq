@@ -41,6 +41,7 @@ class seqSetUp : public bib::progutils::programSetUp {
   void processQualityFiltering();
   bool processDefaultReader(bool readInNamesRequired = true);
   bool processDefaultReader(const VecStr & formats, bool readInNamesRequired = true);
+  bool processReadInNames(bool required = true);
   bool processReadInNames(const VecStr & formats, bool required = true);
   void processGap();
   void processGapRef();

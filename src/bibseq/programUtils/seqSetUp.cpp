@@ -210,6 +210,10 @@ void seqSetUp::processAdjustHRuns(){
             "Adjust Homopolyer Runs To Be Same Qual");
 }
 
+
+bool seqSetUp::processReadInNames(bool required) {
+	return processReadInNames(readInFormatsAvailable_, required);
+}
 bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 	std::stringstream formatWarnings;
 	bool foundUnrecFormat = false;
@@ -461,8 +465,10 @@ void seqSetUp::processWritingOptions() {
 			"Over Write Existing Files");
 	setOption(pars_.ioOptions_.out_.append_, "--appendFile", "Append to file");
 	if (setOption(pars_.ioOptions_.out_.outFilename_, "--out", "Out Filename")) {
-		pars_.ioOptions_.out_.outExtention_ =
-				pars_.ioOptions_.out_.outFilename_.extension().string();
+		if("" != pars_.ioOptions_.out_.outFilename_.extension().string()){
+			pars_.ioOptions_.out_.outExtention_ =
+					pars_.ioOptions_.out_.outFilename_.extension().string();
+		}
 	}
 }
 
