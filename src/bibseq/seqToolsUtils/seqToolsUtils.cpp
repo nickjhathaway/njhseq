@@ -617,8 +617,8 @@ VecStr createDegenStrs(const std::string & str){
 	VecStr ans;
 
 	char first = *str.begin();
-	std::cout << first << std::endl;
-	std::cout << std::endl;
+//	std::cout << first << std::endl;
+//	std::cout << std::endl;
 	if(degenBaseExapnd.find(first) != degenBaseExapnd.end()){
 		for(const auto & nextChar : degenBaseExapnd.at(first)){
 			ans.emplace_back(std::string(1,nextChar));
@@ -627,7 +627,7 @@ VecStr createDegenStrs(const std::string & str){
 		ans.emplace_back(std::string(1,first));
 	}
 
-	printVector(ans);
+	//printVector(ans);
 	uint32_t charCount = 0;
 	for(const auto & c : str){
 		++charCount;
