@@ -340,7 +340,7 @@ public:
 		AlnPosScoreStreak(const std::shared_ptr<AlnPosScore> & firstScore);
 		uint32_t start_;
 		uint32_t end_;
-		uint32_t getLne() const;
+		uint32_t getLen() const;
 		std::vector<std::shared_ptr<AlnPosScore>> scores_;
 
 	};

@@ -33,12 +33,13 @@
 #include "bibseq/objects/seqObjects/Paired/PairedRead.hpp"
 #include "bibseq/objects/seqObjects/sffObject.hpp"
 #include "bibseq/IO/SeqIO/SeqIOOptions.hpp"
-
+#include "bibseq/IO/OutputStream.hpp"
 
 namespace bibseq {
 
 
 class SeqOutput{
+	std::function<bool(seqInfo &)> writerFunc_;
 public:
 	SeqOutput(const SeqIOOptions & options);
 
@@ -51,48 +52,48 @@ public:
 	void closeOutForReopening();
 
 	template<typename T>
-	void write(const T & read) {
-		write(read.seqBase_);
+	void write(const T & seq) {
+		write(seq.seqBase_);
 	}
 
 	template<typename T>
-	void openWrite(const T & read) {
-		openWrite(read.seqBase_);
+	void openWrite(const T & seq) {
+		openWrite(seq.seqBase_);
 	}
 
 	template<typename T>
-	void write(const std::unique_ptr<T> & read) {
-		write(*read);
+	void write(const std::unique_ptr<T> & seq) {
+		write(*seq);
 	}
 
 	template<typename T>
-	void openWrite(const std::unique_ptr<T> & read) {
-		openWrite(*read);
+	void openWrite(const std::unique_ptr<T> & seq) {
+		openWrite(*seq);
 	}
 
 	template<typename T>
-	void write(const std::shared_ptr<T> & read) {
-		write(*read);
+	void write(const std::shared_ptr<T> & seq) {
+		write(*seq);
 	}
 
 	template<typename T>
-	void openWrite(const std::shared_ptr<T> & read) {
-		openWrite(*read);
+	void openWrite(const std::shared_ptr<T> & seq) {
+		openWrite(*seq);
 	}
 
 	template<typename T>
-	void writeNoCheck(const T & read) {
-		writeNoCheck(read.seqBase_);
+	void writeNoCheck(const T & seq) {
+		writeNoCheck(seq.seqBase_);
 	}
 
 	template<typename T>
-	void writeNoCheck(const std::unique_ptr<T> & read) {
-		writeNoCheck(*read);
+	void writeNoCheck(const std::unique_ptr<T> & seq) {
+		writeNoCheck(*seq);
 	}
 
 	template<typename T>
-	void writeNoCheck(const std::shared_ptr<T> & read) {
-		writeNoCheck(*read);
+	void writeNoCheck(const std::shared_ptr<T> & seq) {
+		writeNoCheck(*seq);
 	}
 
 	template<typename T>
@@ -101,8 +102,8 @@ public:
 			throw std::runtime_error {
 					"Error in readObjectIOOpt, attempted to write when out files aren't open, out file: " + ioOptions_.out_.outName().string() };
 		}
-		for (const auto & read : reads) {
-			writeNoCheck(read);
+		for (const auto & seq : reads) {
+			writeNoCheck(seq);
 		}
 	}
 
@@ -111,15 +112,15 @@ public:
 		if (!outOpen_) {
 			openOut();
 		}
-		for (const auto & read : reads) {
-			writeNoCheck(read);
+		for (const auto & seq : reads) {
+			writeNoCheck(seq);
 		}
 	}
 
 	template<typename T>
 	void writeNoCheck(const std::vector<T> & reads) {
-		for (const auto & read : reads) {
-			writeNoCheck(read);
+		for (const auto & seq : reads) {
+			writeNoCheck(seq);
 		}
 	}
 
@@ -135,19 +136,19 @@ public:
 		write(reads, outOpts);
 	}
 
-	void writeNoCheck(const seqInfo & read);
-	void write(const seqInfo & read);
-	void openWrite(const seqInfo & read);
+	void writeNoCheck(const seqInfo & seq);
+	void write(const seqInfo & seq);
+	void openWrite(const seqInfo & seq);
 
-	void openWriteFlow(const sffObject & read);
-	void writeNoCheckFlow(const sffObject & read);
+	void openWriteFlow(const sffObject & seq);
+	void writeNoCheckFlow(const sffObject & seq);
 
 	void writeNoCheck(const std::string & line);
 	void openWrite(const std::string & line);
 
-	void writeNoCheck(const PairedRead & read);
-	void openWrite(const PairedRead & read);
-	void write(const PairedRead & read);
+	void writeNoCheck(const PairedRead & seq);
+	void openWrite(const PairedRead & seq);
+	void write(const PairedRead & seq);
 
 	size_t tellpPri();
 	void seekpPri(size_t pos);
@@ -158,8 +159,9 @@ public:
 	std::mutex mut_;
 private:
 	bool outOpen_ = false;
-	std::unique_ptr<std::ofstream> primaryOut_;
-	std::unique_ptr<std::ofstream> secondaryOut_;
+
+	std::unique_ptr<OutputStream> primaryOut_;
+	std::unique_ptr<OutputStream> secondaryOut_;
 
 	std::unique_ptr<BamTools::BamWriter> bReader_;
 	std::unique_ptr<BamTools::BamAlignment> aln_;

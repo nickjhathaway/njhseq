@@ -33,3 +33,4 @@
 #include "bibseq/IO/FileWithTime.hpp"
 #include "bibseq/IO/IOOptions.h"
 #include "bibseq/IO/OutputStream.hpp"
+#include "bibseq/IO/InputStream.hpp"

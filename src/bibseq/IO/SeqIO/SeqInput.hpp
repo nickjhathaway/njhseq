@@ -31,6 +31,7 @@
 #include <bibcpp/files/fileObjects.h>
 
 #include "bibseq/IO/cachedReader.hpp"
+#include "bibseq/IO/InputStream.hpp"
 #include "bibseq/objects/seqObjects/readObject.hpp"
 #include "bibseq/objects/seqObjects/Paired/PairedRead.hpp"
 #include "bibseq/objects/seqObjects/sffObject.hpp"
@@ -44,13 +45,19 @@ namespace bibseq {
  *
  * @todo Make a class for each type of reader to simplify things and to avoid having to check the input type for each readNextRead call
  */
+
+
 class SeqInput{
+	std::function<bool(seqInfo &)> firstTimeReaderFunc_;
+	std::function<bool(seqInfo &)> readerFunc_;
 public:
 
 	SeqInput(const SeqIOOptions & options);
 	SeqInput(const SeqInput& that);
 
 	SeqIOOptions ioOptions_;
+
+	void setReaderFunc();
 
 	bool readNextRead(seqInfo & read);
 	bool readNextRead(PairedRead & read);
@@ -217,10 +224,11 @@ private:
 	std::unique_ptr<BamTools::BamReader> bReader_;
 	std::unique_ptr<BamTools::BamAlignment> aln_;
 
-	std::unique_ptr<bib::files::gzTextFileCpp<>> priGzReader_;
-	std::unique_ptr<bib::files::gzTextFileCpp<>> secGzReader_;
-	std::unique_ptr<std::ifstream> priReader_;
-	std::unique_ptr<std::ifstream> secReader_;
+
+	std::unique_ptr<InputStream> priReader_;
+	std::unique_ptr<InputStream> secReader_;
+
+
 public:
 	std::unique_ptr<VecStr> sffTxtHeader_;
 	std::unique_ptr<sffBinaryHeader> sffBinHeader_;
@@ -229,33 +237,23 @@ public:
 	bool readNextFastqStream(std::istream& fastqFile, uint32_t offSet, seqInfo& read,
 			bool processed);
 private:
-	bool readNextQualStream(std::ifstream& qualFile, std::vector<uint32_t>& quals,
+	bool readNextQualStream(std::istream& qualFile, std::vector<uint32_t>& quals,
 			std::string & name);
-	bool readNextFastaQualStream(std::ifstream& fastaFile,
-			std::ifstream& qualFile, seqInfo & read, bool processed);
+	bool readNextFastaQualStream(std::istream& fastaFile,
+			std::istream& qualFile, seqInfo & read, bool processed);
 
-	bool readNextFastaStream(bib::files::gzTextFileCpp<>& fastaGzFile, seqInfo& read,
-			bool processed);
-	bool readNextQualStream(bib::files::gzTextFileCpp<>& qualGzFile, std::vector<uint32_t>& quals,
-			std::string & name);
-	bool readNextFastaQualStream(bib::files::gzTextFileCpp<>& fastaGzFile,
-			bib::files::gzTextFileCpp<>& qualGzFile, seqInfo & read, bool processed);
-
-
-	bool readNextFastqStream(bib::files::gzTextFileCpp<>& fastqGzFile, uint32_t offSet, seqInfo& read,
-			bool processed);
 	bool readNextFastqStream(const VecStr & data, const uint32_t lCount, uint32_t offSet, seqInfo& read,
 			bool processed);
 
 	bool readNextBam(BamTools::BamReader & bReader, seqInfo& read,
 			BamTools::BamAlignment & aln, bool processed);
 
-	VecStr readSffTxtHeader(std::ifstream & inFile);
-	bool readNextSff(std::ifstream & inFile, sffObject & read);
-	bool readNextSff(std::ifstream & inFile, seqInfo & read);
+	VecStr readSffTxtHeader(std::istream & inFile);
+	bool readNextSff(std::istream & inFile, sffObject & read);
+	bool readNextSff(std::istream & inFile, seqInfo & read);
 
-	bool readNextSffBin(std::ifstream& in, sffObject& read, int32_t numFlowReads);
-	void readHeader(std::ifstream& in, sffBinaryHeader& header);
+	bool readNextSffBin(std::istream& in, sffObject& read, int32_t numFlowReads);
+	void readHeader(std::istream& in, sffBinaryHeader& header);
 
 	bool inOpen_ = false;
 
@@ -263,10 +261,10 @@ private:
 };
 
 template<typename T>
-std::vector<T> getSeqs(const std::string & name) {
+std::vector<T> getSeqs(const bfs::path & fnp) {
 	SeqIOOptions popOpts;
-	popOpts.firstName_ = name;
-	popOpts.inFormat_ = SeqIOOptions::getInFormat(bib::files::getExtension(name));
+	popOpts.firstName_ = fnp;
+	popOpts.inFormat_ = SeqIOOptions::getInFormat(bib::files::getExtension(fnp));
 	SeqInput reader(popOpts);
 	return reader.readAllReads<T>();
 }

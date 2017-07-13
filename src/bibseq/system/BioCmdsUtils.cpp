@@ -322,7 +322,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			}
 			bfs::path currentSecondMateFnp = bib::files::replaceExtension(outputStub, "_3.fastq");
 			auto secondMateIn = SeqIOOptions::genFastqIn(currentSecondMateFnp);
-			SeqInputExp reader{secondMateIn};
+			SeqInput reader{secondMateIn};
 			seqInfo seq;
 			OutOptions secondMateOutOpts(checkFile2);
 			secondMateOutOpts.overWriteFile_ = true;

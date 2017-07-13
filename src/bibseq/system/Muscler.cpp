@@ -126,7 +126,7 @@ Muscler::AlnPosScoreStreak::AlnPosScoreStreak(const std::shared_ptr<AlnPosScore>
 
 }
 
-uint32_t Muscler::AlnPosScoreStreak::getLne() const{
+uint32_t Muscler::AlnPosScoreStreak::getLen() const{
 	return end_ - start_;
 }
 
@@ -151,14 +151,14 @@ std::vector<Muscler::AlnPosScoreStreak> Muscler::getAlignmentStreaksPositions(co
 				++currentStreak.end_;
 				currentStreak.scores_.emplace_back(scores[streakSearchPos]);
 			}else{
-				if(currentStreak.getLne() >= streakLenCutOff){
+				if(currentStreak.getLen() >= streakLenCutOff){
 					streaks.emplace_back(currentStreak);
 				}
 				currentStreak = AlnPosScoreStreak(scores[streakSearchPos]);
 			}
 		}
 	}
-	if(currentStreak.getLne() >= streakLenCutOff){
+	if(currentStreak.getLen() >= streakLenCutOff){
 		streaks.emplace_back(currentStreak);
 	}
 	return streaks;

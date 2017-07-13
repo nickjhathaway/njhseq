@@ -28,7 +28,7 @@ namespace bibseq {
 
 
 const VecStr seqSetUp::readInFormatsAvailable_ {"sff", "sffBin", "fasta", "fastq",
-	"bam", "fastqgz", "fastagz", "fastq1", "fastq2"};
+	"bam", "fastqgz", "fastagz", "fastq1", "fastq2", "fastq1gz", "fastq2gz"};
 
 
 void seqSetUp::processComparison(comparison & comp, std::string stub) {
@@ -250,6 +250,10 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 				"Input sequence filename, fastq first mate text file", required);
 		bib::progutils::Flag fastqSecondMateFlagOptions(pars_.ioOptions_.firstName_, "--fastq2",
 				"Input sequence filename, fastq second mate text file", required);
+		bib::progutils::Flag fastqFirstMateGzFlagOptions(pars_.ioOptions_.firstName_, "--fastq1gz",
+				"Input sequence filename, fastq first mate gzipped file", required);
+		bib::progutils::Flag fastqSecondMateGzFlagOptions(pars_.ioOptions_.firstName_, "--fastq2gz",
+				"Input sequence filename, fastq second mate gzipped file", required);
 		/*bib::progutils::Flag fastqComplSecondMateFlagOptions(pars_.ioOptions_.revComplMate_, "--complementMate",
 						"Complement second mate in paired reads", false);
 		*/
@@ -269,6 +273,8 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 		seqReadInFlags.addFlag(fastagzFlagOptions);
 		seqReadInFlags.addFlag(fastqFirstMateFlagOptions);
 		seqReadInFlags.addFlag(fastqSecondMateFlagOptions);
+		seqReadInFlags.addFlag(fastqFirstMateGzFlagOptions);
+		seqReadInFlags.addFlag(fastqSecondMateGzFlagOptions);
 
 		for (const auto & formatFlag : seqReadInFlags.flags_) {
 			if (bib::has(formats, formatFlag.second.flags_.front(), formatChecker)) {
@@ -278,10 +284,19 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 		std::string fastq1Flag = "--fastq1";
 		std::string fastq2Flag = "--fastq2";
 
+		std::string fastq1GzFlag = "--fastq1gz";
+		std::string fastq2GzFlag = "--fastq2gz";
+
 		if(bib::has(formats, fastq1Flag, formatChecker) ){
 			//flags_.addFlag(fastqComplSecondMateFlagOptions);
 			if(!bib::has(formats, fastq2Flag, formatChecker)){
 				flags_.addFlag(fastqSecondMateFlagOptions);
+			}
+		}
+		if(bib::has(formats, fastq1GzFlag, formatChecker) ){
+			//flags_.addFlag(fastqComplSecondMateFlagOptions);
+			if(!bib::has(formats, fastq2GzFlag, formatChecker)){
+				flags_.addFlag(fastqSecondMateGzFlagOptions);
 			}
 		}
 	}
@@ -321,19 +336,25 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 	if(commands_.hasFlagCaseInsenNoDash("-fastq1")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQPAIRED;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQPAIRED;
-		pars_.ioOptions_.out_.outExtention_ = ".fastq";
+		pars_.ioOptions_.out_.outExtention_ = "_R1.fastq";
 		readInFormatsFound.emplace_back("-fastq1");
+	}
+	if(commands_.hasFlagCaseInsenNoDash("-fastq1gz")){
+		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQPAIREDGZ;
+		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQPAIREDGZ;
+		pars_.ioOptions_.out_.outExtention_ = "_R1.fastq.gz";
+		readInFormatsFound.emplace_back("-fastq1gz");
 	}
 	if(commands_.hasFlagCaseInsenNoDash("-fastqgz")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQGZ;
-		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
-		pars_.ioOptions_.out_.outExtention_ = ".fastq";
+		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQGZ;
+		pars_.ioOptions_.out_.outExtention_ = ".fastq.gz";
 		readInFormatsFound.emplace_back("-fastqgz");
 	}
 	if(commands_.hasFlagCaseInsenNoDash("-fastagz")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTAGZ;
-		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTA;
-		pars_.ioOptions_.out_.outExtention_ = ".fasta";
+		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTAGZ;
+		pars_.ioOptions_.out_.outExtention_ = ".fasta.gz";
 		readInFormatsFound.emplace_back("-fastagz");
 	}
 	if(readInFormatsFound.size() > 1){
@@ -377,6 +398,16 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 			if (!setOption(pars_.ioOptions_.secondName_, "-fastq2",
 					"Name of the mate file")) {
 				addWarning("If supplying -fastq1 need to also have -fastq2");
+				failed_ = true;
+			}
+			/*
+			setOption(pars_.ioOptions_.revComplMate_, "-complementMate",
+					"Whether to complement the sequence in the mate file");*/
+		}
+		if (readInFormatsFound.front() == "-fastq1gz") {
+			if (!setOption(pars_.ioOptions_.secondName_, "-fastq2gz",
+					"Name of the mate file")) {
+				addWarning("If supplying -fastq1gz need to also have -fastq2gz");
 				failed_ = true;
 			}
 			/*

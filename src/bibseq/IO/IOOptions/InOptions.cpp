@@ -47,6 +47,70 @@ Json::Value InOptions::toJson() const{
 }
 
 
+void InOptions::openGzFile(bib::GZSTREAM::igzstream & inFile) const{
+	if(!inExists()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error attempted to open " << inFilename_ << " when it doesn't exist " << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	inFile.open(inFilename_);
+	if(!inFile){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error in opening " << inFilename_ << " for reading " << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+}
+
+void InOptions::openFile(std::ifstream & inFile) const{
+	if(!inExists()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error attempted to open " << inFilename_ << " when it doesn't exist " << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	inFile.open(inFilename_.string());
+	if(!inFile){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error in opening " << inFilename_ << " for reading " << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+}
+std::streambuf* InOptions::determineInBuf(std::ifstream & inFile) const{
+	if("" != inFilename_){
+		openFile(inFile);
+		return inFile.rdbuf();
+	}else{
+		return std::cin.rdbuf();
+	}
+}
+
+std::streambuf* InOptions::determineInBuf(bib::GZSTREAM::igzstream & inFileGz) const{
+	if("" != inFilename_){
+		openGzFile(inFileGz);
+		return inFileGz.rdbuf();
+	}else{
+		return std::cin.rdbuf();
+	}
+}
+
+
+
+std::streambuf* InOptions::determineInBuf(std::ifstream & inFile,
+		bib::GZSTREAM::igzstream & inFileGz) const {
+	if ("" != inFilename_) {
+		/**@todo use libmagic to determine input file type rather than based on file extension*/
+		if (bib::endsWith(inFilename_.string(), ".gz")) {
+			openGzFile(inFileGz);
+			return inFileGz.rdbuf();
+		} else {
+			openFile(inFile);
+			return inFile.rdbuf();
+		}
+	} else {
+		return std::cin.rdbuf();
+	}
+}
+
+
 }  // namespace bibseq
 
 

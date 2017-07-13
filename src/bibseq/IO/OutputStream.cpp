@@ -9,6 +9,16 @@
 
 namespace bibseq {
 
+/*
+ * OutputStream::OutputStream(const OutOptions & outOpts) : std::ostream(std::cout.rdbuf()),
+		outOpts_(outOpts),
+		outFileGz_(std::make_unique<bib::GZSTREAM::ogzstream>()),
+		outFile_(std::make_unique<std::ofstream>()) {
+
+	rdbuf(outOpts_.determineOutBuf(*outFile_, *outFileGz_));
+}
+ */
+
 OutputStream::OutputStream(const OutOptions & outOpts) : std::ostream(std::cout.rdbuf()),
 		outOpts_(outOpts),
 		outFileGz_(std::make_unique<bib::GZSTREAM::ogzstream>()),

@@ -38,6 +38,7 @@ struct SeqIOOptions {
   enum class inFormats {
   	FASTQ,
 		FASTQPAIRED,
+		FASTQPAIREDGZ,
 		FASTQGZ,
 		FASTA,
 		FASTAGZ,
@@ -50,11 +51,11 @@ struct SeqIOOptions {
 
   enum class outFormats {
   	FASTQ,
-		FASTQPAIRED,
+		FASTQGZ,
 		FASTA,
-		FASTQGZ, //not yet supported
-		FASTQPAIREDGZ, //not yet supported
-		FASTAGZ, //not yet supported
+		FASTAGZ,
+		FASTQPAIRED,
+		FASTQPAIREDGZ,
 		FASTAQUAL,
 		FLOW,
 		FLOWMOTHUR,
@@ -114,21 +115,36 @@ struct SeqIOOptions {
   int32_t extra_ = 0;
 
 
-
-  static SeqIOOptions genFastqIn(const bfs::path & inFilename, bool processed =
-			false);
+  //fastq
+  static SeqIOOptions genFastqIn(const bfs::path & inFilename, bool processed =false);
 	static SeqIOOptions genFastqOut(const bfs::path & outFilename);
-	static SeqIOOptions genFastqInOut(const bfs::path & inFilename,
-			const bfs::path & outFilename, bool processed = false);
+	static SeqIOOptions genFastqInOut(const bfs::path & inFilename,const bfs::path & outFilename, bool processed = false);
 
-	static SeqIOOptions genFastaIn(const bfs::path & inFilename, bool processed =
-			false);
+	//gz fastq
+  static SeqIOOptions genFastqInGz(const bfs::path & inFilename, bool processed =false);
+	static SeqIOOptions genFastqOutGz(const bfs::path & outFilename);
+	static SeqIOOptions genFastqInOutGz(const bfs::path & inFilename,const bfs::path & outFilename, bool processed = false);
+
+	//fasta
+	static SeqIOOptions genFastaIn(const bfs::path & inFilename, bool processed =false);
 	static SeqIOOptions genFastaOut(const bfs::path & outFilename);
-	static SeqIOOptions genFastaInOut(const bfs::path & inFilename,
-			const bfs::path & outFilename, bool processed = false);
+	static SeqIOOptions genFastaInOut(const bfs::path & inFilename,const bfs::path & outFilename, bool processed = false);
 
+	//gz fasta
+	static SeqIOOptions genFastaInGz(const bfs::path & inFilename, bool processed =false);
+	static SeqIOOptions genFastaOutGz(const bfs::path & outFilename);
+	static SeqIOOptions genFastaInOutGz(const bfs::path & inFilename, const bfs::path & outFilename, bool processed = false);
+
+	//paired
 	static SeqIOOptions genPairedOut(const bfs::path & outFilename);
-	static SeqIOOptions genPairedIn(const bfs::path & r1reads, const bfs::path & r2reads);
+	static SeqIOOptions genPairedIn(const bfs::path & r1reads, const bfs::path & r2reads, bool processed = false);
+	static SeqIOOptions genPairedInOut(const bfs::path & r1reads, const bfs::path & r2reads, const bfs::path & outFilename, bool processed = false);
+
+	//gz paired
+	static SeqIOOptions genPairedOutGz(const bfs::path & outFilename);
+	static SeqIOOptions genPairedInGz(const bfs::path & r1reads, const bfs::path & r2reads, bool processed = false);
+	static SeqIOOptions genPairedInOutGz(const bfs::path & r1reads, const bfs::path & r2reads, const bfs::path & outFilename, bool processed = false);
+
 
 	/**@b output options as json
 	 *

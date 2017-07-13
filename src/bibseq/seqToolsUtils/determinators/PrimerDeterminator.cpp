@@ -46,13 +46,18 @@ size_t PrimerDeterminator::getMaxPrimerSize() const {
 }
 
 PrimerDeterminator::PrimerDeterminator(const table & primers) {
-	if (!bib::in(std::string("geneName"), primers.columnNames_)
+
+	if ((!bib::in(std::string("geneName"), primers.columnNames_) && !bib::in(std::string("targetName"), primers.columnNames_))
 			|| !bib::in(std::string("forwardPrimer"), primers.columnNames_)
 			|| !bib::in(std::string("reversePrimer"), primers.columnNames_)) {
 		throw std::runtime_error {
 				"Error in creating PrimerDeterminator, need to have at "
-						"least the following three columns, geneName, forwardPrimer, reversePrimer, only have "
+						"least the following three columns, geneName or targetName and forwardPrimer, reversePrimer, only have "
 						+ bib::conToStr(primers.columnNames_, ",") };
+	}
+	std::string idCol = "geneName";
+	if(bib::in(std::string("targetName"), primers.columnNames_)){
+		idCol = "targetName";
 	}
 	for (const auto & row : primers.content_) {
 		primers_[row[primers.getColPos("geneName")]] = {row[primers.getColPos("geneName")],

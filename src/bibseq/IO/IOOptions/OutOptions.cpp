@@ -208,8 +208,9 @@ std::streambuf* OutOptions::determineOutBuf(
 
 std::streambuf* OutOptions::determineOutBuf(std::ofstream & outFile,
 		bib::GZSTREAM::ogzstream & outFileGz) const {
+	/**@todo perhaps having a bool member for gz output rather than determine by file name ending */
 	if ("" != outFilename_) {
-		if (".gz" == outExtention_) {
+		if (("" != outExtention_ && bib::endsWith(outExtention_, ".gz")) || ("" == outExtention_ && bib::endsWith(outFilename_.string(), ".gz"))) {
 			if (binary_) {
 				openBinaryGzFile(outFileGz);
 			} else {

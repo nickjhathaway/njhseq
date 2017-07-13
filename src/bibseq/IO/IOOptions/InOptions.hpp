@@ -30,7 +30,21 @@ public:
 	std::string inExtention_;
 	std::string inFormat_;
 
+	void openGzFile(bib::GZSTREAM::igzstream & inFile) const;
+	//void openBinaryGzFile(bib::GZSTREAM::igzstream & out) const;
+
+	void openFile(std::ifstream & inFile) const;
+	//void openBinaryFile(std::ifstream & out) const;
+
 	bool inExists() const;
+
+	std::streambuf* determineInBuf(std::ifstream & inFile) const;
+
+	std::streambuf* determineInBuf(bib::GZSTREAM::igzstream & inFileGz) const;
+
+	std::streambuf* determineInBuf(std::ifstream & inFile,
+			bib::GZSTREAM::igzstream & inFileGz) const;
+
 	Json::Value toJson() const;
 };
 

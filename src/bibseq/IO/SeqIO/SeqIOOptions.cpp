@@ -38,13 +38,15 @@ SeqIOOptions::inFormats SeqIOOptions::getInFormat(const std::string & format){
 	if (format == "fastq" || format == "fq"
 			|| format == "fnq") {
 		in =  inFormats::FASTQ;
-	} else if (format == "fastqPaired") {
+	} else if (format == "fastqPaired" || "_R1.fastq"  == format || "_1.fastq" == format) {
 		in =  inFormats::FASTQPAIRED;
-	}  else if (format == "fastqgz") {
+	} else if (format == "fastqPairedgz" || "_R1.fastq.gz"  == format || "_1.fastq.gz" == format) {
+		in =  inFormats::FASTQPAIREDGZ;
+	} else if (format == "fastqgz" || "fastq.gz" == format) {
 		in =  inFormats::FASTQGZ;
 	} else if (format == "fasta" || format == "fa") {
 		in =  inFormats::FASTA;
-	} else if (format == "fastagz") {
+	} else if (format == "fastagz" || ".fasta.gz" == format) {
 		in =  inFormats::FASTAGZ;
 	} else if (format == "bam") {
 		in =  inFormats::BAM;
@@ -68,12 +70,18 @@ SeqIOOptions::outFormats SeqIOOptions::getOutFormat(const std::string & format){
 	outFormats out = outFormats::NOFORMAT;
 	if (format == "fasta" || format == "fa") {
 		out = outFormats::FASTA;
+	} else if (format == "fastagz") {
+		out = outFormats::FASTAGZ;
 	} else if (format == "fastq") {
 		out = outFormats::FASTQ;
+	} else if (format == "fastqgz") {
+		out = outFormats::FASTQGZ;
 	} else if (format == "fastaQual") {
 		out = outFormats::FASTAQUAL;
 	} else if (format == "fastqPaired") {
 		out = outFormats::FASTQPAIRED;
+	} else if (format == "fastqPairedgz") {
+		out = outFormats::FASTQPAIREDGZ;
 	} else if (format == "flow") {
 		out = outFormats::FLOW;
 	} else if (format == "flowMothur") {
@@ -105,11 +113,11 @@ std::string SeqIOOptions::getOutExtensionSecondary(outFormats format){
 	std::string out = "noformat";
 	std::stringstream ss;
 	switch (format) {
+	case outFormats::FLOWMOTHUR:
+	case outFormats::FLOW:
+	case outFormats::FASTAGZ:
+	case outFormats::FASTQGZ:
 	case outFormats::FASTQ:
-		ss << __PRETTY_FUNCTION__ << ": error, no secondary out for " << getOutFormat(format)
-						<< std::endl;
-				throw std::runtime_error { ss.str() };
-		break;
 	case outFormats::FASTA:
 		ss << __PRETTY_FUNCTION__ << ": error, no secondary out for " << getOutFormat(format)
 						<< std::endl;
@@ -121,15 +129,8 @@ std::string SeqIOOptions::getOutExtensionSecondary(outFormats format){
 	case outFormats::FASTQPAIRED:
 		out = "_R2.fastq";
 		break;
-	case outFormats::FLOW:
-		ss << __PRETTY_FUNCTION__ << ": error, no secondary out for " << getOutFormat(format)
-						<< std::endl;
-				throw std::runtime_error { ss.str() };
-		break;
-	case outFormats::FLOWMOTHUR:
-		ss << __PRETTY_FUNCTION__ << ": error, no secondary out for " << getOutFormat(format)
-						<< std::endl;
-				throw std::runtime_error { ss.str() };
+	case outFormats::FASTQPAIREDGZ:
+		out = "_R2.fastq.gz";
 		break;
 	case outFormats::NOFORMAT:
 		ss << "Format set NORMAT in " << __PRETTY_FUNCTION__
@@ -152,14 +153,23 @@ std::string SeqIOOptions::getOutExtension(outFormats format){
 	case outFormats::FASTQ:
 		out = ".fastq";
 		break;
+	case outFormats::FASTQGZ:
+		out = ".fastq.gz";
+		break;
 	case outFormats::FASTA:
 		out = ".fasta";
+		break;
+	case outFormats::FASTAGZ:
+		out = ".fasta.gz";
 		break;
 	case outFormats::FASTAQUAL:
 		out = ".fasta";
 		break;
 	case outFormats::FASTQPAIRED:
 		out = "_R1.fastq";
+		break;
+	case outFormats::FASTQPAIREDGZ:
+		out = "_R1.fastq.gz";
 		break;
 	case outFormats::FLOW:
 		out = ".dat";
@@ -196,6 +206,9 @@ std::string SeqIOOptions::getInFormat(inFormats format){
 		break;
 	case inFormats::FASTQPAIRED:
 		in = "fastqPaired";
+		break;
+	case inFormats::FASTQPAIREDGZ:
+		in = "fastqPairedgz";
 		break;
 	case inFormats::FASTQGZ:
 		in = "fastqgz";
@@ -239,11 +252,14 @@ SeqIOOptions::outFormats SeqIOOptions::getOutFormat(inFormats format){
 	case inFormats::FASTQPAIRED:
 		out = outFormats::FASTQPAIRED;
 		break;
+	case inFormats::FASTQPAIREDGZ:
+		out = outFormats::FASTQPAIREDGZ;
+		break;
 	case inFormats::FASTQGZ:
-		out = outFormats::FASTQ;
+		out = outFormats::FASTQGZ;
 		break;
 	case inFormats::FASTAGZ:
-		out = outFormats::FASTA;
+		out = outFormats::FASTAGZ;
 		break;
 	case inFormats::FASTAQUAL:
 		out = outFormats::FASTAQUAL;
@@ -271,11 +287,20 @@ SeqIOOptions::inFormats SeqIOOptions::getInFormat(outFormats format){
 	case outFormats::FASTA:
 		out = SeqIOOptions::inFormats::FASTA;
 		break;
+	case outFormats::FASTQGZ:
+		out = SeqIOOptions::inFormats::FASTQGZ;
+		break;
+	case outFormats::FASTAGZ:
+		out = SeqIOOptions::inFormats::FASTAGZ;
+		break;
 	case outFormats::FASTAQUAL:
 		out = SeqIOOptions::inFormats::FASTAQUAL;
 		break;
 	case outFormats::FASTQPAIRED:
 		out = SeqIOOptions::inFormats::FASTQPAIRED;
+		break;
+	case outFormats::FASTQPAIREDGZ:
+		out = SeqIOOptions::inFormats::FASTQPAIREDGZ;
 		break;
 	case outFormats::FLOW:
 		out = SeqIOOptions::inFormats::SFFBIN;
@@ -307,11 +332,20 @@ std::string SeqIOOptions::getOutFormat(outFormats format){
 	case outFormats::FASTA:
 		out = "fasta";
 		break;
+	case outFormats::FASTQGZ:
+		out = "fastqgz";
+		break;
+	case outFormats::FASTAGZ:
+		out = "fastagz";
+		break;
 	case outFormats::FASTAQUAL:
 		out = "fastaQual";
 		break;
 	case outFormats::FASTQPAIRED:
 		out = "fastqPaired";
+		break;
+	case outFormats::FASTQPAIREDGZ:
+		out = "fastqPairedgz";
 		break;
 	case outFormats::FLOW:
 		out = "flow";
@@ -342,6 +376,7 @@ SeqIOOptions SeqIOOptions::genFastqIn(const bfs::path & inFilename, bool process
 	ret.processed_ = processed;
 	return ret;
 }
+
 SeqIOOptions SeqIOOptions::genFastqInOut(const bfs::path & inFilename,
 		const bfs::path & outFilename, bool processed){
 	SeqIOOptions ret = genFastqIn(inFilename);
@@ -360,6 +395,33 @@ SeqIOOptions SeqIOOptions::genFastqOut(const bfs::path & outFilename){
 }
 
 
+SeqIOOptions SeqIOOptions::genFastqInGz(const bfs::path & inFilename, bool processed){
+	SeqIOOptions ret;
+	ret.firstName_ = inFilename;
+	ret.inFormat_ = inFormats::FASTQGZ;
+	ret.outFormat_ = outFormats::FASTQGZ;
+	ret.out_.outExtention_ = ".fastq.gz";
+	ret.processed_ = processed;
+	return ret;
+}
+
+SeqIOOptions SeqIOOptions::genFastqOutGz(const bfs::path & outFilename){
+	SeqIOOptions ret;
+	ret.out_.outFilename_ = outFilename;
+	ret.inFormat_ = inFormats::FASTQGZ;
+	ret.outFormat_ = outFormats::FASTQGZ;
+	ret.out_.outExtention_ = ".fastq.gz";
+	return ret;
+}
+
+SeqIOOptions SeqIOOptions::genFastqInOutGz(const bfs::path & inFilename,
+		const bfs::path & outFilename, bool processed){
+	SeqIOOptions ret = genFastqInGz(inFilename, processed);
+	ret.out_.outFilename_ =  outFilename;
+	return ret;
+}
+
+
 SeqIOOptions SeqIOOptions::genPairedOut(const bfs::path & outFilename){
 	SeqIOOptions ret;
 	ret.out_.outFilename_ = outFilename;
@@ -369,15 +431,50 @@ SeqIOOptions SeqIOOptions::genPairedOut(const bfs::path & outFilename){
 	return ret;
 }
 
-SeqIOOptions SeqIOOptions::genPairedIn(const bfs::path & r1reads, const bfs::path & r2reads){
+SeqIOOptions SeqIOOptions::genPairedIn(const bfs::path & r1reads, const bfs::path & r2reads, bool processed){
 	SeqIOOptions ret;
 	ret.firstName_ = r1reads;
 	ret.secondName_ = r2reads;
 	ret.inFormat_ = inFormats::FASTQPAIRED;
 	ret.outFormat_ = outFormats::FASTQPAIRED;
 	ret.out_.outExtention_ = "_R1.fastq";
+	ret.processed_ = processed;
 	return ret;
 }
+SeqIOOptions SeqIOOptions::genPairedInOut(const bfs::path & r1reads, const bfs::path & r2reads,const bfs::path & outFilename, bool processed){
+	SeqIOOptions ret = genPairedIn(r1reads, r2reads, processed );
+	ret.out_.outFilename_ =  outFilename;
+	return ret;
+}
+
+
+SeqIOOptions SeqIOOptions::genPairedOutGz(const bfs::path & outFilename){
+	SeqIOOptions ret;
+	ret.out_.outFilename_ = outFilename;
+	ret.inFormat_ = inFormats::FASTQPAIREDGZ;
+	ret.outFormat_ = outFormats::FASTQPAIREDGZ;
+	ret.out_.outExtention_ = "_R1.fastq.gz";
+	return ret;
+}
+
+SeqIOOptions SeqIOOptions::genPairedInGz(const bfs::path & r1reads, const bfs::path & r2reads, bool processed){
+	SeqIOOptions ret;
+	ret.firstName_ = r1reads;
+	ret.secondName_ = r2reads;
+	ret.inFormat_ = inFormats::FASTQPAIREDGZ;
+	ret.outFormat_ = outFormats::FASTQPAIREDGZ;
+	ret.out_.outExtention_ = "_R1.fastq.gz";
+	ret.processed_ = processed;
+	return ret;
+}
+
+SeqIOOptions SeqIOOptions::genPairedInOutGz(const bfs::path & r1reads, const bfs::path & r2reads,const bfs::path & outFilename, bool processed){
+	SeqIOOptions ret = genPairedInGz(r1reads, r2reads, processed );
+	ret.out_.outFilename_ =  outFilename;
+	return ret;
+}
+
+
 
 SeqIOOptions SeqIOOptions::genFastaIn(const bfs::path & inFilename, bool processed){
 	SeqIOOptions ret;
@@ -388,6 +485,16 @@ SeqIOOptions SeqIOOptions::genFastaIn(const bfs::path & inFilename, bool process
 	ret.processed_ = processed;
 	return ret;
 }
+
+SeqIOOptions SeqIOOptions::genFastaOut(const bfs::path & outFilename){
+	SeqIOOptions ret;
+	ret.out_.outFilename_ = outFilename;
+	ret.inFormat_ = inFormats::FASTA;
+	ret.outFormat_ = outFormats::FASTA;
+	ret.out_.outExtention_ = ".fasta";
+	return ret;
+}
+
 SeqIOOptions SeqIOOptions::genFastaInOut(const bfs::path & inFilename,
 		const bfs::path & outFilename, bool processed){
 	SeqIOOptions ret = genFastaIn(inFilename);
@@ -396,12 +503,30 @@ SeqIOOptions SeqIOOptions::genFastaInOut(const bfs::path & inFilename,
 	return ret;
 }
 
-SeqIOOptions SeqIOOptions::genFastaOut(const bfs::path & outFilename){
+SeqIOOptions SeqIOOptions::genFastaInGz(const bfs::path & inFilename, bool processed){
+	SeqIOOptions ret;
+	ret.firstName_ = inFilename;
+	ret.inFormat_ = inFormats::FASTAGZ;
+	ret.outFormat_ = outFormats::FASTAGZ;
+	ret.out_.outExtention_ = ".fasta.gz";
+	ret.processed_ = processed;
+	return ret;
+}
+
+SeqIOOptions SeqIOOptions::genFastaOutGz(const bfs::path & outFilename){
 	SeqIOOptions ret;
 	ret.out_.outFilename_ = outFilename;
-	ret.inFormat_ = inFormats::FASTA;
-	ret.outFormat_ = outFormats::FASTA;
-	ret.out_.outExtention_ = ".fasta";
+	ret.inFormat_ = inFormats::FASTAGZ;
+	ret.outFormat_ = outFormats::FASTAGZ;
+	ret.out_.outExtention_ = ".fasta.gz";
+	return ret;
+}
+
+SeqIOOptions SeqIOOptions::genFastaInOutGz(const bfs::path & inFilename,
+		const bfs::path & outFilename, bool processed){
+	SeqIOOptions ret = genFastaInGz(inFilename);
+	ret.out_.outFilename_ = outFilename;
+	ret.processed_ = processed;
 	return ret;
 }
 
