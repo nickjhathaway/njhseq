@@ -283,6 +283,17 @@ public:
 		 */
 		uint32_t getSpanningCount() const;
 
+		/**@brief Get the percent of bases here for the spanning sequences
+		 *
+		 * @return the percent of bases from the spanning sequences
+		 */
+		double getBaseSpannedPerc() const{
+			return static_cast<double>(baseCount_)/getSpanningCount();
+		}
+
+		double getPercentOfSequencesSpanningPosition(uint32_t totalInputSeqs) const{
+			return static_cast<double>(getSpanningCount())/totalInputSeqs;
+		}
 
 	};
 
@@ -343,6 +354,13 @@ public:
 		uint32_t getLen() const;
 		std::vector<std::shared_ptr<AlnPosScore>> scores_;
 
+	};
+
+	struct TrimWithMusclePars {
+		uint32_t streakLenCutOff = 5; // at least 3 positions in a row must pass the threshold below
+		double spanningCutOff =    .50; // at least 50% of the ref seqs must start here
+		double baseCutOff =        .50; // at least 50% of the bases at this location must have a base
+		uint32_t hardGapCutOff =   2; //there can't be two gaps here
 	};
 
 	/**@brief Get streaks of positions that pass a certain predicate
@@ -486,14 +504,14 @@ public:
 
 		//[^\|]\|[^|]
 		uint32_t streakLenCutOff = 3; // at least 3 positions in a row must pass the threshold below
-		double spanningCutOff = .50; // at least 50% of the ref seqs must start here
-		double baseCutOff = .50; // at least 50% of the bases at this location must have a base
-		uint32_t hardGapCutOff = 2; //there can't be two gaps here
+		double spanningCutOff =    .50; // at least 50% of the ref seqs must start here
+		double baseCutOff =        .50; // at least 50% of the bases at this location must have a base
+		uint32_t hardGapCutOff =   2; //there can't be two gaps here
 
 		auto totalInputSeqs = len(alignedRefs);
 		std::function<bool(const std::shared_ptr<Muscler::AlnPosScore> &)> scorePred = [&baseCutOff,&hardGapCutOff,&totalInputSeqs,&spanningCutOff](const std::shared_ptr<Muscler::AlnPosScore> & score){
-			if((static_cast<double>(score->baseCount_)/score->getSpanningCount() >= baseCutOff || score->gapCount_ <= hardGapCutOff) &&
-					static_cast<double>(score->getSpanningCount())/totalInputSeqs > spanningCutOff){
+			if(score->getBaseSpannedPerc()  >= baseCutOff && score->gapCount_ <= hardGapCutOff &&
+					score->getPercentOfSequencesSpanningPosition(totalInputSeqs) > spanningCutOff){
 				return true;
 			}else{
 				return false;
