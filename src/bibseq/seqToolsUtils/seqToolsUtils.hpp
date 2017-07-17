@@ -541,7 +541,16 @@ std::unordered_map<std::string, std::vector<T>> splitSeqsByMetaField(const std::
 	return ret;
 }
 
-
+template<typename T>
+std::vector<char> determineAlphabet(const std::vector<T> & seqs){
+	std::set<char> retSet;
+	for(const auto & seq : seqs){
+		for(const char c : getSeqBase(seq).seq_){
+			retSet.emplace(c);
+		}
+	}
+	return std::vector<char>{retSet.begin(), retSet.end()};
+}
 
 }  // namespace bib
 

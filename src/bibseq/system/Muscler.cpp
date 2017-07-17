@@ -112,6 +112,15 @@ void Muscler::AlnPosScore::setCounts() {
 	}
 }
 
+
+double Muscler::AlnPosScore::getBaseSpannedPerc() const{
+	return static_cast<double>(baseCount_)/getSpanningCount();
+}
+
+double Muscler::AlnPosScore::getPercentOfSequencesSpanningPosition(uint32_t totalInputSeqs) const{
+	return static_cast<double>(getSpanningCount())/totalInputSeqs;
+}
+
 uint32_t Muscler::AlnPosScore::getSpanningCount() const{
 	return baseCount_ + gapCount_;
 }

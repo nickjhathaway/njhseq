@@ -12,6 +12,7 @@
 #include "bibseq/IO/SeqIO/SeqInput.hpp"
 #include "bibseq/alignment/aligner/alignCalc.hpp"
 #include "bibseq/readVectorManipulation/readVectorHelpers/readVecTrimmer.hpp"
+#include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
 
 namespace bibseq {
 
@@ -287,16 +288,22 @@ public:
 		 *
 		 * @return the percent of bases from the spanning sequences
 		 */
-		double getBaseSpannedPerc() const{
-			return static_cast<double>(baseCount_)/getSpanningCount();
-		}
+		double getBaseSpannedPerc() const;
 
-		double getPercentOfSequencesSpanningPosition(uint32_t totalInputSeqs) const{
-			return static_cast<double>(getSpanningCount())/totalInputSeqs;
-		}
+		/**@brief Get the percent of sequences (total supplied) that span this potion
+		 *
+		 * @param totalInputSeqs the total number of seqs in alignments
+		 * @return the percent of sequences that span this position
+		 */
+		double getPercentOfSequencesSpanningPosition(uint32_t totalInputSeqs) const;
 
 	};
 
+	/**@brief Check to see if the input sequences are all the same size
+	 *
+	 * @param alnSeqs the aligned seqs
+	 * @param funcName the function this check was done in for error logging
+	 */
 	template<typename T>
 	static void checkAlignSeqsLensThrow(const std::vector<T> & alnSeqs, const std::string & funcName){
 		bool failed = false;
@@ -356,10 +363,13 @@ public:
 
 	};
 
+	/**@brief Parameters for trimming with muscle
+	 *
+	 */
 	struct TrimWithMusclePars {
-		uint32_t streakLenCutOff = 5; // at least 3 positions in a row must pass the threshold below
-		double spanningCutOff =    .50; // at least 50% of the ref seqs must start here
-		double baseCutOff =        .50; // at least 50% of the bases at this location must have a base
+		uint32_t streakLenCutOff = 5; // at least 5 positions in a row must pass the threshold below
+		double spanningCutOff =    1.0; // at least 100% of the ref seqs must start here
+		double baseCutOff =        1.0; // at least 100% of the bases at this location must have a base
 		uint32_t hardGapCutOff =   2; //there can't be two gaps here
 	};
 
@@ -378,7 +388,7 @@ public:
 	/**@brief Get streaks of positions that pass a certain predicate
 	 *
 	 * @param alnSeqs the aligned seqs that scores will then be calculated from and then evauluated for streaks
-	 * @param scorePred the predicate, a function object takes a std::shared_ptr<AlnPosScore> and returns a bool
+	 * @param scorePred the predicate, a function object takes a std::shared_ptr<AlnPosScore> and returns a bool, true if position should be included in streak
 	 * @param streakLenCutOff the length a streak must reach to be included in the streaks
 	 * @return a vector of streaks that pass the predicate and length cut off
 	 */
@@ -469,14 +479,44 @@ public:
 		}
 	}
 
+
+
 	/**@brief Trim Input sequences to the approaximate end and starts of a multiple alignment to reference sequences
 	 *
 	 * @param inputSeqs the input sequences to trim
 	 * @param refSeqs the ref sequence to trim to
+	 * @param pars parameters for determining where to trim
 	 */
 	template<typename INPUTSEQ, typename REF>
 	void trimSeqsToMultiAlnRef(std::vector<INPUTSEQ> & inputSeqs,
-			const std::vector<REF> & refSeqs) {
+			const std::vector<REF> & refSeqs,
+			const TrimWithMusclePars & pars) {
+		auto totalInputSeqs = len(refSeqs);
+		std::function<bool(const std::shared_ptr<Muscler::AlnPosScore> &)> scorePred = [&pars,&totalInputSeqs](const std::shared_ptr<Muscler::AlnPosScore> & score){
+			if(score->getBaseSpannedPerc()  >= pars.baseCutOff &&
+					score->gapCount_ <= pars.hardGapCutOff &&
+					score->getPercentOfSequencesSpanningPosition(totalInputSeqs) >= pars.spanningCutOff){
+				return true;
+			}else{
+				return false;
+			}//" | "
+		};
+		trimSeqsToMultiAlnRef(inputSeqs, refSeqs,pars, scorePred);
+	}
+
+
+	/**@brief Trim Input sequences to the approximate end and starts of a multiple alignment to reference sequences
+	 *
+	 * @param inputSeqs the input sequences to trim
+	 * @param refSeqs the ref sequence to trim to
+	 * @param pars parameters for trimmming, only streak length cut off used here
+	 * @param scorePred the predicate used to test positions to determine where to trim
+	 */
+	template<typename INPUTSEQ, typename REF>
+	void trimSeqsToMultiAlnRef(std::vector<INPUTSEQ> & inputSeqs,
+			const std::vector<REF> & refSeqs,
+			const TrimWithMusclePars & pars,
+			const std::function<bool(const std::shared_ptr<Muscler::AlnPosScore> &)> scorePred) {
 		bool fail = false;
 		std::stringstream ss;
 		if (refSeqs.empty()) {
@@ -503,25 +543,15 @@ public:
 		std::vector<seqInfo> alignedRefs = std::vector<seqInfo>(allSeqs.begin(), allSeqs.begin() + refSeqs.size());
 
 		//[^\|]\|[^|]
-		uint32_t streakLenCutOff = 3; // at least 3 positions in a row must pass the threshold below
-		double spanningCutOff =    .50; // at least 50% of the ref seqs must start here
-		double baseCutOff =        .50; // at least 50% of the bases at this location must have a base
-		uint32_t hardGapCutOff =   2; //there can't be two gaps here
-
-		auto totalInputSeqs = len(alignedRefs);
-		std::function<bool(const std::shared_ptr<Muscler::AlnPosScore> &)> scorePred = [&baseCutOff,&hardGapCutOff,&totalInputSeqs,&spanningCutOff](const std::shared_ptr<Muscler::AlnPosScore> & score){
-			if(score->getBaseSpannedPerc()  >= baseCutOff && score->gapCount_ <= hardGapCutOff &&
-					score->getPercentOfSequencesSpanningPosition(totalInputSeqs) > spanningCutOff){
-				return true;
-			}else{
-				return false;
-			}//" | "
-		};
+//		uint32_t streakLenCutOff = 3; // at least 3 positions in a row must pass the threshold below
+//		double spanningCutOff =    .50; // at least 50% of the ref seqs must start here
+//		double baseCutOff =        .50; // at least 50% of the bases at this location must have a base
+//		uint32_t hardGapCutOff =   2; //there can't be two gaps here
 
 		auto refStartsStop = getMAlnStartsAndStops(alignedRefs);
 		//count up each location
 		auto scores = Muscler::getPileupCounts(alignedRefs);
-		auto streaks = Muscler::getAlignmentStreaksPositions(alignedRefs, scorePred, streakLenCutOff);
+		auto streaks = Muscler::getAlignmentStreaksPositions(alignedRefs, scorePred, pars.streakLenCutOff);
 
 		if(streaks.empty()){
 			std::cerr << "No streaks passed current filters, try being less stringent" << std::endl;
@@ -534,7 +564,155 @@ public:
 			}
 		}
 	}
+
+
+	/**@brief Trim sequences based off of the multiple alignment and then testing each position by a predicate function
+	 *
+	 * @param seqs the seqs to trim
+	 * @param pars the parameters to use with the trimming, here only streak length cut off is used
+	 * @param scorePred the predicate, if true the position is included in the streaks
+	 */
+	template<typename SEQ>
+	void trimSeqsByMultipleAlignment(std::vector<SEQ> & seqs, const TrimWithMusclePars & pars,
+			const std::function<bool(const std::shared_ptr<Muscler::AlnPosScore> &)> scorePred){
+
+		auto alnSeqs = muscleSeqsRet(seqs);
+
+		//first check to make sure all seqs are the same size;
+		for(const auto & seq : alnSeqs){
+			if(len(seq) != len(alnSeqs.front())){
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error, all sequences should be the same size: " << len(seq) << " vs " << len(alnSeqs.front()) << "\n";
+			}
+		}
+		auto startsAndStops = Muscler::getMAlnStartsAndStops(alnSeqs);
+		//count up each location
+		auto scores = Muscler::getPileupCounts(alnSeqs);
+		auto streaks = Muscler::getAlignmentStreaksPositions(alnSeqs, scorePred, pars.streakLenCutOff);
+		if(streaks.empty()){
+			std::cerr << "No streaks passed current filters, try being less stringent" << std::endl;
+		}else{
+			Muscler::trimAlnSeqsToFirstAndLastStreak(alnSeqs, streaks);
+		}
+	}
+
+
+	template<typename INPUTSEQ, typename REF>
+	std::pair<std::vector<INPUTSEQ>, std::vector<INPUTSEQ>> splitSeqsOnOverlapInMultipleAln(std::vector<INPUTSEQ> & seqs,
+			const std::vector<REF> & refSeqs,
+			double nonZeroOverlapFracCutOff =.90) {
+		std::pair<std::vector<INPUTSEQ>, std::vector<INPUTSEQ>> ret;
+		bool fail = false;
+		std::stringstream ss;
+		if (refSeqs.empty()) {
+			fail = true;
+			ss << __PRETTY_FUNCTION__ << ", error refSeqs is empty " << "\n";
+		}
+
+		if (seqs.empty()) {
+			fail = true;
+			ss << __PRETTY_FUNCTION__ << ", error seqs is emtpy " << "\n";
+		}
+		if (fail) {
+			throw std::runtime_error { ss.str() };
+		}
+		std::vector<seqInfo> allSeqs;
+		for(const auto & refSeq : refSeqs){
+			allSeqs.emplace_back(getSeqBase(refSeq));
+		}
+		for(const auto & inputSeq : seqs){
+			allSeqs.emplace_back(getSeqBase(inputSeq));
+		}
+		muscleSeqs(allSeqs);
+
+		std::vector<seqInfo> alignedRefs = std::vector<seqInfo>(allSeqs.begin(), allSeqs.begin() + refSeqs.size());
+
+
+		uint32_t streakLenCutOff = 3;
+		double baseCutOff = 1;
+
+		//auto totalInputSeqs = len(alignedRefs);
+		std::function<bool(const std::shared_ptr<Muscler::AlnPosScore> &)> scorePred = [&baseCutOff](const std::shared_ptr<Muscler::AlnPosScore> & score){
+			if(static_cast<double>(score->baseCount_)/score->getSpanningCount() >= baseCutOff){
+				return true;
+			}else{
+				return false;
+			}
+		};
+
+		auto refStartsStop = getMAlnStartsAndStops(alignedRefs);
+		auto allStartsStop = getMAlnStartsAndStops(allSeqs);
+		//count up each location
+		auto scores = Muscler::getPileupCounts(alignedRefs);
+
+		auto streaks = Muscler::getAlignmentStreaksPositions(alignedRefs, scorePred,
+				streakLenCutOff);
+		auto allScores = Muscler::getPileupCounts(allSeqs);
+
+		if (streaks.empty()) {
+			std::cerr << "No streaks passed current filters, try being less stringent"
+					<< std::endl;
+			ret.first = seqs;
+		} else {
+			//std::cout << "seqName\tscore\tspanningSpots\tadjustedScore\tnonZeroSpanningSpots\tfractionNonZeroSpanning" << "\n";
+			auto alpha = determineAlphabet(allSeqs);
+			std::unordered_map<uint32_t, std::unique_ptr<charCounter>> profiles;
+			for (const auto & streak : streaks) {
+				for(uint32_t pos : iter::range(streak.start_, streak.end_)){
+					profiles[pos] = std::make_unique<charCounter>(alpha);
+					for(const char c : alpha){
+						profiles[pos]->increaseCountOfBase(c);
+					}
+					for(const auto & ref : alignedRefs){
+						profiles[pos]->increaseCountOfBase(ref.seq_[pos]);
+					}
+					profiles[pos]->setFractions();
+				}
+			}
+
+			for (const auto & alnSeqPos : iter::range(refSeqs.size(), allSeqs.size())) {
+				uint32_t spanningSpots = 0;
+				uint32_t nonZeroSpanningSpots = 0;
+				double score = 0;
+				for (const auto & streak : streaks) {
+					for(uint32_t pos : iter::range(streak.start_, streak.end_)){
+						if(pos>= allStartsStop[alnSeqPos].start_ && pos <= allStartsStop[alnSeqPos].stop_){
+							if(0 == spanningSpots ){
+								score = 1;
+							}
+							if(1 != profiles[pos]->chars_[allSeqs[alnSeqPos].seq_[pos]]){
+								++nonZeroSpanningSpots;
+							}
+							score *= profiles[pos]->fractions_[allSeqs[alnSeqPos].seq_[pos]];
+							++spanningSpots;
+						}
+					}
+				}
+				if((0 == spanningSpots ? 0 : static_cast<double>(nonZeroSpanningSpots)/spanningSpots) >= nonZeroOverlapFracCutOff){
+					ret.first.emplace_back(seqs[alnSeqPos - refSeqs.size()]);
+				}else{
+					ret.second.emplace_back(seqs[alnSeqPos - refSeqs.size()]);
+				}
+//				std::cout << allSeqs[alnSeqPos].name_
+//						<< "\t" << score
+//						<< "\t" << spanningSpots
+//						<< "\t" << (0 == spanningSpots ? 0 :score/spanningSpots)
+//						<< "\t" << nonZeroSpanningSpots
+//						<< "\t" << (0 == spanningSpots ? 0 : static_cast<double>(nonZeroSpanningSpots)/spanningSpots)  << std::endl;
+			}
+		}
+
+		return ret;
+
+	}
 };
+
+
+
+
+
+
+
 
 } /* namespace bibseq */
 
