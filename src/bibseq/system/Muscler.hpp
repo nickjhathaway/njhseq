@@ -600,7 +600,8 @@ public:
 	template<typename INPUTSEQ, typename REF>
 	std::pair<std::vector<INPUTSEQ>, std::vector<INPUTSEQ>> splitSeqsOnOverlapInMultipleAln(std::vector<INPUTSEQ> & seqs,
 			const std::vector<REF> & refSeqs,
-			double nonZeroOverlapFracCutOff =.90) {
+			double nonZeroOverlapFracCutOff,
+			bool useNonGapLocations) {
 		std::pair<std::vector<INPUTSEQ>, std::vector<INPUTSEQ>> ret;
 		bool fail = false;
 		std::stringstream ss;
@@ -674,6 +675,9 @@ public:
 				uint32_t spanningSpots = 0;
 				uint32_t nonZeroSpanningSpots = 0;
 				double score = 0;
+				uint32_t spanningSpotsNoGaps = 0;
+				uint32_t nonZeroSpanningSpotsNoGaps = 0;
+				double scoreNoGaps = 0;
 				for (const auto & streak : streaks) {
 					for(uint32_t pos : iter::range(streak.start_, streak.end_)){
 						if(pos>= allStartsStop[alnSeqPos].start_ && pos <= allStartsStop[alnSeqPos].stop_){
@@ -685,14 +689,33 @@ public:
 							}
 							score *= profiles[pos]->fractions_[allSeqs[alnSeqPos].seq_[pos]];
 							++spanningSpots;
+							if('-' != allSeqs[alnSeqPos].seq_[pos]){
+								if(0 == spanningSpotsNoGaps ){
+									scoreNoGaps = 1;
+								}
+								if(1 != profiles[pos]->chars_[allSeqs[alnSeqPos].seq_[pos]]){
+									++nonZeroSpanningSpotsNoGaps;
+								}
+								score *= profiles[pos]->fractions_[allSeqs[alnSeqPos].seq_[pos]];
+								++spanningSpotsNoGaps;
+							}
 						}
 					}
 				}
-				if((0 == spanningSpots ? 0 : static_cast<double>(nonZeroSpanningSpots)/spanningSpots) >= nonZeroOverlapFracCutOff){
-					ret.first.emplace_back(seqs[alnSeqPos - refSeqs.size()]);
+				if(useNonGapLocations){
+					if((0 == spanningSpotsNoGaps ? 0 : static_cast<double>(nonZeroSpanningSpotsNoGaps)/spanningSpotsNoGaps) >= nonZeroOverlapFracCutOff){
+						ret.first.emplace_back(seqs[alnSeqPos - refSeqs.size()]);
+					}else{
+						ret.second.emplace_back(seqs[alnSeqPos - refSeqs.size()]);
+					}
 				}else{
-					ret.second.emplace_back(seqs[alnSeqPos - refSeqs.size()]);
+					if((0 == spanningSpots ? 0 : static_cast<double>(nonZeroSpanningSpots)/spanningSpots) >= nonZeroOverlapFracCutOff){
+						ret.first.emplace_back(seqs[alnSeqPos - refSeqs.size()]);
+					}else{
+						ret.second.emplace_back(seqs[alnSeqPos - refSeqs.size()]);
+					}
 				}
+
 //				std::cout << allSeqs[alnSeqPos].name_
 //						<< "\t" << score
 //						<< "\t" << spanningSpots
