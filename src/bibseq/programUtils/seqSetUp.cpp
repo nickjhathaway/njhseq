@@ -543,7 +543,7 @@ bool seqSetUp::processSeq(seqInfo& inputSeq, const std::string& flag,
 	bool passed = setOption(inputSeq.seq_, flag, parName, required);
 	//std::cout <<"1 "<< inputSeq << std::endl;
 	std::string originalSeq = inputSeq.seq_;
-	if (inputSeq.seq_.length() <= 4096 && bfs::exists(inputSeq.seq_)) {
+	if (bfs::path(inputSeq.seq_).filename().string().length() <= 255 && bfs::exists(inputSeq.seq_)) {
 		std::string firstLine = bib::files::getFirstLine(originalSeq);
 		inputSeq = seqInfo("seq", firstLine);
 		//std::cout << "2 "<< inputSeq << std::endl;
