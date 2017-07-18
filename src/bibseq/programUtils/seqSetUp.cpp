@@ -527,71 +527,46 @@ bool seqSetUp::processRefFilename(bool required) {
 }
 
 bool seqSetUp::processSeq(bool required) {
-  return processSeq(pars_.seq_, "-seq", "Sequence", required);
+	return processSeq(pars_.seq_, "-seq", "Sequence", required);
 }
 
 bool seqSetUp::processSeq(std::string& inputSeq, const std::string& flag,
-                          const std::string& parName, bool required) {
-  bool passed = setOption(inputSeq, flag, parName, required);
-  //std::cout <<"1 "<< inputSeq << std::endl;
-  std::string originalSeq = inputSeq;
-  if (bfs::exists(inputSeq)) {
-  	std::ifstream inFile(inputSeq);
-
-    inputSeq = bib::files::getFirstLine(inputSeq);
-    pars_.seqObj_ = readObject(seqInfo("seq", inputSeq));
-    //std::cout << "2 "<< inputSeq << std::endl;
-    if(inputSeq[0] == '>'){
-    	//std::cout <<"3 "<< inputSeq << std::endl;
-    	SeqIOOptions opts = SeqIOOptions::genFastaIn(originalSeq);
-    	SeqInput reader(opts);
-    	reader.openIn();
-    	reader.readNextRead(pars_.seqObj_);
-    	inputSeq = pars_.seqObj_.seqBase_.seq_;
-
-    }else if(inputSeq[0] == '@'){
-    	//std::cout << "4" << std::endl;
-    	std::string nextLine = "";
-    	getline(inFile, nextLine);
-    	getline(inFile, nextLine);
-    	pars_.seqObj_ = readObject(seqInfo(inputSeq.substr(1), nextLine));
-      inputSeq = pars_.seqObj_.seqBase_.seq_;
-    }
-  } else{
-  	pars_.seqObj_ = readObject(seqInfo("seq", inputSeq));
-  }
-  //std::cout <<"4 "<< inputSeq << std::endl;
-  return passed;
+		const std::string& parName, bool required) {
+	pars_.seqObj_.seqBase_.seq_ = inputSeq;
+	bool ret =  processSeq(pars_.seqObj_.seqBase_, flag, parName, required);
+	inputSeq = pars_.seqObj_.seqBase_.seq_;
+	return ret;
 }
+
 bool seqSetUp::processSeq(seqInfo& inputSeq, const std::string& flag,
-                          const std::string& parName, bool required) {
-  bool passed = setOption(inputSeq.seq_, flag, parName, required);
-  //std::cout <<"1 "<< inputSeq << std::endl;
-  std::string originalSeq = inputSeq.seq_;
-  if (bfs::exists(inputSeq.seq_)) {
-    std::string firstLine = bib::files::getFirstLine(originalSeq);
-    inputSeq = seqInfo("seq", firstLine);
-    //std::cout << "2 "<< inputSeq << std::endl;
-    if(firstLine[0] == '>'){
-    	//std::cout <<"3 "<< inputSeq << std::endl;
-    	SeqIOOptions opts = SeqIOOptions::genFastaIn(originalSeq);
-    	SeqInput reader(opts);
-    	reader.openIn();
-    	seqInfo seq;
-    	reader.readNextRead(seq);
-    	inputSeq = seq;
-    }else if(firstLine[0] == '@'){
-    	std::ifstream inFile(inputSeq.seq_);
-    	std::string nextLine = "";
-    	getline(inFile, nextLine);//name line again
-    	getline(inFile, nextLine);//seq line
-      inputSeq = seqInfo(firstLine.substr(1), nextLine);
-    }
-  } else{
-  	inputSeq = seqInfo("seq", inputSeq.seq_);
-  }
-  //std::cout <<"4 "<< inputSeq << std::endl;
-  return passed;
+		const std::string& parName, bool required) {
+	bool passed = setOption(inputSeq.seq_, flag, parName, required);
+	//std::cout <<"1 "<< inputSeq << std::endl;
+	std::string originalSeq = inputSeq.seq_;
+	if (inputSeq.seq_.length() <= 4096 && bfs::exists(inputSeq.seq_)) {
+		std::string firstLine = bib::files::getFirstLine(originalSeq);
+		inputSeq = seqInfo("seq", firstLine);
+		//std::cout << "2 "<< inputSeq << std::endl;
+		if (firstLine[0] == '>') {
+			//std::cout <<"3 "<< inputSeq << std::endl;
+			SeqIOOptions opts = SeqIOOptions::genFastaIn(originalSeq);
+			SeqInput reader(opts);
+			reader.openIn();
+			seqInfo seq;
+			reader.readNextRead(seq);
+			inputSeq = seq;
+		} else if (firstLine[0] == '@') {
+			std::ifstream inFile(inputSeq.seq_);
+			std::string nextLine = "";
+			bib::files::crossPlatGetline(inFile, nextLine);	//name line again
+			bib::files::crossPlatGetline(inFile, nextLine);	//seq line
+			inputSeq = seqInfo(firstLine.substr(1), nextLine);
+		}
+	} else {
+		inputSeq = seqInfo("seq", inputSeq.seq_);
+	}
+	//std::cout <<"4 "<< inputSeq << std::endl;
+	return passed;
 }
 
 bool seqSetUp::processVerbose() {
