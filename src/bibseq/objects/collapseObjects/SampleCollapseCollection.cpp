@@ -319,6 +319,7 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 			}
 		}
 	}
+	samp.updateExclusionInfos();
 	samp.updateInitialInfos();
 	samp.updateCollapsedInfos();
 	sampleCollapses_[sampleName] = sampPtr;
