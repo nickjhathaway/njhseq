@@ -198,9 +198,9 @@ void seqSetUp::processScoringPars() {
 
 
 void seqSetUp::processSkipOnNucComp(){
-  setOption(pars_.colOpts_.skipOpts_.skipOnLetterCounterDifference_, "--skip",
-                  "skipOnLetterCounterDifference");
-  setOption(pars_.colOpts_.skipOpts_.fractionDifferenceCutOff_, "--skipCutOff",
+  setOption(pars_.colOpts_.skipOpts_.skipOnLetterCounterDifference_, "--fastClustering",
+                  "Skip comparisons if their nucleotide composition differs");
+  setOption(pars_.colOpts_.skipOpts_.fractionDifferenceCutOff_, "--nucCutOff",
                   "fractionDifferenceCutOff");
 }
 
