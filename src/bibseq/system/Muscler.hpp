@@ -60,10 +60,17 @@ public:
 			const std::vector<POSTYPE> & selected){
 		//create temporary file, the last 6 xs will be randomized characters
 		char *tmpname = strdup("/tmp/tmpfileXXXXXX");
-		mkstemp(tmpname);
+		auto mkTempRet = mkstemp(tmpname);
+		if(-1 == mkTempRet){
+			std::stringstream sErr;
+			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << tmpname << "\n";
+			throw std::runtime_error{sErr.str()};
+		}
+		close(mkTempRet);
 		uint32_t seqsWritten = 0;
+		std::vector<uint32_t> seqsWithStopCodonEndings;
 		{
-			//in it's own scope so that that tFile gets flushed at termination
+			//in it's own scope so that that tFile gets flushed at termination, (i could just call flush but this way i won't forget)
 			std::ofstream tFile(tmpname);
 			if(!tFile){
 				throw std::runtime_error{bib::bashCT::boldRed("Error in opening " + std::string(tmpname))};
@@ -78,7 +85,13 @@ public:
 									+ estd::to_string(seqs.size()) };
 				}
 				//hack because muscle doesn't like stop codons
-				if(!bib::containsSubString(getSeqBase(seqs[pos]).seq_, "*")){
+
+				if ('*' == getSeqBase(seqs[pos]).seq_.back()) {
+					seqsWithStopCodonEndings.emplace_back(pos);
+					getSeqBase(seqs[pos]).trimBack(len(seqs[pos]) - 1);
+				}
+				if (!bib::containsSubString(getSeqBase(seqs[pos]).seq_, "*")
+						&& "" != getSeqBase(seqs[pos]).seq_) {
 					++seqsWritten;
 					tFile << ">" << pos << "\n";
 					tFile << getSeqBase(seqs[pos]).seq_ << "\n";
@@ -108,6 +121,9 @@ public:
 					alignCalc::rearrangeGlobalQueryOnly(currentRead.seq_, '-', gAlnInfo );
 					alignCalc::rearrangeGlobalQueryOnly(currentRead.qual_, 0, gAlnInfo );
 				}
+				for(const auto & pos : seqsWithStopCodonEndings){
+					getSeqBase(seqs[pos]).append("*");
+				}
 			} catch (std::exception & e) {
 				bib::files::bfs::remove(tmpname);
 				throw e;
@@ -133,21 +149,22 @@ public:
 			const std::unordered_map<uint32_t, MusPosSize> & posSizes){
 		//create temporary file, the last 6 xs will be randomized characters
 		char *tmpname = strdup("/tmp/tmpfileXXXXXX");
-//		auto mkTempRet = mkstemp(tmpname);
-//		if(-1 == mkTempRet){
-//			std::stringstream sErr;
-//			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << tmpname << "\n";
-//			throw std::runtime_error{sErr.str()};
-//		}
-//		close(mkTempRet);
-		auto mkTempRet = mktemp(tmpname);
-		if(nullptr == mkTempRet){
+		auto mkTempRet = mkstemp(tmpname);
+		if(-1 == mkTempRet){
 			std::stringstream sErr;
 			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << tmpname << "\n";
 			throw std::runtime_error{sErr.str()};
 		}
+		close(mkTempRet);
+//		auto mkTempRet = mktemp(tmpname);
+//		if(nullptr == mkTempRet){
+//			std::stringstream sErr;
+//			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << tmpname << "\n";
+//			throw std::runtime_error{sErr.str()};
+//		}
 		uint32_t seqsWritten = 0;
 		std::unordered_map<uint32_t, std::shared_ptr<seqInfo>> subInfos;
+		std::vector<uint32_t> seqsWithStopCodonEndings;
 		{
 			//in it's own scope so that that tFile gets flushed at termination
 			std::ofstream tFile(tmpname);
@@ -176,7 +193,14 @@ public:
 					subSeq = std::make_shared<seqInfo>(getSeqBase(seqs[pos.first]).getSubRead(pos.second.pos_, pos.second.size_));
 				}
 				//hack because muscle doesn't like stop codons
-				if(!bib::containsSubString(subSeq->seq_, "*")){
+
+				if ('*' == subSeq->seq_.back()) {
+					seqsWithStopCodonEndings.emplace_back(pos.first);
+					subSeq->trimBack(len(*subSeq) - 1);
+				}
+
+				if(!bib::containsSubString(subSeq->seq_, "*")
+							&& "" != getSeqBase(seqs[pos.first]).seq_){
 					++seqsWritten;
 					tFile << ">" << pos.first << "\n";
 					tFile << subSeq->seq_ << "\n";
@@ -207,6 +231,9 @@ public:
 					auto gAlnInfo = genGlobalAlnInfo(seq.seq_);
 					alignCalc::rearrangeGlobalQueryOnly(subInfos[pos]->seq_, '-', gAlnInfo );
 					alignCalc::rearrangeGlobalQueryOnly(subInfos[pos]->qual_, 0, gAlnInfo );
+					if(bib::in(pos, seqsWithStopCodonEndings)){
+						subInfos[pos]->append("*");
+					}
 					if(std::numeric_limits<uint32_t>::max() == posSizes.at(pos).size_){
 						getSeqBase(seqs[pos]).trimBack(posSizes.at(pos).pos_);
 					}else{
