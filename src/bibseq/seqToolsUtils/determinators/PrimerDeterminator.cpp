@@ -47,6 +47,12 @@ size_t PrimerDeterminator::getMaxPrimerSize() const {
 
 PrimerDeterminator::PrimerDeterminator(const table & primers) {
 
+//	std::cout << bib::colorBool(!bib::in(std::string("geneName"), primers.columnNames_)) << std::endl;
+//	std::cout << bib::colorBool(!bib::in(std::string("targetName"), primers.columnNames_)) << std::endl;
+//	std::cout << bib::colorBool((!bib::in(std::string("geneName"), primers.columnNames_) && !bib::in(std::string("targetName"), primers.columnNames_))) << std::endl;
+//	std::cout << bib::colorBool(!bib::in(std::string("forwardPrimer"), primers.columnNames_)) << std::endl;
+//	std::cout << bib::colorBool(!bib::in(std::string("reversePrimer"), primers.columnNames_)) << std::endl;
+
 	if ((!bib::in(std::string("geneName"), primers.columnNames_) && !bib::in(std::string("targetName"), primers.columnNames_))
 			|| !bib::in(std::string("forwardPrimer"), primers.columnNames_)
 			|| !bib::in(std::string("reversePrimer"), primers.columnNames_)) {
@@ -55,12 +61,15 @@ PrimerDeterminator::PrimerDeterminator(const table & primers) {
 						"least the following three columns, geneName or targetName and forwardPrimer, reversePrimer, only have "
 						+ bib::conToStr(primers.columnNames_, ",") };
 	}
+
 	std::string idCol = "geneName";
+
 	if(bib::in(std::string("targetName"), primers.columnNames_)){
 		idCol = "targetName";
 	}
+
 	for (const auto & row : primers.content_) {
-		primers_[row[primers.getColPos("geneName")]] = {row[primers.getColPos("geneName")],
+		primers_[row[primers.getColPos(idCol)]] = {row[primers.getColPos(idCol)],
 			row[primers.getColPos("forwardPrimer")], row[primers.getColPos("reversePrimer")]};
 	}
 }
