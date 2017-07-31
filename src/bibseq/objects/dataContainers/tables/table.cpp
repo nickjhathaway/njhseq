@@ -763,6 +763,40 @@ table table::getColumnsLoose(const std::string &subStr) const{
   }
 }
 
+table table::getColumnsMatchingPattern(const std::regex & pattern) const {
+	std::vector<uint32_t> positions = getPositionsMatchingPattern(columnNames_,
+			pattern);
+	if (positions.size() == 0) {
+		return table();
+	} else {
+		return getColumns(positions);
+	}
+}
+
+table table::getColumnsContainingPattern(const std::regex & pattern) const {
+	std::vector<uint32_t> positions = getPositionsContainingPattern(columnNames_,
+			pattern);
+	if (positions.size() == 0) {
+		return table();
+	} else {
+		return getColumns(positions);
+	}
+}
+
+table table::getRowsContainingPattern(const std::string &forColumn,
+		const std::regex & pattern) const{
+  VecStr col = getColumn(forColumn);
+  std::vector<uint32_t> positions = getPositionsContainingPattern(col, pattern);
+  return table(getTargetsAtPositions(content_, positions), columnNames_);
+}
+
+table table::getRowsMatchingPattern(const std::string &forColumn,
+		const std::regex & pattern) const{
+  VecStr col = getColumn(forColumn);
+  std::vector<uint32_t> positions = getPositionsMatchingPattern(col, pattern);
+  return table(getTargetsAtPositions(content_, positions), columnNames_);
+}
+
 table table::getColumnsStartWith(const std::string &startsWith) const{
   std::vector<uint32_t> positions =
       getPositionsOfTargetStartsWith(columnNames_, startsWith);

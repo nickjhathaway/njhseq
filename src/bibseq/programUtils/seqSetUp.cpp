@@ -48,12 +48,12 @@ void seqSetUp::processComparison(comparison & comp, std::string stub) {
 
 void seqSetUp::processQualityFiltering() {
 
-	setOption(pars_.qFilPars_.qualWindow_, "-qualWindow",
+	setOption(pars_.qFilPars_.qualWindow_, "--qualWindow",
 				"Sliding Quality Window, format is WindowSize,WindowStep,Threshold");
 	seqUtil::processQualityWindowString(pars_.qFilPars_.qualWindow_, pars_.qFilPars_.qualityWindowLength_,
 			pars_.qFilPars_.qualityWindowStep_, pars_.qFilPars_.qualityWindowThres_);
-	setOption(pars_.qFilPars_.qualCheck_, "-qualCheck", "Qual Check Level");
-	setOption(pars_.qFilPars_.qualCheckCutOff_, "-qualCheckCutOff",
+	setOption(pars_.qFilPars_.qualCheck_, "--qualCheck", "Qual Check Level");
+	setOption(pars_.qFilPars_.qualCheckCutOff_, "--qualCheckCutOff",
 			"Cut Off for fraction of bases above qual check of "
 					+ estd::to_string(pars_.qFilPars_.qualCheck_));
 }
@@ -62,22 +62,22 @@ void seqSetUp::processClusteringOptions(){
   processSkipOnNucComp();
   processAdjustHRuns();
   bool firstMatch = false;
-  setOption(firstMatch,     "-firstMatch",     "Settle for first Match in Clustering");
+  setOption(firstMatch,     "--firstMatch",     "Settle for first Match in Clustering");
   pars_.colOpts_.bestMatchOpts_.findingBestMatch_ = !firstMatch;
-  setOption(pars_.colOpts_.bestMatchOpts_.bestMatchCheck_, "-bestMatchCheck", "Best Match Check Number");
+  setOption(pars_.colOpts_.bestMatchOpts_.bestMatchCheck_, "--bestMatchCheck", "Best Match Check Number");
 }
 
 
 void seqSetUp::processGap() {
   // check command line for gap settings
-  if (setOption(pars_.gap_, "-gapAll", "Gap Penalties for All (middle and end gaps)")) {
+  if (setOption(pars_.gap_, "--gapAll", "Gap Penalties for All (middle and end gaps)")) {
   	pars_.gapInfo_ = gapScoringParameters (pars_.gap_);
   	pars_.gapLeft_ = pars_.gap_;
   	pars_.gapRight_ =pars_. gap_;
   }else{
-  	setOption(pars_.gap_, "-gap", "Gap Penalties for Middle Gap");
-  	setOption(pars_.gapLeft_, "-gapLeft", "Gap Penalties for Left End Gap");
-  	setOption(pars_.gapRight_, "-gapRight", "Gap Penalties for Right End Gap");
+  	setOption(pars_.gap_, "--gap", "Gap Penalties for Middle Gap");
+  	setOption(pars_.gapLeft_, "--gapLeft", "Gap Penalties for Left End Gap");
+  	setOption(pars_.gapRight_, "--gapRight", "Gap Penalties for Right End Gap");
   	// get the gap penalty
   	pars_.gapInfo_.processGapStr(pars_.gap_, pars_.gapInfo_.gapOpen_, pars_.gapInfo_.gapExtend_);
   	pars_.gapInfo_.processGapStr(pars_.gapLeft_, pars_.gapInfo_.gapLeftOpen_, pars_.gapInfo_.gapLeftExtend_);
@@ -88,14 +88,14 @@ void seqSetUp::processGap() {
 
 void seqSetUp::processGapRef() {
 	// check command line for gap settings
-	if (setOption(pars_.gapRef_, "-refGapAll", "Gap Penalties for Ref All")) {
+	if (setOption(pars_.gapRef_, "--refGapAll", "Gap Penalties for Ref All")) {
 		pars_.gapInfoRef_ = gapScoringParameters(pars_.gapRef_);
 		pars_.gapLeftRef_ = pars_.gapRef_;
 		pars_.gapRightRef_ = pars_.gapRef_;
 	} else {
-		setOption(pars_.gapRef_, "-refGap", "Gap Penalties for Ref Middle Gap");
-		setOption(pars_.gapLeftRef_, "-refGapLeft", "Gap Penalties for Ref Left End Gap");
-		setOption(pars_.gapRightRef_, "-refGapRight",
+		setOption(pars_.gapRef_, "--refGap", "Gap Penalties for Ref Middle Gap");
+		setOption(pars_.gapLeftRef_, "--refGapLeft", "Gap Penalties for Ref Left End Gap");
+		setOption(pars_.gapRightRef_, "--refGapRight",
 				"Gap Penalties for Ref Right End Gap");
 		// get the gap penalty
 		pars_.gapInfoRef_.processGapStr(pars_.gapRef_, pars_.gapInfoRef_.gapOpen_,
@@ -110,7 +110,7 @@ void seqSetUp::processGapRef() {
 
 void seqSetUp::processQualThres() {
   // check command line for qualThres setting
-  setOption(pars_.qualThres_, "-qualThres", "Quality Thresholds, should go PrimaryQual,SecondaryQual");
+  setOption(pars_.qualThres_, "--qualThres", "Quality Thresholds, should go PrimaryQual,SecondaryQual");
   // get the qualities
   auto qualToks = tokenizeString(pars_.qualThres_, ",");
   if(qualToks.size() != 2){
@@ -119,7 +119,7 @@ void seqSetUp::processQualThres() {
   pars_.qScorePars_.primaryQual_ = std::stoi(qualToks[0]);
   pars_.qScorePars_.secondaryQual_ = std::stoi(qualToks[1]);
 
-  setOption(pars_.qScorePars_.qualThresWindow_, "-qualThresWindow",
+  setOption(pars_.qScorePars_.qualThresWindow_, "--qualThresWindow",
             "Quality Threshold Window Length");
 }
 
@@ -152,45 +152,45 @@ CollapseIterations seqSetUp::processIteratorMapOnPerId(const bfs::path & paramet
 }
 
 void seqSetUp::processKmerLenOptions(){
-  setOption(pars_.colOpts_.kmerOpts_.kLength_, "-kLength", "Kmer Length");
+  setOption(pars_.colOpts_.kmerOpts_.kLength_, "--kLength", "Kmer Length");
 }
 
 void seqSetUp::processKmerProfilingOptions() {
-  setOption(pars_.colOpts_.kmerOpts_.runCutOffString_, "-runCutOff", "Kmer_frequencey_cutoff");
+  setOption(pars_.colOpts_.kmerOpts_.runCutOffString_, "--runCutOff", "Kmer_frequencey_cutoff");
   processKmerLenOptions();
   bool forKmerProfiling = true;
   if (forKmerProfiling && pars_.colOpts_.kmerOpts_.kLength_ % 2 == 0) {
   	pars_.colOpts_.kmerOpts_.kLength_--;
-    warnings_.emplace_back("-kLength needs to be odd, not even, changing to " +
+    warnings_.emplace_back("--kLength needs to be odd, not even, changing to " +
                            estd::to_string(pars_.colOpts_.kmerOpts_.kLength_));
   }
   bool kAnywhere = false;
-  setOption(kAnywhere, "-kAnywhere", "Count Kmers without regard for position");
+  setOption(kAnywhere, "--kAnywhere", "Count Kmers without regard for position");
   pars_.colOpts_.kmerOpts_.kmersByPosition_ = !kAnywhere;
-  setOption(pars_.expandKmerPos_, "-expandKmerPos", "Expand Kmer Position Found At");
-  setOption(pars_.expandKmerSize_, "-expandKmerSize", "Expand Kmer Size for extending where kmers where found");
+  setOption(pars_.expandKmerPos_, "--expandKmerPos", "Expand Kmer Position Found At");
+  setOption(pars_.expandKmerSize_, "--expandKmerSize", "Expand Kmer Size for extending where kmers where found");
 }
 
 void seqSetUp::processScoringPars() {
-	setOption(pars_.local_, "-local", "Local_alignment");
-	setOption(pars_.colOpts_.alignOpts_.countEndGaps_, "-countEndGaps", "CountEndGaps");
+	setOption(pars_.local_, "--local", "Local_alignment");
+	setOption(pars_.colOpts_.alignOpts_.countEndGaps_, "--countEndGaps", "CountEndGaps");
 	bool noHomopolymerWeighting = false;
-	setOption(noHomopolymerWeighting, "-noHomopolymerWeighting",
+	setOption(noHomopolymerWeighting, "--noHomopolymerWeighting",
 			"Don't do Homopolymer Weighting");
 	pars_.colOpts_.iTOpts_.weighHomopolyer_ = !noHomopolymerWeighting;
 	std::string scoreMatrixFilename = "";
 	bool degenScoring = false;
 	bool caseInsensitive = false;
 	bool lessN = false;
-	if (setOption(scoreMatrixFilename, "-scoreMatrix", "Score Matrix Filename")) {
+	if (setOption(scoreMatrixFilename, "--scoreMatrix", "Score Matrix Filename")) {
 		pars_.scoring_ = substituteMatrix(scoreMatrixFilename);
 	} else {
-		setOption(pars_.generalMatch_, "-generalMatch,-match", "generalMatch");
-		setOption(pars_.generalMismatch_, "-generalMismatch,-mismatch",
+		setOption(pars_.generalMatch_, "--generalMatch,-match", "generalMatch");
+		setOption(pars_.generalMismatch_, "--generalMismatch,-mismatch",
 				"generalMismatch");
-		setOption(degenScoring, "-degen", "Use Degenerative Base Scoring");
-		setOption(lessN, "-lessN", "Use Degenerative Base Scoring but use a lesser score for the degenerative bases");
-		setOption(caseInsensitive, "-caseInsensitive",
+		setOption(degenScoring, "--degen", "Use Degenerative Base Scoring");
+		setOption(lessN, "--lessN", "Use Degenerative Base Scoring but use a lesser score for the degenerative bases");
+		setOption(caseInsensitive, "--caseInsensitive",
 				"Use Case Insensitive Scoring");
 		pars_.scoring_ = substituteMatrix::createScoreMatrix(pars_.generalMatch_, pars_.generalMismatch_, degenScoring, lessN, caseInsensitive);
 	}
@@ -206,7 +206,7 @@ void seqSetUp::processSkipOnNucComp(){
 
 void seqSetUp::processAdjustHRuns(){
   setOption(pars_.colOpts_.iTOpts_.adjustHomopolyerRuns_,
-            "-adjustHomopolyerRuns",
+            "--adjustHomopolyerRuns",
             "Adjust Homopolyer Runs To Be Same Qual");
 }
 
@@ -303,59 +303,59 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 	//compPerCutOff
 	//process format information
 	//hasFlagCaseInsen(
-	if(commands_.hasFlagCaseInsenNoDash("-fasta")){
+	if(commands_.hasFlagCaseInsenNoDash("--fasta")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTA;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTA;
 		pars_.ioOptions_.out_.outExtention_ = ".fasta";
-		readInFormatsFound.emplace_back("-fasta");
+		readInFormatsFound.emplace_back("--fasta");
 	}
-	if(commands_.hasFlagCaseInsenNoDash("-sff")){
+	if(commands_.hasFlagCaseInsenNoDash("--sff")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::SFFTXT;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
 		pars_.ioOptions_.out_.outExtention_ = ".fastq";
-		readInFormatsFound.emplace_back("-sff");
+		readInFormatsFound.emplace_back("--sff");
 	}
-	if(commands_.hasFlagCaseInsenNoDash("-sffBin")){
+	if(commands_.hasFlagCaseInsenNoDash("--sffBin")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::SFFBIN;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
 		pars_.ioOptions_.out_.outExtention_ = ".fastq";
-		readInFormatsFound.emplace_back("-sffBin");
+		readInFormatsFound.emplace_back("--sffBin");
 	}
-	if(commands_.hasFlagCaseInsenNoDash("-bam")){
+	if(commands_.hasFlagCaseInsenNoDash("--bam")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::BAM;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
 		pars_.ioOptions_.out_.outExtention_ = ".fastq";
-		readInFormatsFound.emplace_back("-bam");
+		readInFormatsFound.emplace_back("--bam");
 	}
-	if(commands_.hasFlagCaseInsenNoDash("-fastq")){
+	if(commands_.hasFlagCaseInsenNoDash("--fastq")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQ;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
 		pars_.ioOptions_.out_.outExtention_ = ".fastq";
-		readInFormatsFound.emplace_back("-fastq");
+		readInFormatsFound.emplace_back("--fastq");
 	}
-	if(commands_.hasFlagCaseInsenNoDash("-fastq1")){
+	if(commands_.hasFlagCaseInsenNoDash("--fastq1")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQPAIRED;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQPAIRED;
 		pars_.ioOptions_.out_.outExtention_ = "_R1.fastq";
-		readInFormatsFound.emplace_back("-fastq1");
+		readInFormatsFound.emplace_back("--fastq1");
 	}
-	if(commands_.hasFlagCaseInsenNoDash("-fastq1gz")){
+	if(commands_.hasFlagCaseInsenNoDash("--fastq1gz")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQPAIREDGZ;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQPAIREDGZ;
 		pars_.ioOptions_.out_.outExtention_ = "_R1.fastq.gz";
-		readInFormatsFound.emplace_back("-fastq1gz");
+		readInFormatsFound.emplace_back("--fastq1gz");
 	}
-	if(commands_.hasFlagCaseInsenNoDash("-fastqgz")){
+	if(commands_.hasFlagCaseInsenNoDash("--fastqgz")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQGZ;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQGZ;
 		pars_.ioOptions_.out_.outExtention_ = ".fastq.gz";
-		readInFormatsFound.emplace_back("-fastqgz");
+		readInFormatsFound.emplace_back("--fastqgz");
 	}
-	if(commands_.hasFlagCaseInsenNoDash("-fastagz")){
+	if(commands_.hasFlagCaseInsenNoDash("--fastagz")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTAGZ;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTAGZ;
 		pars_.ioOptions_.out_.outExtention_ = ".fasta.gz";
-		readInFormatsFound.emplace_back("-fastagz");
+		readInFormatsFound.emplace_back("--fastagz");
 	}
 	if(readInFormatsFound.size() > 1){
     std::stringstream tempOut;
@@ -388,39 +388,39 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 				&& !commands_.gettingVersion()){
 			setOption(pars_.ioOptions_.firstName_, readInFormatsFound.front(), "In Sequence Filename");
 		}
-		if(readInFormatsFound.front() == "-fasta"){
-			if(setOption(pars_.ioOptions_.secondName_, "-qual", "Name of the quality file")){
+		if(readInFormatsFound.front() == "--fasta"){
+			if(setOption(pars_.ioOptions_.secondName_, "--qual", "Name of the quality file")){
 				pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTAQUAL;
 				pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
 			}
 		}
-		if (readInFormatsFound.front() == "-fastq1") {
-			if (!setOption(pars_.ioOptions_.secondName_, "-fastq2",
+		if (readInFormatsFound.front() == "--fastq1") {
+			if (!setOption(pars_.ioOptions_.secondName_, "--fastq2",
 					"Name of the mate file")) {
 				addWarning("If supplying -fastq1 need to also have -fastq2");
 				failed_ = true;
 			}
 			/*
-			setOption(pars_.ioOptions_.revComplMate_, "-complementMate",
+			setOption(pars_.ioOptions_.revComplMate_, "--complementMate",
 					"Whether to complement the sequence in the mate file");*/
 		}
-		if (readInFormatsFound.front() == "-fastq1gz") {
-			if (!setOption(pars_.ioOptions_.secondName_, "-fastq2gz",
+		if (readInFormatsFound.front() == "--fastq1gz") {
+			if (!setOption(pars_.ioOptions_.secondName_, "--fastq2gz",
 					"Name of the mate file")) {
 				addWarning("If supplying -fastq1gz need to also have -fastq2gz");
 				failed_ = true;
 			}
 			/*
-			setOption(pars_.ioOptions_.revComplMate_, "-complementMate",
+			setOption(pars_.ioOptions_.revComplMate_, "--complementMate",
 					"Whether to complement the sequence in the mate file");*/
 		}
 
 		std::string outFormat = "";
-		if(setOption(outFormat, "-outFormat", "Format of out sequence file")){
+		if(setOption(outFormat, "--outFormat", "Format of out sequence file")){
 			pars_.ioOptions_.outFormat_ = SeqIOOptions::getOutFormat(outFormat);
 		}
-		setOption(pars_.ioOptions_.out_.outExtention_, "-outExtention", "Extension of out file");
-		//setOption(pars_.ioOptions_.out_.outFilename_, "-out", "Name of the out sequence file");
+		setOption(pars_.ioOptions_.out_.outExtention_, "--outExtention", "Extension of out file");
+		//setOption(pars_.ioOptions_.out_.outFilename_, "--out", "Name of the out sequence file");
 		return true;
 	}
 }
@@ -430,7 +430,7 @@ void seqSetUp::processDirectoryOutputName(const std::string& defaultName,
 	//std::cout << defaultName << std::endl;
 	setOption(pars_.overWriteDir_, "--overWriteDir", "If the directory already exists over write it");
   pars_.directoryName_ = "./";
-  if (setOption(pars_.directoryName_, "-dout", "Output Directory Name")) {
+  if (setOption(pars_.directoryName_, "--dout", "Output Directory Name")) {
     if (!failed_) {
     	//std::cout << pars_.directoryName_ << std::endl;
       std::string newDirectoryName = bib::replaceString(pars_.directoryName_, "TODAY", getCurrentDate()) +"/";
@@ -464,7 +464,7 @@ void seqSetUp::processDirectoryOutputName(const std::string& defaultName,
 
 void seqSetUp::processDirectoryOutputName(bool mustMakeDirectory) {
   std::string seqName = bfs::basename(pars_.ioOptions_.firstName_) + "_" +
-  		bib::replaceString(commands_.getProgramName(), " ", "-") + "_" + getCurrentDate();
+  		bib::replaceString(commands_.getProgramName(), " ", "--") + "_" + getCurrentDate();
   processDirectoryOutputName(seqName, mustMakeDirectory);
 }
 
@@ -477,14 +477,14 @@ bool seqSetUp::processDefaultReader(const VecStr & formats, bool readInNamesRequ
 	if (!processReadInNames(formats, readInNamesRequired)) {
 		passed = false;
 	}
-	setOption(pars_.ioOptions_.processed_, "-processed",
+	setOption(pars_.ioOptions_.processed_, "--processed",
 			"Processed, Input Sequence Name has a suffix that contains abundance info");
-	setOption(pars_.ioOptions_.lowerCaseBases_, "-lower",
+	setOption(pars_.ioOptions_.lowerCaseBases_, "--lower",
 			"How to handle Lower Case Bases");
-	setOption(pars_.ioOptions_.removeGaps_, "-removeGaps",
+	setOption(pars_.ioOptions_.removeGaps_, "--removeGaps",
 			"Remove Gaps from Input Sequences");
 	bool noWhiteSpace = false;
-	setOption(noWhiteSpace, "-trimAtWhiteSpace",
+	setOption(noWhiteSpace, "--trimAtWhiteSpace",
 			"Remove everything after first whitespace character in input sequence name");
 	pars_.ioOptions_.includeWhiteSpaceInName_ = !noWhiteSpace;
 	processWritingOptions();
@@ -514,20 +514,20 @@ void seqSetUp::processWritingOptions(OutOptions & opts) {
 }
 
 bool seqSetUp::processRefFilename(bool required) {
-	setOption(pars_.refIoOptions_.processed_, "-refProcessed",
+	setOption(pars_.refIoOptions_.processed_, "--refProcessed",
 			"Reference Name Has Abundance Info");
-	if (commands_.hasFlagCaseInsenNoDash("-refFastq")) {
+	if (commands_.hasFlagCaseInsenNoDash("--refFastq")) {
 		pars_.refIoOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQ;
-	} else if (commands_.hasFlagCaseInsenNoDash("-ref")) {
+	} else if (commands_.hasFlagCaseInsenNoDash("--ref")) {
 		pars_.refIoOptions_.inFormat_ = SeqIOOptions::inFormats::FASTA;;
 	}
 	processGapRef();
 	return setOption(pars_.refIoOptions_.firstName_,
-			"-ref,-refFastq", "Reference Fasta or Fastq File Name", required);
+			"--ref,-refFastq", "Reference Fasta or Fastq File Name", required);
 }
 
 bool seqSetUp::processSeq(bool required) {
-	return processSeq(pars_.seq_, "-seq", "Sequence", required);
+	return processSeq(pars_.seq_, "--seq", "Sequence", required);
 }
 
 bool seqSetUp::processSeq(std::string& inputSeq, const std::string& flag,
@@ -593,13 +593,13 @@ void seqSetUp::processAlignerDefualts() {
 }
 
 void seqSetUp::processAlnInfoInput() {
-	if (setOption(pars_.alnInfoDirName_, "-alnInfoDir", "alnInfoDirName")) {
-		if (!setOption(pars_.outAlnInfoDirName_, "-outAlnInfoDir", "alnInfoDirName")) {
+	if (setOption(pars_.alnInfoDirName_, "--alnInfoDir", "alnInfoDirName")) {
+		if (!setOption(pars_.outAlnInfoDirName_, "--outAlnInfoDir", "alnInfoDirName")) {
 			pars_.outAlnInfoDirName_ = pars_.alnInfoDirName_;
 		}
 		pars_.writingOutAlnInfo_ = true;
 	} else {
-		if (setOption(pars_.outAlnInfoDirName_, "-outAlnInfoDir", "alnInfoDirName")) {
+		if (setOption(pars_.outAlnInfoDirName_, "--outAlnInfoDir", "alnInfoDirName")) {
 			pars_.writingOutAlnInfo_ = true;
 		}
 	}
@@ -669,7 +669,7 @@ void seqSetUp::printKmerProfilingUsage(std::ostream& out) {
          "reads" << std::endl;
   out << "4) -qualRunCutOff [option]: kmer occurrence number cut off "
       << "to raise the quality threshold for mismatches, same formating as "
-         "-runCutOff" << std::endl;
+         "--runCutOff" << std::endl;
   // out << cleanOut(tempOut.str(), width_, indent_);
 }
 void seqSetUp::printQualThresUsage(std::ostream& out) {
@@ -695,14 +695,14 @@ void seqSetUp::printQualThresUsage(std::ostream& out) {
 void seqSetUp::printGapUsage(std::ostream & out) const {
 	out << bib::bashCT::bold << "Gap Scoring options" << bib::bashCT::reset
 			<< "\n";
-	out << "-gap [option]: Gap penalty, given in the format 7,0.5 "
+	out << "--gap [option]: Gap penalty, given in the format 7,0.5 "
 			"where 7 is the gap open penalty and 0.5 is the gap extension"
 			<< "\n";
-	out << "-gapLeft [option]: Gap penalty for putting gaps at the beginning"
+	out << "--gapLeft [option]: Gap penalty for putting gaps at the beginning"
 			" of the sequence, same format as -gap" << "\n";
-	out << "-gapRight [option]: Gap penalty for putting gaps at the end"
+	out << "--gapRight [option]: Gap penalty for putting gaps at the end"
 			" of the sequence, same format as -gap" << "\n";
-	out << "-gapAll [option]: Gap penalty at all locations, would be like calling"
+	out << "--gapAll [option]: Gap penalty at all locations, would be like calling"
 			" all three options,-gap, -gapRight, -gapLeft with the same parameters, same format as -gap\n";
 }
 

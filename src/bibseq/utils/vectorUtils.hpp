@@ -308,6 +308,12 @@ uint32_t getFirstPositionOfTarget(const std::vector<T>& vec, const T& target) {
 	return UINT32_MAX;
 }
 
+std::vector<uint32_t> getPositionsContainingPattern(const VecStr& vec,
+		const std::regex & pattern);
+
+std::vector<uint32_t> getPositionsMatchingPattern(const VecStr& vec,
+		const std::regex & pattern);
+
 std::vector<uint32_t> getPositionsOfTarget(const VecStr& vec,
 		const std::string& target);
 
