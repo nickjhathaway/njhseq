@@ -464,7 +464,7 @@ void seqSetUp::processDirectoryOutputName(const std::string& defaultName,
 
 void seqSetUp::processDirectoryOutputName(bool mustMakeDirectory) {
   std::string seqName = bfs::basename(pars_.ioOptions_.firstName_) + "_" +
-  		bib::replaceString(commands_.getProgramName(), " ", "--") + "_" + getCurrentDate();
+  		bib::replaceString(commands_.getProgramName(), " ", "-") + "_" + getCurrentDate();
   processDirectoryOutputName(seqName, mustMakeDirectory);
 }
 
