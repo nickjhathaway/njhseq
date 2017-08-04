@@ -46,12 +46,19 @@ public:
 	std::set<std::string> missingMetaForSamples_; /**< samples that were clustered but weren't the group meta data */
 	std::map<std::string, std::unique_ptr<GroupMetaData>> groupData_; /**< the multiple group data */
 
-	/**@brief Set the group and sample data wtih input table, will clear any info currently held
+	/**@brief Set the group and sample data with input table, will clear any info currently held
 	 *
-	 * @param info a table containing the info, need to have more than 1 column, and one column must be Samples or samples
-	 * @param availableSamples a set with the anmes of the samples that were actually clustered
+	 * @param info a table containing the info, need to have more than 1 column, and one column must be sample, Sample, samples, or Samples
+	 * @param availableSamples a set with the names of the samples that were actually clustered, will only consider these sample when reading
 	 */
 	void setInfoWithTable(const table & info, const std::set<std::string> & availableSamples);
+
+	/**@brief Set the group and sample data with input table
+	 *
+	 * @param info the table to set info with, must have a column, sample, Sample, samples, or Samples
+	 */
+	void setInfoWithTable(const table & info);
+
 
 	/**@brief clear the info in samples_, missingSamples_, missingMetaFroSamples_, and groupData_
 	 *

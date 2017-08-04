@@ -14,11 +14,13 @@ void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab,
 		const std::set<std::string> & availableSamples){
 	resetInfo();
 	if (!groupsTab.containsColumn("Sample")
-			&& !groupsTab.containsColumn("sample")) {
+			&& !groupsTab.containsColumn("sample")
+			&& !groupsTab.containsColumn("Samples")
+			&& !groupsTab.containsColumn("samples") ) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": Error, input table"
 		   << " must contain the column \"Sample\""
-			 << " or \"sample\"" << "\n";
+			 << " or \"sample\"  or \"Samples\"  or \"samples\""  << "\n";
 		ss << "Current columns are: " << vectorToString(groupsTab.columnNames_, ",")
 				<< "\n";
 		throw std::runtime_error { ss.str() };
@@ -34,8 +36,12 @@ void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab,
 	VecStr samples;
 	if(groupsTab.containsColumn("Sample")){
 		samples = groupsTab.getColumn("Sample");
-	}else{
+	}else if(groupsTab.containsColumn("sample")){
 		samples = groupsTab.getColumn("sample");
+	}else if(groupsTab.containsColumn("Samples")){
+		samples = groupsTab.getColumn("Samples");
+	}else if(groupsTab.containsColumn("samples")){
+		samples = groupsTab.getColumn("samples");
 	}
 
 	for (const auto & samp : samples) {
@@ -81,6 +87,74 @@ void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab,
 	}
 }
 
+
+void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab){
+	resetInfo();
+	if (!groupsTab.containsColumn("Sample")
+			&& !groupsTab.containsColumn("sample")
+			&& !groupsTab.containsColumn("Samples")
+			&& !groupsTab.containsColumn("samples") ) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": Error, input table"
+		   << " must contain the column \"Sample\""
+			 << " or \"sample\"  or \"Samples\"  or \"samples\""  << "\n";
+		ss << "Current columns are: " << vectorToString(groupsTab.columnNames_, ",")
+				<< "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	if (groupsTab.nCol() < 2) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": Error, input table"
+		   << " must contain at least two columns, current size is : "
+				<< groupsTab.nCol() << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+
+	VecStr samples;
+	if(groupsTab.containsColumn("Sample")){
+		samples = groupsTab.getColumn("Sample");
+	}else if(groupsTab.containsColumn("sample")){
+		samples = groupsTab.getColumn("sample");
+	}else if(groupsTab.containsColumn("Samples")){
+		samples = groupsTab.getColumn("Samples");
+	}else if(groupsTab.containsColumn("samples")){
+		samples = groupsTab.getColumn("samples");
+	}
+
+	for (const auto & samp : samples) {
+		if (bib::in(samp, samples_) || bib::in(samp, missingSamples_)) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " Error, have sample: " << samp
+					<< " entered more than once in Sample column in " << groupingsFile_
+					<< "\n";
+			throw std::runtime_error { ss.str() };
+		}
+		samples_.insert(samp);
+	}
+	for (const auto & col : groupsTab.columnNames_) {
+		if ("Sample" != col && "sample" != col) {
+			if (bib::in(col, groupData_)) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << " Error, have grouping: " << col
+						<< " entered more than once in the column names in "
+						<< groupingsFile_ << "\n";
+				throw std::runtime_error { ss.str() };
+			}
+			groupData_.emplace(col, std::make_unique<GroupMetaData>(col));
+			VecStr grouping = groupsTab.getColumn(col);
+			for (const auto pos : iter::range(grouping.size())) {
+				if (bib::in(samples[pos], samples_)) {
+					groupData_[col]->addSampGroup(samples[pos], grouping[pos]);
+				}
+			}
+			for(const auto & samp : missingMetaForSamples_){
+				groupData_[col]->addSampGroup(samp, "NA");
+			}
+			groupData_[col]->setSubGroupsLevels();
+		}
+	}
+}
+
 MultipleGroupMetaData::MultipleGroupMetaData(const bfs::path & groupingsFile,
 		const std::set<std::string> & availableSamples) :
 		groupingsFile_(groupingsFile) {
@@ -91,11 +165,11 @@ MultipleGroupMetaData::MultipleGroupMetaData(const bfs::path & groupingsFile,
 
 MultipleGroupMetaData::MultipleGroupMetaData(const bfs::path & groupingsFile) :
 		groupingsFile_(groupingsFile) {
-
+	setInfoWithTable(table(groupingsFile, "\t", true));
 }
 
 
-MultipleGroupMetaData::MultipleGroupMetaData(const table & info, const std::set<std::string> & availableSamples):groupingsFile_("") {
+MultipleGroupMetaData::MultipleGroupMetaData(const table & info, const std::set<std::string> & availableSamples) : groupingsFile_("") {
 	setInfoWithTable(info, availableSamples);
 }
 

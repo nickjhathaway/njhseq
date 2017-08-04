@@ -215,6 +215,17 @@ bool seqSetUp::processReadInNames(bool required) {
 	return processReadInNames(readInFormatsAvailable_, required);
 }
 bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
+	setOption(pars_.ioOptions_.processed_, "--processed",
+			"Processed, Input Sequence Name has a suffix that contains abundance info");
+	setOption(pars_.ioOptions_.lowerCaseBases_, "--lower",
+			"How to handle Lower Case Bases");
+	setOption(pars_.ioOptions_.removeGaps_, "--removeGaps",
+			"Remove Gaps from Input Sequences");
+	bool noWhiteSpace = false;
+	setOption(noWhiteSpace, "--trimAtWhiteSpace",
+			"Remove everything after first whitespace character in input sequence name");
+	pars_.ioOptions_.includeWhiteSpaceInName_ = !noWhiteSpace;
+
 	std::stringstream formatWarnings;
 	bool foundUnrecFormat = false;
 
@@ -306,55 +317,46 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 	if(commands_.hasFlagCaseInsenNoDash("--fasta")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTA;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTA;
-		pars_.ioOptions_.out_.outExtention_ = ".fasta";
 		readInFormatsFound.emplace_back("--fasta");
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--sff")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::SFFTXT;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
-		pars_.ioOptions_.out_.outExtention_ = ".fastq";
 		readInFormatsFound.emplace_back("--sff");
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--sffBin")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::SFFBIN;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
-		pars_.ioOptions_.out_.outExtention_ = ".fastq";
 		readInFormatsFound.emplace_back("--sffBin");
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--bam")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::BAM;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
-		pars_.ioOptions_.out_.outExtention_ = ".fastq";
 		readInFormatsFound.emplace_back("--bam");
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--fastq")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQ;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
-		pars_.ioOptions_.out_.outExtention_ = ".fastq";
 		readInFormatsFound.emplace_back("--fastq");
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--fastq1")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQPAIRED;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQPAIRED;
-		pars_.ioOptions_.out_.outExtention_ = "_R1.fastq";
 		readInFormatsFound.emplace_back("--fastq1");
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--fastq1gz")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQPAIREDGZ;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQPAIREDGZ;
-		pars_.ioOptions_.out_.outExtention_ = "_R1.fastq.gz";
 		readInFormatsFound.emplace_back("--fastq1gz");
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--fastqgz")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQGZ;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQGZ;
-		pars_.ioOptions_.out_.outExtention_ = ".fastq.gz";
 		readInFormatsFound.emplace_back("--fastqgz");
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--fastagz")){
 		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTAGZ;
 		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTAGZ;
-		pars_.ioOptions_.out_.outExtention_ = ".fasta.gz";
 		readInFormatsFound.emplace_back("--fastagz");
 	}
 	if(readInFormatsFound.size() > 1){
@@ -414,12 +416,6 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 			setOption(pars_.ioOptions_.revComplMate_, "--complementMate",
 					"Whether to complement the sequence in the mate file");*/
 		}
-
-		std::string outFormat = "";
-		if(setOption(outFormat, "--outFormat", "Format of out sequence file")){
-			pars_.ioOptions_.outFormat_ = SeqIOOptions::getOutFormat(outFormat);
-		}
-		setOption(pars_.ioOptions_.out_.outExtention_, "--outExtention", "Extension of out file");
 		//setOption(pars_.ioOptions_.out_.outFilename_, "--out", "Name of the out sequence file");
 		return true;
 	}
@@ -477,16 +473,18 @@ bool seqSetUp::processDefaultReader(const VecStr & formats, bool readInNamesRequ
 	if (!processReadInNames(formats, readInNamesRequired)) {
 		passed = false;
 	}
-	setOption(pars_.ioOptions_.processed_, "--processed",
-			"Processed, Input Sequence Name has a suffix that contains abundance info");
-	setOption(pars_.ioOptions_.lowerCaseBases_, "--lower",
-			"How to handle Lower Case Bases");
-	setOption(pars_.ioOptions_.removeGaps_, "--removeGaps",
-			"Remove Gaps from Input Sequences");
-	bool noWhiteSpace = false;
-	setOption(noWhiteSpace, "--trimAtWhiteSpace",
-			"Remove everything after first whitespace character in input sequence name");
-	pars_.ioOptions_.includeWhiteSpaceInName_ = !noWhiteSpace;
+	std::string outFormat = "";
+
+	if(setOption(outFormat, "--outFormat", "Format of out sequence file")){
+		pars_.ioOptions_.outFormat_ = SeqIOOptions::getOutFormat(outFormat);
+	}
+	if (SeqIOOptions::outFormats::NOFORMAT != pars_.ioOptions_.outFormat_) {
+		pars_.ioOptions_.out_.outExtention_ = SeqIOOptions::getOutExtension(
+				pars_.ioOptions_.outFormat_);
+	}
+
+	setOption(pars_.ioOptions_.out_.outExtention_, "--outExtention", "Extension of out file");
+
 	processWritingOptions();
 	return passed;
 }
