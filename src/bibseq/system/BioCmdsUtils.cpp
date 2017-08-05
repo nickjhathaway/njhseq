@@ -90,25 +90,25 @@ std::unordered_map<std::string, bib::sys::RunOutput> BioCmdsUtils::runAllPossibl
 	if (bib::sys::hasSysCommand("bwa")) {
 		outputs.emplace("bwa", RunBwaIndex(genomeFnp));
 	}else	if(verbose_){
-		std::cerr << "Couldn't find " << "bowtie2" << " skipping bowtie2 indexing" << std::endl;
+		std::cerr << "Couldn't find " << "bwa" << " skipping bwa indexing" << std::endl;
 	}
 
 	if (bib::sys::hasSysCommand("samtools")) {
 		outputs.emplace("samtools", RunSamtoolsFastaIndex(genomeFnp));
 	}else	if(verbose_){
-		std::cerr << "Couldn't find " << "bowtie2" << " skipping bowtie2 indexing" << std::endl;
+		std::cerr << "Couldn't find " << "samtools" << " skipping samtools faidx" << std::endl;
 	}
 
 	if (bib::sys::hasSysCommand("picard")) {
 		outputs.emplace("picard", RunPicardFastaSeqDict(genomeFnp));
 	}else	if(verbose_){
-		std::cerr << "Couldn't find " << "bowtie2" << " skipping bowtie2 indexing" << std::endl;
+		std::cerr << "Couldn't find " << "picard" << " skipping picard CreateSequenceDictionary" << std::endl;
 	}
 
 	if (bib::sys::hasSysCommand("TwoBit")) {
 		outputs.emplace("TwoBit", RunFaToTwoBit(genomeFnp));
 	}else	if(verbose_){
-		std::cerr << "Couldn't find " << "bowtie2" << " skipping bowtie2 indexing" << std::endl;
+		std::cerr << "Couldn't find " << "TwoBit" << " skipping 2bit file creation" << std::endl;
 	}
 	return outputs;
 }
