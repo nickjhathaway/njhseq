@@ -79,6 +79,7 @@ bib::sys::RunOutput BioCmdsUtils::RunFaToTwoBit(const bfs::path & genomeFnp) con
 
 std::unordered_map<std::string, bib::sys::RunOutput> BioCmdsUtils::runAllPossibleIndexes(
 		const bfs::path & genomeFnp) const {
+	/**@todo add a force option to force the indexing even if it isn't needed*/
 	std::unordered_map<std::string, bib::sys::RunOutput> outputs;
 
 	if (bib::sys::hasSysCommand("bowtie2")) {

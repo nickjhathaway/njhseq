@@ -75,7 +75,7 @@ void InOptions::openFile(std::ifstream & inFile) const{
 	}
 }
 std::streambuf* InOptions::determineInBuf(std::ifstream & inFile) const{
-	if("" != inFilename_){
+	if("" != inFilename_ && "STDIN" != inFilename_){
 		openFile(inFile);
 		return inFile.rdbuf();
 	}else{
@@ -84,7 +84,7 @@ std::streambuf* InOptions::determineInBuf(std::ifstream & inFile) const{
 }
 
 std::streambuf* InOptions::determineInBuf(bib::GZSTREAM::igzstream & inFileGz) const{
-	if("" != inFilename_){
+	if("" != inFilename_ && "STDIN" != inFilename_){
 		openGzFile(inFileGz);
 		return inFileGz.rdbuf();
 	}else{
@@ -96,7 +96,7 @@ std::streambuf* InOptions::determineInBuf(bib::GZSTREAM::igzstream & inFileGz) c
 
 std::streambuf* InOptions::determineInBuf(std::ifstream & inFile,
 		bib::GZSTREAM::igzstream & inFileGz) const {
-	if ("" != inFilename_) {
+	if ("" != inFilename_ && "STDIN" != inFilename_) {
 		/**@todo use libmagic to determine input file type rather than based on file extension*/
 		if (bib::endsWith(inFilename_.string(), ".gz")) {
 			openGzFile(inFileGz);
