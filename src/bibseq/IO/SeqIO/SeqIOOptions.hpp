@@ -114,6 +114,8 @@ struct SeqIOOptions {
   bool includeWhiteSpaceInName_ = true;
   int32_t extra_ = 0;
 
+	bool isPairedIn() const;
+	bool isPairedOut() const;
 
   //fastq
   static SeqIOOptions genFastqIn(const bfs::path & inFilename, bool processed =false);

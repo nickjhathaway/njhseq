@@ -145,6 +145,13 @@ public:
 		closeOutForReopeningAll();
 	}
 
+	void containsReaderThrow(const std::string & uid) const {
+		writers_.containsReaderThrow(uid);
+	}
+
+	bool containsReader(const std::string & uid) const {
+		return writers_.containsReader(uid);
+	}
 
 private:
 

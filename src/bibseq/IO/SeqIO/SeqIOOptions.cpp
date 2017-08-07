@@ -24,6 +24,15 @@
 
 namespace bibseq {
 
+bool SeqIOOptions::isPairedIn() const {
+	return inFormat_ == inFormats::FASTQPAIRED
+			|| inFormat_ == inFormats::FASTQPAIREDGZ;
+}
+
+bool SeqIOOptions::isPairedOut() const {
+	return outFormat_ == outFormats::FASTQPAIRED
+			|| outFormat_ == outFormats::FASTQPAIREDGZ;
+}
 
 bool SeqIOOptions::inExists() const{
 	return bib::files::bfs::exists(firstName_);

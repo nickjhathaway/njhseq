@@ -144,6 +144,7 @@ public:
 
 	bool loadIndex();
 
+
 	template<typename T>
 	void getReadNoCheck(T & read, size_t pos){
 		seekgPri(index_[pos]);
@@ -153,13 +154,7 @@ public:
 	template<typename T>
 	void getRead(T & read, size_t pos) {
 		loadIndex();
-		if (pos >= index_.size()) {
-			std::stringstream ss;
-			ss << "In " << __PRETTY_FUNCTION__ << " pos: " << pos
-					<< " is greater than max: " << index_.size() << std::endl;
-			throw std::out_of_range(ss.str());
-		}
-		seekgPri(index_[pos]);
+		seekToSeqIndex(pos);
 		readNextRead(read);
 	}
 
@@ -167,14 +162,8 @@ public:
 	std::vector<T> getReads(size_t pos, size_t number) {
 		openIn();
 		loadIndex();
-		if (pos >= index_.size()) {
-			std::stringstream ss;
-			ss << "In " << __PRETTY_FUNCTION__ << " pos: " << pos
-					<< " is greater than max: " << index_.size() - 1 << std::endl;
-			throw std::out_of_range(ss.str());
-		}
+		seekToSeqIndex(pos);
 		std::vector<T> ret;
-		seekgPri(index_[pos]);
 		uint32_t count = 0;
 		T read;
 		while (readNextRead(read) && count < number) {
@@ -188,14 +177,8 @@ public:
 	std::vector<std::shared_ptr<T>> getReadsPtrs(size_t pos, size_t number) {
 		openIn();
 		loadIndex();
-		if (pos >= index_.size()) {
-			std::stringstream ss;
-			ss << "In " << __PRETTY_FUNCTION__ << " pos: " << pos
-					<< " is greater than max: " << index_.size() - 1 << std::endl;
-			throw std::out_of_range(ss.str());
-		}
+		seekToSeqIndex(pos);
 		std::vector<std::shared_ptr<T>> ret;
-		seekgPri(index_[pos]);
 		uint32_t count = 0;
 		std::shared_ptr<T> read = std::make_shared<T>();
 		while (readNextRead(read) && count < number) {
@@ -204,6 +187,10 @@ public:
 		}
 		return ret;
 	}
+
+	void seekToSeqIndex(size_t seqIndex);
+	void seekToSeqIndexNoCheck(size_t seqIndex);
+	void seekToSeqIndexNoCheckNoPairedCheck(size_t seqIndex);
 
 	static void buildIndex(const SeqIOOptions & ioOpts);
 
@@ -219,6 +206,8 @@ public:
 private:
 
 	std::vector<unsigned long long> index_;
+	//only created for files with secondary files fasta  with qual and R1 and R2 paired reads
+	std::vector<unsigned long long> secIndex_;
 	bool indexLoad_ = false;
 
 	std::unique_ptr<BamTools::BamReader> bReader_;

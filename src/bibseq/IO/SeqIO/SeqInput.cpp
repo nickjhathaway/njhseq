@@ -25,42 +25,130 @@
 
 namespace bibseq {
 
-void SeqInput::buildIndex(const SeqIOOptions & ioOpts) {
-	SeqInput reader(ioOpts);
-	bfs::path outIndexName = ioOpts.firstName_.string() + ".idx.gz";
-	seqInfo info;
-	reader.openIn();
-	unsigned long long pos = 0;
-	std::vector<unsigned long long> index;
-	while (reader.readNextRead(info)) {
-		index.emplace_back(pos);
-		pos = reader.tellgPri();
+
+void SeqInput::seekToSeqIndex(size_t pos){
+	if (pos >= index_.size()) {
+		std::stringstream ss;
+		ss << "In " << __PRETTY_FUNCTION__ << " pos: " << pos
+				<< " is greater than max: " << index_.size() << std::endl;
+		throw std::out_of_range(ss.str());
 	}
-	bib::files::writePODvectorGz(outIndexName, index);
+	seekgPri(index_[pos]);
+	if(ioOptions_.isPairedIn()){
+		seekgSec(secIndex_[pos]);
+	}
+}
+
+void SeqInput::seekToSeqIndexNoCheck(size_t pos){
+	seekgPri(index_[pos]);
+	if(ioOptions_.isPairedIn()){
+		seekgSec(secIndex_[pos]);
+	}
+}
+
+void SeqInput::seekToSeqIndexNoCheckNoPairedCheck(size_t pos){
+	seekgPri(index_[pos]);
+	seekgSec(secIndex_[pos]);
+}
+
+
+
+void SeqInput::buildIndex(const SeqIOOptions & ioOpts) {
+	if(ioOpts.isPairedIn()){
+		SeqInput reader(ioOpts);
+		bfs::path outIndexName = ioOpts.firstName_.string() + ".idx.gz";
+		bfs::path outSecIndexName = ioOpts.secondName_.string() + ".idx.gz";
+		PairedRead info;
+		reader.openIn();
+		unsigned long long pos = 0;
+		unsigned long long secpos = 0;
+		std::vector<unsigned long long> index;
+		std::vector<unsigned long long> secIndex;
+		while (reader.readNextRead(info)) {
+			index.emplace_back(pos);
+			pos = reader.tellgPri();
+
+			secIndex.emplace_back(secpos);
+			secpos = reader.tellgSec();
+		}
+		bib::files::writePODvectorGz(outIndexName, index);
+		bib::files::writePODvectorGz(outSecIndexName, secIndex);
+	}else{
+		SeqInput reader(ioOpts);
+		bfs::path outIndexName = ioOpts.firstName_.string() + ".idx.gz";
+		seqInfo info;
+		reader.openIn();
+		unsigned long long pos = 0;
+		std::vector<unsigned long long> index;
+		while (reader.readNextRead(info)) {
+			index.emplace_back(pos);
+			pos = reader.tellgPri();
+		}
+		bib::files::writePODvectorGz(outIndexName, index);
+	}
+
 }
 
 bool SeqInput::loadIndex() {
-	bfs::path outIndexName = ioOptions_.firstName_.string() + ".idx.gz";
-	bool indexNeedsUpdate = true;
-	if (bib::files::bfs::exists (outIndexName)) {
-		auto indexTime = bib::files::last_write_time(outIndexName);
-		auto fileTime = bib::files::last_write_time(
-				ioOptions_.firstName_);
-		if (fileTime < indexTime) {
-			indexNeedsUpdate = false;
+	if(ioOptions_.isPairedIn()){
+		bfs::path outIndexName = ioOptions_.firstName_.string() + ".idx.gz";
+		bfs::path secOutIndexName = ioOptions_.secondName_.string() + ".idx.gz";
+		bool indexNeedsUpdate = true;
+		if (bib::files::bfs::exists (outIndexName)) {
+			auto indexTime = bib::files::last_write_time(outIndexName);
+			auto fileTime = bib::files::last_write_time(
+					ioOptions_.firstName_);
+			if (fileTime < indexTime) {
+				indexNeedsUpdate = false;
+			}
 		}
-	}
-	if (indexNeedsUpdate) {
-		buildIndex(ioOptions_);
-		index_ = bib::files::readPODvectorGz<unsigned long long>(outIndexName);
-		indexLoad_ = true;
-	} else {
-		if(!indexLoad_){
+		if (bib::files::bfs::exists (secOutIndexName)) {
+			auto indexTime = bib::files::last_write_time(secOutIndexName);
+			auto fileTime = bib::files::last_write_time(
+					ioOptions_.secondName_);
+			if (fileTime < indexTime) {
+				indexNeedsUpdate = false;
+			}
+		}else{
+			indexNeedsUpdate = true;
+		}
+		if (indexNeedsUpdate) {
+			buildIndex(ioOptions_);
+			index_ = bib::files::readPODvectorGz<unsigned long long>(outIndexName);
+			secIndex_ = bib::files::readPODvectorGz<unsigned long long>(secOutIndexName);
+			indexLoad_ = true;
+		} else {
+			if(!indexLoad_){
+				index_ = bib::files::readPODvectorGz<unsigned long long>(outIndexName);
+				secIndex_ = bib::files::readPODvectorGz<unsigned long long>(secOutIndexName);
+				indexLoad_ = true;
+			}
+		}
+		return indexNeedsUpdate;
+	}else{
+		bfs::path outIndexName = ioOptions_.firstName_.string() + ".idx.gz";
+		bool indexNeedsUpdate = true;
+		if (bib::files::bfs::exists (outIndexName)) {
+			auto indexTime = bib::files::last_write_time(outIndexName);
+			auto fileTime = bib::files::last_write_time(
+					ioOptions_.firstName_);
+			if (fileTime < indexTime) {
+				indexNeedsUpdate = false;
+			}
+		}
+		if (indexNeedsUpdate) {
+			buildIndex(ioOptions_);
 			index_ = bib::files::readPODvectorGz<unsigned long long>(outIndexName);
 			indexLoad_ = true;
+		} else {
+			if(!indexLoad_){
+				index_ = bib::files::readPODvectorGz<unsigned long long>(outIndexName);
+				indexLoad_ = true;
+			}
 		}
+		return indexNeedsUpdate;
 	}
-	return indexNeedsUpdate;
+
 }
 
 std::vector<readObject> SeqInput::getReferenceSeq(
@@ -315,7 +403,6 @@ bool SeqInput::readNextRead(PairedRead & seq) {
 				+ ", attempted to read when in file " + ioOptions_.firstName_.string()
 				+ " hasn't been opened" };
 	}
-
 	if (SeqIOOptions::inFormats::FASTQPAIRED == ioOptions_.inFormat_
 			|| SeqIOOptions::inFormats::FASTQPAIREDGZ == ioOptions_.inFormat_) {
 		bool firstMate = readNextFastqStream(*priReader_, SangerQualOffset, seq.seqBase_,
