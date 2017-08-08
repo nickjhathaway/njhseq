@@ -205,24 +205,31 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 	std::map<std::string, double> finalSampCounts;
 	std::map<std::string, sampInfo> finalSampInfos;
 
-	auto finalClustersFiles = bib::files::filesInFolder(
-			bib::files::make_path(sampleDir, "final/clusters"));
-	auto excludedClustersFiles = bib::files::filesInFolder(
-			bib::files::make_path(sampleDir, "excluded/clusters"));
+//	auto finalClustersFiles = bib::files::filesInFolder(
+//			bib::files::make_path(sampleDir, "final/clusters"));
+//	auto excludedClustersFiles = bib::files::filesInFolder(
+//			bib::files::make_path(sampleDir, "excluded/clusters"));
 	seqInfo seq;
-	for (const auto & finalClustersFile : finalClustersFiles) {
-		auto finalClustersFileOpts = SeqIOOptions(finalClustersFile.string(),
-				inputOptions_.inFormat_, true);
-		if(finalClustersFileOpts.inExists()){
-			SeqInput reader(finalClustersFileOpts);
-			reader.openIn();
-			while (reader.readNextRead(seq)) {
-				allSampCounts[seq.getOwnSampName()] += seq.cnt_;
-				finalSampCounts[seq.getOwnSampName()] += seq.cnt_;
+	auto finalClustersFileOpts = SeqIOOptions(bib::files::make_path(sampleDir, "final/clusters/inputClusters" + inputOptions_.getOutExtension()),
+			inputOptions_.inFormat_, true);
+	std::unordered_map<std::string, std::vector<seqInfo>> finalClusterInputClusters;
+	if(finalClustersFileOpts.inExists()){
+		SeqInput reader(finalClustersFileOpts);
+		reader.openIn();
+		while (reader.readNextRead(seq)) {
+			allSampCounts[seq.getOwnSampName()] += seq.cnt_;
+			finalSampCounts[seq.getOwnSampName()] += seq.cnt_;
+			MetaDataInName seqMeta(seq.name_);
+			auto topClusterName = seqMeta.getMeta("TopClusterName");
+			seqMeta.removeMeta("TopClusterName");
+			if(seqMeta.meta_.size() == 0){
+				MetaDataInName::removeMetaDataInName(seq.name_);
+			}else{
+				seqMeta.resetMetaInName(seq.name_);
 			}
+			finalClusterInputClusters[topClusterName].emplace_back(seq);
 		}
 	}
-
 	MapStrStr refCompInfosCollapsed;
 	MapStrStr refCompInfosExcluded;
 	if (bfs::exists(
@@ -250,16 +257,33 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 					row[refCompTab.getColPos("bestExpected")];
 		}
 	}
-
-	for (const auto & excludedClustersFile : excludedClustersFiles) {
-		auto excludedClustersFileOpts = SeqIOOptions(excludedClustersFile.string(),
-				inputOptions_.inFormat_, true);
+	std::unordered_map<std::string, std::vector<seqInfo>> excludedInputClusters;
+	auto excludedClustersFileOpts = SeqIOOptions(
+			bib::files::make_path(sampleDir,
+					"excluded/clusters/inputClusters" + inputOptions_.getOutExtension()),
+			inputOptions_.inFormat_, true);
+	if (excludedClustersFileOpts.inExists()) {
 		SeqInput reader(excludedClustersFileOpts);
 		reader.openIn();
 		while (reader.readNextRead(seq)) {
 			allSampCounts[seq.getOwnSampName()] += seq.cnt_;
+			MetaDataInName seqMeta(seq.name_);
+			auto topClusterName = seqMeta.getMeta("TopClusterName");
+			seqMeta.removeMeta("TopClusterName");
+			if(seqMeta.meta_.size() == 0){
+//				std::cout << seq.name_ << std::endl;
+				MetaDataInName::removeMetaDataInName(seq.name_);
+//				std::cout << seq.name_ << std::endl;
+//				exit(1);
+
+			}else{
+				seqMeta.resetMetaInName(seq.name_);
+			}
+			excludedInputClusters[topClusterName].emplace_back(seq);
 		}
 	}
+
+
 
 	for (const auto & sCount : allSampCounts) {
 		allSampInfos[sCount.first] = sampInfo(sCount.first, sCount.second);
@@ -283,17 +307,17 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 		SeqInput reader(finalFileOpts);
 		reader.openIn();
 		while (reader.readNextRead(seq)) {
-			auto finalSubFileOpts = SeqIOOptions(
-					bib::files::make_path(sampleDir, "final/clusters",
-							seq.name_ + inputOptions_.getOutExtension()).string(),
-					inputOptions_.inFormat_, true);
-			SeqInput subReader(finalSubFileOpts);
-			auto subReads = subReader.readAllReads<seqInfo>();
+//			auto finalSubFileOpts = SeqIOOptions(
+//					bib::files::make_path(sampleDir, "final/clusters",
+//							seq.name_ + inputOptions_.getOutExtension()).string(),
+//					inputOptions_.inFormat_, true);
+//			SeqInput subReader(finalSubFileOpts);
+//			auto subReads = subReader.readAllReads<seqInfo>();
 			samp.collapsed_.clusters_.emplace_back(
-					sampleCluster(seq, subReads, finalSampInfos));
+					sampleCluster(seq, finalClusterInputClusters.at(seq.name_), finalSampInfos));
 			samp.collapsed_.clusters_.back().expectsString =
 					refCompInfosCollapsed[samp.collapsed_.clusters_.back().seqBase_.name_];
-			for (const auto & subRead : subReads) {
+			for (const auto & subRead : finalClusterInputClusters.at(seq.name_)) {
 				samp.input_.clusters_.emplace_back(
 						sampleCluster(subRead, allSampInfos));
 			}
@@ -303,17 +327,17 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 		SeqInput reader(excludedFileOpts);
 		reader.openIn();
 		while (reader.readNextRead(seq)) {
-			auto excludedSubFileOpts = SeqIOOptions(
-					bib::files::make_path(sampleDir, "excluded/clusters",
-							seq.name_ + inputOptions_.getOutExtension()).string(),
-					inputOptions_.inFormat_, true);
-			SeqInput subReader(excludedSubFileOpts);
-			auto subReads = subReader.readAllReads<seqInfo>();
+//			auto excludedSubFileOpts = SeqIOOptions(
+//					bib::files::make_path(sampleDir, "excluded/clusters",
+//							seq.name_ + inputOptions_.getOutExtension()).string(),
+//					inputOptions_.inFormat_, true);
+//			SeqInput subReader(excludedSubFileOpts);
+//			auto subReads = subReader.readAllReads<seqInfo>();
 			samp.excluded_.clusters_.emplace_back(
-					sampleCluster(seq, subReads, allSampInfos));
+					sampleCluster(seq, excludedInputClusters.at(seq.name_), allSampInfos));
 			samp.excluded_.clusters_.back().expectsString =
 					refCompInfosExcluded[samp.excluded_.clusters_.back().seqBase_.name_];
-			for (const auto & subRead : subReads) {
+			for (const auto & subRead : excludedInputClusters.at(seq.name_)) {
 				samp.input_.clusters_.emplace_back(
 						sampleCluster(subRead, allSampInfos));
 			}
@@ -322,7 +346,10 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 	samp.updateExclusionInfos();
 	samp.updateInitialInfos();
 	samp.updateCollapsedInfos();
+
 	sampleCollapses_[sampleName] = sampPtr;
+
+
 }
 
 void SampleCollapseCollection::clusterSample(const std::string & sampleName,
@@ -363,13 +390,30 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 		SeqIOOptions finalOutOpts(
 				bib::files::join(finalDir.string(), sampleName).string()
 						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
-
 		SeqOutput::write(samp->collapsed_.clusters_, finalOutOpts);
+		SeqIOOptions clusOutOpts(
+				bib::files::make_path(finalClustersDir.string(), "inputClusters").string()
+						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
+		clusOutOpts.out_.overWriteFile_ = true;
+		SeqOutput inputClustersWriter(clusOutOpts);
+		inputClustersWriter.openOut();
 		for (const auto & clus : samp->collapsed_.clusters_) {
-			SeqIOOptions clusOutOpts(
-					bib::files::join(finalClustersDir.string(), clus.seqBase_.name_).string()
-							+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
-			clus.writeClusters(clusOutOpts);
+			for(auto & subClus : clus.reads_){
+				MetaDataInName subClusMeta;
+				bool hadMeta = false;
+				if(MetaDataInName::nameHasMetaData(subClus->seqBase_.name_)){
+					subClusMeta.processNameForMeta(subClus->seqBase_.name_, true);
+					hadMeta = true;
+				}
+				auto writeCluster = subClus->seqBase_;
+				subClusMeta.addMeta("TopClusterName", clus.seqBase_.name_);
+				if(hadMeta){
+					subClusMeta.resetMetaInName(writeCluster.name_);
+				}else{
+					subClusMeta.resetMetaInName(writeCluster.name_, writeCluster.name_.rfind("_t"));
+				}
+				inputClustersWriter.write(writeCluster);
+			}
 		}
 	}
 
@@ -379,11 +423,30 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 				bib::files::join(excludedDir.string(), sampleName).string()
 						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
 		SeqOutput::write(samp->excluded_.clusters_, excluddOutOpts);
+
+		SeqIOOptions clusOutOpts(
+				bib::files::make_path(excludedClusteredDir.string(), "inputClusters").string()
+						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
+		clusOutOpts.out_.overWriteFile_ = true;
+		SeqOutput inputClustersWriter(clusOutOpts);
+		inputClustersWriter.openOut();
 		for (const auto & clus : samp->excluded_.clusters_) {
-			SeqIOOptions clusOutOpts(
-					bib::files::join(excludedClusteredDir.string(), clus.seqBase_.name_).string()
-							+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
-			clus.writeClusters(clusOutOpts);
+			for(auto & subClus : clus.reads_){
+				MetaDataInName subClusMeta;
+				bool hadMeta = false;
+				if(MetaDataInName::nameHasMetaData(subClus->seqBase_.name_)){
+					subClusMeta.processNameForMeta(subClus->seqBase_.name_, true);
+					hadMeta = true;
+				}
+				auto writeCluster = subClus->seqBase_;
+				subClusMeta.addMeta("TopClusterName", clus.seqBase_.name_);
+				if(hadMeta){
+					subClusMeta.resetMetaInName(writeCluster.name_);
+				}else{
+					subClusMeta.resetMetaInName(writeCluster.name_, writeCluster.name_.rfind("_t"));
+				}
+				inputClustersWriter.write(writeCluster);
+			}
 		}
 	}
 	if (!samp->collapsed_.clusters_.empty()
@@ -570,13 +633,31 @@ void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dum
 
 		}
 		std::unordered_map<std::string, double> readTotals;
+		SeqIOOptions inputPopClustersOpts(
+									bib::files::join(popSubClusDir.string(), "inputClusters").string()
+											+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
+		inputPopClustersOpts.out_.overWriteFile_ = true;
+		SeqOutput inputPopClusWriter(inputPopClustersOpts);
+
+		inputPopClusWriter.openOut();
 		for (const auto & clus : popCollapse_->collapsed_.clusters_) {
-			clus.writeClusters(
-					SeqIOOptions(
-							bib::files::join(popSubClusDir.string(), clus.seqBase_.name_).string()
-									+ inputOptions_.getOutExtension(), inputOptions_.outFormat_));
 			for (const auto & subClus : clus.reads_) {
 				readTotals[subClus->getOwnSampName()] += subClus->seqBase_.cnt_;
+
+				MetaDataInName subClusMeta;
+				bool hadMeta = false;
+				if(MetaDataInName::nameHasMetaData(subClus->seqBase_.name_)){
+					subClusMeta.processNameForMeta(subClus->seqBase_.name_, true);
+					hadMeta = true;
+				}
+				auto writeCluster = subClus->seqBase_;
+				subClusMeta.addMeta("TopClusterName", clus.seqBase_.name_);
+				if(hadMeta){
+					subClusMeta.resetMetaInName(writeCluster.name_);
+				}else{
+					subClusMeta.resetMetaInName(writeCluster.name_, writeCluster.name_.rfind("_f"));
+				}
+				inputPopClusWriter.write(writeCluster);
 			}
 		}
 		table readNumsTab(readTotals, VecStr { "sample", "readTotal" });
@@ -605,7 +686,8 @@ void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & s
 }
 
 void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & samples, const bfs::path & popDir) {
-	auto popSubClusDir = bib::files::make_path(popDir, "clusters");
+
+
 	popCollapse_ = std::make_unique<collapse::populationCollapse>(
 			popNames_.populationName_);
 
@@ -629,6 +711,26 @@ void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & s
 		}
 	}
 
+	auto popInputClustersOpts = SeqIOOptions(
+			bib::files::make_path(popDir,
+					"clusters/inputClusters" + inputOptions_.getOutExtension()),
+			inputOptions_.inFormat_, true);
+	SeqInput inputReader(popInputClustersOpts);
+	inputReader.openIn();
+	std::unordered_map<std::string, std::vector<seqInfo>> inputPopClusters;
+	seqInfo inputSeq;
+	while(inputReader.readNextRead(inputSeq)){
+		MetaDataInName inputMeta(inputSeq.name_);
+		auto topClusterName = inputMeta.getMeta("TopClusterName");
+		inputMeta.removeMeta("TopClusterName");
+		if(inputMeta.meta_.size() == 0){
+			MetaDataInName::removeMetaDataInName(inputSeq.name_);
+		}else{
+			inputMeta.resetMetaInName(inputSeq.name_);
+		}
+		inputPopClusters[topClusterName].emplace_back(inputSeq);
+	}
+
 	SeqIOOptions popInOpts = SeqIOOptions(getPopFinalHapsPath().string(),
 			inputOptions_.inFormat_, true);
 	SeqInput reader(popInOpts);
@@ -638,14 +740,15 @@ void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & s
 	while (reader.readNextRead(seq)) {
 		std::vector<seqInfo> subSeqs;
 		std::set<std::string> subSamples;
-		auto subClustersPath = bib::files::make_path(popSubClusDir,
-				seq.name_ + inputOptions_.getOutExtension());
-		SeqIOOptions subClusInOpts = SeqIOOptions(subClustersPath.string(),
-				inputOptions_.inFormat_, true);
-		SeqInput subReader(subClusInOpts);
-		subReader.openIn();
-		seqInfo subSeq;
-		while (subReader.readNextRead(subSeq)) {
+//		auto subClustersPath = bib::files::make_path(popSubClusDir,
+//				seq.name_ + inputOptions_.getOutExtension());
+//		SeqIOOptions subClusInOpts = SeqIOOptions(subClustersPath.string(),
+//				inputOptions_.inFormat_, true);
+//		SeqInput subReader(subClusInOpts);
+//		subReader.openIn();
+//		seqInfo subSeq;
+//		while (subReader.readNextRead(subSeq)) {
+		for(auto & subSeq : inputPopClusters.at(seq.name_)){
 			//a little hacky but has to be done for certain pipeline;
 			std::string inputSampleName = subSeq.getOwnSampName();
 			if(MetaDataInName::nameHasMetaData(subSeq.name_)){

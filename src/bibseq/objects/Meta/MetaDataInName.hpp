@@ -39,9 +39,12 @@ public:
 		return bib::lexical_cast<T>(getMeta(key));
 	}
 
+	void removeMeta(const std::string & metaField);
+
 	void processNameForMeta(const std::string & name, bool replace);
 
 	bool containsMeta(const std::string & key) const;
+	void containsMetaThrow(const std::string & key, const std::string & funcName) const;
 
 	std::string getMeta(const std::string & key) const;
 

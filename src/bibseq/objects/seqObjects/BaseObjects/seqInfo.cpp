@@ -673,6 +673,35 @@ uint32_t seqInfo::getSumQual() const {
 	return sum;
 }
 
+std::string getStubNameExternal(const std::string & name, bool removeChiFlag)  {
+	size_t tPos = name.rfind("_t");
+	size_t fPos = name.rfind("_f");
+	std::string outString = name;
+	if (tPos == std::string::npos && fPos == std::string::npos) {
+		outString = name;
+	} else if (tPos != std::string::npos && fPos != std::string::npos) {
+		if (tPos > fPos) {
+			outString = name.substr(0, tPos);
+		} else {
+			outString = name.substr(0, fPos);
+		}
+	} else if (tPos == std::string::npos) {
+		outString = name.substr(0, fPos);
+	} else {
+		outString = name.substr(0, tPos);
+	}
+
+	if (removeChiFlag) {
+		outString = bib::replaceString(outString, "CHI_", "");
+	}
+//	if (removeChiFlag) {
+//		if(MetaDataInName::nameHasMetaData(outString)){
+//			MetaDataInName::removeMetaDataInName(outString);
+//		}
+//	}
+	return outString;
+}
+
 std::string seqInfo::getOwnSampName() const {
 
 	if(MetaDataInName::nameHasMetaData(name_)){
@@ -682,10 +711,13 @@ std::string seqInfo::getOwnSampName() const {
 		}
 	}
 	//std::cout << name_ << std::endl;
-	std::string name = getStubName(true);
-	auto firstBracket = name_.find("[");
-	if (std::string::npos != firstBracket) {
-		name = name.substr(firstBracket);
+	std::string name;
+	if(MetaDataInName::nameHasMetaData(name_)){
+		name = name_;
+		MetaDataInName::removeMetaDataInName(name);
+		name = getStubNameExternal(name, true);
+	}else{
+		name = getStubName(true);
 	}
 	//std::cout << name.substr(0,name.rfind(".")) << std::endl;
 	return name.substr(0,name.rfind("."));

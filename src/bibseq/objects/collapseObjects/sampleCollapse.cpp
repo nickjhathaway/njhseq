@@ -53,9 +53,9 @@ sampleCollapse::sampleCollapse(const std::vector<std::vector<bibseq::cluster>> &
 }
 
 void sampleCollapse::updateExclusionInfos() {
-  excluded_.setSetInfo();
-  sampleCluster::updateAllClusters(excluded_.clusters_, input_.info_.infos_);
-}
+	  excluded_.setSetInfo();
+    sampleCluster::updateAllClusters(excluded_.clusters_, input_.info_.infos_);
+  }
 // update the initial infos
 void sampleCollapse::updateInitialInfos() {
   input_.setSetInfo();
@@ -68,8 +68,8 @@ void sampleCollapse::updateCollapsedInfos() {
 }
 
 void sampleCollapse::updateAfterExclustion() {
-  updateExclusionInfos();
-  updateCollapsedInfos();
+	updateExclusionInfos();
+	updateCollapsedInfos();
 }
 
 
@@ -123,13 +123,17 @@ void sampleCollapse::excludeChimeras(bool update, double fracCutOff) {
 
 
 void sampleCollapse::excludeFraction(double fractionCutOff, bool update) {
-  uint32_t fractionCutOffNum = 0;
+
+	uint32_t fractionCutOffNum = 0;
+
   collapsed_.clusters_ = readVecSplitter::splitVectorOnReadFractionAdd(
       collapsed_.clusters_, fractionCutOff, excluded_.clusters_,
       fractionCutOffNum, false);
+
   if (update) {
     updateAfterExclustion();
   }
+
 }
 
 void sampleCollapse::excludeBySampNum(uint32_t sampsRequired, bool update) {
