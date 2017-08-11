@@ -708,6 +708,8 @@ std::string seqInfo::getOwnSampName() const {
 		MetaDataInName meta(name_);
 		if(meta.containsMeta("samp")){
 			return meta.getMeta("samp");
+		}else if(meta.containsMeta("sample")){
+			return meta.getMeta("sample");
 		}
 	}
 	//std::cout << name_ << std::endl;
