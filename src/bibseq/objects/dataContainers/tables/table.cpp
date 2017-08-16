@@ -1,6 +1,8 @@
 #include "table.hpp"
 #include "bibseq/IO/fileUtils.hpp"
+#include "bibseq/IO/InputStream.hpp"
 #include <bibcpp/bashUtils.h>
+
 //
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
@@ -166,16 +168,8 @@ table::table(std::istream & in, const std::string &inDelim,
 
 table::table(const bfs::path &filename, const std::string &inDelim,
              bool header) {
-  std::ifstream textFile(filename.c_str());
-  if (!textFile) {
-  	std::stringstream ss;
-    ss << bib::bashCT::red << bib::bashCT::bold
-    << __PRETTY_FUNCTION__
-		<< ": Error in opening " << filename
-		<< bib::bashCT::reset << "\n";
-    throw std::runtime_error{ss.str()};
-  }
-  *this = table(textFile, inDelim, header);
+	InputStream in(filename);
+  *this = table(in, inDelim, header);
   setColNamePositions();
 }
 void table::addPaddingToEndOfRows(const std::string & padding) {

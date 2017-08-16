@@ -18,9 +18,9 @@ namespace bibseq {
 
 
 class Muscler{
-
-	alnInfoGlobal genGlobalAlnInfo(const std::string & seq);
-
+public:
+	static alnInfoGlobal genGlobalAlnInfo(const std::string & seq);
+private:
 	bfs::path musclePath_;
 public:
 
@@ -200,7 +200,9 @@ public:
 				}
 
 				if(!bib::containsSubString(subSeq->seq_, "*")
-							&& "" != getSeqBase(seqs[pos.first]).seq_){
+							&& "" != getSeqBase(seqs[pos.first]).seq_
+							&& getSeqBase(seqs[pos.first]).seq.find_first_not_of(' ') != std::string::npos) {
+
 					++seqsWritten;
 					tFile << ">" << pos.first << "\n";
 					tFile << subSeq->seq_ << "\n";
@@ -226,6 +228,7 @@ public:
 				SeqIOOptions opts;
 				SeqInput reader(opts);
 				seqInfo seq;
+				uint64_t maxLen = 0;
 				while(reader.readNextFastaStream(ss, seq,false)){
 					uint32_t pos = estd::stou(seq.name_);
 					auto gAlnInfo = genGlobalAlnInfo(seq.seq_);
@@ -239,7 +242,21 @@ public:
 					}else{
 						getSeqBase(seqs[pos]).clipOut(posSizes.at(pos).pos_, posSizes.at(pos).size_);
 					}
+					readVec::getMaxLength(subInfos[pos], maxLen);
 					getSeqBase(seqs[pos]).insert(posSizes.at(pos).pos_, *(subInfos[pos]));
+				}
+				//muscle removes seqs that are all gaps so have to adjust gap sizes if sub selection was just all gaps
+				for (const auto & pos : posSizes) {
+					if(getSeqBase(seqs[pos.first]).seq_.substr(pos.second.pos_, pos.second.size_).find_first_not_of(' ') == std::string::npos){
+						if (std::numeric_limits<uint32_t>::max()
+								== posSizes.at(pos.first).size_) {
+							getSeqBase(seqs[pos.first]).trimBack(posSizes.at(pos.first).pos_);
+						} else {
+							getSeqBase(seqs[pos.first]).clipOut(posSizes.at(pos.first).pos_,
+									posSizes.at(pos.first).size_);
+						}
+						getSeqBase(seqs[pos]).insert(posSizes.at(pos.first).pos_,seqInfo(std::string(maxLen, '-'), 0));
+					}
 				}
 			} catch (std::exception & e) {
 				std::cerr << e.what() << std::endl;
