@@ -144,9 +144,10 @@ public:
 
 	};
 
+
 	template<typename T>
 	void muscleSeqs(std::vector<T> & seqs,
-			const std::unordered_map<uint32_t, MusPosSize> & posSizes){
+			const std::unordered_map<uint32_t, Muscler::MusPosSize> & posSizes){
 		//create temporary file, the last 6 xs will be randomized characters
 		char *tmpname = strdup("/tmp/tmpfileXXXXXX");
 		auto mkTempRet = mkstemp(tmpname);
@@ -156,12 +157,12 @@ public:
 			throw std::runtime_error{sErr.str()};
 		}
 		close(mkTempRet);
-//		auto mkTempRet = mktemp(tmpname);
-//		if(nullptr == mkTempRet){
-//			std::stringstream sErr;
-//			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << tmpname << "\n";
-//			throw std::runtime_error{sErr.str()};
-//		}
+	//		auto mkTempRet = mktemp(tmpname);
+	//		if(nullptr == mkTempRet){
+	//			std::stringstream sErr;
+	//			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << tmpname << "\n";
+	//			throw std::runtime_error{sErr.str()};
+	//		}
 		uint32_t seqsWritten = 0;
 		std::unordered_map<uint32_t, std::shared_ptr<seqInfo>> subInfos;
 		std::vector<uint32_t> seqsWithStopCodonEndings;
@@ -201,9 +202,10 @@ public:
 
 				if(!bib::containsSubString(subSeq->seq_, "*")
 							&& "" != getSeqBase(seqs[pos.first]).seq_
-							&& getSeqBase(seqs[pos.first]).seq.find_first_not_of(' ') != std::string::npos) {
+							&& getSeqBase(seqs[pos.first]).seq_.find_first_not_of('-') != std::string::npos) {
 
 					++seqsWritten;
+					subSeq->removeGaps();
 					tFile << ">" << pos.first << "\n";
 					tFile << subSeq->seq_ << "\n";
 					subInfos[pos.first] = subSeq;
@@ -230,6 +232,7 @@ public:
 				seqInfo seq;
 				uint64_t maxLen = 0;
 				while(reader.readNextFastaStream(ss, seq,false)){
+					readVec::getMaxLength(seq, maxLen);
 					uint32_t pos = estd::stou(seq.name_);
 					auto gAlnInfo = genGlobalAlnInfo(seq.seq_);
 					alignCalc::rearrangeGlobalQueryOnly(subInfos[pos]->seq_, '-', gAlnInfo );
@@ -242,12 +245,11 @@ public:
 					}else{
 						getSeqBase(seqs[pos]).clipOut(posSizes.at(pos).pos_, posSizes.at(pos).size_);
 					}
-					readVec::getMaxLength(subInfos[pos], maxLen);
 					getSeqBase(seqs[pos]).insert(posSizes.at(pos).pos_, *(subInfos[pos]));
 				}
 				//muscle removes seqs that are all gaps so have to adjust gap sizes if sub selection was just all gaps
 				for (const auto & pos : posSizes) {
-					if(getSeqBase(seqs[pos.first]).seq_.substr(pos.second.pos_, pos.second.size_).find_first_not_of(' ') == std::string::npos){
+					if(getSeqBase(seqs[pos.first]).seq_.substr(pos.second.pos_, pos.second.size_).find_first_not_of('-') == std::string::npos){
 						if (std::numeric_limits<uint32_t>::max()
 								== posSizes.at(pos.first).size_) {
 							getSeqBase(seqs[pos.first]).trimBack(posSizes.at(pos.first).pos_);
@@ -255,7 +257,7 @@ public:
 							getSeqBase(seqs[pos.first]).clipOut(posSizes.at(pos.first).pos_,
 									posSizes.at(pos.first).size_);
 						}
-						getSeqBase(seqs[pos]).insert(posSizes.at(pos.first).pos_,seqInfo(std::string(maxLen, '-'), 0));
+						getSeqBase(seqs[pos.first]).insert(posSizes.at(pos.first).pos_, seqInfo("", std::string(maxLen, '-'), std::vector<uint32_t>(maxLen, 0)));
 					}
 				}
 			} catch (std::exception & e) {
