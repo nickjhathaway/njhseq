@@ -23,7 +23,8 @@ public:
 private:
 	bfs::path musclePath_;
 public:
-
+	bfs::path workingPath_ = "/tmp/";
+	bool keepTemp_ = false;
 
 
 	Muscler(const bfs::path & musclePath);
@@ -59,7 +60,8 @@ public:
 	void muscleSeqs(std::vector<T> & seqs,
 			const std::vector<POSTYPE> & selected){
 		//create temporary file, the last 6 xs will be randomized characters
-		char *tmpname = strdup("/tmp/tmpfileXXXXXX");
+		bfs::path tmpnameStr = bib::files::make_path(workingPath_, "tmpfileXXXXXX").string();
+		char * tmpname = strdup(tmpnameStr.c_str());
 		auto mkTempRet = mkstemp(tmpname);
 		if(-1 == mkTempRet){
 			std::stringstream sErr;
@@ -106,6 +108,7 @@ public:
 				auto rOut = bib::sys::run(cmds);
 				if(!rOut.success_){
 					std::stringstream sErr;
+					sErr << rOut.stdOut_ << std::endl;
 					sErr << bib::bashCT::red << "failure:" << std::endl;
 					sErr << rOut.stdErr_ << std::endl;
 					sErr << bib::bashCT::reset << std::endl;
@@ -125,10 +128,15 @@ public:
 					getSeqBase(seqs[pos]).append("*");
 				}
 			} catch (std::exception & e) {
-				bib::files::bfs::remove(tmpname);
+				std::cerr << e.what() << std::endl;
+				if(!keepTemp_){
+					bib::files::bfs::remove(tmpname);
+				}
 				throw e;
 			}
-			bib::files::bfs::remove(tmpname);
+			if(!keepTemp_){
+				bib::files::bfs::remove(tmpname);
+			}
 		}
 	}
 
@@ -149,7 +157,8 @@ public:
 	void muscleSeqs(std::vector<T> & seqs,
 			const std::unordered_map<uint32_t, Muscler::MusPosSize> & posSizes){
 		//create temporary file, the last 6 xs will be randomized characters
-		char *tmpname = strdup("/tmp/tmpfileXXXXXX");
+		bfs::path tmpnameStr = bib::files::make_path(workingPath_, "tmpfileXXXXXX").string();
+		char * tmpname = strdup(tmpnameStr.c_str());
 		auto mkTempRet = mkstemp(tmpname);
 		if(-1 == mkTempRet){
 			std::stringstream sErr;
@@ -221,6 +230,7 @@ public:
 				if(!rOut.success_){
 					std::stringstream sErr;
 					sErr << __PRETTY_FUNCTION__ << ", error " << "\n";
+					sErr << rOut.stdOut_ << std::endl;
 					sErr << bib::bashCT::red << "failure:" << std::endl;
 					sErr << rOut.stdErr_ << std::endl;
 					sErr << bib::bashCT::reset << std::endl;
@@ -262,11 +272,15 @@ public:
 				}
 			} catch (std::exception & e) {
 				std::cerr << e.what() << std::endl;
-				bib::files::bfs::remove(tmpname);
+				if(!keepTemp_){
+					bib::files::bfs::remove(tmpname);
+				}
 				throw std::runtime_error{e.what()};
 			}
 		}
-		bib::files::bfs::remove(tmpname);
+		if(!keepTemp_){
+			bib::files::bfs::remove(tmpname);
+		}
 	}
 
 	/**@brief muscle the sequences in seqs
