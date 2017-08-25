@@ -201,6 +201,9 @@ uint32_t countSeqs(const SeqIOOptions & opts, bool verbose) {
 	uint32_t ret = 0;
 	if (bib::files::bfs::exists(opts.firstName_)) {
 		SeqIO reader(opts);
+		if(reader.in_.isFirstEmpty()){
+			return ret;
+		}
 		reader.openIn();
 		if(!reader.in_.inOpen()){
 			std::stringstream ss;
