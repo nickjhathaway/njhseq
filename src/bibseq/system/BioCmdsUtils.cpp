@@ -159,9 +159,17 @@ bib::sys::RunOutput BioCmdsUtils::bowtie2Align(const SeqIOOptions & opts,
 	if(SeqIOOptions::inFormats::FASTA == opts.inFormat_){
 		additionalBowtie2Args += " -f ";
 	}
-	templateCmd << "bowtie2 -U " << opts.firstName_ << " -x " << genomePrefix
-			<< " " <<  additionalBowtie2Args << " | samtools view - -b | samtools sort - -o " << outputFnp
-			<< " " << "&& samtools index " << outputFnp;
+	if(opts.isPairedIn()){
+		templateCmd << "bowtie2 -1 " << opts.firstName_ << " -2 " << opts.secondName_ << " -x " << genomePrefix
+				<< " " <<  additionalBowtie2Args << " | samtools view - -b | samtools sort - -o " << outputFnp
+				<< " " << "&& samtools index " << outputFnp;
+	}else{
+		templateCmd << "bowtie2 -U " << opts.firstName_ << " -x " << genomePrefix
+				<< " " <<  additionalBowtie2Args << " | samtools view - -b | samtools sort - -o " << outputFnp
+				<< " " << "&& samtools index " << outputFnp;
+	}
+
+
 	if (verbose_) {
 		std::cout << "Running: " << bib::bashCT::green << templateCmd.str()
 				<< bib::bashCT::reset << std::endl;
