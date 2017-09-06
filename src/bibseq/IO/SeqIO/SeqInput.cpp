@@ -280,7 +280,7 @@ void SeqInput::openIn() {
 	if (inOpen_) {
 		return;
 	}
-	if (!bib::files::bfs::exists(ioOptions_.firstName_)) {
+	if (bib::strToLowerRet(ioOptions_.firstName_.string()) != "stdin" &&  !bib::files::bfs::exists(ioOptions_.firstName_)) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": Error file: " << bib::bashCT::boldRed(ioOptions_.firstName_.string()) << " doesn't exist\n";
 		if( "" != ioOptions_.secondName_.string() && !bib::files::bfs::exists(ioOptions_.secondName_.string())){
