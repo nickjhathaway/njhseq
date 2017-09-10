@@ -47,6 +47,8 @@ struct QualFilteringPars {
   uint32_t trimAtQualCutOff_ = 2;
   bool trimAtQual_ = false;
 
+  Json::Value toJson() const;
+
 };
 class SeqSetUpPars {
 public:
