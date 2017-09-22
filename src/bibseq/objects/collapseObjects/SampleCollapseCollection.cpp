@@ -51,6 +51,8 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 	sampleMinReadCount_ = coreJson["sampleMinReadCount_"].asUInt();
 	populationOutputDir_ = coreJson["populationOutputDir_"].asString();
 	samplesOutputDir_ = coreJson["samplesOutputDir_"].asString();
+	passingSamples_ = bib::json::jsonArrayToVec<std::string>(coreJson["passingSamples_"],
+			[](const Json::Value & val){ return val.asString();});
 	//load in group meta data if it is available
 	if(bfs::exists(bib::files::make_path(masterOutputDir_, "groups", "groupMetaData.json"))){
 		groupMetaData_ = std::make_unique<MultipleGroupMetaData>(
