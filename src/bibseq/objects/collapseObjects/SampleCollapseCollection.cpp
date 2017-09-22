@@ -19,12 +19,14 @@ SampleCollapseCollection::SampleCollapseCollection(SeqIOOptions inputOptions,
 		const bfs::path & inputDir,
 		const bfs::path & outputDir,
 		const PopNamesInfo & popNames,
-		uint32_t clusterSizeCutOff) :
+		uint32_t clusterSizeCutOff,
+		uint32_t sampleMinReadCount) :
 		inputOptions_(inputOptions),
 		masterInputDir_(inputDir),
 		masterOutputDir_(outputDir),
 		popNames_(popNames),
-		clusterSizeCutOff_(clusterSizeCutOff) {
+		clusterSizeCutOff_(clusterSizeCutOff),
+		sampleMinReadCount_(sampleMinReadCount){
 	samplesOutputDir_ = bib::files::make_path(masterOutputDir_, "samplesOutput");
 	populationOutputDir_ = bib::files::make_path(masterOutputDir_, "population");
 	bib::files::makeDir(bib::files::MkdirPar(samplesOutputDir_.string(), true));
@@ -35,7 +37,7 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 
 	bib::json::MemberChecker checker(coreJson);
 
-	checker.failMemberCheckThrow(VecStr { "clusterSizeCutOff_", "inputOptions_",
+	checker.failMemberCheckThrow(VecStr {"sampleMinReadCount_", "clusterSizeCutOff_", "inputOptions_",
 			"masterInputDir_", "masterOutputDir_", "popNames_",
 			"populationOutputDir_", "samplesOutputDir_" }, __PRETTY_FUNCTION__);
 
@@ -46,7 +48,7 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 			bib::json::jsonArrayToSet<std::string>(coreJson["popNames_"]["samples_"],
 					[](const Json::Value & val){ return val.asString();}));
 	clusterSizeCutOff_ = coreJson["clusterSizeCutOff_"].asUInt();
-
+	sampleMinReadCount_ = coreJson["sampleMinReadCount_"].asUInt();
 	populationOutputDir_ = coreJson["populationOutputDir_"].asString();
 	samplesOutputDir_ = coreJson["samplesOutputDir_"].asString();
 	//load in group meta data if it is available
@@ -499,6 +501,10 @@ void SampleCollapseCollection::investigateChimeras(double chiCutOff,
 	for (const auto & sampleName : popNames_.samples_) {
 		VecStr clustersSavedFromChi;
 		setUpSampleFromPrevious(sampleName);
+		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+			continue;
+		}
+
 		uint32_t clustersNotSaved = 0;
 		//first mark the suspicious clusters as being chimeric
 		for (auto &clus : sampleCollapses_[sampleName]->collapsed_.clusters_) {
@@ -568,9 +574,14 @@ void SampleCollapseCollection::investigateChimeras(double chiCutOff,
 }
 
 std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
+	passingSamples_.clear();
 	std::vector<sampleCluster> output;
 	for (const auto & sampleName : popNames_.samples_) {
 		setUpSampleFromPrevious(sampleName);
+		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+			continue;
+		}
+		passingSamples_.emplace_back(sampleName);
 		auto & samp = *(sampleCollapses_[sampleName]);
 		double totalReadCnt_ = 0;
 		for (const auto &out : samp.collapsed_.clusters_) {
@@ -884,6 +895,9 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 	std::vector<VecStr> rows;
 	for (const auto& sampName : samples) {
 		setUpSampleFromPrevious(sampName);
+		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+			continue;
+		}
 		if (maxRunCount
 				< sampleCollapses_.at(sampName)->collapsed_.info_.infos_.size()) {
 			maxRunCount =
@@ -893,6 +907,9 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 	}
 	for (const auto& sampName : samples) {
 		setUpSampleFromPrevious(sampName);
+		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+			continue;
+		}
 		for (const auto clusPos : iter::range(
 				sampleCollapses_.at(sampName)->collapsed_.clusters_.size())) {
 			const auto & clus =
@@ -1059,6 +1076,9 @@ void SampleCollapseCollection::outputRepAgreementInfo() {
 			VecStr { "sampleName", "clusterName", "repName", "fraction" });
 	for (const auto & sampleName : popNames_.samples_) {
 		setUpSampleFromPrevious(sampleName);
+		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+			continue;
+		}
 		auto & samp = *(sampleCollapses_[sampleName]);
 		auto repInfoforSample = samp.collapsed_.getReplicateInfo();
 		for (const auto & row : repInfoforSample.content_) {
@@ -1138,7 +1158,9 @@ Json::Value SampleCollapseCollection::toJsonCore() const{
 	ret["samplesOutputDir_"] = bib::json::toJson(bfs::absolute(samplesOutputDir_));
 	ret["populationOutputDir_"] = bib::json::toJson(bfs::absolute(populationOutputDir_));
 	ret["popNames_"] = bib::json::toJson(popNames_);
+	ret["passingSamples_"] = bib::json::toJson(passingSamples_);
 	ret["clusterSizeCutOff_"] = bib::json::toJson(clusterSizeCutOff_);
+	ret["sampleMinReadCount_"] = bib::json::toJson(sampleMinReadCount_);
 	return ret;
 }
 
@@ -1164,6 +1186,9 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 	table ret(inputContent, VecStr{"#PopUID"});
 	for (const auto & samp : samples) {
 		setUpSampleFromPrevious(samp);
+		if(sampleCollapses_[samp]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+			continue;
+		}
 		std::unordered_map<std::string, double> popUidToFrac;
 		for (const auto clusPos : iter::range(
 				sampleCollapses_.at(samp)->collapsed_.clusters_.size())) {

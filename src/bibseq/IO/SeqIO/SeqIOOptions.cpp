@@ -22,6 +22,7 @@
 
 #include <bibcpp/debug.h>
 
+
 namespace bibseq {
 
 bool SeqIOOptions::isPairedIn() const {
@@ -108,6 +109,8 @@ SeqIOOptions::outFormats SeqIOOptions::getOutFormat(const std::string & format){
 std::string SeqIOOptions::getOutExtension() const{
 	return getOutExtension(outFormat_);
 }
+
+
 
 bfs::path SeqIOOptions::getPriamryOutName() const{
 	return bib::appendAsNeededRet(out_.outFilename_.string(), getOutExtension(outFormat_));
