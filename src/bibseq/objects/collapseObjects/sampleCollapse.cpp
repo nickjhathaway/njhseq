@@ -175,13 +175,12 @@ VecStr sampleCollapse::getSimpleSampInfoVec() const {
 	return toVecStr(sampName_,
 			getPercentageString(collapsed_.info_.totalReadCount_,
 					input_.info_.totalReadCount_), collapsed_.info_.numberOfClusters_,
-			collapsed_.clusters_.size());
+			collapsed_.clusters_.size(), collapsed_.clusters_.size());
 }
 
 VecStr sampleCollapse::getSimpleSampInfoHeaderVec() {
 	return VecStr { "s_Name", "s_ReadCntTotUsed", "s_InputClusterCnt",
-			"s_FinalClusterCnt" };
-	//
+			"s_FinalClusterCnt", "s_COI" };
 }
 
 
