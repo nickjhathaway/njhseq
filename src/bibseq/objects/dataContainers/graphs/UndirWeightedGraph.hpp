@@ -345,6 +345,42 @@ public:
 			}
 		}
 
+		void determineBestDistanceWithComp(bool doTies,
+				std::function<bool(const DIST&,const DIST&)> distCompFunc,
+				std::function<bool(const DIST&,const DIST&)> equalCompFunc){
+			if(!edges_.empty() && numConnections()> 0){
+				DIST best = edges_.front()->dist_;
+				std::vector<uint64_t> bestIndex = {0};
+				for(const auto & ePos : iter::range(edges_.size())){
+					const auto & e = edges_[ePos];
+					if(e->on_){
+						best = e->dist_;
+						bestIndex.clear();
+						bestIndex.emplace_back(ePos);
+						break;
+					}
+				}
+				for(const auto & e : iter::enumerate(edges_)){
+					if(e.element->on_){
+						if(distCompFunc(e.element->dist_,best)){
+							best = e.element->dist_;
+							bestIndex.clear();
+							bestIndex = {e.index};
+						} else if (doTies && equalCompFunc(e.element->dist_, best)){
+							bestIndex.emplace_back(e.index);
+						}
+					}
+				}
+				if(doTies){
+					for(const auto & b : bestIndex){
+						edges_[b]->best_ = true;
+					}
+				}else{
+					edges_[bestIndex.front()]->best_ = true;
+				}
+			}
+		}
+
 		uint32_t numConnections() const{
 			uint32_t ret = 0;
 			for(auto & e : edges_){
@@ -629,7 +665,19 @@ public:
 		}
 	}
 
-
+	void allDetermineBestDistanceWithComp(bool doTies, std::function<bool(const DIST&,const DIST&)> distCompFunc,
+			std::function<bool(const DIST&,const DIST&)> equalCompFunc){
+		for(const auto & n : nodes_){
+			n->determineBestDistanceWithComp(doTies, distCompFunc, equalCompFunc);
+		}
+		for(const auto & e : edges_){
+			if(e->on_){
+				if(!e->best_){
+					e->on_ = false;
+				}
+			}
+		}
+	}
 
 	void allDetermineHigestBest(bool doTies){
 		for(const auto & n : nodes_){

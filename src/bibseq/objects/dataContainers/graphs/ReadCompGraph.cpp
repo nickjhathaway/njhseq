@@ -184,6 +184,21 @@ comparison ReadCompGraph::setMinimumHqMismatchConnections() {
 	return setMinimumConnections(modFunc, compFunc);
 }
 
+
+
+void ReadCompGraph::setJustBestConnection(bool doTies){
+	auto compFunc = [](const comparison & comp, const comparison & best){
+		return comp.distances_.getNumOfEvents(false) < best.distances_.getNumOfEvents(false);
+	};
+	auto equalFunc = [](const comparison & comp, const comparison & best){
+		return comp.distances_.getNumOfEvents(false) == best.distances_.getNumOfEvents(false);
+	};
+
+
+	allDetermineBestDistanceWithComp(doTies, compFunc, equalFunc);
+
+}
+
 std::string & padAsNeeded(std::string & str, size_t compareLen) {
 	if (compareLen > str.size()) {
 		str.append(std::string(compareLen - str.size(), ' '));

@@ -63,7 +63,7 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
 	std::mutex alignerLock;
 	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,
-			numThreads, comparison(), false);
+			numThreads, comparison(), false, false, false);
 }
 
 template<typename T>
@@ -77,7 +77,7 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
 	std::mutex alignerLock;
 	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,
-			numThreads, allowableErrors, settingEventsLimits);
+			numThreads, allowableErrors, settingEventsLimits, false, false);
 }
 
 template<typename T>
@@ -85,7 +85,8 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 		aligner & alignerObj,
 		std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners,
 		std::mutex & alignerLock, uint32_t numThreads,
-		const comparison &allowableErrors, bool settingEventsLimits
+		const comparison &allowableErrors, bool settingEventsLimits,
+		bool justBest, bool doTies
 		){
 	auto graph = genReadComparisonGraph(reads, alignerObj, aligners, alignerLock,
 			numThreads);
@@ -104,6 +105,9 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 		});
 	}else{
 		comparison maxEvents = graph.setMinimumEventConnections();
+	}
+	if(justBest){
+		graph.setJustBestConnection(doTies);
 	}
 	auto treeData = graph.toD3Json(bib::color("#000000"), nameColors);
 	return treeData;

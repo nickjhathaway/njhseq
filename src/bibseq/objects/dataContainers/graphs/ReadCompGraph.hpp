@@ -68,6 +68,8 @@ public:
 	comparison setMinimumEventConnections();
 	comparison setMinimumHqMismatchConnections();
 
+	void setJustBestConnection(bool doTies);
+
 	Json::Value toD3Json(bib::color backgroundColor,
 			const std::unordered_map<std::string, bib::color> & nameColors);
 
