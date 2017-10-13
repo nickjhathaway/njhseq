@@ -61,7 +61,9 @@ TableIOOpts::TableIOOpts(const InOptions & inOpts, const std::string & inDelim,
 		bool header) :
 		IoOptions(inOpts, OutOptions("", ".txt", "txt")), inDelim_(inDelim), hasHeader_(
 				header) {
-
+	if("tab" == inDelim_){
+		inDelim_ = "\t";
+	}
 }
 
 TableIOOpts::TableIOOpts(const OutOptions & outOpts,
@@ -79,7 +81,9 @@ TableIOOpts::TableIOOpts(const InOptions & inOpts, const std::string & inDelim,
 		const OutOptions & outOpts, const std::string & outDelim, bool header) :
 		IoOptions(inOpts, outOpts), inDelim_(inDelim), outDelim_(outDelim), hasHeader_(
 				header) {
-
+	if("tab" == inDelim_){
+		inDelim_ = "\t";
+	}
 }
 
 

@@ -193,7 +193,30 @@ std::string MetaDataInName::getMeta(const std::string & key) const {
 std::string MetaDataInName::createMetaName() const {
 	std::string newMeta = "[";
 	auto metaKeys = bib::getVecOfMapKeys(meta_);
-	bib::sort(metaKeys);
+	//sort integer by their actual numerical values if all keys numbers
+	if(std::all_of(metaKeys.begin(), metaKeys.end(), [](const std::string & str){ return bib::strAllDigits(str);}) ){
+		bib::sort(metaKeys, [](const std::string & str1, const std::string & str2){
+			return bib::StrToNumConverter::stoToNum<uint32_t>(str1) < bib::StrToNumConverter::stoToNum<uint32_t>(str2);
+		});
+	}else{
+		bib::sort(metaKeys);
+	}
+	for (const auto & metaKey : metaKeys) {
+		const auto & meta = meta_.at(metaKey);
+		if ("[" != newMeta) {
+			newMeta.append(";" + metaKey + "=" + meta);
+		} else {
+			newMeta.append(metaKey + "=" + meta);
+		}
+	}
+	newMeta.append("]");
+	return newMeta;
+}
+
+std::string MetaDataInName::createMetaName(const std::function<bool(const std::string &, const std::string &)> & metaKeyPredSorter) const{
+	std::string newMeta = "[";
+	auto metaKeys = bib::getVecOfMapKeys(meta_);
+	bib::sort(metaKeys, metaKeyPredSorter);
 	for (const auto & metaKey : metaKeys) {
 		const auto & meta = meta_.at(metaKey);
 		if ("[" != newMeta) {

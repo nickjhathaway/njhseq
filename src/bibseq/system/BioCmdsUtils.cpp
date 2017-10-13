@@ -146,6 +146,14 @@ bib::sys::RunOutput BioCmdsUtils::bowtie2Align(const SeqIOOptions & opts,
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	bfs::path outputFnp = bib::appendAsNeededRet(opts.out_.outFilename_.string(),
 			".sorted.bam");
+	auto outputFnpTempSam = bib::appendAsNeededRet(opts.out_.outFilename_.string(),
+			".sam");
+	if (bfs::exists(outputFnpTempSam) && !opts.out_.overWriteFile_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": error, " << outputFnp
+				<< " already exists, use --overWrite to over write it" << "\n";
+		throw std::runtime_error { ss.str() };
+	}
 	if (bfs::exists(outputFnp) && !opts.out_.overWriteFile_) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": error, " << outputFnp
@@ -159,23 +167,39 @@ bib::sys::RunOutput BioCmdsUtils::bowtie2Align(const SeqIOOptions & opts,
 	if(SeqIOOptions::inFormats::FASTA == opts.inFormat_){
 		additionalBowtie2Args += " -f ";
 	}
+
+//	if(opts.isPairedIn()){
+//		templateCmd << "bowtie2 -1 " << opts.firstName_ << " -2 " << opts.secondName_ << " -x " << genomePrefix
+//				<< " " <<  additionalBowtie2Args << " | samtools view - -b | samtools sort - -o " << outputFnp
+//				<< " " << "&& samtools index " << outputFnp;
+//	}else{
+//		templateCmd << "bowtie2 -U " << opts.firstName_ << " -x " << genomePrefix
+//				<< " " <<  additionalBowtie2Args << " | samtools view - -b | samtools sort - -o " << outputFnp
+//				<< " " << "&& samtools index " << outputFnp;
+//	}
 	if(opts.isPairedIn()){
 		templateCmd << "bowtie2 -1 " << opts.firstName_ << " -2 " << opts.secondName_ << " -x " << genomePrefix
-				<< " " <<  additionalBowtie2Args << " | samtools view - -b | samtools sort - -o " << outputFnp
-				<< " " << "&& samtools index " << outputFnp;
+				<< " " <<  additionalBowtie2Args << " > " << outputFnpTempSam;
 	}else{
 		templateCmd << "bowtie2 -U " << opts.firstName_ << " -x " << genomePrefix
-				<< " " <<  additionalBowtie2Args << " | samtools view - -b | samtools sort - -o " << outputFnp
-				<< " " << "&& samtools index " << outputFnp;
+				<< " " <<  additionalBowtie2Args << " > " << outputFnpTempSam;
 	}
-
-
 	if (verbose_) {
 		std::cout << "Running: " << bib::bashCT::green << templateCmd.str()
 				<< bib::bashCT::reset << std::endl;
 	}
 	auto ret = bib::sys::run( { templateCmd.str() });
 	BioCmdsUtils::checkRunOutThrow(ret, __PRETTY_FUNCTION__);
+	std::stringstream samtoolsCmds;
+	samtoolsCmds << "samtools sort " << outputFnpTempSam <<" -o " << outputFnp
+					<< " " << "&& samtools index " << outputFnp;
+	if (verbose_) {
+		std::cout << "Running: " << bib::bashCT::green << samtoolsCmds.str()
+				<< bib::bashCT::reset << std::endl;
+	}
+	auto samtoolsRunOut = bib::sys::run( { samtoolsCmds.str() });
+	BioCmdsUtils::checkRunOutThrow(samtoolsRunOut, __PRETTY_FUNCTION__);
+	bfs::remove(outputFnpTempSam);
 	return ret;
 }
 

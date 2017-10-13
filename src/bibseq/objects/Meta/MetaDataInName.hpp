@@ -49,6 +49,7 @@ public:
 	std::string getMeta(const std::string & key) const;
 
 	std::string createMetaName() const;
+	std::string createMetaName(const std::function<bool(const std::string &, const std::string &)> & metaKeyPredSorter) const;
 
 	void resetMetaInName(std::string & name,
 			size_t pos = std::numeric_limits<size_t>::max()) const;

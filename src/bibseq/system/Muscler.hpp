@@ -635,8 +635,9 @@ public:
 	template<typename SEQ>
 	void trimSeqsByMultipleAlignment(std::vector<SEQ> & seqs, const TrimWithMusclePars & pars,
 			const std::function<bool(const std::shared_ptr<Muscler::AlnPosScore> &)> scorePred){
-
+		//std::cout << __FILE__ << " " << __LINE__ << " " << __PRETTY_FUNCTION__ << std::endl;
 		auto alnSeqs = muscleSeqsRet(seqs);
+		//std::cout << __FILE__ << " " << __LINE__ << " " << __PRETTY_FUNCTION__ << std::endl;
 
 		//first check to make sure all seqs are the same size;
 		for(const auto & seq : alnSeqs){
@@ -654,6 +655,7 @@ public:
 		}else{
 			Muscler::trimAlnSeqsToFirstAndLastStreak(alnSeqs, streaks);
 		}
+		seqs = alnSeqs;
 	}
 
 
