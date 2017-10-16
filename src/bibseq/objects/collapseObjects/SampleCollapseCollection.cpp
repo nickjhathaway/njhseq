@@ -628,8 +628,10 @@ void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dum
 		bib::files::makeDir(bib::files::MkdirPar(popDir.string(), true));
 		bib::files::makeDir(bib::files::MkdirPar(popSubClusDir.string(), true));
 		SeqIOOptions popOutOpts(
-				bib::files::join(popDir.string(), "PopSeqs").string()
-						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
+				bib::files::make_path(popDir,
+						"PopSeqs" + inputOptions_.getOutExtension()),
+				inputOptions_.outFormat_);
+
 		SeqOutput::write(popCollapse_->collapsed_.clusters_, popOutOpts);
 		if (!popCollapse_->collapsed_.clusters_.empty()
 				&& "" != popCollapse_->collapsed_.clusters_.front().expectsString) {
@@ -1032,7 +1034,8 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			}
 			VecStr groupInfoColNames { "g_GroupName", "p_TotalInputReadCnt",
 					"p_TotalInputClusterCnt", "p_TotalPopulationSampCnt",
-					"p_TotalHaplotypes", "p_TotalUniqueHaplotypes", "p_meanCoi", "p_medianCoi", "p_minCoi",
+					"p_TotalHaplotypes", "p_TotalUniqueHaplotypes", "p_ExpectedHeterozygosity",
+					"p_meanCoi", "p_medianCoi", "p_minCoi",
 					"p_maxCoi", "g_hapsFoundOnlyInThisGroup"};
 			//info on all the sub groups
 			table outTab(groupInfoColNames);

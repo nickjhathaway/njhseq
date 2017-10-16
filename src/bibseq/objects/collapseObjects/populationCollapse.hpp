@@ -55,13 +55,16 @@ class populationCollapse {
   void updateInfoWithSampCollapses(const std::map<std::string, sampleCollapse> & sampCollapses);
   void updateInfoWithSampCollapse(const sampleCollapse & sampCollapses);
 
-  //io
-  void writeFinal(const std::string &outDirectory, const SeqIOOptions & ioOptions) const;
-  void writeFinalInitial(const std::string &outDirectory, const SeqIOOptions & ioOptions) const;
+	//io
+	void writeFinal(const std::string &outDirectory,
+			const SeqIOOptions & ioOptions) const;
+	void writeFinalInitial(const std::string &outDirectory,
+			const SeqIOOptions & ioOptions) const;
 
+	VecStr getPopInfoVec() const;
+	static VecStr getPopInfoHeaderVec();
 
-  VecStr getPopInfoVec()const;
-  static VecStr getPopInfoHeaderVec();
+	double getExpectedHeterozygosity() const;
 
 
 };

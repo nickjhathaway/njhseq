@@ -282,14 +282,24 @@ void populationCollapse::updateInfoWithSampCollapse(const sampleCollapse & sampC
 
 
 VecStr populationCollapse::getPopInfoVec() const {
+	double he = getExpectedHeterozygosity();
 	return toVecStr(collapsed_.info_.totalReadCount_,
 			collapsed_.info_.numberOfClusters_, collapsed_.info_.infos_.size(),
-			collapsed_.clusters_.size(), collapsed_.info_.getCoiInfoVec());
+			collapsed_.clusters_.size(), he, collapsed_.info_.getCoiInfoVec());
+}
+
+double populationCollapse::getExpectedHeterozygosity() const{
+	//he = [𝑛/(𝑛 − 1)][1 − ∑𝑛𝑖=1 𝑝𝑖2]
+	double sumOfSquares = 0;
+	for(const auto & clus : collapsed_.clusters_){
+		sumOfSquares += std::pow(clus.reads_.size()/static_cast<double>(collapsed_.info_.numberOfClusters_), 2);
+	}
+	return (collapsed_.info_.numberOfClusters_/(static_cast<double>(collapsed_.info_.numberOfClusters_) - 1)) * (1 - sumOfSquares);
 }
 
 VecStr populationCollapse::getPopInfoHeaderVec() {
 	return toVecStr("p_TotalInputReadCnt", "p_TotalInputClusterCnt",
-			"p_TotalPopulationSampCnt", "p_TotalHaplotypes",
+			"p_TotalPopulationSampCnt", "p_TotalHaplotypes","p_ExpectedHeterozygosity",
 			clusterSetInfo::getCoiInfoHeaderVec());
 }
 
