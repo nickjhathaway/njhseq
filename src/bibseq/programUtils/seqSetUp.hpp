@@ -82,19 +82,18 @@ class seqSetUp : public bib::progutils::programSetUp {
   void processComparison(comparison & comp, std::string stub = "");
 
   // usage prints
-  void printInputUsage(std::ostream& out);
-  void printAdditionaInputUsage(std::ostream& out,
-                                const std::string& lowerRemove);
-
-  void printGapUsage(std::ostream & out)const;
-
-  void printKmerProfilingUsage(std::ostream& out);
-  void printQualThresUsage(std::ostream& out);
-  void printAlignmentUsage(std::ostream& out);
-  void printReferenceComparisonUsage(std::ostream& out);
-  void printFileWritingUsage(std::ostream& out, bool all);
-  void printAlnInfoDirUsage(std::ostream& out);
-  void printAdditionalClusteringUsage(std::ostream& out);
+//  void printAdditionaInputUsage(std::ostream& out,
+//                                const std::string& lowerRemove);
+//
+//  void printGapUsage(std::ostream & out)const;
+//
+//  void printKmerProfilingUsage(std::ostream& out);
+//  void printQualThresUsage(std::ostream& out);
+//  void printAlignmentUsage(std::ostream& out);
+//  void printReferenceComparisonUsage(std::ostream& out);
+//  void printFileWritingUsage(std::ostream& out, bool all);
+//  void printAlnInfoDirUsage(std::ostream& out);
+//  void printAdditionalClusteringUsage(std::ostream& out);
 
 };
 }  // namespace bibseq
