@@ -531,8 +531,7 @@ std::string toSlimJsonErrors(const comparison & comp){
 	ret["lqMismatches_"] = comp.lqMismatches_;
 	ret["oneBaseIndel_"] = comp.oneBaseIndel_;
 	ret["twoBaseIndel_"] = comp.twoBaseIndel_;
-	Json::FastWriter jWriter;
-	return jWriter.write(ret);
+	return bib::json::writeAsOneLine(ret);
 }
 
 

@@ -32,9 +32,9 @@
 
 namespace bibseq {
 
-class seqSetUp : public bib::progutils::programSetUp {
+class seqSetUp : public bib::progutils::ProgramSetUp {
  public:
-	using bib::progutils::programSetUp::programSetUp;
+	using bib::progutils::ProgramSetUp::ProgramSetUp;
 
   SeqSetUpPars pars_;
   const static VecStr readInFormatsAvailable_;

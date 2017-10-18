@@ -297,7 +297,7 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 				"--fastagz", "Input sequence filename, only need 1, fasta gzipped file", required, "Reading Sequence Input");
 		bib::progutils::Flag bamFlagOptions(pars_.ioOptions_.firstName_, "--bam",
 				"Input sequence filename, only need 1, bam file", required, "Reading Sequence Input");
-		bib::progutils::flagHolder seqReadInFlags;
+		bib::progutils::FlagHolder seqReadInFlags;
 		seqReadInFlags.addFlag(sffFlagOptions);
 		seqReadInFlags.addFlag(sffBinFlagOptions);
 		seqReadInFlags.addFlag(fastaFlagOptions);
