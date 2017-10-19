@@ -560,16 +560,16 @@ bool seqSetUp::processSeq(bool required) {
 }
 
 bool seqSetUp::processSeq(std::string& inputSeq, const std::string& flag,
-		const std::string& parName, bool required) {
+		const std::string& parName, bool required, const std::string & flagGrouping) {
 	pars_.seqObj_.seqBase_.seq_ = inputSeq;
-	bool ret =  processSeq(pars_.seqObj_.seqBase_, flag, parName, required);
+	bool ret =  processSeq(pars_.seqObj_.seqBase_, flag, parName, required, flagGrouping);
 	inputSeq = pars_.seqObj_.seqBase_.seq_;
 	return ret;
 }
 
 bool seqSetUp::processSeq(seqInfo& inputSeq, const std::string& flag,
-		const std::string& parName, bool required) {
-	bool passed = setOption(inputSeq.seq_, flag, parName, required);
+		const std::string& parName, bool required,const std::string & flagGrouping) {
+	bool passed = setOption(inputSeq.seq_, flag, parName, required,flagGrouping);
 	//std::cout <<"1 "<< inputSeq << std::endl;
 	std::string originalSeq = inputSeq.seq_;
 	if (bfs::path(inputSeq.seq_).filename().string().length() <= 255 && bfs::exists(inputSeq.seq_)) {

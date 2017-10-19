@@ -62,9 +62,11 @@ class seqSetUp : public bib::progutils::ProgramSetUp {
   bool processRefFilename(bool required = false);
   bool processSeq(bool required = false);
   bool processSeq(std::string& inputSeq, const std::string& flag,
-                  const std::string& parName, bool required = false);
+                  const std::string& parName, bool required = false,
+								 const std::string & flagGrouping = "Misc");
   bool processSeq(seqInfo& inputSeq, const std::string& flag,
-                  const std::string& parName, bool required = false);
+                  const std::string& parName, bool required = false,
+								 const std::string & flagGrouping = "Misc");
   bool processVerbose();
   bool processDebug();
   bool processQuiet();
