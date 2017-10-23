@@ -775,6 +775,8 @@ table seqUtil::readPrimers(const std::string &idFileName,
                            const std::string &fileDelim,
 													 bool forceRead) {
 	table inTab(idFileName, fileDelim);
+	//std::cout << __PRETTY_FUNCTION__ << std::endl;
+	//inTab.outPutContentOrganized(std::cout);
 	inTab.removeEmpty(false);
   table ans;
   ans.hasHeader_ = true;

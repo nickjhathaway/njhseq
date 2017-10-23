@@ -125,12 +125,12 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info, uint3
 std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 		uint32_t withinPos, aligner & alignerObj,
 		const comparison & allowable, bool forwardPrimerToLowerCase) {
-	//std::cout << "Determining Forward Primers" << std::endl;
-	//std::cout << __PRETTY_FUNCTION__ << std::endl;
+//	std::cout << "Determining Forward Primers" << std::endl;
+//	std::cout << __PRETTY_FUNCTION__ << std::endl;
 	for (const auto& currentPrimer : primers_) {
-		//std::cout << currentPrimer.first << std::endl;
-		//std::cout << currentPrimer.second.forwardPrimer_ << std::endl;
-		//std::cout << currentPrimer.second.reversePrimer_ << std::endl;
+//		std::cout << currentPrimer.first << std::endl;
+//		std::cout << currentPrimer.second.forwardPrimer_ << std::endl;
+//		std::cout << currentPrimer.second.reversePrimer_ << std::endl;
 		// find forward primer or if it isn't found return unrecognized
 		auto readBegin = seqInfo("readBegin",
 				info.seq_.substr(0,
@@ -141,6 +141,11 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 				true);
 		alignerObj.profilePrimerAlignment(readBegin,
 				currentPrimer.second.forwardPrimerInfo_);
+//		std::cout << "forwardPosition.first: " << forwardPosition.first << std::endl;
+//		std::cout << "withinPos: " << withinPos << std::endl;
+//		std::cout << "alignerObj.comp_.distances_.query_.coverage_: " << alignerObj.comp_.distances_.query_.coverage_ << std::endl;
+//		std::cout << "allowable.distances_.query_.coverage_: " << allowable.distances_.query_.coverage_ << std::endl;
+//		std::cout << "allowable.passErrorProfile(alignerObj.comp_): " << bib::colorBool(allowable.passErrorProfile(alignerObj.comp_)) << std::endl;
 		if (forwardPosition.first <= withinPos
 				&& alignerObj.comp_.distances_.query_.coverage_
 						>= allowable.distances_.query_.coverage_
