@@ -972,8 +972,8 @@ bool aligner::checkForTandemRepeatGap() {
         if (alignObjectA_.seqBase_.seq_[gapIter->second.startPos_] == '-') {
           TandemRepeat secondTandems = findTandemRepeatOfStrInSequence(
               alignObjectB_.seqBase_.seq_, search);
-          if ((int)gapIter->second.startPos_ >= secondTandems.startPos_ &&
-              (int)gapIter->second.startPos_ + (int)gapIter->second.size_ - 1 <=
+          if (gapIter->second.startPos_ >= secondTandems.startPos_ &&
+              gapIter->second.startPos_ + gapIter->second.size_ - 1 <=
                   secondTandems.stopPos_) {
             gapWithinTandem = true;
           }
@@ -984,8 +984,8 @@ bool aligner::checkForTandemRepeatGap() {
                    '-') {
           TandemRepeat secondTandems = findTandemRepeatOfStrInSequence(
               alignObjectA_.seqBase_.seq_, search);
-          if ((int)gapIter->second.startPos_ >= secondTandems.startPos_ &&
-              (int)gapIter->second.startPos_ + (int)gapIter->second.size_ - 1 <=
+          if (gapIter->second.startPos_ >= secondTandems.startPos_ &&
+              gapIter->second.startPos_ + gapIter->second.size_ - 1 <=
                   secondTandems.stopPos_) {
             gapWithinTandem = true;
           }
