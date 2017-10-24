@@ -194,17 +194,16 @@ double sampleCluster::getReadWeightedAveragedFrac()const{
 void sampleCluster::update(const std::map<std::string, sampInfo>& infos) {
   // clear and update it all
 	for(const auto & info : infos){
+
 		sampInfos_.at(info.first).updateRunReadCnt(info.second.readCnt_);
 	}
   updateFractionInfo();
 }
-
 void sampleCluster::updateSampInfosFracs(){
 	for(auto & sampInfo : sampInfos_){
 		sampInfo.second.updateFraction();
 	}
 }
-
 void sampleCluster::updateFractionInfo() {
   // clear the counts and update them
   seqBase_.frac_ = 0;

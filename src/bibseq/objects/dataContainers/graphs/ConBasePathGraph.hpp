@@ -68,6 +68,7 @@ public:
 				std::string currentPath);
 		void addToPath(std::vector<ConPath> & paths,
 				ConPath currentPath);
+		Json::Value toJson() const;
 	};
 	class edge {
 	public:
@@ -77,6 +78,7 @@ public:
 		std::weak_ptr<node> head_;
 		std::weak_ptr<node> tail_;
 		double cnt_;
+		Json::Value toJson() const;
 	};
 
 	std::unordered_map<std::string, std::shared_ptr<node>> nodes_;

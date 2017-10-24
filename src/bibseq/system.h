@@ -26,5 +26,8 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+
+#include "bibseq/system/Muscler.hpp"
+#include "bibseq/system/BioCmdsUtils.hpp"
 #include "bibseq/system/systemUtils.hpp"
 

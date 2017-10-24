@@ -1,6 +1,8 @@
 #include "table.hpp"
 #include "bibseq/IO/fileUtils.hpp"
+#include "bibseq/IO/InputStream.hpp"
 #include <bibcpp/bashUtils.h>
+
 //
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
@@ -59,7 +61,7 @@ bool table::empty()const{
 
 
 table::table(const TableIOOpts & opts) :
-		table(opts.in_.inFilename_, opts.inDelim_, opts.hasHeader_) {
+		table(opts.in_.inFilename_.string(), opts.inDelim_, opts.hasHeader_) {
 
 }
 
@@ -164,18 +166,10 @@ table::table(std::istream & in, const std::string &inDelim,
 	setColNamePositions();
 }
 
-table::table(const std::string &filename, const std::string &inDelim,
+table::table(const bfs::path &filename, const std::string &inDelim,
              bool header) {
-  std::ifstream textFile(filename.c_str());
-  if (!textFile) {
-  	std::stringstream ss;
-    ss << bib::bashCT::red << bib::bashCT::bold
-    << __PRETTY_FUNCTION__
-		<< ": Error in opening " << filename
-		<< bib::bashCT::reset << "\n";
-    throw std::runtime_error{ss.str()};
-  }
-  *this = table(textFile, inDelim, header);
+	InputStream in(filename);
+  *this = table(in, inDelim, header);
   setColNamePositions();
 }
 void table::addPaddingToEndOfRows(const std::string & padding) {
@@ -390,6 +384,7 @@ void table::outPutContents(TableIOOpts options) const {
     	outFile << vectorToString(columnNames_, options.outDelim_) << "\n";
     }
     outputVectorOfVectors(content_, options.outDelim_, outFile);
+    outFile.flush();
   }
 }
 
@@ -659,12 +654,29 @@ void table::rbind(const table &otherTable, bool fill) {
 			return !bib::in(col, columnNames_);
 		;});
 	if(containsOtherColumns){
-		std::stringstream ss;
-		ss << "Error in : " << __PRETTY_FUNCTION__
-				<< ", adding a table that has contains column names this table doesn't have "<< std::endl;
-		ss << "Other table column names: " << bib::conToStr(otherTable.columnNames_) << std::endl;
-		ss << "This table column names: " << bib::conToStr(columnNames_) << std::endl;
-		throw std::runtime_error{ss.str()};
+		if(fill){
+			VecStr missingCols;
+			for(const auto & col : columnNames_){
+				if(!bib::in(col, otherTable.columnNames_)){
+					missingCols.emplace_back(col);
+				}
+			}
+			for(const auto & col : missingCols){
+				auto tempCol = otherTable.getColumn(col);
+				if (isVecOfDoubleStr(tempCol)) {
+					addColumn( { "0" }, col);
+				} else {
+					addColumn( { "" }, col);
+				}
+			}
+		}else{
+			std::stringstream ss;
+			ss << "Error in : " << __PRETTY_FUNCTION__
+					<< ", adding a table that has contains column names this table doesn't have "<< std::endl;
+			ss << "Other table column names: " << bib::conToStr(otherTable.columnNames_) << std::endl;
+			ss << "This table column names: " << bib::conToStr(columnNames_) << std::endl;
+			throw std::runtime_error{ss.str()};
+		}
 	}
 	bool missingColumNmaes = std::any_of(columnNames_.begin(),
 			columnNames_.end(), [&otherTable](const std::string & col){
@@ -743,6 +755,40 @@ table table::getColumnsLoose(const std::string &subStr) const{
   } else {
     return getColumns(positions);
   }
+}
+
+table table::getColumnsMatchingPattern(const std::regex & pattern) const {
+	std::vector<uint32_t> positions = getPositionsMatchingPattern(columnNames_,
+			pattern);
+	if (positions.size() == 0) {
+		return table();
+	} else {
+		return getColumns(positions);
+	}
+}
+
+table table::getColumnsContainingPattern(const std::regex & pattern) const {
+	std::vector<uint32_t> positions = getPositionsContainingPattern(columnNames_,
+			pattern);
+	if (positions.size() == 0) {
+		return table();
+	} else {
+		return getColumns(positions);
+	}
+}
+
+table table::getRowsContainingPattern(const std::string &forColumn,
+		const std::regex & pattern) const{
+  VecStr col = getColumn(forColumn);
+  std::vector<uint32_t> positions = getPositionsContainingPattern(col, pattern);
+  return table(getTargetsAtPositions(content_, positions), columnNames_);
+}
+
+table table::getRowsMatchingPattern(const std::string &forColumn,
+		const std::regex & pattern) const{
+  VecStr col = getColumn(forColumn);
+  std::vector<uint32_t> positions = getPositionsMatchingPattern(col, pattern);
+  return table(getTargetsAtPositions(content_, positions), columnNames_);
 }
 
 table table::getColumnsStartWith(const std::string &startsWith) const{
@@ -1089,6 +1135,24 @@ table table::extractNumColGreater(uint32_t colPos, double cutOff)const{
   	return numValue > cutOff;
   };
   return extractByComp(colPos, comp);
+}
+
+
+void table::checkForColumnsThrow(const VecStr & requiredColumns, const std::string & funcName) const{
+	VecStr columnsNotFound;
+	for (const auto & col : requiredColumns) {
+		if (!bib::in(col, columnNames_)) {
+			columnsNotFound.emplace_back(col);
+		}
+	}
+	if (!columnsNotFound.empty()) {
+		std::stringstream ss;
+		ss << "Need to have " << vectorToString(requiredColumns, ",") << std::endl;
+		ss << "Did not find " << vectorToString(columnsNotFound, ",") << std::endl;
+		ss << "Only have " << vectorToString(columnNames_, ",")
+				<< std::endl;
+		throw std::runtime_error { ss.str() };
+	}
 }
 
 }  // namespace bib

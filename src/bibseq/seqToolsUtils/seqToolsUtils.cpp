@@ -29,6 +29,20 @@
 
 namespace bibseq {
 
+VecStr getInputValues(const std::string & valuesStr, const std::string & delim){
+	VecStr ret;
+	if (bfs::path(valuesStr).filename().string().length() <= 255 && bfs::exists(valuesStr)) {
+		InputStream infile{bfs::path(valuesStr)};
+		std::string line = "";
+		while(bib::files::crossPlatGetline(infile, line)){
+			ret.emplace_back(line);
+		}
+	}else{
+		ret = tokenizeString(valuesStr, delim);
+	}
+	return ret;
+}
+
 void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString,
 		int counter) {
 	auto toks = tokenizeString(runCutOffString, ",");
@@ -187,6 +201,9 @@ uint32_t countSeqs(const SeqIOOptions & opts, bool verbose) {
 	uint32_t ret = 0;
 	if (bib::files::bfs::exists(opts.firstName_)) {
 		SeqIO reader(opts);
+		if(reader.in_.isFirstEmpty()){
+			return ret;
+		}
 		reader.openIn();
 		if(!reader.in_.inOpen()){
 			std::stringstream ss;
@@ -270,7 +287,7 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 			}
 		}
 		table inStatsTab(dir + "/extractionStats.tab.txt", "\t", true);
-		std::string dirName = bib::files::getFileName(dir);
+		std::string dirName = bfs::basename(dir);
 		auto pos = dirName.find(nameDelim);
 		std::string indexName = nameToIndex[dirName.substr(0, pos)];
 		if (count == 0) {
@@ -295,7 +312,7 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 		++count;
 	}
 
-	table outSampleInfo(catenateVectors(VecStr{"Sample"}, mainTableExtractionProfile.columnNames_));
+	table outSampleInfo(concatVecs(VecStr{"Sample"}, mainTableExtractionProfile.columnNames_));
 	for(const auto & samp : sampleDirWithSubDirs){
 		for(const auto & indexMidNames : samp.second){
 			auto addingRow = extractionInfo[indexMidNames.second][indexMidNames.first];
@@ -304,13 +321,13 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 			}
 			addingRow[mainTableExtractionProfile.getColPos("IndexName")] = indexMidNames.second;
 			addingRow[mainTableExtractionProfile.getColPos("name")] = indexMidNames.first;
-			outSampleInfo.content_.emplace_back(catenateVectors(VecStr{samp.first}, addingRow));
+			outSampleInfo.content_.emplace_back(concatVecs(VecStr{samp.first}, addingRow));
 		}
 	}
 
-	auto outSampleColName = catenateVectors(VecStr{"Sample"}, catenateVectors(VecStr{"IndexName"}, oldProfileColNames));
-	auto profileColNames = catenateVectors(VecStr{"IndexName"}, oldProfileColNames);
-	auto statsColName = catenateVectors(VecStr{"IndexName"}, oldStatsColNames);
+	auto outSampleColName = concatVecs(VecStr{"Sample"}, concatVecs(VecStr{"IndexName"}, oldProfileColNames));
+	auto profileColNames = concatVecs(VecStr{"IndexName"}, oldProfileColNames);
+	auto statsColName = concatVecs(VecStr{"IndexName"}, oldStatsColNames);
 
 
 	outSampleInfo = outSampleInfo.getColumns(outSampleColName);
@@ -403,7 +420,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 		++count;
 	}
 
-	table outSampleInfo(catenateVectors(VecStr{"Sample"}, mainTableExtractionProfile.columnNames_));
+	table outSampleInfo(concatVecs(VecStr{"Sample"}, mainTableExtractionProfile.columnNames_));
 	for(const auto & samp : sampleDirWithSubDirs){
 		for(const auto & indexMidNames : samp.second){
 			auto addingRow = extractionInfo[indexMidNames.second][indexMidNames.first];
@@ -412,13 +429,13 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 			}
 			addingRow[mainTableExtractionProfile.getColPos("IndexName")] = indexMidNames.second;
 			addingRow[mainTableExtractionProfile.getColPos("name")] = indexMidNames.first;
-			outSampleInfo.content_.emplace_back(catenateVectors(VecStr{samp.first}, addingRow));
+			outSampleInfo.content_.emplace_back(concatVecs(VecStr{samp.first}, addingRow));
 		}
 	}
 
-	auto outSampleColName = catenateVectors(VecStr{"Sample"}, catenateVectors(VecStr{"IndexName"}, oldProfileColNames));
-	auto profileColNames = catenateVectors(VecStr{"IndexName"}, oldProfileColNames);
-	auto statsColName = catenateVectors(VecStr{"IndexName"}, oldStatsColNames);
+	auto outSampleColName = concatVecs(VecStr{"Sample"}, concatVecs(VecStr{"IndexName"}, oldProfileColNames));
+	auto profileColNames = concatVecs(VecStr{"IndexName"}, oldProfileColNames);
+	auto statsColName = concatVecs(VecStr{"IndexName"}, oldStatsColNames);
 
 
 	outSampleInfo = outSampleInfo.getColumns(outSampleColName);
@@ -480,34 +497,34 @@ void setUpSampleDirs(
 							<< bib::bashCT::purple << topDir + targetDirs.first
 							<< bib::bashCT::reset << std::endl;
 				}
-				std::string targetDir = bib::files::makeDir(topDir,
+				bfs::path targetDir = bib::files::makeDir(topDir,
 						bib::files::MkdirPar(targetDirs.first, false));
 				for (auto & sampDirs : targetDirs.second) {
 					if (verbose) {
 						std::cout << bib::bashCT::bold << "Making Samp Dir: "
-								<< bib::bashCT::green << targetDir + sampDirs.first
+								<< bib::bashCT::green << bib::files::make_path(targetDir,  sampDirs.first)
 								<< bib::bashCT::reset << std::endl;
 					}
 
-					std::string sampDir = bib::files::makeDir(targetDir,
+					bfs::path sampDir = bib::files::makeDir(targetDir,
 							bib::files::MkdirPar(sampDirs.first, false));
 					for (auto & rep : sampDirs.second) {
 						if (verbose) {
 							std::cout << bib::bashCT::bold << "Making Rep Dir: "
-									<< bib::bashCT::blue << sampDir + rep.first
+									<< bib::bashCT::blue <<  bib::files::make_path(sampDir, rep.first)
 									<< bib::bashCT::reset << std::endl;
 						}
 
-						std::string repDir = bib::files::makeDir(sampDir,
+						bfs::path repDir = bib::files::makeDir(sampDir,
 								bib::files::MkdirPar(rep.first, false));
-						rep.second = bib::files::join(cwd, repDir);
+						rep.second = bib::files::make_path(cwd, repDir).string();
 					}
 				}
 			}
 		} else {
 			for (auto & targetDirs : sampleDirWithSubDirs) {
 				for (auto & sampDirs : targetDirs.second) {
-					std::string sampDir = bib::files::join(topDir, sampDirs.first);
+					std::string sampDir = bib::files::join(topDir, sampDirs.first).string();
 					if (!bib::files::bfs::exists(sampDir)) {
 						if (verbose) {
 							std::cout << bib::bashCT::bold << "Making Samp Dir: "
@@ -527,8 +544,8 @@ void setUpSampleDirs(
 						}
 
 						std::string repDir = bib::files::makeDir(sampDir,
-								bib::files::MkdirPar(rep.first, false));
-						rep.second = bib::files::join(cwd, repDir);
+								bib::files::MkdirPar(rep.first, false)).string();
+						rep.second = bib::files::join(cwd, repDir).string();
 					}
 				}
 			}
@@ -539,11 +556,11 @@ void setUpSampleDirs(
 		throw std::runtime_error { ss.str() };
 	}
 	//log the locations
-	std::string indexDir = bib::files::makeDir(mainDirectoryName,
+	bfs::path indexDir = bib::files::makeDir(mainDirectoryName,
 			bib::files::MkdirPar("locationByIndex", false));
 	for (const auto & targetDirs : sampleDirWithSubDirs) {
 		std::ofstream indexFile;
-		openTextFile(indexFile, indexDir + targetDirs.first, ".tab.txt", false,
+		openTextFile(indexFile, bib::files::make_path(indexDir, targetDirs.first).string(), ".tab.txt", false,
 				false);
 		for (const auto & sampDirs : targetDirs.second) {
 			for (auto & rep : sampDirs.second) {
@@ -617,8 +634,8 @@ VecStr createDegenStrs(const std::string & str){
 	VecStr ans;
 
 	char first = *str.begin();
-	std::cout << first << std::endl;
-	std::cout << std::endl;
+//	std::cout << first << std::endl;
+//	std::cout << std::endl;
 	if(degenBaseExapnd.find(first) != degenBaseExapnd.end()){
 		for(const auto & nextChar : degenBaseExapnd.at(first)){
 			ans.emplace_back(std::string(1,nextChar));
@@ -627,7 +644,7 @@ VecStr createDegenStrs(const std::string & str){
 		ans.emplace_back(std::string(1,first));
 	}
 
-	printVector(ans);
+	//printVector(ans);
 	uint32_t charCount = 0;
 	for(const auto & c : str){
 		++charCount;

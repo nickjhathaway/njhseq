@@ -88,7 +88,9 @@ public:
 			if(reads.second.empty()){
 				continue;
 			}
+			//std::cout << __PRETTY_FUNCTION__ << std::endl;
 			writers_.openWrite(reads.first, reads.second);
+			//std::cout << __PRETTY_FUNCTION__ << std::endl;
 		}
 		for (auto & reads : cache_) {
 			reads.second.clear();
@@ -143,6 +145,13 @@ public:
 		closeOutForReopeningAll();
 	}
 
+	void containsReaderThrow(const std::string & uid) const {
+		writers_.containsReaderThrow(uid);
+	}
+
+	bool containsReader(const std::string & uid) const {
+		return writers_.containsReader(uid);
+	}
 
 private:
 

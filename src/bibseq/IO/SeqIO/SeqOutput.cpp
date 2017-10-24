@@ -41,52 +41,58 @@ bool SeqOutput::outOpen() const {
 void SeqOutput::openOut() {
 	if(!outOpen_){
 		std::stringstream ss;
+		auto prim_outOpts = ioOptions_.out_;
+		auto sec_outOpts = ioOptions_.out_;
 		switch (ioOptions_.outFormat_) {
 			case SeqIOOptions::outFormats::FASTA:
-				primaryOut_ = std::make_unique<std::ofstream>();
-				openTextFile(*primaryOut_, ioOptions_.out_);
+				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
+				break;
+			case SeqIOOptions::outFormats::FASTAGZ:
+				if(!bib::endsWith(prim_outOpts.outExtention_, ".gz")){
+					prim_outOpts.outExtention_.append(".gz");
+				}
+				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
 				break;
 			case SeqIOOptions::outFormats::FASTQ:
-				primaryOut_ = std::make_unique<std::ofstream>();
-				if("" == ioOptions_.out_.outExtention_){
-					bib::files::openTextFile(*primaryOut_, ioOptions_.out_.outFilename_, ".fastq",
-							ioOptions_.out_.overWriteFile_, ioOptions_.out_.append_,
-							ioOptions_.out_.exitOnFailureToWrite_);
-				}else{
-					openTextFile(*primaryOut_, ioOptions_.out_);
+				if("" == prim_outOpts.outExtention_){
+					prim_outOpts.outExtention_ = ".fastq";
 				}
+				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
+				break;
+			case SeqIOOptions::outFormats::FASTQGZ:
+				if("" == prim_outOpts.outExtention_){
+					prim_outOpts.outExtention_ = ".fastq.gz";
+				}
+				if(!bib::endsWith(prim_outOpts.outExtention_, ".gz")){
+					prim_outOpts.outExtention_.append(".gz");
+				}
+				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
 				break;
 			case SeqIOOptions::outFormats::FASTAQUAL:
-				primaryOut_ = std::make_unique<std::ofstream>();
-				bib::files::openTextFile(*primaryOut_, ioOptions_.out_.outFilename_, ".fasta",
-						ioOptions_.out_.overWriteFile_, ioOptions_.out_.append_,
-						ioOptions_.out_.exitOnFailureToWrite_);
-				secondaryOut_ = std::make_unique<std::ofstream>();
-				bib::files::openTextFile(*secondaryOut_, ioOptions_.out_.outFilename_,
-						".fasta.qual", ioOptions_.out_.overWriteFile_, ioOptions_.out_.append_,
-						ioOptions_.out_.exitOnFailureToWrite_);
+				prim_outOpts.outExtention_ = ".fasta";
+				sec_outOpts.outExtention_ = ".fasta.qual";
+				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
+				secondaryOut_ = std::make_unique<OutputStream>(sec_outOpts);
 				break;
 			case SeqIOOptions::outFormats::FASTQPAIRED:
-				primaryOut_ = std::make_unique<std::ofstream>();
-				bib::files::openTextFile(*primaryOut_, ioOptions_.out_.outFilename_, "_R1.fastq",
-						ioOptions_.out_.overWriteFile_, ioOptions_.out_.append_,
-						ioOptions_.out_.exitOnFailureToWrite_);
-				secondaryOut_ = std::make_unique<std::ofstream>();
-				bib::files::openTextFile(*secondaryOut_, ioOptions_.out_.outFilename_,
-						"_R2.fastq", ioOptions_.out_.overWriteFile_, ioOptions_.out_.append_,
-						ioOptions_.out_.exitOnFailureToWrite_);
+				prim_outOpts.outExtention_ = "_R1.fastq";
+				sec_outOpts.outExtention_ = "_R2.fastq";
+				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
+				secondaryOut_ = std::make_unique<OutputStream>(sec_outOpts);
+				break;
+			case SeqIOOptions::outFormats::FASTQPAIREDGZ:
+				prim_outOpts.outExtention_ = "_R1.fastq.gz";
+				sec_outOpts.outExtention_ = "_R2.fastq.gz";
+				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
+				secondaryOut_ = std::make_unique<OutputStream>(sec_outOpts);
 				break;
 			case SeqIOOptions::outFormats::FLOW:
-				primaryOut_ = std::make_unique<std::ofstream>();
-				bib::files::openTextFile(*primaryOut_, ioOptions_.out_.outFilename_, ".dat",
-						ioOptions_.out_.overWriteFile_, ioOptions_.out_.append_,
-						ioOptions_.out_.exitOnFailureToWrite_);
+				prim_outOpts.outExtention_ = ".dat";
+				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
 				break;
 			case SeqIOOptions::outFormats::FLOWMOTHUR:
-				primaryOut_ = std::make_unique<std::ofstream>();
-				bib::files::openTextFile(*primaryOut_, ioOptions_.out_.outFilename_, ".flow",
-						ioOptions_.out_.overWriteFile_, ioOptions_.out_.append_,
-						ioOptions_.out_.exitOnFailureToWrite_);
+				prim_outOpts.outExtention_ = ".flow";
+				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
 				break;
 			default:
 				ss << "Unrecognized out file type : in" << __PRETTY_FUNCTION__
@@ -115,7 +121,7 @@ void SeqOutput::closeOutForReopening() {
 void SeqOutput::write(const seqInfo & read) {
 	if (!outOpen_) {
 		throw std::runtime_error {
-				"Error in readObjectIOOpt, attempted to write when out files aren't open" };
+				"Error in readObjectIOOpt, attempted to write when out files aren't open, out file: " + ioOptions_.out_.outName().string() };
 	}
 	writeNoCheck(read);
 }
@@ -123,9 +129,11 @@ void SeqOutput::write(const seqInfo & read) {
 void SeqOutput::writeNoCheck(const seqInfo & read) {
 	switch (ioOptions_.outFormat_) {
 	case SeqIOOptions::outFormats::FASTA:
+	case SeqIOOptions::outFormats::FASTAGZ:
 		read.outPutSeq(*primaryOut_);
 		break;
 	case SeqIOOptions::outFormats::FASTQ:
+	case SeqIOOptions::outFormats::FASTQGZ:
 		read.outPutFastq(*primaryOut_);
 		break;
 	case SeqIOOptions::outFormats::FASTAQUAL:
@@ -147,11 +155,11 @@ void SeqOutput::openWrite(const seqInfo & read) {
 	writeNoCheck(read);
 }
 
-void SeqOutput::writeNoCheck(const PairedRead & read) {
-	if (SeqIOOptions::outFormats::FASTQPAIRED == ioOptions_.outFormat_) {
-		read.seqBase_.outPutFastq(*primaryOut_);
-		seqInfo mateInfo = read.mateSeqBase_;
-		if(read.mateRComplemented_){
+void SeqOutput::writeNoCheck(const PairedRead & seq) {
+	if (SeqIOOptions::outFormats::FASTQPAIRED == ioOptions_.outFormat_ || SeqIOOptions::outFormats::FASTQPAIREDGZ == ioOptions_.outFormat_) {
+		seq.seqBase_.outPutFastq(*primaryOut_);
+		seqInfo mateInfo = seq.mateSeqBase_;
+		if(seq.mateRComplemented_){
 			mateInfo.reverseComplementRead(false, true);
 		}
 		mateInfo.outPutFastq(*secondaryOut_);
@@ -164,8 +172,8 @@ void SeqOutput::writeNoCheck(const PairedRead & read) {
 
 void SeqOutput::write(const PairedRead & read) {
 	if (!outOpen_) {
-		throw std::runtime_error {
-				"Error in readObjectIOOpt, attempted to write when out files aren't open" };
+		throw std::runtime_error { "Error in " + std::string(__PRETTY_FUNCTION__)
+				+ ", attempted to write when out files aren't open" };
 	}
 	writeNoCheck(read);
 }
@@ -217,7 +225,7 @@ void SeqOutput::seekpPri(size_t pos){
 size_t SeqOutput::tellpSec(){
 	return secondaryOut_->tellp();
 }
-
+//Error in readObjectIOOpt, attempted to write when out files aren't open
 void SeqOutput::seekpSec(size_t pos){
 	secondaryOut_->seekp(pos);
 }

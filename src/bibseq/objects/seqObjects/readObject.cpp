@@ -40,42 +40,7 @@ readObject::readObject() :
 
 
 void readObject::resetMetaInName() {
-	auto firstBracket = seqBase_.name_.find("[");
-	auto secondBracket = seqBase_.name_.find("]", firstBracket);
-	std::string newMeta = "[";
-	for (const auto & meta : meta_) {
-		if ("[" != newMeta) {
-			newMeta.append(";" + meta.first + "=" + meta.second);
-		} else {
-			newMeta.append(meta.first + "=" + meta.second);
-		}
-	}
-	newMeta.append("]");
-	if (std::string::npos != firstBracket
-			&& std::string::npos != secondBracket) {
-		seqBase_.name_ = seqBase_.name_.substr(0, firstBracket) + newMeta
-				+ seqBase_.name_.substr(secondBracket + 1);
-	} else {
-		auto countPat = seqBase_.name_.rfind("_t");
-		auto fracPat = seqBase_.name_.rfind("_f");
-		if (std::string::npos != countPat
-				&& countPat + 2 != seqBase_.name_.length()) {
-			auto rest = seqBase_.name_.substr(countPat + 2);
-			if (isDoubleStr(rest)) {
-				seqBase_.name_ = seqBase_.name_.substr(0, countPat) + newMeta
-						+ seqBase_.name_.substr(countPat);
-			}
-		} else if(std::string::npos != fracPat
-				&& fracPat + 2 != seqBase_.name_.length()){
-			auto rest = seqBase_.name_.substr(fracPat + 2);
-			if (isDoubleStr(rest)) {
-				seqBase_.name_ = seqBase_.name_.substr(0, fracPat) + newMeta
-						+ seqBase_.name_.substr(fracPat);
-			}
-		}else{
-			seqBase_.name_ = seqBase_.name_ + newMeta;
-		}
-	}
+	seqBase_.resetMetaInName(meta_);
 }
 
 bool readObject::nameHasMetaData() const {
@@ -83,25 +48,16 @@ bool readObject::nameHasMetaData() const {
 }
 
 void readObject::processNameForMeta() {
-	meta_.clear();
-	seqBase_.processNameForMeta(meta_);
+	meta_.meta_.clear();
+	meta_.processNameForMeta(seqBase_.name_, false);
 }
 
 bool readObject::containsMeta(const std::string & key) const {
-	return meta_.find(key) != meta_.end();
+	return meta_.containsMeta(key);
 }
 
 std::string readObject::getMeta(const std::string & key) const {
-	auto search = meta_.find(key);
-	if (search != meta_.end()) {
-		return search->second;
-	}else{
-		std::stringstream ss;
-		ss << __FILE__ << " - " << __LINE__ << " : " << __PRETTY_FUNCTION__ << ", error no meta field " << key << " for " << seqBase_.name_ << "\n";
-		ss << "Options are: " << bib::conToStr(bib::getVecOfMapKeys(meta_), ", ") << "\n";
-		throw std::runtime_error{ss.str()};
-	}
-	return "";
+	return meta_.getMeta(key);
 }
 
 

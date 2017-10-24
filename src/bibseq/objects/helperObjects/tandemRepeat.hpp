@@ -30,32 +30,26 @@
 
 namespace bibseq {
 
-class tandemRepeat {
+class TandemRepeat {
 
- public:
-  // tandem repeat info
-  std::string repeat;
-  int numberOfRepeats;
-  int alignScore;
-  int startPos;
-  int stopPos;
+public:
+	// tandem repeat info
+	std::string repeat_;
+	uint32_t numberOfRepeats_;
+	int alignScore_;
+	uint32_t startPos_;
+	uint32_t stopPos_;
 
-  // constructor
-  tandemRepeat() {}
-  tandemRepeat(const std::string& rep, int numberOfRep, int alignS, int startP,
-               int stopP)
-      : repeat(rep),
-        numberOfRepeats(numberOfRep),
-        alignScore(alignS),
-        startPos(startP),
-        stopPos(stopP) {}
+	// constructor
 
-  // output
-  void outPutInfo(std::ostream& out) const;
-  void outPutInfoFormated(std::ostream& out, const std::string& delim = "\t",
-                          bool first = false) const;
-  void outPutInfoFormated(std::ostream& out,const std::string & name, const std::string& delim = "\t",
-                            bool first = false) const;
+	TandemRepeat(const std::string& rep, uint32_t numberOfRepeats, int alignScore, uint32_t startPosition,
+			uint32_t stopPositon);
+
+	void outPutInfoFormated(std::ostream& out, const std::string & name,
+			const std::string& delim = "\t") const;
+
+	static void outPutInfoFormatedHeader(std::ostream& out,
+			const std::string& delim = "\t");
 };
 }  // namespace bibseq
 

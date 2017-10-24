@@ -340,13 +340,18 @@ std::string seqUtil::convertOneCodon(const std::string &codon) {
 
 std::string seqUtil::convertToProtein(const std::string &seq, size_t start,
                                       bool forceStartM) {
-  size_t numChar = seq.size();
+
+  size_t numChar = seq.size() > start ? seq.size() - start : seq.size();
+
   std::string outSeq("");
+  if(numChar < 3){
+  		return outSeq;
+  }
   outSeq.resize(numChar / 3);  // numChar is exactly divisible by 3.
   // In below, cB is currentBase.
   char cB[3], newBase;
   std::string cBstring = "   ";
-  for (size_t i = start; i < numChar; i += 3) {
+  for (size_t i = start; i < seq.size() - 2; i += 3) {
     cB[0] = static_cast<char>(toupper(seq[i]));
     cB[1] = static_cast<char>(toupper(seq[i + 1]));
     cB[2] = static_cast<char>(toupper(seq[i + 2]));
@@ -770,6 +775,8 @@ table seqUtil::readPrimers(const std::string &idFileName,
                            const std::string &fileDelim,
 													 bool forceRead) {
 	table inTab(idFileName, fileDelim);
+	//std::cout << __PRETTY_FUNCTION__ << std::endl;
+	//inTab.outPutContentOrganized(std::cout);
 	inTab.removeEmpty(false);
   table ans;
   ans.hasHeader_ = true;

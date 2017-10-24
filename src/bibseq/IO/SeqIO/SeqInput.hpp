@@ -31,6 +31,7 @@
 #include <bibcpp/files/fileObjects.h>
 
 #include "bibseq/IO/cachedReader.hpp"
+#include "bibseq/IO/InputStream.hpp"
 #include "bibseq/objects/seqObjects/readObject.hpp"
 #include "bibseq/objects/seqObjects/Paired/PairedRead.hpp"
 #include "bibseq/objects/seqObjects/sffObject.hpp"
@@ -44,13 +45,19 @@ namespace bibseq {
  *
  * @todo Make a class for each type of reader to simplify things and to avoid having to check the input type for each readNextRead call
  */
+
+
 class SeqInput{
+	std::function<bool(seqInfo &)> firstTimeReaderFunc_;
+	std::function<bool(seqInfo &)> readerFunc_;
 public:
 
 	SeqInput(const SeqIOOptions & options);
 	SeqInput(const SeqInput& that);
 
 	SeqIOOptions ioOptions_;
+
+	void setReaderFunc();
 
 	bool readNextRead(seqInfo & read);
 	bool readNextRead(PairedRead & read);
@@ -126,6 +133,7 @@ public:
 	bool inOpen() const;
 	void openIn();
 	void closeIn();
+	void reOpenIn();
 
 	std::mutex mut_;
 	std::unique_ptr<sffObject> lastSffRead_;
@@ -136,6 +144,7 @@ public:
 
 	bool loadIndex();
 
+
 	template<typename T>
 	void getReadNoCheck(T & read, size_t pos){
 		seekgPri(index_[pos]);
@@ -145,13 +154,7 @@ public:
 	template<typename T>
 	void getRead(T & read, size_t pos) {
 		loadIndex();
-		if (pos >= index_.size()) {
-			std::stringstream ss;
-			ss << "In " << __PRETTY_FUNCTION__ << " pos: " << pos
-					<< " is greater than max: " << index_.size() << std::endl;
-			throw std::out_of_range(ss.str());
-		}
-		seekgPri(index_[pos]);
+		seekToSeqIndex(pos);
 		readNextRead(read);
 	}
 
@@ -159,14 +162,8 @@ public:
 	std::vector<T> getReads(size_t pos, size_t number) {
 		openIn();
 		loadIndex();
-		if (pos >= index_.size()) {
-			std::stringstream ss;
-			ss << "In " << __PRETTY_FUNCTION__ << " pos: " << pos
-					<< " is greater than max: " << index_.size() - 1 << std::endl;
-			throw std::out_of_range(ss.str());
-		}
+		seekToSeqIndex(pos);
 		std::vector<T> ret;
-		seekgPri(index_[pos]);
 		uint32_t count = 0;
 		T read;
 		while (readNextRead(read) && count < number) {
@@ -180,14 +177,8 @@ public:
 	std::vector<std::shared_ptr<T>> getReadsPtrs(size_t pos, size_t number) {
 		openIn();
 		loadIndex();
-		if (pos >= index_.size()) {
-			std::stringstream ss;
-			ss << "In " << __PRETTY_FUNCTION__ << " pos: " << pos
-					<< " is greater than max: " << index_.size() - 1 << std::endl;
-			throw std::out_of_range(ss.str());
-		}
+		seekToSeqIndex(pos);
 		std::vector<std::shared_ptr<T>> ret;
-		seekgPri(index_[pos]);
 		uint32_t count = 0;
 		std::shared_ptr<T> read = std::make_shared<T>();
 		while (readNextRead(read) && count < number) {
@@ -196,6 +187,10 @@ public:
 		}
 		return ret;
 	}
+
+	void seekToSeqIndex(size_t seqIndex);
+	void seekToSeqIndexNoCheck(size_t seqIndex);
+	void seekToSeqIndexNoCheckNoPairedCheck(size_t seqIndex);
 
 	static void buildIndex(const SeqIOOptions & ioOpts);
 
@@ -211,15 +206,18 @@ public:
 private:
 
 	std::vector<unsigned long long> index_;
+	//only created for files with secondary files fasta  with qual and R1 and R2 paired reads
+	std::vector<unsigned long long> secIndex_;
 	bool indexLoad_ = false;
 
 	std::unique_ptr<BamTools::BamReader> bReader_;
 	std::unique_ptr<BamTools::BamAlignment> aln_;
 
-	std::unique_ptr<bib::files::gzTextFileCpp<>> priGzReader_;
-	std::unique_ptr<bib::files::gzTextFileCpp<>> secGzReader_;
-	std::unique_ptr<std::ifstream> priReader_;
-	std::unique_ptr<std::ifstream> secReader_;
+
+	std::unique_ptr<InputStream> priReader_;
+	std::unique_ptr<InputStream> secReader_;
+
+
 public:
 	std::unique_ptr<VecStr> sffTxtHeader_;
 	std::unique_ptr<sffBinaryHeader> sffBinHeader_;
@@ -228,33 +226,23 @@ public:
 	bool readNextFastqStream(std::istream& fastqFile, uint32_t offSet, seqInfo& read,
 			bool processed);
 private:
-	bool readNextQualStream(std::ifstream& qualFile, std::vector<uint32_t>& quals,
+	bool readNextQualStream(std::istream& qualFile, std::vector<uint32_t>& quals,
 			std::string & name);
-	bool readNextFastaQualStream(std::ifstream& fastaFile,
-			std::ifstream& qualFile, seqInfo & read, bool processed);
+	bool readNextFastaQualStream(std::istream& fastaFile,
+			std::istream& qualFile, seqInfo & read, bool processed);
 
-	bool readNextFastaStream(bib::files::gzTextFileCpp<>& fastaGzFile, seqInfo& read,
-			bool processed);
-	bool readNextQualStream(bib::files::gzTextFileCpp<>& qualGzFile, std::vector<uint32_t>& quals,
-			std::string & name);
-	bool readNextFastaQualStream(bib::files::gzTextFileCpp<>& fastaGzFile,
-			bib::files::gzTextFileCpp<>& qualGzFile, seqInfo & read, bool processed);
-
-
-	bool readNextFastqStream(bib::files::gzTextFileCpp<>& fastqGzFile, uint32_t offSet, seqInfo& read,
-			bool processed);
 	bool readNextFastqStream(const VecStr & data, const uint32_t lCount, uint32_t offSet, seqInfo& read,
 			bool processed);
 
 	bool readNextBam(BamTools::BamReader & bReader, seqInfo& read,
 			BamTools::BamAlignment & aln, bool processed);
 
-	VecStr readSffTxtHeader(std::ifstream & inFile);
-	bool readNextSff(std::ifstream & inFile, sffObject & read);
-	bool readNextSff(std::ifstream & inFile, seqInfo & read);
+	VecStr readSffTxtHeader(std::istream & inFile);
+	bool readNextSff(std::istream & inFile, sffObject & read);
+	bool readNextSff(std::istream & inFile, seqInfo & read);
 
-	bool readNextSffBin(std::ifstream& in, sffObject& read, int32_t numFlowReads);
-	void readHeader(std::ifstream& in, sffBinaryHeader& header);
+	bool readNextSffBin(std::istream& in, sffObject& read, int32_t numFlowReads);
+	void readHeader(std::istream& in, sffBinaryHeader& header);
 
 	bool inOpen_ = false;
 
@@ -262,10 +250,10 @@ private:
 };
 
 template<typename T>
-std::vector<T> getSeqs(const std::string & name) {
+std::vector<T> getSeqs(const bfs::path & fnp) {
 	SeqIOOptions popOpts;
-	popOpts.firstName_ = name;
-	popOpts.inFormat_ = SeqIOOptions::getInFormat(bib::files::getExtension(name));
+	popOpts.firstName_ = fnp;
+	popOpts.inFormat_ = SeqIOOptions::getInFormat(bib::files::getExtension(fnp));
 	SeqInput reader(popOpts);
 	return reader.readAllReads<T>();
 }

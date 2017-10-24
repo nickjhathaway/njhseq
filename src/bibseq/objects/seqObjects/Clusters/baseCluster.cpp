@@ -80,7 +80,7 @@ void baseCluster::calculateConsensusToCurrent(aligner& alignerObj, bool setToCon
 
 void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 		aligner& alignerObj, bool setToConsensus) {
-
+	//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 	// create the map for letter counters for each position
 	std::map<uint32_t, charCounter> counters;
 	// create a map in case of insertions
@@ -88,10 +88,10 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 	std::map<int32_t, charCounter> beginningGap;
 	auto getSeqBase =
 			[](const std::shared_ptr<readObject> & read) ->const seqInfo& {return read->seqBase_;};
-
+	//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 	consensusHelper::increaseCounters(seqBase_, reads_, getSeqBase, alignerObj, counters,
 			insertions, beginningGap);
-
+	//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 	calcConsensusInfo_ = seqBase_;
 	for (auto & counter : counters) {
 		counter.second.resetAlphabet(true);
@@ -110,10 +110,16 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 
 	//if the count is just 2 then just a majority rules consensus
 	if(seqBase_.cnt_ > 2){
+		/*//for debugging
+		bool print = false;
+		if(bib::containsSubString(seqBase_.name_, "lib1_Minor.00_seq.0001_5")){
+			print = true;
+		}*/
 
 		//find out if there are several locations with larger contention of majority rules
 		//consensus and therefore could lead to bad consensus building
 		double contentionCutOff = 0.25;
+
 		uint32_t countAbovepCutOff = 0;
 		std::vector<uint32_t> importantPositions;
 		for(const auto & counter : counters){
@@ -131,12 +137,109 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 				importantPositions.emplace_back(counter.first);
 			}
 		}
+		while(importantPositions.size() > 20){
+			contentionCutOff += .10;
+			countAbovepCutOff = 0;
+			importantPositions.clear();
+			for(const auto & counter : counters){
+				uint32_t count = 0;
+				for(const auto base : counter.second.alphabet_){
+					if(counter.second.fractions_[base] > contentionCutOff){
+						++count;
+						if(count >=2){
+							break;
+						}
+					}
+				}
+				if(count >=2){
+					++countAbovepCutOff;
+					importantPositions.emplace_back(counter.first);
+				}
+			}
+		}
+		//for debugging
+		/*if(print){
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
+			std::cout << seqBase_.name_ << std::endl;
+			std::cout << "countAbovepCutOff: " << countAbovepCutOff << std::endl;
+			bfs::path counterFnp = firstReadName_ + "_baseCounts.tab.txt";
+			counterFnp = bib::files::findNonexitantFile(counterFnp.string());
+			std::ofstream outFile(counterFnp.string());
+
+			outFile << "pos\tbase\tcount\tfrac" << "\n";
+			for (const auto & counter : counters) {
+				for (const auto base : counter.second.alphabet_) {
+					outFile << counter.first << "\t" << base << "\t"
+							<< counter.second.chars_[base] << "\t"
+							<< counter.second.fractions_[base] << "\n";
+				}
+			}
+			bfs::path insert_counterFnp = firstReadName_ + "_insertBaseCounts.tab.txt";
+			insert_counterFnp = bib::files::findNonexitantFile(insert_counterFnp.string());
+			std::ofstream outInsertFile(insert_counterFnp.string());
+			outFile << "pos\tinsertPos\tbase\tcount\tfrac" << "\n";
+			for (const auto & insert : insertions) {
+				for (const auto & counter : insert.second) {
+					for (const auto base : counter.second.alphabet_) {
+						outInsertFile << insert.first << "\t"
+								<< counter.first << "\t" << base << "\t"
+								<< counter.second.chars_[base] << "\t"
+								<< counter.second.fractions_[base] << "\n";
+					}
+				}
+			}
+				{
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
+			std::cout << seqBase_.name_ << std::endl;
+			std::cout << firstReadName_ << std::endl;
+			std::cout << "countAbovepCutOff: " << countAbovepCutOff << std::endl;
+			bfs::path counterFnp = firstReadName_ + "_baseCounts.tab.txt";
+			counterFnp = bib::files::findNonexitantFile(counterFnp.string());
+			std::ofstream outFile(bib::replaceString(counterFnp.string(), "/", "_"));
+
+			outFile << "pos\tbase\tcount\tfrac" << std::endl;
+			for (const auto & counter : counters) {
+				if(bib::in(counter.first, importantPositions)){
+					for (const auto base : counter.second.alphabet_) {
+						if (counter.second.fractions_[base] > contentionCutOff) {
+							outFile << counter.first << "\t" << base << "\t"
+															<< counter.second.chars_[base] << "\t"
+															<< counter.second.fractions_[base] << std::endl;;
+						}
+					}
+				}
+			}
+			bfs::path insert_counterFnp = firstReadName_ + "_insertBaseCounts.tab.txt";
+			insert_counterFnp = bib::files::findNonexitantFile(insert_counterFnp.string());
+			std::ofstream outInsertFile(bib::replaceString(insert_counterFnp.string(), "/", "_"));
+			outFile << "pos\tinsertPos\tbase\tcount\tfrac" << std::endl;
+			for (const auto & insert : insertions) {
+				for (const auto & counter : insert.second) {
+					for (const auto base : counter.second.alphabet_) {
+						if(bib::in(insert.first, importantPositions)){
+							outInsertFile << insert.first << "\t"
+									<< counter.first << "\t" << base << "\t"
+									<< counter.second.chars_[base] << "\t"
+									<< counter.second.fractions_[base] << std::endl;;
+						}
+					}
+				}
+			}
+			outFile.close();
+			outInsertFile.close();
+		}
+		}*/
+
 
 		//if there are several points of contention
 		if(countAbovepCutOff >= 2){
-
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 			//for debugging;
 			/*
+			if(print){
+				//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
+			}
+
 			std::ofstream outFile(firstReadName_ + "_baseCounts.tab.txt");
 			outFile << "pos\tbase\tcount\tfrac" << "\n";
 			for(const auto & counter : counters){
@@ -147,25 +250,24 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 							<< "\t" << counter.second.fractions_[base] <<"\n";
 				}
 			}*/
-
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 			ConBasePathGraph graph;
 			for(const auto pos : importantPositions){
 				auto & counter = counters.at(pos);
 				for(const auto base : counter.alphabet_){
-					if(counter.chars_[base] > 0){
-						graph.addNode(ConBasePathGraph::ConPath::PosBase{pos, base},counter.chars_[base], counter.fractions_[base]);
+					if (counter.fractions_[base] > contentionCutOff) {
+						graph.addNode(ConBasePathGraph::ConPath::PosBase { pos, base },
+								counter.chars_[base], counter.fractions_[base]);
 					}
+					/*if(counter.chars_[base] > 0){
+						graph.addNode(ConBasePathGraph::ConPath::PosBase{pos, base},counter.chars_[base], counter.fractions_[base]);
+					}*/
 				}
 			}
-
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 			//count up the pathways that seqs take and pick the path most traveled as the consensus path
-			//ConPathCounter pathCounter;
 			for(const auto & seq : reads_){
-				ConBasePathGraph::ConPath currentPath(seq->seqBase_.cnt_);
 				alignerObj.alignCacheGlobal(seqBase_, seq);
-				for(const auto pos : importantPositions){
-					currentPath.addPosBase(pos, alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(pos)]);
-				}
 
 				bib::sort(importantPositions);
 				for(const auto pos : iter::range(importantPositions.size() - 1)){
@@ -173,22 +275,38 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 					auto headBase = alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(headPos)];
 					auto tailPos = importantPositions[pos + 1];
 					auto tailBase = alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(tailPos)];
-					graph.addEdge(ConBasePathGraph::ConPath::PosBase{headPos,headBase}.getUid(),ConBasePathGraph::ConPath::PosBase{tailPos,tailBase}.getUid(),seq->seqBase_.cnt_ );
+					if(tailPos <= headPos){
+						std::stringstream ss;
+						ss << "tailPos: " << tailPos << " is less than headPos: " << headPos << std::endl;
+						throw std::runtime_error{ss.str()};
+					}
+					if(counters.at(headPos).fractions_[headBase] > contentionCutOff &&
+							counters.at(tailPos).fractions_[tailBase] > contentionCutOff ){
+						graph.addEdge(ConBasePathGraph::ConPath::PosBase{headPos,headBase}.getUid(),ConBasePathGraph::ConPath::PosBase{tailPos,tailBase}.getUid(),seq->seqBase_.cnt_ );
+					}
+					//graph.addEdge(ConBasePathGraph::ConPath::PosBase{headPos,headBase}.getUid(),ConBasePathGraph::ConPath::PosBase{tailPos,tailBase}.getUid(),seq->seqBase_.cnt_ );
 				}
-
-				//pathCounter.addConPath(currentPath);
 			}
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
+			//for debugging;
 			/*
-			std::ofstream outPathFile(firstReadName_ + "_basePaths.tab.txt");
-			outPathFile << "Name: " << seqBase_.name_ << std::endl;
-			outPathFile << "cnt: " << seqBase_.cnt_ << std::endl;
-			outPathFile << "frac: " << seqBase_.frac_ << std::endl;
-			graph.writePaths(outPathFile);
-			*/
+			if(print){
+				std::ofstream outPathFile(firstReadName_ + "_basePaths.tab.txt");
+				outPathFile << "Name: " << seqBase_.name_ << std::endl;
+				outPathFile << "cnt: " << seqBase_.cnt_ << std::endl;
+				outPathFile << "frac: " << seqBase_.frac_ << std::endl;
+				graph.writePaths(outPathFile);
+			}
+
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
+			{
+				std::ofstream outJson("conPaths.json");
+				outJson << graph.createSankeyOutput() << std::endl;;
+			}*/
 			auto paths = graph.getPaths();
 			std::vector<ConBasePathGraph::ConPath> bestPaths;
 			double bestCount = 0;
-
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 			for (const auto & path : paths) {
 				if(path.count_ > bestCount){
 					bestCount = path.count_;
@@ -198,10 +316,10 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 					bestPaths.emplace_back(path);
 				}
 			}
-
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 			ConBasePathGraph::ConPath bestPath(0);
 			if(bestPaths.size() > 1){
-
+				//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 				double bestImprovement = std::numeric_limits<double>::lowest();
 				std::vector<ConBasePathGraph::ConPath> secondaryBestPaths;
 				for (const auto & path : bestPaths) {
@@ -247,10 +365,11 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 				ss << "Error, bestPaths should contain at least 1 path" << "\n";
 				throw std::runtime_error{ss.str()};
 			}
-
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 			//auto bestPath = pathCounter.getBestPath();
 			//if there is just one supporting reads as the best path just do a majority's rule's consensus
 			if(bestPath.count_ > 1){
+				//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 				/*if("lib07_Minor.00_seq.0001_54-2_t1" == firstReadName_){
 					std::cout << "lib07_Minor.00_seq.0001_54-2_t1" << std::endl;
 					std::cout << "BestPath " << std::endl;
@@ -278,7 +397,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 		}
 	}
 
-
+	//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 	consensusHelper::genConsensusFromCounters(calcConsensusInfo_, counters, insertions,
 			beginningGap);
 
@@ -293,6 +412,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 	}
 	previousErrorChecks_.clear();
 	needToCalculateConsensus_ = false;
+	//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 }
 
 void baseCluster::calculateConsensus(aligner& alignerObj, bool setToConsensus) {
@@ -411,8 +531,7 @@ std::string toSlimJsonErrors(const comparison & comp){
 	ret["lqMismatches_"] = comp.lqMismatches_;
 	ret["oneBaseIndel_"] = comp.oneBaseIndel_;
 	ret["twoBaseIndel_"] = comp.twoBaseIndel_;
-	Json::FastWriter jWriter;
-	return jWriter.write(ret);
+	return bib::json::writeAsOneLine(ret);
 }
 
 
@@ -497,6 +616,50 @@ bool baseCluster::isClusterAtLeastChimericCutOff(double cutOff) {
 		return true;
 	}
 	return false;
+}
+
+
+void baseCluster::removeReads(std::vector<uint32_t> readPositions){
+	std::sort(readPositions.rbegin(), readPositions.rend());
+	for(const auto & pos : readPositions){
+		removeRead(pos);
+	}
+}
+
+void baseCluster::removeRead(uint32_t readPos) {
+	if (readPos >= reads_.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error readPos: " << readPos
+				<< " out of range of reads size: " << reads_.size() << "\n";
+		throw std::out_of_range { ss.str() };
+	}
+	seqBase_.cnt_ -= reads_[readPos]->seqBase_.cnt_;
+	if (reads_[readPos]->seqBase_.name_ == firstReadName_) {
+		if (0 != readPos) {
+			firstReadName_ = reads_[0]->seqBase_.name_;
+			firstReadCount_ = reads_[0]->seqBase_.cnt_;
+		} else if (reads_.size() > 1) {
+			firstReadName_ = reads_[1]->seqBase_.name_;
+			firstReadCount_ = reads_[1]->seqBase_.cnt_;
+		}else{
+			firstReadName_ = "";
+		}
+	}
+	reads_.erase(reads_.begin() + readPos);
+	needToCalculateConsensus_ = true;
+	updateName();
+}
+
+
+void baseCluster::removeRead(const std::string & stubName){
+	uint32_t readPos = std::numeric_limits<uint32_t>::max();
+	for(const auto & pos : iter::range(reads_.size())){
+		if(reads_[pos]->getStubName(true) == stubName){
+			readPos = pos;
+			break;
+		}
+	}
+	removeRead(readPos);
 }
 
 }  // namespace bib

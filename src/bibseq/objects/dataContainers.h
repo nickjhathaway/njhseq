@@ -28,3 +28,4 @@
 //
 #include "bibseq/objects/dataContainers/tables.h"
 #include "bibseq/objects/dataContainers/graphs.h"
+#include "bibseq/objects/dataContainers/BasicPointMatrix.hpp"

@@ -30,23 +30,24 @@
 namespace bibseq {
 
 MasterTableStaticCache::MasterTableStaticCache(const TableIOOpts & opts,
-		const std::vector<boost::filesystem::path> & files) :
-		opts_(opts), files_(files) {
+		const std::vector<bfs::path> & files,
+		bool fill) :
+		opts_(opts),fill_(fill), files_(files) {
 	bool outOutDated = outUpToDate();
 	if (outOutDated) {
 		loadTabs();
 	} else {
 		masterTab_ = table(
-				bib::appendAsNeededRet(opts_.out_.outFilename_,
+				bib::appendAsNeededRet(opts_.out_.outFilename_.string(),
 						opts_.out_.outExtention_), opts.outDelim_, opts_.hasHeader_);
 	}
 }
 
 bool MasterTableStaticCache::outUpToDate() const {
-	auto outFilename = bib::appendAsNeededRet(opts_.out_.outFilename_,
+	auto outFilename = bib::appendAsNeededRet(opts_.out_.outFilename_.string(),
 			opts_.out_.outExtention_);
 	bool outOutDated = false;
-	if (bib::files::bfs::exists(outFilename)) {
+	if (bfs::exists(outFilename)) {
 		auto outTime = bib::files::last_write_time(outFilename);
 		for (const auto & file : files_.files_) {
 			if (outTime < bib::files::last_write_time(file.fnp_)) {
@@ -74,7 +75,7 @@ bool MasterTableStaticCache::loadTabs(){
 			if (masterTab_.content_.empty()) {
 				masterTab_ = fileTab;
 			} else {
-				masterTab_.rbind(fileTab, false);
+				masterTab_.rbind(fileTab, fill_);
 			}
 		}
 		updateTime_ = std::chrono::system_clock::now();
@@ -94,6 +95,18 @@ void MasterTableStaticCache::writeTab(){
 		loadTabs();
 		masterTab_.outPutContents(opts_);
 	}
+}
+
+void MasterTableStaticCache::writeTabGz(){
+	writeTab();
+
+	bfs::path gzPath = opts_.out_.outName().string() + ".gz";
+	if(!bfs::exists(gzPath) || bib::files::firstFileIsOlder(gzPath, opts_.out_.outName())){
+		auto gzOpts = IoOptions(InOptions(opts_.out_.outName()), OutOptions(gzPath));
+		gzOpts.out_.overWriteFile_ = opts_.out_.overWriteFile_;
+		gzZipFile(gzOpts);
+	}
+
 }
 
 }  // namespace bibseq

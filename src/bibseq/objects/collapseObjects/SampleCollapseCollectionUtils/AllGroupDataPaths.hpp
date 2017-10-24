@@ -8,7 +8,7 @@
 
 
 
-#include "bibseq/objects/collapseObjects/SampleCollapseCollectionUtils/GroupMetaData.hpp"
+#include "bibseq/objects/Meta/MultipleGroupMetaData.hpp"
 
 
 
@@ -25,6 +25,7 @@ public:
 			bfs::path mainDir_;
 			bfs::path popFileFnp_;
 			bfs::path sampFileFnp_;
+			bfs::path hapIdTabFnp_;
 			bfs::path subGroupNamesDataFnp_;
 
 			VecStr readInPopUIDs() const;

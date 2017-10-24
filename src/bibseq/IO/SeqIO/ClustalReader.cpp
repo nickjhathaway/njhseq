@@ -31,18 +31,30 @@ namespace bibseq {
 
 std::vector<readObject> ClustalReader::readClustal(std::string filename, bool processed) {
 	std::vector<readObject> ret;
-	table inTab(filename);
+	//table inTab(filename, "whitespace", false);
+	if(!bfs::exists(filename)){
+		std::stringstream ss;
+		ss <<__PRETTY_FUNCTION__ << ", error file " << filename << " doesn't exist" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+
+	std::ifstream infile(filename);
+	if(!infile){
+		std::stringstream ss;
+		ss <<__PRETTY_FUNCTION__ << ", error in opening " << filename << "" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
 	std::vector<std::pair<std::string, readObject>> readMap;
-	std::vector<std::pair<std::string, readObject>>::iterator readMapIter;
-	for (const auto& row : inTab.content_) {
-		if (row.size() != 2 || row[0][0] == '*') {
-		} else {
+	std::string line = "";
+
+	while (bib::files::crossPlatGetline(infile, line)) {
+		auto row = tokenizeString(line, "whitespace");
+		if(row.size() == 2 && row[0][0] != '*' && !allWhiteSpaceStr(row.front())){
 			bool foundMatch = false;
-			for (readMapIter = readMap.begin(); readMapIter != readMap.end();
-					++readMapIter) {
-				if (readMapIter->first == row[0]) {
+			for (auto & readMapIter : readMap) {
+				if (readMapIter.first == row[0]) {
 					foundMatch = true;
-					readMapIter->second.seqBase_.append(row[1]);
+					readMapIter.second.seqBase_.append(row[1]);
 					break;
 				}
 			}
@@ -51,10 +63,11 @@ std::vector<readObject> ClustalReader::readClustal(std::string filename, bool pr
 			}
 		}
 	}
-	for (readMapIter = readMap.begin(); readMapIter != readMap.end();
-			readMapIter++) {
-		ret.emplace_back(readMapIter->second);
+
+	for (const auto & readMapIter : readMap) {
+		ret.emplace_back(readMapIter.second);
 	}
+
 	return ret;
 }
 

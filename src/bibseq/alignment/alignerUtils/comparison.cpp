@@ -30,7 +30,7 @@ void DistanceMet::reset() {
 
 Json::Value DistanceMet::toJson()const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson("bibseq::DistanceMet");
+	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
 	ret["identities_"] = bib::json::toJson(identities_);
 	ret["identity_"] = bib::json::toJson(identity_);
 	ret["coverage_"] = bib::json::toJson(coverage_);
@@ -70,7 +70,7 @@ uint32_t DistanceComp::getNumOfEvents(bool countLowKmer)const{
 
 Json::Value DistanceComp::toJson()const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson("bibseq::DistanceComp");
+	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
 	ret["basesInAln_"] = bib::json::toJson(basesInAln_);
 	ret["percentMismatch_"] = bib::json::toJson(percentMismatch_);
 	ret["percentMatch_"] = bib::json::toJson(percentMatch_);
@@ -185,7 +185,7 @@ bool comparison::passIdThresholdHq(const comparison& generatedError) const {
 
 Json::Value comparison::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson("bibseq::comparison");
+	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
 	ret["oneBaseIndel_"] = bib::json::toJson(oneBaseIndel_);
 	ret["twoBaseIndel_"] = bib::json::toJson(twoBaseIndel_);
 	ret["largeBaseIndel_"] = bib::json::toJson(largeBaseIndel_);
@@ -201,8 +201,7 @@ Json::Value comparison::toJson() const{
 }
 
 std::ostream & operator <<(std::ostream & out, const comparison & comp) {
-	Json::FastWriter jWriter;
-	out << jWriter.write(comp.toJson()) << std::endl;
+	out << bib::json::writeAsOneLine(comp.toJson()) << std::endl;
 	return out;
 }
 

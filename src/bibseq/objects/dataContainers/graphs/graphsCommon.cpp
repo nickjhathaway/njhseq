@@ -26,6 +26,7 @@ std::vector<bib::color> getColsBetweenExcludeClosest(bib::color first,
 
 
 std::unordered_map<std::string,bib::color> getColorsForNames(const VecStr & popNames){
+
 	auto popColors = bib::njhColors(popNames.size());
 	bibseq::VecStr popColorsStrs(popColors.size(), "");
 	uint32_t count = 0;
@@ -171,7 +172,13 @@ void genSimpleTreeJs(std::ostream & out) {
 		out << "	node.append(\"circle\")" << std::endl;
 		out << "      .attr(\"r\", function(d) { return Math.sqrt(d.size/Math.PI); })" << std::endl;
 		out << "      .style(\"fill\", function(d) { return d.color; })" << std::endl;
-		out << "      .style(\"stroke\", function(d) { return d.color; })" << std::endl;
+		out << "      .style(\"stroke\", function(d) { " << std::endl;
+		out << "      	if(d.corePoint){" << std::endl;
+		out << "      		return \"#FFFFFF\";" << std::endl;
+		out << "      	}else{" << std::endl;
+		out << "      		return d.color; " << std::endl;
+		out << "      	}" << std::endl;
+		out << "      })" << std::endl;
 		out << "      .style(\"stroke-width\", \"1.5px\")" << std::endl;
 		out << "      .call(force.drag);" << std::endl;
 		out << "" << std::endl;

@@ -33,21 +33,32 @@ seqInfo::seqInfo(const std::string & name) :
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
 		const std::vector<uint32_t>& qual) :
 		name_(name), seq_(seq), qual_(qual), cnt_(1), frac_(0) {
+	if(qual_.size() != seq.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error seq and qual have to be the same size; seq: " << seq.size() << " qual: " << qual_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
+	}
 }
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
 		const std::vector<uint32_t>& qual, double cnt) :
 		name_(name), seq_(seq), qual_(qual), cnt_(cnt), frac_(0) {
+	if(qual_.size() != seq.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error seq and qual have to be the same size; seq: " << seq.size() << " qual: " << qual_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
+	}
 }
 seqInfo::seqInfo(const std::string& name, const std::string& seq) :
 		name_(name), seq_(seq), qual_(std::vector<uint32_t>(seq.size(), 40)), cnt_(
 				1), frac_(0) {
+
 }
 
-seqInfo::seqInfo(const std::string& name, const std::string& seq,
-		const std::string& stringQual) :
-		name_(name), seq_(seq), qual_(stringToVector<uint32_t>(stringQual)), cnt_(
-				1), frac_(0) {
-}
+//seqInfo::seqInfo(const std::string& name, const std::string& seq,
+//		const std::string& stringQual) :
+//		name_(name), seq_(seq), qual_(stringToVector<uint32_t>(stringQual)), cnt_(
+//				1), frac_(0) {
+//}
 
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
 		const std::string& stringQual, uint32_t off_set) :
@@ -55,10 +66,20 @@ seqInfo::seqInfo(const std::string& name, const std::string& seq,
 	for (const auto & c : stringQual) {
 		qual_.emplace_back(c - off_set);
 	}
+	if(qual_.size() != seq.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error seq and qual have to be the same size; seq: " << seq.size() << " qual: " << qual_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
+	}
 }
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
 		const std::vector<uint32_t>& qual, double cnt, double frac) :
 		name_(name), seq_(seq), qual_(qual), cnt_(cnt), frac_(frac) {
+	if(qual_.size() != seq.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error seq and qual have to be the same size; seq: " << seq.size() << " qual: " << qual_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
+	}
 }
 
 seqInfo seqInfo::getSubRead(uint32_t pos, uint32_t size) const {
@@ -80,6 +101,15 @@ void seqInfo::updateName() {
 	name_ += "_t" + estd::to_string(cnt_);
 }
 
+
+Json::Value seqInfo::toJsonJustInfo() const {
+	Json::Value ret;
+	ret["cnt"] = bib::json::toJson(cnt_);
+	ret["frac"] = bib::json::toJson(frac_);
+	ret["name"] = bib::json::toJson(name_);
+	ret["on"] = bib::json::toJson(on_);
+	return ret;
+}
 Json::Value seqInfo::toJson() const {
 	Json::Value ret;
 	ret["seq"] = bib::json::toJson(seq_);
@@ -292,6 +322,16 @@ void seqInfo::prepend(const std::string& seq,
 		throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
 	}
 }
+
+void seqInfo::prepend(const seqInfo & other){
+	prepend(other.seq_, other.qual_);
+}
+
+void seqInfo::append(const seqInfo & other){
+	append(other.seq_, other.qual_);
+}
+
+
 const std::vector<uint32_t> seqInfo::getLeadQual(uint32_t posA,
 		uint32_t out) const {
 	std::vector<uint32_t> ans;
@@ -535,6 +575,11 @@ std::string seqInfo::getStubName(bool removeChiFlag) const {
 	if (removeChiFlag) {
 		outString = bib::replaceString(outString, "CHI_", "");
 	}
+//	if (removeChiFlag) {
+//		if(MetaDataInName::nameHasMetaData(outString)){
+//			MetaDataInName::removeMetaDataInName(outString);
+//		}
+//	}
 	return outString;
 }
 
@@ -628,12 +673,53 @@ uint32_t seqInfo::getSumQual() const {
 	return sum;
 }
 
+std::string getStubNameExternal(const std::string & name, bool removeChiFlag)  {
+	size_t tPos = name.rfind("_t");
+	size_t fPos = name.rfind("_f");
+	std::string outString = name;
+	if (tPos == std::string::npos && fPos == std::string::npos) {
+		outString = name;
+	} else if (tPos != std::string::npos && fPos != std::string::npos) {
+		if (tPos > fPos) {
+			outString = name.substr(0, tPos);
+		} else {
+			outString = name.substr(0, fPos);
+		}
+	} else if (tPos == std::string::npos) {
+		outString = name.substr(0, fPos);
+	} else {
+		outString = name.substr(0, tPos);
+	}
+
+	if (removeChiFlag) {
+		outString = bib::replaceString(outString, "CHI_", "");
+	}
+//	if (removeChiFlag) {
+//		if(MetaDataInName::nameHasMetaData(outString)){
+//			MetaDataInName::removeMetaDataInName(outString);
+//		}
+//	}
+	return outString;
+}
+
 std::string seqInfo::getOwnSampName() const {
+
+	if(MetaDataInName::nameHasMetaData(name_)){
+		MetaDataInName meta(name_);
+		if(meta.containsMeta("samp")){
+			return meta.getMeta("samp");
+		}else if(meta.containsMeta("sample")){
+			return meta.getMeta("sample");
+		}
+	}
 	//std::cout << name_ << std::endl;
-	std::string name = getStubName(true);
-	auto firstBracket = name_.find("[");
-	if (std::string::npos != firstBracket) {
-		name = name.substr(firstBracket);
+	std::string name;
+	if(MetaDataInName::nameHasMetaData(name_)){
+		name = name_;
+		MetaDataInName::removeMetaDataInName(name);
+		name = getStubNameExternal(name, true);
+	}else{
+		name = getStubName(true);
 	}
 	//std::cout << name.substr(0,name.rfind(".")) << std::endl;
 	return name.substr(0,name.rfind("."));
@@ -658,6 +744,34 @@ bool seqInfo::nameHasMetaData() const {
 		return false;
 	}
 	return true;
+}
+
+void seqInfo::resetMetaInName(const MetaDataInName & meta) {
+	if (meta.meta_.empty()) {
+		return;
+	}
+
+	if (MetaDataInName::nameHasMetaData(name_)) {
+		meta.resetMetaInName(name_);
+	} else {
+		std::string newMeta = meta.createMetaName();
+		//std::cout << name_ << std::endl;
+		//std::cout << newMeta << std::endl;
+		auto countPat = name_.rfind("_t");
+		auto fracPat = name_.rfind("_f");
+		if (std::string::npos != countPat && countPat + 2 != name_.length()
+				&& isDoubleStr(name_.substr(countPat + 2))) {
+			auto rest = name_.substr(countPat + 2);
+			name_ = name_.substr(0, countPat) + newMeta + name_.substr(countPat);
+		} else if (std::string::npos != fracPat && fracPat + 2 != name_.length()
+				&& isDoubleStr(name_.substr(fracPat + 2))) {
+			auto rest = name_.substr(fracPat + 2);
+			name_ = name_.substr(0, fracPat) + newMeta + name_.substr(fracPat);
+		} else {
+			name_ = name_ + newMeta;
+		}
+		//std::cout << name_ << std::endl << std::endl;
+	}
 }
 
 void seqInfo::processNameForMeta(std::unordered_map<std::string, std::string> & meta)const{

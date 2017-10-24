@@ -32,15 +32,16 @@
 
 namespace bibseq {
 
-class seqSetUp : public bib::progutils::programSetUp {
+class seqSetUp : public bib::progutils::ProgramSetUp {
  public:
-	using bib::progutils::programSetUp::programSetUp;
+	using bib::progutils::ProgramSetUp::ProgramSetUp;
 
   SeqSetUpPars pars_;
   const static VecStr readInFormatsAvailable_;
   void processQualityFiltering();
   bool processDefaultReader(bool readInNamesRequired = true);
   bool processDefaultReader(const VecStr & formats, bool readInNamesRequired = true);
+  bool processReadInNames(bool required = true);
   bool processReadInNames(const VecStr & formats, bool required = true);
   void processGap();
   void processGapRef();
@@ -61,9 +62,11 @@ class seqSetUp : public bib::progutils::programSetUp {
   bool processRefFilename(bool required = false);
   bool processSeq(bool required = false);
   bool processSeq(std::string& inputSeq, const std::string& flag,
-                  const std::string& parName, bool required = false);
+                  const std::string& parName, bool required = false,
+								 const std::string & flagGrouping = "Misc");
   bool processSeq(seqInfo& inputSeq, const std::string& flag,
-                  const std::string& parName, bool required = false);
+                  const std::string& parName, bool required = false,
+								 const std::string & flagGrouping = "Misc");
   bool processVerbose();
   bool processDebug();
   bool processQuiet();
@@ -81,19 +84,18 @@ class seqSetUp : public bib::progutils::programSetUp {
   void processComparison(comparison & comp, std::string stub = "");
 
   // usage prints
-  void printInputUsage(std::ostream& out);
-  void printAdditionaInputUsage(std::ostream& out,
-                                const std::string& lowerRemove);
-
-  void printGapUsage(std::ostream & out)const;
-
-  void printKmerProfilingUsage(std::ostream& out);
-  void printQualThresUsage(std::ostream& out);
-  void printAlignmentUsage(std::ostream& out);
-  void printReferenceComparisonUsage(std::ostream& out);
-  void printFileWritingUsage(std::ostream& out, bool all);
-  void printAlnInfoDirUsage(std::ostream& out);
-  void printAdditionalClusteringUsage(std::ostream& out);
+//  void printAdditionaInputUsage(std::ostream& out,
+//                                const std::string& lowerRemove);
+//
+//  void printGapUsage(std::ostream & out)const;
+//
+//  void printKmerProfilingUsage(std::ostream& out);
+//  void printQualThresUsage(std::ostream& out);
+//  void printAlignmentUsage(std::ostream& out);
+//  void printReferenceComparisonUsage(std::ostream& out);
+//  void printFileWritingUsage(std::ostream& out, bool all);
+//  void printAlnInfoDirUsage(std::ostream& out);
+//  void printAdditionalClusteringUsage(std::ostream& out);
 
 };
 }  // namespace bibseq

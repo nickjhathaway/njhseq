@@ -78,7 +78,7 @@ void TableCache::clearTable(){
 		optsCopy.outDelim_ = opts_.inDelim_;
 		optsCopy.hasHeader_ = opts_.hasHeader_;
 		optsCopy.out_.outFilename_ = opts_.in_.inFilename_;
-		optsCopy.out_.outExtention_ = opts_.in_.inFilename_;
+		optsCopy.out_.outExtention_ = opts_.in_.inFilename_.string();
 		tab_.outPutContents(optsCopy);
 	}
 	tab_ = table();

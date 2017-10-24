@@ -32,7 +32,7 @@ namespace bibseq {
 class PairedRead: public readObject {
 public:
 	PairedRead(const seqInfo & seqFirst, const seqInfo & seqSecond,
-			bool processed);
+			bool processed = false);
 
 	PairedRead();
 

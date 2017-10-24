@@ -32,18 +32,45 @@
 #include "bibseq/readVectorManipulation/readVectorOperations.h"
 #include "bibseq/objects/seqObjects/readObject.hpp"
 #include "bibseq/objects/collapseObjects/opts/IterPar.hpp"
+#include "bibseq/objects/kmer/kmerInfo.hpp"
+#include "bibseq/objects/helperObjects/probabilityProfile.hpp"
 
 namespace bibseq {
 
-
-
-class readVecTrimmer {
-public:
+struct FullTrimReadsPars {
 	struct trimSeqPars {
 		bool includeSequence_;
 		bool sequenceToLowerCase_;
 		bool removePreviousSameBases_;
+		bool local_ = true;
+		uint32_t within_ = std::numeric_limits<uint32_t>::max();
 	};
+  // parameters
+	FullTrimReadsPars();
+	void initForKSharedTrim();
+
+  uint32_t maxLength = std::numeric_limits<uint32_t>::max();
+  uint32_t numberOfEndBases = std::numeric_limits<uint32_t>::max();
+  uint32_t numberOfFowardBases = std::numeric_limits<uint32_t>::max();
+  std::string backSeq = "";
+  std::string forwardSeq = "";
+  trimSeqPars tSeqPars_;
+  comparison allowableErrors;
+  bool keepOnlyOn = false;
+
+  uint32_t kmerLength = 10;
+  uint32_t windowLength = 25;
+  uint32_t precision = 10;
+
+  char base = 'N';
+  uint32_t qual = 2;
+
+};
+
+class readVecTrimmer {
+public:
+
+
 
 
   template <class T>
@@ -60,6 +87,12 @@ public:
   static void trimAtFirstQualScore(seqInfo &read, const uint32_t qualCutOff);
 
   template <class T>
+  static void trimToLastQualScore(std::vector<T> &reads, const uint32_t qualCutOff);
+  template <class T>
+  static void trimToLastQualScore(T &read, const uint32_t qualCutOff);
+  static void trimToLastQualScore(seqInfo &read, const uint32_t qualCutOff);
+
+  template <class T>
   static void trimAtFirstBase(std::vector<T> &reads, const char base);
   template <class T>
   static void trimAtFirstBase(T &read, const char base);
@@ -70,6 +103,31 @@ public:
   template <class T>
   static void trimAtLastBase(T &read, const char base);
   static void trimAtLastBase(seqInfo &read, const char base);
+
+  template <class T>
+  static void trimAtLstripQualScore(std::vector<T> &reads, const uint32_t qualCutOff);
+  template <class T>
+  static void trimAtLstripQualScore(T &read, const uint32_t qualCutOff);
+  static void trimAtLstripQualScore(seqInfo &read, const uint32_t qualCutOff);
+
+
+  template <class T>
+  static void trimAtRstripQualScore(std::vector<T> &reads, const uint32_t qualCutOff);
+  template <class T>
+  static void trimAtRstripQualScore(T &read, const uint32_t qualCutOff);
+  static void trimAtRstripQualScore(seqInfo &read, const uint32_t qualCutOff);
+
+  template <class T>
+  static void trimAtLstripBase(std::vector<T> &reads, const char base);
+  template <class T>
+  static void trimAtLstripBase(T &read, const char base);
+  static void trimAtLstripBase(seqInfo &read, const char base);
+
+  template <class T>
+  static void trimAtRstripBase(std::vector<T> &reads, const char base);
+  template <class T>
+  static void trimAtRstripBase(T &read, const char base);
+  static void trimAtRstripBase(seqInfo &read, const char base);
 
   template <class T>
   static void trimAtFirstSeq(std::vector<T> &reads, const std::string & seq);
@@ -107,37 +165,55 @@ public:
 	template<class T>
 	static void trimAtSequence(std::vector<T> &reads,
 			seqInfo &reversePrimer, aligner &alignObj, comparison allowableErrors,
-			trimSeqPars tSeqPars);
+			FullTrimReadsPars::trimSeqPars tSeqPars);
 	template<class T>
 	static void trimAtSequence(T &read, seqInfo &reversePrimer,
-			aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars);
+			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
 	static void trimAtSequence(seqInfo &read, seqInfo &reversePrimer,
-			aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars);
+			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
 
 	template<class T>
 	static void trimBeforeSequence(std::vector<T> &reads,
 			seqInfo &forwardSeq, aligner &alignObj, comparison allowableErrors,
-			trimSeqPars tSeqPars);
+			FullTrimReadsPars::trimSeqPars tSeqPars);
 	template<class T>
 	static void trimBeforeSequence(T &read, seqInfo &forwardSeq,
-			aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars);
+			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
 	static void trimBeforeSequence(seqInfo &read, seqInfo &forwardSeq,
-			aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars);
+			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
 
 	template<class T>
 	static void trimBetweenSequences(std::vector<T> &reads,
 			seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
-			comparison allowableErrors, trimSeqPars tSeqPars);
+			comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
 	template<class T>
 	static void trimBetweenSequences(T &read, seqInfo &forwardSeq,
 			seqInfo &backSeq, aligner &alignObj, comparison allowableErrors,
-			trimSeqPars tSeqPars);
+			FullTrimReadsPars::trimSeqPars tSeqPars);
 	static void trimBetweenSequences(seqInfo &read, seqInfo &forwardSeq,
 			seqInfo &backSeq, aligner &alignObj, comparison allowableErrors,
-			trimSeqPars tSeqPars);
+			FullTrimReadsPars::trimSeqPars tSeqPars);
+
+	template<typename T>
+	static void trimToMostCommonKmer(std::vector<T> & seqs,
+			FullTrimReadsPars pars,
+			aligner &alignObj);
+
+	template<typename T>
+	static void trimFromMostCommonKmer(std::vector<T> & seqs,
+			FullTrimReadsPars pars,
+			aligner &alignObj);
+
+	template<typename T>
+	static void trimBetweenMostCommonKmers(std::vector<T> & seqs, FullTrimReadsPars pars,
+			aligner &alignObj);
+
+
 
 
 };
+
+
 
 template <class T>
 void readVecTrimmer::trimToMaxLength(std::vector<T> &reads, size_t maxLength) {
@@ -157,9 +233,23 @@ void readVecTrimmer::trimAtFirstQualScore(std::vector<T> &reads, const uint32_t 
 }
 
 template <class T>
+void readVecTrimmer::trimToLastQualScore(std::vector<T> &reads, const uint32_t qualCutOff){
+  bib::for_each(reads, [&](T & read){ trimToLastQualScore(read, qualCutOff);} );
+  return;
+}
+
+
+
+template <class T>
 void readVecTrimmer::trimAtFirstQualScore(T &read, const uint32_t qualCutOff){
 	trimAtFirstQualScore(getSeqBase(read), qualCutOff);
 }
+
+template <class T>
+void readVecTrimmer::trimToLastQualScore(T &read, const uint32_t qualCutOff){
+	trimToLastQualScore(getSeqBase(read), qualCutOff);
+}
+
 
 template <class T>
 void readVecTrimmer::trimAtFirstBase(std::vector<T> &reads, const char base){
@@ -176,6 +266,56 @@ template <class T>
 void readVecTrimmer::trimAtLastBase(T &read, const char base){
 	trimAtLastBase(getSeqBase(read), base);
 }
+
+
+template <class T>
+void readVecTrimmer::trimAtLstripQualScore(std::vector<T> &reads, const uint32_t qualCutOff){
+  bib::for_each(reads, [&](T & read){ trimAtLstripQualScore(read, qualCutOff);} );
+  return;
+}
+
+template <class T>
+void readVecTrimmer::trimAtLstripQualScore(T &read, const uint32_t qualCutOff){
+	trimAtLstripQualScore(getSeqBase(read), qualCutOff);
+}
+
+template <class T>
+void readVecTrimmer::trimAtRstripQualScore(std::vector<T> &reads, const uint32_t qualCutOff){
+  bib::for_each(reads, [&](T & read){ trimAtRstripQualScore(read, qualCutOff);} );
+  return;
+}
+
+template <class T>
+void readVecTrimmer::trimAtRstripQualScore(T &read, const uint32_t qualCutOff){
+	trimAtRstripQualScore(getSeqBase(read), qualCutOff);
+}
+
+template <class T>
+void readVecTrimmer::trimAtLstripBase(std::vector<T> &reads, const char base){
+  bib::for_each(reads, [&](T & read){ trimAtLstripBase(read, base);} );
+  return;
+}
+
+
+template <class T>
+void readVecTrimmer::trimAtLstripBase(T &read, const char base){
+	trimAtLstripBase(getSeqBase(read), base);
+}
+
+template <class T>
+void readVecTrimmer::trimAtRstripBase(std::vector<T> &reads, const char base){
+  bib::for_each(reads, [&](T & read){ trimAtRstripBase(read, base);} );
+  return;
+}
+
+
+template <class T>
+void readVecTrimmer::trimAtRstripBase(T &read, const char base){
+	trimAtRstripBase(getSeqBase(read), base);
+}
+
+
+
 
 template <class T>
 void readVecTrimmer::trimAtLastSeq(T &read, const std::string & seq){
@@ -227,15 +367,15 @@ void readVecTrimmer::trimEnds(T &read, size_t forwardBases,
 template<class T>
 void readVecTrimmer::trimAtSequence(std::vector<T> &reads,
 		seqInfo &reversePrimer, aligner &alignObj, comparison allowableErrors,
-		trimSeqPars tSeqPars) {
+		FullTrimReadsPars::trimSeqPars tSeqPars) {
 	bib::for_each(reads,
-			[&](T& read) {trimAtSequenceIdentity(read, reversePrimer, alignObj, allowableErrors, tSeqPars);});
+			[&](T& read) {trimAtSequence(read, reversePrimer, alignObj, allowableErrors, tSeqPars);});
 }
 
 template<class T>
 void readVecTrimmer::trimAtSequence(T &read, seqInfo &reversePrimer,
-		aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars) {
-	trimAtSequenceIdentity(getSeqBase(read), reversePrimer, alignObj,
+		aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
+	trimAtSequence(getSeqBase(read), reversePrimer, alignObj,
 			allowableErrors, tSeqPars);
 }
 
@@ -243,15 +383,15 @@ void readVecTrimmer::trimAtSequence(T &read, seqInfo &reversePrimer,
 template<class T>
 void readVecTrimmer::trimBeforeSequence(std::vector<T> &reads,
 		seqInfo &forwardSeq, aligner &alignObj, comparison allowableErrors,
-		trimSeqPars tSeqPars) {
+		FullTrimReadsPars::trimSeqPars tSeqPars) {
 	bib::for_each(reads,
 			[&](T& read) {trimBeforeSequence(read, forwardSeq, alignObj, allowableErrors, tSeqPars);});
 }
 
 template<class T>
 void readVecTrimmer::trimBeforeSequence(T &read, seqInfo &forwardSeq,
-		aligner &alignObj, comparison allowableErrors, trimSeqPars tSeqPars) {
-	trimAtSequenceIdentity(getSeqBase(read), forwardSeq, alignObj,
+		aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
+	trimBeforeSequence(getSeqBase(read), forwardSeq, alignObj,
 			allowableErrors, tSeqPars);
 }
 
@@ -259,7 +399,7 @@ template <class T>
 void readVecTrimmer::trimBetweenSequences(
 		std::vector<T> &reads,
 					seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
-					comparison allowableErrors, trimSeqPars tSeqPars) {
+					comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
 	bib::for_each(reads, [&](T& read){ trimBetweenSequences(read, forwardSeq,backSeq, alignObj, allowableErrors) ;});
   return;
 }
@@ -267,7 +407,7 @@ void readVecTrimmer::trimBetweenSequences(
 template <class T>
 void readVecTrimmer::trimBetweenSequences(T &read,
 		seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
-							comparison allowableErrors, trimSeqPars tSeqPars){
+							comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars){
 	trimBetweenSequences(getSeqBase(read), forwardSeq, backSeq, alignObj, allowableErrors, tSeqPars);
 	return;
 }
@@ -303,5 +443,134 @@ void readVecTrimmer::trimEndsOfReadsToSharedSeq(std::vector<T> &reads,
   }
   return;
 }
+
+
+template<typename T>
+void readVecTrimmer::trimToMostCommonKmer(std::vector<T> & seqs,
+		FullTrimReadsPars pars,
+		aligner &alignObj) {
+
+	std::vector<kmerInfo> kInfos;
+	probabilityProfile profile(pars.kmerLength);
+
+  for(const auto & readPos : iter::range(len(seqs))){
+  	auto & seq = seqs[readPos];
+  	//first turn off short sequences if they are too short and then continue on
+  	if(len(seq) < pars.windowLength ){
+  		getSeqBase(seq).on_ = false;
+  		continue;
+  	}
+  	uint32_t startPos = len(seq) - pars.windowLength;
+  	uint32_t stopPos = len(seq) - pars.kmerLength + 1;
+  	kInfos.emplace_back(kmerInfo(getSeqBase(seq).seq_.substr(startPos), pars.kmerLength, false));
+  	for(const auto & pos : iter::range(startPos, stopPos)){
+  		profile.add(getSeqBase(seq).seq_.substr(pos, pars.kmerLength), false);
+  	}
+  }
+
+  std::unordered_map<std::string, uint32_t> kCounts;
+  for(const auto & kInfo : kInfos){
+  	for(const auto & k : kInfo.kmers_){
+  		++kCounts[k.first];
+  	}
+  }
+  profile.updateProfile();
+  std::string bestK = "";
+  double bestProb = 0;
+  uint32_t bestCount = 0;
+	for (const auto & kBest : kCounts) {
+		if(kBest.second> bestCount){
+			bestK = kBest.first;
+			bestCount = kBest.second;
+			bestProb = profile.getProbabilityOfKmer(kBest.first);
+		}else if(kBest.second == bestCount){
+			auto prob = profile.getProbabilityOfKmer(kBest.first);
+			if(prob > bestProb){
+				bestK = kBest.first;
+				bestProb = prob;
+			}
+		}
+	}
+	seqInfo bestSeq(bestK + ":" + estd::to_string(bestProb), bestK);
+  pars.tSeqPars_.within_ = pars.windowLength + 5;
+  for(auto & seq : seqs){
+  	//skip if the length was too small
+  	if(!getSeqBase(seq).on_){
+  		continue;
+  	}
+		readVecTrimmer::trimAtSequence(getSeqBase(seq), bestSeq, alignObj,
+				pars.allowableErrors, pars.tSeqPars_);
+  }
+}
+
+template<typename T>
+void readVecTrimmer::trimFromMostCommonKmer(std::vector<T> & seqs,
+		FullTrimReadsPars pars,
+		aligner &alignObj) {
+
+	std::vector<kmerInfo> kInfos;
+	probabilityProfile profile(pars.kmerLength);
+
+  for(const auto & readPos : iter::range(len(seqs))){
+  	auto & seq = seqs[readPos];
+  	//first turn off short sequences if they are too short and then continue on
+  	if(len(seq) < pars.windowLength ){
+  		getSeqBase(seq).on_ = false;
+  		continue;
+  	}
+  	uint32_t startPos = 0;
+  	uint32_t stopPos = pars.windowLength - pars.kmerLength + 1;
+  	kInfos.emplace_back(kmerInfo(getSeqBase(seq).seq_.substr(0, stopPos), pars.kmerLength, false));
+  	for(const auto & pos : iter::range(startPos, stopPos)){
+  		profile.add(getSeqBase(seq).seq_.substr(pos, pars.kmerLength), false);
+  	}
+  }
+
+  std::unordered_map<std::string, uint32_t> kCounts;
+  for(const auto & kInfo : kInfos){
+  	for(const auto & k : kInfo.kmers_){
+  		++kCounts[k.first];
+  	}
+  }
+  profile.updateProfile();
+  std::string bestK = "";
+  double bestProb = 0;
+  uint32_t bestCount = 0;
+	for (const auto & kBest : kCounts) {
+		if(kBest.second> bestCount){
+			bestK = kBest.first;
+			bestCount = kBest.second;
+			bestProb = profile.getProbabilityOfKmer(kBest.first);
+		}else if(kBest.second == bestCount){
+			auto prob = profile.getProbabilityOfKmer(kBest.first);
+			if(prob > bestProb){
+				bestK = kBest.first;
+				bestProb = prob;
+			}
+		}
+	}
+	seqInfo bestSeq(bestK + ":" + estd::to_string(bestProb), bestK);
+  pars.tSeqPars_.within_ = pars.windowLength + 5;
+  for(auto & seq : seqs){
+  	//skip if the length was too small
+  	if(!getSeqBase(seq).on_){
+  		continue;
+  	}
+		readVecTrimmer::trimBeforeSequence(getSeqBase(seq), bestSeq, alignObj,
+				pars.allowableErrors, pars.tSeqPars_);
+  }
+}
+
+template<typename T>
+void readVecTrimmer::trimBetweenMostCommonKmers(std::vector<T> & seqs, FullTrimReadsPars pars,
+		aligner &alignObj) {
+	trimFromMostCommonKmer(seqs, pars, alignObj);
+	bib::for_each(seqs, [](T & seq) {getSeqBase(seq).on_ = true;});
+	trimToMostCommonKmer(seqs, pars, alignObj);
+}
+
+
+
+
 }  // namespace bib
 

@@ -84,7 +84,7 @@ public:
 	 * @param inDelim The delimiter per line
 	 * @param header Whether the first line is a header
 	 */
-	table(const std::string &filename, const std::string &inDelim = "whitespace",
+	table(const bfs::path &filename, const std::string &inDelim = "whitespace",
 			bool header = false);
 
 	/**@b Construct with a file with lines separated by new line characters and each line is delimited
@@ -199,7 +199,11 @@ public:
 	table getColumnsNotAtPositions(
 			const std::vector<uint32_t> &specificColumnPositions) const;
 	table getColumnsLoose(const std::string &subStr) const;
+
+	table getColumnsMatchingPattern(const std::regex & pattern) const;
+	table getColumnsContainingPattern(const std::regex & pattern) const;
 	table getColumnsStartWith(const std::string &startsWith) const;
+
 	VecStr getColumn(const std::string &specifcColumnName) const;
 	VecStr getColumn(uint32_t pos) const;
 	std::vector<std::string *> getColumnPointer(
@@ -212,8 +216,14 @@ public:
 	table getRows(const std::vector<uint32_t> &specificRowPositions) const;
 	table getRowsLoose(const std::string &forColumn,
 			const std::string &subString) const;
+
 	table getRowsStartsWith(const std::string &forColumn,
 			const std::string &startsWtih) const;
+	table getRowsMatchingPattern(const std::string &forColumn,
+			const std::regex & pattern) const;
+	table getRowsContainingPattern(const std::string &forColumn,
+			const std::regex & pattern) const;
+
 	// get unique rows only
 	table getUniqueRows() const;
 	// deleting a row
@@ -276,6 +286,15 @@ public:
 	VecStr getColumnLevels(uint32_t colPos)const;
 	VecStr getColumnLevels(const std::string & colName)const;
 
+
+//	/**@brief Create a json array with members the column name
+//	 *
+//	 * @param columnName
+//	 * @return
+//	 */
+//
+//	Json::Value createJsonLookUpTable(const std::string & columnName, VecStr sub)const;
+
 	template<typename UnaryPredicate>
 	table extractByComp(uint32_t colPos, UnaryPredicate p) const {
 		table out(columnNames_);
@@ -320,6 +339,10 @@ public:
 	auto end() {
 		return content_.end();
 	}
+
+	void checkForColumnsThrow(const VecStr & requiredColumns,
+			const std::string & funcName) const;
+
 };
 }  // namespace bib
 

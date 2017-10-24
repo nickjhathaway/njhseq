@@ -208,14 +208,14 @@ public:
 	}
 	void writeOutInfos(std::string parentDirectory,
 										 std::string outDirectoryName) const{
-		std::string outDir = bib::files::join(parentDirectory,
+		bfs::path outDir = bib::files::join(parentDirectory,
 				bib::appendAsNeededRet(outDirectoryName, "/"));
 
 		if(!bib::files::bfs::exists(outDir)){
 			bib::files::makeDir(bib::files::MkdirPar(outDir));
 		}
 		// write out info for readMeFile
-		std::string readMeFilename = bib::files::join(outDir, "README_" + alnType_ + ".txt");
+		bfs::path readMeFilename = bib::files::join(outDir.string(), "README_" + alnType_ + ".txt");
 		if (!bib::files::bfs::exists(readMeFilename)) {
 			std::ofstream outReadMeFile;
 			openTextFile(outReadMeFile, readMeFilename, ".txt", false,
@@ -236,8 +236,8 @@ public:
 			}
 		}
 		std::ofstream indexFile;
-		std::string indexFilename = bib::files::join(outDir, "INDEX_" + alnType_ + ".txt");
-		indexFile.open(indexFilename, std::ios::app);
+		bfs::path indexFilename = bib::files::join(outDir.string(), "INDEX_" + alnType_ + ".txt");
+		indexFile.open(indexFilename.string(), std::ios::app);
 
 		// openTextFile(indexFile, , ".txt" ,false, true);
 		uint64_t alnCount = 0;

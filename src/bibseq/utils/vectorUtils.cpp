@@ -64,6 +64,30 @@ std::vector<uint32_t> getPositionsOfTarget(const VecStr& vec,
   return positions;
 }
 
+std::vector<uint32_t> getPositionsContainingPattern(const VecStr& vec,
+		const std::regex & pattern){
+	std::vector<uint32_t> positions;
+	for(const auto pos : iter::range(vec.size())){
+		std::smatch match;
+		if(std::regex_search(vec[pos], match, pattern) ){
+			positions.emplace_back(pos);
+		}
+	}
+	return positions;
+}
+
+std::vector<uint32_t> getPositionsMatchingPattern(const VecStr& vec,
+		const std::regex & pattern){
+	std::vector<uint32_t> positions;
+	for(const auto pos : iter::range(vec.size())){
+		std::smatch match;
+		if(std::regex_match(vec[pos], match, pattern) ){
+			positions.emplace_back(pos);
+		}
+	}
+	return positions;
+}
+
 
 
 std::vector<uint32_t> getPositionsOfSubStrTarget(const VecStr& vec,

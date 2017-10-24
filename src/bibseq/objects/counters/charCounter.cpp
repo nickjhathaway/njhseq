@@ -123,21 +123,26 @@ void charCounter::getBest(char &letter, uint32_t &quality) const {
 			quality-=(totalCount - chars_[letter]);
 		}
 	} else {
-		quality = qualities_[letter] / totalCount;
+		//quality = qualities_[letter] / totalCount;
+		quality = qualities_[letter] /  chars_[letter];
 	}
 }
 
 //for finding insertions
 void charCounter::getBest(char & base, uint32_t &quality, uint32_t size) const {
 	uint32_t totalCount = getTotalCount();
-	uint32_t nonInsertingSize = size - totalCount;
+	//due to rounding sometimes the total count is greater than size
+	//if this happens, we get overflow and size - totalCount becomes a gigantic number
+	uint32_t nonInsertingSize = totalCount > size ? 0 : size - totalCount;
 	if(totalCount > nonInsertingSize){
 		//find best base, if it's count is better than the non inserting reads then output that
 		char bestBase = outputBestLetter();
 		if(chars_[bestBase] > nonInsertingSize){
 			if(size < 5){
 				quality = qualities_[bestBase] / chars_[bestBase];
-				if(quality > size - chars_[bestBase]){
+				//due to rounding sometimes the total count is greater than size
+				//if this happens, we get overflow and size - chars_[bestBase] becomes a gigantic number
+				if(chars_[bestBase] < size && quality > size - chars_[bestBase]){
 					quality-=(size - chars_[bestBase]);
 				}
 			}else{

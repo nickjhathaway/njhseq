@@ -30,6 +30,12 @@
 #include "bibseq.h"
 
 int main(int argc, char* argv[]) {
-  std::cout << "Hello bibseq" << std::endl;
-  return 0;
+	try {
+	  std::cout << "Hello bibseq" << std::endl;
+	  return 0;
+	} catch (std::exception & e) {
+		std::cerr << e.what() << std::endl;
+		return 1;
+	}
+
 }

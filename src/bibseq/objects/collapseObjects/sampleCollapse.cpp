@@ -39,22 +39,23 @@ sampleCollapse::sampleCollapse(const std::vector<std::vector<bibseq::cluster>> &
 
   addOtherVec(input_.clusters_, sampleClusterReads);
 
-  for(const auto & read : sampleClusterReads){
-  	if(read.seqBase_.cnt_ > freqCutOff){
-  		collapsed_.clusters_.emplace_back(read);
+  for(const auto & seq : sampleClusterReads){
+  	if(seq.seqBase_.cnt_ > freqCutOff){
+  		collapsed_.clusters_.emplace_back(seq);
   	}else{
-  		excluded_.clusters_.emplace_back(read);
+  		excluded_.clusters_.emplace_back(seq);
   		++lowFreqCount;
   	}
   }
+  //161104-miseq-D10-GHA-4
   updateInitialInfos();
   updateCollapsedInfos();
 }
 
 void sampleCollapse::updateExclusionInfos() {
-  excluded_.setSetInfo();
-  sampleCluster::updateAllClusters(excluded_.clusters_, input_.info_.infos_);
-}
+	  excluded_.setSetInfo();
+    sampleCluster::updateAllClusters(excluded_.clusters_, input_.info_.infos_);
+  }
 // update the initial infos
 void sampleCollapse::updateInitialInfos() {
   input_.setSetInfo();
@@ -67,8 +68,8 @@ void sampleCollapse::updateCollapsedInfos() {
 }
 
 void sampleCollapse::updateAfterExclustion() {
-  updateExclusionInfos();
-  updateCollapsedInfos();
+	updateExclusionInfos();
+	updateCollapsedInfos();
 }
 
 
@@ -122,13 +123,17 @@ void sampleCollapse::excludeChimeras(bool update, double fracCutOff) {
 
 
 void sampleCollapse::excludeFraction(double fractionCutOff, bool update) {
-  uint32_t fractionCutOffNum = 0;
+
+	uint32_t fractionCutOffNum = 0;
+
   collapsed_.clusters_ = readVecSplitter::splitVectorOnReadFractionAdd(
       collapsed_.clusters_, fractionCutOff, excluded_.clusters_,
       fractionCutOffNum, false);
+
   if (update) {
     updateAfterExclustion();
   }
+
 }
 
 void sampleCollapse::excludeBySampNum(uint32_t sampsRequired, bool update) {
@@ -170,13 +175,12 @@ VecStr sampleCollapse::getSimpleSampInfoVec() const {
 	return toVecStr(sampName_,
 			getPercentageString(collapsed_.info_.totalReadCount_,
 					input_.info_.totalReadCount_), collapsed_.info_.numberOfClusters_,
-			collapsed_.clusters_.size());
+			collapsed_.clusters_.size(), collapsed_.clusters_.size());
 }
 
 VecStr sampleCollapse::getSimpleSampInfoHeaderVec() {
 	return VecStr { "s_Name", "s_ReadCntTotUsed", "s_InputClusterCnt",
-			"s_FinalClusterCnt" };
-	//
+			"s_FinalClusterCnt", "s_COI" };
 }
 
 

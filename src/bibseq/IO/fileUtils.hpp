@@ -40,22 +40,22 @@ namespace bibseq {
 
 
 
+
+
 int getdir(const std::string &dir,
            std::map<std::string, std::pair<std::string, bool>> &files);
 
 std::map<std::string, std::pair<std::string, bool>> listFilesInDir(
     const std::string &directoryName, bool recursive);
 
-// check to see if a file exists
-bool fexists(const std::string &filename);
 
 // opening text files
-void openTextFile(std::ofstream &file, std::string filename,
+void openTextFile(std::ofstream &file, bfs::path filename,
 		std::string fileExtention, bool overWrite, bool exitOnFailure);
 void openTextFile(std::ofstream &file, const OutOptions & options);
-void openTextFile(std::ofstream &file, std::string filename,
+void openTextFile(std::ofstream &file, bfs::path filename,
 		const OutOptions & outOptions);
-void openTextFile(std::ofstream &file, std::string filename,
+void openTextFile(std::ofstream &file, bfs::path filename,
 		std::string fileExtention, const OutOptions & outOptions);
 
 // runLog stuff
@@ -80,6 +80,19 @@ std::string cleanOut(const std::string &in, uint32_t width,
                      uint32_t indentAmount);
 
 VecStr getNewestDirs(const std::string & dirName, const std::string & con);
+
+
+template<typename OPT>
+std::streambuf* determineOutBuf(std::ofstream & outFile,
+		const OPT & opts) {
+	return bib::files::determineOutBuf(outFile, opts.outFilename_,
+			opts.outExtention_, opts.overWriteFile_, opts.append_,
+			opts.exitOnFailureToWrite_);
+}
+
+
+
+void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & outopts);
 
 
 }  // namespace bibseq

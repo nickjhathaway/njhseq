@@ -271,8 +271,9 @@ void outputVectorOfVectors(const std::vector<std::vector<T>>& vec,
 	}
 }
 
+//catenateVectors
 template<class T>
-const std::vector<T> catenateVectors(const std::vector<T>& vec1,
+const std::vector<T> concatVecs(const std::vector<T>& vec1,
 		const std::vector<T>& vec2) {
 	std::vector<T> ans;
 	ans.reserve(vec1.size() + vec2.size());
@@ -306,6 +307,12 @@ uint32_t getFirstPositionOfTarget(const std::vector<T>& vec, const T& target) {
 	}
 	return UINT32_MAX;
 }
+
+std::vector<uint32_t> getPositionsContainingPattern(const VecStr& vec,
+		const std::regex & pattern);
+
+std::vector<uint32_t> getPositionsMatchingPattern(const VecStr& vec,
+		const std::regex & pattern);
 
 std::vector<uint32_t> getPositionsOfTarget(const VecStr& vec,
 		const std::string& target);

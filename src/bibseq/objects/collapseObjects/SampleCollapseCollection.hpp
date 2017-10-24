@@ -39,7 +39,8 @@ public:
 			const bfs::path & inputDir,
 			const bfs::path & outputDir,
 			const PopNamesInfo & popNames,
-			uint32_t clusterSizeCutOff);
+			uint32_t clusterSizeCutOff,
+			uint32_t sampleMinReadCount);
 
 	SampleCollapseCollection(const Json::Value & coreJson);
 
@@ -53,7 +54,9 @@ private:
 	std::mutex mut_;
 public:
 	PopNamesInfo popNames_{"", VecStr{}};
+	VecStr passingSamples_;
 	uint32_t clusterSizeCutOff_;
+	uint32_t sampleMinReadCount_;
 	std::map<std::string, std::shared_ptr<collapse::sampleCollapse>> sampleCollapses_;
 	std::unique_ptr<populationCollapse> popCollapse_;
 	std::unique_ptr<MultipleGroupMetaData> groupMetaData_;
@@ -90,6 +93,7 @@ public:
 
 	bfs::path getPopInfoPath() const;
 	bfs::path getSampInfoPath() const;
+	bfs::path getHapIdTabPath() const;
 
 	uint32_t numOfSamples() const;
 
@@ -113,6 +117,7 @@ public:
 	void loadInPreviousPop(const std::set<std::string> & samples, const bfs::path& outputPopDir);
 
 	void renamePopWithSeqs(const std::vector<readObject> & otherPopSeqs, comparison allowableErrors = comparison());
+	void addRefMetaToName(const std::vector<readObject> & otherPopSeqs, comparison allowableErrors = comparison());
 
 	void comparePopToRefSeqs(const std::vector<readObject> & expectedSeqs,
 			aligner & alignerObj);
@@ -129,7 +134,8 @@ public:
 
 	void symlinkInSampleFinals() const;
 
-
+	table genHapIdTable();
+	table genHapIdTable(const std::set<std::string> & samples);
 
 	void outputRepAgreementInfo();
 

@@ -396,7 +396,7 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
   std::string snapShotsDirectoryName = "";
 	if (snapShotsOpts.snapShots_) {
 		snapShotsDirectoryName = bib::files::makeDir(mainDirectory,
-				bib::files::MkdirPar(snapShotsOpts.snapShotsDirName_, false));
+				bib::files::MkdirPar(snapShotsOpts.snapShotsDirName_, false)).string();
 	}
   for (const auto & iter : iteratorMap.iters_) {
   	if(opts_.verboseOpts_.verbose_){
@@ -446,16 +446,16 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
 		}
     //write out current iteration if taking snapshots
     if (snapShotsOpts.snapShots_) {
-      std::string iterDir =
+      bfs::path iterDir =
           bib::files::makeDir(snapShotsDirectoryName, bib::files::MkdirPar(std::to_string(iter.first), false));
       std::vector<cluster> currentClusters =
           readVecSplitter::splitVectorOnRemove(clusters).first;
-      std::string seqName = bib::files::getFileName(ioOpts.firstName_);
+      std::string seqName = bfs::basename(ioOpts.firstName_);
       renameReadNames(currentClusters, seqName, true, false);
       SeqOutput writer(SeqIOOptions(snapShotsDirectoryName + std::to_string(iter.first),
       		ioOpts.outFormat_,ioOpts.out_));
       writer.openWrite(currentClusters);
-      clusterVec::allWriteClustersInDir(currentClusters, iterDir,ioOpts );
+      clusterVec::allWriteClustersInDir(currentClusters, iterDir.string(),ioOpts );
       if (refOpts.firstName_ == "") {
         profiler::getFractionInfoCluster(currentClusters, snapShotsDirectoryName,
                                   std::to_string(iter.first) + ".tab.txt");
@@ -464,7 +464,7 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
         		currentClusters,
 						snapShotsDirectoryName,
 						std::to_string(iter.first) + ".tab.txt",
-						refOpts.firstName_,
+						refOpts.firstName_.string(),
 						alignerObj, false);
       }
     }

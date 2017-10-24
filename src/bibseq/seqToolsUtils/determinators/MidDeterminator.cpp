@@ -510,146 +510,152 @@ std::pair<MidDeterminator::midPos, MidDeterminator::midPos>  MidDeterminator::fu
   return positions;
 }
 
-
-std::pair<MidDeterminator::midPos, MidDeterminator::midPos> MidDeterminator::fullDetermine(seqInfo & info, MidDeterminePars pars){
+std::pair<MidDeterminator::midPos, MidDeterminator::midPos> MidDeterminator::fullDetermine(
+		seqInfo & info, MidDeterminePars pars) {
 	midPos ret;
 	midPos backPos;
-  //determine possible mid positions;
-  std::vector<midPos> possible = determinePossibleMidPos(info.seq_, pars.variableStop_);
+	//determine possible mid positions;
+	std::vector<midPos> possible = determinePossibleMidPos(info.seq_,
+			pars.variableStop_);
 
-  if(pars.barcodesBothEnds_){
-  	addOtherVec(possible, determinePossibleMidPosBack(info.seq_, pars.variableStop_));
-  }
+	if (pars.barcodesBothEnds_) {
+		addOtherVec(possible,
+				determinePossibleMidPosBack(info.seq_, pars.variableStop_));
+	}
 
-  if(pars.checkComplement_){
-  	addOtherVec(possible, determinePossibleMidPosCompBack(info.seq_, pars.variableStop_));
-  }
+	if (pars.checkComplement_) {
+		addOtherVec(possible,
+				determinePossibleMidPosCompBack(info.seq_, pars.variableStop_));
+	}
 
-  if(pars.checkComplement_ && pars.barcodesBothEnds_){
-  	addOtherVec(possible, determinePossibleMidPosComp(info.seq_, pars.variableStop_));
-  }
+	if (pars.checkComplement_ && pars.barcodesBothEnds_) {
+		addOtherVec(possible,
+				determinePossibleMidPosComp(info.seq_, pars.variableStop_));
+	}
 
-  if(pars.checkForShorten_){
-    if(pars.barcodesBothEnds_){
-    	addOtherVec(possible, determinePossibleMidPosShorten(info.seq_, 0));
-    }
+	if (pars.checkForShorten_) {
+		if (pars.barcodesBothEnds_) {
+			addOtherVec(possible, determinePossibleMidPosShorten(info.seq_, 0));
+		}
 
-    if(pars.barcodesBothEnds_){
-    	addOtherVec(possible, determinePossibleMidPosBackShorten(info.seq_, 0));
-    }
+		if (pars.barcodesBothEnds_) {
+			addOtherVec(possible, determinePossibleMidPosBackShorten(info.seq_, 0));
+		}
 
-    if(pars.checkComplement_){
-    	addOtherVec(possible, determinePossibleMidPosCompBackShorten(info.seq_, 0));
-    }
+		if (pars.checkComplement_) {
+			addOtherVec(possible,
+					determinePossibleMidPosCompBackShorten(info.seq_, 0));
+		}
 
-    if(pars.checkComplement_ && pars.barcodesBothEnds_){
-    	addOtherVec(possible, determinePossibleMidPosCompShorten(info.seq_, 0));
-    }
-  }
+		if (pars.checkComplement_ && pars.barcodesBothEnds_) {
+			addOtherVec(possible, determinePossibleMidPosCompShorten(info.seq_, 0));
+		}
+	}
 
-  if(1 == possible.size()){
-  	ret =  possible.front();
-  }else if(!possible.empty()){
-    //determine best
-    std::vector<midPos> best;
-    double bestScore = 0;
-    for(const auto & poss : possible){
-  		if (poss.normalizeScoreByLen() > bestScore) {
-  			bestScore = poss.normalizeScoreByLen();
-  			best.clear();
-  			best.emplace_back(poss);
-  		} else if (poss.normalizeScoreByLen() == bestScore && 0 != bestScore) {
-  			best.emplace_back(poss);
-  		}
-    }
-    if(1 == best.size()){
-    	ret = best.front();
-    }else if(2 == best.size()){
-    	if(best[0].midName_ == best[1].midName_){
-    		/**@todo odd way to allow for rev comp on one end and regular on the other if poeple's library's are like that*/
-    		/**@todo also this doesn't handle if both aren't the best, like if one had a mismatch but the other didn't */
-    		if(mids_.at(best[0].midName_).rCompSame_){
-    			if(best[0].midPos_ == best[1].midPos_){
-    				ret = best[0];
-    			}else{
-      			if(best[0].midPos_ < best[1].midPos_){
-      				ret = best[0];
-      				backPos = best[1];
-      			}else{
-      				ret = best[1];
-      				backPos = best[0];
-      			}
-    			}
-    		}else{
-    			if(midEndsRevComp_){
-        		if(best[0].inRevComp_ != best[1].inRevComp_){
-        			if(best[0].midPos_ < best[1].midPos_){
-        				ret = best[0];
-        				backPos = best[1];
-        			}else{
-        				ret = best[1];
-        				backPos = best[0];
-        			}
-        		}else{
-        			ret.fCase_ = midPos::FailureCase::MISMATCHING_DIRECTION;
-        		}
-    			}else{
-        		if(best[0].inRevComp_ == best[1].inRevComp_){
-        			if(best[0].midPos_ < best[1].midPos_){
-        				ret = best[0];
-        				backPos = best[1];
-        			}else{
-        				ret = best[1];
-        				backPos = best[0];
-        			}
-        		}else{
-        			ret.fCase_ = midPos::FailureCase::MISMATCHING_DIRECTION;
-        		}
-    			}
-    		}
-    	}else{
-    		//found two mids with different names
-    		ret.fCase_ = midPos::FailureCase::MISMATCHING_MIDS;
-    	}
-    }else if (best.size() > 2){
+	if (1 == possible.size()) {
+		ret = possible.front();
+	} else if (!possible.empty()) {
+		//determine best
+		std::vector<midPos> best;
+		double bestScore = 0;
+		for (const auto & poss : possible) {
+			if (poss.normalizeScoreByLen() > bestScore) {
+				bestScore = poss.normalizeScoreByLen();
+				best.clear();
+				best.emplace_back(poss);
+			} else if (poss.normalizeScoreByLen() == bestScore && 0 != bestScore) {
+				best.emplace_back(poss);
+			}
+		}
+		if (1 == best.size()) {
+			ret = best.front();
+		} else if (2 == best.size()) {
+			if (best[0].midName_ == best[1].midName_) {
+				/**@todo odd way to allow for rev comp on one end and regular on the other if poeple's library's are like that*/
+				/**@todo also this doesn't handle if both aren't the best, like if one had a mismatch but the other didn't */
+				if (mids_.at(best[0].midName_).rCompSame_) {
+					if (best[0].midPos_ == best[1].midPos_) {
+						ret = best[0];
+					} else {
+						if (best[0].midPos_ < best[1].midPos_) {
+							ret = best[0];
+							backPos = best[1];
+						} else {
+							ret = best[1];
+							backPos = best[0];
+						}
+					}
+				} else {
+					if (midEndsRevComp_) {
+						if (best[0].inRevComp_ != best[1].inRevComp_) {
+							if (best[0].midPos_ < best[1].midPos_) {
+								ret = best[0];
+								backPos = best[1];
+							} else {
+								ret = best[1];
+								backPos = best[0];
+							}
+						} else {
+							ret.fCase_ = midPos::FailureCase::MISMATCHING_DIRECTION;
+						}
+					} else {
+						if (best[0].inRevComp_ == best[1].inRevComp_) {
+							if (best[0].midPos_ < best[1].midPos_) {
+								ret = best[0];
+								backPos = best[1];
+							} else {
+								ret = best[1];
+								backPos = best[0];
+							}
+						} else {
+							ret.fCase_ = midPos::FailureCase::MISMATCHING_DIRECTION;
+						}
+					}
+				}
+			} else {
+				//found two mids with different names
+				ret.fCase_ = midPos::FailureCase::MISMATCHING_MIDS;
+			}
+		} else if (best.size() > 2) {
 			if (std::all_of(best.begin() + 1, best.end(),
 					[&best](const midPos & pos) {return pos.midName_ == best.front().midName_;})
 					&& mids_.at(best[0].midName_).rCompSame_) {
-				std::sort(best.begin(), best.end(), [](const midPos & first, const midPos & second){
-					if(first.midPos_ == second.midPos_){
-						return first.inRevComp_ > second.inRevComp_;
-					}else{
-						return first.midPos_ < second.midPos_;
-					}
-				});
-	    	if(best.size() == 3 || best.size() == 4){
-  				ret = best[0];
-  				backPos = best[3];
-	    	}else{
-	    		//found more than one 4 mids with all the same name
-	    		ret.fCase_ = midPos::FailureCase::TOO_MANY_MATCHING;
-	    	}
-			}else{
+				std::sort(best.begin(), best.end(),
+						[](const midPos & first, const midPos & second) {
+							if(first.midPos_ == second.midPos_) {
+								return first.inRevComp_ > second.inRevComp_;
+							} else {
+								return first.midPos_ < second.midPos_;
+							}
+						});
+				if (best.size() == 3 || best.size() == 4) {
+					ret = best[0];
+					backPos = best[3];
+				} else {
+					//found more than one 4 mids with all the same name
+					ret.fCase_ = midPos::FailureCase::TOO_MANY_MATCHING;
+				}
+			} else {
 				//found more than two mids and they aren't the same name and their rev comp aren't the same as their forward
 				ret.fCase_ = midPos::FailureCase::TOO_MANY_MATCHING;
 			}
-    }else{
-    	//best is empty... i think, if i'm following logic correctly
-    	ret.fCase_ = midPos::FailureCase::NO_MATCHING;
-    }
-  }else{
-  	ret.fCase_ = midPos::FailureCase::NO_MATCHING;
-  }
+		} else {
+			//best is empty... i think, if i'm following logic correctly
+			ret.fCase_ = midPos::FailureCase::NO_MATCHING;
+		}
+	} else {
+		ret.fCase_ = midPos::FailureCase::NO_MATCHING;
+	}
 
-  if(ret){
+	if (ret) {
 		if (backPos) {
 			processInfoWithMidPos(info, ret, backPos);
 		} else {
 			processInfoWithMidPos(info, ret, pars);
 		}
-  }
+	}
 
-  return {ret, backPos};
+	return {ret, backPos};
 }
 
 void MidDeterminator::increaseFailedBarcodeCounts(

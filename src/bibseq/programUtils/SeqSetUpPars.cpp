@@ -28,6 +28,27 @@
 
 namespace bibseq {
 
+
+
+
+Json::Value QualFilteringPars::toJson() const{
+	Json::Value ret;
+	ret["class"] = bib::getTypeName(*this);
+	ret["checkingQWindow"] = bib::json::toJson(checkingQWindow);
+
+	ret["qualWindow_"] = bib::json::toJson(qualWindow_);
+	ret["qualityWindowLength_"] = bib::json::toJson(qualityWindowLength_);
+	ret["qualityWindowStep_"] = bib::json::toJson(qualityWindowStep_);
+	ret["qualityWindowThres_"] = bib::json::toJson(qualityWindowThres_);
+	ret["checkingQFrac_"] = bib::json::toJson(checkingQFrac_);
+	ret["qualCheck_"] = bib::json::toJson(qualCheck_);
+	ret["qualCheckCutOff_"] = bib::json::toJson(qualCheckCutOff_);
+	ret["trimAtQualCutOff_"] = bib::json::toJson(trimAtQualCutOff_);
+	ret["trimAtQual_"] = bib::json::toJson(trimAtQual_);
+
+	return ret;
+}
+
 SeqSetUpPars::SeqSetUpPars(){
 	initializeDefaults();
 }

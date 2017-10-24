@@ -102,6 +102,11 @@ class baseCluster : public readObject {
 	bool isClusterAtLeastHalfChimeric();
 	bool isClusterAtLeastChimericCutOff(double cutOff);
 
+
+  void removeRead(const std::string &stubName);
+  void removeRead(uint32_t readPos);
+  void removeReads(std::vector<uint32_t> readPositions);
+
   // converter for all clusters
   template <class CLUSTER, class READ>
   static std::vector<CLUSTER> convertVectorToClusterVector(

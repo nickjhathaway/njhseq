@@ -103,34 +103,21 @@ std::map<std::string, std::pair<std::string, bool>> listFilesInDir(
   }
   return files;
 }
-// check to see if a file exists
-bool fexists(const std::string &filename) {
-  /*boost::filesystem::path p(filename);
-  if(boost::filesystem::exists(p)){
-          std::cout << "exists" << std::endl;
-  }*/
-  std::ifstream ifile(filename.c_str());
-  if (ifile) {
-    return true;
-  } else {
-    return false;
-  }
-}
 
-void openTextFile(std::ofstream &file, std::string filename,
+
+void openTextFile(std::ofstream &file, bfs::path filename,
                   std::string fileExtention, bool overWrite,
                   bool exitOnFailure) {
-  bib::appendAsNeeded(filename, fileExtention);
-  bib::files::openTextFile(file, filename, overWrite, false, exitOnFailure);
+  bib::files::openTextFile(file, filename, fileExtention, overWrite, false, exitOnFailure);
 }
 
-void openTextFile(std::ofstream &file, std::string filename,
+void openTextFile(std::ofstream &file, bfs::path filename,
 		const OutOptions & outOptions){
 	openTextFile(file, filename, outOptions.outExtention_,
 			outOptions.overWriteFile_, outOptions.exitOnFailureToWrite_);
 }
 
-void openTextFile(std::ofstream &file, std::string filename,
+void openTextFile(std::ofstream &file, bfs::path filename,
                   std::string fileExtention, const OutOptions & outOptions){
 	openTextFile(file, filename, fileExtention,
 			outOptions.overWriteFile_, outOptions.exitOnFailureToWrite_);
@@ -317,6 +304,35 @@ std::string cleanOut(const std::string &in, uint32_t width,
     out << cleanOutPerLine(line, width, indentAmount) << std::endl;
   }
   return out.str();
+}
+
+
+void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & outopts){
+	std::ofstream outFile;
+	outopts.openBinaryFile(outFile);
+	//check files
+	std::stringstream ss;
+	bool failed = false;
+	for(const auto & fnp : fnps){
+		if(!bfs::exists(fnp)){
+			failed = true;
+			ss << __PRETTY_FUNCTION__ << " file " << fnp << " doesn't exist" << "\n";
+		}else{
+			std::ifstream testFile(fnp.string(), std::ios::in | std::ios::binary);
+			if(!testFile.is_open()){
+				failed = true;
+				ss << __PRETTY_FUNCTION__ << " problem opening file " << fnp << "\n";
+			}
+		}
+	}
+
+	if(failed){
+		throw std::runtime_error{ss.str()};
+	}
+	for(const auto & fnp : fnps){
+		std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
+		outFile << inFile.rdbuf();
+	}
 }
 
 

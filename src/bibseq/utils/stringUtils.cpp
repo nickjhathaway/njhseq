@@ -207,12 +207,14 @@ std::string stringToLowerReturn(std::string str) {
 
 void changeSubStrToLower(std::string& str, size_t pos, size_t length) {
   for (size_t i = pos; i < pos + length; ++i) {
-    if (pos + i > str.size()) {
+    if (i > str.size()) {
       break;
     }
     str[i] = tolower(str[i]);
   }
 }
+
+
 void changeCertainSubStrToLower(std::string& str,
                                 const std::string& substring) {
   size_t pos = str.find(substring);

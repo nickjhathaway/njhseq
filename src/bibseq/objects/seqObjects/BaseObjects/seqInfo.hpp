@@ -33,6 +33,7 @@
 #include "bibseq/alignment/alignerUtils/substituteMatrix.hpp"
 #include "bibseq/IO/SeqIO/SeqIOOptions.hpp"
 #include "bibseq/alignment/alignerUtils/QualScorePars.hpp"
+#include "bibseq/objects/Meta/MetaDataInName.hpp"
 
 namespace bibseq {
 
@@ -53,8 +54,8 @@ struct seqInfo {
   seqInfo(const std::string& name, const std::string& seq,
           const std::vector<uint32_t>& qual, double cnt);
   seqInfo(const std::string& name, const std::string& seq);
-  seqInfo(const std::string& name, const std::string& seq,
-          const std::string& stringQual);
+//  seqInfo(const std::string& name, const std::string& seq,
+//          const std::string& stringQual);
   seqInfo(const std::string& name, const std::string& seq,
           const std::string& stringQual, uint32_t off_set);
   seqInfo(const std::string& name, const std::string& seq,
@@ -78,6 +79,9 @@ struct seqInfo {
 	void append(const std::string& seq, uint32_t defaultQuality = 40);
 	void prepend(const char & base, uint32_t quality = 40);
 	void append(const char & base, uint32_t quality = 40);
+
+	void prepend(const seqInfo & other);
+	void append(const seqInfo & other);
 
 	void insert(uint32_t pos, const seqInfo & otherInfo);
 
@@ -114,15 +118,16 @@ struct seqInfo {
   void reverseHRunsQuals();
   //comparison
   bool degenCompare(const seqInfo & otherInfo,
-  		const substituteMatrix & compareScores)const;
-  // output
-  void outPutFastq(std::ostream& fastqFile) const;
-  void outPutSeq(std::ostream& fastaFile) const;
-  void outPutSeqAnsi(std::ostream& fastaFile) const;
-  void outPutQual(std::ostream& qualFile) const;
-  // description
-  Json::Value toJson()const;
-  const static std::unordered_map<char, uint32_t> ansiBaseColor;
+			const substituteMatrix & compareScores) const;
+	// output
+	void outPutFastq(std::ostream& fastqFile) const;
+	void outPutSeq(std::ostream& fastaFile) const;
+	void outPutSeqAnsi(std::ostream& fastaFile) const;
+	void outPutQual(std::ostream& qualFile) const;
+	// description
+	Json::Value toJson() const;
+	Json::Value toJsonJustInfo() const;
+	const static std::unordered_map<char, uint32_t> ansiBaseColor;
 
   std::string getStubName(bool removeChiFlag) const;
   void setName(const std::string& newName);
@@ -173,6 +178,8 @@ struct seqInfo {
 
 	void processNameForMeta(std::unordered_map<std::string, std::string> & meta)const;
 	bool nameHasMetaData() const;
+
+	void resetMetaInName(const MetaDataInName & meta);
 
   using size_type = std::string::size_type;
 

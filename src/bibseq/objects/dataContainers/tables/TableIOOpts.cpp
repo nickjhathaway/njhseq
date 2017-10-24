@@ -33,7 +33,7 @@ TableIOOpts TableIOOpts::genTabFileOut(const bfs::path & outFilename, bool heade
 }
 
 TableIOOpts TableIOOpts::genTabFileIn(const bfs::path & inFilename, bool header){
-	return TableIOOpts(InOptions(inFilename.string()), "\t", OutOptions("", ".tab.txt", "tab"), "\t", header);
+	return TableIOOpts(InOptions(inFilename), "\t", OutOptions("", ".tab.txt", "tab"), "\t", header);
 }
 
 TableIOOpts TableIOOpts::genCommaFileOut(const bfs::path & outFilename, bool header){
@@ -41,7 +41,7 @@ TableIOOpts TableIOOpts::genCommaFileOut(const bfs::path & outFilename, bool hea
 }
 
 TableIOOpts TableIOOpts::genCommaFileIn(const bfs::path & inFilename, bool header){
-	return TableIOOpts(InOptions(inFilename.string()), ",", OutOptions("", ".csv", "comma"), ",", header);
+	return TableIOOpts(InOptions(inFilename), ",", OutOptions("", ".csv", "comma"), ",", header);
 }
 
 TableIOOpts::TableIOOpts() :
@@ -61,7 +61,9 @@ TableIOOpts::TableIOOpts(const InOptions & inOpts, const std::string & inDelim,
 		bool header) :
 		IoOptions(inOpts, OutOptions("", ".txt", "txt")), inDelim_(inDelim), hasHeader_(
 				header) {
-
+	if("tab" == inDelim_){
+		inDelim_ = "\t";
+	}
 }
 
 TableIOOpts::TableIOOpts(const OutOptions & outOpts,
@@ -79,7 +81,9 @@ TableIOOpts::TableIOOpts(const InOptions & inOpts, const std::string & inDelim,
 		const OutOptions & outOpts, const std::string & outDelim, bool header) :
 		IoOptions(inOpts, outOpts), inDelim_(inDelim), outDelim_(outDelim), hasHeader_(
 				header) {
-
+	if("tab" == inDelim_){
+		inDelim_ = "\t";
+	}
 }
 
 

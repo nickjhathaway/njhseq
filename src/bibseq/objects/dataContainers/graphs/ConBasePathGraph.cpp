@@ -56,6 +56,27 @@ ConBasePathGraph::node::node(const ConBasePathGraph::ConPath::PosBase & val,
 		frac_(frac){
 }
 
+Json::Value ConBasePathGraph::node::toJson() const {
+	Json::Value ret;
+	ret["class"] = bib::getTypeName(*this);
+	ret["val_"] = bib::json::toJson(val_);
+	ret["cnt_"] = bib::json::toJson(cnt_);
+	ret["frac_"] = bib::json::toJson(frac_);
+	ret["headEdges_"] = bib::json::toJson(headEdges_);
+	ret["tailEdges_"] = bib::json::toJson(tailEdges_);
+	ret["visitCount_"] = bib::json::toJson(visitCount_);
+	return ret;
+}
+
+Json::Value ConBasePathGraph::edge::toJson() const {
+	Json::Value ret;
+	ret["class"] = bib::getTypeName(*this);
+	ret["head_"] = bib::json::toJson(head_.lock()->val_.getUid());
+	ret["tail_"] = bib::json::toJson(tail_.lock()->val_.getUid());
+	ret["cnt_"] = bib::json::toJson(cnt_);
+	return ret;
+}
+
 void ConBasePathGraph::node::resetVisitCount(){
 	visitCount_ = 0;
 }
@@ -90,8 +111,38 @@ void ConBasePathGraph::node::addToWritingPath(std::ostream & out,
 
 void ConBasePathGraph::node::addToPath(std::vector<ConPath> & paths,
 		ConPath currentPath) {
+/*
+ * 	if(visitCount_ > 0){
+		std::cout << "paths" << std::endl;
+		for(const auto & p : paths){
+			std::cout << p.getUid() << std::endl;
+		}
+		std::cout << "current path: " << std::endl;
+		std::cout << currentPath.getUid() << std::endl;
+		throw std::runtime_error{"visited before"};
+	}
+ */
+	/*
+	std::cout << "paths" << std::endl;
+	for (const auto & p : paths) {
+		std::cout << p.getUid() << std::endl;
+	}*/
 	++visitCount_;
+	/*
+	if (currentPath.bases_.size() > 0) {
+		if (val_.pos_ <= currentPath.bases_.back().pos_ ) {
+			std::cout << "paths" << std::endl;
+			for (const auto & p : paths) {
+				std::cout << p.getUid() << std::endl;
+			}
+			std::cout << "current path: " << std::endl;
+			std::cout << currentPath.getUid() << std::endl;
+			throw std::runtime_error { "smaller pos" };
+		}
+	}
+	*/
 	currentPath.addPosBase(val_.pos_, val_.base_);
+
 	if (tailless()) {
 		paths.emplace_back(currentPath);
 	}
@@ -167,10 +218,13 @@ void ConBasePathGraph::writePaths(std::ostream & out) const {
 }
 
 std::vector<ConBasePathGraph::ConPath> ConBasePathGraph::getPaths() const {
+
 	std::vector<ConPath> ret;
 	/**@todo add way to check if there are any cycles or no headless nodes */
 	for (const auto & n : nodes_) {
 		if (n.second->headless()) {
+			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
+			//std::cout << n.second->val_.toJson() << std::endl;
 			n.second->addToPath(ret, ConPath{0});
 		}
 	}
@@ -204,6 +258,8 @@ Json::Value ConBasePathGraph::createSankeyOutput() const {
 	for (const auto & n : nodesVec) {
 		Json::Value nodeJson;
 		nodeJson["name"] = n->val_.getUid();
+		nodeJson["pos"] = n->val_.pos_;
+		nodeJson["base"] = n->val_.base_;
 		nodeJson["cnt"] = n->cnt_;
 		nodeJson["frac"] = n->frac_;
 		nodes.append(nodeJson);
@@ -213,6 +269,8 @@ Json::Value ConBasePathGraph::createSankeyOutput() const {
 		}
 		for (const auto & tl : n->tailEdges_) {
 			Json::Value linkJsons;
+			//linkJsons["source"] = tl->head_.lock()->val_.getUid();
+			//linkJsons["target"] = tl->tail_.lock()->val_.getUid();
 			linkJsons["source"] = nodePosition[tl->head_.lock()->val_.getUid()];
 			linkJsons["target"] = nodePosition[tl->tail_.lock()->val_.getUid()];
 			linkJsons["value"] = tl->cnt_ / totalTail;

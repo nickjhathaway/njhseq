@@ -37,10 +37,16 @@
 #include "bibseq/objects/helperObjects/probabilityProfile.hpp"
 #include "bibseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
 
+
+#include "bibseq/objects/Meta/MetaDataInName.hpp"
+
 #include <bibcpp/graphics/colorUtils.hpp>
 
 
 namespace bibseq {
+
+
+VecStr getInputValues(const std::string & valuesStr, const std::string & delim);
 
 void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString,
 		int counter);
@@ -57,7 +63,7 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
 	std::mutex alignerLock;
 	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,
-			numThreads, comparison(), false);
+			numThreads, comparison(), false, false, false);
 }
 
 template<typename T>
@@ -71,7 +77,7 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
 	std::mutex alignerLock;
 	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,
-			numThreads, allowableErrors, settingEventsLimits);
+			numThreads, allowableErrors, settingEventsLimits, false, false);
 }
 
 template<typename T>
@@ -79,7 +85,8 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 		aligner & alignerObj,
 		std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners,
 		std::mutex & alignerLock, uint32_t numThreads,
-		const comparison &allowableErrors, bool settingEventsLimits
+		const comparison &allowableErrors, bool settingEventsLimits,
+		bool justBest, bool doTies
 		){
 	auto graph = genReadComparisonGraph(reads, alignerObj, aligners, alignerLock,
 			numThreads);
@@ -90,14 +97,19 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 		}
 	}
 	auto nameColors = getColorsForNames(popNames);
-	if(settingEventsLimits){
-		graph.turnOffEdgesWithComp(allowableErrors,
-				[](const comparison & comp1, const comparison & cutOff){
-			//std::cout << comp1.toJson() << std::endl;
-			return comp1.distances_.getNumOfEvents(true) >= cutOff.distances_.overLappingEvents_;
-		});
+
+	if(justBest){
+		graph.setJustBestConnection(doTies);
 	}else{
-		comparison maxEvents = graph.setMinimumEventConnections();
+		if(settingEventsLimits){
+			graph.turnOffEdgesWithComp(allowableErrors,
+					[](const comparison & comp1, const comparison & cutOff){
+				//std::cout << comp1.toJson() << std::endl;
+				return comp1.distances_.getNumOfEvents(true) >= cutOff.distances_.overLappingEvents_;
+			});
+		}else{
+			comparison maxEvents = graph.setMinimumEventConnections();
+		}
 	}
 	auto treeData = graph.toD3Json(bib::color("#000000"), nameColors);
 	return treeData;
@@ -528,9 +540,26 @@ inline readsWithSnps::size_type len(const readsWithSnps & reads){
 }
 
 
+template<typename T>
+std::unordered_map<std::string, std::vector<T>> splitSeqsByMetaField(const std::vector<T> & seqs, const std::string & field){
+	std::unordered_map<std::string, std::vector<T>> ret;
+	for(const auto & seq : seqs){
+		MetaDataInName meta(getSeqBase(seq).name_);
+		ret[meta.getMeta(field)].emplace_back(seq);
+	}
+	return ret;
+}
 
-
-
+template<typename T>
+std::vector<char> determineAlphabet(const std::vector<T> & seqs){
+	std::set<char> retSet;
+	for(const auto & seq : seqs){
+		for(const char c : getSeqBase(seq).seq_){
+			retSet.emplace(c);
+		}
+	}
+	return std::vector<char>{retSet.begin(), retSet.end()};
+}
 
 }  // namespace bib
 

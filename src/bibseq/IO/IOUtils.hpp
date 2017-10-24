@@ -29,76 +29,17 @@
 
 #include "bibseq/utils.h"
 #include <bibcpp/files.h>
+#include "bibseq/IO/IOOptions.h"
+
 namespace bibseq {
 
 
-class InOptions {
-public:
-	InOptions();
-	InOptions(const std::string & filename);
-	InOptions(const std::string & filename, const std::string & extention,
-			const std::string & format);
-	explicit InOptions(const Json::Value & val);
 
-	std::string inFilename_;
-	std::string inExtention_;
-	std::string inFormat_;
 
-	bool inExists() const;
-	Json::Value toJson() const;
-};
-
-class OutOptions {
-public:
-	OutOptions();
-	OutOptions(const std::string & filename);
-	OutOptions(const std::string & filename, const std::string & extention);
-	OutOptions(const std::string & filename, const std::string & extention,
-			const std::string & format);
-	OutOptions(const std::string & filename, const std::string & extention,
-			const std::string & format, bool append, bool overWriteFile,
-			bool exitOnFailureToWrite);
-	explicit OutOptions(const Json::Value & val);
-
-	std::string outFilename_;
-	std::string outExtention_;
-	std::string outFileFormat_;
-
-	bool append_ = false;
-	bool overWriteFile_ = false;
-	bool exitOnFailureToWrite_ = true;
-
-	bool outExists() const;
-
-	bfs::path outName() const;
-
-	Json::Value toJson() const;
-};
-
-class IoOptions {
-public:
-	IoOptions();
-	explicit IoOptions(InOptions inOpts);
-	explicit IoOptions(OutOptions outOpts);
-	explicit IoOptions(InOptions inOpts, OutOptions outOpts);
-	explicit IoOptions(const Json::Value & val);
-
-	InOptions in_;
-	OutOptions out_;
+void gzZipFile(const IoOptions & opts);
 
 
 
-	void setInOptions(const std::string & filename, const std::string & extention,
-			const std::string & format);
 
-	void setOutOptions(const std::string & filename,
-			const std::string & extention, const std::string & format);
-
-	void setWritingOptions(bool append, bool overWriteFile,
-			bool exitOnFailureToWrite);
-
-	Json::Value toJson() const;
-
-};
 
 }  // namespace bibseq

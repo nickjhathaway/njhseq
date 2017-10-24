@@ -38,6 +38,7 @@ struct SeqIOOptions {
   enum class inFormats {
   	FASTQ,
 		FASTQPAIRED,
+		FASTQPAIREDGZ,
 		FASTQGZ,
 		FASTA,
 		FASTAGZ,
@@ -50,8 +51,11 @@ struct SeqIOOptions {
 
   enum class outFormats {
   	FASTQ,
-		FASTQPAIRED,
+		FASTQGZ,
 		FASTA,
+		FASTAGZ,
+		FASTQPAIRED,
+		FASTQPAIREDGZ,
 		FASTAQUAL,
 		FLOW,
 		FLOWMOTHUR,
@@ -60,12 +64,14 @@ struct SeqIOOptions {
 
   SeqIOOptions();
 
-  SeqIOOptions(const std::string & firstName,
+  SeqIOOptions(const bfs::path & firstName,
   		inFormats inFormat, bool processed);
 
 	SeqIOOptions(const OutOptions & out, outFormats outFormat);
 
-	SeqIOOptions(const std::string & outFilename, outFormats outFormat, const OutOptions & out);
+	SeqIOOptions(const bfs::path & outFilename, outFormats outFormat);
+
+	SeqIOOptions(const bfs::path & outFilename, outFormats outFormat, const OutOptions & out);
 
 	/**@b Create from a json string
    *
@@ -77,8 +83,8 @@ struct SeqIOOptions {
   bool inExists() const;
 	bool outExists() const;
 
-  std::string firstName_;
-  std::string secondName_;
+  bfs::path firstName_;
+  bfs::path secondName_;
   //std::string inFormat_;
   inFormats inFormat_ = inFormats::NOFORMAT;
   outFormats outFormat_ = outFormats::NOFORMAT;
@@ -86,16 +92,21 @@ struct SeqIOOptions {
   static inFormats getInFormat(const std::string & format);
   static outFormats getOutFormat(const std::string & format);
   static outFormats getOutFormat(inFormats format);
+  static inFormats getInFormat(outFormats format);
 
   static std::string getInFormat(inFormats format);
   static std::string getOutFormat(outFormats format);
   static std::string getOutExtension(outFormats format);
+  static std::string getOutExtensionSecondary(outFormats format);
 
   std::string getOutExtension() const;
 
   OutOptions out_;
 
-  //bool revComplMate_ = false;
+  bfs::path getPriamryOutName() const;
+  bfs::path getSecondaryOutName() const;
+
+  bool revComplMate_ = false;
 
   bool processed_ = false;
   std::string lowerCaseBases_;
@@ -103,23 +114,45 @@ struct SeqIOOptions {
   bool includeWhiteSpaceInName_ = true;
   int32_t extra_ = 0;
 
+	bool isPairedIn() const;
+	bool isPairedOut() const;
+
+  //fastq
+  static SeqIOOptions genFastqIn(const bfs::path & inFilename, bool processed =false);
+	static SeqIOOptions genFastqOut(const bfs::path & outFilename);
+	static SeqIOOptions genFastqInOut(const bfs::path & inFilename,const bfs::path & outFilename, bool processed = false);
+
+	//gz fastq
+  static SeqIOOptions genFastqInGz(const bfs::path & inFilename, bool processed =false);
+	static SeqIOOptions genFastqOutGz(const bfs::path & outFilename);
+	static SeqIOOptions genFastqInOutGz(const bfs::path & inFilename,const bfs::path & outFilename, bool processed = false);
+
+	//fasta
+	static SeqIOOptions genFastaIn(const bfs::path & inFilename, bool processed =false);
+	static SeqIOOptions genFastaOut(const bfs::path & outFilename);
+	static SeqIOOptions genFastaInOut(const bfs::path & inFilename,const bfs::path & outFilename, bool processed = false);
+
+	//gz fasta
+	static SeqIOOptions genFastaInGz(const bfs::path & inFilename, bool processed =false);
+	static SeqIOOptions genFastaOutGz(const bfs::path & outFilename);
+	static SeqIOOptions genFastaInOutGz(const bfs::path & inFilename, const bfs::path & outFilename, bool processed = false);
+
+	//paired
+	static SeqIOOptions genPairedOut(const bfs::path & outFilename);
+	static SeqIOOptions genPairedIn(const bfs::path & r1reads, const bfs::path & r2reads, bool processed = false);
+	static SeqIOOptions genPairedInOut(const bfs::path & r1reads, const bfs::path & r2reads, const bfs::path & outFilename, bool processed = false);
+
+	//gz paired
+	static SeqIOOptions genPairedOutGz(const bfs::path & outFilename);
+	static SeqIOOptions genPairedInGz(const bfs::path & r1reads, const bfs::path & r2reads, bool processed = false);
+	static SeqIOOptions genPairedInOutGz(const bfs::path & r1reads, const bfs::path & r2reads, const bfs::path & outFilename, bool processed = false);
 
 
-  static SeqIOOptions genFastqIn(const std::string & inFilename, bool processed = false);
-  static SeqIOOptions genFastqOut(const std::string & outFilename);
-  static SeqIOOptions genFastqInOut(const std::string & inFilename,
-  		const std::string & outFilename, bool processed = false);
-
-  static SeqIOOptions genFastaIn(const std::string & inFilename, bool processed = false);
-  static SeqIOOptions genFastaOut(const std::string & outFilename);
-  static SeqIOOptions genFastaInOut(const std::string & inFilename,
-  		const std::string & outFilename, bool processed = false);
-
-  /**@b output options as json
-   *
-   * @return options represented in json
-   */
-  Json::Value toJson()const;
+	/**@b output options as json
+	 *
+	 * @return options represented in json
+	 */
+	Json::Value toJson() const;
 };
 
 

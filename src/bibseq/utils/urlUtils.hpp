@@ -43,5 +43,38 @@ std::string urldecode(char const *begin, char const *end);
 
 std::string urldecode(std::string const &s);
 
+
+template<typename Iterator>
+void urlencode_impl(char const *b, char const *e, Iterator out) {
+	//from cppcms 1.05
+	while (b != e) {
+		char c = *b++;
+		if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')
+				|| ('0' <= c && c <= '9')) {
+			*out++ = c;
+		} else {
+			switch (c) {
+			case '-':
+			case '_':
+			case '.':
+			case '~':
+				*out++ = c;
+				break;
+			default: {
+				static char const hex[] = "0123456789abcdef";
+				unsigned char uc = c;
+				*out++ = '%';
+				*out++ = hex[(uc >> 4) & 0xF];
+				*out++ = hex[uc & 0xF];
+
+			}
+			};
+		}
+	};
+}
+
+void urlencode(char const *b, char const *e, std::ostream &out);
+std::string urlencode(const std::string &s);
+
 }  // namespace bibseq
 
