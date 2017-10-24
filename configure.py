@@ -7,7 +7,7 @@ from utils import Utils
 from genFuncs import genHelper
 def main():
     name = "bibseq"
-    libs = "bamtools:develop,bibcpp:develop,armadillo:8.200.0"
+    libs = "bamtools:v2.5.1,bibcpp:v2.5.1,armadillo:8.200.0"
     args = genHelper.parseNjhConfigureArgs()
     if Utils.isMac():
         macv, _, _ = platform.mac_ver()
@@ -16,9 +16,8 @@ def main():
             if args.CC and "gcc" in args.CC[0]:
                 pass
             else:
-                libs = libs + ",sharedMutex:develop"
+                libs = libs + ",sharedMutex:v0.7"
     cmd = genHelper.mkConfigCmd(name, libs, sys.argv)
-    
     Utils.run(cmd)
     
 main()
