@@ -60,10 +60,13 @@ public:
 
 	static CollapseIterations gen454ItDefaultPars(uint32_t stopCheck);
 	static CollapseIterations genIlluminaDefaultPars(uint32_t stopCheck);
+	static CollapseIterations genIlluminaDefaultParsCollapseHomopolymers(uint32_t stopCheck);
 
 	static CollapseIterations gen454ItDefaultParsWithHqs(uint32_t stopCheck,
 			uint32_t hqMismatches);
 	static CollapseIterations genIlluminaDefaultParsWithHqs(uint32_t stopCheck,
+			uint32_t hqMismatches);
+	static CollapseIterations genIlluminaDefaultParsWithHqsCollapseHomopolymers(uint32_t stopCheck,
 			uint32_t hqMismatches);
 
 	static CollapseIterations genStrictNoErrorsDefaultPars(uint32_t stopCheck);
