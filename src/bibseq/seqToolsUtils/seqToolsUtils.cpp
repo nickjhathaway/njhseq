@@ -619,7 +619,7 @@ std::string processFileNameForID(const std::string& fileName) {
 
 std::string findAdditonalOutLocation(const std::string& locationFile,
                                      const std::string& fileName) {
-	if(bfs::exists(locationFile)){
+	if(!bfs::exists(locationFile)){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << " error, " << locationFile << " doesn't exist" << "\n";
 		throw std::runtime_error{ss.str()};
