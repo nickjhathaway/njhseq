@@ -216,7 +216,7 @@ bib::sys::RunOutput BioCmdsUtils::lastzAlign(const SeqIOOptions & opts, const La
 	std::stringstream lastzCmd;
 	lastzCmd << "lastz " << pars.genomeFnp << "[multiple] "
 			<< opts.firstName_ << " --format=" << pars.outFormat
-			<< " --coverage=" << pars.coverage << " --identity=" << pars.identity << " "
+			<< " --coverage=" << pars.coverage << " --identity=" << pars.identity << " --ambiguous=iupac "
 			<< pars.extraLastzArgs << " | samtools view - -b | samtools sort - -o "
 			<< outputFnp << " " << "&& samtools index "
 			<< outputFnp;
