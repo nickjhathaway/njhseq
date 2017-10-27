@@ -629,7 +629,6 @@ std::string findAdditonalOutLocation(const std::string& locationFile,
   for (const auto& fIter : inTab.content_) {
     additionalOutNames[makeIDNameComparable(fIter[0])] = fIter[1];
   }
-  std::cout << __PRETTY_FUNCTION__ << ", processFileNameForID(fileName): " << processFileNameForID(fileName) << std::endl;
   return additionalOutNames[processFileNameForID(fileName)];
 }
 
