@@ -91,16 +91,16 @@ std::vector<uint32_t> getPositionsMatchingPattern(const VecStr& vec,
 
 
 std::vector<uint32_t> getPositionsOfSubStrTarget(const VecStr& vec,
-                                                 const std::string& target) {
-  uint32_t pos = 0;
-  std::vector<uint32_t> positions;
-  for (const auto& iter : vec) {
-    if (bib::containsSubString(iter, target)) {
-      positions.push_back(pos);
-    }
-    ++pos;
-  }
-  return positions;
+		const std::string& target) {
+	uint32_t pos = 0;
+	std::vector<uint32_t> positions;
+	for (const auto& iter : vec) {
+		if (bib::containsSubString(iter, target)) {
+			positions.push_back(pos);
+		}
+		++pos;
+	}
+	return positions;
 }
 
 std::vector<uint32_t> getPositionsOfTargetStartsWith(
