@@ -152,14 +152,24 @@ void aligner::alignCache(const seqInfo & ref, const seqInfo & read, bool local){
 	rearrangeObjs(ref, read, local);
 }
 
-void aligner::alignReg(const baseReadObject & ref, const baseReadObject & read, bool local){
-	alignScore(ref.seqBase_.seq_, read.seqBase_.seq_, local);
-	rearrangeObjs(ref.seqBase_, read.seqBase_, local);
-}
 void aligner::alignReg(const seqInfo & ref, const seqInfo & read, bool local){
 	alignScore(ref.seq_, read.seq_, local);
 	rearrangeObjs(ref, read, local);
 }
+void aligner::alignRegGlobal(const seqInfo & ref, const seqInfo & read){
+	alignScoreGlobal(ref.seq_, read.seq_);
+	rearrangeObjsGlobal(ref, read);
+}
+
+void aligner::alignRegLocal(const seqInfo & ref, const seqInfo & read){
+	alignScoreLocal(ref.seq_, read.seq_);
+	rearrangeObjsLocal(ref, read);
+}
+
+
+
+
+
 std::pair<uint32_t, uint32_t> aligner::findReversePrimer(const std::string& read,
                                         				const std::string& primer){
 	alignScoreCache(read, primer, true);
@@ -1239,11 +1249,14 @@ void aligner::scoreAlignment(bool editTheSame) {
         } else if (countEndGaps_) {
           //editDistance_ += newGap.size_;
         }
-        parts_.score_ -= parts_.gapScores_.gapRightOpen_;
-        parts_.score_ -= parts_.gapScores_.gapRightExtend_ * (newGap.size_ - 1);
+        parts_.score_ -= parts_.gapScores_.gapRightRefOpen_;
+        parts_.score_ -= parts_.gapScores_.gapRightRefExtend_ * (newGap.size_ - 1);
+
+
       } else if (newGap.startPos_ == 0) {
-      	parts_.score_ -= parts_.gapScores_.gapLeftOpen_;
-      	parts_.score_ -= parts_.gapScores_.gapLeftExtend_ * (newGap.size_ - 1);
+       	parts_.score_ -= parts_.gapScores_.gapLeftRefOpen_;
+       	parts_.score_ -= parts_.gapScores_.gapLeftRefExtend_ * (newGap.size_ - 1);
+
         if (editTheSame) {
           //editDistance_ += gapScores_.gapLeftOpen_ +
                           // gapScores_.gapLeftExtend_ * (newGap.size_ - 1);
@@ -1283,11 +1296,11 @@ void aligner::scoreAlignment(bool editTheSame) {
         } else if (countEndGaps_) {
           //editDistance_ += newGap.size_;
         }
-        parts_.score_ -= parts_.gapScores_.gapRightOpen_;
-        parts_.score_ -= parts_.gapScores_.gapRightExtend_ * (newGap.size_ - 1);
+        parts_.score_ -= parts_.gapScores_.gapRightQueryOpen_;
+        parts_.score_ -= parts_.gapScores_.gapRightQueryExtend_ * (newGap.size_ - 1);
       } else if (newGap.startPos_ == 0) {
-      	parts_.score_ -= parts_.gapScores_.gapLeftOpen_;
-      	parts_.score_ -= parts_.gapScores_.gapLeftExtend_ * (newGap.size_ - 1);
+      	parts_.score_ -= parts_.gapScores_.gapLeftQueryOpen_;
+      	parts_.score_ -= parts_.gapScores_.gapLeftQueryExtend_ * (newGap.size_ - 1);
         if (editTheSame) {
           //editDistance_ += gapScores_.gapLeftOpen_ +
                           // gapScores_.gapLeftExtend_ * (newGap.size_ - 1);

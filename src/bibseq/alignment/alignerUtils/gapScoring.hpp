@@ -45,10 +45,17 @@ public:
   // members
   int32_t gapOpen_;
   int32_t gapExtend_;
-  int32_t gapRightOpen_;
-  int32_t gapRightExtend_;
-  int32_t gapLeftOpen_;
-  int32_t gapLeftExtend_;
+
+  int32_t gapRightQueryOpen_;
+  int32_t gapRightQueryExtend_;
+  int32_t gapRightRefOpen_;
+  int32_t gapRightRefExtend_;
+
+  int32_t gapLeftQueryOpen_;
+  int32_t gapLeftQueryExtend_;
+  int32_t gapLeftRefOpen_;
+  int32_t gapLeftRefExtend_;
+
   std::string uniqueIdentifer_;
   // functions
   void setIdentifer();

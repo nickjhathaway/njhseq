@@ -242,7 +242,7 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
   // initialize first column:
   for (uint32_t i = 1; i < parts.maxSize_; ++i) {
     if (i == 1) {
-      parts.ScoreMatrix_[i][0].upInherit = - parts.gapScores_.gapLeftOpen_;
+      parts.ScoreMatrix_[i][0].upInherit = - parts.gapScores_.gapLeftQueryOpen_;
       parts.ScoreMatrix_[i][0].leftInherit = 0;
       parts.ScoreMatrix_[i][0].diagInherit = 0;
       parts.ScoreMatrix_[i][0].upInheritPtr = 'U';
@@ -251,7 +251,7 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
     } else {
       parts.ScoreMatrix_[i][0].upInherit =
           parts.ScoreMatrix_[i - 1][0].upInherit -
-          parts.gapScores_.gapLeftExtend_;
+          parts.gapScores_.gapLeftQueryExtend_;
       parts.ScoreMatrix_[i][0].leftInherit = 0;
       parts.ScoreMatrix_[i][0].diagInherit = 0;
       parts.ScoreMatrix_[i][0].upInheritPtr = 'U';
@@ -263,7 +263,7 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
   for (uint32_t j = 1; j < parts.maxSize_; ++j) {
     if (j == 1) {
       parts.ScoreMatrix_[0][j].upInherit = 0;
-      parts.ScoreMatrix_[0][j].leftInherit = - parts.gapScores_.gapLeftOpen_;
+      parts.ScoreMatrix_[0][j].leftInherit = - parts.gapScores_.gapLeftRefOpen_;
       parts.ScoreMatrix_[0][j].diagInherit = 0;
       parts.ScoreMatrix_[0][j].upInheritPtr = '\0';
       parts.ScoreMatrix_[0][j].leftInheritPtr = 'L';
@@ -272,7 +272,7 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
       parts.ScoreMatrix_[0][j].upInherit = 0;
       parts.ScoreMatrix_[0][j].leftInherit =
           parts.ScoreMatrix_[0][j - 1].leftInherit -
-          parts.gapScores_.gapLeftExtend_;
+          parts.gapScores_.gapLeftRefExtend_;
       parts.ScoreMatrix_[0][j].diagInherit = 0;
       parts.ScoreMatrix_[0][j].upInheritPtr = '\0';
       parts.ScoreMatrix_[0][j].leftInheritPtr = 'L';
@@ -363,7 +363,7 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
   	const uint32_t i = 1;
     parts.ScoreMatrix_[i][j ].upInherit =
                     parts.ScoreMatrix_[i - 1][j ].leftInherit -
-                    parts.gapScores_.gapRightOpen_;
+                    parts.gapScores_.gapRightQueryOpen_;
     parts.ScoreMatrix_[i][j ].upInheritPtr = 'L';
 		//regular left inherit
     parts.ScoreMatrix_[i][j].leftInherit =
@@ -399,7 +399,7 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
   	//left
     parts.ScoreMatrix_[i][j].leftInherit =
         parts.ScoreMatrix_[i][j - 1].upInherit -
-        parts.gapScores_.gapRightOpen_;
+        parts.gapScores_.gapRightRefOpen_;
     parts.ScoreMatrix_[i][j].leftInheritPtr = 'U';
     //diag inherit is always coming from up
     int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
@@ -474,11 +474,11 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
     	//end left
       parts.ScoreMatrix_[i][j].leftInherit =
           needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
-                            parts.gapScores_.gapRightOpen_,
+                            parts.gapScores_.gapRightRefOpen_,
                         parts.ScoreMatrix_[i][j - 1].leftInherit -
-                            parts.gapScores_.gapRightExtend_,
+                            parts.gapScores_.gapRightRefExtend_,
                         parts.ScoreMatrix_[i][j - 1].diagInherit -
-                            parts.gapScores_.gapRightOpen_,
+                            parts.gapScores_.gapRightRefOpen_,
                         ptrFlag);
       parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
     	//normal diag
@@ -501,11 +501,11 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
     	//end up
       parts.ScoreMatrix_[i][j].upInherit =
           needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
-                            parts.gapScores_.gapRightExtend_,
+                            parts.gapScores_.gapRightQueryExtend_,
                         parts.ScoreMatrix_[i - 1][j].leftInherit -
-                            parts.gapScores_.gapRightOpen_,
+                            parts.gapScores_.gapRightQueryOpen_,
                         parts.ScoreMatrix_[i - 1][j].diagInherit -
-                            parts.gapScores_.gapRightOpen_,
+                            parts.gapScores_.gapRightQueryOpen_,
                         ptrFlag);
       parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
     	//regular left
@@ -538,21 +538,21 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
   	//end up
     parts.ScoreMatrix_[i][j].upInherit =
         needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
-                          parts.gapScores_.gapRightExtend_,
+                          parts.gapScores_.gapRightQueryExtend_,
                       parts.ScoreMatrix_[i - 1][j].leftInherit -
-                          parts.gapScores_.gapRightOpen_,
+                          parts.gapScores_.gapRightQueryOpen_,
                       parts.ScoreMatrix_[i - 1][j].diagInherit -
-                          parts.gapScores_.gapRightOpen_,
+                          parts.gapScores_.gapRightQueryOpen_,
                       ptrFlag);
     parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
   	//end left
     parts.ScoreMatrix_[i][j].leftInherit =
         needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
-                          parts.gapScores_.gapRightOpen_,
+                          parts.gapScores_.gapRightRefOpen_,
                       parts.ScoreMatrix_[i][j - 1].leftInherit -
-                          parts.gapScores_.gapRightExtend_,
+                          parts.gapScores_.gapRightRefExtend_,
                       parts.ScoreMatrix_[i][j - 1].diagInherit -
-                          parts.gapScores_.gapRightOpen_,
+                          parts.gapScores_.gapRightRefOpen_,
                       ptrFlag);
     parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
   	//normal diag

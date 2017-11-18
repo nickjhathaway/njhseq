@@ -117,10 +117,23 @@ class aligner {
 		alignCache(getSeqBase(ref), getSeqBase(read), local);
 	}
 
-
-	void alignReg(const baseReadObject & ref, const baseReadObject & read,
-			bool local);
+	template<typename READ1, typename READ2>
+	void alignReg(const READ1 & ref, const READ2 & read, bool local){
+		alignReg(getSeqBase(ref), getSeqBase(read), local);
+	}
 	void alignReg(const seqInfo & ref, const seqInfo & read, bool local);
+
+	template<typename READ1, typename READ2>
+	void alignRegGlobal(const READ1 & ref, const READ2 & read){
+		alignRegGlobal(getSeqBase(ref), getSeqBase(read));
+	}
+	void alignRegGlobal(const seqInfo & ref, const seqInfo & read);
+
+	template<typename READ1, typename READ2>
+	void alignRegLocal(const READ1 & ref, const READ2 & read){
+		alignRegLocal(getSeqBase(ref), getSeqBase(read));
+	}
+	void alignRegLocal(const seqInfo & ref, const seqInfo & read);
 
 	std::pair<uint32_t, uint32_t> findReversePrimer(const std::string& read,
 			const std::string& primer);

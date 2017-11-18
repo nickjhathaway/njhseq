@@ -83,13 +83,17 @@ void seqSetUp::processGap() {
 	}
 	if (setOption(pars_.gapLeft_, "--gapLeft", "Gap Penalties for Left End Gap",
 			false, "Alignment")) {
-		pars_.gapInfo_.processGapStr(pars_.gapLeft_, pars_.gapInfo_.gapLeftOpen_,
-				pars_.gapInfo_.gapLeftExtend_);
+		pars_.gapInfo_.processGapStr(pars_.gapLeft_, pars_.gapInfo_.gapLeftQueryOpen_,
+				pars_.gapInfo_.gapLeftQueryExtend_);
+		pars_.gapInfo_.processGapStr(pars_.gapLeft_, pars_.gapInfo_.gapLeftRefOpen_,
+				pars_.gapInfo_.gapLeftRefExtend_);
 	}
 	if (setOption(pars_.gapRight_, "--gapRight",
 			"Gap Penalties for Right End Gap", false, "Alignment")) {
-		pars_.gapInfo_.processGapStr(pars_.gapRight_, pars_.gapInfo_.gapRightOpen_,
-				pars_.gapInfo_.gapRightExtend_);
+		pars_.gapInfo_.processGapStr(pars_.gapRight_, pars_.gapInfo_.gapRightQueryOpen_,
+				pars_.gapInfo_.gapRightQueryExtend_);
+		pars_.gapInfo_.processGapStr(pars_.gapRight_, pars_.gapInfo_.gapRightRefOpen_,
+				pars_.gapInfo_.gapRightRefExtend_);
 	}
 
 	pars_.gapInfo_.setIdentifer();
@@ -109,10 +113,14 @@ void seqSetUp::processGapRef() {
 		// get the gap penalty
 		pars_.gapInfoRef_.processGapStr(pars_.gapRef_, pars_.gapInfoRef_.gapOpen_,
 				pars_.gapInfoRef_.gapExtend_);
-		pars_.gapInfoRef_.processGapStr(pars_.gapLeftRef_, pars_.gapInfoRef_.gapLeftOpen_,
-				pars_.gapInfoRef_.gapLeftExtend_);
-		pars_.gapInfoRef_.processGapStr(pars_.gapRightRef_, pars_.gapInfoRef_.gapRightOpen_,
-				pars_.gapInfoRef_.gapRightExtend_);
+		pars_.gapInfoRef_.processGapStr(pars_.gapLeftRef_, pars_.gapInfoRef_.gapLeftQueryOpen_,
+				pars_.gapInfoRef_.gapLeftQueryExtend_);
+		pars_.gapInfoRef_.processGapStr(pars_.gapLeftRef_, pars_.gapInfoRef_.gapLeftRefOpen_,
+				pars_.gapInfoRef_.gapLeftRefExtend_);
+		pars_.gapInfoRef_.processGapStr(pars_.gapRightRef_, pars_.gapInfoRef_.gapRightQueryOpen_,
+				pars_.gapInfoRef_.gapRightQueryExtend_);
+		pars_.gapInfoRef_.processGapStr(pars_.gapRightRef_, pars_.gapInfoRef_.gapRightRefOpen_,
+				pars_.gapInfoRef_.gapRightRefExtend_);
 	}
 	pars_.gapInfoRef_.setIdentifer();
 }
