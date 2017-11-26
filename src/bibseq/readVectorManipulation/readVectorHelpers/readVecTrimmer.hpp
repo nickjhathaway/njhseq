@@ -209,9 +209,96 @@ public:
 			aligner &alignObj);
 
 
+	template<typename SEQYPTE, typename REFSEQ>
+	static void trimSeqToRefByGlobalAln(SEQYPTE & seq, const std::vector<REFSEQ> & refSeqs,
+			const std::vector<kmerInfo> & refSeqsKInfos,aligner &alignObj);
+
+	template<typename SEQYPTE, typename REFSEQ>
+	static void trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seq, const std::vector<REFSEQ> & refSeqs,
+			const std::vector<kmerInfo> & refSeqsKInfos,aligner &alignerObj);
 
 
 };
+
+template<typename SEQYPTE, typename REFSEQ>
+void readVecTrimmer::trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seqs,
+		const std::vector<REFSEQ> & refSeqs,
+		const std::vector<kmerInfo> & refSeqsKInfos,
+		aligner &alignerObj){
+	for(auto & seq : seqs	){
+		trimSeqToRefByGlobalAln(seq, refSeqs, refSeqsKInfos, alignerObj);
+	}
+}
+
+template<typename SEQYPTE, typename REFSEQ>
+void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
+		const std::vector<REFSEQ> & refSeqs,
+		const std::vector<kmerInfo> & refSeqsKInfos,
+		aligner &alignerObj){
+	uint32_t bestIndex = std::numeric_limits<uint32_t>::max();
+	if (1 == refSeqs.size()) {
+		bestIndex = 0;
+	} else {
+		double kmerCutOff = 0.8;
+		kmerInfo seqKInfo(getSeqBase(seq).seq_, refSeqsKInfos.front().kLen_, false);
+	  double bestScore = std::numeric_limits<double>::lowest();
+	  std::vector<uint32_t> bestRefs;
+	  while(bestRefs.empty()){
+	    for (const auto& refPos : iter::range(refSeqs.size())) {
+	      const auto & ref = refSeqs[refPos];
+	      if(refSeqsKInfos[refPos].compareKmers(seqKInfo).second < kmerCutOff){
+	       	continue;
+	      }
+	      alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
+				double currentScore = 0;
+				alignerObj.profileAlignment(ref, getSeqBase(seq), false, true, false);
+				currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
+				if (currentScore == bestScore) {
+					bestRefs.push_back(refPos);
+				}
+				if (currentScore > bestScore) {
+					bestRefs.clear();
+					bestRefs.push_back(refPos);
+					bestScore = currentScore;
+				}
+			}
+	    if(kmerCutOff < 0 && bestRefs.empty()){
+	    		std::stringstream ss;
+	    		ss << __PRETTY_FUNCTION__ << ", error, couldn't find a matching ref for : " << getSeqBase(seq).name_ << "\n";
+	    		throw std::runtime_error{ss.str()};
+	    }
+	    kmerCutOff -= .1;
+	  }
+	  bestIndex = bestRefs.front();
+	}
+	alignerObj.alignCacheGlobal(refSeqs[bestIndex], getSeqBase(seq));
+	//getTrimFront
+	uint32_t trimFront = std::numeric_limits<uint32_t>::max();
+	if('-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			'-' == alignerObj.alignObjectA_.seqBase_.seq_.front() ){
+		auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+		trimFront = alignerObj.getSeqPosForAlnBPos(refAlnPos);
+	}else{
+		getSeqBase(seq).on_ = false;
+	}
+	//getTrimBack
+	uint32_t trimBack = std::numeric_limits<uint32_t>::max();
+	if('-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
+			'-' == alignerObj.alignObjectA_.seqBase_.seq_.back() ){
+		auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
+		trimBack = alignerObj.getSeqPosForAlnBPos(refAlnPos);
+	}else{
+		getSeqBase(seq).on_ = false;
+	}
+	if (std::numeric_limits<uint32_t>::max() != trimFront
+			&& std::numeric_limits<uint32_t>::max() != trimBack) {
+		getSeqBase(seq).setClip(trimFront, trimBack);
+	} else if (std::numeric_limits<uint32_t>::max() != trimFront) {
+		getSeqBase(seq).trimFront(trimFront);
+	} else if (std::numeric_limits<uint32_t>::max() != trimBack) {
+		getSeqBase(seq).trimBack(trimBack + 1);
+	}
+}
 
 
 
