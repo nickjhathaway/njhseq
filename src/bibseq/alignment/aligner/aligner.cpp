@@ -369,9 +369,9 @@ const comparison & aligner::profilePrimerAlignment(const seqInfo& objectA,
 			+ comp_.lowQualityMatches_ + comp_.hqMismatches_ + comp_.lqMismatches_
 			+ comp_.lowKmerMismatches_ + comp_.distances_.alignmentGaps_.size();
   if(comp_.distances_.overLappingEvents_ == 0){
-  	comp_.distances_.eventBasedIdentity_ = 0;
+  		comp_.distances_.eventBasedIdentity_ = 0;
   }else{
-  	comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
+  		comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
   }
   comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;

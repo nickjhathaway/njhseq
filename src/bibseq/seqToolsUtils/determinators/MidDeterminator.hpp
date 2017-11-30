@@ -158,16 +158,20 @@ public:
 			const MidDeterminator::midPos & backPos);
 
 	std::pair<midPos, midPos> fullDetermine(seqInfo & info, MidDeterminePars pars);
-	std::pair<midPos, midPos> fullDetermine(PairedRead & info, MidDeterminePars pars);
+	std::pair<midPos, midPos> fullDeterminePairedEnd(PairedRead & seq, MidDeterminePars pars);
+
 
 	template<typename T>
 	std::pair<midPos, midPos> fullDetermine(T & read, MidDeterminePars pars){
 		return fullDetermine(getSeqBase(read), pars);
 	}
 
+
+
 	static void increaseFailedBarcodeCounts(const MidDeterminator::midPos & pos, std::unordered_map<std::string, uint32_t> & counts);
 
 };
+
 
 } /* namespace bibseq */
 

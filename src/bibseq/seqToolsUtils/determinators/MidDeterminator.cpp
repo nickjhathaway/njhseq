@@ -455,7 +455,8 @@ void MidDeterminator::processInfoWithMidPos(PairedRead & seq,
 
 
 
-std::pair<MidDeterminator::midPos, MidDeterminator::midPos>  MidDeterminator::fullDetermine(PairedRead & seq, MidDeterminePars pars){
+std::pair<MidDeterminator::midPos, MidDeterminator::midPos>  MidDeterminator::fullDeterminePairedEnd(PairedRead & seq, MidDeterminePars pars){
+	//std::cout << __PRETTY_FUNCTION__ << std::endl;
 	/**@todo expensive way to do this for now */
 	uint32_t spacerSize = 20;
 	seqInfo tempSeq = seq.seqBase_;
