@@ -204,10 +204,17 @@ void seqSetUp::processKmerProfilingOptions() {
 void seqSetUp::processScoringPars() {
 	setOption(pars_.local_, "--local", "Local alignment", false, "Alignment");
 	setOption(pars_.colOpts_.alignOpts_.countEndGaps_, "--countEndGaps", "Count End Gaps", false, "Alignment");
-	bool noHomopolymerWeighting = false;
-	setOption(noHomopolymerWeighting, "--noHomopolymerWeighting",
-			"Don't do Homopolymer Weighting", false, "Alignment");
-	pars_.colOpts_.iTOpts_.weighHomopolyer_ = !noHomopolymerWeighting;
+	if (pars_.colOpts_.iTOpts_.weighHomopolyer_) {
+		bool noHomopolymerWeighting = false;
+		setOption(noHomopolymerWeighting, "--noHomopolymerIndelWeighting",
+				"Don't do Homopolymer Weighting", false, "Alignment");
+		pars_.colOpts_.iTOpts_.weighHomopolyer_ = !noHomopolymerWeighting;
+	} else {
+		setOption(pars_.colOpts_.iTOpts_.weighHomopolyer_,
+				"--weighHomopolymerIndels", "Weigh indels in homopolymers differently", false,
+				"Alignment");
+	}
+
 	std::string scoreMatrixFilename = "";
 	bool degenScoring = false;
 	bool caseInsensitive = false;

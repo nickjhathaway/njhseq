@@ -40,6 +40,8 @@ public:
 
 	bool outExists() const;
 
+	void throwIfOutExistsNoOverWrite(const std::string & funcName) const;
+
 	bfs::path outName() const;
 
 	Json::Value toJson() const;

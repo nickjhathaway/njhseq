@@ -311,6 +311,7 @@ MetaDataInName MultipleGroupMetaData::getMetaForSample(const std::string & name,
 		ss << "Options are: " << bib::conToStr(samples_);
 		throw std::runtime_error{ss.str()};
 	}
+	checkForFieldsThrow(fields);
 
 	MetaDataInName ret;
 	for(const auto & gMeta : groupData_){
@@ -322,6 +323,8 @@ MetaDataInName MultipleGroupMetaData::getMetaForSample(const std::string & name,
 }
 
 MetaDataInName MultipleGroupMetaData::genNaMeta( const VecStr & fields) const{
+	checkForFieldsThrow(fields);
+
 	MetaDataInName ret;
 	for(const auto & gMeta : groupData_){
 		if(bib::in(gMeta.first, fields)){
