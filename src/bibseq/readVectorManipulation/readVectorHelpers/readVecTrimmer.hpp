@@ -217,8 +217,102 @@ public:
 	static void trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seq, const std::vector<REFSEQ> & refSeqs,
 			const std::vector<kmerInfo> & refSeqsKInfos,aligner &alignerObj);
 
+	struct GlobalAlnTrimPars{
+		uint32_t startInclusive_ = std::numeric_limits<uint32_t>::max();
+		uint32_t endInclusive_ = std::numeric_limits<uint32_t>::max();
+		bool needJustOneEnd_ = false;
+	};
+
+	template<typename SEQYPTE, typename REFSEQ>
+	static void trimSeqToRefByGlobalAln(SEQYPTE & seq,
+			const REFSEQ & refSeq,
+			const GlobalAlnTrimPars & trimPars,
+			aligner &alignerObj);
+
+	template<typename SEQYPTE, typename REFSEQ>
+	static void trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seqs,
+			const REFSEQ & refSeq,
+			const GlobalAlnTrimPars & trimPars,
+			aligner &alignerObj);
 
 };
+
+template<typename SEQYPTE, typename REFSEQ>
+void readVecTrimmer::trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seqs,
+		const REFSEQ & refSeq,
+		const GlobalAlnTrimPars & trimPars,
+		aligner &alignerObj){
+	for(auto & seq : seqs){
+		trimSeqToRefByGlobalAln(seq, refSeq, trimPars, alignerObj);
+	}
+}
+
+template<typename SEQYPTE, typename REFSEQ>
+void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
+		const REFSEQ & refSeq,
+		const GlobalAlnTrimPars & trimPars,
+		aligner &alignerObj){
+	if (trimPars.startInclusive_>= getSeqBase(refSeq).seq_.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << "error startInclusive, " << trimPars.startInclusive_
+				<< ", greater than ref " << getSeqBase(refSeq).name_ << " length: "
+				<< getSeqBase(refSeq).seq_.size() << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	if (trimPars.endInclusive_ >= getSeqBase(refSeq).seq_.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << "error endInclusvie, " << trimPars.endInclusive_
+				<< ", greater than ref " << getSeqBase(refSeq).name_ << " length: "
+				<< getSeqBase(refSeq).seq_.size() << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	if (trimPars.endInclusive_ <= trimPars.startInclusive_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << "error endInclusvie, " << trimPars.endInclusive_
+				<< ", less than or equal to startInclusive,  " << trimPars.startInclusive_
+				<< "\n";
+		throw std::runtime_error { ss.str() };
+	}
+
+	alignerObj.alignCacheGlobal(getSeqBase(refSeq), getSeqBase(seq));
+
+	//ref positions
+	uint32_t refAlnStartPos = alignerObj.getAlignPosForSeqAPos(trimPars.startInclusive_);
+	uint32_t refAlnStopPos = alignerObj.getAlignPosForSeqAPos(trimPars.endInclusive_);
+	//aligned bases
+	uint32_t firstAlignedBase = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
+	uint32_t lastAlignedBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
+	//front
+	uint32_t trimFront = std::numeric_limits<uint32_t>::max();
+	if (refAlnStartPos >= firstAlignedBase && refAlnStartPos < lastAlignedBase) {
+		trimFront = alignerObj.getSeqPosForAlnBPos(refAlnStartPos);
+	} else {
+		getSeqBase(seq).on_ = false;
+	}
+	//back
+	uint32_t trimBack = std::numeric_limits<uint32_t>::max();
+	if (refAlnStopPos > firstAlignedBase && refAlnStopPos <= lastAlignedBase) {
+		trimBack = alignerObj.getSeqPosForAlnBPos(refAlnStopPos);
+	} else {
+		getSeqBase(seq).on_ = false;
+	}
+
+
+	if (std::numeric_limits<uint32_t>::max() != trimFront
+			&& std::numeric_limits<uint32_t>::max() != trimBack) {
+		getSeqBase(seq).setClip(trimFront, trimBack);
+	} else if (std::numeric_limits<uint32_t>::max() != trimFront) {
+		getSeqBase(seq).trimFront(trimFront);
+		if(trimPars.needJustOneEnd_ ){
+			getSeqBase(seq).on_ =  true;
+		}
+	} else if (std::numeric_limits<uint32_t>::max() != trimBack) {
+		getSeqBase(seq).trimBack(trimBack + 1);
+		if(trimPars.needJustOneEnd_){
+			getSeqBase(seq).on_ =  true;
+		}
+	}
+}
 
 template<typename SEQYPTE, typename REFSEQ>
 void readVecTrimmer::trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seqs,
