@@ -334,7 +334,46 @@ MetaDataInName MultipleGroupMetaData::genNaMeta( const VecStr & fields) const{
 	return ret;
 }
 
+table MultipleGroupMetaData::leftJoinWithMeta(const table & sampleTable,
+		const std::string & sampleColumn) const{
+	sampleTable.checkForColumnsThrow({sampleColumn}, __PRETTY_FUNCTION__);
+	auto sampleColPos = sampleTable.getColPos(sampleColumn);
+	auto metaLevels = getVectorOfMapKeys(groupData_);
+	bib::sort(metaLevels);
+	table outTab(concatVecs(sampleTable.columnNames_, metaLevels));
+	for(auto row : sampleTable.content_){
+		for(const auto & field : metaLevels){
+			if(hasSample(row[sampleColPos])){
+				row.emplace_back(groupData_.at(field)->getGroupForSample(row[sampleColPos]));
+			}else{
+				row.emplace_back("NA");
+			}
+		}
+		outTab.addRow(row);
+	}
+	return outTab;
+}
 
+
+table MultipleGroupMetaData::leftJoinWithMeta(const table & sampleTable) const {
+	std::regex sampPat(
+			R"(sample(s\b|\b))", std::regex_constants::ECMAScript | std::regex_constants::icase );
+	std::vector<uint32_t> possibleMatches = getPositionsMatchingPattern(sampleTable.columnNames_, sampPat);
+	if(possibleMatches.size() == 0){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__
+				<< ", error found no column named that could match possible sample names, found only: "
+				<< bib::conToStr(sampleTable.columnNames_, ",") << "\n";
+		throw std::runtime_error{ss.str()};
+	}else if(possibleMatches.size()  > 1){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__
+				<< ", error found too many columns that match possible sample names, found : "
+				<< bib::conToStr(getTargetsAtPositions(sampleTable.columnNames_, possibleMatches), ",") << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	return leftJoinWithMeta(sampleTable, sampleTable.columnNames_[possibleMatches.front()]);
+}
 
 
 }  // namespace bibseq

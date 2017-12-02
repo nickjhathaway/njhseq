@@ -305,7 +305,7 @@ uint32_t getFirstPositionOfTarget(const std::vector<T>& vec, const T& target) {
 		}
 		++pos;
 	}
-	return UINT32_MAX;
+	return std::numeric_limits<uint32_t>::max();
 }
 
 std::vector<uint32_t> getPositionsContainingPattern(const VecStr& vec,
