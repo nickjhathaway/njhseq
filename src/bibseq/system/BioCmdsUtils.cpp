@@ -252,7 +252,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 	}
 	bib::sys::requireExternalProgramThrow(fastqDumpCmd_);
 	std::stringstream cmd;
-	cmd <<  fastqDumpCmd_ << " --log-level 0 -X 1 -Z --split-spot " << pars.sraFnp_;
+	cmd << fastqDumpCmd_ << " --log-level 0 -X 1 -Z --split-spot " << pars.sraFnp_;
 	auto cmdOutput = bib::sys::run({cmd.str()});
 	BioCmdsUtils::checkRunOutThrow(cmdOutput, __PRETTY_FUNCTION__);
 	//bib::sys::run trim end white space so have to add one;
@@ -286,6 +286,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 
 	bool needToRun = true;
 	ret.firstMateFnp_ = checkFile1;
+	//std::cout << "newLines: " << newLines << std::endl;
 	if (4 == newLines) {
 		ret.isPairedEnd_ = false;
 		if(bfs::exists(checkFile1) &&
@@ -314,7 +315,6 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					bib::files::firstFileIsOlder(pars.sraFnp_, checkFileBarcodes)){
 				needToRun = false;
 			}
-
 		}else{
 			if(bfs::exists(checkFile1) &&
 					bfs::exists(checkFile2) &&
@@ -361,7 +361,6 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					bfs::copy(currentBarcodeFnp, checkFileBarcodes);
 				}
 			}
-
 			IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
 					checkFile1) };
 			firstMateIoOpts.out_.overWriteFile_ = true;
@@ -389,25 +388,57 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					gzBarcodeTh->join();
 				}
 			}
-		}else if(4 == newLines){
+		} else if(4 == newLines){
 			if(pars.gzip_){
 				IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
 						checkFile1) };
 				firstMateIoOpts.out_.overWriteFile_ = true;
 				zipFile(firstMateIoOpts);
 			}
-		}else if(8 == newLines){
-			if(pars.gzip_){
+		} else if(8 == newLines){
+			//so a couple of samples were found to have a _1 and _3 file for when there were 8 lines, no barcode _2 file present
+			bfs::path properSecondMate = bib::files::replaceExtension(outputStub, "_2.fastq");
+			bfs::path possibleSecondMate = bib::files::replaceExtension(outputStub, "_3.fastq");
+			if(bfs::exists(possibleSecondMate) && !bfs::exists(properSecondMate)){
 				IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
 						checkFile1) };
 				firstMateIoOpts.out_.overWriteFile_ = true;
-				IoOptions secondMateIoOpts { InOptions(orgSecondMateFnp), OutOptions(
-						checkFile2) };
-				secondMateIoOpts.out_.overWriteFile_ = true;
-				std::thread firstMateTh(zipFile, firstMateIoOpts);
-				std::thread secondMateTh(zipFile, secondMateIoOpts);
-				firstMateTh.join();
-				secondMateTh.join();
+				std::unique_ptr<std::thread> gzFirstMateTh;
+				if (pars.gzip_) {
+					gzFirstMateTh = std::make_unique<std::thread>(zipFile,
+							firstMateIoOpts);
+				}
+				bfs::path currentSecondMateFnp = bib::files::replaceExtension(
+						outputStub, "_3.fastq");
+				auto secondMateIn = SeqIOOptions::genFastqIn(currentSecondMateFnp);
+				SeqInput reader { secondMateIn };
+				seqInfo seq;
+				OutOptions secondMateOutOpts(checkFile2);
+				secondMateOutOpts.overWriteFile_ = true;
+				OutputStream secondMateOut(secondMateOutOpts);
+				reader.openIn();
+				while (reader.readNextRead(seq)) {
+					seq.name_.back() = '2';
+					seq.outPutFastq(secondMateOut);
+				}
+				reader.closeIn();
+				bfs::remove(currentSecondMateFnp);
+				if (pars.gzip_) {
+					gzFirstMateTh->join();
+				}
+			} else {
+				if(pars.gzip_){
+					IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
+							checkFile1) };
+					firstMateIoOpts.out_.overWriteFile_ = true;
+					IoOptions secondMateIoOpts { InOptions(orgSecondMateFnp), OutOptions(
+							checkFile2) };
+					secondMateIoOpts.out_.overWriteFile_ = true;
+					std::thread firstMateTh(zipFile, firstMateIoOpts);
+					std::thread secondMateTh(zipFile, secondMateIoOpts);
+					firstMateTh.join();
+					secondMateTh.join();
+				}
 			}
 		}
 	}
