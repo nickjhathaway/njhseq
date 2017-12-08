@@ -103,6 +103,9 @@ public:
 	 */
 	explicit MidDeterminator(const table & mids);
 
+	explicit MidDeterminator(const std::unordered_map<std::string, MidDeterminator::MidInfo> & mids);
+
+
 	MidDeterminator();
 
 	std::unordered_map<std::string, MidInfo> mids_;
@@ -158,7 +161,7 @@ public:
 			const MidDeterminator::midPos & backPos);
 
 	std::pair<midPos, midPos> fullDetermine(seqInfo & info, MidDeterminePars pars);
-	std::pair<midPos, midPos> fullDeterminePairedEnd(PairedRead & seq, MidDeterminePars pars);
+	std::pair<midPos, midPos> fullDetermine(PairedRead & seq, MidDeterminePars pars);
 
 
 	template<typename T>

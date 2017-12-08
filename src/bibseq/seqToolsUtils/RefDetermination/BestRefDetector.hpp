@@ -84,11 +84,12 @@ public:
 							}
 						}
 				    bestRefsForPos[pos] = bestRefs;
-				    currentKmerCutOff -= 0.1;
+
 				    run = false;
-				    if(bestRefs.empty() && pars.forceMatch_){
+				    if(bestRefs.empty() && pars.forceMatch_ && currentKmerCutOff > 0){
 				    		run = true;
 				    }
+				    currentKmerCutOff -= 0.1;
 			    }
 				}
 				{

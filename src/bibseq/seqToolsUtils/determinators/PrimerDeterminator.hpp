@@ -33,8 +33,6 @@ namespace bibseq {
 
 class PrimerDeterminator{
 public:
-	explicit PrimerDeterminator(const table & primers) ;
-
 	struct primerInfo {
 		primerInfo() {}
 		primerInfo(const std::string & primerPairName,
@@ -47,6 +45,16 @@ public:
 		seqInfo reversePrimerInfo_;
 		seqInfo reversePrimerInfoForDir_;
 	};
+
+	explicit PrimerDeterminator(const table & primers);
+
+	explicit PrimerDeterminator(const std::unordered_map<std::string, primerInfo> & primers);
+
+//	void addPrimerInfo(const std::string & primerName,
+//			const std::string & forwardPrimer, const std::string & reversePrimer);
+
+	bool containsTarget(const std::string & targetName) const;
+
 
 	std::map<std::string, primerInfo> primers_;
 

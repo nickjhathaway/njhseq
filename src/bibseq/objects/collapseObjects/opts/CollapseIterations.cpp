@@ -72,6 +72,7 @@ CollapseIterations::CollapseIterations(const std::string & parametersFilename,
 		bool onPerId):onPerId_(onPerId) {
 	table inTab(parametersFilename, ":");
 	uint32_t iters = 1;
+
 	for (const auto& row : inTab.content_) {
 		if (row.empty() || row.front().front() == 's' || row.front().front() == '#'
 				|| row.front().front() == 'S') {
@@ -82,7 +83,14 @@ CollapseIterations::CollapseIterations(const std::string & parametersFilename,
 			if (stringToLowerReturn(row[colPos]) == "all") {
 				tempVect.emplace_back(std::numeric_limits<uint32_t>::max());
 			} else {
-				tempVect.emplace_back(std::stod(row[colPos]));
+				if(isDoubleStr(row[colPos])){
+					tempVect.emplace_back(std::stod(row[colPos]));
+				}else{
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ <<", error in parsing " << parametersFilename << " on row: " << bib::conToStr(row, ":") << "\n";
+					ss << "Couldn't convert " << row[colPos] << " into a number" << '\n';
+					throw std::runtime_error{ss.str()};
+				}
 			}
 		}
 		addIteration(iters, tempVect);

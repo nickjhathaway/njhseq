@@ -69,9 +69,26 @@ PrimerDeterminator::PrimerDeterminator(const table & primers) {
 	}
 
 	for (const auto & row : primers.content_) {
-		primers_[row[primers.getColPos(idCol)]] = {row[primers.getColPos(idCol)],
-			row[primers.getColPos("forwardPrimer")], row[primers.getColPos("reversePrimer")]};
+		if(containsTarget(row[primers.getColPos(idCol)])){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ <<", error already contain target information for " << row[primers.getColPos(idCol)] << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		primers_[row[primers.getColPos(idCol)]] = {
+			row[primers.getColPos(idCol)],
+			row[primers.getColPos("forwardPrimer")],
+			row[primers.getColPos("reversePrimer")]};
 	}
+}
+
+PrimerDeterminator::PrimerDeterminator(const std::unordered_map<std::string, primerInfo> & primers){
+	for(const auto & primer : primers){
+		primers_.emplace(primer);
+	}
+}
+
+bool PrimerDeterminator::containsTarget(const std::string & targetName) const{
+	return bib::in(targetName, primers_);
 }
 
 PrimerDeterminator::primerInfo::primerInfo(const std::string & primerPairName,
