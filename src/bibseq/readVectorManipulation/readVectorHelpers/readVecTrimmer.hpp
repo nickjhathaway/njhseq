@@ -164,48 +164,74 @@ public:
 
 	template<class T>
 	static void trimAtSequence(std::vector<T> &reads,
-			seqInfo &reversePrimer, aligner &alignObj, comparison allowableErrors,
-			FullTrimReadsPars::trimSeqPars tSeqPars);
+			const seqInfo &reversePrimer,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
 	template<class T>
-	static void trimAtSequence(T &read, seqInfo &reversePrimer,
-			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
-	static void trimAtSequence(seqInfo &read, seqInfo &reversePrimer,
-			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
+	static void trimAtSequence(T &read,
+			const seqInfo &reversePrimer,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
+	static void trimAtSequence(seqInfo &read,
+			const seqInfo &reversePrimer,
+			aligner &alignObj,
+			const comparison  & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
 
 	template<class T>
 	static void trimBeforeSequence(std::vector<T> &reads,
-			seqInfo &forwardSeq, aligner &alignObj, comparison allowableErrors,
-			FullTrimReadsPars::trimSeqPars tSeqPars);
+			const seqInfo &forwardSeq,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
 	template<class T>
-	static void trimBeforeSequence(T &read, seqInfo &forwardSeq,
-			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
-	static void trimBeforeSequence(seqInfo &read, seqInfo &forwardSeq,
-			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
+	static void trimBeforeSequence(T &read,
+			const seqInfo &forwardSeq,
+			aligner &alignObj,
+			const comparison &allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
+	static void trimBeforeSequence(seqInfo &read,
+			const seqInfo &forwardSeq,
+			aligner &alignObj,
+			const comparison  & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
 
 	template<class T>
 	static void trimBetweenSequences(std::vector<T> &reads,
-			seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
-			comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
+			const seqInfo &forwardSeq,
+			const seqInfo &backSeq,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars& tSeqPars);
 	template<class T>
-	static void trimBetweenSequences(T &read, seqInfo &forwardSeq,
-			seqInfo &backSeq, aligner &alignObj, comparison allowableErrors,
-			FullTrimReadsPars::trimSeqPars tSeqPars);
-	static void trimBetweenSequences(seqInfo &read, seqInfo &forwardSeq,
-			seqInfo &backSeq, aligner &alignObj, comparison allowableErrors,
-			FullTrimReadsPars::trimSeqPars tSeqPars);
+	static void trimBetweenSequences(T &read,
+			const seqInfo &forwardSeq,
+			const seqInfo &backSeq,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
+	static void trimBetweenSequences(seqInfo &read,
+			const seqInfo &forwardSeq,
+			const seqInfo &backSeq,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
 
 	template<typename T>
 	static void trimToMostCommonKmer(std::vector<T> & seqs,
-			FullTrimReadsPars pars,
+			const FullTrimReadsPars & pars,
 			aligner &alignObj);
 
 	template<typename T>
 	static void trimFromMostCommonKmer(std::vector<T> & seqs,
-			FullTrimReadsPars pars,
+			const FullTrimReadsPars & pars,
 			aligner &alignObj);
 
 	template<typename T>
-	static void trimBetweenMostCommonKmers(std::vector<T> & seqs, FullTrimReadsPars pars,
+	static void trimBetweenMostCommonKmers(std::vector<T> & seqs,
+			const FullTrimReadsPars &pars,
 			aligner &alignObj);
 
 
@@ -547,15 +573,15 @@ void readVecTrimmer::trimEnds(T &read, size_t forwardBases,
 
 template<class T>
 void readVecTrimmer::trimAtSequence(std::vector<T> &reads,
-		seqInfo &reversePrimer, aligner &alignObj, comparison allowableErrors,
-		FullTrimReadsPars::trimSeqPars tSeqPars) {
+		const seqInfo &reversePrimer, aligner &alignObj, const comparison & allowableErrors,
+		const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	bib::for_each(reads,
 			[&](T& read) {trimAtSequence(read, reversePrimer, alignObj, allowableErrors, tSeqPars);});
 }
 
 template<class T>
-void readVecTrimmer::trimAtSequence(T &read, seqInfo &reversePrimer,
-		aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
+void readVecTrimmer::trimAtSequence(T &read, const seqInfo &reversePrimer,
+		aligner &alignObj, const comparison & allowableErrors, const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	trimAtSequence(getSeqBase(read), reversePrimer, alignObj,
 			allowableErrors, tSeqPars);
 }
@@ -563,15 +589,15 @@ void readVecTrimmer::trimAtSequence(T &read, seqInfo &reversePrimer,
 
 template<class T>
 void readVecTrimmer::trimBeforeSequence(std::vector<T> &reads,
-		seqInfo &forwardSeq, aligner &alignObj, comparison allowableErrors,
-		FullTrimReadsPars::trimSeqPars tSeqPars) {
+		const seqInfo &forwardSeq, aligner &alignObj, const comparison & allowableErrors,
+		const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	bib::for_each(reads,
 			[&](T& read) {trimBeforeSequence(read, forwardSeq, alignObj, allowableErrors, tSeqPars);});
 }
 
 template<class T>
-void readVecTrimmer::trimBeforeSequence(T &read, seqInfo &forwardSeq,
-		aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
+void readVecTrimmer::trimBeforeSequence(T &read, const seqInfo &forwardSeq,
+		aligner &alignObj, const comparison & allowableErrors, const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	trimBeforeSequence(getSeqBase(read), forwardSeq, alignObj,
 			allowableErrors, tSeqPars);
 }
@@ -579,16 +605,16 @@ void readVecTrimmer::trimBeforeSequence(T &read, seqInfo &forwardSeq,
 template <class T>
 void readVecTrimmer::trimBetweenSequences(
 		std::vector<T> &reads,
-					seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
-					comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
+					const seqInfo &forwardSeq, const seqInfo &backSeq, aligner &alignObj,
+					const comparison & allowableErrors, const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	bib::for_each(reads, [&](T& read){ trimBetweenSequences(read, forwardSeq,backSeq, alignObj, allowableErrors) ;});
   return;
 }
 
 template <class T>
 void readVecTrimmer::trimBetweenSequences(T &read,
-		seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
-							comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars){
+		const seqInfo &forwardSeq, const seqInfo &backSeq, aligner &alignObj,
+							const comparison & allowableErrors, const FullTrimReadsPars::trimSeqPars & tSeqPars){
 	trimBetweenSequences(getSeqBase(read), forwardSeq, backSeq, alignObj, allowableErrors, tSeqPars);
 	return;
 }
@@ -628,7 +654,7 @@ void readVecTrimmer::trimEndsOfReadsToSharedSeq(std::vector<T> &reads,
 
 template<typename T>
 void readVecTrimmer::trimToMostCommonKmer(std::vector<T> & seqs,
-		FullTrimReadsPars pars,
+		const FullTrimReadsPars  & pars,
 		aligner &alignObj) {
 
 	std::vector<kmerInfo> kInfos;
@@ -673,20 +699,22 @@ void readVecTrimmer::trimToMostCommonKmer(std::vector<T> & seqs,
 		}
 	}
 	seqInfo bestSeq(bestK + ":" + estd::to_string(bestProb), bestK);
-  pars.tSeqPars_.within_ = pars.windowLength + 5;
-  for(auto & seq : seqs){
-  	//skip if the length was too small
-  	if(!getSeqBase(seq).on_){
-  		continue;
-  	}
+
+	auto parsCopy = pars.tSeqPars_;
+	parsCopy.within_ = pars.windowLength + 5;
+	for (auto & seq : seqs) {
+		//skip if the length was too small
+		if (!getSeqBase(seq).on_) {
+			continue;
+		}
 		readVecTrimmer::trimAtSequence(getSeqBase(seq), bestSeq, alignObj,
-				pars.allowableErrors, pars.tSeqPars_);
-  }
+				pars.allowableErrors, parsCopy);
+	}
 }
 
 template<typename T>
 void readVecTrimmer::trimFromMostCommonKmer(std::vector<T> & seqs,
-		FullTrimReadsPars pars,
+		const FullTrimReadsPars & pars,
 		aligner &alignObj) {
 
 	std::vector<kmerInfo> kInfos;
@@ -731,19 +759,20 @@ void readVecTrimmer::trimFromMostCommonKmer(std::vector<T> & seqs,
 		}
 	}
 	seqInfo bestSeq(bestK + ":" + estd::to_string(bestProb), bestK);
-  pars.tSeqPars_.within_ = pars.windowLength + 5;
+	auto parsCopy = pars.tSeqPars_;
+	parsCopy.within_ = pars.windowLength + 5;
   for(auto & seq : seqs){
   	//skip if the length was too small
   	if(!getSeqBase(seq).on_){
   		continue;
   	}
 		readVecTrimmer::trimBeforeSequence(getSeqBase(seq), bestSeq, alignObj,
-				pars.allowableErrors, pars.tSeqPars_);
+				pars.allowableErrors, parsCopy);
   }
 }
 
 template<typename T>
-void readVecTrimmer::trimBetweenMostCommonKmers(std::vector<T> & seqs, FullTrimReadsPars pars,
+void readVecTrimmer::trimBetweenMostCommonKmers(std::vector<T> & seqs, const FullTrimReadsPars & pars,
 		aligner &alignObj) {
 	trimFromMostCommonKmer(seqs, pars, alignObj);
 	bib::for_each(seqs, [](T & seq) {getSeqBase(seq).on_ = true;});

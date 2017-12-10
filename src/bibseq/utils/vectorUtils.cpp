@@ -24,7 +24,7 @@ namespace bibseq {
 
 std::string getSubVector(const std::string& vec, uint32_t start,
 		uint32_t size) {
-	return std::string(vec.begin() + start, vec.begin() + size + start);;
+	return std::numeric_limits<uint32_t>::max() != size ? std::string(vec.begin() + start, vec.begin() + size + start): std::string(vec.begin() + start, vec.end());
 }
 
 std::string getSubVector(const std::string& vec, uint32_t start) {
