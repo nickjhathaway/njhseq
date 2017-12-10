@@ -138,6 +138,24 @@ public:
 	std::mutex mut_;
 	std::unique_ptr<sffObject> lastSffRead_;
 
+	template<typename T>
+	static std::vector<T> getSeqVec(const SeqIOOptions & seqOptions, uint64_t& maxLength){
+		std::vector<T> ret;
+		SeqInput reader(seqOptions);
+		reader.openIn();
+		T seq;
+		while(reader.readNextRead(seq)){
+			readVec::getMaxLength(seq, maxLength);
+			ret.emplace_back(seq);
+		}
+		return ret;
+	}
+
+	template<typename T>
+	static std::vector<T> getSeqVec(const SeqIOOptions & seqOptions){
+		uint64_t maxlen = 0;
+		return getSeqVec<T>(seqOptions, maxlen);
+	}
 
 	static std::vector<readObject> getReferenceSeq(
 			const SeqIOOptions & refOptions, uint64_t& maxLength);
