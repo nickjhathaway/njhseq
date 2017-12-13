@@ -213,7 +213,7 @@ void alignCalc::runSmithSave(const std::string& objA, const std::string& objB,
         icursor--;
       }
     } else {
-      std::cout << "ERROR!!!!!" << std::endl;
+      std::cerr << "ERROR!!!!!" << std::endl;
     }
   }
   parts.lHolder_.localAStart_ = icursor;
