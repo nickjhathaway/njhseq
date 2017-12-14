@@ -390,21 +390,7 @@ void readVecTrimmer::trimBetweenSequences(seqInfo &seq, const seqInfo &forwardSe
 		trimBeforeSequence(seq, forwardSeq, alignObj, allowableErrors, tSeqPars);
 	}
 }
-FullTrimReadsPars::FullTrimReadsPars(){
-	tSeqPars_.includeSequence_ = false;
-	tSeqPars_.sequenceToLowerCase_ = false;
-	tSeqPars_.removePreviousSameBases_ = false;
-	allowableErrors.distances_.query_.coverage_ = .75;
-}
 
-void FullTrimReadsPars::initForKSharedTrim(){
-  allowableErrors.distances_.query_.coverage_ = .50;
-  allowableErrors.hqMismatches_ = 2;
-  allowableErrors.lqMismatches_ = 2;
-  allowableErrors.oneBaseIndel_ = 2;
-  allowableErrors.twoBaseIndel_ = 2;
-  allowableErrors.largeBaseIndel_ = 2;
-}
 
 
 
