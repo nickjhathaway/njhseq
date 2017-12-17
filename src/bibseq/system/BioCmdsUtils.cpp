@@ -140,6 +140,60 @@ bib::sys::RunOutput BioCmdsUtils::runCmdCheck(const std::string & cmd,
 	return bib::sys::RunOutput();
 }
 
+
+bib::sys::RunOutput BioCmdsUtils::bowtie2AlignNoSort(const SeqIOOptions & opts,
+		const bfs::path & genomeFnp, std::string additionalBowtie2Args) const {
+
+	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
+	bfs::path outputFnp = bib::appendAsNeededRet(opts.out_.outFilename_.string(),
+			".bam");
+	auto outputFnpTempSam = bib::appendAsNeededRet(opts.out_.outFilename_.string(),
+			".sam");
+	if (bfs::exists(outputFnpTempSam) && !opts.out_.overWriteFile_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": error, " << outputFnp
+				<< " already exists, use --overWrite to over write it" << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	if (bfs::exists(outputFnp) && !opts.out_.overWriteFile_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": error, " << outputFnp
+				<< " already exists, use --overWrite to over write it" << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	RunBowtie2Index(genomeFnp);
+	auto genomePrefix = genomeFnp;
+	genomePrefix.replace_extension("");
+	std::stringstream templateCmd;
+	if(SeqIOOptions::inFormats::FASTA == opts.inFormat_){
+		additionalBowtie2Args += " -f ";
+	}
+
+	if(opts.isPairedIn()){
+		templateCmd << "bowtie2 -1 " << opts.firstName_ << " -2 " << opts.secondName_ << " -x " << genomePrefix
+				<< " " <<  additionalBowtie2Args << " > " << outputFnpTempSam;
+	}else{
+		templateCmd << "bowtie2 -U " << opts.firstName_ << " -x " << genomePrefix
+				<< " " <<  additionalBowtie2Args << " > " << outputFnpTempSam;
+	}
+	if (verbose_) {
+		std::cout << "Running: " << bib::bashCT::green << templateCmd.str()
+				<< bib::bashCT::reset << std::endl;
+	}
+	auto ret = bib::sys::run( { templateCmd.str() });
+	BioCmdsUtils::checkRunOutThrow(ret, __PRETTY_FUNCTION__);
+	std::stringstream samtoolsCmds;
+	samtoolsCmds << "samtools view " << outputFnpTempSam << " -o " << outputFnp;
+	if (verbose_) {
+		std::cout << "Running: " << bib::bashCT::green << samtoolsCmds.str()
+				<< bib::bashCT::reset << std::endl;
+	}
+	auto samtoolsRunOut = bib::sys::run( { samtoolsCmds.str() });
+	BioCmdsUtils::checkRunOutThrow(samtoolsRunOut, __PRETTY_FUNCTION__);
+	bfs::remove(outputFnpTempSam);
+	return ret;
+}
+
 bib::sys::RunOutput BioCmdsUtils::bowtie2Align(const SeqIOOptions & opts,
 		const bfs::path & genomeFnp, std::string additionalBowtie2Args) const {
 

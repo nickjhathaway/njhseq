@@ -32,6 +32,9 @@ public:
 	bib::sys::RunOutput bowtie2Align(const SeqIOOptions & opts,
 			const bfs::path & genomeFnp, std::string additionalBowtie2Args = "") const;
 
+	bib::sys::RunOutput bowtie2AlignNoSort(const SeqIOOptions & opts,
+			const bfs::path & genomeFnp, std::string additionalBowtie2Args = "") const;
+
 
 	struct LastZPars{
 		double coverage = 90;
