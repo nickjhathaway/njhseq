@@ -164,6 +164,12 @@ public:
 	std::unordered_map<size_t,std::unordered_map<size_t,std::pair<uint32_t, double>>> slideCompareSubKmersToSubKmers(
 			const kmerInfo & info, uint32_t windowSize,
 			uint32_t windowStepSize) const;
+
+
+	static uint32_t getMinimumNonRedundant(const std::string & seq);
+
+
+
 };
 }  // namespace bibseq
 

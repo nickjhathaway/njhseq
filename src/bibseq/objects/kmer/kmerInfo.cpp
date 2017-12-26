@@ -296,4 +296,28 @@ std::unordered_map<size_t,std::unordered_map<size_t,std::pair<uint32_t, double>>
 	return ret;
 }
 
+uint32_t kmerInfo::getMinimumNonRedundant(const std::string & seq){
+	if(seq.size() <= 2){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error seq size should at least be " << 3 << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+  uint32_t klen = 2;
+  bool foundLength = false;
+  while(klen < seq.size()  && !foundLength){
+		kmerInfo kinfo(seq, klen, false);
+		foundLength = true;
+		for(const auto & k : kinfo.kmers_){
+			if(k.second.count_ > 1){
+				foundLength = false;
+				break;
+			}
+		}
+		if(!foundLength){
+			++klen;
+		}
+  }
+  return klen;
+}
+
 }  // namespace bib
