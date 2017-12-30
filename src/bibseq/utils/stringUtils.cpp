@@ -328,26 +328,29 @@ std::string trimEndWhiteSpaceReturn(std::string str) {
   return str.substr(firstPlacePos, lastPlacePos - firstPlacePos + 1);
 }
 VecStr checkTwoRotatingStrings(const std::string& str1, const std::string& str2,
-                               int allowableMismatches) {
-  if (str1.length() != str2.length()) {
-    std::cout << "Strings should be the same length" << std::endl;
-    std::cout << "Str1: " << str1 << " str2: " << str2 << std::endl;
-    return VecStr{};
-  }
-  int minError = allowableMismatches;
-  VecStr lowMismatches;
-  for (const auto& i : iter::range(str1.length())) {
-    std::string current = str1.substr(i, str1.length() - i) + str1.substr(0, i);
-    int currentMinError = numberOfMismatches(current, str2);
-    if (currentMinError < minError) {
-      minError = currentMinError;
-      lowMismatches.clear();
-      lowMismatches.push_back(current);
-    } else if (currentMinError == minError) {
-      lowMismatches.push_back(current);
-    }
-  }
-  return lowMismatches;
+		int allowableMismatches) {
+	if (str1.length() != str2.length()) {
+		return VecStr{};
+//		std::stringstream ss;
+//		ss << __PRETTY_FUNCTION__ << ", error " << "\n";
+//		ss << "Strings should be the same length" << "\n";
+//		ss << "Str1: " << str1 << " str2: " << str2 << "\n";
+//		throw std::runtime_error{ss.str()};
+	}
+	int minError = allowableMismatches;
+	VecStr lowMismatches;
+	for (const auto& i : iter::range(str1.length())) {
+		std::string current = str1.substr(i, str1.length() - i) + str1.substr(0, i);
+		int currentMinError = numberOfMismatches(current, str2);
+		if (currentMinError < minError) {
+			minError = currentMinError;
+			lowMismatches.clear();
+			lowMismatches.push_back(current);
+		} else if (currentMinError == minError) {
+			lowMismatches.push_back(current);
+		}
+	}
+	return lowMismatches;
 }
 int numberOfMismatches(const std::string& str1, const std::string& str2) {
   if (str1.length() != str2.length()) {

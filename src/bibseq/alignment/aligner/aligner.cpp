@@ -1131,12 +1131,11 @@ TandemRepeat aligner::findTandemRepeatOfStrInSequence(std::string str,
     }
     ++pos;
   }
-  if (!foundTandem) {
-    return (TandemRepeat("", numberOfRepeats, alignScore, 0, 0));
-  } else {
-    return (
-        TandemRepeat(tandem, numberOfRepeats, alignScore, startPos, stopPos));
-  }
+	if (!foundTandem) {
+		return TandemRepeat("", numberOfRepeats, alignScore, 0, 0);
+	} else {
+		return TandemRepeat(tandem, numberOfRepeats, alignScore, startPos, stopPos);
+	}
 }
 
 TandemRepeat aligner::findTandemRepeatOfStrInSequenceDegen(
@@ -1171,14 +1170,14 @@ TandemRepeat aligner::findTandemRepeatOfStrInSequenceDegen(
       ++numberOfRepeats;
       pos += sizeChecker;
     }
-    alignScore = (int)tandem.size() * (numberOfRepeats) * match;
+    alignScore = tandem.size() * (numberOfRepeats) * match;
     if (alignScore >= minimumAlignScore) {
       foundTandem = true;
     } else {
       foundTandem = false;
     }
     if (foundTandem) {
-      stopPos = pos + (int)sizeChecker - 1;
+      stopPos = pos + sizeChecker - 1;
       keepSearching = false;
     }
     ++pos;

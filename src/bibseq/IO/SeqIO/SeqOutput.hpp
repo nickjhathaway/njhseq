@@ -157,6 +157,9 @@ public:
 	void seekpSec(size_t pos);
 
 	std::mutex mut_;
+
+	bfs::path getPrimaryOutFnp() const;
+	bfs::path getSecondaryOutFnp() const;
 private:
 	bool outOpen_ = false;
 
