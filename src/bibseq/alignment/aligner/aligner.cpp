@@ -1072,8 +1072,11 @@ std::vector<TandemRepeat> aligner::findTandemRepeatsInSequence(
           }
         }
         if (!alreadySmallerRepeat) {
-          repeats.push_back(TandemRepeat(tandem, numberOfRepeats, alignScore,
-                                         startPos, startPos + numberOfRepeats * tandem.size()));
+					repeats.emplace_back(tandem,
+							numberOfRepeats,
+							alignScore,
+							startPos,
+							startPos + numberOfRepeats * tandem.size());
         }
         pos = stopPos;
         foundTandem = false;
@@ -1102,7 +1105,11 @@ TandemRepeat aligner::findTandemRepeatOfStrInSequence(const std::string & str,
     }
     int alignScore = tandem.size() * match * numberOfRepeats;
     if(alignScore >=minimumAlignScore){
-    		return TandemRepeat(tandem, numberOfRepeats, alignScore, startPosition, startPosition + tandem.size() * numberOfRepeats);
+    		return TandemRepeat(tandem,
+    				numberOfRepeats,
+						alignScore,
+						startPosition,
+						startPosition + tandem.size() * numberOfRepeats);
     }
   }
   return TandemRepeat("", 0, 0, 0, 0);
