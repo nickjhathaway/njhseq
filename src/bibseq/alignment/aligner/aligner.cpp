@@ -1073,7 +1073,7 @@ std::vector<TandemRepeat> aligner::findTandemRepeatsInSequence(
         }
         if (!alreadySmallerRepeat) {
           repeats.push_back(TandemRepeat(tandem, numberOfRepeats, alignScore,
-                                         startPos, stopPos));
+                                         startPos, startPos + numberOfRepeats * tandem.size()));
         }
         pos = stopPos;
         foundTandem = false;
@@ -1085,57 +1085,27 @@ std::vector<TandemRepeat> aligner::findTandemRepeatsInSequence(
   return repeats;
 }
 
-TandemRepeat aligner::findTandemRepeatOfStrInSequence(std::string str,
-                                                      std::string tandem,
-                                                      int match, int mismatch,
+TandemRepeat aligner::findTandemRepeatOfStrInSequence(const std::string & str,
+                                                      const std::string & tandem,
+                                                      int match,
+																									 int mismatch,
                                                       int gap,
                                                       int minimumAlignScore) {
-  size_t sizeChecker = tandem.size();
-  bool foundTandem = false;
-  int startPos = 0;
-  int pos = -(int)sizeChecker;
-  int numberOfRepeats = 0;
-  int alignScore = 0;
-  int stopPos = 0;
-  bool keepSearching = true;
-  numberOfRepeats = 0;
-  while (keepSearching && (pos + sizeChecker) < str.size()) {
-    bool homopolymer = true;
-    for (uint32_t i = 0; i < tandem.size() - 1; ++i) {
-      if (tandem[i] != tandem[i + 1]) {
-        homopolymer = false;
-        break;
-      }
+  size_t position = str.find(tandem);
+  if(std::string::npos != position){
+    uint32_t startPosition = position;
+    uint32_t numberOfRepeats = 1;
+    while(position + tandem.size() < str.size() + 1 - tandem.size() &&
+    		std::equal(tandem.begin(), tandem.end(), str.begin() + position + tandem.size()) ){
+    		++numberOfRepeats;
+    		position+=tandem.size();
     }
-    if (homopolymer) {
-      ++pos;
-      continue;
+    int alignScore = tandem.size() * match * numberOfRepeats;
+    if(alignScore >=minimumAlignScore){
+    		return TandemRepeat(tandem, numberOfRepeats, alignScore, startPosition, startPosition + tandem.size() * numberOfRepeats);
     }
-    numberOfRepeats = 0;
-    while (tandem == str.substr(pos + sizeChecker, sizeChecker)) {
-      if (numberOfRepeats == 1) {
-        startPos = pos;
-      }
-      ++numberOfRepeats;
-      pos += sizeChecker;
-    }
-    alignScore = (int)tandem.size() * (numberOfRepeats) * match;
-    if (alignScore >= minimumAlignScore) {
-      foundTandem = true;
-    } else {
-      foundTandem = false;
-    }
-    if (foundTandem) {
-      stopPos = pos + (int)sizeChecker - 1;
-      keepSearching = false;
-    }
-    ++pos;
   }
-	if (!foundTandem) {
-		return TandemRepeat("", numberOfRepeats, alignScore, 0, 0);
-	} else {
-		return TandemRepeat(tandem, numberOfRepeats, alignScore, startPos, stopPos);
-	}
+  return TandemRepeat("", 0, 0, 0, 0);
 }
 
 TandemRepeat aligner::findTandemRepeatOfStrInSequenceDegen(

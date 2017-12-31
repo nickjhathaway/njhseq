@@ -226,8 +226,8 @@ class aligner {
 	static std::vector<TandemRepeat> findTandemRepeatsInSequence(
 			const std::string& str, int match = 2, int mismatch = -2, int gap = -7,
 			int minimumAlignScore = 50);
-	static TandemRepeat findTandemRepeatOfStrInSequence(std::string str,
-			std::string tandem, int match = 2, int mismatch = -2, int gap = -7,
+	static TandemRepeat findTandemRepeatOfStrInSequence(const std::string & str,
+			const std::string & tandem, int match = 2, int mismatch = -2, int gap = -7,
 			int minimumAlignScore = 50);
 	static TandemRepeat findTandemRepeatOfStrInSequenceDegen(std::string str,
 			std::string tandem, int match = 2, int mismatch = -2, int gap = -7,
