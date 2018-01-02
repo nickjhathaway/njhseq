@@ -366,23 +366,31 @@ void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
 	  bestIndex = bestRefs.front();
 	}
 	alignerObj.alignCacheGlobal(refSeqs[bestIndex], getSeqBase(seq));
+
 	//getTrimFront
 	uint32_t trimFront = std::numeric_limits<uint32_t>::max();
 	if('-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
-			'-' == alignerObj.alignObjectA_.seqBase_.seq_.front() ){
+		 '-' == alignerObj.alignObjectA_.seqBase_.seq_.front() ){
 		auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
 		trimFront = alignerObj.getSeqPosForAlnBPos(refAlnPos);
 	}else{
-		getSeqBase(seq).on_ = false;
+		if('-' == alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() ){
+			getSeqBase(seq).on_ = false;
+		}
 	}
+
 	//getTrimBack
 	uint32_t trimBack = std::numeric_limits<uint32_t>::max();
 	if('-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
-			'-' == alignerObj.alignObjectA_.seqBase_.seq_.back() ){
+		 '-' == alignerObj.alignObjectA_.seqBase_.seq_.back() ){
 		auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
 		trimBack = alignerObj.getSeqPosForAlnBPos(refAlnPos);
 	}else{
-		getSeqBase(seq).on_ = false;
+		if('-' == alignerObj.alignObjectB_.seqBase_.seq_.back() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back() ){
+			getSeqBase(seq).on_ = false;
+		}
 	}
 	if (std::numeric_limits<uint32_t>::max() != trimFront
 			&& std::numeric_limits<uint32_t>::max() != trimBack) {
