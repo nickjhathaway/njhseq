@@ -554,6 +554,7 @@ std::pair<MidDeterminator::midPos, MidDeterminator::midPos>  MidDeterminator::fu
 					seq.mateSeqBase_.trimFront(positions.first.midPos_ + positions.first.barcodeSize_);
 				}
 				if (pars.barcodesBothEnds_) {
+					/**@todo look into to see if this actually needed */
 					seq.seqBase_.trimFront(mids_.at(positions.first.midName_).bar_->size());
 				}
 			}

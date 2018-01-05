@@ -29,9 +29,6 @@
 
 namespace bibseq {
 
-
-
-
 size_t PrimerDeterminator::getMaxPrimerSize() const {
 	size_t ret = 0;
 	for (const auto & p : primers_) {
@@ -104,27 +101,55 @@ PrimerDeterminator::primerInfo::primerInfo(const std::string & primerPairName,
 }
 
 
+
+
 std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info, uint32_t withinPos,
-		aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase){
+		aligner & alignerObj, const comparison & allowable, bool primerToLowerCase){
+	/**@todo add find best primer*/
 	for (const auto& currentPrimer : primers_) {
-		// find reverse primer inforward direction or if it isn't found return unrecognized
-		auto readBegin = seqInfo("readBegin",
-				info.seq_.substr(0,
-						withinPos + currentPrimer.second.reversePrimerInfoForDir_.seq_.size()));
-		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
-				currentPrimer.second.reversePrimerInfoForDir_.seq_);
-		alignerObj.rearrangeObjs(readBegin,
-				currentPrimer.second.reversePrimerInfoForDir_, true);
-		alignerObj.profilePrimerAlignment(readBegin,
+		// find reverse primer in forward direction or if it isn't found return unrecognized
+		auto readBegin = seqInfo(info.name_ + "_readBegin",
+				info.seq_.substr(0, withinPos + currentPrimer.second.reversePrimerInfoForDir_.seq_.size() + 5));
+//		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
+//				currentPrimer.second.reversePrimerInfoForDir_.seq_);
+//		alignerObj.rearrangeObjs(readBegin,
+//				currentPrimer.second.reversePrimerInfoForDir_, true);
+//		alignerObj.profilePrimerAlignment(readBegin,
+//				currentPrimer.second.reversePrimerInfoForDir_);
+
+		/**@todo put in a check to make sure of semi-global alignment */
+		alignerObj.alignCacheGlobal(readBegin,
 				currentPrimer.second.reversePrimerInfoForDir_);
+		alignerObj.rearrangeObjs(readBegin,
+				currentPrimer.second.reversePrimerInfoForDir_, false);
+		alignerObj.profileAlignment(readBegin,
+				currentPrimer.second.reversePrimerInfoForDir_, false, true, false);
+		std::pair<uint32_t, uint32_t> forwardPosition = std::make_pair(
+				alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-")),
+				alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-")));
+		double coverage = alignerObj.comp_.distances_.query_.coverage_;
+		if (1 == alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
+				&& ('T' == alignerObj.alignObjectB_.seqBase_.seq_.front()
+						|| 'A' == alignerObj.alignObjectB_.seqBase_.seq_.front())) {
+			coverage =
+					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
+							/ (currentPrimer.second.forwardPrimerInfo_.seq_.size() - 1);
+		} else if (2
+				== alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
+				&& ("TT" == alignerObj.alignObjectB_.seqBase_.seq_.substr(0,2)
+						|| "AA" == alignerObj.alignObjectB_.seqBase_.seq_.substr(0,2))) {
+			coverage =
+					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
+							/ (currentPrimer.second.forwardPrimerInfo_.seq_.size() - 2);
+		}
 		if (forwardPosition.first <= withinPos
-				&& alignerObj.comp_.distances_.query_.coverage_
+				&& coverage
 						>= allowable.distances_.query_.coverage_
 				&& allowable.passErrorProfile(alignerObj.comp_)) {
 			if(withinPos != 0 && forwardPosition.first != 0){
 				info.setClip(forwardPosition.first, info.seq_.size() - 1);
 			}
-			if (forwardPrimerToLowerCase) {
+			if (primerToLowerCase) {
 				changeSubStrToLowerFromBegining(info.seq_,
 						forwardPosition.second - forwardPosition.first);
 			}
@@ -141,36 +166,52 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info, uint3
 
 std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 		uint32_t withinPos, aligner & alignerObj,
-		const comparison & allowable, bool forwardPrimerToLowerCase) {
-//	std::cout << "Determining Forward Primers" << std::endl;
-//	std::cout << __PRETTY_FUNCTION__ << std::endl;
+		const comparison & allowable, bool primerToLowerCase) {
+	/**@todo add find best primer*/
 	for (const auto& currentPrimer : primers_) {
-//		std::cout << currentPrimer.first << std::endl;
-//		std::cout << currentPrimer.second.forwardPrimer_ << std::endl;
-//		std::cout << currentPrimer.second.reversePrimer_ << std::endl;
-		// find forward primer or if it isn't found return unrecognized
-		auto readBegin = seqInfo("readBegin",
-				info.seq_.substr(0,
-						withinPos + currentPrimer.second.forwardPrimerInfo_.seq_.size()));
-		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
-				currentPrimer.second.forwardPrimerInfo_.seq_);
-		alignerObj.rearrangeObjs(readBegin, currentPrimer.second.forwardPrimerInfo_,
-				true);
-		alignerObj.profilePrimerAlignment(readBegin,
+		// find reverse primer in forward direction or if it isn't found return unrecognized
+		auto readBegin = seqInfo(info.name_ + "_readBegin",
+				info.seq_.substr(0, withinPos + currentPrimer.second.forwardPrimerInfo_.seq_.size() + 5));
+//		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
+//				currentPrimer.second.forwardPrimerInfo_.seq_);
+//		alignerObj.rearrangeObjs(readBegin,
+//				currentPrimer.second.forwardPrimerInfo_, true);
+//		alignerObj.profilePrimerAlignment(readBegin,
+//				currentPrimer.second.forwardPrimerInfo_);
+
+		/**@todo put in a check to make sure of semi-global alignment */
+		alignerObj.alignCacheGlobal(readBegin,
 				currentPrimer.second.forwardPrimerInfo_);
-//		std::cout << "forwardPosition.first: " << forwardPosition.first << std::endl;
-//		std::cout << "withinPos: " << withinPos << std::endl;
-//		std::cout << "alignerObj.comp_.distances_.query_.coverage_: " << alignerObj.comp_.distances_.query_.coverage_ << std::endl;
-//		std::cout << "allowable.distances_.query_.coverage_: " << allowable.distances_.query_.coverage_ << std::endl;
-//		std::cout << "allowable.passErrorProfile(alignerObj.comp_): " << bib::colorBool(allowable.passErrorProfile(alignerObj.comp_)) << std::endl;
+		alignerObj.rearrangeObjs(readBegin,
+				currentPrimer.second.forwardPrimerInfo_, false);
+		alignerObj.profileAlignment(readBegin,
+				currentPrimer.second.forwardPrimerInfo_, false, true, false);
+		std::pair<uint32_t, uint32_t> forwardPosition = std::make_pair(
+				alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-")),
+				alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-")));
+		double coverage = alignerObj.comp_.distances_.query_.coverage_;
+		if (1 == alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
+				&& ('T' == alignerObj.alignObjectB_.seqBase_.seq_.front()
+						|| 'A' == alignerObj.alignObjectB_.seqBase_.seq_.front())) {
+			coverage =
+					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
+							/ (currentPrimer.second.forwardPrimerInfo_.seq_.size() - 1);
+		} else if (2
+				== alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
+				&& ("TT" == alignerObj.alignObjectB_.seqBase_.seq_.substr(0,2)
+						|| "AA" == alignerObj.alignObjectB_.seqBase_.seq_.substr(0,2))) {
+			coverage =
+					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
+							/ (currentPrimer.second.forwardPrimerInfo_.seq_.size() - 2);
+		}
 		if (forwardPosition.first <= withinPos
-				&& alignerObj.comp_.distances_.query_.coverage_
+				&& coverage
 						>= allowable.distances_.query_.coverage_
 				&& allowable.passErrorProfile(alignerObj.comp_)) {
 			if(withinPos != 0 && forwardPosition.first != 0){
-				info.setClip(forwardPosition.first,info.seq_.size() - 1);
+				info.setClip(forwardPosition.first, info.seq_.size() - 1);
 			}
-			if (forwardPrimerToLowerCase) {
+			if (primerToLowerCase) {
 				changeSubStrToLowerFromBegining(info.seq_,
 						forwardPosition.second - forwardPosition.first);
 			}
