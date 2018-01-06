@@ -86,8 +86,12 @@ public:
   bool local_;
   // scoring matrix
   substituteMatrix scoring_;
+
   int32_t generalMatch_;
   int32_t generalMismatch_;
+	bool degenScoring_ = false;
+	bool caseInsensitiveScoring_ = false;
+	bool lessNScoring_ = false;
 
   // alignment profiling
   std::string qualThres_;

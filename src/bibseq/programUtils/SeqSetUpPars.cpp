@@ -119,6 +119,9 @@ void SeqSetUpPars::initializeDefaults() {
   generalMatch_ = 2;
   generalMismatch_ = -2;
   scoring_ = substituteMatrix::createDegenScoreMatrix(1,-1);
+	degenScoring_ = false;
+	caseInsensitiveScoring_ = false;
+	lessNScoring_ = false;
   //
   colOpts_.alignOpts_.countEndGaps_ = false;
   colOpts_.iTOpts_.weighHomopolyer_ = true;

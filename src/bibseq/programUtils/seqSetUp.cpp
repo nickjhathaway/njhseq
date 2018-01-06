@@ -216,20 +216,19 @@ void seqSetUp::processScoringPars() {
 	}
 
 	std::string scoreMatrixFilename = "";
-	bool degenScoring = false;
-	bool caseInsensitive = false;
-	bool lessN = false;
+
+
 	if (setOption(scoreMatrixFilename, "--scoreMatrix", "Score Matrix Filename", false, "Alignment")) {
 		pars_.scoring_ = substituteMatrix(scoreMatrixFilename);
 	} else {
 		setOption(pars_.generalMatch_, "--match", "Match score for alignment", false, "Alignment");
 		setOption(pars_.generalMismatch_, "--mismatch",
 				"Mismatch score for alignment", false, "Alignment");
-		setOption(degenScoring, "--degen", "Use Degenerative Base Scoring for alignment", false, "Alignment");
-		setOption(lessN, "--lessN", "Use Degenerative Base Scoring but use a lesser score for the degenerative bases", false, "Alignment");
-		setOption(caseInsensitive, "--caseInsensitive",
+		setOption(pars_.degenScoring_ , "--degen", "Use Degenerative Base Scoring for alignment", false, "Alignment");
+		setOption(pars_.lessNScoring_, "--lessN", "Use Degenerative Base Scoring but use a lesser score for the degenerative bases", false, "Alignment");
+		setOption(pars_.caseInsensitiveScoring_, "--caseInsensitive",
 				"Use Case Insensitive Scoring for alignment", false, "Alignment");
-		pars_.scoring_ = substituteMatrix::createScoreMatrix(pars_.generalMatch_, pars_.generalMismatch_, degenScoring, lessN, caseInsensitive);
+		pars_.scoring_ = substituteMatrix::createScoreMatrix(pars_.generalMatch_, pars_.generalMismatch_, pars_.degenScoring_, pars_.lessNScoring_, pars_.caseInsensitiveScoring_);
 	}
 }
 
