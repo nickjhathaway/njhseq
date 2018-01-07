@@ -521,11 +521,9 @@ std::pair<MidDeterminator::midPos, MidDeterminator::midPos>  MidDeterminator::fu
 		tempSeq.append(seqUtil::reverseComplement(seq.mateSeqBase_.seq_, "DNA"));
 	}
 
-
 	size_t lengthOfTempSeq = len(tempSeq);
 	auto positions = fullDetermine(tempSeq, pars);
   if(positions.first){
-
 		if (positions.second) {
 			if(seq.mateRComplemented_){
 				positions.second.midPos_ = positions.second.midPos_ - len(seq.seqBase_) - spacerSize;
@@ -564,6 +562,8 @@ std::pair<MidDeterminator::midPos, MidDeterminator::midPos>  MidDeterminator::fu
 				auto tempSeq = seq.seqBase_;
 				seq.seqBase_ = seq.mateSeqBase_;
 				seq.mateSeqBase_ = tempSeq;
+				seq.seqBase_.name_ += "_Comp";
+				seq.mateSeqBase_.name_ += "_Comp";
 			}
 		}
   }
