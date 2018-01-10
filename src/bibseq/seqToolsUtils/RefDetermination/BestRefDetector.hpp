@@ -25,6 +25,60 @@ public:
 	};
 
 	template<typename SEQTYPE,typename REFTYPE>
+	static std::vector<comparison> findBestRef(
+			const SEQTYPE & inputSeq,
+			const std::vector<REFTYPE> & refSeqs,
+			const std::vector<kmerInfo> & refInfos,
+			aligner & alignerObj,
+			const FindBestRefPars & pars){
+		kmerInfo inputKInfo(getSeqBase(inputSeq).seq_, pars.kmerLen_, false);
+    double bestScore = std::numeric_limits<double>::lowest();
+    std::vector<uint32_t> bestRefs;
+    double currentKmerCutOff = pars.kmerCutOff_;
+    bool run = true;
+    while(run){
+	    for (const auto& refPos : iter::range(refSeqs.size())) {
+	      const auto & ref = refSeqs[refPos];
+	      if (getSeqBase(ref).name_ == getSeqBase(inputSeq).name_) {
+	        continue;
+	      }
+	      if(refInfos[refPos].compareKmers(inputKInfo).second < currentKmerCutOff){
+	       	continue;
+	      }
+				alignerObj.alignCacheGlobal(ref, inputSeq);
+				double currentScore = 0;
+				if(!pars.scoreBased_) {
+					alignerObj.profileAlignment(ref, inputSeq, false, true, false);
+					currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
+				} else {
+					currentScore = alignerObj.parts_.score_;
+				}
+				if (currentScore == bestScore) {
+					bestRefs.push_back(refPos);
+				}
+				if (currentScore > bestScore) {
+					bestRefs.clear();
+					bestRefs.push_back(refPos);
+					bestScore = currentScore;
+				}
+			}
+	    run = false;
+	    if(bestRefs.empty() && pars.forceMatch_ && currentKmerCutOff > 0){
+	    		run = true;
+	    }
+	    currentKmerCutOff -= 0.1;
+    }
+		std::vector<comparison> comps;
+		for (const auto& bestPos : bestRefs) {
+			const auto & best = refSeqs[bestPos];
+			alignerObj.alignCacheGlobal(best, inputSeq);
+			alignerObj.profileAlignment(best, inputSeq, false, true, false);
+			comps.emplace_back(alignerObj.comp_);
+		}
+		return comps;
+	}
+
+	template<typename SEQTYPE,typename REFTYPE>
 	static std::unordered_map<std::string, std::vector<comparison>> findBestRef(
 			const std::vector<SEQTYPE> & inputSeqs,
 			const std::vector<REFTYPE> & refSeqs,
@@ -115,6 +169,7 @@ public:
 		bib::concurrent::joinAllJoinableThreads(threads);
 		return ret;
 	}
+
 };
 
 }  // namespace bibseq

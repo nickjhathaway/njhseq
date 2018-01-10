@@ -57,6 +57,15 @@ alnInfoMasterHolder::alnInfoMasterHolder(const gapScoringParameters & gapPars,
 								scoringArray, "GLOBAL") } }) {
 }
 
+void alnInfoMasterHolder::addHolder(const gapScoringParameters & gapPars,
+  	  const substituteMatrix & scoringArray){
+	localHolder_.emplace(gapPars.getIdentifer(), alnInfoHolderBase<alnInfoLocal>(gapPars,
+								scoringArray, "LOCAL"));
+	globalHolder_.emplace(gapPars.getIdentifer(), alnInfoHolderBase<alnInfoGlobal>(gapPars,
+								scoringArray, "GLOBAL"));
+
+}
+
 void alnInfoMasterHolder::read(const std::string &masterDirName, bool verbose){
 	auto allDirectories = getFiles(masterDirName, "", "directory", false, false);
   for (const auto &dir : allDirectories) {
@@ -80,18 +89,20 @@ void alnInfoMasterHolder::read(const std::string &masterDirName, bool verbose){
 alnInfoMasterHolder::alnInfoMasterHolder(const std::string &masterDirName,
 		const gapScoringParameters & gapPars, const substituteMatrix & scoringArray,
 		bool verbose) {
-  if(verbose) {
-  	std::cout << "Reading in Previous Alignments" << std::endl;
-  }
-  auto allDirectories = getFiles(masterDirName, "", "directory", false, false);
-  if(allDirectories.empty()){
-  	auto lHolder = alnInfoHolderBase<alnInfoLocal>(gapPars,scoringArray, "LOCAL");
-  	auto gHolder = alnInfoHolderBase<alnInfoGlobal>(gapPars,scoringArray, "GLOBAL");
-  	localHolder_[gapPars.getIdentifer()] = lHolder;
-  	globalHolder_[gapPars.getIdentifer()] = gHolder;
-  }else{
-  	read(masterDirName, verbose);
-  }
+	if (verbose) {
+		std::cout << "Reading in Previous Alignments" << std::endl;
+	}
+	auto allDirectories = getFiles(masterDirName, "", "directory", false, false);
+	if (allDirectories.empty()) {
+		auto lHolder = alnInfoHolderBase<alnInfoLocal>(gapPars, scoringArray,
+				"LOCAL");
+		auto gHolder = alnInfoHolderBase<alnInfoGlobal>(gapPars, scoringArray,
+				"GLOBAL");
+		localHolder_[gapPars.getIdentifer()] = lHolder;
+		globalHolder_[gapPars.getIdentifer()] = gHolder;
+	} else {
+		read(masterDirName, verbose);
+	}
 }
 
 

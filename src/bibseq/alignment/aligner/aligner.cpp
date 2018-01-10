@@ -62,6 +62,20 @@ aligner::aligner(uint64_t maxSize, const gapScoringParameters & gapPars,
 				weighHomopolymers) {
 }
 
+void aligner::setGapScoring(const gapScoringParameters & gapPars){
+	parts_.gapScores_ = gapPars;
+	if(alnHolder_.globalHolder_.find(gapPars.uniqueIdentifer_) == alnHolder_.globalHolder_.end()){
+		alnHolder_.addHolder(gapPars, parts_.scoring_);
+	}
+}
+
+//void aligner::setMatchScoring(const substituteMatrix& subMatrix){
+//	parts_.scoring_ = subMatrix;
+//	alnHolder_.addHolder(parts_.gapScores_, subMatrix);
+//}
+
+
+
 void aligner::alignScoreLocal(const std::string& firstSeq,
 		const std::string& secondSeq) {
 	alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
@@ -112,29 +126,31 @@ void aligner::alignScore(const std::string& firstSeq, const std::string& secondS
 
 
 
-void aligner::alignScoreCache(const std::string& firstSeq, const std::string& secondSeq,
-              bool local) {
-  if (local) {
-  	if(alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_]
-          .getAlnInfo(firstSeq, secondSeq, parts_.lHolder_)){
-  		parts_.score_ = parts_.lHolder_.score_;
-  		comp_.alnScore_ = parts_.score_;
-  	}else{
-  		alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
-  		alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(firstSeq, secondSeq, parts_.lHolder_);
-  		++numberOfAlingmentsDone_;
-  	}
-  } else {
-  	if(alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_]
-  	            .getAlnInfo(firstSeq, secondSeq, parts_.gHolder_)){
-  		parts_.score_ = parts_.gHolder_.score_;
-  		comp_.alnScore_ = parts_.score_;
-		}else{
-			alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
-			alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(firstSeq, secondSeq, parts_.gHolder_);
+void aligner::alignScoreCache(const std::string& firstSeq,
+		const std::string& secondSeq, bool local) {
+	if (local) {
+		if (alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].getAlnInfo(
+				firstSeq, secondSeq, parts_.lHolder_)) {
+			parts_.score_ = parts_.lHolder_.score_;
+			comp_.alnScore_ = parts_.score_;
+		} else {
+			alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
+			alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
+					firstSeq, secondSeq, parts_.lHolder_);
 			++numberOfAlingmentsDone_;
 		}
-  }
+	} else {
+		if (alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].getAlnInfo(
+				firstSeq, secondSeq, parts_.gHolder_)) {
+			parts_.score_ = parts_.gHolder_.score_;
+			comp_.alnScore_ = parts_.score_;
+		} else {
+			alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
+			alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
+					firstSeq, secondSeq, parts_.gHolder_);
+			++numberOfAlingmentsDone_;
+		}
+	}
 }
 
 void aligner::alignCacheLocal(const seqInfo & ref, const seqInfo & read){

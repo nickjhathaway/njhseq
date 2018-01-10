@@ -57,6 +57,9 @@ class aligner {
 
 
 
+	void setGapScoring(const gapScoringParameters & gapPars);
+	//void setMatchScoring(const substituteMatrix& subMatrix);
+
   // to hold the sequence alignments
   baseReadObject alignObjectA_;
   baseReadObject alignObjectB_;

@@ -58,6 +58,9 @@ class alnInfoMasterHolder {
 
   void clearHolders();
 
+  void addHolder(const gapScoringParameters & gapPars,
+  	  const substituteMatrix & scoringArray);
+
   // reading
   void read(const std::string &masterDirName, bool verbose = false);
 
