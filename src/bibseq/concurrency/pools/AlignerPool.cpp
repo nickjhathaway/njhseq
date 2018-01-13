@@ -95,10 +95,14 @@ void AlignerPool::destoryAlignersNoLock(){
 			for (size_t i = 1; i < size_; ++i) {
 				PooledAligner aligner_ptr;
 				queue_.waitPop(aligner_ptr);
-				first_aligner_ptr->alnHolder_.mergeOtherHolder(aligner_ptr->alnHolder_);
+				if("" != outAlnDir_){
+					first_aligner_ptr->alnHolder_.mergeOtherHolder(aligner_ptr->alnHolder_);
+				}
 			}
 		}
-		first_aligner_ptr->processAlnInfoOutput(outAlnDir_, false);
+		if("" != outAlnDir_){
+			first_aligner_ptr->processAlnInfoOutput(outAlnDir_, false);
+		}
 	}
 }
 
