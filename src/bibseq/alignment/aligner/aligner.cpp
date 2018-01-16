@@ -100,6 +100,14 @@ void aligner::alignScoreGlobal(const std::string& firstSeq,
 	alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
 	++numberOfAlingmentsDone_;
 }
+
+void aligner::alignScoreGlobalNoInternalGaps(const std::string& firstSeq,
+		const std::string& secondSeq) {
+	alignCalc::runNeedleOnlyEndGapsSave(firstSeq, secondSeq, parts_);
+	++numberOfAlingmentsDone_;
+}
+
+
 void aligner::alignScoreCacheGlobal(const std::string& firstSeq,
 		const std::string& secondSeq) {
 	if (alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].getAlnInfo(
@@ -172,6 +180,14 @@ void aligner::alignReg(const seqInfo & ref, const seqInfo & read, bool local){
 	alignScore(ref.seq_, read.seq_, local);
 	rearrangeObjs(ref, read, local);
 }
+
+
+
+void aligner::alignRegGlobalNoInternalGaps(const seqInfo & ref, const seqInfo & read){
+	alignScoreGlobalNoInternalGaps(ref.seq_, read.seq_);
+	rearrangeObjsGlobal(ref, read);
+}
+
 void aligner::alignRegGlobal(const seqInfo & ref, const seqInfo & read){
 	alignScoreGlobal(ref.seq_, read.seq_);
 	rearrangeObjsGlobal(ref, read);

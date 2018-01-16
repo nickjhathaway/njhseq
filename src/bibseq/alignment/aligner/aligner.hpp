@@ -90,6 +90,8 @@ class aligner {
 	void alignScoreCacheLocal(const std::string& firstSeq,
 			const std::string& secondSeq);
 	void alignScoreGlobal(const std::string& firstSeq, const std::string& secondSeq);
+	void alignScoreGlobalNoInternalGaps(const std::string& firstSeq, const std::string& secondSeq);
+
 	void alignScoreCacheGlobal(const std::string& firstSeq,
 			const std::string& secondSeq);
 
@@ -131,6 +133,13 @@ class aligner {
 		alignRegGlobal(getSeqBase(ref), getSeqBase(read));
 	}
 	void alignRegGlobal(const seqInfo & ref, const seqInfo & read);
+
+	template<typename READ1, typename READ2>
+	void alignRegGlobalNoInternalGaps(const READ1 & ref, const READ2 & read){
+		alignRegGlobalNoInternalGaps(getSeqBase(ref), getSeqBase(read));
+	}
+	void alignRegGlobalNoInternalGaps(const seqInfo & ref, const seqInfo & read);
+
 
 	template<typename READ1, typename READ2>
 	void alignRegLocal(const READ1 & ref, const READ2 & read){
