@@ -153,6 +153,21 @@ ReadCheckerQualCheck::ReadCheckerQualCheck(uint32_t qualCutOff,
 				qualCutOff), qualFracCutOff_(qualFracCutOff) {
 }
 
+bool ReadCheckerQualCheck::checkRead(PairedRead & info) const{
+	if (info.getQualCheck(qualCutOff_) < qualFracCutOff_) {
+		info.seqBase_.on_ = false;
+		info.mateSeqBase_.on_ = false;
+		markName(info.seqBase_);
+		markName(info.mateSeqBase_);
+		return false;
+	} else {
+		info.seqBase_.on_ = true;
+		info.mateSeqBase_.on_ = true;
+		return true;
+	}
+}
+
+
 bool ReadCheckerQualCheck::checkRead(seqInfo & info) const {
 	if (info.getQualCheck(qualCutOff_) < qualFracCutOff_) {
 		info.on_ = false;

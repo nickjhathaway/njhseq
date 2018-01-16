@@ -641,6 +641,8 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
 
 void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::string& objB,
                           alnParts& parts) {
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ <<  std::endl;
+
   parts.gHolder_.gapInfos_.clear();
   parts.gHolder_.addFromFile_ = false;
   // Create the alignment score matrix to do the alignment, a column for each
@@ -727,7 +729,7 @@ void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::str
   }
   //i = 1, j = lenb - 1
   {
-  	char ptrFlag;
+  //	char ptrFlag;
   	//
   	const uint32_t j = lenb - 1;
   	const uint32_t i = 1;
@@ -736,12 +738,24 @@ void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::str
     parts.ScoreMatrix_[i][j].diagInherit =
         parts.ScoreMatrix_[i - 1][j - 1].leftInherit + match;
     parts.ScoreMatrix_[i][j].diagInheritPtr = 'L';
+    //up inherit has to be left, only way to go
+    parts.ScoreMatrix_[i][j ].upInherit =
+                    parts.ScoreMatrix_[i - 1][j ].leftInherit -
+                    parts.gapScores_.gapRightQueryOpen_;
+    parts.ScoreMatrix_[i][j ].upInheritPtr = 'L';
+
+
   }
   //j = 1, i = lena - 1
   {
-  	char ptrFlag;
-  	const uint32_t i = lena - 1;
-  	const uint32_t j = 1;
+		//	char ptrFlag;
+		const uint32_t i = lena - 1;
+		const uint32_t j = 1;
+  		//left is always up as that is the only to go from here
+    parts.ScoreMatrix_[i][j].leftInherit =
+        parts.ScoreMatrix_[i][j - 1].upInherit -
+        parts.gapScores_.gapRightRefOpen_;
+    parts.ScoreMatrix_[i][j].leftInheritPtr = 'U';
     //diag inherit is always coming from up
     int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
     parts.ScoreMatrix_[i][j].diagInherit = parts.ScoreMatrix_[i - 1][j - 1].upInherit + match;
@@ -750,7 +764,7 @@ void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::str
 
   for (uint32_t i = 2; i < lena - 1 ; ++i) {
     for (uint32_t j = 2; j < lenb - 1 ; ++j) {
-    	char ptrFlag;
+    	//char ptrFlag;
       //diag, match or mismatch
       int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
       parts.ScoreMatrix_[i][j].diagInherit =  match + parts.ScoreMatrix_[i - 1][j - 1].diagInherit;
@@ -858,6 +872,7 @@ void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::str
 				+ parts.ScoreMatrix_[i - 1][j - 1].diagInherit;
 		parts.ScoreMatrix_[i][j].diagInheritPtr = 'D';
 	}
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ <<  std::endl;
 
   int icursor = lena - 1;
   int jcursor = lenb - 1;
@@ -879,6 +894,8 @@ void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::str
       parts.ScoreMatrix_[icursor][jcursor].upInherit,
       parts.ScoreMatrix_[icursor][jcursor].leftInherit,
       parts.ScoreMatrix_[icursor][jcursor].diagInherit, tracerNext);
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ <<  std::endl;
+
   parts.gHolder_.score_ = parts.score_;
   uint32_t gapBSize = 0;
   uint32_t gapASize = 0;
@@ -887,7 +904,7 @@ void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::str
   }
   // std::cout <<"rnv2" << std::endl;
   while (icursor != 0 || jcursor != 0) {
-    if (tracerNext == 'U') {
+		if (tracerNext == 'U') {
       ++gapBSize;
       tracerNext = parts.ScoreMatrix_[icursor][jcursor].upInheritPtr;
       if (tracerNext != 'U') {
@@ -916,6 +933,8 @@ void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::str
   } else if (tracerNext == 'L' && gapASize != 0) {
     parts.gHolder_.gapInfos_.emplace_back(bibseq::gapInfo(icursor, gapASize, true));
   }
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ <<  std::endl;
+
 }
 
 }  // namespace bibseq

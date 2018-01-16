@@ -45,8 +45,7 @@ bool SeqIOOptions::outExists() const{
 
 SeqIOOptions::inFormats SeqIOOptions::getInFormat(const std::string & format){
 	inFormats in = inFormats::NOFORMAT;
-	if (format == "fastq" || format == "fq"
-			|| format == "fnq") {
+	if (format == "fastq" || format == "fq" || format == "fnq") {
 		in =  inFormats::FASTQ;
 	} else if (format == "fastqPaired" || "_R1.fastq"  == format || "_1.fastq" == format) {
 		in =  inFormats::FASTQPAIRED;
@@ -105,6 +104,68 @@ SeqIOOptions::outFormats SeqIOOptions::getOutFormat(const std::string & format){
 	}
 	return out;
 }
+
+SeqIOOptions::inFormats SeqIOOptions::getInFormatFromFnp(const bfs::path & fnp){
+	auto fnpStr = fnp.string();
+	inFormats in = inFormats::NOFORMAT;
+	if (bib::endsWith(fnpStr, ".fastq") || bib::endsWith(fnpStr, ".fq")
+			|| bib::endsWith(fnpStr, ".fnq")) {
+		in =  inFormats::FASTQ;
+	} else if (bib::endsWith(fnpStr, "_R1.fastq") || bib::endsWith(fnpStr, "_1.fastq")) {
+		in =  inFormats::FASTQPAIRED;
+	} else if (bib::endsWith(fnpStr, "_R1.fastq.gz") || bib::endsWith(fnpStr, "_1.fastq.gz")) {
+		in =  inFormats::FASTQPAIREDGZ;
+	} else if (bib::endsWith(fnpStr, ".fastq.gz")) {
+		in =  inFormats::FASTQGZ;
+	} else if (bib::endsWith(fnpStr, ".fasta") || bib::endsWith(fnpStr, ".fa")) {
+		in =  inFormats::FASTA;
+	} else if (bib::endsWith(fnpStr, ".fasta.gz")) {
+		in =  inFormats::FASTAGZ;
+	} else if (bib::endsWith(fnpStr, ".bam")) {
+		in =  inFormats::BAM;
+	} else if (bib::endsWith(fnpStr, ".sff.txt")) {
+		in =  inFormats::SFFTXT;
+	} else if (bib::endsWith(fnpStr, ".sff")){
+		in =  inFormats::SFFBIN;
+	}else {
+		std::stringstream ss;
+		ss << "Unrecognized file extension for : " << fnp
+				<< ", in " << __PRETTY_FUNCTION__ << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	return in;
+}
+
+SeqIOOptions::outFormats SeqIOOptions::getOutFormatFromFnp(const bfs::path & fnp){
+	auto fnpStr = fnp.string();
+	outFormats out = outFormats::NOFORMAT;
+	if (bib::endsWith(fnpStr, ".fastq") || bib::endsWith(fnpStr, ".fq") || bib::endsWith(fnpStr, ".fnq")) {
+		out =  outFormats::FASTQ;
+	} else if (bib::endsWith(fnpStr, "_R1.fastq") || bib::endsWith(fnpStr, "_1.fastq")) {
+		out =  outFormats::FASTQPAIRED;
+	} else if (bib::endsWith(fnpStr, "_R1.fastq.gz") || bib::endsWith(fnpStr, "_1.fastq.gz")) {
+		out =  outFormats::FASTQPAIREDGZ;
+	} else if (bib::endsWith(fnpStr, ".fastq.gz")) {
+		out =  outFormats::FASTQGZ;
+	} else if (bib::endsWith(fnpStr, ".fasta") || bib::endsWith(fnpStr, ".fa")) {
+		out =  outFormats::FASTA;
+	} else if (bib::endsWith(fnpStr, ".fasta.gz")) {
+		out =  outFormats::FASTAGZ;
+	} else if (bib::endsWith(fnpStr, ".bam")) {
+		out =  outFormats::FASTQ;
+	} else if (bib::endsWith(fnpStr, ".sff.txt")) {
+		out =  outFormats::FASTQ;
+	} else if (bib::endsWith(fnpStr, ".sff")){
+		out =  outFormats::FASTQ;
+	}else {
+		std::stringstream ss;
+		ss << "Unrecognized file extension for : " << fnp
+				<< ", in " << __PRETTY_FUNCTION__ << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	return out;
+}
+
 
 std::string SeqIOOptions::getOutExtension() const{
 	return getOutExtension(outFormat_);

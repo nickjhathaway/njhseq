@@ -90,6 +90,7 @@ public:
 	const uint32_t qualCutOff_;
 	const double qualFracCutOff_;
 	virtual bool checkRead(seqInfo & info) const;
+	virtual bool checkRead(PairedRead & info) const;
 
 	virtual ~ReadCheckerQualCheck();
 };
