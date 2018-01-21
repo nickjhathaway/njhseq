@@ -61,6 +61,14 @@ public:
 
 	Json::Value toJson() const;
 
+	template<typename MAP>
+	static MetaDataInName mapToMeta(const MAP & m){
+		MetaDataInName ret;
+		for(const auto & p : m){
+			ret.addMeta(estd::to_string(p.first), p.second);
+		}
+		return ret;
+	}
 
 };
 
