@@ -29,19 +29,7 @@
 
 namespace bibseq {
 
-VecStr getInputValues(const std::string & valuesStr, const std::string & delim){
-	VecStr ret;
-	if (bfs::path(valuesStr).filename().string().length() <= 255 && bfs::exists(valuesStr)) {
-		InputStream infile{bfs::path(valuesStr)};
-		std::string line = "";
-		while(bib::files::crossPlatGetline(infile, line)){
-			ret.emplace_back(line);
-		}
-	}else{
-		ret = tokenizeString(valuesStr, delim);
-	}
-	return ret;
-}
+
 
 void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString,
 		int counter) {
