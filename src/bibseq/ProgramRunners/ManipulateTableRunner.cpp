@@ -208,6 +208,7 @@ int ManipulateTableRunner::tableExtractCriteria(
 			return numValue > cutOff;};
 		outTab = inTab.extractByComp(columnName, compGreater);
 	}
+	outTab.hasHeader_ = setUp.ioOptions_.hasHeader_;
 	outTab.outPutContents(setUp.ioOptions_);
 	return 0;
 }
@@ -738,7 +739,14 @@ int ManipulateTableRunner::rBind(
 			mainTable = inTab;
 		} else {
 			table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
-			mainTable.rbind(inTab, false);
+			try {
+				mainTable.rbind(inTab, false);
+			}catch (std::exception & e) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", failed to add table from " << file.first << "\n";
+				ss << e.what();
+				throw std::runtime_error{ss.str()};
+			}
 		}
 		++count;
 	}
