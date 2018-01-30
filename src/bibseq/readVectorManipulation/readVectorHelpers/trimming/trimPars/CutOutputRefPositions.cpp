@@ -127,14 +127,14 @@ void CutOutputRefPositions::checkPositionsThrow(const std::string & funcName,
 	bool failPositionChecks = false;
 	if (refStart_ >= refLength) {
 		errorStream << "Ref Start, " << refStart_
-				<< ", is greater than ref length for " << refName << ", length: "
+				<< ", is greater than or equal to ref length for " << refName << ", length: "
 				<< refLength << "\n";
 		failPositionChecks = true;
 	}
 
 	if (refStop_ >= refLength) {
-		errorStream << "Ref Start, " << refStart_
-				<< ", is greater than ref length for " << refName << ", length: "
+		errorStream << "Ref Stop, " << refStop_
+				<< ", is greater than or equal to ref length for " << refName << ", length: "
 				<< refLength << "\n";
 		failPositionChecks = true;
 	}

@@ -28,6 +28,9 @@ namespace bibseq {
 
 VecStr getInputValues(const std::string & valuesStr, const std::string & delim){
 	VecStr ret;
+	if("" == valuesStr){
+		return ret;
+	}
 	if (bfs::path(valuesStr).filename().string().length() <= 255 && bfs::exists(valuesStr)) {
 		InputStream infile{bfs::path(valuesStr)};
 		std::string line = "";
