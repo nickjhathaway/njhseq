@@ -111,14 +111,19 @@ void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab){
 	}
 
 	VecStr samples;
+	std::string sampleNameColName = "Sample";
 	if(groupsTab.containsColumn("Sample")){
 		samples = groupsTab.getColumn("Sample");
+		sampleNameColName = "Sample";
 	}else if(groupsTab.containsColumn("sample")){
 		samples = groupsTab.getColumn("sample");
+		sampleNameColName = "sample";
 	}else if(groupsTab.containsColumn("Samples")){
 		samples = groupsTab.getColumn("Samples");
+		sampleNameColName = "Samples";
 	}else if(groupsTab.containsColumn("samples")){
 		samples = groupsTab.getColumn("samples");
+		sampleNameColName = "samples";
 	}
 
 	for (const auto & samp : samples) {
@@ -132,7 +137,7 @@ void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab){
 		samples_.insert(samp);
 	}
 	for (const auto & col : groupsTab.columnNames_) {
-		if ("Sample" != col && "sample" != col) {
+		if (sampleNameColName != col) {
 			if (bib::in(col, groupData_)) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << " Error, have grouping: " << col
