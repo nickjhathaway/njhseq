@@ -58,6 +58,18 @@ public:
 		}
 	}
 
+	/**@brief Construct with just reads for the edges to be added latter
+	 *
+	 * @param reads the sequences to add, a copy of the seqBases will be copied and used
+	 */
+	template<typename T>
+	ReadCompGraph(const std::vector<T> & reads) {
+		for (const auto & pos : iter::range(reads.size())) {
+			this->addNode(getSeqBase(reads[pos]).name_,
+					std::make_shared<seqInfo>(getSeqBase(reads[pos])));
+		}
+	}
+
 	std::map<uint32_t, std::vector<char>> getVariantSnpLociMap(
 			const std::string & name, VecStr names, uint32_t expand = 0) const;
 	std::map<uint32_t, std::vector<gap>> getVariantIndelLociMap(
