@@ -688,6 +688,29 @@ void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dum
 	}
 }
 
+std::vector<seqInfo> SampleCollapseCollection::genOutPopSeqsPerSample() const{
+	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
+	std::vector<seqInfo> outseqs;
+	for(const auto & seq : popCollapse_->collapsed_.clusters_){
+		for(const auto & subSeq : seq.reads_){
+			auto subSeqCopy = subSeq->seqBase_;
+			auto sample = subSeqCopy.getOwnSampName();
+			MetaDataInName subseqMeta;
+			subseqMeta.addMeta("PopUID", seq.getStubName(true));
+			subseqMeta.addMeta("sample", sample);
+			subseqMeta.addMeta("readCount", subSeqCopy.cnt_);
+			if(nullptr != groupMetaData_){
+				auto sampMeta = groupMetaData_->getMetaForSample(sample, getVectorOfMapKeys(groupMetaData_->groupData_));
+				subseqMeta.addMeta(sampMeta, false);
+			}
+			subseqMeta.resetMetaInName(subSeqCopy.name_, subSeqCopy.name_.rfind("_f"));
+			outseqs.emplace_back(subSeqCopy);
+		}
+	}
+
+	return outseqs;
+}
+
 void SampleCollapseCollection::dumpPopulation(bool dumpTable) {
 	dumpPopulation(populationOutputDir_, dumpTable);
 }

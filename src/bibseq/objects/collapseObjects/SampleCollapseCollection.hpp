@@ -147,6 +147,7 @@ public:
 
 	void createCoreJsonFile() const;
 
+	std::vector<seqInfo> genOutPopSeqsPerSample() const;
 
 };
 
