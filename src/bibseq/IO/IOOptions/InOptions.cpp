@@ -53,6 +53,11 @@ void InOptions::openGzFile(bib::GZSTREAM::igzstream & inFile) const{
 		ss << __PRETTY_FUNCTION__ << ", error attempted to open " << inFilename_ << " when it doesn't exist " << "\n";
 		throw std::runtime_error{ss.str()};
 	}
+	if(bfs::is_directory(inFilename_)){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error attempted to open " << inFilename_ << " when it's a directory " << "\n";
+		throw std::runtime_error{ss.str()};
+	}
 	inFile.open(inFilename_);
 	if(!inFile){
 		std::stringstream ss;
@@ -67,6 +72,12 @@ void InOptions::openFile(std::ifstream & inFile) const{
 		ss << __PRETTY_FUNCTION__ << ", error attempted to open " << inFilename_ << " when it doesn't exist " << "\n";
 		throw std::runtime_error{ss.str()};
 	}
+	if(bfs::is_directory(inFilename_)){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error attempted to open " << inFilename_ << " when it's a directory " << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+
 	inFile.open(inFilename_.string());
 	if(!inFile){
 		std::stringstream ss;

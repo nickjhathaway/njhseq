@@ -32,4 +32,4 @@
 #include "bibseq/objects/dataContainers/tables/MasterTableCache.hpp"
 #include "bibseq/objects/dataContainers/tables/MasterTableStaticCache.hpp"
 #include "bibseq/objects/dataContainers/tables/TableCache.hpp"
-
+#include "bibseq/objects/dataContainers/tables/TableReader.hpp"

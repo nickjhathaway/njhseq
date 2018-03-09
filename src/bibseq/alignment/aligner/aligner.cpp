@@ -62,6 +62,20 @@ aligner::aligner(uint64_t maxSize, const gapScoringParameters & gapPars,
 				weighHomopolymers) {
 }
 
+void aligner::setGapScoring(const gapScoringParameters & gapPars){
+	parts_.gapScores_ = gapPars;
+	if(alnHolder_.globalHolder_.find(gapPars.uniqueIdentifer_) == alnHolder_.globalHolder_.end()){
+		alnHolder_.addHolder(gapPars, parts_.scoring_);
+	}
+}
+
+//void aligner::setMatchScoring(const substituteMatrix& subMatrix){
+//	parts_.scoring_ = subMatrix;
+//	alnHolder_.addHolder(parts_.gapScores_, subMatrix);
+//}
+
+
+
 void aligner::alignScoreLocal(const std::string& firstSeq,
 		const std::string& secondSeq) {
 	alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
@@ -86,6 +100,14 @@ void aligner::alignScoreGlobal(const std::string& firstSeq,
 	alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
 	++numberOfAlingmentsDone_;
 }
+
+void aligner::alignScoreGlobalNoInternalGaps(const std::string& firstSeq,
+		const std::string& secondSeq) {
+	alignCalc::runNeedleOnlyEndGapsSave(firstSeq, secondSeq, parts_);
+	++numberOfAlingmentsDone_;
+}
+
+
 void aligner::alignScoreCacheGlobal(const std::string& firstSeq,
 		const std::string& secondSeq) {
 	if (alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].getAlnInfo(
@@ -112,29 +134,31 @@ void aligner::alignScore(const std::string& firstSeq, const std::string& secondS
 
 
 
-void aligner::alignScoreCache(const std::string& firstSeq, const std::string& secondSeq,
-              bool local) {
-  if (local) {
-  	if(alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_]
-          .getAlnInfo(firstSeq, secondSeq, parts_.lHolder_)){
-  		parts_.score_ = parts_.lHolder_.score_;
-  		comp_.alnScore_ = parts_.score_;
-  	}else{
-  		alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
-  		alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(firstSeq, secondSeq, parts_.lHolder_);
-  		++numberOfAlingmentsDone_;
-  	}
-  } else {
-  	if(alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_]
-  	            .getAlnInfo(firstSeq, secondSeq, parts_.gHolder_)){
-  		parts_.score_ = parts_.gHolder_.score_;
-  		comp_.alnScore_ = parts_.score_;
-		}else{
-			alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
-			alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(firstSeq, secondSeq, parts_.gHolder_);
+void aligner::alignScoreCache(const std::string& firstSeq,
+		const std::string& secondSeq, bool local) {
+	if (local) {
+		if (alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].getAlnInfo(
+				firstSeq, secondSeq, parts_.lHolder_)) {
+			parts_.score_ = parts_.lHolder_.score_;
+			comp_.alnScore_ = parts_.score_;
+		} else {
+			alignCalc::runSmithSave(firstSeq, secondSeq, parts_);
+			alnHolder_.localHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
+					firstSeq, secondSeq, parts_.lHolder_);
 			++numberOfAlingmentsDone_;
 		}
-  }
+	} else {
+		if (alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].getAlnInfo(
+				firstSeq, secondSeq, parts_.gHolder_)) {
+			parts_.score_ = parts_.gHolder_.score_;
+			comp_.alnScore_ = parts_.score_;
+		} else {
+			alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
+			alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
+					firstSeq, secondSeq, parts_.gHolder_);
+			++numberOfAlingmentsDone_;
+		}
+	}
 }
 
 void aligner::alignCacheLocal(const seqInfo & ref, const seqInfo & read){
@@ -152,14 +176,32 @@ void aligner::alignCache(const seqInfo & ref, const seqInfo & read, bool local){
 	rearrangeObjs(ref, read, local);
 }
 
-void aligner::alignReg(const baseReadObject & ref, const baseReadObject & read, bool local){
-	alignScore(ref.seqBase_.seq_, read.seqBase_.seq_, local);
-	rearrangeObjs(ref.seqBase_, read.seqBase_, local);
-}
 void aligner::alignReg(const seqInfo & ref, const seqInfo & read, bool local){
 	alignScore(ref.seq_, read.seq_, local);
 	rearrangeObjs(ref, read, local);
 }
+
+
+
+void aligner::alignRegGlobalNoInternalGaps(const seqInfo & ref, const seqInfo & read){
+	alignScoreGlobalNoInternalGaps(ref.seq_, read.seq_);
+	rearrangeObjsGlobal(ref, read);
+}
+
+void aligner::alignRegGlobal(const seqInfo & ref, const seqInfo & read){
+	alignScoreGlobal(ref.seq_, read.seq_);
+	rearrangeObjsGlobal(ref, read);
+}
+
+void aligner::alignRegLocal(const seqInfo & ref, const seqInfo & read){
+	alignScoreLocal(ref.seq_, read.seq_);
+	rearrangeObjsLocal(ref, read);
+}
+
+
+
+
+
 std::pair<uint32_t, uint32_t> aligner::findReversePrimer(const std::string& read,
                                         				const std::string& primer){
 	alignScoreCache(read, primer, true);
@@ -359,9 +401,9 @@ const comparison & aligner::profilePrimerAlignment(const seqInfo& objectA,
 			+ comp_.lowQualityMatches_ + comp_.hqMismatches_ + comp_.lqMismatches_
 			+ comp_.lowKmerMismatches_ + comp_.distances_.alignmentGaps_.size();
   if(comp_.distances_.overLappingEvents_ == 0){
-  	comp_.distances_.eventBasedIdentity_ = 0;
+  		comp_.distances_.eventBasedIdentity_ = 0;
   }else{
-  	comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
+  		comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
   }
   comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;
@@ -632,9 +674,9 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA,
 			+ comp_.lowQualityMatches_ + comp_.hqMismatches_ + comp_.lqMismatches_
 			+ comp_.lowKmerMismatches_ + comp_.distances_.alignmentGaps_.size();
   if(comp_.distances_.overLappingEvents_ == 0){
-  	comp_.distances_.eventBasedIdentity_ = 0;
+  		comp_.distances_.eventBasedIdentity_ = 0;
   }else{
-  	comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
+  		comp_.distances_.eventBasedIdentity_ = (comp_.highQualityMatches_ + comp_.lowQualityMatches_)/static_cast<double>(comp_.distances_.overLappingEvents_);
   }
   comp_.setEventBaseIdentityHq();
   comp_.refName_ = objectA.name_;
@@ -1062,8 +1104,11 @@ std::vector<TandemRepeat> aligner::findTandemRepeatsInSequence(
           }
         }
         if (!alreadySmallerRepeat) {
-          repeats.push_back(TandemRepeat(tandem, numberOfRepeats, alignScore,
-                                         startPos, stopPos));
+					repeats.emplace_back(tandem,
+							numberOfRepeats,
+							alignScore,
+							startPos,
+							startPos + numberOfRepeats * tandem.size());
         }
         pos = stopPos;
         foundTandem = false;
@@ -1075,58 +1120,31 @@ std::vector<TandemRepeat> aligner::findTandemRepeatsInSequence(
   return repeats;
 }
 
-TandemRepeat aligner::findTandemRepeatOfStrInSequence(std::string str,
-                                                      std::string tandem,
-                                                      int match, int mismatch,
+TandemRepeat aligner::findTandemRepeatOfStrInSequence(const std::string & str,
+                                                      const std::string & tandem,
+                                                      int match,
+																									 int mismatch,
                                                       int gap,
                                                       int minimumAlignScore) {
-  size_t sizeChecker = tandem.size();
-  bool foundTandem = false;
-  int startPos = 0;
-  int pos = -(int)sizeChecker;
-  int numberOfRepeats = 0;
-  int alignScore = 0;
-  int stopPos = 0;
-  bool keepSearching = true;
-  numberOfRepeats = 0;
-  while (keepSearching && (pos + sizeChecker) < str.size()) {
-    bool homopolymer = true;
-    for (uint32_t i = 0; i < tandem.size() - 1; ++i) {
-      if (tandem[i] != tandem[i + 1]) {
-        homopolymer = false;
-        break;
-      }
+  size_t position = str.find(tandem);
+  if(std::string::npos != position){
+    uint32_t startPosition = position;
+    uint32_t numberOfRepeats = 1;
+    while(position + tandem.size() < str.size() + 1 - tandem.size() &&
+    		std::equal(tandem.begin(), tandem.end(), str.begin() + position + tandem.size()) ){
+    		++numberOfRepeats;
+    		position+=tandem.size();
     }
-    if (homopolymer) {
-      ++pos;
-      continue;
+    int alignScore = tandem.size() * match * numberOfRepeats;
+    if(alignScore >=minimumAlignScore){
+    		return TandemRepeat(tandem,
+    				numberOfRepeats,
+						alignScore,
+						startPosition,
+						startPosition + tandem.size() * numberOfRepeats);
     }
-    numberOfRepeats = 0;
-    while (tandem == str.substr(pos + sizeChecker, sizeChecker)) {
-      if (numberOfRepeats == 1) {
-        startPos = pos;
-      }
-      ++numberOfRepeats;
-      pos += sizeChecker;
-    }
-    alignScore = (int)tandem.size() * (numberOfRepeats) * match;
-    if (alignScore >= minimumAlignScore) {
-      foundTandem = true;
-    } else {
-      foundTandem = false;
-    }
-    if (foundTandem) {
-      stopPos = pos + (int)sizeChecker - 1;
-      keepSearching = false;
-    }
-    ++pos;
   }
-  if (!foundTandem) {
-    return (TandemRepeat("", numberOfRepeats, alignScore, 0, 0));
-  } else {
-    return (
-        TandemRepeat(tandem, numberOfRepeats, alignScore, startPos, stopPos));
-  }
+  return TandemRepeat("", 0, 0, 0, 0);
 }
 
 TandemRepeat aligner::findTandemRepeatOfStrInSequenceDegen(
@@ -1161,14 +1179,14 @@ TandemRepeat aligner::findTandemRepeatOfStrInSequenceDegen(
       ++numberOfRepeats;
       pos += sizeChecker;
     }
-    alignScore = (int)tandem.size() * (numberOfRepeats) * match;
+    alignScore = tandem.size() * (numberOfRepeats) * match;
     if (alignScore >= minimumAlignScore) {
       foundTandem = true;
     } else {
       foundTandem = false;
     }
     if (foundTandem) {
-      stopPos = pos + (int)sizeChecker - 1;
+      stopPos = pos + sizeChecker - 1;
       keepSearching = false;
     }
     ++pos;
@@ -1239,11 +1257,14 @@ void aligner::scoreAlignment(bool editTheSame) {
         } else if (countEndGaps_) {
           //editDistance_ += newGap.size_;
         }
-        parts_.score_ -= parts_.gapScores_.gapRightOpen_;
-        parts_.score_ -= parts_.gapScores_.gapRightExtend_ * (newGap.size_ - 1);
+        parts_.score_ -= parts_.gapScores_.gapRightRefOpen_;
+        parts_.score_ -= parts_.gapScores_.gapRightRefExtend_ * (newGap.size_ - 1);
+
+
       } else if (newGap.startPos_ == 0) {
-      	parts_.score_ -= parts_.gapScores_.gapLeftOpen_;
-      	parts_.score_ -= parts_.gapScores_.gapLeftExtend_ * (newGap.size_ - 1);
+       	parts_.score_ -= parts_.gapScores_.gapLeftRefOpen_;
+       	parts_.score_ -= parts_.gapScores_.gapLeftRefExtend_ * (newGap.size_ - 1);
+
         if (editTheSame) {
           //editDistance_ += gapScores_.gapLeftOpen_ +
                           // gapScores_.gapLeftExtend_ * (newGap.size_ - 1);
@@ -1283,11 +1304,11 @@ void aligner::scoreAlignment(bool editTheSame) {
         } else if (countEndGaps_) {
           //editDistance_ += newGap.size_;
         }
-        parts_.score_ -= parts_.gapScores_.gapRightOpen_;
-        parts_.score_ -= parts_.gapScores_.gapRightExtend_ * (newGap.size_ - 1);
+        parts_.score_ -= parts_.gapScores_.gapRightQueryOpen_;
+        parts_.score_ -= parts_.gapScores_.gapRightQueryExtend_ * (newGap.size_ - 1);
       } else if (newGap.startPos_ == 0) {
-      	parts_.score_ -= parts_.gapScores_.gapLeftOpen_;
-      	parts_.score_ -= parts_.gapScores_.gapLeftExtend_ * (newGap.size_ - 1);
+      	parts_.score_ -= parts_.gapScores_.gapLeftQueryOpen_;
+      	parts_.score_ -= parts_.gapScores_.gapLeftQueryExtend_ * (newGap.size_ - 1);
         if (editTheSame) {
           //editDistance_ += gapScores_.gapLeftOpen_ +
                           // gapScores_.gapLeftExtend_ * (newGap.size_ - 1);

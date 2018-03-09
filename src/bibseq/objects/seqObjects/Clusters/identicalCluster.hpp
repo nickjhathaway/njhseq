@@ -83,7 +83,14 @@ class identicalCluster : public baseCluster{
       throw std::runtime_error{ss.str()};
     }
   }
+	using size_type = baseReadObject::size_type;
 };
+
+template<>
+inline identicalCluster::size_type len(const identicalCluster & read) {
+	return read.seqBase_.seq_.size();
+}
+
 }  // namespace bibseq
 
 

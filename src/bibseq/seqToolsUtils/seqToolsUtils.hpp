@@ -46,8 +46,6 @@
 namespace bibseq {
 
 
-VecStr getInputValues(const std::string & valuesStr, const std::string & delim);
-
 void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString,
 		int counter);
 

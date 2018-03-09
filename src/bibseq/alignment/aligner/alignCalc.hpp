@@ -66,6 +66,8 @@ class alignCalc {
       return d;
     }
   }
+
+
   /*! \brief Smith Maximum
    *
    *
@@ -103,6 +105,8 @@ class alignCalc {
     }
   }
   static void runNeedleSave(const std::string& objA, const std::string& objB,
+                            alnParts& parts);
+  static void runNeedleOnlyEndGapsSave(const std::string& objA, const std::string& objB,
                             alnParts& parts);
 
   static void runSmithSave(const std::string& objA, const std::string& objB,

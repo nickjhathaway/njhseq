@@ -25,11 +25,11 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
+//arma
 #include "bibseq/utils/utils.hpp"
 #include <vector>
 #include <algorithm>
-#include <armadillo>
+//#include <armadillo>
 
 /// various functions to calculate stats on vectors of any number
 

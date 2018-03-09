@@ -24,7 +24,7 @@ namespace bibseq {
 
 std::string getSubVector(const std::string& vec, uint32_t start,
 		uint32_t size) {
-	return std::string(vec.begin() + start, vec.begin() + size + start);;
+	return std::numeric_limits<uint32_t>::max() != size ? std::string(vec.begin() + start, vec.begin() + size + start): std::string(vec.begin() + start, vec.end());
 }
 
 std::string getSubVector(const std::string& vec, uint32_t start) {
@@ -91,16 +91,16 @@ std::vector<uint32_t> getPositionsMatchingPattern(const VecStr& vec,
 
 
 std::vector<uint32_t> getPositionsOfSubStrTarget(const VecStr& vec,
-                                                 const std::string& target) {
-  uint32_t pos = 0;
-  std::vector<uint32_t> positions;
-  for (const auto& iter : vec) {
-    if (bib::containsSubString(iter, target)) {
-      positions.push_back(pos);
-    }
-    ++pos;
-  }
-  return positions;
+		const std::string& target) {
+	uint32_t pos = 0;
+	std::vector<uint32_t> positions;
+	for (const auto& iter : vec) {
+		if (bib::containsSubString(iter, target)) {
+			positions.push_back(pos);
+		}
+		++pos;
+	}
+	return positions;
 }
 
 std::vector<uint32_t> getPositionsOfTargetStartsWith(

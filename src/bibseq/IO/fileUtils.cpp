@@ -22,6 +22,7 @@
 #include "bibseq/utils/utils.hpp"
 #include "bibseq/utils/stringUtils.hpp"
 #include <bibcpp/files/fileUtilities.hpp>
+#include "bibseq/IO/InputStream.hpp"
 
 namespace bibseq {
 
@@ -329,9 +330,21 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 	if(failed){
 		throw std::runtime_error{ss.str()};
 	}
-	for(const auto & fnp : fnps){
-		std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
-		outFile << inFile.rdbuf();
+	for (const auto & fnp : fnps) {
+
+		//check file size because rdbuf() from an empty no good file causes the bad bit to be set for the outfile and nothing afterwards getting written
+		if (0 != bfs::file_size(fnp)) {
+			std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
+			//InputStream in(fnp);
+//		std::cout << fnp << " isGood: " << in.good() << std::endl;
+//		std::cout << fnp << " peeking: " << in.peek() << std::endl;
+//		std::cout << fnp << " isGood: " << in.good() << std::endl;
+//			outFile << in.rdbuf();
+//				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
+//				std::cout << fnp << " peeking: " << inFile.peek() << std::endl;
+//				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
+			outFile << inFile.rdbuf();
+		}
 	}
 }
 

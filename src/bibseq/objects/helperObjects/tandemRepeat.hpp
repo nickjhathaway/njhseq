@@ -45,6 +45,8 @@ public:
 	TandemRepeat(const std::string& rep, uint32_t numberOfRepeats, int alignScore, uint32_t startPosition,
 			uint32_t stopPositon);
 
+	uint32_t getSize() const;
+
 	void outPutInfoFormated(std::ostream& out, const std::string & name,
 			const std::string& delim = "\t") const;
 

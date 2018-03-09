@@ -39,6 +39,7 @@ public:
 		uint32_t bad_ = 0;
 
 		uint32_t badReverse_ = 0;
+		uint32_t mismatchPrimers_ = 0;
 
 		uint32_t containsNs_ = 0;
 		uint32_t minLenBad_ = 0;
@@ -47,14 +48,19 @@ public:
 
 		uint32_t contamination_ = 0;
 
-		uint32_t getTotal() const {
-			return good_ + bad_ + contamination_;
-		}
+		uint32_t getTotal() const ;
 	};
 
-  enum class extractCase{
-  	GOOD,BADREVERSE,CONTAINSNS,MINLENBAD,MAXLENBAD,QUALITYFAILED,CONTAMINATION
-  };
+	enum class extractCase {
+		GOOD,
+		BADREVERSE,
+		MISMATCHPRIMERS,
+		CONTAINSNS,
+		MINLENBAD,
+		MAXLENBAD,
+		QUALITYFAILED,
+		CONTAMINATION
+	};
 
   ExtractionStator();
   /**@brief Construct with initial counts

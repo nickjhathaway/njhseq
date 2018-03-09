@@ -28,6 +28,9 @@
 
 
 #include "ReadCompGraph.hpp"
+#include "bibseq/IO/OutputStream.hpp"
+#include "bibseq/concurrency/PairwisePairFactory.hpp"
+
 
 namespace bibseq {
 
@@ -496,6 +499,380 @@ Json::Value ReadCompGraph::toD3Json(bib::color backgroundColor,
 	return graphJson;
 }
 
+
+
+Json::Value ReadCompGraph::getSingleLineJsonOut(const ConnectedHaplotypeNetworkPars & netPars,
+		const std::unordered_map<std::string, bib::color> & colorLookup){
+	Json::Value outputJson;
+		auto & nodes = outputJson["nodes"];
+		auto & links = outputJson["links"];
+		double minNodeCntObserved = std::numeric_limits<double>::max();
+		double maxNodeCntObserved = std::numeric_limits<double>::lowest();
+		for(const auto & n : nodes_){
+			if(n->on_){
+				if(n->value_->cnt_ > maxNodeCntObserved){
+					maxNodeCntObserved = n->value_->cnt_;
+				}
+				if(n->value_->cnt_ < minNodeCntObserved){
+					minNodeCntObserved = n->value_->cnt_;
+				}
+			}
+		}
+
+		scale<double> nodeSizeScale(
+				std::make_pair(1, std::max(2.0, maxNodeCntObserved)),
+				std::make_pair<double>(78.53982, 78.53982 * 20));
+
+		for(const auto & n : nodes_){
+			if(n->on_){
+				Json::Value node;
+				node["id"] = n->name_;
+				if(!netPars.noLabel){
+					if(nullptr != netPars.seqMeta && "" != netPars.labelField){
+						auto labForName = netPars.seqMeta->groupData_.at(netPars.labelField)->getGroupForSample(n->name_);
+						node["label"] = "NA" ==  labForName ? std::string("") : labForName ;
+					}else{
+						node["label"] = n->name_;
+					}
+				}else{
+					node["label"] = "";
+				}
+				if(nullptr != netPars.seqMeta && "" != netPars.colorField){
+					node["color"] = bib::mapAt(colorLookup, netPars.seqMeta->groupData_.at(netPars.colorField)->getGroupForSample(n->name_)).getHexStr();
+				}else{
+					node["color"] = "#00A0FA";
+				}
+				node["size"] = bib::json::toJson(nodeSizeScale.get(n->value_->cnt_));
+				nodes.append(node);
+			}
+		}
+		double minIdObserved = std::numeric_limits<double>::max();
+		double maxIdObserved = std::numeric_limits<double>::lowest();
+		for(const auto & e : edges_){
+			if(netPars.setJustBest && !e->best_){
+				continue;
+			}
+			if(e->on_){
+				if(e->dist_.distances_.eventBasedIdentity_  < minIdObserved){
+					minIdObserved = e->dist_.distances_.eventBasedIdentity_ ;
+				}
+				if(e->dist_.distances_.eventBasedIdentity_  > maxIdObserved){
+					maxIdObserved = e->dist_.distances_.eventBasedIdentity_ ;
+				}
+			}
+		}
+		scale<double> linkSizeScale(std::make_pair(minIdObserved, maxIdObserved), std::make_pair<double>(1,20));
+		for (const auto & e : edges_) {
+			if (netPars.setJustBest && !e->best_) {
+				continue;
+			}
+			if(e->on_){
+				Json::Value link;
+				link["source"] = e->nodeToNode_.begin()->first ;
+				link["target"] = e->nodeToNode_.begin()->second.lock()->name_ ;
+				link["value"] = linkSizeScale.get(e->dist_.distances_.eventBasedIdentity_);
+				links.append(link);
+			}
+		}
+		return outputJson;
+}
+
+void ReadCompGraph::writeAdjListPerId(const OutOptions & linksOutOpts,
+		const ConnectedHaplotypeNetworkPars & netPars){
+	OutputStream linksOut(linksOutOpts);
+	for (const auto & e : edges_) {
+		if (netPars.setJustBest && !e->best_) {
+			continue;
+		}
+		if(e->on_){
+			linksOut << e->nodeToNode_.begin()->first << " -- "
+					<< e->nodeToNode_.begin()->second.lock()->name_
+					<< " " << e->dist_.distances_.getNumOfEvents(true)
+					<< " " << e->dist_.distances_.eventBasedIdentity_ << std::endl;
+		}
+	}
+}
+
+void ReadCompGraph::addEdgesBasedOnIdOrMinDif(const ConnectedHaplotypeNetworkPars & netPars,
+		concurrent::AlignerPool & alnPool){
+
+	std::vector<kmerInfo> kInfos;
+	for(const auto & n : nodes_){
+		kInfos.emplace_back(n->value_->seq_, netPars.matchPars.kmerLen_, false	);
+	}
+	PairwisePairFactory pFactory(nodes_.size());
+
+	std::mutex graphMut;
+	bib::ProgressBar pBar(pFactory.totalCompares_);
+	auto addEdges = [this,&pFactory,&kInfos,&alnPool,&netPars,&graphMut,&pBar](){
+		auto alignerObj = alnPool.popAligner();
+		PairwisePairFactory::PairwisePairVec pairs;
+		while(pFactory.setNextPairs(pairs, netPars.matchPars.batchAmount_)){
+			std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<comparison>>> currentComps;
+			for(const auto & pair : pairs.pairs_){
+				if(nodes_[pair.col_]->value_->seq_ == nodes_[pair.row_]->value_->seq_){
+					alignerObj->alignObjectA_ = baseReadObject(*nodes_[pair.row_]->value_);
+					alignerObj->alignObjectB_ = baseReadObject(*nodes_[pair.col_]->value_);
+				}else{
+					if(kInfos[pair.row_].compareKmers(kInfos[pair.col_]).second < netPars.matchPars.kmerCutOff_){
+						continue;
+					}
+					alignerObj->alignCacheGlobal(nodes_[pair.row_]->value_, nodes_[pair.col_]->value_);
+				}
+				alignerObj->profileAlignment(nodes_[pair.row_]->value_, nodes_[pair.col_]->value_, false, false, false);
+				currentComps[nodes_[pair.row_]->value_->name_][nodes_[pair.col_]->value_->name_] = std::make_shared<comparison>(alignerObj->comp_);
+			}
+			{
+				std::lock_guard<std::mutex> lock(graphMut);
+				for(const auto & r1 : currentComps){
+					for(const auto & r2 : r1.second){
+						addEdge(r1.first, r2.first, *r2.second);
+					}
+				}
+				if(netPars.verbose){
+					pBar.outputProgAdd(std::cout, pairs.pairs_.size(), true);
+				}
+			}
+		}
+	};
+	std::vector<std::thread> threads;
+	for(uint32_t t = 0; t < netPars.numThreads; ++t){
+		threads.emplace_back(addEdges);
+	}
+	bib::concurrent::joinAllJoinableThreads(threads);
+
+	if(netPars.setJustBest){
+		//turn of same seq connections as so the best connection will not be just equal matches
+		for(auto & e : edges_){
+			if(e->nodeToNode_.begin()->second.lock()->value_->seq_ == e->nodeToNode_.rbegin()->second.lock()->value_->seq_){
+				e->on_ = false;
+			}
+		}
+		setJustBestConnection(netPars.doTies);
+		//turn exact matches back on
+		for(auto & e : edges_){
+			if(e->nodeToNode_.begin()->second.lock()->value_->seq_ == e->nodeToNode_.rbegin()->second.lock()->value_->seq_){
+				e->on_ = true;
+				e->best_ = true;
+			}
+		}
+	}
+
+	if(std::numeric_limits<double>::lowest() != netPars.minId){
+		for(auto & e : edges_){
+			if(e->on_ && e->dist_.distances_.eventBasedIdentity_ < netPars.minId){
+				e->on_ = false;
+			}
+		}
+	}
+	if(std::numeric_limits<uint32_t>::max() != netPars.minNumberOfEvents){
+		for(auto & e : edges_){
+			if(e->on_ && e->dist_.distances_.getNumOfEvents(true) > netPars.minNumberOfEvents){
+				e->on_ = false;
+			}
+		}
+	}
+}
+
+
+std::string ReadCompGraph::ConnectedHaplotypeNetworkPars::htmlPageForConnectHpaNet = R"FOOBAR(<!DOCTYPE html>
+		<meta charset="utf-8">
+		<svg id="chart" width="2500" height="2500"></svg>
+		<script src="https://d3js.org/d3.v4.min.js"></script>
+		<script
+		  src="http://code.jquery.com/jquery-3.3.1.min.js"
+		  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+		  crossorigin="anonymous"></script>
+		<script>
+
+
+		var svg = d3.select("svg"),
+		    width = +svg.attr("width"),
+		    height = +svg.attr("height");
+		    
+		function addSvgSaveButton(buttonId, topSvg, name) {
+		    	name = name || "graph.svg"
+		    	if(!name.endsWith('.svg')){
+		    		name += ".svg";
+		    	}
+		    	d3.select(buttonId).append("a").attr("id", "imgDownload");
+		    	d3.select(buttonId).on(
+		    			"click",
+		    			function() {
+		    				var html = $(
+		    						d3.select(topSvg).attr("version", 1.1).attr("xmlns",
+		    								"http://www.w3.org/2000/svg").node()).clone()
+		    						.wrap('<p/>').parent().html();
+		    				// add the svg information to a and then click it to trigger the
+		    				// download
+		    				var imgsrc = 'data:image/svg+xml;base64,' + btoa(html);
+		    				d3.select("#imgDownload").attr("download", name);
+		    				d3.select("#imgDownload").attr("href", imgsrc);
+		    				var a = $("#imgDownload")[0];
+		    				a.click();
+		    			});
+		    }
+		d3.select("body").append("button")
+		    					.style("float", "top")
+		    					.attr("class", "btn btn-success")
+		    					.attr("id", "saveButton")
+		    					.style("margin", "2px")
+		    					.text("Save As Svg");
+		addSvgSaveButton("#saveButton", "#chart", "connectedNetwork")
+		//var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+		var simulation = d3.forceSimulation()
+		    .force("link", d3.forceLink().id(function(d) { return d.id; }))
+		    .force("charge", d3.forceManyBody().strength(-120))
+			    .force("center", d3.forceCenter(width / 2, height / 2))
+			    .force("y", d3.forceY(height / 2))
+			    .force("x", d3.forceX(width / 2)) ;
+		    //.force("charge", d3.forceManyBody())
+		    //.force("center", d3.forceCenter(width / 2, height / 2));
+
+		d3.json("tree.json", function(error, graph) {
+		  if (error) throw error;
+
+		  var initializerSimulation = d3.forceSimulation(graph.nodes)
+		          .force("link", d3.forceLink(graph.links).id(function(d) { return d.id; }))
+		          .force("charge", d3.forceManyBody().strength(-120))
+		            .force("center", d3.forceCenter(width / 2, height / 2))
+		            .force("y", d3.forceY(height / 2))
+		            .force("x", d3.forceX(width / 2))
+		            .stop(); ;
+		  var n = Math.ceil(Math.log(initializerSimulation.alphaMin()) / Math.log(1 - initializerSimulation.alphaDecay()));
+		  //n = n * 2
+		  for (var i = 0; i < n; ++i) {
+		    //postMessage({type: "tick", progress: i / n});
+		    console.log(i,"", n);
+		    initializerSimulation.tick();
+		  }
+
+		  var link = svg.append("g")
+		      .attr("class", "links")
+		    .selectAll("line")
+		    .data(graph.links)
+		    .enter().append("line")
+		      .attr("stroke-width", function(d) { return Math.sqrt(d.value); })
+		      .attr("stroke", "#999")
+		      .attr("stroke-opacity", 0.6);
+
+
+		  svg.selectAll(".node")
+		    		.data(graph.nodes)
+		    		.enter().append("g")
+		    			.attr("class", function(d) {return "node";})
+		    				.call(d3.drag()
+		    			          .on("start", dragstarted)
+		    			          .on("drag", dragged)
+		    			          .on("end", dragended))
+		    			.append("circle");
+		  var node = svg.selectAll(".node");
+		  node.select("circle")
+		    		  .attr("r", function(d) { return Math.sqrt(d.size/Math.PI); })
+		    	    .style("fill", function(d) { return d.color; })
+		    	    .style("stroke", "#fff")
+		    	    .style("stroke-width", "1.5px").append("title")
+		              .text(function(d) { return d.id; });
+
+
+		  /*
+		  var node = svg.append("g")
+		      .attr("class", "nodes")
+		    .selectAll("circle")
+		    .data(graph.nodes)
+		    .enter().append("circle")
+		      .attr("r", function(d) { return Math.sqrt(d.size/Math.PI); })
+		      .attr("fill", function(d) { return d.color; })
+		      .call(d3.drag()
+		          .on("start", dragstarted)
+		          .on("drag", dragged)
+		          .on("end", dragended));
+		          node.append("title")
+		              .text(function(d) { return d.id; });
+		          */
+
+		  
+
+		  simulation
+		      .nodes(graph.nodes)
+		      .on("tick", ticked);
+
+		  simulation.force("link")
+		      .links(graph.links);
+
+		  node.append("text")
+		      	  .attr("x", 12)
+		      	  .attr("dy", ".35em")
+		      	  .style("fill","#000")
+		      	  .style("font-family", "\"HelveticaNeue-Light\", \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif")
+		      	  .style("font-size", "12px")
+		      	  .style("font-weight","900")
+		      	  .style("pointer-events", "none")
+		      	  .style("stroke", "#000")
+		      	  .style("stroke-width", "1px")
+		      	  .text(function(d) {return d.label;});
+
+		    function ticked() {
+		  	    link.attr("x1", function(d) { return d.source.x; })
+		  	        .attr("y1", function(d) { return d.source.y; })
+		  	        .attr("x2", function(d) { return d.target.x; })
+		  	        .attr("y2", function(d) { return d.target.y; });
+		  	    node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")" ; });
+		  	};
+		  	//for drag objects start
+		  	function dragstarted(d) {
+		  	  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+		  	  d.fx = d.x;
+		  	  d.fy = d.y;
+		  	};
+		  	//for when dragging has been detected
+		  	function dragged(d) {
+		  	  d.fx = d3.event.x;
+		  	  d.fy = d3.event.y;
+		  	};
+		  	//for when dragging has ended
+		  	function dragended(d) {
+		  	  if (!d3.event.active) simulation.alphaTarget(0);
+		  	  d.fx = null;
+		  	  d.fy = null;
+		  	};
+		    });
+		  /*
+		  function ticked() {
+		    link
+		        .attr("x1", function(d) { return d.source.x; })
+		        .attr("y1", function(d) { return d.source.y; })
+		        .attr("x2", function(d) { return d.target.x; })
+		        .attr("y2", function(d) { return d.target.y; });
+
+		    node
+		        .attr("cx", function(d) { return d.x; })
+		        .attr("cy", function(d) { return d.y; });
+		  }
+		});
+
+		function dragstarted(d) {
+		  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+		  d.fx = d.x;
+		  d.fy = d.y;
+		}
+
+		function dragged(d) {
+		  d.fx = d3.event.x;
+		  d.fy = d3.event.y;
+		}
+
+		function dragended(d) {
+		  if (!d3.event.active) simulation.alphaTarget(0);
+		  d.fx = null;
+		  d.fy = null;
+		}*/
+
+		</script>
+
+
+		)FOOBAR";
 
 }  // namespace bibseq
 

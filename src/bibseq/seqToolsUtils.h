@@ -26,11 +26,13 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 #include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
 #include "bibseq/seqToolsUtils/distCalc.hpp"
 #include "bibseq/seqToolsUtils/aminoAcidInfo.hpp"
 #include "bibseq/seqToolsUtils/determinators.h"
 #include "bibseq/seqToolsUtils/ExtractionStator.hpp"
+#include "bibseq/seqToolsUtils/RefDetermination.h"
 
 
 

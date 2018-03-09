@@ -305,7 +305,7 @@ uint32_t getFirstPositionOfTarget(const std::vector<T>& vec, const T& target) {
 		}
 		++pos;
 	}
-	return UINT32_MAX;
+	return std::numeric_limits<uint32_t>::max();
 }
 
 std::vector<uint32_t> getPositionsContainingPattern(const VecStr& vec,
@@ -405,13 +405,11 @@ std::vector<std::vector<T>> findClumps(const std::vector<T>& positions,
 template<typename T>
 std::vector<T> getSubVector(const std::vector<T>& vec, uint32_t start,
 		uint32_t size) {
-	std::vector<T> ans(vec.begin() + start, vec.begin() + size + start);
-	return ans;
+	return std::numeric_limits<uint32_t>::max() != size ? std::vector<T>(vec.begin() + start, vec.begin() + size + start) : std::vector<T>(vec.begin() + start, vec.end());
 }
 template<typename T>
 std::vector<T> getSubVector(const std::vector<T>& vec, uint32_t start) {
-	std::vector<T> ans(vec.begin() + start, vec.end());
-	return ans;
+	return std::vector<T>(vec.begin() + start, vec.end());
 }
 
 std::string getSubVector(const std::string& vec, uint32_t start, uint32_t size);

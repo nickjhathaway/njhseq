@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import shutil, os, argparse, sys, stat, platform
 sys.path.append("scripts/pyUtils")
@@ -7,7 +7,8 @@ from utils import Utils
 from genFuncs import genHelper
 def main():
     name = "bibseq"
-    libs = "bamtools:v2.5.1,bibcpp:v2.5.1,armadillo:8.200.0"
+    #libs = "bamtools:develop,bibcpp:develop,armadillo:8.200.0"
+    libs = "bamtools:v2.5.2,bibcpp:v2.5.2"
     args = genHelper.parseNjhConfigureArgs()
     if Utils.isMac():
         macv, _, _ = platform.mac_ver()
@@ -16,7 +17,7 @@ def main():
             if args.CC and "gcc" in args.CC[0]:
                 pass
             else:
-                libs = libs + ",sharedMutex:v0.7"
+                libs = libs + ",sharedMutex:develop"
     cmd = genHelper.mkConfigCmd(name, libs, sys.argv)
     Utils.run(cmd)
     

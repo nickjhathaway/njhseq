@@ -168,6 +168,15 @@ bool OutOptions::outExists() const {
 	return boost::filesystem::exists(outName());
 }
 
+void OutOptions::throwIfOutExistsNoOverWrite(const std::string & funcName) const {
+	if(outExists() && !overWriteFile_ && !append_){
+		std::stringstream ss;
+		ss << funcName << ", error " << outName() << " already exists, set overWrite to true to over write" << "\n";
+		throw std::runtime_error(ss.str());
+	}
+}
+
+
 void OutOptions::transferOverwriteOpts(const OutOptions & otherOptions){
 	overWriteFile_ = otherOptions.overWriteFile_;
 	append_ = otherOptions.append_;

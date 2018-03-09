@@ -32,18 +32,22 @@ TandemRepeat::TandemRepeat(const std::string& rep, uint32_t numberOfRep,
 
 }
 
+uint32_t TandemRepeat::getSize() const{
+	return stopPos_ - startPos_;
+}
+
 void TandemRepeat::outPutInfoFormated(std::ostream& out,
 		const std::string & name, const std::string& delim) const {
 	out
 			<< bib::conToStr(
 					toVecStr(name, repeat_, numberOfRepeats_, repeat_.size(), alignScore_,
-							startPos_, stopPos_), delim) << std::endl;
+							startPos_, stopPos_, stopPos_ - startPos_), delim) << std::endl;
 }
 
 void TandemRepeat::outPutInfoFormatedHeader(std::ostream& out,
 		const std::string& delim) {
 	out << bib::conToStr(VecStr { "name", "seq", "NumOfRepeats", "seqSize",
-			"alignScore", "start", "stop" }, delim) << std::endl;
+			"alignScore", "start", "stop", "fullLength"}, delim) << std::endl;
 }
 
 }  // namespace bib

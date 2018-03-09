@@ -34,38 +34,12 @@
 #include "bibseq/objects/collapseObjects/opts/IterPar.hpp"
 #include "bibseq/objects/kmer/kmerInfo.hpp"
 #include "bibseq/objects/helperObjects/probabilityProfile.hpp"
+#include "bibseq/readVectorManipulation/readVectorHelpers/trimming/trimPars.h"
+
 
 namespace bibseq {
 
-struct FullTrimReadsPars {
-	struct trimSeqPars {
-		bool includeSequence_;
-		bool sequenceToLowerCase_;
-		bool removePreviousSameBases_;
-		bool local_ = true;
-		uint32_t within_ = std::numeric_limits<uint32_t>::max();
-	};
-  // parameters
-	FullTrimReadsPars();
-	void initForKSharedTrim();
 
-  uint32_t maxLength = std::numeric_limits<uint32_t>::max();
-  uint32_t numberOfEndBases = std::numeric_limits<uint32_t>::max();
-  uint32_t numberOfFowardBases = std::numeric_limits<uint32_t>::max();
-  std::string backSeq = "";
-  std::string forwardSeq = "";
-  trimSeqPars tSeqPars_;
-  comparison allowableErrors;
-  bool keepOnlyOn = false;
-
-  uint32_t kmerLength = 10;
-  uint32_t windowLength = 25;
-  uint32_t precision = 10;
-
-  char base = 'N';
-  uint32_t qual = 2;
-
-};
 
 class readVecTrimmer {
 public:
@@ -164,54 +138,269 @@ public:
 
 	template<class T>
 	static void trimAtSequence(std::vector<T> &reads,
-			seqInfo &reversePrimer, aligner &alignObj, comparison allowableErrors,
-			FullTrimReadsPars::trimSeqPars tSeqPars);
+			const seqInfo &reversePrimer,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
 	template<class T>
-	static void trimAtSequence(T &read, seqInfo &reversePrimer,
-			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
-	static void trimAtSequence(seqInfo &read, seqInfo &reversePrimer,
-			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
+	static void trimAtSequence(T &read,
+			const seqInfo &reversePrimer,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
+	static void trimAtSequence(seqInfo &read,
+			const seqInfo &reversePrimer,
+			aligner &alignObj,
+			const comparison  & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
 
 	template<class T>
 	static void trimBeforeSequence(std::vector<T> &reads,
-			seqInfo &forwardSeq, aligner &alignObj, comparison allowableErrors,
-			FullTrimReadsPars::trimSeqPars tSeqPars);
+			const seqInfo &forwardSeq,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
 	template<class T>
-	static void trimBeforeSequence(T &read, seqInfo &forwardSeq,
-			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
-	static void trimBeforeSequence(seqInfo &read, seqInfo &forwardSeq,
-			aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
+	static void trimBeforeSequence(T &read,
+			const seqInfo &forwardSeq,
+			aligner &alignObj,
+			const comparison &allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
+	static void trimBeforeSequence(seqInfo &read,
+			const seqInfo &forwardSeq,
+			aligner &alignObj,
+			const comparison  & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
 
 	template<class T>
 	static void trimBetweenSequences(std::vector<T> &reads,
-			seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
-			comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars);
+			const seqInfo &forwardSeq,
+			const seqInfo &backSeq,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars& tSeqPars);
 	template<class T>
-	static void trimBetweenSequences(T &read, seqInfo &forwardSeq,
-			seqInfo &backSeq, aligner &alignObj, comparison allowableErrors,
-			FullTrimReadsPars::trimSeqPars tSeqPars);
-	static void trimBetweenSequences(seqInfo &read, seqInfo &forwardSeq,
-			seqInfo &backSeq, aligner &alignObj, comparison allowableErrors,
-			FullTrimReadsPars::trimSeqPars tSeqPars);
+	static void trimBetweenSequences(T &read,
+			const seqInfo &forwardSeq,
+			const seqInfo &backSeq,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
+	static void trimBetweenSequences(seqInfo &read,
+			const seqInfo &forwardSeq,
+			const seqInfo &backSeq,
+			aligner &alignObj,
+			const comparison & allowableErrors,
+			const FullTrimReadsPars::trimSeqPars & tSeqPars);
 
 	template<typename T>
 	static void trimToMostCommonKmer(std::vector<T> & seqs,
-			FullTrimReadsPars pars,
+			const FullTrimReadsPars & pars,
 			aligner &alignObj);
 
 	template<typename T>
 	static void trimFromMostCommonKmer(std::vector<T> & seqs,
-			FullTrimReadsPars pars,
+			const FullTrimReadsPars & pars,
 			aligner &alignObj);
 
 	template<typename T>
-	static void trimBetweenMostCommonKmers(std::vector<T> & seqs, FullTrimReadsPars pars,
+	static void trimBetweenMostCommonKmers(std::vector<T> & seqs,
+			const FullTrimReadsPars &pars,
 			aligner &alignObj);
 
 
+	template<typename SEQYPTE, typename REFSEQ>
+	static void trimSeqToRefByGlobalAln(SEQYPTE & seq, const std::vector<REFSEQ> & refSeqs,
+			const std::vector<kmerInfo> & refSeqsKInfos,aligner &alignObj);
 
+	template<typename SEQYPTE, typename REFSEQ>
+	static void trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seq, const std::vector<REFSEQ> & refSeqs,
+			const std::vector<kmerInfo> & refSeqsKInfos,aligner &alignerObj);
+
+	struct GlobalAlnTrimPars{
+		uint32_t startInclusive_ = std::numeric_limits<uint32_t>::max();
+		uint32_t endInclusive_ = std::numeric_limits<uint32_t>::max();
+		bool needJustOneEnd_ = false;
+	};
+
+	template<typename SEQYPTE, typename REFSEQ>
+	static void trimSeqToRefByGlobalAln(SEQYPTE & seq,
+			const REFSEQ & refSeq,
+			const GlobalAlnTrimPars & trimPars,
+			aligner &alignerObj);
+
+	template<typename SEQYPTE, typename REFSEQ>
+	static void trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seqs,
+			const REFSEQ & refSeq,
+			const GlobalAlnTrimPars & trimPars,
+			aligner &alignerObj);
 
 };
+
+template<typename SEQYPTE, typename REFSEQ>
+void readVecTrimmer::trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seqs,
+		const REFSEQ & refSeq,
+		const GlobalAlnTrimPars & trimPars,
+		aligner &alignerObj){
+	for(auto & seq : seqs){
+		trimSeqToRefByGlobalAln(seq, refSeq, trimPars, alignerObj);
+	}
+}
+
+template<typename SEQYPTE, typename REFSEQ>
+void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
+		const REFSEQ & refSeq,
+		const GlobalAlnTrimPars & trimPars,
+		aligner &alignerObj){
+	if (trimPars.startInclusive_>= getSeqBase(refSeq).seq_.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << "error startInclusive, " << trimPars.startInclusive_
+				<< ", greater than ref " << getSeqBase(refSeq).name_ << " length: "
+				<< getSeqBase(refSeq).seq_.size() << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	if (trimPars.endInclusive_ >= getSeqBase(refSeq).seq_.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << "error endInclusvie, " << trimPars.endInclusive_
+				<< ", greater than ref " << getSeqBase(refSeq).name_ << " length: "
+				<< getSeqBase(refSeq).seq_.size() << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	if (trimPars.endInclusive_ <= trimPars.startInclusive_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << "error endInclusvie, " << trimPars.endInclusive_
+				<< ", less than or equal to startInclusive,  " << trimPars.startInclusive_
+				<< "\n";
+		throw std::runtime_error { ss.str() };
+	}
+
+	alignerObj.alignCacheGlobal(getSeqBase(refSeq), getSeqBase(seq));
+
+	//ref positions
+	uint32_t refAlnStartPos = alignerObj.getAlignPosForSeqAPos(trimPars.startInclusive_);
+	uint32_t refAlnStopPos = alignerObj.getAlignPosForSeqAPos(trimPars.endInclusive_);
+	//aligned bases
+	uint32_t firstAlignedBase = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
+	uint32_t lastAlignedBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
+	//front
+	uint32_t trimFront = std::numeric_limits<uint32_t>::max();
+	if (refAlnStartPos >= firstAlignedBase && refAlnStartPos < lastAlignedBase) {
+		trimFront = alignerObj.getSeqPosForAlnBPos(refAlnStartPos);
+	} else {
+		getSeqBase(seq).on_ = false;
+	}
+	//back
+	uint32_t trimBack = std::numeric_limits<uint32_t>::max();
+	if (refAlnStopPos > firstAlignedBase && refAlnStopPos <= lastAlignedBase) {
+		trimBack = alignerObj.getSeqPosForAlnBPos(refAlnStopPos);
+	} else {
+		getSeqBase(seq).on_ = false;
+	}
+
+
+	if (std::numeric_limits<uint32_t>::max() != trimFront
+			&& std::numeric_limits<uint32_t>::max() != trimBack) {
+		getSeqBase(seq).setClip(trimFront, trimBack);
+	} else if (std::numeric_limits<uint32_t>::max() != trimFront) {
+		getSeqBase(seq).trimFront(trimFront);
+		if(trimPars.needJustOneEnd_ ){
+			getSeqBase(seq).on_ =  true;
+		}
+	} else if (std::numeric_limits<uint32_t>::max() != trimBack) {
+		getSeqBase(seq).trimBack(trimBack + 1);
+		if(trimPars.needJustOneEnd_){
+			getSeqBase(seq).on_ =  true;
+		}
+	}
+}
+
+template<typename SEQYPTE, typename REFSEQ>
+void readVecTrimmer::trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seqs,
+		const std::vector<REFSEQ> & refSeqs,
+		const std::vector<kmerInfo> & refSeqsKInfos,
+		aligner &alignerObj){
+	for(auto & seq : seqs	){
+		trimSeqToRefByGlobalAln(seq, refSeqs, refSeqsKInfos, alignerObj);
+	}
+}
+
+template<typename SEQYPTE, typename REFSEQ>
+void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
+		const std::vector<REFSEQ> & refSeqs,
+		const std::vector<kmerInfo> & refSeqsKInfos,
+		aligner &alignerObj){
+	uint32_t bestIndex = std::numeric_limits<uint32_t>::max();
+	if (1 == refSeqs.size()) {
+		bestIndex = 0;
+	} else {
+		double kmerCutOff = 0.8;
+		kmerInfo seqKInfo(getSeqBase(seq).seq_, refSeqsKInfos.front().kLen_, false);
+	  double bestScore = std::numeric_limits<double>::lowest();
+	  std::vector<uint32_t> bestRefs;
+	  while(bestRefs.empty()){
+	    for (const auto& refPos : iter::range(refSeqs.size())) {
+	      const auto & ref = refSeqs[refPos];
+	      if(refSeqsKInfos[refPos].compareKmers(seqKInfo).second < kmerCutOff){
+	       	continue;
+	      }
+	      alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
+				double currentScore = 0;
+				alignerObj.profileAlignment(ref, getSeqBase(seq), false, true, false);
+				currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
+				if (currentScore == bestScore) {
+					bestRefs.push_back(refPos);
+				}
+				if (currentScore > bestScore) {
+					bestRefs.clear();
+					bestRefs.push_back(refPos);
+					bestScore = currentScore;
+				}
+			}
+	    if(kmerCutOff < 0 && bestRefs.empty()){
+	    		std::stringstream ss;
+	    		ss << __PRETTY_FUNCTION__ << ", error, couldn't find a matching ref for : " << getSeqBase(seq).name_ << "\n";
+	    		throw std::runtime_error{ss.str()};
+	    }
+	    kmerCutOff -= .1;
+	  }
+	  bestIndex = bestRefs.front();
+	}
+	alignerObj.alignCacheGlobal(refSeqs[bestIndex], getSeqBase(seq));
+
+	//getTrimFront
+	uint32_t trimFront = std::numeric_limits<uint32_t>::max();
+	if('-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+		 '-' == alignerObj.alignObjectA_.seqBase_.seq_.front() ){
+		auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+		trimFront = alignerObj.getSeqPosForAlnBPos(refAlnPos);
+	}else{
+		if('-' == alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() ){
+			getSeqBase(seq).on_ = false;
+		}
+	}
+
+	//getTrimBack
+	uint32_t trimBack = std::numeric_limits<uint32_t>::max();
+	if('-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
+		 '-' == alignerObj.alignObjectA_.seqBase_.seq_.back() ){
+		auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
+		trimBack = alignerObj.getSeqPosForAlnBPos(refAlnPos);
+	}else{
+		if('-' == alignerObj.alignObjectB_.seqBase_.seq_.back() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back() ){
+			getSeqBase(seq).on_ = false;
+		}
+	}
+	if (std::numeric_limits<uint32_t>::max() != trimFront
+			&& std::numeric_limits<uint32_t>::max() != trimBack) {
+		getSeqBase(seq).setClip(trimFront, trimBack);
+	} else if (std::numeric_limits<uint32_t>::max() != trimFront) {
+		getSeqBase(seq).trimFront(trimFront);
+	} else if (std::numeric_limits<uint32_t>::max() != trimBack) {
+		getSeqBase(seq).trimBack(trimBack + 1);
+	}
+}
 
 
 
@@ -366,15 +555,15 @@ void readVecTrimmer::trimEnds(T &read, size_t forwardBases,
 
 template<class T>
 void readVecTrimmer::trimAtSequence(std::vector<T> &reads,
-		seqInfo &reversePrimer, aligner &alignObj, comparison allowableErrors,
-		FullTrimReadsPars::trimSeqPars tSeqPars) {
+		const seqInfo &reversePrimer, aligner &alignObj, const comparison & allowableErrors,
+		const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	bib::for_each(reads,
 			[&](T& read) {trimAtSequence(read, reversePrimer, alignObj, allowableErrors, tSeqPars);});
 }
 
 template<class T>
-void readVecTrimmer::trimAtSequence(T &read, seqInfo &reversePrimer,
-		aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
+void readVecTrimmer::trimAtSequence(T &read, const seqInfo &reversePrimer,
+		aligner &alignObj, const comparison & allowableErrors, const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	trimAtSequence(getSeqBase(read), reversePrimer, alignObj,
 			allowableErrors, tSeqPars);
 }
@@ -382,15 +571,15 @@ void readVecTrimmer::trimAtSequence(T &read, seqInfo &reversePrimer,
 
 template<class T>
 void readVecTrimmer::trimBeforeSequence(std::vector<T> &reads,
-		seqInfo &forwardSeq, aligner &alignObj, comparison allowableErrors,
-		FullTrimReadsPars::trimSeqPars tSeqPars) {
+		const seqInfo &forwardSeq, aligner &alignObj, const comparison & allowableErrors,
+		const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	bib::for_each(reads,
 			[&](T& read) {trimBeforeSequence(read, forwardSeq, alignObj, allowableErrors, tSeqPars);});
 }
 
 template<class T>
-void readVecTrimmer::trimBeforeSequence(T &read, seqInfo &forwardSeq,
-		aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
+void readVecTrimmer::trimBeforeSequence(T &read, const seqInfo &forwardSeq,
+		aligner &alignObj, const comparison & allowableErrors, const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	trimBeforeSequence(getSeqBase(read), forwardSeq, alignObj,
 			allowableErrors, tSeqPars);
 }
@@ -398,16 +587,16 @@ void readVecTrimmer::trimBeforeSequence(T &read, seqInfo &forwardSeq,
 template <class T>
 void readVecTrimmer::trimBetweenSequences(
 		std::vector<T> &reads,
-					seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
-					comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
+					const seqInfo &forwardSeq, const seqInfo &backSeq, aligner &alignObj,
+					const comparison & allowableErrors, const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	bib::for_each(reads, [&](T& read){ trimBetweenSequences(read, forwardSeq,backSeq, alignObj, allowableErrors) ;});
   return;
 }
 
 template <class T>
 void readVecTrimmer::trimBetweenSequences(T &read,
-		seqInfo &forwardSeq, seqInfo &backSeq, aligner &alignObj,
-							comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars){
+		const seqInfo &forwardSeq, const seqInfo &backSeq, aligner &alignObj,
+							const comparison & allowableErrors, const FullTrimReadsPars::trimSeqPars & tSeqPars){
 	trimBetweenSequences(getSeqBase(read), forwardSeq, backSeq, alignObj, allowableErrors, tSeqPars);
 	return;
 }
@@ -447,7 +636,7 @@ void readVecTrimmer::trimEndsOfReadsToSharedSeq(std::vector<T> &reads,
 
 template<typename T>
 void readVecTrimmer::trimToMostCommonKmer(std::vector<T> & seqs,
-		FullTrimReadsPars pars,
+		const FullTrimReadsPars  & pars,
 		aligner &alignObj) {
 
 	std::vector<kmerInfo> kInfos;
@@ -492,20 +681,22 @@ void readVecTrimmer::trimToMostCommonKmer(std::vector<T> & seqs,
 		}
 	}
 	seqInfo bestSeq(bestK + ":" + estd::to_string(bestProb), bestK);
-  pars.tSeqPars_.within_ = pars.windowLength + 5;
-  for(auto & seq : seqs){
-  	//skip if the length was too small
-  	if(!getSeqBase(seq).on_){
-  		continue;
-  	}
+
+	auto parsCopy = pars.tSeqPars_;
+	parsCopy.within_ = pars.windowLength + 5;
+	for (auto & seq : seqs) {
+		//skip if the length was too small
+		if (!getSeqBase(seq).on_) {
+			continue;
+		}
 		readVecTrimmer::trimAtSequence(getSeqBase(seq), bestSeq, alignObj,
-				pars.allowableErrors, pars.tSeqPars_);
-  }
+				pars.allowableErrors, parsCopy);
+	}
 }
 
 template<typename T>
 void readVecTrimmer::trimFromMostCommonKmer(std::vector<T> & seqs,
-		FullTrimReadsPars pars,
+		const FullTrimReadsPars & pars,
 		aligner &alignObj) {
 
 	std::vector<kmerInfo> kInfos;
@@ -550,19 +741,20 @@ void readVecTrimmer::trimFromMostCommonKmer(std::vector<T> & seqs,
 		}
 	}
 	seqInfo bestSeq(bestK + ":" + estd::to_string(bestProb), bestK);
-  pars.tSeqPars_.within_ = pars.windowLength + 5;
+	auto parsCopy = pars.tSeqPars_;
+	parsCopy.within_ = pars.windowLength + 5;
   for(auto & seq : seqs){
   	//skip if the length was too small
   	if(!getSeqBase(seq).on_){
   		continue;
   	}
 		readVecTrimmer::trimBeforeSequence(getSeqBase(seq), bestSeq, alignObj,
-				pars.allowableErrors, pars.tSeqPars_);
+				pars.allowableErrors, parsCopy);
   }
 }
 
 template<typename T>
-void readVecTrimmer::trimBetweenMostCommonKmers(std::vector<T> & seqs, FullTrimReadsPars pars,
+void readVecTrimmer::trimBetweenMostCommonKmers(std::vector<T> & seqs, const FullTrimReadsPars & pars,
 		aligner &alignObj) {
 	trimFromMostCommonKmer(seqs, pars, alignObj);
 	bib::for_each(seqs, [](T & seq) {getSeqBase(seq).on_ = true;});

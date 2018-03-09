@@ -76,6 +76,9 @@ size_t getRealPosForAlnPos(const std::string & seq, size_t seqAlnPos) {
 				<< seq.size() << ", seqAlnPos: " << seqAlnPos << std::endl;
 		throw std::runtime_error { ss.str() };
 	}
+	if(seq.find_first_not_of('-') >=seqAlnPos){
+		return 0;
+	}
 	size_t realPos = 0;
 	for (size_t i = 0; i <= seqAlnPos; ++i) {
 		if ('-' != seq[i]) {

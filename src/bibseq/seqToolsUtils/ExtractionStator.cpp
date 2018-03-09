@@ -34,6 +34,11 @@ ExtractionStator::ExtractionStator() {
 
 }
 
+uint32_t ExtractionStator::extractCounts::getTotal() const {
+	return good_ + bad_ + contamination_;
+}
+
+
 ExtractionStator::ExtractionStator(uint32_t totalReadCount,
 		uint32_t readsUnrecBarcode, uint32_t readsUnrecBarcodePosContamination,
 		uint32_t smallFrags) :
@@ -41,6 +46,8 @@ ExtractionStator::ExtractionStator(uint32_t totalReadCount,
 				readsUnrecBarcodePosContamination), smallFrags_(smallFrags) {
 
 }
+
+
 
 
 void ExtractionStator::increaseFailedForward(const std::string & midName, const std::string & seqName){
@@ -54,6 +61,10 @@ void ExtractionStator::increaseCounts(const std::string & midName, const std::st
 	switch (eCase) {
 	case extractCase::GOOD:
 		++counts_[midName][rComp].good_;
+		break;
+	case extractCase::MISMATCHPRIMERS:
+		++counts_[midName][rComp].bad_;
+		++counts_[midName][rComp].mismatchPrimers_;
 		break;
 	case extractCase::BADREVERSE:
 		++counts_[midName][rComp].bad_;

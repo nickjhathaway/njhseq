@@ -140,6 +140,60 @@ bib::sys::RunOutput BioCmdsUtils::runCmdCheck(const std::string & cmd,
 	return bib::sys::RunOutput();
 }
 
+
+bib::sys::RunOutput BioCmdsUtils::bowtie2AlignNoSort(const SeqIOOptions & opts,
+		const bfs::path & genomeFnp, std::string additionalBowtie2Args) const {
+
+	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
+	bfs::path outputFnp = bib::appendAsNeededRet(opts.out_.outFilename_.string(),
+			".bam");
+	auto outputFnpTempSam = bib::appendAsNeededRet(opts.out_.outFilename_.string(),
+			".sam");
+	if (bfs::exists(outputFnpTempSam) && !opts.out_.overWriteFile_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": error, " << outputFnp
+				<< " already exists, use --overWrite to over write it" << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	if (bfs::exists(outputFnp) && !opts.out_.overWriteFile_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": error, " << outputFnp
+				<< " already exists, use --overWrite to over write it" << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	RunBowtie2Index(genomeFnp);
+	auto genomePrefix = genomeFnp;
+	genomePrefix.replace_extension("");
+	std::stringstream templateCmd;
+	if(SeqIOOptions::inFormats::FASTA == opts.inFormat_){
+		additionalBowtie2Args += " -f ";
+	}
+
+	if(opts.isPairedIn()){
+		templateCmd << "bowtie2 -1 " << opts.firstName_ << " -2 " << opts.secondName_ << " -x " << genomePrefix
+				<< " " <<  additionalBowtie2Args << " > " << outputFnpTempSam;
+	}else{
+		templateCmd << "bowtie2 -U " << opts.firstName_ << " -x " << genomePrefix
+				<< " " <<  additionalBowtie2Args << " > " << outputFnpTempSam;
+	}
+	if (verbose_) {
+		std::cout << "Running: " << bib::bashCT::green << templateCmd.str()
+				<< bib::bashCT::reset << std::endl;
+	}
+	auto ret = bib::sys::run( { templateCmd.str() });
+	BioCmdsUtils::checkRunOutThrow(ret, __PRETTY_FUNCTION__);
+	std::stringstream samtoolsCmds;
+	samtoolsCmds << "samtools view " << outputFnpTempSam << " -o " << outputFnp;
+	if (verbose_) {
+		std::cout << "Running: " << bib::bashCT::green << samtoolsCmds.str()
+				<< bib::bashCT::reset << std::endl;
+	}
+	auto samtoolsRunOut = bib::sys::run( { samtoolsCmds.str() });
+	BioCmdsUtils::checkRunOutThrow(samtoolsRunOut, __PRETTY_FUNCTION__);
+	bfs::remove(outputFnpTempSam);
+	return ret;
+}
+
 bib::sys::RunOutput BioCmdsUtils::bowtie2Align(const SeqIOOptions & opts,
 		const bfs::path & genomeFnp, std::string additionalBowtie2Args) const {
 
@@ -216,7 +270,7 @@ bib::sys::RunOutput BioCmdsUtils::lastzAlign(const SeqIOOptions & opts, const La
 	std::stringstream lastzCmd;
 	lastzCmd << "lastz " << pars.genomeFnp << "[multiple] "
 			<< opts.firstName_ << " --format=" << pars.outFormat
-			<< " --coverage=" << pars.coverage << " --identity=" << pars.identity << " "
+			<< " --coverage=" << pars.coverage << " --identity=" << pars.identity << " --ambiguous=iupac "
 			<< pars.extraLastzArgs << " | samtools view - -b | samtools sort - -o "
 			<< outputFnp << " " << "&& samtools index "
 			<< outputFnp;
@@ -252,7 +306,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 	}
 	bib::sys::requireExternalProgramThrow(fastqDumpCmd_);
 	std::stringstream cmd;
-	cmd <<  fastqDumpCmd_ << " --log-level 0 -X 1 -Z --split-spot " << pars.sraFnp_;
+	cmd << fastqDumpCmd_ << " --log-level 0 -X 1 -Z --split-spot " << pars.sraFnp_;
 	auto cmdOutput = bib::sys::run({cmd.str()});
 	BioCmdsUtils::checkRunOutThrow(cmdOutput, __PRETTY_FUNCTION__);
 	//bib::sys::run trim end white space so have to add one;
@@ -286,6 +340,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 
 	bool needToRun = true;
 	ret.firstMateFnp_ = checkFile1;
+	//std::cout << "newLines: " << newLines << std::endl;
 	if (4 == newLines) {
 		ret.isPairedEnd_ = false;
 		if(bfs::exists(checkFile1) &&
@@ -314,7 +369,6 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					bib::files::firstFileIsOlder(pars.sraFnp_, checkFileBarcodes)){
 				needToRun = false;
 			}
-
 		}else{
 			if(bfs::exists(checkFile1) &&
 					bfs::exists(checkFile2) &&
@@ -361,7 +415,6 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					bfs::copy(currentBarcodeFnp, checkFileBarcodes);
 				}
 			}
-
 			IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
 					checkFile1) };
 			firstMateIoOpts.out_.overWriteFile_ = true;
@@ -389,25 +442,57 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					gzBarcodeTh->join();
 				}
 			}
-		}else if(4 == newLines){
+		} else if(4 == newLines){
 			if(pars.gzip_){
 				IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
 						checkFile1) };
 				firstMateIoOpts.out_.overWriteFile_ = true;
 				zipFile(firstMateIoOpts);
 			}
-		}else if(8 == newLines){
-			if(pars.gzip_){
+		} else if(8 == newLines){
+			//so a couple of samples were found to have a _1 and _3 file for when there were 8 lines, no barcode _2 file present
+			bfs::path properSecondMate = bib::files::replaceExtension(outputStub, "_2.fastq");
+			bfs::path possibleSecondMate = bib::files::replaceExtension(outputStub, "_3.fastq");
+			if(bfs::exists(possibleSecondMate) && !bfs::exists(properSecondMate)){
 				IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
 						checkFile1) };
 				firstMateIoOpts.out_.overWriteFile_ = true;
-				IoOptions secondMateIoOpts { InOptions(orgSecondMateFnp), OutOptions(
-						checkFile2) };
-				secondMateIoOpts.out_.overWriteFile_ = true;
-				std::thread firstMateTh(zipFile, firstMateIoOpts);
-				std::thread secondMateTh(zipFile, secondMateIoOpts);
-				firstMateTh.join();
-				secondMateTh.join();
+				std::unique_ptr<std::thread> gzFirstMateTh;
+				if (pars.gzip_) {
+					gzFirstMateTh = std::make_unique<std::thread>(zipFile,
+							firstMateIoOpts);
+				}
+				bfs::path currentSecondMateFnp = bib::files::replaceExtension(
+						outputStub, "_3.fastq");
+				auto secondMateIn = SeqIOOptions::genFastqIn(currentSecondMateFnp);
+				SeqInput reader { secondMateIn };
+				seqInfo seq;
+				OutOptions secondMateOutOpts(checkFile2);
+				secondMateOutOpts.overWriteFile_ = true;
+				OutputStream secondMateOut(secondMateOutOpts);
+				reader.openIn();
+				while (reader.readNextRead(seq)) {
+					seq.name_.back() = '2';
+					seq.outPutFastq(secondMateOut);
+				}
+				reader.closeIn();
+				bfs::remove(currentSecondMateFnp);
+				if (pars.gzip_) {
+					gzFirstMateTh->join();
+				}
+			} else {
+				if(pars.gzip_){
+					IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
+							checkFile1) };
+					firstMateIoOpts.out_.overWriteFile_ = true;
+					IoOptions secondMateIoOpts { InOptions(orgSecondMateFnp), OutOptions(
+							checkFile2) };
+					secondMateIoOpts.out_.overWriteFile_ = true;
+					std::thread firstMateTh(zipFile, firstMateIoOpts);
+					std::thread secondMateTh(zipFile, secondMateIoOpts);
+					firstMateTh.join();
+					secondMateTh.join();
+				}
 			}
 		}
 	}

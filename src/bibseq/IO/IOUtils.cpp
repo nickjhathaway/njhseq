@@ -19,8 +19,29 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "IOUtils.hpp"
+#include "bibseq/IO/OutputStream.hpp"
+#include "bibseq/IO/InputStream.hpp"
+
+
 
 namespace bibseq {
+
+VecStr getInputValues(const std::string & valuesStr, const std::string & delim){
+	VecStr ret;
+	if("" == valuesStr){
+		return ret;
+	}
+	if (bfs::path(valuesStr).filename().string().length() <= 255 && bfs::exists(valuesStr)) {
+		InputStream infile{bfs::path(valuesStr)};
+		std::string line = "";
+		while(bib::files::crossPlatGetline(infile, line)){
+			ret.emplace_back(line);
+		}
+	}else{
+		ret = tokenizeString(valuesStr, delim);
+	}
+	return ret;
+}
 
 
 void gzZipFile(const IoOptions & opts){

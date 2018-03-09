@@ -57,6 +57,9 @@ class aligner {
 
 
 
+	void setGapScoring(const gapScoringParameters & gapPars);
+	//void setMatchScoring(const substituteMatrix& subMatrix);
+
   // to hold the sequence alignments
   baseReadObject alignObjectA_;
   baseReadObject alignObjectB_;
@@ -87,6 +90,8 @@ class aligner {
 	void alignScoreCacheLocal(const std::string& firstSeq,
 			const std::string& secondSeq);
 	void alignScoreGlobal(const std::string& firstSeq, const std::string& secondSeq);
+	void alignScoreGlobalNoInternalGaps(const std::string& firstSeq, const std::string& secondSeq);
+
 	void alignScoreCacheGlobal(const std::string& firstSeq,
 			const std::string& secondSeq);
 
@@ -117,10 +122,30 @@ class aligner {
 		alignCache(getSeqBase(ref), getSeqBase(read), local);
 	}
 
-
-	void alignReg(const baseReadObject & ref, const baseReadObject & read,
-			bool local);
+	template<typename READ1, typename READ2>
+	void alignReg(const READ1 & ref, const READ2 & read, bool local){
+		alignReg(getSeqBase(ref), getSeqBase(read), local);
+	}
 	void alignReg(const seqInfo & ref, const seqInfo & read, bool local);
+
+	template<typename READ1, typename READ2>
+	void alignRegGlobal(const READ1 & ref, const READ2 & read){
+		alignRegGlobal(getSeqBase(ref), getSeqBase(read));
+	}
+	void alignRegGlobal(const seqInfo & ref, const seqInfo & read);
+
+	template<typename READ1, typename READ2>
+	void alignRegGlobalNoInternalGaps(const READ1 & ref, const READ2 & read){
+		alignRegGlobalNoInternalGaps(getSeqBase(ref), getSeqBase(read));
+	}
+	void alignRegGlobalNoInternalGaps(const seqInfo & ref, const seqInfo & read);
+
+
+	template<typename READ1, typename READ2>
+	void alignRegLocal(const READ1 & ref, const READ2 & read){
+		alignRegLocal(getSeqBase(ref), getSeqBase(read));
+	}
+	void alignRegLocal(const seqInfo & ref, const seqInfo & read);
 
 	std::pair<uint32_t, uint32_t> findReversePrimer(const std::string& read,
 			const std::string& primer);
@@ -213,8 +238,8 @@ class aligner {
 	static std::vector<TandemRepeat> findTandemRepeatsInSequence(
 			const std::string& str, int match = 2, int mismatch = -2, int gap = -7,
 			int minimumAlignScore = 50);
-	static TandemRepeat findTandemRepeatOfStrInSequence(std::string str,
-			std::string tandem, int match = 2, int mismatch = -2, int gap = -7,
+	static TandemRepeat findTandemRepeatOfStrInSequence(const std::string & str,
+			const std::string & tandem, int match = 2, int mismatch = -2, int gap = -7,
 			int minimumAlignScore = 50);
 	static TandemRepeat findTandemRepeatOfStrInSequenceDegen(std::string str,
 			std::string tandem, int match = 2, int mismatch = -2, int gap = -7,

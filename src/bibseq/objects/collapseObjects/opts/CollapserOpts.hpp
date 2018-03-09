@@ -18,6 +18,7 @@ struct ChimeraOpts {
 	comparison chiOverlap_;
 	uint32_t overLapSizeCutoff_ = 5;
 	bool checkChimeras_ = false;
+	bool keepLowQaulityMismatches_ = false;
 
 };
 

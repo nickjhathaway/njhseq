@@ -392,9 +392,11 @@ bool seqInfo::checkQual(uint32_t pos, const QualScorePars & qScorePars) const {
 	if (!checkPrimaryQual(pos, qScorePars.primaryQual_)) {
 		return false;
 	}
-	if (!checkLeadQual(pos, qScorePars.secondaryQual_, qScorePars.qualThresWindow_)
-			|| !checkTrailQual(pos, qScorePars.secondaryQual_, qScorePars.qualThresWindow_)) {
-		return false;
+	if(0 != qScorePars.qualThresWindow_){
+		if (!checkLeadQual(pos, qScorePars.secondaryQual_, qScorePars.qualThresWindow_)
+				|| !checkTrailQual(pos, qScorePars.secondaryQual_, qScorePars.qualThresWindow_)) {
+			return false;
+		}
 	}
 	return true;
 }

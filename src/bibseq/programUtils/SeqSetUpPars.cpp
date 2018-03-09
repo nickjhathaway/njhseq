@@ -95,26 +95,33 @@ void SeqSetUpPars::initializeDefaults() {
   gapInfoRef_.processGapStr(gapRef_, gapInfoRef_.gapOpen_, gapInfoRef_.gapExtend_);
 
   gapLeftRef_ = "0,0";
-  gapInfoRef_.processGapStr(gapLeftRef_, gapInfoRef_.gapLeftOpen_, gapInfoRef_.gapLeftExtend_);
+  gapInfoRef_.processGapStr(gapLeftRef_, gapInfoRef_.gapLeftQueryOpen_, gapInfoRef_.gapLeftQueryExtend_);
+  gapInfoRef_.processGapStr(gapLeftRef_, gapInfoRef_.gapLeftRefOpen_, gapInfoRef_.gapLeftRefExtend_);
 
   gapRightRef_ = "0,0";
-  gapInfoRef_.processGapStr(gapRightRef_, gapInfoRef_.gapRightOpen_, gapInfoRef_.gapRightExtend_);
+  gapInfoRef_.processGapStr(gapRightRef_, gapInfoRef_.gapRightQueryOpen_, gapInfoRef_.gapRightQueryExtend_);
+  gapInfoRef_.processGapStr(gapRightRef_, gapInfoRef_.gapRightRefOpen_, gapInfoRef_.gapRightRefExtend_);
   gapInfoRef_.setIdentifer();
   //
   gap_ = "5,1";
   gapInfo_.processGapStr(gap_, gapInfo_.gapOpen_, gapInfo_.gapExtend_);
 
   gapLeft_ = "5,1";
-  gapInfo_.processGapStr(gapLeft_, gapInfo_.gapLeftOpen_, gapInfo_.gapLeftExtend_);
+  gapInfo_.processGapStr(gapLeft_, gapInfo_.gapLeftQueryOpen_, gapInfo_.gapLeftQueryExtend_);
+  gapInfo_.processGapStr(gapLeft_, gapInfo_.gapLeftRefOpen_, gapInfo_.gapLeftRefExtend_);
 
   gapRight_ = "0,0";
-  gapInfo_.processGapStr(gapRight_, gapInfo_.gapRightOpen_, gapInfo_.gapRightExtend_);
+  gapInfo_.processGapStr(gapRight_, gapInfo_.gapRightQueryOpen_, gapInfo_.gapRightQueryExtend_);
+  gapInfo_.processGapStr(gapRight_, gapInfo_.gapRightRefOpen_, gapInfo_.gapRightRefExtend_);
   gapInfo_.setIdentifer();
   //
   local_ = false;
   generalMatch_ = 2;
   generalMismatch_ = -2;
   scoring_ = substituteMatrix::createDegenScoreMatrix(1,-1);
+	degenScoring_ = false;
+	caseInsensitiveScoring_ = false;
+	lessNScoring_ = false;
   //
   colOpts_.alignOpts_.countEndGaps_ = false;
   colOpts_.iTOpts_.weighHomopolyer_ = true;

@@ -359,14 +359,14 @@ void collapser::runClustering(std::vector<CLUSTER> &currentClusters,
 
 template<typename READ>
 table collapser::markChimeras(std::vector<READ> &processedReads,
-                                 aligner &alignerObj,
-																 const ChimeraOpts & chiOpts) const{
-	table ret(VecStr{"read", "parent1", "parent1SeqPos", "parent2", "parent2SeqPos"});
+		aligner &alignerObj, const ChimeraOpts & chiOpts) const {
+	table ret(VecStr { "read", "parent1", "parent1SeqPos", "parent2",
+			"parent2SeqPos" });
 	//assumes clusters are coming in sorted by total count
-	if(processedReads.size() <=2){
+	if (processedReads.size() <= 2) {
 		return ret;
 	}
-	if(opts_.verboseOpts_.verbose_){
+	if (opts_.verboseOpts_.verbose_) {
 		std::cout << "Marking Chimeras" << std::endl;
 		std::cout << "Initial Pass" << std::endl;
 	}
@@ -378,21 +378,25 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 		}
 		//skip if the clusters to investigate fall below or is equal to the run cut off
 		//normally set to 1 as singlets are going to be thrown out anyways
-		if(getSeqBase(processedReads[subPos]).cnt_ <= chiOpts.runCutOff_){
+		if (getSeqBase(processedReads[subPos]).cnt_ <= chiOpts.runCutOff_) {
 			continue;
 		}
 		std::multimap<size_t, size_t> endChiPos;
 		std::multimap<size_t, size_t> frontChiPos;
 		//pos is the position of the possible parents
 		for (const auto &pos : iter::range<size_t>(0, subPos)) {
-			if(opts_.verboseOpts_.verbose_ && opts_.verboseOpts_.debug_){
+			if (opts_.verboseOpts_.verbose_ && opts_.verboseOpts_.debug_) {
 				std::cout << std::endl;
 				std::cout << getSeqBase(processedReads[pos]).name_ << std::endl;
 				std::cout << getSeqBase(processedReads[subPos]).name_ << std::endl;
-				std::cout << "getSeqBase(processedReads[pos]).cnt_" << getSeqBase(processedReads[pos]).cnt_ << std::endl;
-				std::cout << "getSeqBase(processedReads[pos]).frac_" << getSeqBase(processedReads[pos]).frac_ << std::endl;
-				std::cout << "getSeqBase(processedReads[subPos]).cnt_" << getSeqBase(processedReads[subPos]).cnt_ << std::endl;
-				std::cout << "getSeqBase(processedReads[subPos]).frac_" << getSeqBase(processedReads[subPos]).frac_ << std::endl;
+				std::cout << "getSeqBase(processedReads[pos]).cnt_"
+						<< getSeqBase(processedReads[pos]).cnt_ << std::endl;
+				std::cout << "getSeqBase(processedReads[pos]).frac_"
+						<< getSeqBase(processedReads[pos]).frac_ << std::endl;
+				std::cout << "getSeqBase(processedReads[subPos]).cnt_"
+						<< getSeqBase(processedReads[subPos]).cnt_ << std::endl;
+				std::cout << "getSeqBase(processedReads[subPos]).frac_"
+						<< getSeqBase(processedReads[subPos]).frac_ << std::endl;
 			}
 			//skip if the proportion of reads is less than parentFreqs
 			if ((getSeqBase(processedReads[pos]).cnt_
@@ -400,7 +404,8 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 				continue;
 			}
 			//skip if the same exact sequence
-			if(getSeqBase(processedReads[pos]).seq_ == getSeqBase(processedReads[subPos]).seq_){
+			if (getSeqBase(processedReads[pos]).seq_
+					== getSeqBase(processedReads[subPos]).seq_) {
 				continue;
 			}
 			//global align
@@ -414,30 +419,35 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 				std::cout << "alignerObj.alignmentGaps_.size()"
 						<< alignerObj.comp_.distances_.alignmentGaps_.size() << std::endl;
 			}
-    	std::map<uint32_t, mismatch> savedMismatches = alignerObj.comp_.distances_.mismatches_;
-    	//remove any low quality errors
-    	std::vector<uint32_t> lowQualMismatches;
-    	for(const auto & mis : savedMismatches){
-    		if(!mis.second.highQuality(alignerObj.qScorePars_)){
-    			lowQualMismatches.emplace_back(mis.first);
-    		}
-    	}
-    	for(const auto & er : lowQualMismatches){
-    		savedMismatches.erase(er);
-    	}
-      if (alignerObj.comp_.distances_.mismatches_.size() > 0
-      		|| alignerObj.comp_.twoBaseIndel_ > 0
-					|| alignerObj.comp_.largeBaseIndel_ > 0) {
-      	//save the current mismatches and gap infos
+			std::map<uint32_t, mismatch> savedMismatches =
+					alignerObj.comp_.distances_.mismatches_;
+			//remove any low quality errors
+			if (!chiOpts.keepLowQaulityMismatches_) {
+				std::vector<uint32_t> lowQualMismatches;
+				for (const auto & mis : savedMismatches) {
+					if (!mis.second.highQuality(alignerObj.qScorePars_)) {
+						lowQualMismatches.emplace_back(mis.first);
+					}
+				}
+				for (const auto & er : lowQualMismatches) {
+					savedMismatches.erase(er);
+				}
+			}
 
-      	auto savedGapInfo = alignerObj.comp_.distances_.alignmentGaps_;
-      	size_t frontPos = 0;
-      	size_t endPos = std::numeric_limits<size_t>::max();
-      	if(savedMismatches.size() > 0){
-        	bool passEnd = true;
-        	bool passFront = true;
+			if (alignerObj.comp_.distances_.mismatches_.size() > 0
+					|| alignerObj.comp_.twoBaseIndel_ > 0
+					|| alignerObj.comp_.largeBaseIndel_ > 0) {
+				//save the current mismatches and gap infos
+
+				auto savedGapInfo = alignerObj.comp_.distances_.alignmentGaps_;
+				size_t frontPos = 0;
+				size_t endPos = std::numeric_limits<size_t>::max();
+				if (savedMismatches.size() > 0) {
+					bool passEnd = true;
+					bool passFront = true;
 					//check front until first mismatch
-					if (savedMismatches.begin()->second.seqBasePos + 1 <= chiOpts.overLapSizeCutoff_) {
+					if (savedMismatches.begin()->second.seqBasePos + 1
+							<= chiOpts.overLapSizeCutoff_) {
 						passFront = false;
 					} else {
 						alignerObj.profileAlignment(processedReads[pos],
@@ -447,7 +457,7 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 						if (passFront) {
 							frontPos = savedMismatches.begin()->second.seqBasePos;
 							//processedReads[subPos].frontChiPos.insert( {
-								//	savedMismatches.begin()->second.seqBasePos, pos });
+							//	savedMismatches.begin()->second.seqBasePos, pos });
 						}
 					}
 					//check end from last mismatch
@@ -469,102 +479,111 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 					}
 				}
 
-      	if(savedGapInfo.size() > 0){
-          //check front until first large gap
-          for(const auto & g : savedGapInfo){
-          	if(g.second.size_ <=1){
-          		continue;
-          	}
-          	if(g.second.seqPos_ + 1 <= chiOpts.overLapSizeCutoff_){
-          		continue;
-          	}
-  					alignerObj.profileAlignment(processedReads[pos],
-  							processedReads[subPos], false, true, false,
-								0, g.second.startPos_);
-  					if (chiOpts.chiOverlap_.passErrorProfile(alignerObj.comp_)) {
-  						size_t gapPos = getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_);
-  						if(gapPos > frontPos){
-  							frontPos = gapPos;
-  						}
-  						//processedReads[subPos].frontChiPos.insert(
-  						//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_), pos });
-  					}
-          	break;
-          }
+				if (savedGapInfo.size() > 0) {
+					//check front until first large gap
+					for (const auto & g : savedGapInfo) {
+						if (g.second.size_ <= 1) {
+							continue;
+						}
+						if (g.second.seqPos_ + 1 <= chiOpts.overLapSizeCutoff_) {
+							continue;
+						}
+						alignerObj.profileAlignment(processedReads[pos],
+								processedReads[subPos], false, true, false, 0,
+								g.second.startPos_);
+						if (chiOpts.chiOverlap_.passErrorProfile(alignerObj.comp_)) {
+							size_t gapPos = getRealPosForAlnPos(
+									alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_);
+							if (gapPos > frontPos) {
+								frontPos = gapPos;
+							}
+							//processedReads[subPos].frontChiPos.insert(
+							//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_), pos });
+						}
+						break;
+					}
 
-  				//check end from last large gap
-  				for (const auto & g : iter::reversed(savedGapInfo)) {
-  					if (g.second.size_ <= 1) {
-  						continue;
-  					}
-  					if(len(getSeqBase(processedReads[subPos])) - (g.second.seqPos_ + g.second.size_) <= chiOpts.overLapSizeCutoff_){
-  						continue;
-  					}
-  					alignerObj.profileAlignment(processedReads[pos],
-  							processedReads[subPos], false, true, false,
+					//check end from last large gap
+					for (const auto & g : iter::reversed(savedGapInfo)) {
+						if (g.second.size_ <= 1) {
+							continue;
+						}
+						if (len(getSeqBase(processedReads[subPos]))
+								- (g.second.seqPos_ + g.second.size_)
+								<= chiOpts.overLapSizeCutoff_) {
+							continue;
+						}
+						alignerObj.profileAlignment(processedReads[pos],
+								processedReads[subPos], false, true, false,
 								g.second.startPos_ + g.second.size_);
 
-  					if (chiOpts.chiOverlap_.passErrorProfile(alignerObj.comp_)) {
-  						size_t gapPos = 0;
-  						if (g.second.ref_) {
-  							gapPos = getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,g.second.startPos_) + g.second.size_ - 1;
-  							//processedReads[subPos].endChiPos.insert(
-  							//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
-  							//				g.second.startPos_) + g.second.size_ - 1, pos });
-  						} else {
-  							/**@todo something else should probably happen if this is 0 */
-  							if (0
-  									== getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
-  											g.second.startPos_)) {
-  								gapPos = getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_);
-  								//processedReads[subPos].endChiPos.insert(
-  								//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
-  								//				g.second.startPos_), pos });
-  							} else {
-  								gapPos = getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_) - 1;
-  								//processedReads[subPos].endChiPos.insert(
-  								//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
-  								//				g.second.startPos_) - 1, pos });
-  							}
-  						}
-  						if(gapPos < endPos){
-  							endPos = gapPos;
-  						}
-  					}
-  					break;
-  				}
-      	} // pass gaps size > 0
-      	//check to see if we have an endPos
-      	if(std::numeric_limits<size_t>::max() != endPos){
-      		endChiPos.insert({endPos, pos});
-      	}
-      	//check to see if we have a frontPos
-				if (0 != frontPos) {
-					frontChiPos.insert({frontPos, pos});
+						if (chiOpts.chiOverlap_.passErrorProfile(alignerObj.comp_)) {
+							size_t gapPos = 0;
+							if (g.second.ref_) {
+								gapPos = getRealPosForAlnPos(
+										alignerObj.alignObjectB_.seqBase_.seq_, g.second.startPos_)
+										+ g.second.size_ - 1;
+								//processedReads[subPos].endChiPos.insert(
+								//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
+								//				g.second.startPos_) + g.second.size_ - 1, pos });
+							} else {
+								/**@todo something else should probably happen if this is 0 */
+								if (0
+										== getRealPosForAlnPos(
+												alignerObj.alignObjectB_.seqBase_.seq_,
+												g.second.startPos_)) {
+									gapPos = getRealPosForAlnPos(
+											alignerObj.alignObjectB_.seqBase_.seq_,
+											g.second.startPos_);
+									//processedReads[subPos].endChiPos.insert(
+									//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
+									//				g.second.startPos_), pos });
+								} else {
+									gapPos = getRealPosForAlnPos(
+											alignerObj.alignObjectB_.seqBase_.seq_,
+											g.second.startPos_) - 1;
+									//processedReads[subPos].endChiPos.insert(
+									//		{ getRealPosForAlnPos(alignerObj.alignObjectB_.seqBase_.seq_,
+									//				g.second.startPos_) - 1, pos });
+								}
+							}
+							if (gapPos < endPos) {
+								endPos = gapPos;
+							}
+						}
+						break;
+					}
+				} // pass gaps size > 0
+				//check to see if we have an endPos
+				if (std::numeric_limits<size_t>::max() != endPos) {
+					endChiPos.insert( { endPos, pos });
 				}
-      } // pass has errors
+				//check to see if we have a frontPos
+				if (0 != frontPos) {
+					frontChiPos.insert( { frontPos, pos });
+				}
+			} // pass has errors
 		} // pos loop
 
-
-		if(!endChiPos.empty() && ! frontChiPos.empty()){
-			if(endChiPos.begin()->first < frontChiPos.rbegin()-> first){
+		if (!endChiPos.empty() && !frontChiPos.empty()) {
+			if (endChiPos.begin()->first < frontChiPos.rbegin()->first) {
 				getSeqBase(processedReads[subPos]).markAsChimeric();
 				size_t endReadMinPos = endChiPos.begin()->second;
-				for(const auto & end : endChiPos){
-					if(end.first != endChiPos.begin()->first){
+				for (const auto & end : endChiPos) {
+					if (end.first != endChiPos.begin()->first) {
 						break;
-					}else{
-						if(end.second < endReadMinPos){
+					} else {
+						if (end.second < endReadMinPos) {
 							endReadMinPos = end.second;
 						}
 					}
 				}
 				size_t frontReadMinPos = frontChiPos.rbegin()->second;
-				for(const auto & front : iter::reversed(frontChiPos)){
-					if(front.first != frontChiPos.rbegin()->first){
+				for (const auto & front : iter::reversed(frontChiPos)) {
+					if (front.first != frontChiPos.rbegin()->first) {
 						break;
-					}else{
-						if(front.second < frontReadMinPos){
+					} else {
+						if (front.second < frontReadMinPos) {
 							frontReadMinPos = front.second;
 						}
 					}
@@ -577,11 +596,11 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 								endChiPos.begin()->first));
 			} // is chimeric loop
 		}
-  } // subPos loop
-  if(opts_.verboseOpts_.verbose_){
-  	std::cout << std::endl;
-  }
-  return ret;
+	} // subPos loop
+	if (opts_.verboseOpts_.verbose_) {
+		std::cout << std::endl;
+	}
+	return ret;
 }
 
 }  // namespace bib

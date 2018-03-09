@@ -230,4 +230,23 @@ void SeqOutput::seekpSec(size_t pos){
 	secondaryOut_->seekp(pos);
 }
 
+bfs::path SeqOutput::getPrimaryOutFnp() const{
+	if(nullptr == primaryOut_){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error primaryOut_ is not currently set" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	return primaryOut_->outOpts_.outName();
+}
+
+bfs::path SeqOutput::getSecondaryOutFnp() const{
+	if(nullptr == secondaryOut_){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error primaryOut_ is not currently set" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	return secondaryOut_->outOpts_.outName();
+
+}
+
 }  // namespace bibseq

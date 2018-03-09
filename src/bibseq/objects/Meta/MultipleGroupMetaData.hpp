@@ -8,6 +8,7 @@
 
 #include "bibseq/objects/Meta/GroupMetaData.hpp"
 #include "bibseq/objects/Meta/MetaDataInName.hpp"
+#include "bibseq/objects/dataContainers/tables/table.hpp"
 
 namespace bibseq {
 
@@ -106,6 +107,12 @@ public:
 	MetaDataInName getMetaForSample(const std::string & name, const VecStr & fields) const;
 	MetaDataInName genNaMeta(const VecStr & fields) const;
 
+
+	table leftJoinWithMeta(const table & sampleTable,
+			const std::string & sampleColumn) const;
+
+
+	table leftJoinWithMeta(const table & sampleTable) const;
 };
 
 }  // namespace bibseq

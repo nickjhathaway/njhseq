@@ -46,10 +46,13 @@ alnParts::alnParts()
           maxSize_, std::vector<scoreMatrixCell>(maxSize_))) {}
 
 void alnParts::setMaxSize(uint64_t maxSize){
-	maxSize_ = maxSize + 50;
-	ScoreMatrix_ = std::vector<std::vector<scoreMatrixCell>>(
-      maxSize_, std::vector<scoreMatrixCell>(maxSize_));
-
+	if(maxSize + 50 > maxSize_){
+		maxSize_ = maxSize + 50;
+		ScoreMatrix_.clear();
+		auto temp = std::vector<std::vector<scoreMatrixCell>>(
+	      maxSize_, std::vector<scoreMatrixCell>(maxSize_));
+		ScoreMatrix_ = temp;
+	}
 }
 
 }  // namespace bibseq

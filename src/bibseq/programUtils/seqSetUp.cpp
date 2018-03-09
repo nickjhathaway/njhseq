@@ -83,13 +83,17 @@ void seqSetUp::processGap() {
 	}
 	if (setOption(pars_.gapLeft_, "--gapLeft", "Gap Penalties for Left End Gap",
 			false, "Alignment")) {
-		pars_.gapInfo_.processGapStr(pars_.gapLeft_, pars_.gapInfo_.gapLeftOpen_,
-				pars_.gapInfo_.gapLeftExtend_);
+		pars_.gapInfo_.processGapStr(pars_.gapLeft_, pars_.gapInfo_.gapLeftQueryOpen_,
+				pars_.gapInfo_.gapLeftQueryExtend_);
+		pars_.gapInfo_.processGapStr(pars_.gapLeft_, pars_.gapInfo_.gapLeftRefOpen_,
+				pars_.gapInfo_.gapLeftRefExtend_);
 	}
 	if (setOption(pars_.gapRight_, "--gapRight",
 			"Gap Penalties for Right End Gap", false, "Alignment")) {
-		pars_.gapInfo_.processGapStr(pars_.gapRight_, pars_.gapInfo_.gapRightOpen_,
-				pars_.gapInfo_.gapRightExtend_);
+		pars_.gapInfo_.processGapStr(pars_.gapRight_, pars_.gapInfo_.gapRightQueryOpen_,
+				pars_.gapInfo_.gapRightQueryExtend_);
+		pars_.gapInfo_.processGapStr(pars_.gapRight_, pars_.gapInfo_.gapRightRefOpen_,
+				pars_.gapInfo_.gapRightRefExtend_);
 	}
 
 	pars_.gapInfo_.setIdentifer();
@@ -109,10 +113,14 @@ void seqSetUp::processGapRef() {
 		// get the gap penalty
 		pars_.gapInfoRef_.processGapStr(pars_.gapRef_, pars_.gapInfoRef_.gapOpen_,
 				pars_.gapInfoRef_.gapExtend_);
-		pars_.gapInfoRef_.processGapStr(pars_.gapLeftRef_, pars_.gapInfoRef_.gapLeftOpen_,
-				pars_.gapInfoRef_.gapLeftExtend_);
-		pars_.gapInfoRef_.processGapStr(pars_.gapRightRef_, pars_.gapInfoRef_.gapRightOpen_,
-				pars_.gapInfoRef_.gapRightExtend_);
+		pars_.gapInfoRef_.processGapStr(pars_.gapLeftRef_, pars_.gapInfoRef_.gapLeftQueryOpen_,
+				pars_.gapInfoRef_.gapLeftQueryExtend_);
+		pars_.gapInfoRef_.processGapStr(pars_.gapLeftRef_, pars_.gapInfoRef_.gapLeftRefOpen_,
+				pars_.gapInfoRef_.gapLeftRefExtend_);
+		pars_.gapInfoRef_.processGapStr(pars_.gapRightRef_, pars_.gapInfoRef_.gapRightQueryOpen_,
+				pars_.gapInfoRef_.gapRightQueryExtend_);
+		pars_.gapInfoRef_.processGapStr(pars_.gapRightRef_, pars_.gapInfoRef_.gapRightRefOpen_,
+				pars_.gapInfoRef_.gapRightRefExtend_);
 	}
 	pars_.gapInfoRef_.setIdentifer();
 }
@@ -196,25 +204,31 @@ void seqSetUp::processKmerProfilingOptions() {
 void seqSetUp::processScoringPars() {
 	setOption(pars_.local_, "--local", "Local alignment", false, "Alignment");
 	setOption(pars_.colOpts_.alignOpts_.countEndGaps_, "--countEndGaps", "Count End Gaps", false, "Alignment");
-	bool noHomopolymerWeighting = false;
-	setOption(noHomopolymerWeighting, "--noHomopolymerWeighting",
-			"Don't do Homopolymer Weighting", false, "Alignment");
-	pars_.colOpts_.iTOpts_.weighHomopolyer_ = !noHomopolymerWeighting;
+	if (pars_.colOpts_.iTOpts_.weighHomopolyer_) {
+		bool noHomopolymerWeighting = false;
+		setOption(noHomopolymerWeighting, "--noHomopolymerIndelWeighting",
+				"Don't do Homopolymer Weighting", false, "Alignment");
+		pars_.colOpts_.iTOpts_.weighHomopolyer_ = !noHomopolymerWeighting;
+	} else {
+		setOption(pars_.colOpts_.iTOpts_.weighHomopolyer_,
+				"--weighHomopolymerIndels", "Weigh indels in homopolymers differently", false,
+				"Alignment");
+	}
+
 	std::string scoreMatrixFilename = "";
-	bool degenScoring = false;
-	bool caseInsensitive = false;
-	bool lessN = false;
+
+
 	if (setOption(scoreMatrixFilename, "--scoreMatrix", "Score Matrix Filename", false, "Alignment")) {
 		pars_.scoring_ = substituteMatrix(scoreMatrixFilename);
 	} else {
 		setOption(pars_.generalMatch_, "--match", "Match score for alignment", false, "Alignment");
 		setOption(pars_.generalMismatch_, "--mismatch",
 				"Mismatch score for alignment", false, "Alignment");
-		setOption(degenScoring, "--degen", "Use Degenerative Base Scoring for alignment", false, "Alignment");
-		setOption(lessN, "--lessN", "Use Degenerative Base Scoring but use a lesser score for the degenerative bases", false, "Alignment");
-		setOption(caseInsensitive, "--caseInsensitive",
+		setOption(pars_.degenScoring_ , "--degen", "Use Degenerative Base Scoring for alignment", false, "Alignment");
+		setOption(pars_.lessNScoring_, "--lessN", "Use Degenerative Base Scoring but use a lesser score for the degenerative bases", false, "Alignment");
+		setOption(pars_.caseInsensitiveScoring_, "--caseInsensitive",
 				"Use Case Insensitive Scoring for alignment", false, "Alignment");
-		pars_.scoring_ = substituteMatrix::createScoreMatrix(pars_.generalMatch_, pars_.generalMismatch_, degenScoring, lessN, caseInsensitive);
+		pars_.scoring_ = substituteMatrix::createScoreMatrix(pars_.generalMatch_, pars_.generalMismatch_, pars_.degenScoring_, pars_.lessNScoring_, pars_.caseInsensitiveScoring_);
 	}
 }
 

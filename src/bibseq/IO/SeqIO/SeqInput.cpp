@@ -409,6 +409,8 @@ bool SeqInput::readNextRead(PairedRead & seq) {
 				ioOptions_.processed_);
 		bool secondMate = readNextFastqStream(*secReader_, SangerQualOffset, seq.mateSeqBase_,
 				ioOptions_.processed_);
+		readVec::handelLowerCaseBases(seq.seqBase_, ioOptions_.lowerCaseBases_);
+		readVec::handelLowerCaseBases(seq.mateSeqBase_, ioOptions_.lowerCaseBases_);
 		if(secondMate && ioOptions_.revComplMate_){
 			seq.mateSeqBase_.reverseComplementRead(false, true);
 		}

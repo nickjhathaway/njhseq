@@ -31,6 +31,12 @@
 #include "bibseq/alignment/alignerUtils/comparison.hpp"
 #include "bibseq/alignment/aligner.h"
 
+#include "bibseq/seqToolsUtils/RefDetermination/BestRefDetector.hpp"
+#include "bibseq/objects/Meta/MultipleGroupMetaData.hpp"
+#include "bibseq/concurrency/pools/AlignerPool.hpp"
+
+
+
 namespace bibseq {
 
 class ReadCompGraph: public njhUndirWeightedGraph<comparison,
@@ -58,6 +64,18 @@ public:
 		}
 	}
 
+	/**@brief Construct with just reads for the edges to be added latter
+	 *
+	 * @param reads the sequences to add, a copy of the seqBases will be copied and used
+	 */
+	template<typename T>
+	ReadCompGraph(const std::vector<T> & reads) {
+		for (const auto & pos : iter::range(reads.size())) {
+			this->addNode(getSeqBase(reads[pos]).name_,
+					std::make_shared<seqInfo>(getSeqBase(reads[pos])));
+		}
+	}
+
 	std::map<uint32_t, std::vector<char>> getVariantSnpLociMap(
 			const std::string & name, VecStr names, uint32_t expand = 0) const;
 	std::map<uint32_t, std::vector<gap>> getVariantIndelLociMap(
@@ -72,6 +90,81 @@ public:
 
 	Json::Value toD3Json(bib::color backgroundColor,
 			const std::unordered_map<std::string, bib::color> & nameColors);
+
+
+
+
+	struct ConnectedHaplotypeNetworkPars {
+		BestRefDetector::FindBestRefPars matchPars;
+		uint32_t numThreads = 1;
+		uint32_t minNumberOfEvents = std::numeric_limits<uint32_t>::max();
+		double minId = std::numeric_limits<double>::lowest();
+		bool setJustBest = false;
+		bool doTies = false;
+		std::string colorField = "";
+		std::string labelField = "";
+		bool noLabel = false;
+		std::unordered_map<std::string, bib::color> colorLookup;
+		std::unique_ptr<MultipleGroupMetaData> seqMeta;
+		uint32_t minlength = 50;
+		uint32_t kLen = 47;
+		bool verbose = false;
+		void loadMeta(const bfs::path & metaFnp){
+			seqMeta = std::make_unique<MultipleGroupMetaData>(metaFnp);
+		}
+
+		void checkForColorField(const std::string & funcName){
+			if("" != colorField){
+				if(nullptr == seqMeta){
+					std::stringstream ss;
+					ss << funcName << ", supplied a color field but no meta data" << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+				seqMeta->checkForFieldsThrow({colorField});
+			}
+		}
+
+		void checkForLabelField(const std::string & funcName){
+			if("" != labelField){
+				if(nullptr == seqMeta){
+					std::stringstream ss;
+					ss << funcName << ", supplied a color field but no meta data" << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+				seqMeta->checkForFieldsThrow({labelField});
+			}
+		}
+
+
+
+		std::unordered_map<std::string, bib::color> generateColorLookup(const bfs::path & fieldColorFnp){
+			table colorTab;
+			std::unordered_map<std::string, bib::color> colorLookup;
+			if("" != fieldColorFnp){
+				colorTab  = table(fieldColorFnp, "\t", true);
+				if("" != colorField){
+					colorTab.checkForColumnsThrow(VecStr{colorField, "color"}, __PRETTY_FUNCTION__);
+					for(const auto & row : colorTab.content_){
+						colorLookup[row[colorTab.getColPos(colorField)]] = bib::color(row[colorTab.getColPos("color")]);
+					}
+				}
+			} else if("" != colorField){
+				colorLookup = getColorsForNames(getVectorOfMapKeys(seqMeta->groupData_.at(colorField)->subGroupToSamples_));
+			}
+			return colorLookup;
+		}
+
+		static std::string htmlPageForConnectHpaNet;
+	};
+
+	Json::Value getSingleLineJsonOut(const ConnectedHaplotypeNetworkPars & netPars,
+			const std::unordered_map<std::string, bib::color> & colorLookup);
+
+	void writeAdjListPerId(const OutOptions & linksOutOpts,
+			const ConnectedHaplotypeNetworkPars & netPars);
+
+	void addEdgesBasedOnIdOrMinDif(const ConnectedHaplotypeNetworkPars & netPars,
+			concurrent::AlignerPool & alnPool);
 
 };
 

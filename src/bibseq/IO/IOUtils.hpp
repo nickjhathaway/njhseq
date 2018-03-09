@@ -33,7 +33,7 @@
 
 namespace bibseq {
 
-
+VecStr getInputValues(const std::string & valuesStr, const std::string & delim);
 
 
 void gzZipFile(const IoOptions & opts);

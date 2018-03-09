@@ -167,8 +167,8 @@ void readVecTrimmer::trimEnds(seqInfo &seq, size_t forwardBases, size_t endBases
 	trimOffEndBases(seq, endBases);
 }
 
-void readVecTrimmer::trimAtSequence(seqInfo &seq, seqInfo &reversePrimer,
-		aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
+void readVecTrimmer::trimAtSequence(seqInfo &seq, const seqInfo &reversePrimer,
+		aligner &alignObj, const comparison & allowableErrors, const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	//first is position of the first base, second is the position of the last base of the match
 	std::pair<int, int> rPos;
 	if (tSeqPars.within_ >= len(seq)) {
@@ -245,8 +245,6 @@ void readVecTrimmer::trimAtSequence(seqInfo &seq, seqInfo &reversePrimer,
 	seq.on_ = passInspection;
 	if(seq.on_){
 		if (tSeqPars.includeSequence_) {
-			seq.trimBack(rPos.second + 1);
-			seq.setClip(0, rPos.second);
 			if (tSeqPars.sequenceToLowerCase_) {
 				if (tSeqPars.removePreviousSameBases_) {
 					while (seq.seq_[rPos.first] == seq.seq_[rPos.first - 1]) {
@@ -255,6 +253,8 @@ void readVecTrimmer::trimAtSequence(seqInfo &seq, seqInfo &reversePrimer,
 				}
 				changeSubStrToLowerToEnd(seq.seq_, rPos.first);
 			}
+			seq.trimBack(rPos.second + 1);
+			//seq.setClip(0, rPos.second);
 		} else {
 			if (tSeqPars.removePreviousSameBases_) {
 				bool foundPrevious = false;
@@ -273,17 +273,16 @@ void readVecTrimmer::trimAtSequence(seqInfo &seq, seqInfo &reversePrimer,
 	}
 }
 
-void readVecTrimmer::trimBeforeSequence(seqInfo &seq, seqInfo &forwardSeq,
-		aligner &alignObj, comparison allowableErrors, FullTrimReadsPars::trimSeqPars tSeqPars) {
+void readVecTrimmer::trimBeforeSequence(seqInfo &seq, const seqInfo &forwardSeq,
+		aligner &alignObj, const comparison & allowableErrors, const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	std::pair<int, int> fPos;
 	if (tSeqPars.within_ >= len(seq)) {
 		if (tSeqPars.local_) {
 			fPos = alignObj.findReversePrimer(seq, forwardSeq);
-			alignObj.rearrangeObjs(seq, forwardSeq, tSeqPars.local_);
+			alignObj.rearrangeObjs(seq, forwardSeq, true);
 			alignObj.profilePrimerAlignment(seq, forwardSeq);
 		} else {
 			alignObj.alignCacheGlobal(seq, forwardSeq);
-			alignObj.rearrangeObjs(seq, forwardSeq, tSeqPars.local_);
 			alignObj.profilePrimerAlignment(seq, forwardSeq);
 			if('-' == alignObj.alignObjectA_.seqBase_.seq_.front() ||
 					'-' != alignObj.alignObjectB_.seqBase_.seq_.front()){
@@ -299,6 +298,12 @@ void readVecTrimmer::trimBeforeSequence(seqInfo &seq, seqInfo &forwardSeq,
 				fPos.second = alignObj.getSeqPosForAlnAPos(alignObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-'));
 			}
 		}
+		//debugging
+		/*
+		alignObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+		alignObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+		std::cout << fPos.first << " : " << fPos.second << std::endl;
+	  */
 	}else{
 		auto frontSeq = seq.getSubRead(0, tSeqPars.within_);
 		if(tSeqPars.local_){
@@ -307,7 +312,6 @@ void readVecTrimmer::trimBeforeSequence(seqInfo &seq, seqInfo &forwardSeq,
 			alignObj.profilePrimerAlignment(frontSeq, forwardSeq);
 		}else{
 			alignObj.alignCacheGlobal(frontSeq, forwardSeq);
-			alignObj.rearrangeObjs(frontSeq, forwardSeq, tSeqPars.local_);
 			alignObj.profilePrimerAlignment(frontSeq, forwardSeq);
 			if('-' == alignObj.alignObjectA_.seqBase_.seq_.front() ||
 					'-' != alignObj.alignObjectB_.seqBase_.seq_.front()){
@@ -350,9 +354,9 @@ void readVecTrimmer::trimBeforeSequence(seqInfo &seq, seqInfo &forwardSeq,
 		std::cout << "passInspection: " << bib::colorBool(passInspection) << std::endl;
 	}*/
 	seq.on_ = passInspection;
+
 	if(seq.on_){
 		if (tSeqPars.includeSequence_) {
-			seq.trimFront(fPos.first);
 			if (tSeqPars.sequenceToLowerCase_) {
 				if (tSeqPars.removePreviousSameBases_) {
 					while (seq.seq_[fPos.second] == seq.seq_[fPos.second + 1]) {
@@ -361,6 +365,7 @@ void readVecTrimmer::trimBeforeSequence(seqInfo &seq, seqInfo &forwardSeq,
 				}
 				changeSubStrToLowerFromBegining(seq.seq_, fPos.second);
 			}
+			seq.trimFront(fPos.first);
 		} else {
 			if (tSeqPars.removePreviousSameBases_) {
 				while (seq.seq_[fPos.second] == seq.seq_[fPos.second + 1]) {
@@ -374,33 +379,18 @@ void readVecTrimmer::trimBeforeSequence(seqInfo &seq, seqInfo &forwardSeq,
 			seq.trimFront(fPos.second + 1);
 		}
 	}
-
 }
 
 
-void readVecTrimmer::trimBetweenSequences(seqInfo &seq, seqInfo &forwardSeq,
-		seqInfo &backSeq, aligner &alignObj, comparison allowableErrors,
-		FullTrimReadsPars::trimSeqPars tSeqPars) {
+void readVecTrimmer::trimBetweenSequences(seqInfo &seq, const seqInfo &forwardSeq,
+		const seqInfo &backSeq, aligner &alignObj, const comparison & allowableErrors,
+		const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	trimAtSequence(seq, backSeq, alignObj, allowableErrors, tSeqPars);
 	if(seq.on_){
 		trimBeforeSequence(seq, forwardSeq, alignObj, allowableErrors, tSeqPars);
 	}
 }
-FullTrimReadsPars::FullTrimReadsPars(){
-	tSeqPars_.includeSequence_ = false;
-	tSeqPars_.sequenceToLowerCase_ = false;
-	tSeqPars_.removePreviousSameBases_ = false;
-	allowableErrors.distances_.query_.coverage_ = .75;
-}
 
-void FullTrimReadsPars::initForKSharedTrim(){
-  allowableErrors.distances_.query_.coverage_ = .50;
-  allowableErrors.hqMismatches_ = 2;
-  allowableErrors.lqMismatches_ = 2;
-  allowableErrors.oneBaseIndel_ = 2;
-  allowableErrors.twoBaseIndel_ = 2;
-  allowableErrors.largeBaseIndel_ = 2;
-}
 
 
 

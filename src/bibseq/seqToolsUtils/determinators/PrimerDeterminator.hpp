@@ -33,20 +33,28 @@ namespace bibseq {
 
 class PrimerDeterminator{
 public:
-	explicit PrimerDeterminator(const table & primers) ;
-
 	struct primerInfo {
 		primerInfo() {}
 		primerInfo(const std::string & primerPairName,
 				const std::string & forwardPrimer, const std::string &reversePrimer );
 		std::string primerPairName_;
-		std::string forwardPrimer_;
-		seqInfo forwardPrimerInfo_;
-		seqInfo forwardPrimerInfoRevDir_;
-		std::string reversePrimer_;
-		seqInfo reversePrimerInfo_;
-		seqInfo reversePrimerInfoForDir_;
+		std::string forwardPrimer_;      /**< 5`-3` direction */
+		seqInfo forwardPrimerInfo_;      /**< 5`-3` direction */
+		seqInfo forwardPrimerInfoRevDir_;/**< 3`-5` direction */
+		std::string reversePrimer_;      /**< 5`-3` direction */
+		seqInfo reversePrimerInfo_;			 /**< 3`-5` direction */
+		seqInfo reversePrimerInfoForDir_;/**< 5`-3` direction */
 	};
+
+	explicit PrimerDeterminator(const table & primers);
+
+	explicit PrimerDeterminator(const std::unordered_map<std::string, primerInfo> & primers);
+
+//	void addPrimerInfo(const std::string & primerName,
+//			const std::string & forwardPrimer, const std::string & reversePrimer);
+
+	bool containsTarget(const std::string & targetName) const;
+
 
 	std::map<std::string, primerInfo> primers_;
 
@@ -54,20 +62,21 @@ public:
 
 	template<typename T>
 	std::string determineForwardPrimer(T & read, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase){
-		return determineForwardPrimer(getSeqBase(read), withinPos, alignerObj, allowable, forwardPrimerToLowerCase);
+			aligner & alignerObj, const comparison & allowable, bool primerToLowerCase){
+		return determineForwardPrimer(getSeqBase(read), withinPos, alignerObj, allowable, primerToLowerCase);
 	}
 	std::string determineForwardPrimer(seqInfo & info, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase);
+			aligner & alignerObj, const comparison & allowable, bool primerToLowerCase);
 
 	template<typename T>
 	std::string determineWithReversePrimer(T & read, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase){
-		return determineWithReversePrimer(getSeqBase(read), withinPos, alignerObj, allowable, forwardPrimerToLowerCase);
+			aligner & alignerObj, const comparison & allowable, bool primerToLowerCase){
+		return determineWithReversePrimer(getSeqBase(read), withinPos, alignerObj, allowable, primerToLowerCase);
 	}
 
 	std::string determineWithReversePrimer(seqInfo & info, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool forwardPrimerToLowerCase);
+			aligner & alignerObj, const comparison & allowable, bool primerToLowerCase);
+
 
 	template<typename T>
 	bool checkForReversePrimer(T & read, const std::string & primerName,

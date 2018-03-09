@@ -26,6 +26,7 @@
 //
 #include "MidDeterminator.hpp"
 #include "bibseq/helpers/seqUtil.hpp"
+#include "bibseq/IO/SeqIO.h"
 
 namespace bibseq {
 
@@ -116,6 +117,12 @@ MidDeterminator::MidDeterminator(const table & mids) {
 	}
 	for (const auto & row : mids.content_) {
 		addBarcode(row[mids.getColPos("id")],row[mids.getColPos("barcode")]);
+	}
+}
+
+MidDeterminator::MidDeterminator(const std::unordered_map<std::string, MidDeterminator::MidInfo> & mids){
+	for (const auto & mid : mids) {
+		addBarcode(mid.second.midName_,mid.second.bar_->motifOriginal_);
 	}
 }
 
@@ -456,23 +463,72 @@ void MidDeterminator::processInfoWithMidPos(PairedRead & seq,
 
 
 std::pair<MidDeterminator::midPos, MidDeterminator::midPos>  MidDeterminator::fullDetermine(PairedRead & seq, MidDeterminePars pars){
+
+//	if(seq.mateRComplemented_){
+//
+//	}
+//	std::vector<midPos> frontPossible = determinePossibleMidPos(seq.seqBase_.seq_, pars.variableStop_);
+//	std::vector<midPos> backPossible = determinePossibleMidPosComp(seq.mateSeqBase_.seq_, pars.variableStop_);
+//
+//
+//
+//	if (pars.barcodesBothEnds_) {
+//		addOtherVec(possible,
+//				determinePossibleMidPosBack(info.seq_, pars.variableStop_));
+//	}
+//
+//	if (pars.checkComplement_) {
+//		addOtherVec(possible,
+//				determinePossibleMidPosCompBack(info.seq_, pars.variableStop_));
+//	}
+//
+//	if (pars.checkComplement_ && pars.barcodesBothEnds_) {
+//		addOtherVec(possible,
+//				determinePossibleMidPosComp(info.seq_, pars.variableStop_));
+//	}
+//
+//	if (pars.checkForShorten_) {
+//		if (pars.barcodesBothEnds_) {
+//			addOtherVec(possible, determinePossibleMidPosShorten(info.seq_, 0));
+//		}
+//
+//		if (pars.barcodesBothEnds_) {
+//			addOtherVec(possible, determinePossibleMidPosBackShorten(info.seq_, 0));
+//		}
+//
+//		if (pars.checkComplement_) {
+//			addOtherVec(possible,
+//					determinePossibleMidPosCompBackShorten(info.seq_, 0));
+//		}
+//
+//		if (pars.checkComplement_ && pars.barcodesBothEnds_) {
+//			addOtherVec(possible, determinePossibleMidPosCompShorten(info.seq_, 0));
+//		}
+//	}
+//
+//
+
+
+
+	//std::cout << __PRETTY_FUNCTION__ << std::endl;
 	/**@todo expensive way to do this for now */
 	uint32_t spacerSize = 20;
 	seqInfo tempSeq = seq.seqBase_;
-	tempSeq.append(std::string(spacerSize, 'X'));
+	tempSeq.append(std::string(spacerSize, 'N'));
 	if(seq.mateRComplemented_){
 		tempSeq.append(seq.mateSeqBase_.seq_);
 	}else{
 		tempSeq.append(seqUtil::reverseComplement(seq.mateSeqBase_.seq_, "DNA"));
 	}
 
+	size_t lengthOfTempSeq = len(tempSeq);
 	auto positions = fullDetermine(tempSeq, pars);
   if(positions.first){
 		if (positions.second) {
 			if(seq.mateRComplemented_){
 				positions.second.midPos_ = positions.second.midPos_ - len(seq.seqBase_) - spacerSize;
 			}else{
-				positions.second.midPos_ = len(tempSeq) - positions.second.midPos_ - positions.second.barcodeSize_;
+				positions.second.midPos_ = lengthOfTempSeq - positions.second.midPos_ - positions.second.barcodeSize_;
 			}
 			processInfoWithMidPos(seq, positions.first, positions.second);
 		} else {
@@ -492,21 +548,25 @@ std::pair<MidDeterminator::midPos, MidDeterminator::midPos>  MidDeterminator::fu
 							- len(seq.seqBase_) - spacerSize;
 					seq.mateSeqBase_.trimBack(positions.first.midPos_);
 				} else {
-					positions.first.midPos_ = len(tempSeq) - positions.first.midPos_
-							- positions.first.barcodeSize_;
+					positions.first.midPos_ = lengthOfTempSeq - positions.first.midPos_ - positions.first.barcodeSize_;
 					seq.mateSeqBase_.trimFront(positions.first.midPos_ + positions.first.barcodeSize_);
 				}
 				if (pars.barcodesBothEnds_) {
+					/**@todo look into to see if this actually needed */
 					seq.seqBase_.trimFront(mids_.at(positions.first.midName_).bar_->size());
 				}
 			}
 			if(positions.first.inRevComp_){
-				seq.seqBase_.reverseComplementRead(true, true);
-				seq.mateSeqBase_.reverseComplementRead(true, true);
+				//seq.seqBase_.reverseComplementRead(true, true);
+				//seq.mateSeqBase_.reverseComplementRead(true, true);
+				auto tempSeq = seq.seqBase_;
+				seq.seqBase_ = seq.mateSeqBase_;
+				seq.mateSeqBase_ = tempSeq;
+				seq.seqBase_.name_ += "_Comp";
+				seq.mateSeqBase_.name_ += "_Comp";
 			}
 		}
   }
-
   return positions;
 }
 
@@ -515,24 +575,19 @@ std::pair<MidDeterminator::midPos, MidDeterminator::midPos> MidDeterminator::ful
 	midPos ret;
 	midPos backPos;
 	//determine possible mid positions;
-	std::vector<midPos> possible = determinePossibleMidPos(info.seq_,
-			pars.variableStop_);
-
+	std::vector<midPos> possible = determinePossibleMidPos(info.seq_, pars.variableStop_);
 	if (pars.barcodesBothEnds_) {
 		addOtherVec(possible,
 				determinePossibleMidPosBack(info.seq_, pars.variableStop_));
 	}
-
 	if (pars.checkComplement_) {
 		addOtherVec(possible,
 				determinePossibleMidPosCompBack(info.seq_, pars.variableStop_));
 	}
-
 	if (pars.checkComplement_ && pars.barcodesBothEnds_) {
 		addOtherVec(possible,
 				determinePossibleMidPosComp(info.seq_, pars.variableStop_));
 	}
-
 	if (pars.checkForShorten_) {
 		if (pars.barcodesBothEnds_) {
 			addOtherVec(possible, determinePossibleMidPosShorten(info.seq_, 0));
@@ -654,7 +709,6 @@ std::pair<MidDeterminator::midPos, MidDeterminator::midPos> MidDeterminator::ful
 			processInfoWithMidPos(info, ret, pars);
 		}
 	}
-
 	return {ret, backPos};
 }
 
