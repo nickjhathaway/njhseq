@@ -12,6 +12,7 @@
 #include "bibseq/objects/Meta/MetaDataInName.hpp"
 #include "bibseq/objects/Meta/GroupMetaData.hpp"
 #include "bibseq/objects/Meta/MultipleGroupMetaData.hpp"
+#include "bibseq/objects/Meta/MetaUtils.hpp"
 
 
 
