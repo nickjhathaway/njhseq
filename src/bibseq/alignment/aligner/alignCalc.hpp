@@ -112,6 +112,41 @@ class alignCalc {
   static void runSmithSave(const std::string& objA, const std::string& objB,
                            alnParts& parts);
 
+
+
+
+
+  struct MatCursor {
+		MatCursor(int32_t icursor, int32_t jcursor, uint32_t lena, uint32_t lenb) :
+				icursor_(icursor), jcursor_(jcursor), lena_(lena), lenb_(lenb) {
+
+		}
+		int32_t icursor_;
+		int32_t jcursor_;
+		uint32_t lena_;
+		uint32_t lenb_;
+	};
+
+  static MatCursor runNeedleDiagonalSaveInit(
+  									const std::string& objA,
+  									const std::string& objB,
+  									uint32_t alignmentBlockSize,
+                     alnParts& parts) noexcept ;
+
+  static MatCursor runNeedleDiagonalSaveStep(
+  									const std::string& objA,
+  									const std::string& objB,
+  									uint32_t alignmentBlockSize,
+  									uint32_t alignmentBlockWalkbackSize,
+  									const MatCursor & lastCursors,
+                     alnParts& parts) noexcept ;
+  static void runNeedleDiagonalSave(
+  									const std::string& objA,
+  									const std::string& objB,
+  									uint32_t alignmentBlockSize,
+  									uint32_t alignmentBlockWalkbackSize,
+                     alnParts& parts);
+
   template <typename T>
   static void rearrangeGlobal(T& readA, T& readB, const typename T::value_type fill,
                               const alnInfoGlobal& gHolder) {
