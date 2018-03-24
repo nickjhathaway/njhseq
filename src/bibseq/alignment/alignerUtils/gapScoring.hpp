@@ -37,6 +37,13 @@ public:
   // Constructors
   gapScoringParameters(int32_t gOpen, int32_t gExtend, int32_t gLeftOpen, int32_t gLeftExtend,
                        int32_t gRightOpen, int32_t gRightExtend);
+
+  gapScoringParameters(int32_t gOpen, int32_t gExtend,
+  		int32_t gLeftOpenQuery, int32_t gLeftExtendQuery,
+			int32_t gLeftOpenRef, int32_t gLeftExtendRef,
+		int32_t gRightOpenQuery, int32_t gRightExtendQuery,
+		int32_t gRightOpenRef, int32_t gRightExtendRef);
+
   gapScoringParameters();
   gapScoringParameters(int32_t gapOpen, int32_t gapExtend);
   gapScoringParameters(const std::string& gapAll) ;

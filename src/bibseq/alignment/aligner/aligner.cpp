@@ -1368,8 +1368,10 @@ void aligner::noAlignSetAndScore(const seqInfo& objectA,
 
 
 void aligner::processAlnInfoInputNoCheck(const std::string& alnInfoDirName, bool verbose){
+	//std::cout << __FILE__ << ' '<< __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	if (alnInfoDirName != "") {
 		if(bib::files::bfs::exists(alnInfoDirName)){
+			//std::cout << __FILE__ << ' '<< __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			alnHolder_.read(alnInfoDirName, verbose);
 		}
 	}

@@ -37,6 +37,25 @@ gapScoringParameters::gapScoringParameters(int32_t gOpen, int32_t gExtend, int32
       gapLeftRefExtend_(gLeftExtend)  {
   setIdentifer();
 };
+
+gapScoringParameters::gapScoringParameters(int32_t gOpen, int32_t gExtend,
+		int32_t gLeftOpenQuery, int32_t gLeftExtendQuery,
+		int32_t gLeftOpenRef, int32_t gLeftExtendRef,
+	int32_t gRightOpenQuery, int32_t gRightExtendQuery,
+	int32_t gRightOpenRef, int32_t gRightExtendRef)    : gapOpen_(gOpen),
+      gapExtend_(gExtend),
+      gapRightQueryOpen_(gRightOpenQuery),
+      gapRightQueryExtend_(gRightExtendQuery),
+      gapRightRefOpen_(gRightOpenRef),
+      gapRightRefExtend_(gRightExtendRef),
+
+      gapLeftQueryOpen_(gLeftOpenQuery),
+      gapLeftQueryExtend_(gLeftExtendQuery),
+      gapLeftRefOpen_(gLeftOpenRef),
+      gapLeftRefExtend_(gLeftExtendRef)  {
+  setIdentifer();
+};
+
 gapScoringParameters::gapScoringParameters()
     : gapOpen_(7),
       gapExtend_(1),
@@ -87,16 +106,20 @@ gapScoringParameters::gapScoringParameters(const std::string& gap, const std::st
 // members
 
 // functions
-void gapScoringParameters::setIdentifer() { uniqueIdentifer_ = getIdentifer(); }
-std::string gapScoringParameters::getIdentifer() const {
-  std::stringstream tempStream;
-  tempStream << gapOpen_ << "," << gapExtend_
-  			<< "," << gapLeftQueryOpen_ << "," << gapLeftQueryExtend_
-			<< "," << gapLeftRefOpen_ << "," << gapLeftRefExtend_
-			<< "," << gapRightQueryOpen_ << "," << gapRightQueryExtend_
-			<< "," << gapRightRefOpen_ << "," << gapRightRefExtend_;
-  return tempStream.str();
+void gapScoringParameters::setIdentifer() {
+	uniqueIdentifer_ = getIdentifer();
 }
+
+std::string gapScoringParameters::getIdentifer() const {
+	std::stringstream tempStream;
+	tempStream << gapOpen_ << "," << gapExtend_ << "," << gapLeftQueryOpen_ << ","
+			<< gapLeftQueryExtend_ << "," << gapLeftRefOpen_ << ","
+			<< gapLeftRefExtend_ << "," << gapRightQueryOpen_ << ","
+			<< gapRightQueryExtend_ << "," << gapRightRefOpen_ << ","
+			<< gapRightRefExtend_;
+	return tempStream.str();
+}
+
 void gapScoringParameters::writePars(std::ostream& out) const {
   out <<  getIdentifer()
       << std::endl;
