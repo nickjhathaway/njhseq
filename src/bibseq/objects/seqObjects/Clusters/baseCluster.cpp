@@ -267,7 +267,8 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 			//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 			//count up the pathways that seqs take and pick the path most traveled as the consensus path
 			for(const auto & seq : reads_){
-				alignerObj.alignCacheGlobal(seqBase_, seq);
+				//alignerObj.alignCacheGlobal(seqBase_, seq);
+				alignerObj.alignCacheGlobalDiag(seqBase_, seq);
 
 				bib::sort(importantPositions);
 				for(const auto pos : iter::range(importantPositions.size() - 1)){
@@ -451,7 +452,8 @@ baseCluster::calculateAlignmentsToConsensus(aligner& alignObj) {
   std::vector<baseReadObject> withOutConAlignments;
 
   for (const auto & read : reads_) {
-    alignObj.alignCacheGlobal(*this, read);
+    //alignObj.alignCacheGlobal(*this, read);
+  		alignObj.alignCacheGlobalDiag(*this, read);
 
     baseReadObject tempConsensus = alignObj.alignObjectA_;
     tempConsensus.seqBase_.name_ = seqBase_.name_;
@@ -550,7 +552,9 @@ bool baseCluster::compare(baseCluster & read, aligner & alignerObj,
     if(collapserOptsObj.alignOpts_.noAlign_){
     	alignerObj.noAlignSetAndScore(seqBase_, read.seqBase_);
     }else{
-    	alignerObj.alignCacheGlobal(seqBase_, read.seqBase_);
+    //	alignerObj.alignCacheGlobal(seqBase_, read.seqBase_);
+    	alignerObj.alignCacheGlobalDiag(seqBase_, read.seqBase_);
+
     }
 		comparison currentProfile = alignerObj.compareAlignment(seqBase_, read.seqBase_,
 				 collapserOptsObj.kmerOpts_.checkKmers_);

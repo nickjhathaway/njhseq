@@ -147,14 +147,15 @@ void collapser::findMatch(CLUSTER &read,
 
 
     bool matching = clus.compare(read, alignerObj, runParams, opts_);
-    if (matching) {
-      foundMatch = true;
-      if (opts_.bestMatchOpts_.findingBestMatch_) {
-        if(opts_.alignOpts_.noAlign_){
-        	alignerObj.noAlignSetAndScore(clus, read);
-        }else{
-        	alignerObj.alignCacheGlobal(clus, read);
-        }
+		if (matching) {
+			foundMatch = true;
+			if (opts_.bestMatchOpts_.findingBestMatch_) {
+				if (opts_.alignOpts_.noAlign_) {
+					alignerObj.noAlignSetAndScore(clus, read);
+				} else {
+					//alignerObj.alignCacheGlobal(clus, read);
+					alignerObj.alignCacheGlobalDiag(clus, read);
+				}
       	double currentScore = 0;
       	if(opts_.alignOpts_.eventBased_){
       		alignerObj.profilePrimerAlignment(clus, read);

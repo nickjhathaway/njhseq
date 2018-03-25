@@ -192,6 +192,9 @@ void aligner::alignCacheGlobal(const seqInfo & ref, const seqInfo & read){
 }
 
 void aligner::alignCacheGlobalDiag(const seqInfo & ref, const seqInfo & read){
+//	ref.outPutSeq(std::cout);
+//	read.outPutSeq(std::cout);
+
 	alignScoreCacheGlobalDiag(ref.seq_, read.seq_);
 	rearrangeObjsGlobal(ref, read);
 }
