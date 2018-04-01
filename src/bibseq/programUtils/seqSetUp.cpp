@@ -176,6 +176,8 @@ void seqSetUp::processKmerLenOptions(){
 }
 
 void seqSetUp::processKmerProfilingOptions() {
+	//std::cout << pars_.colOpts_.kmerOpts_.runCutOffString_ << std::endl;
+
 	setOption(pars_.colOpts_.kmerOpts_.runCutOffString_, "--runCutOff",
 			"Kmer frequency cut off for a mismatch to be considered low frequency",
 			false, "Low Frequency Mismatch Determination");
