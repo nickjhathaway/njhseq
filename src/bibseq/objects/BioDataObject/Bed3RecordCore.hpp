@@ -19,16 +19,48 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/alignment.h"
-#include "bibseq/BamToolsUtils.h"
-#include "bibseq/helpers.h"
-#include "bibseq/concurrency.h"
-#include "bibseq/objects.h"
-#include "bibseq/IO.h"
-#include "bibseq/seqToolsUtils.h"
-#include "bibseq/programUtils.h"
+/*
+ *
+ *  Created on: May 17, 2015
+ *      Author: nickhathaway
+ */
+#include "bibseq/common.h"
 #include "bibseq/utils.h"
-#include "bibseq/readVectorManipulation.h"
-#include "bibseq/system.h"
-#include "bibseq/GenomeUtils.h"
+
+namespace bibseq {
+
+class Bed3RecordCore {
+public:
+
+	Bed3RecordCore(const std::string & line);
+	Bed3RecordCore(std::string chrom, uint32_t chromStart, uint32_t chromEnd);
+	Bed3RecordCore();
+
+	std::string chrom_;
+	uint32_t chromStart_;
+	uint32_t chromEnd_;
+	VecStr extraFields_;
+
+	virtual std::string toDelimStr() const;
+	virtual std::string toDelimStrWithExtra() const;
+
+	virtual Json::Value toJson() const;
+
+	uint32_t length() const;
+
+	virtual ~Bed3RecordCore();
+
+
+	uint32_t getOverlapLen(const Bed3RecordCore & otherRegion) const;
+	bool sameRegion(const Bed3RecordCore & otherRegion)const;
+
+	bool overlaps(const Bed3RecordCore & otherRegion,
+			const uint32_t overlapMin) const;
+
+};
+
+
+} /* namespace bibseq */
+
+
 

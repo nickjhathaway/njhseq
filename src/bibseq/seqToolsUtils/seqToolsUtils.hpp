@@ -45,6 +45,7 @@
 
 namespace bibseq {
 
+table getSeqPortionCounts(const SeqIOOptions & opts, size_t position, uint32_t size, bool back = false);
 
 void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString,
 		int counter);

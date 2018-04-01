@@ -34,4 +34,7 @@
 #include "bibseq/objects/collapseObjects.h"
 #include "bibseq/objects/dataContainers.h"
 #include "bibseq/objects/counters.h"
+#include "bibseq/objects/BioDataObject.h"
+
+
 

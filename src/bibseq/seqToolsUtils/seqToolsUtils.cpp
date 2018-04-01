@@ -28,7 +28,54 @@
 
 
 namespace bibseq {
-
+table getSeqPortionCounts(const SeqIOOptions & opts, size_t position, uint32_t size, bool back){
+	SeqIO reader(opts);
+	reader.openIn();
+	seqInfo read;
+	strCounter counter;
+	std::function<std::string(const seqInfo &, size_t, uint32_t)> getSubStr;
+	if (back) {
+		if (position != 0 && size > position) {
+			std::stringstream ss;
+			ss << "Error, size must be less than or equal to position when counting from the back of the sequence"
+					<< std::endl;
+			ss << "position: " << position << ", size:" << size << std::endl;
+			throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
+		}
+		getSubStr = [](const seqInfo & read, size_t position, uint32_t size){
+			std::string ret = "";
+			if(position < read.seq_.size()){
+				if(position == 0){
+					ret = read.seq_.substr(read.seq_.size() - size, size);
+				}else{
+					ret = read.seq_.substr(read.seq_.size() - position, size);
+				}
+			}
+			return ret;
+		};
+	} else {
+		getSubStr = [](const seqInfo & read, size_t position, uint32_t size){
+			std::string ret = "";
+			if(position + size <= read.seq_.size()){
+				ret = read.seq_.substr(position, size);
+			}
+			return ret;
+		};
+	}
+	while(reader.readNextRead(read)){
+		counter.increaseCountByString(getSubStr(read, 0, 20));
+	}
+	counter.setFractions();
+	table outTable(VecStr { "str", "count", "fraction" });
+	for (const auto & str : counter.counts_) {
+		if (str.second > 0 && str.first != "") {
+			outTable.content_.emplace_back(
+					toVecStr(str.first, str.second, counter.fractions_[str.first]));
+		}
+	}
+	outTable.sortTable("count", true);
+	return outTable;
+}
 
 
 void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString,

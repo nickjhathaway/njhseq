@@ -46,8 +46,8 @@ public:
 			alnType_(alnType) {
 		auto allFiles = getFiles(directoryName, "", "file", false, false);
 		for (const auto &file : allFiles) {
-			std::cout << file.first << std::endl;
-			std::cout << "INDEX_" + alnType + ".txt" << std::endl;
+			//std::cout << file.first << std::endl;
+			//std::cout << "INDEX_" + alnType + ".txt" << std::endl;
 			if (bib::containsSubString(file.first, "README_" + alnType + ".txt")) {
 				readReadMeFile(file.first);
 			} else if (bib::containsSubString(file.first,

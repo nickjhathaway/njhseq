@@ -1,4 +1,10 @@
 #pragma once
+/*
+ * BamToolsUtils.hpp
+ *
+ *  Created on: May 28, 2015
+ *      Author: nick
+ */
 //
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
@@ -19,16 +25,12 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/alignment.h"
-#include "bibseq/BamToolsUtils.h"
-#include "bibseq/helpers.h"
-#include "bibseq/concurrency.h"
-#include "bibseq/objects.h"
-#include "bibseq/IO.h"
-#include "bibseq/seqToolsUtils.h"
-#include "bibseq/programUtils.h"
-#include "bibseq/utils.h"
-#include "bibseq/readVectorManipulation.h"
-#include "bibseq/system.h"
-#include "bibseq/GenomeUtils.h"
+
+
+#include "bibseq/BamToolsUtils/BamToolsUtils.hpp"
+#include "bibseq/BamToolsUtils/bamExtractUtils.hpp"
+#include "bibseq/BamToolsUtils/BamAlnsCache.hpp"
+#include "bibseq/BamToolsUtils/BamAlnsCacheWithRegion.hpp"
+#include "bibseq/BamToolsUtils/BamCountExtractStats.hpp"
+
 

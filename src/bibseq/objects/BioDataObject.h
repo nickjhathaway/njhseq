@@ -19,16 +19,13 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/alignment.h"
-#include "bibseq/BamToolsUtils.h"
-#include "bibseq/helpers.h"
-#include "bibseq/concurrency.h"
-#include "bibseq/objects.h"
-#include "bibseq/IO.h"
-#include "bibseq/seqToolsUtils.h"
-#include "bibseq/programUtils.h"
-#include "bibseq/utils.h"
-#include "bibseq/readVectorManipulation.h"
-#include "bibseq/system.h"
-#include "bibseq/GenomeUtils.h"
-
+#include "bibseq/objects/BioDataObject/Bed3RecordCore.hpp"
+#include "bibseq/objects/BioDataObject/BedRecordCore.hpp"
+#include "bibseq/objects/BioDataObject/BioDataFileIO.hpp"
+#include "bibseq/objects/BioDataObject/GenomicRegion.hpp"
+#include "bibseq/objects/BioDataObject/GFFCore.hpp"
+#include "bibseq/objects/BioDataObject/reading.hpp"
+#include "bibseq/objects/BioDataObject/RefSeqGeneRecord.hpp"
+#include "bibseq/objects/BioDataObject/RepeatMaskerRecord.hpp"
+#include "bibseq/objects/BioDataObject/swisProt.hpp"
+#include "bibseq/objects/BioDataObject/Primer3Results.hpp"
