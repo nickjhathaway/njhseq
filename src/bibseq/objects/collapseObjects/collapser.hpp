@@ -368,10 +368,21 @@ std::vector<CLUSTER> collapser::collapseLowFreqOneOffs(
 	    ++count;
 	    comparison comp = clus.getComparison(reverseRead, alignerObj, false);
 	    //can only get here if clus.seqBase_.frac >  reverseRead.seqBase_.frac_ * lowFreqMultiplier so can just check if only diffs by 1 mismatch
-	    bool matching = (comp.hqMismatches_ + comp.lqMismatches_ + comp.lowKmerMismatches_) <=1
+	    bool matching = ((comp.hqMismatches_ + comp.lqMismatches_ + comp.lowKmerMismatches_) <=1
 	    		&& comp.largeBaseIndel_ == 0
 					&& comp.twoBaseIndel_ == 0
-					&& comp.oneBaseIndel_ == 0;
+					&& comp.oneBaseIndel_ == 0);
+	    //also add if only different by one 1 base indel
+	    if(!matching){
+	    	if(comp.distances_.alignmentGaps_.size() == 1
+	    			&& comp.distances_.alignmentGaps_.begin()->second.size_ == 1
+						&& comp.largeBaseIndel_ == 0
+						&& comp.twoBaseIndel_ == 0 &&
+						(comp.hqMismatches_ + comp.lqMismatches_ + comp.lowKmerMismatches_) == 0){
+	    		matching = true;
+	    	}
+	    }
+
 			if (matching) {
         ++amountAdded;
         clus.addRead(reverseRead);
@@ -426,7 +437,7 @@ std::vector<CLUSTER> collapser::collapseLowFreqOneOffs(
 	if(opts_.clusOpts_.converge_ && amountAdded > 0){
 		collapseLowFreqOneOffs(comparingReads, lowFreqMultiplier, alignerObj);
 	}
-	return comparingReads;
+	return readVecSplitter::splitVectorOnRemove(comparingReads).first;
 }
 
 template<class CLUSTER>
