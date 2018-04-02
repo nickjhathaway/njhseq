@@ -55,6 +55,12 @@ private:
 public:
 
 	template<class CLUSTER>
+	std::vector<CLUSTER> collapseLowFreqOneOffs(std::vector<CLUSTER> &currentClusters,
+			double lowFreqMultiplier,
+			aligner &alignerObj) const;
+
+
+	template<class CLUSTER>
 	std::vector<CLUSTER> runClustering(std::vector<CLUSTER> &currentClusters,
 			CollapseIterations iteratorMap,
 			aligner &alignerObj) const;
@@ -184,6 +190,7 @@ void collapser::findMatch(CLUSTER &read,
     	}
     }
   }
+
 }
 
 
@@ -199,6 +206,7 @@ template<class CLUSTER>
 void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
 		std::vector<uint64_t> & positions, const IterPar &runParams,
 		aligner &alignerObj) const {
+
 	uint32_t sizeOfReadVector = 0;
 	for (const auto & pos : positions) {
 		if (!comparingReads[pos].remove) {
@@ -275,6 +283,7 @@ void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
 	if(opts_.clusOpts_.converge_ && amountAdded > 0){
 		collapseWithParameters(comparingReads, positions, runParams, alignerObj);
 	}
+
 }
 
 template<class CLUSTER>
@@ -308,6 +317,116 @@ std::vector<CLUSTER> collapser::runClustering(
 		}
 	}
 	return readVecSplitter::splitVectorOnRemove(currentClusters).first;
+}
+
+
+template<class CLUSTER>
+std::vector<CLUSTER> collapser::collapseLowFreqOneOffs(
+		std::vector<CLUSTER> &comparingReads, double lowFreqMultiplier,
+		aligner &alignerObj) const {
+	std::vector<uint64_t> positions(comparingReads.size());
+	bib::iota<uint64_t>(positions, 0);
+	uint32_t sizeOfReadVector = 0;
+	for (const auto & pos : positions) {
+		if (!comparingReads[pos].remove) {
+			++sizeOfReadVector;
+		}
+	}
+	if (sizeOfReadVector < 2) {
+		return comparingReads;
+	}
+	if (opts_.verboseOpts_.verbose_) {
+		std::cout << "Starting with " << sizeOfReadVector << " clusters"
+				<< std::endl;
+	}
+	uint32_t clusterCounter = 0;
+	size_t amountAdded = 0;
+	for (const auto &reverseReadPos : iter::reversed(positions)) {
+		auto & reverseRead = comparingReads[reverseReadPos];
+		if (reverseRead.remove) {
+			continue;
+		} else {
+			++clusterCounter;
+		}
+		if (opts_.verboseOpts_.verbose_ && clusterCounter % 100 == 0) {
+			std::cout << "\r" << "Currently on cluster " << clusterCounter << " of "
+					<< sizeOfReadVector;
+			std::cout.flush();
+		}
+		uint32_t count = 0;
+	  for (const auto &clusPos : positions) {
+	    if (comparingReads[clusPos].remove) {
+	      continue;
+	    }
+	  	auto & clus = comparingReads[clusPos];
+	  	if (clus.seqBase_.frac_ <= reverseRead.seqBase_.frac_ * lowFreqMultiplier) {
+	      continue;
+	    }
+	    if (clus.seqBase_.name_ == reverseRead.seqBase_.name_) {
+	      continue;
+	    }
+	    ++count;
+	    comparison comp = clus.getComparison(reverseRead, alignerObj, false);
+	    //can only get here if clus.seqBase_.frac >  reverseRead.seqBase_.frac_ * lowFreqMultiplier so can just check if only diffs by 1 mismatch
+	    bool matching = (comp.hqMismatches_ + comp.lqMismatches_ + comp.lowKmerMismatches_) <=1
+	    		&& comp.largeBaseIndel_ == 0
+					&& comp.twoBaseIndel_ == 0
+					&& comp.oneBaseIndel_ == 0;
+			if (matching) {
+        ++amountAdded;
+        clus.addRead(reverseRead);
+        reverseRead.remove = true;
+        break;
+	    }
+	  }
+	}
+
+	bib::stopWatch watch;
+	watch.setLapName("updatingName");
+	for (const auto & pos : positions) {
+		if(!comparingReads[pos].remove){
+			comparingReads[pos].updateName();
+		}
+	}
+	watch.startNewLap("allCalculateConsensus");
+	for (const auto & pos : positions) {
+		if(!comparingReads[pos].remove){
+			comparingReads[pos].calculateConsensus(alignerObj, true);
+		}
+	}
+	watch.startNewLap("removeLowQualityBases");
+	if (opts_.iTOpts_.removeLowQualityBases_) {
+		for (const auto & pos : positions) {
+			if (!comparingReads[pos].remove) {
+				comparingReads[pos].seqBase_.removeLowQualityBases(
+				opts_.iTOpts_.lowQualityBaseTrim_);
+			}
+		}
+	}
+	watch.startNewLap("adjustHomopolyerRuns");
+	if (opts_.iTOpts_.adjustHomopolyerRuns_) {
+		for (const auto & pos : positions) {
+			if (!comparingReads[pos].remove) {
+				comparingReads[pos].adjustHomopolyerRunQualities();
+			}
+		}
+	}
+
+	if (opts_.verboseOpts_.debug_) {
+		watch.logLapTimes(std::cout, true, 6, true);
+	}
+
+	if (opts_.verboseOpts_.verbose_) {
+		if (clusterCounter >= 100) {
+			std::cout << std::endl;
+		}
+		std::cout << "Collapsed down to " << sizeOfReadVector - amountAdded
+				<< " clusters" << std::endl;
+	}
+	if(opts_.clusOpts_.converge_ && amountAdded > 0){
+		collapseLowFreqOneOffs(comparingReads, lowFreqMultiplier, alignerObj);
+	}
+	return comparingReads;
 }
 
 template<class CLUSTER>

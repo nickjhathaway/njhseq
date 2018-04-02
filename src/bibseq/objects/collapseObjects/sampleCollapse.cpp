@@ -82,6 +82,13 @@ void sampleCollapse::cluster(const collapser &collapserObj,
 	// std::cout <<"clus 2 " << std::endl;
 }
 
+void sampleCollapse::collapseLowFreqOneOffs(double lowFreqMultiplier,
+		aligner &alignerObj, const collapser &collapserObj) {
+	collapsed_.clusters_ = collapserObj.collapseLowFreqOneOffs(collapsed_.clusters_,
+			lowFreqMultiplier, alignerObj);
+}
+
+
 
 
 // excludes
@@ -135,6 +142,33 @@ void sampleCollapse::excludeFraction(double fractionCutOff, bool update) {
   }
 
 }
+
+void sampleCollapse::excludeFractionAnyRep(double fractionCutOff, bool update) {
+	uint32_t fractionCutOffNum = 0;
+	std::vector<sampleCluster> keep;
+	for(const auto & clus : collapsed_.clusters_){
+		bool excluded = false;
+		for(const auto & sampleInfo : clus.sampInfos()){
+			if(sampleInfo.second.numberOfClusters_ > 0 && sampleInfo.second.fraction_ < fractionCutOff){
+				excluded_.clusters_.emplace_back(clus);
+				++fractionCutOffNum;
+				excluded = true;
+				break;
+			}
+		}
+		if(!excluded){
+			keep.emplace_back(clus);
+		}
+	}
+  if(fractionCutOffNum > 0){
+  	collapsed_.clusters_ = keep;
+  }
+  if (update) {
+    updateAfterExclustion();
+  }
+
+}
+
 
 void sampleCollapse::excludeBySampNum(uint32_t sampsRequired, bool update) {
   uint32_t splitCount = 0;

@@ -96,6 +96,9 @@ class baseCluster : public readObject {
   		const IterPar & runParams,
   		const CollapserOpts & collapserOptsObj);
 
+  comparison getComparison(baseCluster & read, aligner & alignerObj, bool checkKmers);
+
+
   readObject createRead() const;
 
 	bool isClusterCompletelyChimeric();

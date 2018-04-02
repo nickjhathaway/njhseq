@@ -537,6 +537,12 @@ std::string toSlimJsonErrors(const comparison & comp){
 }
 
 
+comparison baseCluster::getComparison(baseCluster & read, aligner & alignerObj, bool checkKmers){
+	alignerObj.alignCacheGlobalDiag(seqBase_, read.seqBase_);
+	alignerObj.compareAlignment(seqBase_, read.seqBase_, checkKmers);
+	return alignerObj.comp_;
+}
+
 bool baseCluster::compare(baseCluster & read, aligner & alignerObj,
 		const IterPar & runParams, const CollapserOpts & collapserOptsObj) {
 	bool ret = false;

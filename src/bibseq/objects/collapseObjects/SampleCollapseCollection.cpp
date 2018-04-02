@@ -370,6 +370,21 @@ void SampleCollapseCollection::clusterSample(const std::string & sampleName,
 	samp->renameClusters(sortBy);
 }
 
+void SampleCollapseCollection::collapseLowFreqOneOffsSample(
+		const std::string & sampleName, aligner & alignerObj,
+		const collapser & collapserObj, double lowFreqMultiplier) {
+
+	std::string sortBy = "fraction";
+	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
+
+	auto samp = sampleCollapses_.at(sampleName);
+	samp->collapseLowFreqOneOffs(lowFreqMultiplier, alignerObj, collapserObj);
+
+	samp->updateCollapsedInfos();
+	samp->updateExclusionInfos();
+	samp->renameClusters(sortBy);
+}
+
 void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
 	auto samp = sampleCollapses_.at(sampleName);
@@ -1241,6 +1256,18 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 	return ret;
 }
 
+void SampleCollapseCollection::excludeOnFrac(const std::string & sampleName,
+		const std::unordered_map<std::string, double> & customCutOffsMap,
+		bool fracExcludeOnlyInFinalAverageFrac) {
+	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
+	if (fracExcludeOnlyInFinalAverageFrac) {
+		sampleCollapses_.at(sampleName)->excludeFraction(
+				customCutOffsMap.at(sampleName), true);
+	} else {
+		sampleCollapses_.at(sampleName)->excludeFractionAnyRep(
+				customCutOffsMap.at(sampleName), true);
+	}
+}
 
 }  // namespace collapse
 }  // namespace bibseq

@@ -83,6 +83,9 @@ public:
 	void clusterSample(const std::string & sampleName, aligner & alignerObj,
 			const collapser & collapserObj, const CollapseIterations & colIters);
 
+	void collapseLowFreqOneOffsSample(const std::string & sampleName, aligner & alignerObj,
+			const collapser & collapserObj,double lowFreqMultiplier);
+
 	void dumpSample(const std::string & sampleName);
 
 	void clearSample(const std::string & sampleName);
@@ -148,6 +151,13 @@ public:
 	void createCoreJsonFile() const;
 
 	std::vector<seqInfo> genOutPopSeqsPerSample() const;
+
+	void excludeOnFrac(const std::string & sampleName,
+			const std::unordered_map<std::string, double> & customCutOffsMap,
+			bool fracExcludeOnlyInFinalAverageFrac);
+
+
+
 
 };
 

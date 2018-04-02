@@ -39,10 +39,13 @@ public:
 	// collapse the input clusters
 	void cluster(const collapser &collapserObj, CollapseIterations iteratorMap,
 			const std::string &sortBy, aligner &alignerObj);
+
+	void collapseLowFreqOneOffs(double lowFreqMultiplier, aligner &alignerObj, const collapser &collapserObj);
 	// excludes
 	void excludeChimeras(bool update);
 	void excludeChimeras(bool update, double fracCutOff);
 	void excludeFraction(double fractionCutOff, bool update);
+	void excludeFractionAnyRep(double fractionCutOff, bool update);
 	void excludeBySampNum(uint32_t sampsRequired, bool update);
 	//
 	void renameClusters(const std::string &sortBy);
