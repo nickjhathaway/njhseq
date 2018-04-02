@@ -125,6 +125,10 @@ class alignCalc {
 		int32_t jcursor_;
 		uint32_t lena_;
 		uint32_t lenb_;
+
+		uint32_t lastStartA_{0};
+		uint32_t lastStartB_{0};
+
 	};
 
   static MatCursor runNeedleDiagonalSaveInit(

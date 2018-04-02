@@ -194,9 +194,25 @@ void aligner::alignCacheGlobal(const seqInfo & ref, const seqInfo & read){
 void aligner::alignCacheGlobalDiag(const seqInfo & ref, const seqInfo & read){
 //	ref.outPutSeq(std::cout);
 //	read.outPutSeq(std::cout);
+//	if("M01669:46:000000000-B94FV:1:1111:22622:4025 1:N:0:GGACTCCT+TATCCTCT_t2" == ref.name_ &&
+//		 "M01669:46:000000000-B94FV:1:1115:26290:7689 1:N:0:GGACTCCT+TATCCTCT_t1" == read.name_){
+//		ref.outPutSeq(std::cout);
+//		read.outPutSeq(std::cout);
+//		std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+//	}
 
 	alignScoreCacheGlobalDiag(ref.seq_, read.seq_);
+//	if("M01669:46:000000000-B94FV:1:1111:22622:4025 1:N:0:GGACTCCT+TATCCTCT_t2" == ref.name_ &&
+//			 "M01669:46:000000000-B94FV:1:1115:26290:7689 1:N:0:GGACTCCT+TATCCTCT_t1" == read.name_){
+//		std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+//	}
 	rearrangeObjsGlobal(ref, read);
+//	if("M01669:46:000000000-B94FV:1:1111:22622:4025 1:N:0:GGACTCCT+TATCCTCT_t2" == ref.name_ &&
+//			 "M01669:46:000000000-B94FV:1:1115:26290:7689 1:N:0:GGACTCCT+TATCCTCT_t1" == read.name_){
+//		std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+//		std::cout << std::endl;
+//	}
+
 }
 
 

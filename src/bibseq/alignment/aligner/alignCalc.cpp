@@ -1245,9 +1245,13 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 									uint32_t alignmentBlockWalkbackSize,
 									const MatCursor & lastCursors,
                    alnParts& parts) noexcept {
-
-  const uint32_t starta = lastCursors.icursor_ + 1 > alignmentBlockWalkbackSize ? lastCursors.icursor_ + 1 - alignmentBlockWalkbackSize : 0;
-  const uint32_t startb = lastCursors.jcursor_ + 1 > alignmentBlockWalkbackSize ? lastCursors.jcursor_ + 1 - alignmentBlockWalkbackSize : 0;
+//  bool print = false;
+//  if("AGTGAAGAAGCAATGGTGCCTTTGGAAAGTATGTAGCTCTTAGTTAAGCTTTTATCTGGAAGGTGCTGGAGAAGGTCTGGGCACAGAGCTGGTTGGCTCCATGGTTTTGTGACCTGTGCCATGATTTGAGAAGTGCCCATAGGTAGAAATCCAGGATGACTATGGGGCTCGTTTTGTATGTTTCCTGCCTCTCAAGGATTACAGACCTGTCTCTCTGTTGTCCAATGACTCTAAAGAATTGCTTCATAGATTTTGTTCAGTTTCACAGCTTTCTATAAGAGAAGTTAAATATGATACCTGTTACTCCTTCATGGCCAGAACTGGAAGCTAAGCATGGGTTTGATGTCACGCAGACCTGGGTTTGGACCCCAGCTCTGCCCCTTAATGGCTCTGTGACCTAAAGCAGGTTATTTCATCTCTTTGAGCCTCAGTGTCTTTACCTAAGAAACAGCAGGTTATTGTGAGGACCAAATAAAACAAAGCACACTTAGC" == objA &&
+//  	 "TCAACATCACTAGGCAATAGGAATTTTTCAGCTCCATTTTAATCTTAAGGGACCACTGGTAATTTTAATTGGGTCTTGGATATTATATATTAAGATTTTGAGATATAATTTTAGGCTATGGGTGATTTTATTTTTTTTCCTGAGAAAGTGAAGTTTGCTTATTTTAGGCAACTGGGGTGAGGACATTAGTAATCCAAGGCCACTTTAAGCCAATCAGGTATTTATGTAATTTGAAGCTGGCCTTGATTCCCTACTATGGCTAGTTTGTTTTTAGTTTACTCTCACTCTTGGGGTATAGCCCTTCAAGTTCCCAGCCAAAAGCCTGGGGTGTTGGCCAAGGTTTGTTCTTCATTGAGGGCCCTGAGTACTAGTTTCTATCTGCCCAGATCCATAAGACTTGGTAAAAGCTCTCTTCAGCTCCTCAGCCTCTCAGCCCGGATGATGCATCAGACACACCTGGGACCCTCGGAGCTCCTGCTGTC" == objB){
+//  	print = true;
+//  }
+  const uint32_t starta = std::max(lastCursors.icursor_ + 1 > alignmentBlockWalkbackSize ? lastCursors.icursor_ + 1 - alignmentBlockWalkbackSize : 0, lastCursors.lastStartA_);
+  const uint32_t startb = std::max(lastCursors.jcursor_ + 1 > alignmentBlockWalkbackSize ? lastCursors.jcursor_ + 1 - alignmentBlockWalkbackSize : 0, lastCursors.lastStartB_);
 
   // Create the alignment score matrix to do the alignment, a column for each
   // letter in sequence b and a row for each letter in sequence a
@@ -1255,8 +1259,15 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
   const uint32_t lena = std::min<uint32_t>(starta + alignmentBlockSize, objA.size() + 1);
   const uint32_t lenb = std::min<uint32_t>(startb + alignmentBlockSize, objB.size() + 1);
 
+//  const uint32_t fillStartA = startb < lastCursors.lastStartB_ ? starta : lastCursors.lena_;
+//  const uint32_t fillStartB = starta < lastCursors.lastStartA_ ? startb : lastCursors.lenb_;
+
+//  bool aFull = fillStartA == lena;
+//  bool bFull = fillStartB == lenb;
   bool aFull = lastCursors.lena_ == lena;
   bool bFull = lastCursors.lenb_ == lenb;
+//  bool aFull = false;
+//  bool bFull = false;
 
   uint32_t stopa = (lena == objA.size() + 1) ? lena - 1 : lena;
   uint32_t stopb = (lenb == objB.size() + 1) ? lenb - 1 : lenb;
@@ -1264,16 +1275,29 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 //  std::cout  << "lenb: " << lenb << std::endl;
 //  std::cout  << "lastCursors.lena_: " << lastCursors.lena_ << std::endl;
 //  std::cout  << "lastCursors.lenb_: " << lastCursors.lenb_ << std::endl;
+//  std::cout  << "fillStartA: " << fillStartA << std::endl;
+//  std::cout  << "fillStartB: " << fillStartB << std::endl;
 //  std::cout  << "aFull: " << bib::colorBool(aFull) << std::endl;
 //  std::cout  << "bFull: " << bib::colorBool(bFull) << std::endl;
 //  std::cout << std::endl;
-
+//  if(print){
+//  		std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+//  	  std::cout  << "lena: " << lena << std::endl;
+//  	  std::cout  << "lenb: " << lenb << std::endl;
+////  	  std::cout  << "fillStartA: " << fillStartA << std::endl;
+////  	  std::cout  << "fillStartB: " << fillStartB << std::endl;
+//  	  std::cout  << "lastCursors.lena_: " << lastCursors.lena_ << std::endl;
+//  	  std::cout  << "lastCursors.lenb_: " << lastCursors.lenb_ << std::endl;
+//  	  std::cout  << "aFull: " << bib::colorBool(aFull) << std::endl;
+//  	  std::cout  << "bFull: " << bib::colorBool(bFull) << std::endl;
+//  	  std::cout << std::endl;
+//  }
   // initialize first column
   if(!aFull){
   		const uint32_t j = startb;
     if(0 == startb){
     		//back at 0, end gap
-      for (uint32_t i = lastCursors.lena_; i < lena; ++i) {
+      for (uint32_t i = lastCursors.lena_; i < stopa; ++i) {
         parts.ScoreMatrix_[i][j].upInherit =
             parts.ScoreMatrix_[i - 1][j].upInherit -
             parts.gapScores_.gapLeftQueryExtend_;
@@ -1316,7 +1340,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
         parts.ScoreMatrix_[i][j].leftInherit = std::numeric_limits<int32_t>::lowest()/2;
         parts.ScoreMatrix_[i][j].leftInheritPtr = '\0';
   		}
-      for (uint32_t i = lastCursors.lena_ + 1; i < lena; ++i) {
+      for (uint32_t i = lastCursors.lena_ + 1; i < stopa; ++i) {
         parts.ScoreMatrix_[i][j].upInherit =
             parts.ScoreMatrix_[i - 1][j].upInherit -
             parts.gapScores_.gapExtend_;
@@ -1337,7 +1361,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
   		const uint32_t i = starta;
   		if(0 == starta){
   			//end gap
-  		  for (uint32_t j = startb; j < lenb; ++j) {
+  		  for (uint32_t j = lastCursors.lenb_; j < stopb; ++j) {
   		    parts.ScoreMatrix_[i][j].leftInherit =
   		        parts.ScoreMatrix_[i][j - 1].leftInherit -
   		        parts.gapScores_.gapLeftRefExtend_;
@@ -1383,7 +1407,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 													ptrFlag);
 				parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
   			}
-  	    for (uint32_t j = lastCursors.lenb_ + 1; j < lenb; ++j) {
+  	    for (uint32_t j = lastCursors.lenb_ + 1; j < stopb; ++j) {
 
   		    parts.ScoreMatrix_[i][j].leftInherit =
   		        parts.ScoreMatrix_[i][j - 1].leftInherit -
@@ -1398,6 +1422,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
   	    }
   		}
   }
+
   //fill bottom
   for (uint32_t i = lastCursors.lena_; i < stopa ; ++i) {
     for (uint32_t j = startb + 1; j < lastCursors.lenb_; ++j) {
@@ -1551,59 +1576,57 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 
 
   //i = lena - 1
-  //end gap
-  if(stopa == lena - 1 ){
-  	  const uint32_t i = lena - 1;
-  	  {
-  	  		const uint32_t j = startb;
-
-  	  		if(0 == startb){
-  	  			//end gap
+	//end gap
+	if (stopa == lena - 1) {
+		const uint32_t i = lena - 1;
+		{
+			const uint32_t j = startb;
+			if (0 == startb) {
+				//end gap
 				parts.ScoreMatrix_[i][j].upInherit =
-						parts.ScoreMatrix_[i - 1][j].upInherit -
-						parts.gapScores_.gapLeftQueryExtend_;
+						parts.ScoreMatrix_[i - 1][j].upInherit
+								- parts.gapScores_.gapLeftQueryExtend_;
 				parts.ScoreMatrix_[i][j].upInheritPtr = 'U';
-  	  		}else{
+			} else {
 				char ptrFlag;
 				//normal up
-				parts.ScoreMatrix_[i][j].upInherit =
-						needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
-															parts.gapScores_.gapExtend_,
-													parts.ScoreMatrix_[i - 1][j].leftInherit -
-															parts.gapScores_.gapOpen_,
-													parts.ScoreMatrix_[i - 1][j].diagInherit -
-															parts.gapScores_.gapOpen_,
-													ptrFlag);
+				parts.ScoreMatrix_[i][j].upInherit = needleMaximum(
+						parts.ScoreMatrix_[i - 1][j].upInherit
+								- parts.gapScores_.gapExtend_,
+						parts.ScoreMatrix_[i - 1][j].leftInherit
+								- parts.gapScores_.gapOpen_,
+						parts.ScoreMatrix_[i - 1][j].diagInherit
+								- parts.gapScores_.gapOpen_, ptrFlag);
 				parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
-  	  		}
+			}
 
-  	  		if(i == lastCursors.icursor_ + 1){
-  	  			//just one down from last time, so normal diagonal
-  	  			char ptrFlag;
+			if (i == lastCursors.icursor_ + 1) {
+				//just one down from last time, so normal diagonal
+				char ptrFlag;
 				//normal diag
 				int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
-				parts.ScoreMatrix_[i][j].diagInherit =
-						match +
-						needleMaximum(parts.ScoreMatrix_[i - 1][j - 1].upInherit,
-													parts.ScoreMatrix_[i - 1][j - 1].leftInherit,
-													parts.ScoreMatrix_[i - 1][j - 1].diagInherit,
-													ptrFlag);
+				parts.ScoreMatrix_[i][j].diagInherit = match
+						+ needleMaximum(parts.ScoreMatrix_[i - 1][j - 1].upInherit,
+								parts.ScoreMatrix_[i - 1][j - 1].leftInherit,
+								parts.ScoreMatrix_[i - 1][j - 1].diagInherit, ptrFlag);
 				parts.ScoreMatrix_[i][j].diagInheritPtr = ptrFlag;
-  	  		}else{
-  	  			//diagonal is impossible
-  	  			//first column so left inherit is impossible
-  	  			parts.ScoreMatrix_[i][j].diagInherit = std::numeric_limits<int32_t>::lowest()/2;
-  	  			parts.ScoreMatrix_[i][j].diagInheritPtr = '\0';
-  	  		}
+			} else {
+				//diagonal is impossible
+				//first column so left inherit is impossible
+				parts.ScoreMatrix_[i][j].diagInherit =
+						std::numeric_limits<int32_t>::lowest() / 2;
+				parts.ScoreMatrix_[i][j].diagInheritPtr = '\0';
+			}
 
 			//first column so left inherit is impossible
-			parts.ScoreMatrix_[i][j].leftInherit = std::numeric_limits<int32_t>::lowest()/2;
+			parts.ScoreMatrix_[i][j].leftInherit =
+					std::numeric_limits<int32_t>::lowest() / 2;
 			parts.ScoreMatrix_[i][j].leftInheritPtr = '\0';
-  	  }
+		}
 
     for (uint32_t j = startb + 1; j < stopb; ++j) {
     	  char ptrFlag;
-     	//normal up
+     	// normal up
       parts.ScoreMatrix_[i][j].upInherit =
           needleMaximum(parts.ScoreMatrix_[i - 1][j].upInherit -
                             parts.gapScores_.gapExtend_,
@@ -1613,7 +1636,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
                             parts.gapScores_.gapOpen_,
                         ptrFlag);
       parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
-    	  //end left
+    	// end left
       parts.ScoreMatrix_[i][j].leftInherit =
           needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
                             parts.gapScores_.gapRightRefOpen_,
@@ -1623,7 +1646,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
                             parts.gapScores_.gapRightRefOpen_,
                         ptrFlag);
       parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
-     	//normal diag
+     	// normal diag
       int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
       parts.ScoreMatrix_[i][j].diagInherit =
           match +
@@ -1640,6 +1663,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
   if(stopb == lenb - 1 ){
 
    	const uint32_t j = lenb - 1;
+
 //   	std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << " putting in end gap " << std::endl;
 //   	std::cout << "\tj:               " << j << std::endl;
 //   	std::cout << "\tstopb:           " << stopb << std::endl;
@@ -1647,13 +1671,21 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 //   	std::cout << "\tobjB.size() + 1: " << objB.size() + 1 << std::endl;
    	{
    		const uint32_t i = starta;
+//     	if(print){
+//     		   	std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << " putting in end gap " << std::endl;
+//     		   	std::cout << "\ti:               " << i << std::endl;
+//     		   	std::cout << "\tj:               " << j << std::endl;
+//     		   	std::cout << "\tstopb:           " << stopb << std::endl;
+//     		   	std::cout << "\tlenb:            " << lenb << std::endl;
+//     		   	std::cout << "\tobjB.size() + 1: " << objB.size() + 1 << std::endl;
+//     	}
    		if(0 == starta ){
    			//end gap
    			parts.ScoreMatrix_[i][j].leftInherit =
    			  		        parts.ScoreMatrix_[i][j - 1].leftInherit -
    			  		        parts.gapScores_.gapLeftRefExtend_;
    			parts.ScoreMatrix_[i][j].leftInheritPtr = 'L';
-   		}else{
+   		} else {
 				//regular left
    			char ptrFlag;
 				parts.ScoreMatrix_[i][j].leftInherit =
@@ -1683,11 +1715,12 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 		    parts.ScoreMatrix_[i][j].diagInheritPtr = '\0';
 		    parts.ScoreMatrix_[i][j].diagInherit = std::numeric_limits<int32_t>::lowest()/2;
 			}
+
 	    //first row so no up
 	    parts.ScoreMatrix_[i][j].upInheritPtr = '\0';
 	    parts.ScoreMatrix_[i][j].upInherit = std::numeric_limits<int32_t>::lowest()/2;
-
    	}
+
     for (uint32_t i = starta + 1; i < stopa; ++i) {
     	  char ptrFlag;
     	  //end up
@@ -1832,8 +1865,10 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
   if(lena == objA.size() + 1 && lenb == objB.size() + 1){
 //  		std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 //    std::cout << "\twithin icursor: " << icursor << "/" << lena << " within jcursor: " << jcursor<< "/" << lenb  << std::endl;
-
-  		return MatCursor{icursor, jcursor, lena, lenb};
+  	MatCursor ret{icursor, jcursor, lena, lenb};
+  	ret.lastStartA_ = starta;
+  	ret.lastStartB_ = startb;
+  	return ret;
   } else {
     // tracerNext holds to where to go next in the matrix, will be (D) diagonal,
     // (U) up, or (L) left depending on the maximum score determined during the
@@ -1881,11 +1916,18 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 //        exit(1);
 //      }
     }
-    if(0 == icursor && 0 == jcursor){
-    		return MatCursor{static_cast<int32_t>(lena - 1), static_cast<int32_t>(lenb - 1), lena, lenb};
-    }else{
-    		return MatCursor{icursor, jcursor, lena, lenb};
-    }
+		if (0 == icursor && 0 == jcursor) {
+			MatCursor ret{ static_cast<int32_t>(lena - 1),
+					static_cast<int32_t>(lenb - 1), lena, lenb };
+	  	ret.lastStartA_ = starta;
+	  	ret.lastStartB_ = startb;
+	  	return ret;
+		} else {
+			MatCursor ret{ icursor, jcursor, lena, lenb };
+	  	ret.lastStartA_ = starta;
+	  	ret.lastStartB_ = startb;
+	  	return ret;
+		}
   }
 }
 
@@ -1895,6 +1937,12 @@ void alignCalc::runNeedleDiagonalSave(
 									uint32_t inputAlignmentBlockSize,
 									uint32_t inputAlignmentBlockWalkbackSize,
                    alnParts& parts) {
+//  bool print = false;
+//  if("AGTGAAGAAGCAATGGTGCCTTTGGAAAGTATGTAGCTCTTAGTTAAGCTTTTATCTGGAAGGTGCTGGAGAAGGTCTGGGCACAGAGCTGGTTGGCTCCATGGTTTTGTGACCTGTGCCATGATTTGAGAAGTGCCCATAGGTAGAAATCCAGGATGACTATGGGGCTCGTTTTGTATGTTTCCTGCCTCTCAAGGATTACAGACCTGTCTCTCTGTTGTCCAATGACTCTAAAGAATTGCTTCATAGATTTTGTTCAGTTTCACAGCTTTCTATAAGAGAAGTTAAATATGATACCTGTTACTCCTTCATGGCCAGAACTGGAAGCTAAGCATGGGTTTGATGTCACGCAGACCTGGGTTTGGACCCCAGCTCTGCCCCTTAATGGCTCTGTGACCTAAAGCAGGTTATTTCATCTCTTTGAGCCTCAGTGTCTTTACCTAAGAAACAGCAGGTTATTGTGAGGACCAAATAAAACAAAGCACACTTAGC" == objA &&
+//  	 "TCAACATCACTAGGCAATAGGAATTTTTCAGCTCCATTTTAATCTTAAGGGACCACTGGTAATTTTAATTGGGTCTTGGATATTATATATTAAGATTTTGAGATATAATTTTAGGCTATGGGTGATTTTATTTTTTTTCCTGAGAAAGTGAAGTTTGCTTATTTTAGGCAACTGGGGTGAGGACATTAGTAATCCAAGGCCACTTTAAGCCAATCAGGTATTTATGTAATTTGAAGCTGGCCTTGATTCCCTACTATGGCTAGTTTGTTTTTAGTTTACTCTCACTCTTGGGGTATAGCCCTTCAAGTTCCCAGCCAAAAGCCTGGGGTGTTGGCCAAGGTTTGTTCTTCATTGAGGGCCCTGAGTACTAGTTTCTATCTGCCCAGATCCATAAGACTTGGTAAAAGCTCTCTTCAGCTCCTCAGCCTCTCAGCCCGGATGATGCATCAGACACACCTGGGACCCTCGGAGCTCCTGCTGTC" == objB){
+//  	print = true;
+//  }
+
   parts.gHolder_.gapInfos_.clear();
   parts.gHolder_.addFromFile_ = false;
 	auto cursors = runNeedleDiagonalSaveInit(objA, objB, inputAlignmentBlockSize, parts);
@@ -1908,17 +1956,22 @@ void alignCalc::runNeedleDiagonalSave(
 			  (cursors.icursor_ == objA.size() && cursors.jcursor_ != objB.size()) ||
 			  (cursors.icursor_ != objA.size() && cursors.jcursor_ == objB.size())){
 
-//		std::cout << "icursor: " << cursors.icursor_ << " jcursor: "<< cursors.jcursor_<< " objA.size(): " << objA.size() << " objB.size(): "<< objB.size() << std::endl;
+//		if(print){
+//			std::cout << "icursor: " << cursors.icursor_ << " jcursor: "<< cursors.jcursor_<< " objA.size(): " << objA.size() << " objB.size(): "<< objB.size() << std::endl;
+//		}
 		auto nextCursor = runNeedleDiagonalSaveStep(objA, objB, internalAlignmentBlockSize, internalAlignmentBlockWalkbackSize, cursors, parts);;
 		if(bib::in(std::make_pair(cursors.icursor_, cursors.jcursor_), previousCursors)){
 			internalAlignmentBlockSize += internalAlignmentBlockSize/4;
-			internalAlignmentBlockWalkbackSize += internalAlignmentBlockWalkbackSize/4;
+			//internalAlignmentBlockWalkbackSize += internalAlignmentBlockWalkbackSize/4;
 		}
 //		if(nextCursor.icursor_ == cursors.icursor_ && nextCursor.jcursor_ == cursors.jcursor_){
 //			nextCursor.icursor_ = std::min<int32_t>(objA.size(), nextCursor.icursor_ + internalAlignmentBlockSize);
 //			nextCursor.jcursor_ = std::min<int32_t>(objB.size(), nextCursor.jcursor_ + internalAlignmentBlockSize);
 //		}
-//
+//		if(print){
+//			std::cout << "\tlastCursor.icursor: " << cursors.icursor_ << " lastCursor.jcursor: " << cursors.jcursor_  << std::endl;
+//			std::cout << "\tnextCursor.icursor: " << nextCursor.icursor_ << " nextCursor.jcursor: " << nextCursor.jcursor_  << std::endl;
+//		}
 //		std::cout << "\tlastCursor.icursor: " << cursors.icursor_ << " lastCursor.jcursor: " << cursors.jcursor_  << std::endl;
 //		std::cout << "\tnextCursor.icursor: " << nextCursor.icursor_ << " nextCursor.jcursor: " << nextCursor.jcursor_  << std::endl;
 		cursors = nextCursor;
@@ -1991,17 +2044,60 @@ void alignCalc::runNeedleDiagonalSave(
 //    		}
 //    }
 //  }
+//
+//  if(print){
+//  	  std::cout << "final icursor: " << icursor << "/" << objA.size() << " final jcursor: " << jcursor<< "/" << objB.size() << " tracerNext: " << tracerNext << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor][jcursor].upInherit: " << parts.ScoreMatrix_[icursor][jcursor].upInherit << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor][jcursor].leftInherit: " << parts.ScoreMatrix_[icursor][jcursor].leftInherit << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor][jcursor].diagInherit: " << parts.ScoreMatrix_[icursor][jcursor].diagInherit << std::endl;
+//
+//  	  std::cout << "final icursor up and over 1: " << icursor - 1 << "/" << objA.size() << " final jcursor: " << jcursor -1 << "/" << objB.size() << " tracerNext: " << tracerNext << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor - 1][jcursor - 1].upInherit: "   << parts.ScoreMatrix_[icursor - 1][jcursor - 1].upInherit << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor - 1][jcursor - 1].leftInherit: " << parts.ScoreMatrix_[icursor - 1][jcursor - 1].leftInherit << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor - 1][jcursor - 1].diagInherit: " << parts.ScoreMatrix_[icursor - 1][jcursor - 1].diagInherit << std::endl;
+//
+//  	  std::cout << "final icursor up 1: " << icursor << "/" << objA.size() << " final jcursor: " << jcursor -1 << "/" << objB.size() << " tracerNext: " << tracerNext << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor][jcursor - 1].upInherit: "   << parts.ScoreMatrix_[icursor][jcursor - 1].upInherit << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor][jcursor - 1].leftInherit: " << parts.ScoreMatrix_[icursor][jcursor - 1].leftInherit << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor][jcursor - 1].diagInherit: " << parts.ScoreMatrix_[icursor][jcursor - 1].diagInherit << std::endl;
+//
+//  	  std::cout << "final icursor over 1: " << icursor - 1 << "/" << objA.size() << " final jcursor: " << jcursor << "/" << objB.size() << " tracerNext: " << tracerNext << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor - 1][jcursor].upInherit: "   << parts.ScoreMatrix_[icursor - 1][jcursor].upInherit << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor - 1][jcursor].leftInherit: " << parts.ScoreMatrix_[icursor - 1][jcursor].leftInherit << std::endl;
+//  	  std::cout << "parts.ScoreMatrix_[icursor - 1][jcursor].diagInherit: " << parts.ScoreMatrix_[icursor - 1][jcursor].diagInherit << std::endl;
+//
+//  	  std::cout << std::endl;
+//
+//  	  if(print){
+//
+//  	  	std::ofstream outScoresInfo("allScores_alnCalc.txt");
+//  	    outScoresInfo << "icursor\tjcursor\tup\tleft\tdiag" << std::endl;
+//  	    for(uint32_t i = 0; i <= icursor; ++i){
+//  	    		for(uint32_t j = 0; j <= jcursor; ++j){
+//  	    			outScoresInfo << i
+//  	    					<< "\t" << j
+//  	  					<< "\t" << parts.ScoreMatrix_[i][j].upInherit
+//  	  					<< "\t" << parts.ScoreMatrix_[i][j].leftInherit
+//  	  					<< "\t" << parts.ScoreMatrix_[i][j].diagInherit
+//  	  					<< std::endl;
+//  	    		}
+//  	    }
+//  	  }
+//  }
 
 
   parts.gHolder_.score_ = parts.score_;
   uint32_t gapBSize = 0;
   uint32_t gapASize = 0;
+
 //  std::ofstream outInfo("alignmentPath_alnCalc.txt");
 //  outInfo << "icursor\tjcursor\tscore" << std::endl;
-
   // std::cout <<"rnv2" << std::endl;
   int32_t score = parts.score_;
   while (icursor != 0 || jcursor != 0) {
+//  	if(print){
+//  		std::cout << "icursor: " << icursor << " jcursor: " << jcursor << " score: " << score << " tracerNext: " << tracerNext << std::endl;
+//  	}
   		//outInfo << icursor << '\t' << jcursor << "\t" << score << std::endl;
     if (tracerNext == 'U') {
       ++gapBSize;
@@ -2041,6 +2137,9 @@ void alignCalc::runNeedleDiagonalSave(
         gapBSize = 0;
       }
       --icursor;
+    }
+    if(tracerNext == '\0'){
+    	exit(1);
     }
     if(icursor < 0 || jcursor < 0){
     		break;
