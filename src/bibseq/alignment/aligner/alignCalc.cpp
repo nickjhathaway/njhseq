@@ -957,6 +957,10 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveInit(
   // get the length of the strings to create the alignment score matrix
   const uint32_t lena = std::min<uint32_t>(alignmentBlockSize, objA.size() + 1);
   const uint32_t lenb = std::min<uint32_t>(alignmentBlockSize, objB.size() + 1);
+
+  uint32_t stopa = lena == objA.size() + 1 ? lena - 1 : lena;
+  uint32_t stopb = lenb == objB.size() + 1 ? lenb - 1 : lenb;
+
 //  std::cout << __PRETTY_FUNCTION__ << std::endl;
 //  std::cout << "alignmentBlockSize: " << alignmentBlockSize << std::endl;
 //  std::cout << "objA.size() + 1:    " << objA.size() + 1 << std::endl;
@@ -977,7 +981,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveInit(
 		parts.ScoreMatrix_[i][0].diagInherit = std::numeric_limits<int32_t>::lowest()/2;
 		parts.ScoreMatrix_[i][0].diagInheritPtr = '\0';
   }
-  for (uint32_t i = 2; i < lena; ++i) {
+  for (uint32_t i = 2; i < stopa; ++i) {
     parts.ScoreMatrix_[i][0].upInherit =
         parts.ScoreMatrix_[i - 1][0].upInherit -
         parts.gapScores_.gapLeftQueryExtend_;
@@ -1003,7 +1007,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveInit(
 		parts.ScoreMatrix_[0][j].diagInherit = std::numeric_limits<int32_t>::lowest()/2;
 
   }
-  for (uint32_t j = 2; j < lenb; ++j) {
+  for (uint32_t j = 2; j < stopb; ++j) {
     parts.ScoreMatrix_[0][j].leftInherit =
         parts.ScoreMatrix_[0][j - 1].leftInherit -
         parts.gapScores_.gapLeftRefExtend_;
@@ -1016,8 +1020,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveInit(
     parts.ScoreMatrix_[0][j].diagInheritPtr = '\0';
   }
 
-  uint32_t stopa = lena == objA.size() + 1 ? lena - 1 : lena;
-  uint32_t stopb = lenb == objB.size() + 1 ? lenb - 1 : lenb;
+
 //  std::cout << "stopa:              " << stopa << std::endl;
 //  std::cout << "stopb:              " << stopb << std::endl;
 
@@ -1078,7 +1081,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveInit(
   //
   if(stopa == lena - 1){
   	  const uint32_t i = lena - 1;
-    for (uint32_t j = 1; j < lenb - 1; ++j) {
+    for (uint32_t j = 1; j < stopb; ++j) {
      	char ptrFlag;
     	  //normal up
       parts.ScoreMatrix_[i][j].upInherit =
@@ -1116,7 +1119,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveInit(
   //end gap
   if(stopb == lenb - 1){
    	const uint32_t j = lenb - 1;
-    for (uint32_t i = 1; i < lena - 1; ++i) {
+    for (uint32_t i = 1; i < stopa; ++i) {
     	  char ptrFlag;
     	  //end up
       parts.ScoreMatrix_[i][j].upInherit =
@@ -1250,6 +1253,13 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 //  	 "TCAACATCACTAGGCAATAGGAATTTTTCAGCTCCATTTTAATCTTAAGGGACCACTGGTAATTTTAATTGGGTCTTGGATATTATATATTAAGATTTTGAGATATAATTTTAGGCTATGGGTGATTTTATTTTTTTTCCTGAGAAAGTGAAGTTTGCTTATTTTAGGCAACTGGGGTGAGGACATTAGTAATCCAAGGCCACTTTAAGCCAATCAGGTATTTATGTAATTTGAAGCTGGCCTTGATTCCCTACTATGGCTAGTTTGTTTTTAGTTTACTCTCACTCTTGGGGTATAGCCCTTCAAGTTCCCAGCCAAAAGCCTGGGGTGTTGGCCAAGGTTTGTTCTTCATTGAGGGCCCTGAGTACTAGTTTCTATCTGCCCAGATCCATAAGACTTGGTAAAAGCTCTCTTCAGCTCCTCAGCCTCTCAGCCCGGATGATGCATCAGACACACCTGGGACCCTCGGAGCTCCTGCTGTC" == objB){
 //  	print = true;
 //  }
+//	bool print = false;
+//	if ("CCCAGAGCTAGCACAGGCAGAACCCTCATGTGAATCAAAAAGGACACCACTCCGTCCCTGCTAACCCTGTCCTCTGTCTCTTCATTTTCCACCTAGACTGATATTGCCCCCAAACATTAAGCTTTCTTGTATTACCTTCATGAT"
+//			== objB
+//			&& "TATGTATACCTTCCTAAGATTAGCGGTGTCCTCTTGATTGGGGGATGGTTATAAATAGCTTTTAAGGTGATTTCCAGGCCTAACATTCTATTATTGACTTATAACTGCACTTTAAAGGCTTAAACACACACAATCCCATTGAATCCTCAAGATACTTCCATTGGCAGGCAAGTATTTTCCTTG"
+//					== objA) {
+//		print = true;
+//	}
   const uint32_t starta = std::max(lastCursors.icursor_ + 1 > alignmentBlockWalkbackSize ? lastCursors.icursor_ + 1 - alignmentBlockWalkbackSize : 0, lastCursors.lastStartA_);
   const uint32_t startb = std::max(lastCursors.jcursor_ + 1 > alignmentBlockWalkbackSize ? lastCursors.jcursor_ + 1 - alignmentBlockWalkbackSize : 0, lastCursors.lastStartB_);
 
@@ -1314,7 +1324,18 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
   		{
   			//start
   			const uint32_t i = lastCursors.lena_;
-
+//  			if(print){
+//  				std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+//  				std::cout << "\t" << "i: " << i << std::endl;
+//  				std::cout << "\t" << "j: " << j << std::endl;
+//  				std::cout << "\t" << "lastCursors.lena_: " << lastCursors.lena_ << std::endl;
+//  				std::cout << "\t" << "lastCursors.lenb_: " << lastCursors.lenb_ << std::endl;
+//  				std::cout << "\t" << "lena             : " << lena << std::endl;
+//  				std::cout << "\t" << "lenb             : " << lenb << std::endl;
+//  				std::cout << "\t" << "startb == lastCursors.lastStartB_: " << bib::colorBool(startb == lastCursors.lastStartB_) << std::endl;
+//  				std::cout << "\t" << "starta > lastCursors.lastStartA_ : " << bib::colorBool(starta > lastCursors.lastStartA_) << std::endl;
+//
+//  			}
   			char ptrFlag;
   			//regular up inherit
   			parts.ScoreMatrix_[i][j].upInherit =
@@ -1326,15 +1347,22 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
   														parts.gapScores_.gapOpen_,
   												ptrFlag);
   			parts.ScoreMatrix_[i][j].upInheritPtr = ptrFlag;
-  			//regular diag inherit
-  			int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
-        parts.ScoreMatrix_[i][j].diagInherit =
-            match +
-            needleMaximum(parts.ScoreMatrix_[i - 1][j - 1].upInherit,
-                          parts.ScoreMatrix_[i - 1][j - 1].leftInherit,
-                          parts.ScoreMatrix_[i - 1][j - 1].diagInherit,
-                          ptrFlag);
-        parts.ScoreMatrix_[i][j].diagInheritPtr = ptrFlag;
+  			//if to where we filled to last time for b doesn't change but a does no reg diag
+  			if(lenb == lastCursors.lenb_ && lena > lastCursors.lena_){
+          parts.ScoreMatrix_[i][j].diagInherit = std::numeric_limits<int32_t>::lowest()/2;
+          parts.ScoreMatrix_[i][j].diagInheritPtr = '\0';
+  			}else{
+    			//regular diag inherit
+    			int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
+          parts.ScoreMatrix_[i][j].diagInherit =
+              match +
+              needleMaximum(parts.ScoreMatrix_[i - 1][j - 1].upInherit,
+                            parts.ScoreMatrix_[i - 1][j - 1].leftInherit,
+                            parts.ScoreMatrix_[i - 1][j - 1].diagInherit,
+                            ptrFlag);
+          parts.ScoreMatrix_[i][j].diagInheritPtr = ptrFlag;
+  			}
+
 
         //first column so left inherit is impossible
         parts.ScoreMatrix_[i][j].leftInherit = std::numeric_limits<int32_t>::lowest()/2;
@@ -1348,9 +1376,8 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 
         //first column so left inherit and diag inherit is impossible
         parts.ScoreMatrix_[i][j].leftInherit = std::numeric_limits<int32_t>::lowest()/2;
-        parts.ScoreMatrix_[i][j].diagInherit = std::numeric_limits<int32_t>::lowest()/2;
-
         parts.ScoreMatrix_[i][j].leftInheritPtr = '\0';
+        parts.ScoreMatrix_[i][j].diagInherit = std::numeric_limits<int32_t>::lowest()/2;
         parts.ScoreMatrix_[i][j].diagInheritPtr = '\0';
       }
     }
@@ -1379,33 +1406,45 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
   			//not an end gap
   			{
     			//start
-
     			const uint32_t j = lastCursors.lenb_;
     			char ptrFlag;
-    			//regular diag inherit
-    			int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
-				parts.ScoreMatrix_[i][j].diagInherit =
-						match +
-						needleMaximum(parts.ScoreMatrix_[i - 1][j - 1].upInherit,
-													parts.ScoreMatrix_[i - 1][j - 1].leftInherit,
-													parts.ScoreMatrix_[i - 1][j - 1].diagInherit,
-													ptrFlag);
-				parts.ScoreMatrix_[i][j].diagInheritPtr = ptrFlag;
+//    			if(print){
+//    				std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+//    				std::cout << "\t" << "i: " << i << std::endl;
+//    				std::cout << "\t" << "j: " << j << std::endl;
+//
+//    			}
+    			//if to where we filled to last time for b doesn't change but a does no reg diag
+    			if(lena == lastCursors.lena_ && lenb > lastCursors.lenb_){
+    		    parts.ScoreMatrix_[i][j].diagInheritPtr = '\0';
+    		    parts.ScoreMatrix_[i][j].diagInherit = std::numeric_limits<int32_t>::lowest()/2;
+    			}else{
+      			//regular diag inherit
+      			int32_t match = parts.scoring_.mat_[objA[i - 1]][objB[j - 1]];
+  					parts.ScoreMatrix_[i][j].diagInherit =
+  							match +
+  							needleMaximum(parts.ScoreMatrix_[i - 1][j - 1].upInherit,
+  														parts.ScoreMatrix_[i - 1][j - 1].leftInherit,
+  														parts.ScoreMatrix_[i - 1][j - 1].diagInherit,
+  														ptrFlag);
+  					parts.ScoreMatrix_[i][j].diagInheritPtr = ptrFlag;
+    			}
 
-				//first row so no up inherit
-				parts.ScoreMatrix_[i][j].upInheritPtr = '\0';
-				parts.ScoreMatrix_[i][j].upInherit = std::numeric_limits<int32_t>::lowest()/2;
 
-				//regular left inherit
-				parts.ScoreMatrix_[i][j].leftInherit =
-						needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
-															parts.gapScores_.gapOpen_,
-													parts.ScoreMatrix_[i][j - 1].leftInherit -
-															parts.gapScores_.gapExtend_,
-													parts.ScoreMatrix_[i][j - 1].diagInherit -
-															parts.gapScores_.gapOpen_,
-													ptrFlag);
-				parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
+					//first row so no up inherit
+					parts.ScoreMatrix_[i][j].upInheritPtr = '\0';
+					parts.ScoreMatrix_[i][j].upInherit = std::numeric_limits<int32_t>::lowest()/2;
+
+					//regular left inherit
+					parts.ScoreMatrix_[i][j].leftInherit =
+							needleMaximum(parts.ScoreMatrix_[i][j - 1].upInherit -
+																parts.gapScores_.gapOpen_,
+														parts.ScoreMatrix_[i][j - 1].leftInherit -
+																parts.gapScores_.gapExtend_,
+														parts.ScoreMatrix_[i][j - 1].diagInherit -
+																parts.gapScores_.gapOpen_,
+														ptrFlag);
+					parts.ScoreMatrix_[i][j].leftInheritPtr = ptrFlag;
   			}
   	    for (uint32_t j = lastCursors.lenb_ + 1; j < stopb; ++j) {
 
@@ -1417,6 +1456,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
   		    //first row so no up or diagonal inherit
   		    parts.ScoreMatrix_[i][j].upInheritPtr = '\0';
   		    parts.ScoreMatrix_[i][j].upInherit = std::numeric_limits<int32_t>::lowest()/2;
+
   		    parts.ScoreMatrix_[i][j].diagInheritPtr = '\0';
   		    parts.ScoreMatrix_[i][j].diagInherit = std::numeric_limits<int32_t>::lowest()/2;
   	    }
@@ -1942,6 +1982,16 @@ void alignCalc::runNeedleDiagonalSave(
 //  	 "TCAACATCACTAGGCAATAGGAATTTTTCAGCTCCATTTTAATCTTAAGGGACCACTGGTAATTTTAATTGGGTCTTGGATATTATATATTAAGATTTTGAGATATAATTTTAGGCTATGGGTGATTTTATTTTTTTTCCTGAGAAAGTGAAGTTTGCTTATTTTAGGCAACTGGGGTGAGGACATTAGTAATCCAAGGCCACTTTAAGCCAATCAGGTATTTATGTAATTTGAAGCTGGCCTTGATTCCCTACTATGGCTAGTTTGTTTTTAGTTTACTCTCACTCTTGGGGTATAGCCCTTCAAGTTCCCAGCCAAAAGCCTGGGGTGTTGGCCAAGGTTTGTTCTTCATTGAGGGCCCTGAGTACTAGTTTCTATCTGCCCAGATCCATAAGACTTGGTAAAAGCTCTCTTCAGCTCCTCAGCCTCTCAGCCCGGATGATGCATCAGACACACCTGGGACCCTCGGAGCTCCTGCTGTC" == objB){
 //  	print = true;
 //  }
+//	bool print = false;
+//	if ("CCCAGAGCTAGCACAGGCAGAACCCTCATGTGAATCAAAAAGGACACCACTCCGTCCCTGCTAACCCTGTCCTCTGTCTCTTCATTTTCCACCTAGACTGATATTGCCCCCAAACATTAAGCTTTCTTGTATTACCTTCATGAT"
+//			== objB
+//			&& "TATGTATACCTTCCTAAGATTAGCGGTGTCCTCTTGATTGGGGGATGGTTATAAATAGCTTTTAAGGTGATTTCCAGGCCTAACATTCTATTATTGACTTATAACTGCACTTTAAAGGCTTAAACACACACAATCCCATTGAATCCTCAAGATACTTCCATTGGCAGGCAAGTATTTTCCTTG"
+//					== objA) {
+//		print = true;
+//	}
+
+
+
 
   parts.gHolder_.gapInfos_.clear();
   parts.gHolder_.addFromFile_ = false;
@@ -2139,7 +2189,11 @@ void alignCalc::runNeedleDiagonalSave(
       --icursor;
     }
     if(tracerNext == '\0'){
-    	exit(1);
+    	std::stringstream ss;
+    	ss << __PRETTY_FUNCTION__ << ", error in aligning: " << "\n";
+    	ss << objA << "\n";
+    	ss << objB << "\n";
+    	throw std::runtime_error{ss.str()};
     }
     if(icursor < 0 || jcursor < 0){
     		break;
