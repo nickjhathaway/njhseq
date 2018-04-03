@@ -551,7 +551,7 @@ void setUpSampleDirs(
 						}
 
 						bfs::path repDir = bib::files::makeDir(sampDir,
-								bib::files::MkdirPar(rep.first, false));
+								bib::files::MkdirPar( rep.first, false));
 						rep.second = bib::files::make_path(cwd, repDir).string();
 					}
 				}
@@ -579,7 +579,7 @@ void setUpSampleDirs(
 						}
 
 						std::string repDir = bib::files::makeDir(sampDir,
-								bib::files::MkdirPar(rep.first, false)).string();
+								bib::files::MkdirPar(bib::pasteAsStr(targetDirs.first, "-", rep.first), false)).string();
 						rep.second = bib::files::join(cwd, repDir).string();
 					}
 				}
