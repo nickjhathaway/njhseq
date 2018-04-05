@@ -95,6 +95,13 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 	auto nameColors = getColorsForNames(popNames);
 
 	if(justBest){
+		if (settingEventsLimits) {
+			graph.turnOffEdgesWithComp(allowableErrors,
+					[](const comparison & comp1, const comparison & cutOff) {
+						//std::cout << comp1.toJson() << std::endl;
+						return comp1.distances_.getNumOfEvents(true) >= cutOff.distances_.overLappingEvents_;
+					});
+		}
 		graph.setJustBestConnection(doTies);
 	}else{
 		if(settingEventsLimits){
