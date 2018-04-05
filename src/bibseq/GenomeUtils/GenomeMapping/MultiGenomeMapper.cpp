@@ -167,7 +167,7 @@ void MultiGenomeMapper::bioIndexAllGenomes() {
 
 void MultiGenomeMapper::init() {
 	loadInGenomes();
-	if (!bib::in(pars_.primaryGenome_, genomes_)) {
+	if ("" != pars_.primaryGenome_ && !bib::in(pars_.primaryGenome_, genomes_)) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error primary genome: " << pars_.primaryGenome_
 				<< " wasn't found in " << pars_.genomeDir_ << "\n";
