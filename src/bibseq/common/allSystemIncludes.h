@@ -1,8 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -18,10 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-//
-//  Copyright (c) 2012 University of Massachusetts Medical School. All rights
-// reserved.
 //
 
 //#error Precompiled header file not found

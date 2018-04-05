@@ -1,8 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -23,7 +22,6 @@
 //  readObjectIOOpt.hpp
 //
 //  Created by Nick Hathaway on 06/02/15.
-//  Copyright (c) 2012 Nick Hathaway. All rights reserved.
 //
 
 

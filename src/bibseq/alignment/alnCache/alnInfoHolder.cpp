@@ -1,7 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -20,10 +19,8 @@
 //
 //
 //  alnInfoHolder.hpp
-//  sequenceTools
 //
 //  Created by Nicholas Hathaway on 1/13/14.
-//  Copyright (c) 2014 Nicholas Hathaway. All rights reserved.
 //
 
 #include "alnInfoHolder.hpp"

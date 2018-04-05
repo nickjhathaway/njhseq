@@ -1,8 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -23,8 +22,7 @@
 //  seqUtil
 //
 //  Created by Nick Hathaway on 05/30/15.
-//  Copyright (c) 2015 University of Massachusetts Medical School. All rights
-// reserved.
+
 //
 
 

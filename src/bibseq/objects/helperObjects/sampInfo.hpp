@@ -1,16 +1,13 @@
 #pragma once
 //
 //  sampInfo.hpp
-//  sequenceTools
 //
 //  Created by Nick Hathaway on 05/03/15.
-//  Copyright (c) 2015 Nick Hathaway. All rights reserved.
 //
 
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
