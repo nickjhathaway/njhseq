@@ -1,10 +1,27 @@
 
 //
 //  sampleCollapse.cpp
-//  sequenceTools
 //
 //  Created by Nicholas Hathaway on 12/31/13.
-//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
+//
+
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "sampleCollapse.hpp"
@@ -82,6 +99,13 @@ void sampleCollapse::cluster(const collapser &collapserObj,
 	// std::cout <<"clus 2 " << std::endl;
 }
 
+void sampleCollapse::collapseLowFreqOneOffs(double lowFreqMultiplier,
+		aligner &alignerObj, const collapser &collapserObj) {
+	collapsed_.clusters_ = collapserObj.collapseLowFreqOneOffs(collapsed_.clusters_,
+			lowFreqMultiplier, alignerObj);
+}
+
+
 
 
 // excludes
@@ -135,6 +159,33 @@ void sampleCollapse::excludeFraction(double fractionCutOff, bool update) {
   }
 
 }
+
+void sampleCollapse::excludeFractionAnyRep(double fractionCutOff, bool update) {
+	uint32_t fractionCutOffNum = 0;
+	std::vector<sampleCluster> keep;
+	for(const auto & clus : collapsed_.clusters_){
+		bool excluded = false;
+		for(const auto & sampleInfo : clus.sampInfos()){
+			if(sampleInfo.second.numberOfClusters_ > 0 && sampleInfo.second.fraction_ < fractionCutOff){
+				excluded_.clusters_.emplace_back(clus);
+				++fractionCutOffNum;
+				excluded = true;
+				break;
+			}
+		}
+		if(!excluded){
+			keep.emplace_back(clus);
+		}
+	}
+  if(fractionCutOffNum > 0){
+  	collapsed_.clusters_ = keep;
+  }
+  if (update) {
+    updateAfterExclustion();
+  }
+
+}
+
 
 void sampleCollapse::excludeBySampNum(uint32_t sampsRequired, bool update) {
   uint32_t splitCount = 0;

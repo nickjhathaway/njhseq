@@ -1,8 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -39,24 +38,26 @@ template<typename T>
 class alnInfoHolderBase {
 public:
 	// Constructors
-	alnInfoHolderBase() {}
+	alnInfoHolderBase() {
+	}
 	alnInfoHolderBase(const std::string& directoryName,
-			const std::string & alnType): alnType_(alnType){
-	  auto allFiles = getFiles(directoryName, "", "file", false, false);
-	  for (const auto &file : allFiles) {
-	  	//std::cout << file.first << std::endl;
-	  	//std::cout << "INDEX_" + alnType +".txt" << std::endl;
-	    if (bib::containsSubString(file.first, "README_" + alnType + ".txt")) {
-	      readReadMeFile(file.first);
-	    } else if (bib::containsSubString(file.first, "INDEX_" + alnType +".txt")) {
-	      readIndex(file.first);
-	    }
-	  }
+			const std::string & alnType) :
+			alnType_(alnType) {
+		auto allFiles = getFiles(directoryName, "", "file", false, false);
+		for (const auto &file : allFiles) {
+			//std::cout << file.first << std::endl;
+			//std::cout << "INDEX_" + alnType + ".txt" << std::endl;
+			if (bib::containsSubString(file.first, "README_" + alnType + ".txt")) {
+				readReadMeFile(file.first);
+			} else if (bib::containsSubString(file.first,
+					"INDEX_" + alnType + ".txt")) {
+				readIndex(file.first);
+			}
+		}
 	}
 	alnInfoHolderBase(const gapScoringParameters & gapPars,
-	                  const substituteMatrix & scoringArray,
-	                  const std::string & alnType)
-	      : gapPars_(gapPars), scoring_(scoringArray), alnType_(alnType) {
+			const substituteMatrix & scoringArray, const std::string & alnType) :
+			gapPars_(gapPars), scoring_(scoringArray), alnType_(alnType) {
 
 	}
 
@@ -159,8 +160,11 @@ public:
 	          convertStringToVector<int32_t>(line, ",");
 	      //printVector(gapParsInfo);
 	      gapPars_ =
-	          gapScoringParameters(gapParsInfo[0], gapParsInfo[1], gapParsInfo[2],
-	                               gapParsInfo[3], gapParsInfo[4], gapParsInfo[5]);
+	          gapScoringParameters(gapParsInfo[0], gapParsInfo[1],
+	          		                    gapParsInfo[2],gapParsInfo[3],
+																 gapParsInfo[4], gapParsInfo[5],
+																 gapParsInfo[6], gapParsInfo[7],
+																 gapParsInfo[8], gapParsInfo[9]);
 	      readingGaps = false;
 	    }
 	    if (readingArray) {

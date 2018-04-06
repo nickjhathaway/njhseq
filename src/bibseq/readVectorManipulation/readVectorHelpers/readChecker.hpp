@@ -1,8 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -18,12 +17,6 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//
-//
-//  readVecCheckers.hpp
-//
-//  Created by Nick Hathaway on 06/01/15.
-//  Copyright (c) 2015 Nick Hathaway. All rights reserved.
 //
 
 #include "bibseq/utils.h"

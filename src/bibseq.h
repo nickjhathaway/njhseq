@@ -1,8 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -20,6 +19,7 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "bibseq/alignment.h"
+#include "bibseq/BamToolsUtils.h"
 #include "bibseq/helpers.h"
 #include "bibseq/concurrency.h"
 #include "bibseq/objects.h"
@@ -29,4 +29,5 @@
 #include "bibseq/utils.h"
 #include "bibseq/readVectorManipulation.h"
 #include "bibseq/system.h"
+#include "bibseq/GenomeUtils.h"
 

@@ -1,8 +1,7 @@
 #pragma once
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -90,9 +89,12 @@ class aligner {
 	void alignScoreCacheLocal(const std::string& firstSeq,
 			const std::string& secondSeq);
 	void alignScoreGlobal(const std::string& firstSeq, const std::string& secondSeq);
+	void alignScoreGlobalDiag(const std::string& firstSeq, const std::string& secondSeq);
 	void alignScoreGlobalNoInternalGaps(const std::string& firstSeq, const std::string& secondSeq);
 
 	void alignScoreCacheGlobal(const std::string& firstSeq,
+			const std::string& secondSeq);
+	void alignScoreCacheGlobalDiag(const std::string& firstSeq,
 			const std::string& secondSeq);
 
 	void alignScore(const std::string& firstSeq, const std::string& secondSeq,
@@ -133,6 +135,25 @@ class aligner {
 		alignRegGlobal(getSeqBase(ref), getSeqBase(read));
 	}
 	void alignRegGlobal(const seqInfo & ref, const seqInfo & read);
+
+
+
+
+	void alignCacheGlobalDiag(const seqInfo & ref, const seqInfo & read);
+	template<typename READ1, typename READ2>
+	void alignCacheGlobalDiag(const READ1 & ref, const READ2 & read){
+		alignCacheGlobalDiag(getSeqBase(ref), getSeqBase(read));
+	}
+
+	void alignRegGlobalDiag(const seqInfo & ref, const seqInfo & read);
+	template<typename READ1, typename READ2>
+	void alignRegGlobalDiag(const READ1 & ref, const READ2 & read){
+		alignRegGlobalDiag(getSeqBase(ref), getSeqBase(read));
+	}
+
+
+
+
 
 	template<typename READ1, typename READ2>
 	void alignRegGlobalNoInternalGaps(const READ1 & ref, const READ2 & read){

@@ -1,12 +1,27 @@
 #pragma once
 //
 //  sampleCollapse.hpp
-//  sequenceTools
 //
 //  Created by Nicholas Hathaway on 9/13/13.
-//  Copyright (c) 2013 Nicholas Hathaway. All rights reserved.
 //
-
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
 #include "bibseq/objects/collapseObjects/collapseCommon.h"
 #include "bibseq/objects/collapseObjects/collapser.hpp"
 
@@ -39,10 +54,13 @@ public:
 	// collapse the input clusters
 	void cluster(const collapser &collapserObj, CollapseIterations iteratorMap,
 			const std::string &sortBy, aligner &alignerObj);
+
+	void collapseLowFreqOneOffs(double lowFreqMultiplier, aligner &alignerObj, const collapser &collapserObj);
 	// excludes
 	void excludeChimeras(bool update);
 	void excludeChimeras(bool update, double fracCutOff);
 	void excludeFraction(double fractionCutOff, bool update);
+	void excludeFractionAnyRep(double fractionCutOff, bool update);
 	void excludeBySampNum(uint32_t sampsRequired, bool update);
 	//
 	void renameClusters(const std::string &sortBy);

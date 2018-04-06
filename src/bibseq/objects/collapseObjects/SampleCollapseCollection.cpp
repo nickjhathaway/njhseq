@@ -5,6 +5,26 @@
  *      Author: nick
  */
 
+// bibseq - A library for analyzing sequence data
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
+//
+// This file is part of bibseq.
+//
+// bibseq is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// bibseq is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+//
+
+
 #include "SampleCollapseCollection.hpp"
 #include "bibseq/objects/seqObjects/Clusters/clusterUtils.hpp"
 
@@ -364,6 +384,21 @@ void SampleCollapseCollection::clusterSample(const std::string & sampleName,
 
 	auto samp = sampleCollapses_.at(sampleName);
 	samp->cluster(collapserObj, colIters, sortBy, alignerObj);
+
+	samp->updateCollapsedInfos();
+	samp->updateExclusionInfos();
+	samp->renameClusters(sortBy);
+}
+
+void SampleCollapseCollection::collapseLowFreqOneOffsSample(
+		const std::string & sampleName, aligner & alignerObj,
+		const collapser & collapserObj, double lowFreqMultiplier) {
+
+	std::string sortBy = "fraction";
+	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
+
+	auto samp = sampleCollapses_.at(sampleName);
+	samp->collapseLowFreqOneOffs(lowFreqMultiplier, alignerObj, collapserObj);
 
 	samp->updateCollapsedInfos();
 	samp->updateExclusionInfos();
@@ -1241,6 +1276,18 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 	return ret;
 }
 
+void SampleCollapseCollection::excludeOnFrac(const std::string & sampleName,
+		const std::unordered_map<std::string, double> & customCutOffsMap,
+		bool fracExcludeOnlyInFinalAverageFrac) {
+	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
+	if (fracExcludeOnlyInFinalAverageFrac) {
+		sampleCollapses_.at(sampleName)->excludeFraction(
+				customCutOffsMap.at(sampleName), true);
+	} else {
+		sampleCollapses_.at(sampleName)->excludeFractionAnyRep(
+				customCutOffsMap.at(sampleName), true);
+	}
+}
 
 }  // namespace collapse
 }  // namespace bibseq

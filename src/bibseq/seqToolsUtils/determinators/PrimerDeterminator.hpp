@@ -7,8 +7,7 @@
  */
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -31,8 +30,18 @@
 
 namespace bibseq {
 
-class PrimerDeterminator{
+class PrimerDeterminator {
 public:
+
+	struct PrimerDeterminatorPars {
+		comparison allowable_;
+
+		bool primerToLowerCase_ { true };
+		uint32_t primerWithin_ { 0 };
+		bool trimExtra_ { false };
+		bool checkComplement_ { false };
+	};
+
 	struct primerInfo {
 		primerInfo() {}
 		primerInfo(const std::string & primerPairName,
@@ -61,44 +70,31 @@ public:
 	size_t getMaxPrimerSize() const;
 
 	template<typename T>
-	std::string determineForwardPrimer(T & read, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool primerToLowerCase){
-		return determineForwardPrimer(getSeqBase(read), withinPos, alignerObj, allowable, primerToLowerCase);
+	std::string determineForwardPrimer(T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
+		return determineForwardPrimer(getSeqBase(read), pars, alignerObj);
 	}
-	std::string determineForwardPrimer(seqInfo & info, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool primerToLowerCase);
+	std::string determineForwardPrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
 
 	template<typename T>
-	std::string determineWithReversePrimer(T & read, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool primerToLowerCase){
-		return determineWithReversePrimer(getSeqBase(read), withinPos, alignerObj, allowable, primerToLowerCase);
+	std::string determineWithReversePrimer(T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
+		return determineWithReversePrimer(getSeqBase(read), pars, alignerObj);
 	}
-
-	std::string determineWithReversePrimer(seqInfo & info, uint32_t withinPos,
-			aligner & alignerObj, const comparison & allowable, bool primerToLowerCase);
+	std::string determineWithReversePrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
 
 
 	template<typename T>
-	bool checkForReversePrimer(T & read, const std::string & primerName,
-			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-			uint32_t within, bool trimExtra) {
-		return checkForReversePrimer(getSeqBase(read), primerName, alignObj, allowable, reversePrimerToLowerCase, within, trimExtra);
+	bool checkForReversePrimer(T & read, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj) {
+		return checkForReversePrimer(getSeqBase(read), primerName,pars, alignObj);
 	}
 
-	bool checkForReversePrimer(seqInfo & info, const std::string & primerName,
-			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-      uint32_t within, bool trimExtra);
+	bool checkForReversePrimer(seqInfo & info, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj);
 
 	template<typename T>
-	bool checkForForwardPrimerInRev(T & read, const std::string & primerName,
-			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-			uint32_t within, bool trimExtra) {
-		return checkForForwardPrimerInRev(getSeqBase(read), primerName, alignObj, allowable, reversePrimerToLowerCase, within,trimExtra);
+	bool checkForForwardPrimerInRev(T & read, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj) {
+		return checkForForwardPrimerInRev(getSeqBase(read), primerName, pars, alignObj);
 	}
 
-	bool checkForForwardPrimerInRev(seqInfo & info, const std::string & primerName,
-			aligner & alignObj, const comparison & allowable, bool reversePrimerToLowerCase,
-      uint32_t within, bool trimExtra);
+	bool checkForForwardPrimerInRev(seqInfo & info, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj);
 };
 
 } /* namespace bibseq */

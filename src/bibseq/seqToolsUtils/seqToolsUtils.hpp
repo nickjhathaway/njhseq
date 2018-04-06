@@ -1,15 +1,12 @@
 #pragma once
 //
 //  seqToolsUtils.hpp
-//  sequenceTools
 //
 //  Created by Nicholas Hathaway on 4/27/13.
-//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
 //
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -45,6 +42,7 @@
 
 namespace bibseq {
 
+table getSeqPortionCounts(const SeqIOOptions & opts, size_t position, uint32_t size, bool back = false);
 
 void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString,
 		int counter);
@@ -97,6 +95,13 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 	auto nameColors = getColorsForNames(popNames);
 
 	if(justBest){
+		if (settingEventsLimits) {
+			graph.turnOffEdgesWithComp(allowableErrors,
+					[](const comparison & comp1, const comparison & cutOff) {
+						//std::cout << comp1.toJson() << std::endl;
+						return comp1.distances_.getNumOfEvents(true) >= cutOff.distances_.overLappingEvents_;
+					});
+		}
 		graph.setJustBestConnection(doTies);
 	}else{
 		if(settingEventsLimits){

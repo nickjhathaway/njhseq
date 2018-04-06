@@ -1,15 +1,12 @@
 #pragma once
 //
 //  vectorCalculations.hpp
-//  sequenceTools
 //
 //  Created by Nick Hathaway on 1/3/13.
-//  Copyright (c) 2013 Nick Hathaway. All rights reserved.
 //
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -25,7 +22,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
-//arma
+//
 #include "bibseq/utils/utils.hpp"
 #include <vector>
 #include <algorithm>

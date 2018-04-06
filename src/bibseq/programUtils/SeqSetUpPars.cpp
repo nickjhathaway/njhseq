@@ -6,8 +6,7 @@
  */
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -138,7 +137,7 @@ void SeqSetUpPars::initializeDefaults() {
   writingOutAlnInfo_ = false;
 
   //
-  colOpts_.kmerOpts_.runCutOffString_ = ".2%";
+  colOpts_.kmerOpts_.runCutOffString_ = ".2%,1";
   colOpts_.kmerOpts_.runCutOff_ = 1;
 
 

@@ -1,7 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -176,6 +175,8 @@ void seqSetUp::processKmerLenOptions(){
 }
 
 void seqSetUp::processKmerProfilingOptions() {
+	//std::cout << pars_.colOpts_.kmerOpts_.runCutOffString_ << std::endl;
+
 	setOption(pars_.colOpts_.kmerOpts_.runCutOffString_, "--runCutOff",
 			"Kmer frequency cut off for a mismatch to be considered low frequency",
 			false, "Low Frequency Mismatch Determination");

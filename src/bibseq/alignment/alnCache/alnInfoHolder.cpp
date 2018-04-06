@@ -1,7 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -20,10 +19,8 @@
 //
 //
 //  alnInfoHolder.hpp
-//  sequenceTools
 //
 //  Created by Nicholas Hathaway on 1/13/14.
-//  Copyright (c) 2014 Nicholas Hathaway. All rights reserved.
 //
 
 #include "alnInfoHolder.hpp"
@@ -66,23 +63,44 @@ void alnInfoMasterHolder::addHolder(const gapScoringParameters & gapPars,
 
 }
 
-void alnInfoMasterHolder::read(const std::string &masterDirName, bool verbose){
+void alnInfoMasterHolder::read(const std::string &masterDirName, bool verbose) {
 	auto allDirectories = getFiles(masterDirName, "", "directory", false, false);
-  for (const auto &dir : allDirectories) {
-  	if(verbose){
-  		std::cout << "Reading from " << dir.first << std::endl;
-  		std::cout << "Reading in local" << std::endl;
-  	}
-  	alnInfoHolderBase<alnInfoLocal> currentLocalHolder(dir.first, "LOCAL");
-    if(verbose){
-    	std::cout << "Reading in global" << std::endl;
-    }
-    alnInfoHolderBase<alnInfoGlobal> currentGlobalHolder(dir.first, "GLOBAL");
-    localHolder_[currentLocalHolder.gapPars_.getIdentifer()] =
-        currentLocalHolder;
-    globalHolder_[currentGlobalHolder.gapPars_.getIdentifer()] =
-        currentGlobalHolder;
-  }
+	for (const auto &dir : allDirectories) {
+		if (verbose) {
+			std::cout << "Reading from " << dir.first << std::endl;
+			std::cout << "Reading in local" << std::endl;
+		}
+		alnInfoHolderBase<alnInfoLocal> currentLocalHolder(dir.first, "LOCAL");
+		if (verbose) {
+			std::cout << "Read in  " << currentLocalHolder.infos_.size() << " LOCAL alignments" << std::endl;
+		}
+		if (verbose) {
+			std::cout << "Reading in global" << std::endl;
+		}
+		alnInfoHolderBase<alnInfoGlobal> currentGlobalHolder(dir.first, "GLOBAL");
+		if (verbose) {
+			std::cout << "Read in  " << currentGlobalHolder.infos_.size() << " GLOBAL alignments" << std::endl;
+		}
+		localHolder_[currentLocalHolder.gapPars_.getIdentifer()] =
+				currentLocalHolder;
+		globalHolder_[currentGlobalHolder.gapPars_.getIdentifer()] =
+				currentGlobalHolder;
+		if (verbose) {
+			std::cout << "Read in check: " << globalHolder_[currentGlobalHolder.gapPars_.getIdentifer()].infos_.size() << " GLOBAL alignments for : " << currentGlobalHolder.gapPars_.getIdentifer() << std::endl;
+		}
+	}
+	if(verbose){
+		uint32_t alignmentsReadIn = 0;
+		for(const auto & alnHold : globalHolder_){
+			alignmentsReadIn += alnHold.second.infos_.size();
+		}
+		for(const auto & alnHold : localHolder_){
+			alignmentsReadIn += alnHold.second.infos_.size();
+		}
+		std::cout << "Global Alignments Holders: " << globalHolder_.size() << std::endl;
+		std::cout << "Local Alignments Holders: " << localHolder_.size() << std::endl;
+		std::cout << "Read in: " << alignmentsReadIn << " alignments" << std::endl;
+	}
 }
 
 

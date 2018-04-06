@@ -1,7 +1,6 @@
 //
 // bibseq - A library for analyzing sequence data
-// Copyright (C) 2012-2016 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
-// Jeffrey Bailey <Jeffrey.Bailey@umassmed.edu>
+// Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
 // This file is part of bibseq.
 //
@@ -101,6 +100,12 @@ void aligner::alignScoreGlobal(const std::string& firstSeq,
 	++numberOfAlingmentsDone_;
 }
 
+void aligner::alignScoreGlobalDiag(const std::string& firstSeq,
+		const std::string& secondSeq) {
+	alignCalc::runNeedleDiagonalSave(firstSeq, secondSeq, 100, 50, parts_);
+	++numberOfAlingmentsDone_;
+}
+
 void aligner::alignScoreGlobalNoInternalGaps(const std::string& firstSeq,
 		const std::string& secondSeq) {
 	alignCalc::runNeedleOnlyEndGapsSave(firstSeq, secondSeq, parts_);
@@ -116,6 +121,20 @@ void aligner::alignScoreCacheGlobal(const std::string& firstSeq,
 		comp_.alnScore_ = parts_.score_;
 	} else {
 		alignCalc::runNeedleSave(firstSeq, secondSeq, parts_);
+		alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
+				firstSeq, secondSeq, parts_.gHolder_);
+		++numberOfAlingmentsDone_;
+	}
+}
+
+void aligner::alignScoreCacheGlobalDiag(const std::string& firstSeq,
+		const std::string& secondSeq) {
+	if (alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].getAlnInfo(
+			firstSeq, secondSeq, parts_.gHolder_)) {
+		parts_.score_ = parts_.gHolder_.score_;
+		comp_.alnScore_ = parts_.score_;
+	} else {
+		alignCalc::runNeedleDiagonalSave(firstSeq, secondSeq, 100, 50, parts_);
 		alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
 				firstSeq, secondSeq, parts_.gHolder_);
 		++numberOfAlingmentsDone_;
@@ -171,6 +190,31 @@ void aligner::alignCacheGlobal(const seqInfo & ref, const seqInfo & read){
 	rearrangeObjsGlobal(ref, read);
 }
 
+void aligner::alignCacheGlobalDiag(const seqInfo & ref, const seqInfo & read){
+//	ref.outPutSeq(std::cout);
+//	read.outPutSeq(std::cout);
+//	if("M01669:46:000000000-B94FV:1:1111:22622:4025 1:N:0:GGACTCCT+TATCCTCT_t2" == ref.name_ &&
+//		 "M01669:46:000000000-B94FV:1:1115:26290:7689 1:N:0:GGACTCCT+TATCCTCT_t1" == read.name_){
+//		ref.outPutSeq(std::cout);
+//		read.outPutSeq(std::cout);
+//		std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+//	}
+
+	alignScoreCacheGlobalDiag(ref.seq_, read.seq_);
+//	if("M01669:46:000000000-B94FV:1:1111:22622:4025 1:N:0:GGACTCCT+TATCCTCT_t2" == ref.name_ &&
+//			 "M01669:46:000000000-B94FV:1:1115:26290:7689 1:N:0:GGACTCCT+TATCCTCT_t1" == read.name_){
+//		std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+//	}
+	rearrangeObjsGlobal(ref, read);
+//	if("M01669:46:000000000-B94FV:1:1111:22622:4025 1:N:0:GGACTCCT+TATCCTCT_t2" == ref.name_ &&
+//			 "M01669:46:000000000-B94FV:1:1115:26290:7689 1:N:0:GGACTCCT+TATCCTCT_t1" == read.name_){
+//		std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+//		std::cout << std::endl;
+//	}
+
+}
+
+
 void aligner::alignCache(const seqInfo & ref, const seqInfo & read, bool local){
 	alignScoreCache(ref.seq_, read.seq_, local);
 	rearrangeObjs(ref, read, local);
@@ -192,6 +236,11 @@ void aligner::alignRegGlobal(const seqInfo & ref, const seqInfo & read){
 	alignScoreGlobal(ref.seq_, read.seq_);
 	rearrangeObjsGlobal(ref, read);
 }
+void aligner::alignRegGlobalDiag(const seqInfo & ref, const seqInfo & read){
+	alignScoreGlobalDiag(ref.seq_, read.seq_);
+	rearrangeObjsGlobal(ref, read);
+}
+
 
 void aligner::alignRegLocal(const seqInfo & ref, const seqInfo & read){
 	alignScoreLocal(ref.seq_, read.seq_);
@@ -1368,8 +1417,10 @@ void aligner::noAlignSetAndScore(const seqInfo& objectA,
 
 
 void aligner::processAlnInfoInputNoCheck(const std::string& alnInfoDirName, bool verbose){
+	//std::cout << __FILE__ << ' '<< __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	if (alnInfoDirName != "") {
 		if(bib::files::bfs::exists(alnInfoDirName)){
+			//std::cout << __FILE__ << ' '<< __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			alnHolder_.read(alnInfoDirName, verbose);
 		}
 	}
