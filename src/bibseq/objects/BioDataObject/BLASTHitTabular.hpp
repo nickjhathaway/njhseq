@@ -1,4 +1,10 @@
 #pragma once
+/*
+ * BLASTHitTabular.hpp
+ *
+ *  Created on: Apr 20, 2018
+ *      Author: nick
+ */
 //
 // bibseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
@@ -18,18 +24,42 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/objects/BioDataObject/Bed3RecordCore.hpp"
-#include "bibseq/objects/BioDataObject/BedRecordCore.hpp"
-#include "bibseq/objects/BioDataObject/BLASTHitTabular.hpp"
-#include "bibseq/objects/BioDataObject/BioDataFileIO.hpp"
-#include "bibseq/objects/BioDataObject/GenomicRegion.hpp"
-#include "bibseq/objects/BioDataObject/GFFCore.hpp"
-#include "bibseq/objects/BioDataObject/reading.hpp"
-#include "bibseq/objects/BioDataObject/RefSeqGeneRecord.hpp"
-#include "bibseq/objects/BioDataObject/RepeatMaskerRecord.hpp"
-#include "bibseq/objects/BioDataObject/swisProt.hpp"
-#include "bibseq/objects/BioDataObject/Primer3Results.hpp"
-#include "bibseq/objects/BioDataObject/HmmerDomainHitTab.hpp"
-#include "bibseq/objects/BioDataObject/parsers.h"
+
+#include "bibseq/common.h"
+#include "bibseq/utils.h"
+
+
+namespace bibseq {
+
+
+class BLASTHitTab {
+
+public:
+	BLASTHitTab();
+	BLASTHitTab(const std::string & line);
+
+	std::string queryName_;
+	std::string subjectName_;
+	double perId_;
+	uint32_t alignLen_;
+	uint32_t mismatches_;
+	uint32_t gapOpens_;
+	uint32_t qStart_; //1-based per file spec
+	uint32_t qEnd_;   //1-based per file spec
+	uint32_t sStart_; //1-based per file spec
+	uint32_t sEnd_;   //1-based per file spec
+
+	double evalue_;
+	double bitScore_;
+
+	Json::Value toJson() const;
+
+};
+
+
+}  // namespace bibseq
+
+
+
 
 

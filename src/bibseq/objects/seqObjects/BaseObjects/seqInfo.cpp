@@ -450,7 +450,7 @@ void seqInfo::removeLowQualityBases(uint32_t qualCutOff) {
 }
 void seqInfo::removeGaps() {
 	for (auto pos : iter::range<int32_t>(seq_.size(), -1, -1)) {
-		if (seq_[pos] == '-') {
+		if ('-' == seq_[pos] || '.' == seq_[pos]) {
 			removeBase(pos);
 		}
 	}
