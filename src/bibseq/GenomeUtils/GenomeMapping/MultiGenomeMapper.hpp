@@ -38,6 +38,7 @@ public:
 		std::set<std::string> selectedGenomes_;
 		uint32_t numThreads_ = 1;
 
+		bfs::path gffDir_;
 
 		bib::files::MkdirPar workingDirectory_{""};
 

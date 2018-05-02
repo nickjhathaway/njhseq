@@ -403,8 +403,17 @@ std::vector<MidDeterminator::midPos> MidDeterminator::determinePossibleMidPosCom
 void MidDeterminator::processInfoWithMidPos(seqInfo & info,
 		const MidDeterminator::midPos & frontPos,
 		const MidDeterminator::midPos & backPos) {
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+//	std::cout << "backPos.midName_: " << backPos.midName_ << std::endl;
+//	std::cout << "frontPos.midPos_: " << frontPos.midName_ << std::endl;
+//	std::cout << "backPos.midPos_: " << backPos.midPos_ << std::endl;
+//	std::cout << "frontPos.midPos_: " << frontPos.midPos_ << std::endl;
+//	std::cout << "frontPos.midPos_ + frontPos.barcodeSize_: " << frontPos.midPos_ + frontPos.barcodeSize_ << std::endl;
+//	std::cout << " len(info): " << len(info) << std::endl;
 	info.trimBack(backPos.midPos_);
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	info.trimFront(frontPos.midPos_ + frontPos.barcodeSize_);
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	if(frontPos.inRevComp_){
 		info.reverseComplementRead(true, true);
 	}
@@ -519,17 +528,23 @@ std::pair<MidDeterminator::midPos, MidDeterminator::midPos>  MidDeterminator::fu
 	}else{
 		tempSeq.append(seqUtil::reverseComplement(seq.mateSeqBase_.seq_, "DNA"));
 	}
-
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	size_t lengthOfTempSeq = len(tempSeq);
 	auto positions = fullDetermine(tempSeq, pars);
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
   if(positions.first){
+
 		if (positions.second) {
+			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			if(seq.mateRComplemented_){
 				positions.second.midPos_ = positions.second.midPos_ - len(seq.seqBase_) - spacerSize;
 			}else{
 				positions.second.midPos_ = lengthOfTempSeq - positions.second.midPos_ - positions.second.barcodeSize_;
 			}
+
+			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			processInfoWithMidPos(seq, positions.first, positions.second);
+			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 		} else {
 			//processInfoWithMidPos(seq, positions.first, pars);
 			if (pars.variableStop_ > positions.first.midPos_ || (0 == pars.variableStop_ && 0 == positions.first.midPos_)) {
@@ -701,13 +716,28 @@ std::pair<MidDeterminator::midPos, MidDeterminator::midPos> MidDeterminator::ful
 		ret.fCase_ = midPos::FailureCase::NO_MATCHING;
 	}
 
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	if (ret) {
 		if (backPos) {
-			processInfoWithMidPos(info, ret, backPos);
+			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+			if(ret.midPos_ < pars.variableStop_ && backPos.midPos_ < pars.variableStop_){
+				processInfoWithMidPos(info, backPos, pars);
+				ret = backPos;
+				backPos = midPos();
+			}else if(ret.midPos_ + pars.variableStop_ >= len(info) &&  backPos.midPos_ + pars.variableStop_ >= len(info)){
+				processInfoWithMidPos(info, ret, pars);
+				backPos = midPos();
+			}else{
+				processInfoWithMidPos(info, ret, backPos);
+			}
+			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 		} else {
+			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			processInfoWithMidPos(info, ret, pars);
+			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 		}
 	}
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	return {ret, backPos};
 }
 
