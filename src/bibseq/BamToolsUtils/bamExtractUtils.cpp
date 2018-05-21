@@ -201,8 +201,11 @@ BamExtractor::BamExtractSeqsResults BamExtractor::extractReadsFromBamRegion(
 	return ret;
 }
 
-void BamExtractor::writeExtractReadsFromBamRegion(const bfs::path & bamFnp,
-		const GenomicRegion & region, double percInRegion,
+
+void BamExtractor::writeExtractReadsFromBamRegion(
+		const bfs::path & bamFnp,
+		const GenomicRegion & region,
+		double percInRegion,
 		const OutOptions & outOpts) {
 
 	BamTools::BamReader bReader;
@@ -276,25 +279,12 @@ void BamExtractor::writeExtractReadsFromBamRegion(const bfs::path & bamFnp,
 					continue;
 				} else {
 					auto search = alnCache.get(bAln.Name);
-					//need to check to see if there is an overlap
-					if (search->GetEndPosition() > bAln.Position) {
-						//overlap
-
-						//do overlapped pairs operation
-
-					} else {
-						//no overlap, single read count both
-
-						//do no overlap pairs operation
-					}
 					PairedRead outRead;
 					if (bAln.IsFirstMate()) {
-						outRead = PairedRead(bamAlnToSeqInfo(bAln),
-								bamAlnToSeqInfo(*search), false);
+						outRead = PairedRead(bamAlnToSeqInfo(bAln),bamAlnToSeqInfo(*search), false);
 
 					} else {
-						outRead = PairedRead(bamAlnToSeqInfo(*search),
-								bamAlnToSeqInfo(bAln), false);
+						outRead = PairedRead(bamAlnToSeqInfo(*search),bamAlnToSeqInfo(bAln), false);
 					}
 					outRead.seqBase_.name_.append("/1");
 					outRead.mateSeqBase_.name_.append("/2");
@@ -1705,7 +1695,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		const std::vector<GenomicRegion> & regions,
 		double percInRegion,
 		bool originalOrientation,
-		bool throwAwayUnmappedMate) {
+		bool throwAwayUnmappedMate,
+		bool tryToFindOrphansMate) {
+	//std::cout << "percInRegion: " << percInRegion << std::endl;
 	//check to see if regions overlap
 	bool overlapsFound = false;
 	std::stringstream overalMessage;
@@ -1775,14 +1767,14 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 
 	BamExtractor::ExtractedFilesOpts ret;
 
-	ret.inPairs_ =                SeqIOOptions::genPairedIn(outPairs.getPriamryOutName(), outPairs.getSecondaryOutName());
-	ret.inPairsMateUnmapped_ =    SeqIOOptions::genPairedIn(outPairsUnmappedMate.getPriamryOutName(), outPairsUnmappedMate.getSecondaryOutName());
+	ret.inPairs_ =                  SeqIOOptions::genPairedIn(outPairs.getPriamryOutName(), outPairs.getSecondaryOutName());
+	ret.inPairsMateUnmapped_ =      SeqIOOptions::genPairedIn(outPairsUnmappedMate.getPriamryOutName(), outPairsUnmappedMate.getSecondaryOutName());
 	ret.inThrownAwayUnmappedMate_ = SeqIOOptions::genFastqIn (thrownAwayUnammpedMateOpts.getPriamryOutName());
-	ret.inInverse_ =              SeqIOOptions::genPairedIn(outPairsInverse.getPriamryOutName(), outPairsInverse.getSecondaryOutName());
+	ret.inInverse_ =                SeqIOOptions::genPairedIn(outPairsInverse.getPriamryOutName(), outPairsInverse.getSecondaryOutName());
 	//no disconcordant reads as this is aiming to grab those reads
-	ret.inUnpaired_ =             SeqIOOptions::genFastqIn (outUnpaired.getPriamryOutName());
+	ret.inUnpaired_ =               SeqIOOptions::genFastqIn (outUnpaired.getPriamryOutName());
 
-	auto writeMateFilteredOff= [&ret,&originalOrientation,&writer,&bWriter](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
+	auto writeMateFilteredOff = [&ret,&originalOrientation,&writer,&bWriter](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
 		//unpaired read
 		++ret.pairFilteredOff_;
 		if (originalOrientation) {
@@ -1885,7 +1877,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		bWriter.SaveAlignment(bAln);
 	};
 
-	auto writeTheThrownAwayUnmappedMate = [&ret,&originalOrientation,&thrownAwayUnammpedMateWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
+	auto writeTheThrownAwayUnmappedMate = [&originalOrientation,&thrownAwayUnammpedMateWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
 		if(originalOrientation){
 			thrownAwayUnammpedMateWriter.openWrite(bamAlnToSeqInfo(bAln));
 		}else{
@@ -1894,7 +1886,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		bWriter.SaveAlignment(bAln);
 	};
 
-	auto writeTheThrownAwayMate = [&ret,&originalOrientation,&thrownAwayUnammpedMateWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
+	auto writeTheThrownAwayMate = [&originalOrientation,&thrownAwayUnammpedMateWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
 		if(originalOrientation){
 			thrownAwayUnammpedMateWriter.openWrite(bamAlnToSeqInfo(bAln));
 		}else{
@@ -1944,7 +1936,13 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //				}
 //				continue;
 //			}
-
+//			bool print = false;
+//			if("M_15515" == bAln.Name){
+//				print = true;
+//			}
+//			if(print){
+//				std::cout << bib::json::toJson(bAln) << std::endl;
+//			}
 			if (bAln.IsPaired()) {
 				if (!alnCache.has(bAln.Name)) {
 					//enter into cache for until mate is encountered
@@ -2119,19 +2117,20 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					alnCache.remove(search->Name);
 				}
 			} else {
-				//unpaired read
-				if (originalOrientation) {
+				if(region.getPercInRegion(bAln, refData) >= percInRegion){
+					//unpaired read
 					++ret.unpaiedReads_;
-					writer.openWrite(bamAlnToSeqInfo(bAln));
-				} else {
-					seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
-							SangerQualOffset);
-					//put in the orientation of the output region
-					if(region.reverseSrand_){
-						outSeq.reverseComplementRead(false, true);
+					if (originalOrientation) {
+						writer.openWrite(bamAlnToSeqInfo(bAln));
+					} else {
+						seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
+								SangerQualOffset);
+						//put in the orientation of the output region
+						if(region.reverseSrand_){
+							outSeq.reverseComplementRead(false, true);
+						}
+						writer.openWrite(outSeq);
 					}
-					writer.openWrite(outSeq);
-					++ret.unpaiedReads_;
 				}
 			}
 		}
@@ -2148,24 +2147,26 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	}
 	if (len(alnCache) > 0) {
 		auto names = alnCache.getNames();
-
-		//find orphans' mates if possible;
-		BamTools::BamReader bReaderMateFinder;
-		bReaderMateFinder.Open(inOutOpts.firstName_.string());
-		checkBamOpenThrow(bReaderMateFinder, inOutOpts.firstName_.string());
-		loadBamIndexThrow(bReaderMateFinder);
-		while (bReaderMateFinder.GetNextAlignment(bAln)) {
-			if (bAln.IsPaired()) {
-				if (alnCache.has(bAln.Name)) {
-					auto search = alnCache.get(bAln.Name);
-					if (bAln.IsFirstMate() != search->IsFirstMate()) {
-						writeTheThrownAwayMate(bAln,
-								seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
-										SangerQualOffset));
+		if(tryToFindOrphansMate){
+			//find orphans' mates if possible;
+			BamTools::BamReader bReaderMateFinder;
+			bReaderMateFinder.Open(inOutOpts.firstName_.string());
+			checkBamOpenThrow(bReaderMateFinder, inOutOpts.firstName_.string());
+			loadBamIndexThrow(bReaderMateFinder);
+			while (bReaderMateFinder.GetNextAlignment(bAln)) {
+				if (bAln.IsPaired()) {
+					if (alnCache.has(bAln.Name)) {
+						auto search = alnCache.get(bAln.Name);
+						if (bAln.IsFirstMate() != search->IsFirstMate()) {
+							writeTheThrownAwayMate(bAln,
+									seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
+											SangerQualOffset));
+						}
 					}
 				}
 			}
 		}
+
 
 		for (const auto & name : names) {
 			auto search = alnCache.get(name);
@@ -2221,20 +2222,19 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				alnCache.remove(name);
 				continue;
 			}
-			if (search->IsPaired()) {
-				++ret.orphans_;
-			} else {
-				++ret.unpaiedReads_;
-			}
+
 			auto searchRegion = alnCache.getRegion(name);
-			bool searchIn = searchRegion->getPercInRegion(*search, refData)
-					>= percInRegion;
+			bool searchIn = searchRegion->getPercInRegion(*search, refData)>= percInRegion;
 			if (searchIn) {
+				if (search->IsPaired()) {
+					++ret.orphans_;
+				} else {
+					++ret.unpaiedReads_;
+				}
 				if (originalOrientation) {
 					writer.openWrite(bamAlnToSeqInfo(*search));
 				} else {
-					seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities,
-							SangerQualOffset);
+					seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
 					if (searchRegion->reverseSrand_) {
 						searchSeq.reverseComplementRead(false, true);
 					}

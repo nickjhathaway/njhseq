@@ -96,12 +96,29 @@ public:
 	BamExtractor(bool verbose = false);
 
 
-	BamExtractSeqsResults extractReadsFromBamRegion(const bfs::path & bamFnp,
-			const GenomicRegion & region, double percInRegion);
+	BamExtractSeqsResults extractReadsFromBamRegion(
+			const bfs::path & bamFnp,
+			const GenomicRegion & region,
+			double percInRegion);
 
-	void writeExtractReadsFromBamRegion(const bfs::path & bamFnp,
-			const GenomicRegion & region, double percInRegion,
+	void writeExtractReadsFromBamRegion(
+			const bfs::path & bamFnp,
+			const GenomicRegion & region,
+			double percInRegion,
 			const OutOptions & outOpts);
+
+//	ExtractedFilesOpts writeExtractReadsFromBamRegionHandelOrientation(
+//			const SeqIOOptions & inOutOpts,
+//			GenomicRegion & region,
+//			double percInRegion,
+//			bool originalOrientation,
+//			bool throwAwayUnmappedMate);
+
+
+	BamExtractSeqsResultsAlns extractReadsFromBamRegionAlns(
+			const bfs::path & bamFnp,
+			const GenomicRegion & region,
+			double percInRegion);
 
 	ExtractedFilesWithStichingOpts writeExtractReadsFromBamRegionStitch(
 			const bfs::path & bamFnp, const GenomicRegion & region,
@@ -114,9 +131,7 @@ public:
 	void writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
 			const OutOptions & outOpts);
 
-	BamExtractSeqsResultsAlns extractReadsFromBamRegionAlns(
-			const bfs::path & bamFnp, const GenomicRegion & region,
-			double percInRegion);
+
 
 	/**@brief extract concordant mapping pairs and singles, no unmapped or discordant alignments extracted
 	 *
@@ -134,7 +149,7 @@ public:
 	ExtractedFilesOpts extractReadsWtihCrossRegionMapping(
 			const SeqIOOptions & inOutOpts,
 			const std::vector<GenomicRegion> & regions, double percInRegion,
-			bool originalOrientation, bool throwAwayUnmappedMate);
+			bool originalOrientation, bool throwAwayUnmappedMate, bool tryToFindOrphansMate = true);
 
 	ExtractedFilesOpts extractReadsWtihCrossRegionMappingAsSingles(
 				const SeqIOOptions & inOutOpts,

@@ -56,6 +56,8 @@ public:
 		return bib::lexical_cast<T>(getMeta(key));
 	}
 
+
+
 	void removeMeta(const std::string & metaField);
 
 	void processNameForMeta(const std::string & name, bool replace);
@@ -88,6 +90,11 @@ public:
 	}
 
 };
+
+template<>
+inline bool MetaDataInName::getMeta(const std::string & key) const {
+	return "true" == bib::strToLowerRet(getMeta(key));
+}
 
 
 }  // namespace bibseq

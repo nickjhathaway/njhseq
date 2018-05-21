@@ -303,13 +303,19 @@ double GenomicRegion::getPercInRegion(const BamTools::BamAlignment & bAln,
 		return 0;
 	}
 
+	//get percent overlap if
+	//1) bAln.Position falls within the region
+	//2) baln.GetEndPosition() falls within the region
+	//3) if the bAln covers the whole region and beyond
+
 	if((bAln.Position >= start_ && bAln.Position < end_) ||
-			(bAln.GetEndPosition() > start_ && bAln.GetEndPosition() <= end_)){
+			(bAln.GetEndPosition() > start_ && bAln.GetEndPosition() <= end_) ||
+			(bAln.Position <= start_ && bAln.GetEndPosition() >= end_)){
 
 		auto start = std::max<size_t>(bAln.Position, start_);
 		auto end = std::min<size_t>(bAln.GetEndPosition(), end_);
 		double basesInRegion = end - start;
-		return basesInRegion / bAln.AlignedBases.size();
+		return basesInRegion / std::min<uint64_t>(bAln.AlignedBases.size(), getLen());
 	}else{
 		return 0;
 	}
