@@ -1172,11 +1172,11 @@ std::vector<TandemRepeat> aligner::findTandemRepeatsInSequence(
 TandemRepeat aligner::findTandemRepeatOfStrInSequence(const std::string & str,
                                                       const std::string & tandem,
                                                       int match,
-																									 int mismatch,
+																									    int mismatch,
                                                       int gap,
                                                       int minimumAlignScore) {
   size_t position = str.find(tandem);
-  if(std::string::npos != position){
+  while(std::string::npos != position){
     uint32_t startPosition = position;
     uint32_t numberOfRepeats = 1;
     while(position + tandem.size() < str.size() + 1 - tandem.size() &&
@@ -1184,13 +1184,15 @@ TandemRepeat aligner::findTandemRepeatOfStrInSequence(const std::string & str,
     		++numberOfRepeats;
     		position+=tandem.size();
     }
-    int alignScore = tandem.size() * match * numberOfRepeats;
-    if(alignScore >=minimumAlignScore){
+    int32_t alignScore = tandem.size() * match * numberOfRepeats;
+    if(alignScore >= minimumAlignScore){
     		return TandemRepeat(tandem,
     				numberOfRepeats,
 						alignScore,
 						startPosition,
 						startPosition + tandem.size() * numberOfRepeats);
+    }else{
+    	position = str.find(tandem, position + 1);
     }
   }
   return TandemRepeat("", 0, 0, 0, 0);
