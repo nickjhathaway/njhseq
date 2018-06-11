@@ -516,7 +516,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 			if(extendAndTrim){
 				for(auto & reg : regions){
 					auto extenedRegion = reg;
-					extenedRegion.start_ = reg.start_ <= extendAndTrimLen? 0 : reg.start_ - extendAndTrimLen;
+					extenedRegion.start_ = reg.start_ <= extendAndTrimLen ? 0 : reg.start_ - extendAndTrimLen;
 					extenedRegion.end_ = reg.end_ + extendAndTrimLen < genomes_.at(genome)->chromosomeLengths_.at(reg.chrom_) ? reg.end_ + extendAndTrimLen : genomes_.at(genome)->chromosomeLengths_.at(reg.chrom_);
 					TwoBit::TwoBitFile tReader(genomes_.at(genome)->fnpTwoBit_);
 					auto extractedSeq = extenedRegion.extractSeq(tReader);
@@ -535,7 +535,12 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 						}
 						readVecTrimmer::trimSeqToRefByGlobalAln(trimmedExtractedSeq, primaryRefInfo, trimPars, aligners[threadNumber]);
 					}
-
+//					std::cout << trimmedExtractedSeq.name_ << std::endl;
+//					std::cout << reg.genBedRecordCore().toDelimStr() << std::endl;
+//					std::cout << extenedRegion.genBedRecordCore().toDelimStr() << std::endl;
+//					std::cout <<"trimmedExtractedSeq.on_: " <<  bib::colorBool(trimmedExtractedSeq.on_) << std::endl;
+//					aligners[threadNumber].alignObjectA_.seqBase_.outPutSeq(std::cout);
+//					aligners[threadNumber].alignObjectB_.seqBase_.outPutSeq(std::cout);
 					if(trimmedExtractedSeq.on_){
 						uint32_t startPos = extractedSeq.seq_.find(trimmedExtractedSeq.seq_);
 						uint32_t stopPos = startPos + len(trimmedExtractedSeq);
@@ -550,6 +555,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 					}
 				}
 			}
+
 			OutputStream bedOut(OutOptions(bib::files::make_path(refAlignsDir, genome + "_regions.bed")));
 			for(const auto & reg : regions){
 				++genomeExtractionsResults.at(genome).extractCounts_;
