@@ -587,9 +587,13 @@ bool seqSetUp::processSeq(seqInfo& inputSeq, const std::string& flag,
 	bool passed = setOption(inputSeq.seq_, flag, parName, required,flagGrouping);
 	//std::cout <<"1 "<< inputSeq << std::endl;
 	std::string originalSeq = inputSeq.seq_;
+	std::string originalName = inputSeq.name_;
 	if (bfs::path(inputSeq.seq_).filename().string().length() <= 255 && bfs::exists(inputSeq.seq_)) {
 		std::string firstLine = bib::files::getFirstLine(originalSeq);
 		inputSeq = seqInfo("seq", firstLine);
+		if("" != originalName){
+			inputSeq.name_ = originalName;
+		}
 		//std::cout << "2 "<< inputSeq << std::endl;
 		if (firstLine[0] == '>') {
 			//std::cout <<"3 "<< inputSeq << std::endl;
@@ -608,6 +612,9 @@ bool seqSetUp::processSeq(seqInfo& inputSeq, const std::string& flag,
 		}
 	} else {
 		inputSeq = seqInfo("seq", inputSeq.seq_);
+		if("" != originalName){
+			inputSeq.name_ = originalName;
+		}
 	}
 	//std::cout <<"4 "<< inputSeq << std::endl;
 	return passed;
