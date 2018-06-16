@@ -56,7 +56,10 @@ GenomicRegion::GenomicRegion(const Bed3RecordCore & bed) :
 		GenomicRegion(
 				bib::pasteAsStr(bed.chrom_, "-", bed.chromStart_, "-", bed.chromEnd_),
 				bed.chrom_, bed.chromStart_, bed.chromEnd_, false) {
-
+	//add name if extract fields present, might not always be name though
+	if(bed.extraFields_.size() > 0){
+		uid_ = bed.extraFields_[0];
+	}
 }
 
 
@@ -90,6 +93,7 @@ GenomicRegion::GenomicRegion(const BamTools::BamAlignment & bAln,
 				start_(bAln.Position),
 				end_(bAln.GetEndPosition()),
 				reverseSrand_(bAln.IsReverseStrand()) {
+
 }
 
 
