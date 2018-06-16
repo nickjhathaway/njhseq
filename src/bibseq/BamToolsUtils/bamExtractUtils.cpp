@@ -952,7 +952,7 @@ BamExtractor::BamExtractSeqsResultsAlns BamExtractor::extractReadsFromBamRegionA
 							size_t possibleMatePostionEnd = 0;
 							bool reverseStrand = bAln.IsReverseStrand();
 							if(bAln.IsReverseStrand()){
-								possibleMatePostionEnd = bAln.Position > bAln.QueryBases.size() ? bAln.Position - bAln.QueryBases.size() : 0;
+								possibleMatePostionEnd = bAln.Position > static_cast<int64_t>(bAln.QueryBases.size()) ? bAln.Position - bAln.QueryBases.size() : 0;
 								posibleMatePosition = possibleMatePostionEnd > search->QueryBases.size() ? possibleMatePostionEnd - search->QueryBases.size() : 0;
 							}else{
 								posibleMatePosition += bAln.QueryBases.size();
@@ -981,7 +981,7 @@ BamExtractor::BamExtractSeqsResultsAlns BamExtractor::extractReadsFromBamRegionA
 							size_t possibleMatePostionEnd = 0;
 							bool reverseStrand = search->IsReverseStrand();
 							if(search->IsReverseStrand()){
-								possibleMatePostionEnd = search->Position > search->QueryBases.size() ? search->Position - search->QueryBases.size() : 0;
+								possibleMatePostionEnd = search->Position > static_cast<int64_t>(search->QueryBases.size()) ? search->Position - search->QueryBases.size() : 0;
 								posibleMatePosition = possibleMatePostionEnd > bAln.QueryBases.size() ? possibleMatePostionEnd - bAln.QueryBases.size() : 0;
 							}else{
 								posibleMatePosition += search->QueryBases.size();
@@ -2039,7 +2039,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							size_t possibleMatePostionEnd = 0;
 							bool reverseStrand = bAln.IsReverseStrand();
 							if(bAln.IsReverseStrand()){
-								possibleMatePostionEnd = bAln.Position > bAln.QueryBases.size() ? bAln.Position - bAln.QueryBases.size() : 0;
+								possibleMatePostionEnd = bAln.Position > static_cast<int64_t>(bAln.QueryBases.size()) ? bAln.Position - bAln.QueryBases.size() : 0;
 								posibleMatePosition = possibleMatePostionEnd > search->QueryBases.size() ? possibleMatePostionEnd - search->QueryBases.size() : 0;
 							}else{
 								posibleMatePosition += bAln.QueryBases.size();
@@ -2079,7 +2079,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							size_t possibleMatePostionEnd = 0;
 							bool reverseStrand = search->IsReverseStrand();
 							if(search->IsReverseStrand()){
-								possibleMatePostionEnd = search->Position > search->QueryBases.size() ? search->Position - search->QueryBases.size() : 0;
+								possibleMatePostionEnd = search->Position > static_cast<int64_t>(search->QueryBases.size()) ? search->Position - search->QueryBases.size() : 0;
 								posibleMatePosition = possibleMatePostionEnd > bAln.QueryBases.size() ? possibleMatePostionEnd - bAln.QueryBases.size() : 0;
 							}else{
 								posibleMatePosition += search->QueryBases.size();

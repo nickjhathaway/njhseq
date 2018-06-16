@@ -84,38 +84,46 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 			noneContainMeta = false;
 		}
 	}
-	bool allEmpty = true;
-	for (auto & row : inTab.content_) {
-		if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(column)])){
-			MetaDataInName rowMeta(row[inTab.getColPos(column)]);
-			for(const auto & m : rowMeta.meta_){
-				metaValues[m.first].emplace_back(m.second);
-			}
-			for(const auto & metaField : metaFields){
-				if(!bib::in(metaField, rowMeta.meta_)){
+	if(noneContainMeta){
+		bool allEmpty = true;
+		for (auto & row : inTab.content_) {
+			if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(column)])){
+				MetaDataInName rowMeta(row[inTab.getColPos(column)]);
+				for(const auto & m : rowMeta.meta_){
+					metaValues[m.first].emplace_back(m.second);
+				}
+				for(const auto & metaField : metaFields){
+					if(!bib::in(metaField, rowMeta.meta_)){
+						metaValues[metaField].emplace_back("NA");
+					}
+				}
+				if(!keepMetaInColumn){
+					MetaDataInName::removeMetaDataInName(row[inTab.getColPos(column)]);
+					if("" != row[inTab.getColPos(column)]){
+						allEmpty = false;
+					}
+				}
+			}else{
+				for(const auto & metaField : metaFields){
 					metaValues[metaField].emplace_back("NA");
 				}
 			}
-			if(!keepMetaInColumn){
-				MetaDataInName::removeMetaDataInName(row[inTab.getColPos(column)]);
-				if("" != row[inTab.getColPos(column)]){
-					allEmpty = false;
-				}
-			}
-		}else{
-			for(const auto & metaField : metaFields){
-				metaValues[metaField].emplace_back("NA");
-			}
 		}
-	}
-	if(allEmpty && removeEmptyColumn){
-		inTab.deleteColumn(column);
-	}
-	for(const auto & m : metaValues){
-		inTab.addColumn(m.second, m.first);
-	}
-	if(sorting){
-		inTab.sortTable(setUp.sortByColumn_, setUp.decending_);
+		if(allEmpty && removeEmptyColumn){
+			inTab.deleteColumn(column);
+		}
+		for(const auto & m : metaValues){
+			inTab.addColumn(m.second, m.first);
+		}
+
+		if(sorting){
+			inTab.sortTable(setUp.sortByColumn_, setUp.decending_);
+		}
+	}else{
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": No values in " << column << " contain meta data, doing nothing" << "\n";
+		throw std::runtime_error{ss.str()};
+
 	}
 	inTab.hasHeader_ = setUp.addHeader_;
 	setUp.ioOptions_.hasHeader_ = setUp.addHeader_;

@@ -1337,8 +1337,8 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 //					== objA) {
 //		print = true;
 //	}
-  const uint32_t starta = std::max(lastCursors.icursor_ + 1 > alignmentBlockWalkbackSize ? lastCursors.icursor_ + 1 - alignmentBlockWalkbackSize : 0, lastCursors.lastStartA_);
-  const uint32_t startb = std::max(lastCursors.jcursor_ + 1 > alignmentBlockWalkbackSize ? lastCursors.jcursor_ + 1 - alignmentBlockWalkbackSize : 0, lastCursors.lastStartB_);
+  const uint32_t starta = std::max(lastCursors.icursor_ + 1 > static_cast<int64_t>(alignmentBlockWalkbackSize) ? lastCursors.icursor_ + 1 - alignmentBlockWalkbackSize : 0, lastCursors.lastStartA_);
+  const uint32_t startb = std::max(lastCursors.jcursor_ + 1 > static_cast<int64_t>(alignmentBlockWalkbackSize) ? lastCursors.jcursor_ + 1 - alignmentBlockWalkbackSize : 0, lastCursors.lastStartB_);
 
   // Create the alignment score matrix to do the alignment, a column for each
   // letter in sequence b and a row for each letter in sequence a
@@ -1695,7 +1695,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
   //i = lena - 1
 	//end gap
 	if (stopa == lena - 1) {
-		const uint32_t i = lena - 1;
+		const int32_t i = lena - 1;
 		{
 			const uint32_t j = startb;
 			if (0 == startb) {
@@ -1778,7 +1778,7 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
   //end gap
   if(stopb == lenb - 1 ){
 
-   	const uint32_t j = lenb - 1;
+   	const int32_t j = lenb - 1;
 
 //   	std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << " putting in end gap " << std::endl;
 //   	std::cout << "\tj:               " << j << std::endl;
@@ -2031,13 +2031,13 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 //        std::cout << "within icursor: " << icursor << "/" << lena << " within jcursor: " << jcursor<< "/" << lenb << " tracerNext: " << tracerNext << std::endl;
 //        exit(1);
 //      }
-			if ('\0' == tracerNext) {
-				std::stringstream ss;
-				ss << __PRETTY_FUNCTION__ << ", error in aligning: " << "\n";
-				ss << objA << "\n";
-				ss << objB << "\n";
-				throw std::runtime_error { ss.str() };
-			}
+//			if ('\0' == tracerNext) {
+//				std::stringstream ss;
+//				ss << __PRETTY_FUNCTION__ << ", error in aligning: " << "\n";
+//				ss << objA << "\n";
+//				ss << objB << "\n";
+//				throw std::runtime_error { ss.str() };
+//			}
     }
 		if (0 == icursor && 0 == jcursor) {
 			MatCursor ret{ static_cast<int32_t>(lena - 1),
@@ -2094,9 +2094,9 @@ void alignCalc::runNeedleDiagonalSave(
 	previousCursors.emplace(std::make_pair(cursors.icursor_, cursors.jcursor_));
 //  std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 
-	while((cursors.icursor_ != objA.size() && cursors.jcursor_ != objB.size()) ||
-			  (cursors.icursor_ == objA.size() && cursors.jcursor_ != objB.size()) ||
-			  (cursors.icursor_ != objA.size() && cursors.jcursor_ == objB.size())){
+	while((    cursors.icursor_ != static_cast<int64_t>(objA.size()) && cursors.jcursor_ != static_cast<int64_t>(objB.size())) ||
+			  (cursors.icursor_ == static_cast<int64_t>(objA.size()) && cursors.jcursor_ != static_cast<int64_t>(objB.size())) ||
+			  (cursors.icursor_ != static_cast<int64_t>(objA.size()) && cursors.jcursor_ == static_cast<int64_t>(objB.size()))) {
 //		std::cout << "icursor: " << cursors.icursor_ << " jcursor: "<< cursors.jcursor_<< " objA.size(): " << objA.size() << " objB.size(): "<< objB.size() << std::endl;
 
 //		if(print){
@@ -2244,7 +2244,7 @@ void alignCalc::runNeedleDiagonalSave(
 //  std::ofstream outInfo("alignmentPath_alnCalc.txt");
 //  outInfo << "icursor\tjcursor\tscore" << std::endl;
   // std::cout <<"rnv2" << std::endl;
-  int32_t score = parts.score_;
+  //int32_t score = parts.score_;
   while (icursor != 0 || jcursor != 0) {
 //  	std::cout << "icursor: " << icursor << " jcursor: " << jcursor << " score: " << score << " tracerNext: " << tracerNext << std::endl;
 //  	if(print){
@@ -2254,7 +2254,7 @@ void alignCalc::runNeedleDiagonalSave(
     if (tracerNext == 'U') {
       ++gapBSize;
       tracerNext = parts.ScoreMatrix_[icursor][jcursor].upInheritPtr;
-      score = parts.ScoreMatrix_[icursor][jcursor].upInherit;
+      //score = parts.ScoreMatrix_[icursor][jcursor].upInherit;
       if (tracerNext != 'U' && tracerNext != 'B') {
         parts.gHolder_.gapInfos_.emplace_back(
         		bibseq::gapInfo(jcursor, gapBSize, false));
@@ -2264,7 +2264,7 @@ void alignCalc::runNeedleDiagonalSave(
     } else if (tracerNext == 'L') {
       ++gapASize;
       tracerNext = parts.ScoreMatrix_[icursor][jcursor].leftInheritPtr;
-      score = parts.ScoreMatrix_[icursor][jcursor].leftInherit;
+      //score = parts.ScoreMatrix_[icursor][jcursor].leftInherit;
       if (tracerNext != 'L') {
         parts.gHolder_.gapInfos_.emplace_back(
         		bibseq::gapInfo(icursor, gapASize, true));
@@ -2273,7 +2273,7 @@ void alignCalc::runNeedleDiagonalSave(
       --jcursor;
     } else if (tracerNext == 'D') {
       tracerNext = parts.ScoreMatrix_[icursor][jcursor].diagInheritPtr;
-      score = parts.ScoreMatrix_[icursor][jcursor].diagInherit;
+      //score = parts.ScoreMatrix_[icursor][jcursor].diagInherit;
       --icursor;
       --jcursor;
     }
@@ -2282,7 +2282,7 @@ void alignCalc::runNeedleDiagonalSave(
     else if (tracerNext == 'B') {
       ++gapBSize;
       tracerNext = parts.ScoreMatrix_[icursor][jcursor].upInheritPtr;
-      score = parts.ScoreMatrix_[icursor][jcursor].upInherit;
+      //score = parts.ScoreMatrix_[icursor][jcursor].upInherit;
       if (tracerNext != 'U' && tracerNext != 'B') {
         parts.gHolder_.gapInfos_.emplace_back(
         		bibseq::gapInfo(jcursor, gapBSize, false));

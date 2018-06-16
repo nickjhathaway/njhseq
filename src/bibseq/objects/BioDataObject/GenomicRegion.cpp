@@ -296,10 +296,10 @@ double GenomicRegion::getPercInRegion(const BamTools::BamAlignment & bAln,
 		return 0;
 	}
 
-	if(bAln.GetEndPosition() < start_){
+	if(bAln.GetEndPosition() < static_cast<int64_t>(start_)){
 		return 0;
 	}
-	if(bAln.Position >= end_){
+	if(bAln.Position >= static_cast<int64_t>(end_)){
 		return 0;
 	}
 
@@ -308,9 +308,9 @@ double GenomicRegion::getPercInRegion(const BamTools::BamAlignment & bAln,
 	//2) baln.GetEndPosition() falls within the region
 	//3) if the bAln covers the whole region and beyond
 
-	if((bAln.Position >= start_ && bAln.Position < end_) ||
-			(bAln.GetEndPosition() > start_ && bAln.GetEndPosition() <= end_) ||
-			(bAln.Position <= start_ && bAln.GetEndPosition() >= end_)){
+	if((     bAln.Position >= static_cast<int64_t>(start_)        && bAln.Position < static_cast<int64_t>(end_)) ||
+			(bAln.GetEndPosition() > static_cast<int64_t>(start_) && bAln.GetEndPosition() <= static_cast<int64_t>(end_)) ||
+			(bAln.Position <= static_cast<int64_t>(start_)        && bAln.GetEndPosition() >= static_cast<int64_t>(end_))){
 
 		auto start = std::max<size_t>(bAln.Position, start_);
 		auto end = std::min<size_t>(bAln.GetEndPosition(), end_);
