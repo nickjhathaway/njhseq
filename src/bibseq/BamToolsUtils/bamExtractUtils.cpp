@@ -1546,6 +1546,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::writeUnMappedSeqs(const SeqIOOpti
 
 
 	while(bReader.GetNextAlignment(bAln)){
+		//skip secondary alignments
+		if (!bAln.IsPrimaryAlignment()) {
+			continue;
+		}
 		if(!bAln.IsPaired() && !bAln.IsMapped()){
 			++ret.unpairedUnMapped_;
 			singlesWriter.openWrite(bamAlnToSeqInfo(bAln));
@@ -2154,6 +2158,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			checkBamOpenThrow(bReaderMateFinder, inOutOpts.firstName_.string());
 			loadBamIndexThrow(bReaderMateFinder);
 			while (bReaderMateFinder.GetNextAlignment(bAln)) {
+				//skip secondary alignments
+				if (!bAln.IsPrimaryAlignment()) {
+					continue;
+				}
 				if (bAln.IsPaired()) {
 					if (alnCache.has(bAln.Name)) {
 						auto search = alnCache.get(bAln.Name);
