@@ -140,9 +140,11 @@ public:
 	 */
 	//BamExtractSeqsResultsAlns extractReadsFromBamAlns(const bfs::path & bamFnp);
 
+	ExtractedFilesOpts extractReadsFromBamToSameOrientationContigs(
+			const SeqIOOptions & opts,
+			bool throwAwayUnmmpaedMates);
 
 	ExtractedFilesOpts extractReadsFromBamWrite(const SeqIOOptions & opts, bool referenceOrientation, bool throwAwayUnmmpaedMates);
-
 	ExtractedFilesOpts extractReadsFromBamWriteAsSingles(const SeqIOOptions & opts, bool referenceOrientation = false);
 
 

@@ -1251,8 +1251,295 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWriteAsSingles
 	}
 	return ret;
 }
+
+BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientationContigs(
+		const SeqIOOptions & opts,
+		bool throwAwayUnmmpaedMates) {
+
+	auto outPairsUnMapped = SeqIOOptions::genPairedOut(
+			bib::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
+	outPairsUnMapped.out_.transferOverwriteOpts(opts.out_);
+	auto outUnpairedUnMapped = SeqIOOptions::genFastqOut(
+			bib::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
+	outUnpairedUnMapped.out_.transferOverwriteOpts(opts.out_);
+
+	auto outPairs = SeqIOOptions::genPairedOut(opts.out_.outFilename_);
+	outPairs.out_.transferOverwriteOpts(opts.out_);
+	auto outUnpaired = SeqIOOptions::genFastqOut(opts.out_.outFilename_);
+	outUnpaired.out_.transferOverwriteOpts(opts.out_);
+
+	auto outPairsMateUnmapped = SeqIOOptions::genPairedOut(
+			bib::files::prependFileBasename(opts.out_.outFilename_, "mateUnmapped_"));
+	outPairsMateUnmapped.out_.transferOverwriteOpts(opts.out_);
+
+	auto thrownAwayMate = SeqIOOptions::genFastqOut(
+			bib::files::prependFileBasename(opts.out_.outFilename_, "thrownAwayMate_"));
+	thrownAwayMate.out_.transferOverwriteOpts(opts.out_);
+
+
+	auto outPairsInverse = SeqIOOptions::genPairedOut(
+			bib::files::prependFileBasename(opts.out_.outFilename_, "inverse_"));
+	outPairsInverse.out_.transferOverwriteOpts(opts.out_);
+
+	auto outPairsDiscordant = SeqIOOptions::genPairedOut(
+			bib::files::prependFileBasename(opts.out_.outFilename_, "discordant_"));
+	outPairsDiscordant.out_.transferOverwriteOpts(opts.out_);
+
+	SeqOutput unmappedPairWriter(outPairsUnMapped);
+	SeqOutput unmappedSinglesWriter(outUnpairedUnMapped);
+
+	SeqOutput inversePairWriter(outPairsInverse);
+
+	SeqOutput discordantPairWriter(outPairsDiscordant);
+
+	SeqOutput mappedPairWriter(outPairs);
+	SeqOutput mappedSinglesWriter(outUnpaired);
+
+	SeqOutput mateUnmappedPairWriter(outPairsMateUnmapped);
+	SeqOutput thrownAwayMateWriter(thrownAwayMate);
+
+
+
+
+
+	BamExtractor::ExtractedFilesOpts ret;
+	ret.inPairs_ = SeqIOOptions::genPairedIn(outPairs.getPriamryOutName(), outPairs.getSecondaryOutName());
+	ret.inPairsUnMapped_ = SeqIOOptions::genPairedIn(outPairsUnMapped.getPriamryOutName(), outPairsUnMapped.getSecondaryOutName());
+
+	ret.inUnpaired_ = SeqIOOptions::genFastqIn(outUnpaired.getPriamryOutName());
+	ret.inUnpairedUnMapped_ = SeqIOOptions::genFastqIn(outUnpairedUnMapped.getPriamryOutName());
+
+	ret.inDiscordant_ = SeqIOOptions::genPairedIn(outPairsDiscordant.getPriamryOutName(), outPairsDiscordant.getSecondaryOutName());
+	ret.inInverse_ = SeqIOOptions::genPairedIn(outPairsInverse.getPriamryOutName(), outPairsInverse.getSecondaryOutName());
+
+	ret.inPairsMateUnmapped_ = SeqIOOptions::genPairedIn(outPairsMateUnmapped.getPriamryOutName(), outPairsMateUnmapped.getSecondaryOutName());
+	ret.inThrownAwayUnmappedMate_ = SeqIOOptions::genFastqIn(thrownAwayMate.getPriamryOutName());
+
+
+
+	BamTools::BamReader bReader;
+	bReader.Open(opts.firstName_.string());
+	checkBamOpenThrow(bReader, opts.firstName_.string());
+	auto rData = bReader.GetReferenceData();
+	BamTools::BamAlignment bAln;
+	BamAlnsCache alnCache;
+
+	OutOptions inverseBedOpts(bib::files::prependFileBasename(opts.out_.outFilename_, "inverse_"), ".bed");
+	inverseBedOpts.transferOverwriteOpts(opts.out_);
+
+	OutOptions discordantBedOpts(bib::files::prependFileBasename(opts.out_.outFilename_, "discordant_"), ".bed");
+	discordantBedOpts.transferOverwriteOpts(opts.out_);
+
+	OutOptions mappedBedOpts(bib::files::prependFileBasename(opts.out_.outFilename_, "mapped_"), ".bed");
+	mappedBedOpts.transferOverwriteOpts(opts.out_);
+	std::unique_ptr<OutputStream> inverseBedOut;
+	std::unique_ptr<OutputStream> discordantBedOut;
+	std::unique_ptr<OutputStream> mappedBedOut;
+	if (debug_) {
+		inverseBedOut = std::make_unique<OutputStream>(inverseBedOpts);
+		discordantBedOut = std::make_unique<OutputStream>(discordantBedOpts);
+		mappedBedOut = std::make_unique<OutputStream>(mappedBedOpts);
+	}
+
+	uint32_t centerClipCutOff = 10;
+	std::unordered_map<std::string, uint32_t> contigLengths;
+	for(const auto & r : rData){
+		contigLengths[r.RefName] = r.RefLength;
+	}
+	while (bReader.GetNextAlignment(bAln)) {
+		if (!bAln.IsPrimaryAlignment()) {
+			continue;
+		}
+		if (!bAln.IsPaired()) {
+			if (!bAln.IsMapped()) {
+				++ret.unpairedUnMapped_;
+				unmappedSinglesWriter.openWrite(bamAlnToSeqInfo(bAln));
+			} else {
+				if((0 != bAln.Position
+						&& bAln.CigarData.front().Type == 'S'
+						&& bAln.CigarData.front().Length > centerClipCutOff) ||
+						(contigLengths[rData[bAln.RefID].RefName] != bAln.GetEndPosition()
+						&& bAln.CigarData.back().Type == 'S'
+						&& bAln.CigarData.back().Length > centerClipCutOff)) {
+					++ret.unpairedUnMapped_;
+					unmappedSinglesWriter.openWrite(bamAlnToSeqInfo(bAln));
+				}else{
+					++ret.unpaiedReads_;
+					mappedSinglesWriter.openWrite(
+							seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
+									SangerQualOffset));
+				}
+			}
+		} else {
+			if (!alnCache.has(bAln.Name)) {
+				//pair hasn't been added to cache yet so add to cache
+				//this only works if mate and first mate have the same name
+				alnCache.add(bAln);
+				continue;
+			} else {
+				auto search = alnCache.get(bAln.Name);
+				bool balnMapped = bAln.IsMapped();
+				bool searchMapped = search->IsMapped();
+				if(balnMapped &&
+						((0 != bAln.Position
+						&& bAln.CigarData.front().Type == 'S'
+						&& bAln.CigarData.front().Length > centerClipCutOff) ||
+						(contigLengths[rData[bAln.RefID].RefName] != bAln.GetEndPosition()
+						&& bAln.CigarData.back().Type == 'S'
+						&& bAln.CigarData.back().Length > centerClipCutOff))){
+					balnMapped = false;
+				}
+
+				if(searchMapped &&
+						((0 != search->Position
+						&& search->CigarData.front().Type == 'S'
+						&& search->CigarData.front().Length > centerClipCutOff) ||
+						(contigLengths[rData[search->RefID].RefName] != search->GetEndPosition()
+						&& search->CigarData.back().Type == 'S'
+						&& search->CigarData.back().Length > centerClipCutOff))){
+					searchMapped = false;
+				}
+
+				if (!balnMapped && !searchMapped) {
+					++ret.pairsUnMapped_;
+					if (bAln.IsFirstMate()) {
+						unmappedPairWriter.openWrite(
+								PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(*search),
+										false));
+					} else {
+						unmappedPairWriter.openWrite(
+								PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
+										false));
+					}
+				} else {
+					seqInfo bAlnSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
+							SangerQualOffset);
+					seqInfo searchSeq(search->Name, search->QueryBases,
+							search->Qualities, SangerQualOffset);
+
+					if (balnMapped && searchMapped) {
+						// test for inverse
+						if(bAln.IsReverseStrand() == search->IsReverseStrand()){
+							//inverse mates will there be written in technically the wrong orientation to each other but in the reference orientation
+							++ret.inverse_;
+							if (bAln.IsFirstMate()) {
+								inversePairWriter.openWrite(
+										PairedRead(bAlnSeq, searchSeq, false));
+							} else {
+								inversePairWriter.openWrite(
+										PairedRead(searchSeq, bAlnSeq, false));
+							}
+							if(debug_){
+								(*inverseBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
+								(*inverseBedOut) << GenomicRegion(*search, rData).genBedRecordCore().toDelimStr() << std::endl;
+							}
+
+						}else{
+							//test for concordant
+							if (bAln.RefID == search->RefID
+									&& std::abs(bAln.InsertSize) < insertLengthCutOff_) {
+								++ret.pairedReads_;
+								if (bAln.IsFirstMate()) {
+									mappedPairWriter.openWrite(
+											PairedRead(bAlnSeq, searchSeq, false));
+								} else {
+									mappedPairWriter.openWrite(
+											PairedRead(searchSeq, bAlnSeq, false));
+								}
+								if(debug_){
+									(*mappedBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
+									(*mappedBedOut) << GenomicRegion(*search, rData).genBedRecordCore().toDelimStr() << std::endl;
+								}
+							} else {
+								if(debug_){
+									(*discordantBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
+									(*discordantBedOut) << GenomicRegion(*search, rData).genBedRecordCore().toDelimStr() << std::endl;
+								}
+								//discordant if mapping to different chromosome or very far away from each other
+								++ret.discordant_;
+								if (bAln.IsFirstMate()) {
+									discordantPairWriter.openWrite(
+											PairedRead(bAlnSeq, searchSeq, false));
+								} else {
+									discordantPairWriter.openWrite(
+											PairedRead(searchSeq, bAlnSeq, false));
+								}
+							}
+						}
+					} else {
+						++ret.pairedReadsMateUnmapped_;
+						//when mate is unmapped the same operation is done to the mate as the other mate, not sure why, so to fix orientation (or at least keep the read in the orientation of it's mate)
+						if (balnMapped && !search->IsMapped()) {
+							searchSeq.reverseComplementRead(false, true);
+						} else if (!balnMapped && search->IsMapped()) {
+							bAlnSeq.reverseComplementRead(false, true);
+						} else {
+							//this shouldn't be happening....
+						}
+						if (throwAwayUnmmpaedMates) {
+							if (balnMapped && !searchMapped) {
+								mappedSinglesWriter.openWrite(bAlnSeq);
+								thrownAwayMateWriter.openWrite(searchSeq);
+							} else if (!balnMapped && searchMapped) {
+								mappedSinglesWriter.openWrite(searchSeq);
+								thrownAwayMateWriter.openWrite(bAlnSeq);
+							}
+						}else{
+							if (bAln.IsFirstMate()) {
+								mateUnmappedPairWriter.openWrite(
+										PairedRead(bAlnSeq, searchSeq, false));
+							} else {
+								mateUnmappedPairWriter.openWrite(
+										PairedRead(searchSeq, bAlnSeq, false));
+							}
+						}
+					}
+				}
+				// now that operations have been computed, remove ther other mate found from cache
+				alnCache.remove(search->Name);
+				continue;
+			}
+		}
+	}
+
+	//save the orphans;
+	if (len(alnCache) > 0) {
+		auto names = alnCache.getNames();
+		for (const auto & name : names) {
+			auto search = alnCache.get(name);
+			if (!search->IsMapped()) {
+				++ret.unpairedUnMapped_;
+				unmappedSinglesWriter.openWrite(bamAlnToSeqInfo(*search));
+			} else {
+				if((0 != search->Position
+						&& search->CigarData.front().Type == 'S'
+						&& search->CigarData.front().Length > centerClipCutOff) ||
+						(contigLengths[rData[search->RefID].RefName] != search->GetEndPosition()
+						&& search->CigarData.back().Type == 'S'
+						&& search->CigarData.back().Length > centerClipCutOff)){
+					++ret.unpairedUnMapped_;
+					unmappedSinglesWriter.openWrite(bamAlnToSeqInfo(*search));
+				}else{
+					++ret.unpaiedReads_;
+					mappedSinglesWriter.openWrite(
+							seqInfo(search->Name, search->QueryBases, search->Qualities,
+									SangerQualOffset));
+				}
+			}
+			alnCache.remove(name);
+		}
+	}
+	if(verbose_){
+		ret.log(std::cout, opts.firstName_);
+	}
+	return ret;
+}
+
+
 BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWrite(
-		const SeqIOOptions & opts, bool referenceOrientation, bool throwAwayUnmmpaedMates) {
+		const SeqIOOptions & opts,
+		bool referenceOrientation,
+		bool throwAwayUnmmpaedMates) {
 
 	auto outPairsUnMapped = SeqIOOptions::genPairedOut(
 			bib::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
@@ -1371,39 +1658,36 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWrite(
 						if (bAln.IsMapped() && search->IsMapped()) {
 							//test for concordant
 							if (bAln.RefID == search->RefID
-									&& bAln.IsReverseStrand() != search->IsReverseStrand()
 									&& std::abs(bAln.InsertSize) < insertLengthCutOff_) {
-								++ret.pairedReads_;
-								if (bAln.IsFirstMate()) {
-									mappedPairWriter.openWrite(
-											PairedRead(bAlnSeq, searchSeq, false));
-								} else {
-									mappedPairWriter.openWrite(
-											PairedRead(searchSeq, bAlnSeq, false));
+								if(bAln.IsReverseStrand() != search->IsReverseStrand()){
+									++ret.pairedReads_;
+									if (bAln.IsFirstMate()) {
+										mappedPairWriter.openWrite(
+												PairedRead(bAlnSeq, searchSeq, false));
+									} else {
+										mappedPairWriter.openWrite(
+												PairedRead(searchSeq, bAlnSeq, false));
+									}
+								}else{
+									//inverse mates will there be written in technically the wrong orientation to each other but in the reference orientation
+									++ret.inverse_;
+									if (bAln.IsFirstMate()) {
+										inversePairWriter.openWrite(
+												PairedRead(bAlnSeq, searchSeq, false));
+									} else {
+										inversePairWriter.openWrite(
+												PairedRead(searchSeq, bAlnSeq, false));
+									}
 								}
 							} else {
-								//inverse if closely mapping but to same strand
-								if (bAln.IsReverseStrand() != search->IsReverseStrand()
-										&& std::abs(bAln.InsertSize) < insertLengthCutOff_) {
-									//inverse mates will there be written in technically the wrong orientation to each other but in the reference orientation
-									if (bAln.IsFirstMate()) {
-										inversePairWriter.openWrite(
-												PairedRead(bAlnSeq, searchSeq, false));
-									} else {
-										inversePairWriter.openWrite(
-												PairedRead(searchSeq, bAlnSeq, false));
-									}
-									++ret.inverse_;
-								}else{
-									//discordant if mapping to different chromosome or very far away from each other
-									if (bAln.IsFirstMate()) {
-										discordantPairWriter.openWrite(
-												PairedRead(bAlnSeq, searchSeq, false));
-									} else {
-										discordantPairWriter.openWrite(
-												PairedRead(searchSeq, bAlnSeq, false));
-									}
-									++ret.discordant_;
+								//discordant if mapping to different chromosome or very far away from each other
+								++ret.discordant_;
+								if (bAln.IsFirstMate()) {
+									discordantPairWriter.openWrite(
+											PairedRead(bAlnSeq, searchSeq, false));
+								} else {
+									discordantPairWriter.openWrite(
+											PairedRead(searchSeq, bAlnSeq, false));
 								}
 							}
 						} else {
@@ -1438,21 +1722,19 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWrite(
 						//to make it here at least one of alignments had to have mapped
 					} else {
 						if (bAln.RefID == search->RefID
-								&& bAln.IsReverseStrand() != search->IsReverseStrand()
 								&& std::abs(bAln.InsertSize) < insertLengthCutOff_) {
-							++ret.pairedReads_;
-							if (bAln.IsFirstMate()) {
-								mappedPairWriter.openWrite(
-										PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(*search),
-												false));
-							} else {
-								mappedPairWriter.openWrite(
-										PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
-												false));
-							}
-						} else {
-							if (bAln.IsReverseStrand() != search->IsReverseStrand()
-									&& std::abs(bAln.InsertSize) < insertLengthCutOff_) {
+							if(bAln.IsReverseStrand() != search->IsReverseStrand()){
+								++ret.pairedReads_;
+								if (bAln.IsFirstMate()) {
+									mappedPairWriter.openWrite(
+											PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(*search),
+													false));
+								} else {
+									mappedPairWriter.openWrite(
+											PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
+													false));
+								}
+							}else{
 								++ret.inverse_;
 								if (bAln.IsFirstMate()) {
 									inversePairWriter.openWrite(
@@ -1463,17 +1745,18 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWrite(
 											PairedRead(bamAlnToSeqInfo(*search),
 													bamAlnToSeqInfo(bAln), false));
 								}
+							}
+
+						} else {
+							++ret.discordant_;
+							if (bAln.IsFirstMate()) {
+								discordantPairWriter.openWrite(
+										PairedRead(bamAlnToSeqInfo(bAln),
+												bamAlnToSeqInfo(*search), false));
 							} else {
-								++ret.discordant_;
-								if (bAln.IsFirstMate()) {
-									discordantPairWriter.openWrite(
-											PairedRead(bamAlnToSeqInfo(bAln),
-													bamAlnToSeqInfo(*search), false));
-								} else {
-									discordantPairWriter.openWrite(
-											PairedRead(bamAlnToSeqInfo(*search),
-													bamAlnToSeqInfo(bAln), false));
-								}
+								discordantPairWriter.openWrite(
+										PairedRead(bamAlnToSeqInfo(*search),
+												bamAlnToSeqInfo(bAln), false));
 							}
 						}
 					}
