@@ -95,6 +95,8 @@ Json::Value MultiGenomeMapper::Genome::toJson() const{
 	ret["name_"] = bib::json::toJson(name_);
 	ret["fnp_"] = bib::json::toJson(fnp_);
 	ret["fnpTwoBit_"] = bib::json::toJson(fnpTwoBit_);
+	ret["gffFnp_"] = bib::json::toJson(gffFnp_);
+	ret["chromosomeLengths_"] = bib::json::toJson(chromosomeLengths_);
 	return ret;
 }
 
@@ -117,6 +119,27 @@ Json::Value MultiGenomeMapper::toJson() const{
 	ret["genomes_"] = bib::json::toJson(genomes_);
 	return ret;
 }
+
+
+void MultiGenomeMapper::loadGffFnps(){
+	loadGffFnps(pars_.gffDir_);
+}
+
+void MultiGenomeMapper::loadGffFnps(const bfs::path & gffDir) {
+	for (auto & genome : genomes_) {
+		bfs::path gffFnp = bib::files::make_path(pars_.gffDir_,
+				genome.second->fnp_.filename()).replace_extension("gff");
+		if (bfs::exists(gffFnp)) {
+			genome.second->gffFnp_ = gffFnp;
+		} else {
+			gffFnp = gffFnp.string() + "3";
+			if (bfs::exists(gffFnp)) {
+				genome.second->gffFnp_ = gffFnp;
+			}
+		}
+	}
+}
+
 
 void MultiGenomeMapper::loadInGenomes() {
 	std::lock_guard<std::mutex> lock(mut_);
@@ -193,6 +216,7 @@ void MultiGenomeMapper::init() {
 		throw std::runtime_error { ss.str() };
 	}
 	setUpGenomes();
+	loadGffFnps();
 }
 
 

@@ -62,6 +62,7 @@ public:
 		std::string name_;
 		bfs::path fnp_;
 		bfs::path fnpTwoBit_;
+		bfs::path gffFnp_;
 		std::unordered_map<std::string, uint32_t> chromosomeLengths_;
 
 		void createTwoBit();
@@ -80,6 +81,8 @@ public:
 	bool hasGenome(const std::string & genome) const;
 
 	void loadInGenomes();
+	void loadGffFnps();
+	void loadGffFnps(const bfs::path & gffDir);
 	void setUpGenomes();
 
 	void bioIndexAllGenomes();
