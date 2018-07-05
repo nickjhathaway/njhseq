@@ -74,7 +74,7 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 	std::set<std::string> metaFields;
 	std::unordered_map<std::string, VecStr> metaValues;
 
-	bool noneContainMeta = false;
+	bool noneContainMeta = true;
 	for (const auto & row : inTab.content_) {
 		if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(column)])){
 			MetaDataInName rowMeta(row[inTab.getColPos(column)]);
@@ -84,7 +84,7 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 			noneContainMeta = false;
 		}
 	}
-	if(noneContainMeta){
+	if(!noneContainMeta){
 		bool allEmpty = true;
 		for (auto & row : inTab.content_) {
 			if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(column)])){

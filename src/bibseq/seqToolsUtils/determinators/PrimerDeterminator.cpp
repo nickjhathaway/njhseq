@@ -99,20 +99,29 @@ PrimerDeterminator::primerInfo::primerInfo(const std::string & primerPairName,
 
 }
 
+struct PrimerPositionScore {
+	PrimerPositionScore() {
+	}
+	PrimerPositionScore(const uint32_t start, const uint32_t end,
+			const std::string & primerName, const comparison & comp) :
+			start_(start), end_(end), primerName_(primerName), comp_(comp) {
+	}
+	uint32_t start_ { std::numeric_limits<uint32_t>::max()-1 };
+	uint32_t end_ { std::numeric_limits<uint32_t>::max() };
+	std::string primerName_;
+	comparison comp_;
+	double getNormalizedScore() {
+		return comp_.alnScore_ / (end_ - start_);
+	}
+};
 
 std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info, const PrimerDeterminatorPars & pars,
 		aligner & alignerObj){
-	/**@todo add find best primer*/
+	std::vector<PrimerPositionScore> determinedPrimers;
 	for (const auto& currentPrimer : primers_) {
 		// find reverse primer in forward direction or if it isn't found return unrecognized
 		auto readBegin = seqInfo(info.name_ + "_readBegin",
 				info.seq_.substr(0, pars.primerWithin_ + currentPrimer.second.reversePrimerInfoForDir_.seq_.size() + 5));
-//		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
-//				currentPrimer.second.reversePrimerInfoForDir_.seq_);
-//		alignerObj.rearrangeObjs(readBegin,
-//				currentPrimer.second.reversePrimerInfoForDir_, true);
-//		alignerObj.profilePrimerAlignment(readBegin,
-//				currentPrimer.second.reversePrimerInfoForDir_);
 
 		/**@todo put in a check to make sure of semi-global alignment */
 		alignerObj.alignCacheGlobal(readBegin,
@@ -143,25 +152,49 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info, const
 				&& coverage
 						>= pars.allowable_.distances_.query_.coverage_
 				&& pars.allowable_.passErrorProfile(alignerObj.comp_)) {
-			if(pars.primerWithin_ != 0 && forwardPosition.first != 0){
-				info.setClip(forwardPosition.first, info.seq_.size() - 1);
-			}
-			if (pars.primerToLowerCase_) {
-				changeSubStrToLowerFromBegining(info.seq_,
-						forwardPosition.second - forwardPosition.first);
-			}
-			info.on_ = true;
-			return currentPrimer.second.reversePrimerInfoForDir_.name_;
-			break;
+
+			determinedPrimers.emplace_back(forwardPosition.first,
+					forwardPosition.second, currentPrimer.second.reversePrimerInfoForDir_.name_,
+					alignerObj.comp_);
 		}
 	}
-	info.on_ = false;
-	return "unrecognized";
+	PrimerPositionScore bestPrimer;
+	if (0 == determinedPrimers.size()) {
+		info.on_ = false;
+		return "unrecognized";
+	} else if (1 == determinedPrimers.size()) {
+		bestPrimer = determinedPrimers.front();
+	} else {
+		bestPrimer = determinedPrimers.front();
+		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
+				bestPrimer = determinedPrimers[pos];
+			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
+				if(determinedPrimers[pos].comp_.highQualityMatches_ > bestPrimer.comp_.highQualityMatches_){
+					bestPrimer = determinedPrimers[pos];
+				}else if(determinedPrimers[pos].comp_.highQualityMatches_ == bestPrimer.comp_.highQualityMatches_){
+					if(determinedPrimers[pos].start_ < bestPrimer.start_){
+						bestPrimer = determinedPrimers[pos];
+					}
+				}
+			}
+		}
+	}
+
+	if (pars.primerWithin_ != 0 && bestPrimer.start_ != 0) {
+		info.setClip(bestPrimer.start_, info.seq_.size() - 1);
+	}
+	if (pars.primerToLowerCase_) {
+		changeSubStrToLowerFromBegining(info.seq_,
+				bestPrimer.end_ - bestPrimer.start_);
+	}
+	info.on_ = true;
+	return bestPrimer.primerName_;
 }
 
 std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 		const PrimerDeterminatorPars & pars, aligner & alignerObj) {
-	/**@todo add find best primer*/
+	std::vector<PrimerPositionScore> determinedPrimers;
 	for (const auto& currentPrimer : primers_) {
 		// find reverse primer in forward direction or if it isn't found return unrecognized
 		auto readBegin = seqInfo(info.name_ + "_readBegin",
@@ -180,6 +213,7 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 				currentPrimer.second.forwardPrimerInfo_, false);
 		alignerObj.profileAlignment(readBegin,
 				currentPrimer.second.forwardPrimerInfo_, false, true, false);
+
 		std::pair<uint32_t, uint32_t> forwardPosition = std::make_pair(
 				alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-")),
 				alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-")));
@@ -198,24 +232,47 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
 							/ (currentPrimer.second.forwardPrimerInfo_.seq_.size() - 2);
 		}
+
 		if (forwardPosition.first <= pars.primerWithin_
-				&& coverage
-						>= pars.allowable_.distances_.query_.coverage_
+				&& coverage >= pars.allowable_.distances_.query_.coverage_
 				&& pars.allowable_.passErrorProfile(alignerObj.comp_)) {
-			if(pars.primerWithin_ != 0 && forwardPosition.first != 0){
-				info.setClip(forwardPosition.first, info.seq_.size() - 1);
-			}
-			if (pars.primerToLowerCase_) {
-				changeSubStrToLowerFromBegining(info.seq_,
-						forwardPosition.second - forwardPosition.first);
-			}
-			info.on_ = true;
-			return currentPrimer.second.forwardPrimerInfo_.name_;
-			break;
+			determinedPrimers.emplace_back(forwardPosition.first,
+					forwardPosition.second, currentPrimer.second.forwardPrimerInfo_.name_,
+					alignerObj.comp_);
 		}
 	}
-	info.on_ = false;
-	return "unrecognized";
+	PrimerPositionScore bestPrimer;
+	if (0 == determinedPrimers.size()) {
+		info.on_ = false;
+		return "unrecognized";
+	} else if (1 == determinedPrimers.size()) {
+		bestPrimer = determinedPrimers.front();
+	} else {
+		bestPrimer = determinedPrimers.front();
+		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
+				bestPrimer = determinedPrimers[pos];
+			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
+				if(determinedPrimers[pos].comp_.highQualityMatches_ > bestPrimer.comp_.highQualityMatches_){
+					bestPrimer = determinedPrimers[pos];
+				}else if(determinedPrimers[pos].comp_.highQualityMatches_ == bestPrimer.comp_.highQualityMatches_){
+					if(determinedPrimers[pos].start_ < bestPrimer.start_){
+						bestPrimer = determinedPrimers[pos];
+					}
+				}
+			}
+		}
+	}
+
+	if (pars.primerWithin_ != 0 && bestPrimer.start_ != 0) {
+		info.setClip(bestPrimer.start_, info.seq_.size() - 1);
+	}
+	if (pars.primerToLowerCase_) {
+		changeSubStrToLowerFromBegining(info.seq_,
+				bestPrimer.end_ - bestPrimer.start_);
+	}
+	info.on_ = true;
+	return bestPrimer.primerName_;
 }
 
 bool PrimerDeterminator::checkForReversePrimer(seqInfo & info,
