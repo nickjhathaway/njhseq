@@ -40,8 +40,10 @@ public:
 	void addMeta(const std::string & key, const T & val, bool replace = false) {
 		if (containsMeta(key) && !replace) {
 			std::stringstream ss;
-			ss << "Error in " << bib::bashCT::boldBlack(__PRETTY_FUNCTION__)
-					<< " attempting to add meta, " << key << ", that's already in meta_, use replace = true to replace"
+			ss << "Error in " << bib::bashCT::bold << __PRETTY_FUNCTION__
+					<< bib::bashCT::reset << " attempting to add meta, "
+					<< bib::bashCT::bold << key << bib::bashCT::reset
+					<< ", that's already in meta_, use replace = true to replace"
 					<< std::endl;
 			throw std::runtime_error { ss.str() };
 		} else {

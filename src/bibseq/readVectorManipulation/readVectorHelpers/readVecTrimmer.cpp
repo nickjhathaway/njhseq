@@ -242,7 +242,7 @@ void readVecTrimmer::trimAtSequence(seqInfo &seq, const seqInfo &reversePrimer,
 	}*/
 
 	seq.on_ = passInspection;
-	if(seq.on_){
+	if(seq.on_ || tSeqPars.alwaysTrim){
 		if (tSeqPars.includeSequence_) {
 			if (tSeqPars.sequenceToLowerCase_) {
 				if (tSeqPars.removePreviousSameBases_) {
@@ -354,7 +354,7 @@ void readVecTrimmer::trimBeforeSequence(seqInfo &seq, const seqInfo &forwardSeq,
 	}*/
 	seq.on_ = passInspection;
 
-	if(seq.on_){
+	if(seq.on_ || tSeqPars.alwaysTrim){
 		if (tSeqPars.includeSequence_) {
 			if (tSeqPars.sequenceToLowerCase_) {
 				if (tSeqPars.removePreviousSameBases_) {

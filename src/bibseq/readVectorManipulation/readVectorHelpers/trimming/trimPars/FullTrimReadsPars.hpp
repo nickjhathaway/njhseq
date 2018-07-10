@@ -35,6 +35,8 @@ struct FullTrimReadsPars {
 		bool removePreviousSameBases_;
 		bool local_ = true;
 		uint32_t within_ = std::numeric_limits<uint32_t>::max();
+	  bool alwaysTrim = false;
+
 	};
   // parameters
 	FullTrimReadsPars();

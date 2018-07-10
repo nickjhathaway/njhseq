@@ -32,6 +32,7 @@
 #include "bibseq/objects/dataContainers.h"
 #include "bibseq/objects/counters.h"
 #include "bibseq/objects/BioDataObject.h"
+#include "bibseq/objects/Gene.h"
 
 
 
