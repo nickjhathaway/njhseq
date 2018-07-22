@@ -1812,6 +1812,13 @@ BamExtractor::ExtractedFilesOpts BamExtractor::writeUnMappedSeqs(const SeqIOOpti
 	bReader.Open(opts.firstName_.string());
 	checkBamOpenThrow(bReader, opts.firstName_.string());
 
+//	if(!bReader.SetRegion(-1, 0, -1, 0)){
+//		std::stringstream ss;
+//		ss << __PRETTY_FUNCTION__ << ", error unable to set region to -1" << "\n";
+//		ss << bReader.GetErrorString() << "\n";
+//		throw std::runtime_error{ss.str()};
+//	}
+
 	BamTools::BamAlignment bAln;
 	BamAlnsCache alnCache;
 
@@ -1828,17 +1835,20 @@ BamExtractor::ExtractedFilesOpts BamExtractor::writeUnMappedSeqs(const SeqIOOpti
 	bWriter.Open(outBam.string(), bReader.GetHeader(), bReader.GetReferenceData());
 
 
-	while(bReader.GetNextAlignment(bAln)){
+	while(bReader.GetNextAlignmentCore(bAln)){
+
 		//skip secondary alignments
 		if (!bAln.IsPrimaryAlignment()) {
 			continue;
 		}
 		if(!bAln.IsPaired() && !bAln.IsMapped()){
+			bAln.BuildCharData();
 			++ret.unpairedUnMapped_;
 			singlesWriter.openWrite(bamAlnToSeqInfo(bAln));
 			bWriter.SaveAlignment(bAln);
 		}else{
 			if(!bAln.IsMapped() && !bAln.IsMateMapped()){
+				bAln.BuildCharData();
 				if (!alnCache.has(bAln.Name)) {
 					//pair hasn't been added to cache yet so add to cache
 					//this only works if mate and first mate have the same name
@@ -2434,7 +2444,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	}
 	if (len(alnCache) > 0) {
 		auto names = alnCache.getNames();
-		if(tryToFindOrphansMate){
+		if (tryToFindOrphansMate) {
 			//find orphans' mates if possible;
 			BamTools::BamReader bReaderMateFinder;
 			bReaderMateFinder.Open(inOutOpts.firstName_.string());
@@ -2452,6 +2462,30 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							writeTheThrownAwayMate(bAln,
 									seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
 											SangerQualOffset));
+						}
+					}
+				}
+			}
+		} else {
+			for(const auto & region : regions){
+				BamTools::BamReader bReaderMateFinder;
+				bReaderMateFinder.Open(inOutOpts.firstName_.string());
+				checkBamOpenThrow(bReaderMateFinder, inOutOpts.firstName_.string());
+				loadBamIndexThrow(bReaderMateFinder);
+				setBamFileRegionThrow(bReaderMateFinder, region);
+				while (bReaderMateFinder.GetNextAlignment(bAln)) {
+					//skip secondary alignments
+					if (!bAln.IsPrimaryAlignment()) {
+						continue;
+					}
+					if (bAln.IsPaired()) {
+						if (alnCache.has(bAln.Name)) {
+							auto search = alnCache.get(bAln.Name);
+							if (bAln.IsFirstMate() != search->IsFirstMate()) {
+								writeTheThrownAwayMate(bAln,
+										seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
+												SangerQualOffset));
+							}
 						}
 					}
 				}

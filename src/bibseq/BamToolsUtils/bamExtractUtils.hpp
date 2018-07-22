@@ -151,7 +151,9 @@ public:
 	ExtractedFilesOpts extractReadsWtihCrossRegionMapping(
 			const SeqIOOptions & inOutOpts,
 			const std::vector<GenomicRegion> & regions, double percInRegion,
-			bool originalOrientation, bool throwAwayUnmappedMate, bool tryToFindOrphansMate = true);
+			bool originalOrientation,
+			bool throwAwayUnmappedMate,
+			bool tryToFindOrphansMate = false);
 
 	ExtractedFilesOpts extractReadsWtihCrossRegionMappingAsSingles(
 				const SeqIOOptions & inOutOpts,
