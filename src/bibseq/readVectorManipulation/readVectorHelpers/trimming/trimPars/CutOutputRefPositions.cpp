@@ -30,6 +30,7 @@ namespace bibseq {
 Json::Value CutOutputRefPositions::toJson() const{
 	Json::Value ret;
 	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
+	ret["name_"] = bib::json::toJson(name_);
 	ret["refStart_"] = bib::json::toJson(refStart_);
 	ret["refStartLength_"] = bib::json::toJson(refStartLength_);
 	ret["refStop_"] = bib::json::toJson(refStop_);
