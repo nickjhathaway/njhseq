@@ -34,19 +34,41 @@ namespace bibseq {
 namespace collapse {
 
 
+Json::Value SampleCollapseCollection::PreFilteringCutOffs::toJson() const{
+	Json::Value ret;
+	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
+	ret["clusterSizeCutOff"] = bib::json::toJson(clusterSizeCutOff );
+	ret["sampleMinReadCount"] = bib::json::toJson(sampleMinReadCount );
+	ret["replicateMinReadCount"] = bib::json::toJson(replicateMinReadCount );
+
+	return ret;
+}
+
+
+SampleCollapseCollection::PreFilteringCutOffs::PreFilteringCutOffs() {
+}
+SampleCollapseCollection::PreFilteringCutOffs::PreFilteringCutOffs(
+		const Json::Value & coreJson) {
+	bib::json::MemberChecker checker(coreJson);
+
+	checker.failMemberCheckThrow(VecStr {"clusterSizeCutOff", "sampleMinReadCount",
+			"replicateMinReadCount"}, __PRETTY_FUNCTION__);
+	clusterSizeCutOff = coreJson["clusterSizeCutOff"].asUInt();
+	sampleMinReadCount = coreJson["sampleMinReadCount"].asUInt();
+	replicateMinReadCount = coreJson["replicateMinReadCount"].asUInt();
+
+}
 
 SampleCollapseCollection::SampleCollapseCollection(SeqIOOptions inputOptions,
 		const bfs::path & inputDir,
 		const bfs::path & outputDir,
 		const PopNamesInfo & popNames,
-		uint32_t clusterSizeCutOff,
-		uint32_t sampleMinReadCount) :
+		PreFilteringCutOffs preFiltCutOffs) :
 		inputOptions_(inputOptions),
 		masterInputDir_(inputDir),
 		masterOutputDir_(outputDir),
 		popNames_(popNames),
-		clusterSizeCutOff_(clusterSizeCutOff),
-		sampleMinReadCount_(sampleMinReadCount){
+		preFiltCutOffs_(preFiltCutOffs){
 	samplesOutputDir_ = bib::files::make_path(masterOutputDir_, "samplesOutput");
 	populationOutputDir_ = bib::files::make_path(masterOutputDir_, "population");
 	bib::files::makeDir(bib::files::MkdirPar(samplesOutputDir_.string(), true));
@@ -57,9 +79,9 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 
 	bib::json::MemberChecker checker(coreJson);
 
-	checker.failMemberCheckThrow(VecStr {"sampleMinReadCount_", "clusterSizeCutOff_", "inputOptions_",
+	checker.failMemberCheckThrow(VecStr {"preFiltCutOffs_", "inputOptions_",
 			"masterInputDir_", "masterOutputDir_", "popNames_",
-			"populationOutputDir_", "samplesOutputDir_" }, __PRETTY_FUNCTION__);
+			"populationOutputDir_", "samplesOutputDir_", "lowRepCntSamples_" }, __PRETTY_FUNCTION__);
 
 	inputOptions_ = SeqIOOptions(coreJson["inputOptions_"].toStyledString());
 	masterInputDir_ = coreJson["masterInputDir_"].asString();
@@ -67,12 +89,15 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 	popNames_ = PopNamesInfo(coreJson["popNames_"]["populationName_"].asString(),
 			bib::json::jsonArrayToSet<std::string>(coreJson["popNames_"]["samples_"],
 					[](const Json::Value & val){ return val.asString();}));
-	clusterSizeCutOff_ = coreJson["clusterSizeCutOff_"].asUInt();
-	sampleMinReadCount_ = coreJson["sampleMinReadCount_"].asUInt();
+	preFiltCutOffs_ = PreFilteringCutOffs(coreJson["preFiltCutOffs_"]);
+
 	populationOutputDir_ = coreJson["populationOutputDir_"].asString();
 	samplesOutputDir_ = coreJson["samplesOutputDir_"].asString();
 	passingSamples_ = bib::json::jsonArrayToVec<std::string>(coreJson["passingSamples_"],
 			[](const Json::Value & val){ return val.asString();});
+	lowRepCntSamples_ = bib::json::jsonArrayToVec<std::string>(coreJson["lowRepCntSamples_"],
+				[](const Json::Value & val){ return val.asString();});
+
 	//load in group meta data if it is available
 	if(bfs::exists(bib::files::make_path(masterOutputDir_, "groups", "groupMetaData.json"))){
 		groupMetaData_ = std::make_unique<MultipleGroupMetaData>(
@@ -124,7 +149,6 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 	auto sampleDir = bib::files::make_path(masterInputDir_, sampleName);
 	auto analysisFiles = bib::files::listAllFiles(sampleDir.string(), true, {
 			std::regex { "^" + inputOptions_.firstName_.string() + "$" } }, 2);
-
 	std::vector<RepFile> repFiles;
 	for (const auto & af : analysisFiles) {
 		auto fileToks = bib::tokenizeString(
@@ -150,6 +174,8 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
 
 	std::vector<std::vector<cluster>> inputClusters;
+	std::vector<std::vector<cluster>> lowCntInputClusters;
+
 	for (const auto & repf : analysisFiles) {
 		auto sampleOpts = inputOptions_;
 		sampleOpts.firstName_ = repf.repFnp_.string();
@@ -162,7 +188,6 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 		if(repf.reNameInput_){
 			renameReadNamesNewClusters(clusters, repf.repName_, true, true, false);
 		}
-
 		if (chiOpts.checkChimeras_) {
 			collapserObj.markChimeras(clusters, alignerObj, chiOpts);
 		}
@@ -170,18 +195,35 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 		if(repf.reNameInput_){
 			readVec::allUpdateName(clusters);
 		}
-		inputClusters.emplace_back(clusters);
+		double totalCount = readVec::getTotalReadCount(clusters);
+		if (preFiltCutOffs_.replicateMinReadCount > 0
+				&& totalCount < preFiltCutOffs_.replicateMinReadCount) {
+			lowCntInputClusters.emplace_back(clusters);
+		} else {
+			inputClusters.emplace_back(clusters);
+		}
 	}
-	{
+	if(!inputClusters.empty()){
 		std::lock_guard<std::mutex> lock(mut_);
 		if (bib::in(sampleName, sampleCollapses_)) {
 			sampleCollapses_[sampleName] = std::make_shared<sampleCollapse>(
-					inputClusters, sampleName, clusterSizeCutOff_);
+					inputClusters, sampleName, preFiltCutOffs_.clusterSizeCutOff);
 		} else {
 			sampleCollapses_.emplace(sampleName,
 					std::make_shared<sampleCollapse>(inputClusters, sampleName,
-							clusterSizeCutOff_));
+							preFiltCutOffs_.clusterSizeCutOff));
 		}
+	} else {
+		std::lock_guard<std::mutex> lock(mut_);
+		if (bib::in(sampleName, sampleCollapses_)) {
+			sampleCollapses_[sampleName] = std::make_shared<sampleCollapse>(
+					lowCntInputClusters, sampleName, preFiltCutOffs_.clusterSizeCutOff);
+		} else {
+			sampleCollapses_.emplace(sampleName,
+					std::make_shared<sampleCollapse>(lowCntInputClusters, sampleName,
+							preFiltCutOffs_.clusterSizeCutOff));
+		}
+		lowRepCntSamples_.emplace_back(sampleName);
 	}
 }
 
@@ -538,7 +580,8 @@ void SampleCollapseCollection::investigateChimeras(double chiCutOff,
 	for (const auto & sampleName : popNames_.samples_) {
 		VecStr clustersSavedFromChi;
 		setUpSampleFromPrevious(sampleName);
-		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
+				bib::in(sampleName, lowRepCntSamples_)){
 			continue;
 		}
 
@@ -615,7 +658,8 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 	std::vector<sampleCluster> output;
 	for (const auto & sampleName : popNames_.samples_) {
 		setUpSampleFromPrevious(sampleName);
-		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount ||
+				bib::in(sampleName, lowRepCntSamples_)){
 			continue;
 		}
 		passingSamples_.emplace_back(sampleName);
@@ -957,7 +1001,8 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 	std::vector<VecStr> rows;
 	for (const auto& sampName : samples) {
 		setUpSampleFromPrevious(sampName);
-		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
+				bib::in(sampName, lowRepCntSamples_)){
 			continue;
 		}
 		if (maxRunCount
@@ -969,7 +1014,8 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 	}
 	for (const auto& sampName : samples) {
 		setUpSampleFromPrevious(sampName);
-		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
+				bib::in(sampName, lowRepCntSamples_)){
 			continue;
 		}
 		for (const auto clusPos : iter::range(
@@ -1139,7 +1185,8 @@ void SampleCollapseCollection::outputRepAgreementInfo() {
 			VecStr { "sampleName", "clusterName", "repName", "fraction" });
 	for (const auto & sampleName : popNames_.samples_) {
 		setUpSampleFromPrevious(sampleName);
-		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount ||
+				bib::in(sampleName, lowRepCntSamples_) ){
 			continue;
 		}
 		auto & samp = *(sampleCollapses_[sampleName]);
@@ -1222,8 +1269,8 @@ Json::Value SampleCollapseCollection::toJsonCore() const{
 	ret["populationOutputDir_"] = bib::json::toJson(bfs::absolute(populationOutputDir_));
 	ret["popNames_"] = bib::json::toJson(popNames_);
 	ret["passingSamples_"] = bib::json::toJson(passingSamples_);
-	ret["clusterSizeCutOff_"] = bib::json::toJson(clusterSizeCutOff_);
-	ret["sampleMinReadCount_"] = bib::json::toJson(sampleMinReadCount_);
+	ret["lowRepCntSamples_"] = bib::json::toJson(lowRepCntSamples_);
+	ret["preFiltCutOffs_"] = bib::json::toJson(preFiltCutOffs_);
 	return ret;
 }
 
@@ -1249,7 +1296,8 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 	table ret(inputContent, VecStr{"#PopUID"});
 	for (const auto & samp : samples) {
 		setUpSampleFromPrevious(samp);
-		if(sampleCollapses_[samp]->collapsed_.info_.totalReadCount_ < sampleMinReadCount_){
+		if(sampleCollapses_[samp]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
+				bib::in(samp, lowRepCntSamples_)){
 			continue;
 		}
 		std::unordered_map<std::string, double> popUidToFrac;

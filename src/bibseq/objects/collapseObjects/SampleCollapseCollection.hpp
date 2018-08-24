@@ -55,12 +55,23 @@ public:
 		bool reNameInput_ = true;
 	};
 
+	struct PreFilteringCutOffs{
+
+		PreFilteringCutOffs();
+		PreFilteringCutOffs(const Json::Value & val);
+
+		uint32_t clusterSizeCutOff{1};
+		uint32_t sampleMinReadCount{0};
+		uint32_t replicateMinReadCount{0};
+
+		Json::Value toJson() const;
+	};
+
 	SampleCollapseCollection(SeqIOOptions inputOptions,
 			const bfs::path & inputDir,
 			const bfs::path & outputDir,
 			const PopNamesInfo & popNames,
-			uint32_t clusterSizeCutOff,
-			uint32_t sampleMinReadCount);
+			PreFilteringCutOffs preFiltCutOffs);
 
 	SampleCollapseCollection(const Json::Value & coreJson);
 
@@ -75,8 +86,8 @@ private:
 public:
 	PopNamesInfo popNames_{"", VecStr{}};
 	VecStr passingSamples_;
-	uint32_t clusterSizeCutOff_;
-	uint32_t sampleMinReadCount_;
+	VecStr lowRepCntSamples_;
+	PreFilteringCutOffs preFiltCutOffs_;
 	std::map<std::string, std::shared_ptr<collapse::sampleCollapse>> sampleCollapses_;
 	std::unique_ptr<populationCollapse> popCollapse_;
 	std::unique_ptr<MultipleGroupMetaData> groupMetaData_;
