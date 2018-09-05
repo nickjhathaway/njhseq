@@ -215,69 +215,69 @@ void checkPositionSortedNoOverlapsBedThrow(const bfs::path & bedFnp,
 	}
 }
 
-Json::Value intersectBedLocsWtihGffRecords(
-		const std::vector<std::shared_ptr<Bed3RecordCore>> & beds,
-		const intersectBedLocsWtihGffRecordsPars & pars){
-
-	Json::Value ret;
-	for (const auto & inputRegion : beds) {
-		inputRegion->extraFields_.emplace_back("");
-	}
-	std::unordered_map<std::string, std::vector<std::shared_ptr<Bed3RecordCore>>> bedsByChrome;
-	BioDataFileIO<GFFCore> reader { IoOptions(InOptions(pars.gffFnp_)) };
-	reader.openIn();
-	uint32_t count = 0;
-	std::string line = "";
-	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
-	for (const auto & b : beds) {
-		bedsByChrome[b->chrom_].emplace_back(b);
-	}
-	while (nullptr != gRecord) {
-		if (pars.selectFeatures_.empty() || bib::in(gRecord->type_, pars.selectFeatures_)) {
-			auto gRegion = GenomicRegion(*gRecord);
-			for (const auto & inputRegion : bedsByChrome[gRegion.chrom_]) {
-				if (GenomicRegion(*inputRegion).overlaps(gRegion)) {
-					if("" != inputRegion->extraFields_.back()){
-						inputRegion->extraFields_.back().append(",");
-					}
-					inputRegion->extraFields_.back().append("[");
-					inputRegion->extraFields_.back().append(
-							"ID=" + gRecord->getAttr("ID") + ";");
-					if(pars.selectFeatures_.empty() || 1 != pars.selectFeatures_.size()){
-						inputRegion->extraFields_.back().append("feature=" + gRecord->type_ + ";");
-					}
-					if (!ret.isMember(gRecord->getAttr("ID"))) {
-						ret[gRecord->getAttr("ID")] = gRecord->toJson();
-					}
-					for (const auto & attr : pars.extraAttributes_) {
-						if (gRecord->hasAttr(attr)) {
-							inputRegion->extraFields_.back().append(
-									attr + "=" + gRecord->getAttr(attr) + ";");
-						} else {
-							inputRegion->extraFields_.back().append(
-									attr + "=" + "NA" + ";");
-						}
-					}
-					inputRegion->extraFields_.back().append("]");
-				}
-			}
-		}
-		bool end = false;
-		while ('#' == reader.inFile_->peek()) {
-			if (bib::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
-				end = true;
-				break;
-			}
-			bib::files::crossPlatGetline(*reader.inFile_, line);
-		}
-		if (end) {
-			break;
-		}
-		gRecord = reader.readNextRecord();
-		++count;
-	}
-	return ret;
-}
+//Json::Value intersectBedLocsWtihGffRecords(
+//		const std::vector<std::shared_ptr<Bed3RecordCore>> & beds,
+//		const intersectBedLocsWtihGffRecordsPars & pars){
+//
+//	Json::Value ret;
+//	for (const auto & inputRegion : beds) {
+//		inputRegion->extraFields_.emplace_back("");
+//	}
+//	std::unordered_map<std::string, std::vector<std::shared_ptr<Bed3RecordCore>>> bedsByChrome;
+//	BioDataFileIO<GFFCore> reader { IoOptions(InOptions(pars.gffFnp_)) };
+//	reader.openIn();
+//	uint32_t count = 0;
+//	std::string line = "";
+//	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
+//	for (const auto & b : beds) {
+//		bedsByChrome[b->chrom_].emplace_back(b);
+//	}
+//	while (nullptr != gRecord) {
+//		if (pars.selectFeatures_.empty() || bib::in(gRecord->type_, pars.selectFeatures_)) {
+//			auto gRegion = GenomicRegion(*gRecord);
+//			for (const auto & inputRegion : bedsByChrome[gRegion.chrom_]) {
+//				if (GenomicRegion(*inputRegion).overlaps(gRegion)) {
+//					if("" != inputRegion->extraFields_.back()){
+//						inputRegion->extraFields_.back().append(",");
+//					}
+//					inputRegion->extraFields_.back().append("[");
+//					inputRegion->extraFields_.back().append(
+//							"ID=" + gRecord->getAttr("ID") + ";");
+//					if(pars.selectFeatures_.empty() || 1 != pars.selectFeatures_.size()){
+//						inputRegion->extraFields_.back().append("feature=" + gRecord->type_ + ";");
+//					}
+//					if (!ret.isMember(gRecord->getAttr("ID"))) {
+//						ret[gRecord->getAttr("ID")] = gRecord->toJson();
+//					}
+//					for (const auto & attr : pars.extraAttributes_) {
+//						if (gRecord->hasAttr(attr)) {
+//							inputRegion->extraFields_.back().append(
+//									attr + "=" + gRecord->getAttr(attr) + ";");
+//						} else {
+//							inputRegion->extraFields_.back().append(
+//									attr + "=" + "NA" + ";");
+//						}
+//					}
+//					inputRegion->extraFields_.back().append("]");
+//				}
+//			}
+//		}
+//		bool end = false;
+//		while ('#' == reader.inFile_->peek()) {
+//			if (bib::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+//				end = true;
+//				break;
+//			}
+//			bib::files::crossPlatGetline(*reader.inFile_, line);
+//		}
+//		if (end) {
+//			break;
+//		}
+//		gRecord = reader.readNextRecord();
+//		++count;
+//	}
+//	return ret;
+//}
 
 }  // namespace bibseq
 

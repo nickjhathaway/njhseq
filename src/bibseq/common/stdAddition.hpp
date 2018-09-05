@@ -34,6 +34,45 @@ typename T::size_type len(const T & con){
 	return con.size();
 }
 
+template<typename T>
+const T & getRef(const T & val) {
+	return val;
+}
+
+template<typename T>
+const T & getRef(const std::shared_ptr<const T> & val) {
+	return getRef(*val);
+}
+
+template<typename T>
+const T & getRef(const std::unique_ptr<const T> & val) {
+	return getRef(*val);
+}
+
+template<typename T>
+T & getRef(T & val) {
+	return val;
+}
+
+template<typename T>
+T & getRef(const std::shared_ptr<T> & val) {
+	return getRef(*val);
+}
+
+template<typename T>
+T & getRef(const std::unique_ptr<T> & val) {
+	return getRef(*val);
+}
+
+template<typename T>
+T & getRef(std::shared_ptr<T> & val) {
+	return getRef(*val);
+}
+
+template<typename T>
+T & getRef(std::unique_ptr<T> & val) {
+	return getRef(*val);
+}
 
 
 }  // bib

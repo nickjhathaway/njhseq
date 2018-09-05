@@ -111,6 +111,15 @@ std::vector<GenomicRegion> gffPtrsToGenomicRegs(
 void sortGRegionsByStart(std::vector<GenomicRegion> & regions);
 
 
+template<typename IN, typename OUT>
+std::vector<OUT> convertGenomeRegions(const std::vector<IN> & regions, std::function<OUT(const IN &)> unaryConvertor){
+	std::vector<OUT> ret;
+	for(const auto & reg : regions){
+		ret.emplace_back(std::forward<OUT>(unaryConvertor(reg)));
+	}
+	return ret;
+}
+
 
 
 }  // namespace bibseq

@@ -24,6 +24,7 @@
 //
 #include "MultiGenomeMapper.hpp"
 #include "bibseq/BamToolsUtils.h"
+#include "bibseq/objects/BioDataObject.h"
 
 
 
@@ -579,16 +580,25 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 					}
 				}
 			}
+			auto bedRegions = convertGenomeRegions<GenomicRegion, Bed6RecordCore>(regions,[](const GenomicRegion & reg){
+				return reg.genBedRecordCore();
+			});
+			if("" != genomes_.at(genome)->gffFnp_){
+				intersectBedLocsWtihGffRecordsPars intersectPars(genomes_.at(genome)->gffFnp_);
+				intersectPars.selectFeatures_ = {"gene", "pseudogene"};
+				intersectPars.extraAttributes_ = {"description"};
+				intersectBedLocsWtihGffRecords(bedRegions, intersectPars);
+			}
 
 			OutputStream bedOut(OutOptions(bib::files::make_path(refAlignsDir, genome + "_regions.bed")));
-			for(const auto & reg : regions){
+			for(const auto & reg : bedRegions){
 				++genomeExtractionsResults.at(genome).extractCounts_;
-				if(reg.reverseSrand_){
+				if(reg.reverseStrand()){
 					++genomeExtractionsResults.at(genome).reverseHits_;
 				}else{
 					++genomeExtractionsResults.at(genome).forwardHits_;
 				}
-				bedOut << reg.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+				bedOut << reg.toDelimStrWithExtra() << std::endl;
 			}
 			TwoBit::TwoBitFile refReader(genomes_.at(genome)->fnpTwoBit_);
 			std::string refSeq = "";
