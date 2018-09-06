@@ -398,7 +398,7 @@ std::vector<seqInfo> MultiGenomeMapper::extractRegions(
 
 std::unordered_map<std::string, std::vector<seqInfo>> MultiGenomeMapper::getRefSeqsWithPrimaryGenomeAll(const GenomicRegion & region,
 		const bfs::path & alignmentsDir,
-		const BioCmdsUtils::LastZPars & lzPars) const{
+		const BioCmdsUtils::LastZPars & lzPars) const {
 	std::unordered_map<std::string, GenomicRegion> primaryRegion { {
 		pars_.primaryGenome_, region } };
 	auto primaryRef = extractRegions(primaryRegion);
