@@ -101,6 +101,18 @@ Json::Value MultiGenomeMapper::Genome::toJson() const{
 	return ret;
 }
 
+
+MultiGenomeMapper::inputParameters::inputParameters() {
+	gffIntersectPars_.selectFeatures_ = {"gene", "pseudogene"};
+	gffIntersectPars_.extraAttributes_ = {"description"};
+}
+
+MultiGenomeMapper::inputParameters::inputParameters(const bfs::path & genomeDir, const std::string & primaryGenome):genomeDir_(genomeDir),
+		primaryGenome_(primaryGenome){
+	gffIntersectPars_.selectFeatures_ = {"gene", "pseudogene"};
+	gffIntersectPars_.extraAttributes_ = {"description"};
+}
+
 Json::Value MultiGenomeMapper::inputParameters::toJson() const{
 	Json::Value ret;
 	ret["class"] = bib::getTypeName(*this);
@@ -108,9 +120,15 @@ Json::Value MultiGenomeMapper::inputParameters::toJson() const{
 	ret["primaryGenome_"] = bib::json::toJson(primaryGenome_);
 	ret["selectedGenomes_"] = bib::json::toJson(selectedGenomes_);
 	ret["numThreads_"] = bib::json::toJson(numThreads_);
+	ret["gffDir_"] = bib::json::toJson(gffDir_);
 	ret["workingDirectory_"] = bib::json::toJson(workingDirectory_);
+	ret["keepTempFiles_"] = bib::json::toJson(keepTempFiles_);
+	ret["verbose_"] = bib::json::toJson(verbose_);
+	ret["gffIntersectPars_"] = bib::json::toJson(gffIntersectPars_);
 	return ret;
 }
+
+
 
 
 Json::Value MultiGenomeMapper::toJson() const{
@@ -585,8 +603,9 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 			});
 			if("" != genomes_.at(genome)->gffFnp_){
 				intersectBedLocsWtihGffRecordsPars intersectPars(genomes_.at(genome)->gffFnp_);
-				intersectPars.selectFeatures_ = {"gene", "pseudogene"};
-				intersectPars.extraAttributes_ = {"description"};
+				intersectPars.selectFeatures_ = pars_.gffIntersectPars_.selectFeatures_;
+				intersectPars.extraAttributes_ = pars_.gffIntersectPars_.extraAttributes_;
+
 				intersectBedLocsWtihGffRecords(bedRegions, intersectPars);
 			}
 

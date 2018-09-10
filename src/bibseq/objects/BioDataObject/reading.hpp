@@ -58,18 +58,15 @@ void checkPositionSortedNoOverlapsBedThrow(const bfs::path & bedFnp,
 		const std::string & funcName);
 
 struct intersectBedLocsWtihGffRecordsPars {
-	intersectBedLocsWtihGffRecordsPars(){}
-	intersectBedLocsWtihGffRecordsPars(const bfs::path & gffFnp) :
-			gffFnp_(gffFnp) {
-	}
+	intersectBedLocsWtihGffRecordsPars();
+	intersectBedLocsWtihGffRecordsPars(const bfs::path & gffFnp);
 	intersectBedLocsWtihGffRecordsPars(const bfs::path & gffFnp,
-			const VecStr & extraAttributes, const VecStr & selectFeatures) :
-			gffFnp_(gffFnp), extraAttributes_(extraAttributes), selectFeatures_(
-					selectFeatures) {
-	}
+			const VecStr & extraAttributes, const VecStr & selectFeatures);
 	bfs::path gffFnp_;
 	VecStr extraAttributes_;
 	VecStr selectFeatures_;
+
+	Json::Value toJson() const;
 };
 
 //Json::Value intersectBedLocsWtihGffRecords(

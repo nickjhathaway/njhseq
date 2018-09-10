@@ -173,6 +173,33 @@ void checkPositionSortedBedThrow(const bfs::path & bedFnp,
 	}
 }
 
+
+
+intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(){}
+intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(const bfs::path & gffFnp) :
+		gffFnp_(gffFnp) {
+}
+intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(const bfs::path & gffFnp,
+		const VecStr & extraAttributes, const VecStr & selectFeatures) :
+		gffFnp_(gffFnp), extraAttributes_(extraAttributes), selectFeatures_(
+				selectFeatures) {
+}
+
+
+Json::Value intersectBedLocsWtihGffRecordsPars::toJson() const{
+	Json::Value ret;
+	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
+
+	ret["gffFnp_"] = bib::json::toJson(gffFnp_);
+	ret["extraAttributes_"] = bib::json::toJson(extraAttributes_);
+	ret["selectFeatures_"] = bib::json::toJson(selectFeatures_);
+
+	return ret;
+}
+
+
+
+
 void checkPositionSortedNoOverlapsBedThrow(const bfs::path & bedFnp,
 		const std::string & funcName){
 	Bed3RecordCore bedRecord;

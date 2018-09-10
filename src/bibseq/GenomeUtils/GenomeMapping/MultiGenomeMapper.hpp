@@ -25,6 +25,7 @@
 //
 #include "bibseq/utils.h"
 #include "bibseq/GenomeUtils/GenomeMapping/GenomicRegionCounter.hpp"
+#include "bibseq/objects/BioDataObject/reading.hpp"
 #include "bibseq/system.h"
 
 namespace bibseq {
@@ -33,6 +34,8 @@ class MultiGenomeMapper {
 public:
 
 	struct inputParameters{
+		inputParameters();
+		inputParameters(const bfs::path & genomeDir, const std::string & primaryGenome);
 		bfs::path genomeDir_;
 		std::string primaryGenome_;
 		std::set<std::string> selectedGenomes_;
@@ -44,6 +47,8 @@ public:
 
 		bool keepTempFiles_ = false;
 		bool verbose_ = false;
+
+		intersectBedLocsWtihGffRecordsPars gffIntersectPars_;
 
 		Json::Value toJson() const;
 	};
