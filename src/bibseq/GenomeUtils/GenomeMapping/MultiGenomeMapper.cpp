@@ -184,6 +184,7 @@ void MultiGenomeMapper::loadInGenomes() {
 
 void MultiGenomeMapper::setUpGenomes() {
 	std::lock_guard<std::mutex> lock(mut_);
+	loadGffFnps();
 	bib::concurrent::LockableQueue<std::string> queueGenome(getVectorOfMapKeys(genomes_));
 	auto setUpGenome = [&queueGenome,this](){
 		std::string genome = "";
