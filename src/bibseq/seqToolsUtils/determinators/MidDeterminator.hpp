@@ -73,6 +73,8 @@ public:
 	struct MidInfo{
 
 		MidInfo(const std::string & midName, const std::string & barcode);
+		MidInfo(const std::string & midName, const std::string & barcode, const std::string & rbarcode);
+
 
 		std::string midName_; /**< the name of the barcode*/
 		std::unique_ptr<motif> bar_; /**< the barcode */

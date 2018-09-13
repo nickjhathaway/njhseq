@@ -292,8 +292,7 @@ bib::sys::RunOutput BioCmdsUtils::lastzAlign(const SeqIOOptions & opts, const La
 			<< outputFnp << " " << "&& samtools index "
 			<< outputFnp;
 	if (verbose_) {
-		std::cout << "Running: " << bib::bashCT::green << lastzCmd.str()
-				<< bib::bashCT::reset << std::endl;
+		std::cout << "Running: " << bib::bashCT::green << lastzCmd.str() << bib::bashCT::reset << std::endl;
 	}
 	auto ret = bib::sys::run( { lastzCmd.str() });
 	BioCmdsUtils::checkRunOutThrow(ret, __PRETTY_FUNCTION__);

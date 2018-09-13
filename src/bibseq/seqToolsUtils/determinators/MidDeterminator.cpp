@@ -93,8 +93,14 @@ double MidDeterminator::midPos::normalizeScoreByLen() const{
 
 MidDeterminator::MidInfo::MidInfo(const std::string & midName,
 		const std::string & barcode) :
-		midName_(midName), bar_(std::make_unique<motif>(barcode)), rcompBar_(
-				std::make_unique<motif>(seqUtil::reverseComplement(barcode, "DNA"))) {
+		midName_(midName),
+		bar_(std::make_unique<motif>(barcode)),
+		rcompBar_(std::make_unique<motif>(seqUtil::reverseComplement(barcode, "DNA")) ) {
+	if(!barcode.empty()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error, MID: " << midName << " can't be an empty string" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
 	if (barcode.size() > 1) {
 		shortenFrontBar_ = std::make_unique<motif>(barcode.substr(1));
 		shortenBackBar_ = std::make_unique<motif>(barcode.substr(0, barcode.size() - 1));
@@ -103,7 +109,34 @@ MidDeterminator::MidInfo::MidInfo(const std::string & midName,
 		shortenBackRCompBar_ = std::make_unique<motif>(rcBar.substr(0, rcBar.size() - 1));
 	}
 	rCompSame_ = bar_->motifOriginal_ == rcompBar_->motifOriginal_;
+
 }
+
+MidDeterminator::MidInfo::MidInfo(const std::string & midName,
+		const std::string & barcode, const std::string & rbarcode) :
+		midName_(midName),
+		bar_(std::make_unique<motif>(barcode)),
+		rcompBar_(std::make_unique<motif>(rbarcode)) {
+	if(!barcode.empty()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error, MID: " << midName << " can't be an empty string" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	if(!rbarcode.empty()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error, MID: " << midName << " can't be an empty string" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	if (barcode.size() > 1) {
+		shortenFrontBar_ = std::make_unique<motif>(barcode.substr(1));
+		shortenBackBar_ = std::make_unique<motif>(barcode.substr(0, barcode.size() - 1));
+
+		shortenFrontRCompBar_ = std::make_unique<motif>(rbarcode.substr(1));
+		shortenBackRCompBar_ = std::make_unique<motif>(rbarcode.substr(0, rbarcode.size() - 1));
+	}
+	rCompSame_ = bar_->motifOriginal_ == rcompBar_->motifOriginal_;
+}
+
 
 MidDeterminator::MidDeterminator(const table & mids) {
 	if (!bib::in(std::string("id"), mids.columnNames_)

@@ -314,26 +314,26 @@ std::unordered_map<std::string, MultiGenomeMapper::AlignCmdOutput> MultiGenomeMa
 	bib::sys::requireExternalProgramThrow("lastz");
 
 	std::unordered_map<std::string, AlignCmdOutput> ret;
-
 	std::mutex retMut;
 	auto genomeKeys = getVectorOfMapKeys(genomes_);
 	bib::concurrent::LockableQueue<std::string> queue(genomeKeys);
+
+
 	auto alignGenome = [this,&queue, &retMut,&inputOpts,&outputPrefix,&ret,&pars](){
 		std::string genome = "";
 		BioCmdsUtils cmdRunner;
 		while(queue.getVal(genome)){
 			SeqIOOptions opts = inputOpts;
-			opts.out_.outFilename_ = outputPrefix.string() + genome
-					+ "_aligned.sorted.bam";
+			opts.out_.outFilename_ = outputPrefix.string() + genome + "_aligned.sorted.bam";
 			AlignCmdOutput output(opts.out_.outFilename_);
 			if (bfs::exists(opts.out_.outFilename_)
 					&& bib::files::firstFileIsOlder(opts.firstName_, opts.out_.outFilename_)
-					&& bib::files::firstFileIsOlder(genomes_.at(genome)->fnp_,
-							opts.out_.outFilename_)) {
+					&& bib::files::firstFileIsOlder(genomes_.at(genome)->fnp_, opts.out_.outFilename_)) {
 			} else {
 				BioCmdsUtils::LastZPars parsCopy = pars;
 				parsCopy.genomeFnp = genomes_.at(genome)->fnpTwoBit_;
 				output.rOutput_ = cmdRunner.lastzAlign(opts, parsCopy);
+
 				//output.rOutput_ = cmdRunner.bowtie2Align(opts, genome.second->fnp_);
 			}
 			{
@@ -350,6 +350,8 @@ std::unordered_map<std::string, MultiGenomeMapper::AlignCmdOutput> MultiGenomeMa
 	for(auto & t : threads){
 		t.join();
 	}
+
+
 
 	return ret;
 }
