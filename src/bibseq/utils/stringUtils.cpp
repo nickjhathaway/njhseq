@@ -71,7 +71,7 @@ std::vector<char> determineAlph(const std::string & str){
 }
 
 bool allWhiteSpaceStr(const std::string & str){
-	return str.find_first_not_of(' ') == std::string::npos;
+	return std::string::npos == str.find_first_not_of(" \f\n\r\t\v");
 }
 
 

@@ -25,6 +25,7 @@
 //
 
 #include "bibseq/objects/dataContainers/tables/TableIOOpts.hpp"
+#include <bibcpp/progutils.h>
 
 namespace bibseq {
 

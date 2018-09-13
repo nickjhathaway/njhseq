@@ -23,23 +23,13 @@
 // You should have received a copy of the GNU General Public License
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 #include "bibseq/IO/IOOptions/OutOptions.hpp"
-#include <bibcpp/files.h>
+#include <bibcpp/IO/OutputStream.hpp>
 
 namespace bibseq {
 
-class OutputStream : public std::ostream{
-public:
-	OutputStream(const OutOptions & outOpts);
-	const OutOptions outOpts_;
-	std::unique_ptr<bib::GZSTREAM::ogzstream> outFileGz_;
-	std::unique_ptr<std::ofstream> outFile_;
-
-	~OutputStream();
-};
-
-
-
+using OutputStream = bib::OutputStream;
 
 } /* namespace bibseq */
 

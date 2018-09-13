@@ -33,7 +33,8 @@ AlignmentResults::AlignmentResults(const BamTools::BamAlignment & bAln,
 		bool keepPlusStrandOrientation) :
 		bAln_(bAln),
 		gRegion_(bAln, refData),
-		alnSeq_(std::make_shared<seqInfo>(bamAlnToSeqInfo(bAln, keepPlusStrandOrientation))){
+		alnSeq_(std::make_shared<seqInfo>(bamAlnToSeqInfo(bAln, keepPlusStrandOrientation))),
+		keepPlusStrandOrientation_(keepPlusStrandOrientation){
 	if(keepPlusStrandOrientation){
 		gRegion_.reverseSrand_ = false;
 	}
@@ -69,11 +70,20 @@ void AlignmentResults::setComparison(bool keepAlignedObjects){
 	alignerObj.weighHomopolymers_ = false;
 	alignerObj.countEndGaps_ = false;
 	auto alnInfo = bamAlnToAlnInfoLocal(bAln_);
+
+
 	alignerObj.alignObjectA_.seqBase_ = *refSeq_;
 	alignerObj.alignObjectB_.seqBase_ = *alnSeq_;
 	alignerObj.parts_.lHolder_ = alnInfo.begin()->second;
-	alignerObj.rearrangeObjsLocal(alignerObj.alignObjectA_,
-			alignerObj.alignObjectB_);
+	if(bAln_.IsReverseStrand() && !keepPlusStrandOrientation_){
+		alignerObj.alignObjectA_.seqBase_.reverseComplementRead(false, true);
+		alignerObj.alignObjectB_.seqBase_.reverseComplementRead(false, true);
+	}
+	alignerObj.rearrangeObjsLocal(alignerObj.alignObjectA_, alignerObj.alignObjectB_);
+	if(bAln_.IsReverseStrand() && !keepPlusStrandOrientation_){
+		alignerObj.alignObjectA_.seqBase_.reverseComplementRead(false, true);
+		alignerObj.alignObjectB_.seqBase_.reverseComplementRead(false, true);
+	}
 	alignerObj.scoreAlignment(false);
 	if(keepAlignedObjects){
 		refSeqAligned_ = std::make_shared<seqInfo>(alignerObj.alignObjectA_.seqBase_);
@@ -110,8 +120,15 @@ void AlignmentResults::setAlignedObjects(){
 	alignerObj.alignObjectA_.seqBase_ = *refSeq_;
 	alignerObj.alignObjectB_.seqBase_ = *alnSeq_;
 	alignerObj.parts_.lHolder_ = alnInfo.begin()->second;
-	alignerObj.rearrangeObjsLocal(alignerObj.alignObjectA_,
-			alignerObj.alignObjectB_);
+	if(bAln_.IsReverseStrand() && !keepPlusStrandOrientation_){
+		alignerObj.alignObjectA_.seqBase_.reverseComplementRead(false, true);
+		alignerObj.alignObjectB_.seqBase_.reverseComplementRead(false, true);
+	}
+	alignerObj.rearrangeObjsLocal(alignerObj.alignObjectA_, alignerObj.alignObjectB_);
+	if(bAln_.IsReverseStrand() && !keepPlusStrandOrientation_){
+		alignerObj.alignObjectA_.seqBase_.reverseComplementRead(false, true);
+		alignerObj.alignObjectB_.seqBase_.reverseComplementRead(false, true);
+	}
 	refSeqAligned_ = std::make_shared<seqInfo>(alignerObj.alignObjectA_.seqBase_);
 	alnSeqAligned_ = std::make_shared<seqInfo>(alignerObj.alignObjectB_.seqBase_);
 }

@@ -72,6 +72,8 @@ public:
 	std::shared_ptr<seqInfo> refSeqAligned_; /**< the alginment of the reference to this seq, including indels and the such */
 	std::shared_ptr<seqInfo> alnSeqAligned_; /**< a seq record the alginment of the aligned seq, set on construction */
 
+	bool keepPlusStrandOrientation_ = false;
+
 	char getAlignedBase(const GenomicRegion & region);
 
 

@@ -41,8 +41,8 @@ Bed3RecordCore::Bed3RecordCore(const std::string & line) {
 	}
 
 	chrom_ = toks[0];
-	chromStart_ = estd::stou(toks[1]);
-	chromEnd_ = estd::stou(toks[2]);
+	chromStart_ = "*" == toks[1] ? std::numeric_limits<uint32_t>::max() : estd::stou(toks[1]);
+	chromEnd_ = "*" == toks[2] ? std::numeric_limits<uint32_t>::max() : estd::stou(toks[2]);
 	if(toks.size() > 3 ){
 		extraFields_ = VecStr(toks.begin() + 3, toks.end());
 	}
@@ -63,12 +63,17 @@ Bed3RecordCore::Bed3RecordCore() :
 
 std::string Bed3RecordCore::toDelimStr() const {
 	return vectorToString(
-			toVecStr(chrom_, chromStart_, chromEnd_), "\t");
+			toVecStr(chrom_,
+					(chromStart_==std::numeric_limits<uint32_t>::max() ? "*": estd::to_string(chromStart_)),
+					(chromEnd_==std::numeric_limits<uint32_t>::max() ? "*": estd::to_string(chromEnd_))
+					), "\t");
 }
 
 std::string Bed3RecordCore::toDelimStrWithExtra() const {
 	return vectorToString(
-			toVecStr(chrom_, chromStart_, chromEnd_, extraFields_), "\t");
+			toVecStr(chrom_,
+					(chromStart_ == std::numeric_limits<uint32_t>::max() ? "*": estd::to_string(chromStart_)),
+					(chromEnd_==std::numeric_limits<uint32_t>::max() ? "*": estd::to_string(chromEnd_)), extraFields_), "\t");
 }
 
 

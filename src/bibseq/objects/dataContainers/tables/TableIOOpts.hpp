@@ -26,7 +26,6 @@
 
 #include "bibseq/IO/IOUtils.hpp"
 
-
 namespace bibseq {
 
 class TableIOOpts: public IoOptions {

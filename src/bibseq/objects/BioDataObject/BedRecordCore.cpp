@@ -26,7 +26,6 @@
 
 #include "BedRecordCore.hpp"
 
-//bib::lexical_cast<uint32_t>
 
 namespace bibseq {
 Bed6RecordCore::Bed6RecordCore(const std::string & line) {
@@ -42,8 +41,8 @@ Bed6RecordCore::Bed6RecordCore(const std::string & line) {
 		throw std::runtime_error { ss.str() };
 	}
 	chrom_ = toks[0];
-	chromStart_ = estd::stou(toks[1]);
-	chromEnd_ = estd::stou(toks[2]);
+	chromStart_ = "*" == toks[1] ? std::numeric_limits<uint32_t>::max() : estd::stou(toks[1]);
+	chromEnd_ = "*" == toks[2] ? std::numeric_limits<uint32_t>::max() : estd::stou(toks[2]);
 	name_ = toks[3];
 	score_ = bib::lexical_cast<double>(toks[4]);
 	if (toks[5] == "-") {

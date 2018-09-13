@@ -24,20 +24,12 @@
 // along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "bibseq/IO/IOOptions/InOptions.hpp"
-#include <bibcpp/files.h>
+
+#include <bibcpp/IO/InputStream.hpp>
 
 namespace bibseq {
 
-class InputStream : public std::istream {
-public:
-	InputStream(const InOptions & inOpts);
-	const InOptions inOpts_;
-
-	std::unique_ptr<bib::GZSTREAM::igzstream> inFileGz_;
-	std::unique_ptr<std::ifstream> inFile_;
-
-};
-
+using InputStream = bib::InputStream;
 
 
 

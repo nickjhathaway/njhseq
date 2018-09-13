@@ -24,17 +24,20 @@
 //  Created by Nicholas Hathaway on 9/14/13.
 //
 
-#include "bibseq/utils.h"
-#include <bibcpp/files.h>
 #include "bibseq/IO/IOOptions.h"
+#include "bibseq/IO/InputStream.hpp"
+#include "bibcpp/IO/OutputStream.hpp"
+
+#include <bibcpp/IO/IOUtils.hpp>
+#include "bibseq/utils.h"
+
+
+
+
 
 namespace bibseq {
 
-VecStr getInputValues(const std::string & valuesStr, const std::string & delim);
-
-
-void gzZipFile(const IoOptions & opts);
-
+std::vector<std::string> getInputValues(const std::string & valuesStr, const std::string & delim);
 
 
 
