@@ -73,13 +73,11 @@ public:
 	struct MidInfo{
 
 		MidInfo(const std::string & midName, const std::string & barcode);
-		MidInfo(const std::string & midName, const std::string & barcode, const std::string & rbarcode);
-
 
 		std::string midName_; /**< the name of the barcode*/
+
 		std::unique_ptr<motif> bar_; /**< the barcode */
 		std::unique_ptr<motif> rcompBar_; /**< reverse complement of the barcode */
-
 
 		std::unique_ptr<motif> shortenFrontBar_; /**< the barcode with the first base missing*/
 		std::unique_ptr<motif> shortenFrontRCompBar_; /**< the reverse complement of the barcode with the first base missing */
@@ -106,10 +104,10 @@ public:
 
 	explicit MidDeterminator(const std::unordered_map<std::string, MidDeterminator::MidInfo> & mids);
 
-
 	MidDeterminator();
 
 	std::unordered_map<std::string, MidInfo> mids_;
+
 private:
 	uint32_t allowableMismatches_ = 0;
 	bool midEndsRevComp_ = false;
@@ -123,9 +121,8 @@ public:
 
 	std::string getMidName(const std::string & barcode) const;
 
-
-
 	void addBarcode(const std::string & name, const std::string & barcode);
+
 
 
 
