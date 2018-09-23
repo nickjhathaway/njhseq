@@ -308,8 +308,7 @@ std::string cleanOut(const std::string &in, uint32_t width,
 
 
 void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & outopts){
-	std::ofstream outFile;
-	outopts.openBinaryFile(outFile);
+	bib::OutputStream outFile(outopts);
 	//check files
 	std::stringstream ss;
 	bool failed = false;
