@@ -310,7 +310,7 @@ std::string cleanOut(const std::string &in, uint32_t width,
 void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & outopts){
 	//std::cout << outopts.toJson() << std::endl;
 	//bib::OutputStream outFile(outopts);
-	std::ofstream outFile("temp.txt");
+	std::ofstream outFile("hapsForTorrevib-300-pairedEnd-targets/temp.txt");
 	//outopts.openBinaryFile(outFile);
 	//check files
 	std::stringstream ss;
