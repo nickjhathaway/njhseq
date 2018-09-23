@@ -308,7 +308,9 @@ std::string cleanOut(const std::string &in, uint32_t width,
 
 
 void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & outopts){
-	bib::OutputStream outFile(outopts);
+	//bib::OutputStream outFile(outopts);
+	std::ofstream outFile;
+	outopts.openBinaryFile(outFile);
 	//check files
 	std::stringstream ss;
 	bool failed = false;
@@ -337,17 +339,18 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 		std::cout << fnp.string() << std::endl;
 		//check file size because rdbuf() from an empty no good file causes the bad bit to be set for the outfile and nothing afterwards getting written
 		if (0 != bfs::file_size(fnp)) {
-//			std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
+			std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
 //			outFile << bib::files::get_file_contents(fnp, false);
-			InputStream in(fnp);
+//			InputStream in(fnp);
 //		std::cout << fnp << " isGood: " << in.good() << std::endl;
 //		std::cout << fnp << " peeking: " << in.peek() << std::endl;
 //		std::cout << fnp << " isGood: " << in.good() << std::endl;
-			outFile << in.rdbuf();
+//			outFile << in.rdbuf();
 //				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
 //				std::cout << fnp << " peeking: " << inFile.peek() << std::endl;
 //				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
 //			fileContents << inFile.rdbuf();
+			outFile << inFile.rdbuf();
 			//std::cout << fnp << std::endl;
 
 		}
