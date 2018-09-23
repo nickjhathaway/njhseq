@@ -334,7 +334,7 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 		throw std::runtime_error{ss.str()};
 	}
 	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-//	std::stringstream fileContents;
+	std::stringstream fileContents;
 	for (const auto & fnp : fnps) {
 		std::cout << fnp.string() << std::endl;
 		//check file size because rdbuf() from an empty no good file causes the bad bit to be set for the outfile and nothing afterwards getting written
@@ -349,8 +349,8 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 //				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
 //				std::cout << fnp << " peeking: " << inFile.peek() << std::endl;
 //				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
-//			fileContents << inFile.rdbuf();
-			outFile << inFile.rdbuf();
+			fileContents << inFile.rdbuf();
+//			outFile << inFile.rdbuf();
 			//std::cout << fnp << std::endl;
 
 		}
