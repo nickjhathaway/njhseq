@@ -307,22 +307,53 @@ void MidDeterminator::addForwardReverseBarcode(const std::string & name,
 		ss << __PRETTY_FUNCTION__ << " error for MID: " << name << " reverse can't be blank" << "\n";
 		throw std::runtime_error{ss.str()};
 	}
-	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	for (const auto & otherMid : mids_) {
+		//check forward barcode only mids if they have this forward mid
+		if ((nullptr != otherMid.second.forwardBar_ && nullptr == otherMid.second.reverseBar_)
+				&& forward == otherMid.second.forwardBar_->bar_->motifOriginal_) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " error for MID: " << name
+					<< " forward barcode, " << forward << " already found for MID: "
+					<< otherMid.second.forwardBar_->midName_ << "\n";
+			throw std::runtime_error { ss.str() };
+		}
 
+		//check other pairings
+		if ((nullptr != otherMid.second.forwardBar_
+				&& forward == otherMid.second.forwardBar_->bar_->motifOriginal_)
+				&& (nullptr != otherMid.second.reverseBar_
+						&& reverse == otherMid.second.reverseBar_->bar_->motifOriginal_)) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " error for MID: " << name
+					<< " pairing, forward: " << forward << " reverse: " << reverse
+					<< " already found with name: " << otherMid.first << "\n";
+			throw std::runtime_error { ss.str() };
+		}
+	}
 	mids_.emplace(name, MID(name, forward, reverse));
 }
 
 void MidDeterminator::addForwardBarcode(const std::string & name,
 		const std::string & forward) {
 	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-	containsMidByNameThrow(name,__PRETTY_FUNCTION__);
-	if("" == forward){
+	containsMidByNameThrow(name, __PRETTY_FUNCTION__);
+	if ("" == forward) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << " error for MID: " << name << " forward can't be blank" << "\n";
-		throw std::runtime_error{ss.str()};
+		ss << __PRETTY_FUNCTION__ << " error for MID: " << name
+				<< " forward can't be blank" << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	for (const auto & otherMid : mids_) {
+		if (nullptr != otherMid.second.forwardBar_
+				&& forward == otherMid.second.forwardBar_->bar_->motifOriginal_) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " error for MID: " << name
+					<< " forward barcode, " << forward << " already found for MID: "
+					<< otherMid.second.forwardBar_->midName_ << "\n";
+			throw std::runtime_error { ss.str() };
+		}
 	}
 	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-
 	mids_.emplace(name, MID(name, forward));
 }
 
