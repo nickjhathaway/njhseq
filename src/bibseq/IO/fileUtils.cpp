@@ -339,20 +339,21 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 		if (0 != bfs::file_size(fnp)) {
 			std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
 //			outFile << bib::files::get_file_contents(fnp, false);
-			//InputStream in(fnp);
-//		std::cout << fnp << " isGood: " << in.good() << std::endl;
-//		std::cout << fnp << " peeking: " << in.peek() << std::endl;
-//		std::cout << fnp << " isGood: " << in.good() << std::endl;
-//			outFile << in.rdbuf();
-//				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
-//				std::cout << fnp << " peeking: " << inFile.peek() << std::endl;
-//				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
-			fileContents << inFile.rdbuf();
+			InputStream in(fnp);
+		std::cout << fnp << " isGood: " << in.good() << std::endl;
+		std::cout << fnp << " peeking: " << in.peek() << std::endl;
+		std::cout << fnp << " isGood: " << in.good() << std::endl;
+			outFile << in.rdbuf();
+				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
+				std::cout << fnp << " peeking: " << inFile.peek() << std::endl;
+				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
+//			fileContents << inFile.rdbuf();
 			//std::cout << fnp << std::endl;
 
 		}
 	}
-	outFile << "test" << std::endl;
+
+	//outFile << "test" << std::endl;
 	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 }
 
