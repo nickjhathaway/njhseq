@@ -337,7 +337,7 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	//std::stringstream fileContents;
 	for (const auto & fnp : fnps) {
-		std::cout << fnp.string() << std::endl;
+		//std::cout << fnp.string() << std::endl;
 		//check file size because rdbuf() from an empty no good file causes the bad bit to be set for the outfile and nothing afterwards getting written
 		if (0 != bfs::file_size(fnp)) {
 			//std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
@@ -357,7 +357,7 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 		}
 	}
 	//outFile << fileContents.str();
-	std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 }
 
 
