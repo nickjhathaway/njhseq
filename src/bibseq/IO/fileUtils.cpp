@@ -308,6 +308,7 @@ std::string cleanOut(const std::string &in, uint32_t width,
 
 
 void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & outopts){
+	std::cout << outopts.toJson() << std::endl;
 	//bib::OutputStream outFile(outopts);
 	std::ofstream outFile;
 	outopts.openBinaryFile(outFile);
