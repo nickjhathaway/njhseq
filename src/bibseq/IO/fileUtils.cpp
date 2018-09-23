@@ -338,7 +338,7 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 		//check file size because rdbuf() from an empty no good file causes the bad bit to be set for the outfile and nothing afterwards getting written
 		if (0 != bfs::file_size(fnp)) {
 			//std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
-			outFile << bib::files::get_file_contents(fnp, false);
+//			outFile << bib::files::get_file_contents(fnp, false);
 			//InputStream in(fnp);
 //		std::cout << fnp << " isGood: " << in.good() << std::endl;
 //		std::cout << fnp << " peeking: " << in.peek() << std::endl;
