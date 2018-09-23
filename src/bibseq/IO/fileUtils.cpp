@@ -352,6 +352,7 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 
 		}
 	}
+	outFile << "test" << std::endl;
 	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 }
 
