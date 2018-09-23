@@ -309,8 +309,8 @@ std::string cleanOut(const std::string &in, uint32_t width,
 
 void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & outopts){
 	//std::cout << outopts.toJson() << std::endl;
-	//bib::OutputStream outFile(outopts);
-	std::ofstream outFile("hapsForTorrevib-300-pairedEnd-targets/Pf3D7_03_v3-221289-221709-for/finalOutput.fasta");
+	bib::OutputStream outFile(outopts);
+//	std::ofstream outFile("hapsForTorrevib-300-pairedEnd-targets/Pf3D7_03_v3-221289-221709-for/finalOutput.fasta");
 	//outopts.openBinaryFile(outFile);
 	//check files
 	std::stringstream ss;
@@ -335,30 +335,28 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 		throw std::runtime_error{ss.str()};
 	}
 	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-	std::stringstream fileContents;
+	//std::stringstream fileContents;
 	for (const auto & fnp : fnps) {
 		std::cout << fnp.string() << std::endl;
 		//check file size because rdbuf() from an empty no good file causes the bad bit to be set for the outfile and nothing afterwards getting written
 		if (0 != bfs::file_size(fnp)) {
 			//std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
-			fileContents << bib::files::get_file_contents(fnp, false);
+//			fileContents << bib::files::get_file_contents(fnp, false);
 //			outFile << bib::files::get_file_contents(fnp, false);
-//			InputStream in(fnp);
+			InputStream in(fnp);
 //		std::cout << fnp << " isGood: " << in.good() << std::endl;
 //		std::cout << fnp << " peeking: " << in.peek() << std::endl;
 //		std::cout << fnp << " isGood: " << in.good() << std::endl;
-//			outFile << in.rdbuf();
+			outFile << in.rdbuf();
 //				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
 //				std::cout << fnp << " peeking: " << inFile.peek() << std::endl;
 //				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
 //			fileContents << inFile.rdbuf();
 //			outFile << inFile.rdbuf();
 			//std::cout << fnp << std::endl;
-
 		}
 	}
-
-	outFile << fileContents.str();
+	//outFile << fileContents.str();
 	std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 }
 
