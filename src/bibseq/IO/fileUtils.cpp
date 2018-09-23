@@ -308,10 +308,10 @@ std::string cleanOut(const std::string &in, uint32_t width,
 
 
 void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & outopts){
-	std::cout << outopts.toJson() << std::endl;
+	//std::cout << outopts.toJson() << std::endl;
 	//bib::OutputStream outFile(outopts);
-	std::ofstream outFile;
-	outopts.openBinaryFile(outFile);
+	std::ofstream outFile("hapsForTorrevib-300-pairedEnd-targets/Pf3D7_03_v3-221289-221709-for/finalOutput.fasta");
+	//outopts.openBinaryFile(outFile);
 	//check files
 	std::stringstream ss;
 	bool failed = false;
