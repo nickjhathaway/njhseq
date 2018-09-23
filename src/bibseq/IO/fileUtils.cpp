@@ -312,7 +312,7 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 	//check files
 	std::stringstream ss;
 	bool failed = false;
-	std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 
 	for(const auto & fnp : fnps){
 		if(!bfs::exists(fnp)){
@@ -326,18 +326,19 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 			}
 		}
 	}
-	std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 
 	if(failed){
 		throw std::runtime_error{ss.str()};
 	}
-	std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 
 	for (const auto & fnp : fnps) {
-		std::cout << fnp << std::endl;
+		//std::cout << fnp << std::endl;
 		//check file size because rdbuf() from an empty no good file causes the bad bit to be set for the outfile and nothing afterwards getting written
 		if (0 != bfs::file_size(fnp)) {
-			std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
+			//std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
+			outFile << bib::files::get_file_contents(fnp, false);
 			//InputStream in(fnp);
 //		std::cout << fnp << " isGood: " << in.good() << std::endl;
 //		std::cout << fnp << " peeking: " << in.peek() << std::endl;
@@ -346,12 +347,12 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 //				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
 //				std::cout << fnp << " peeking: " << inFile.peek() << std::endl;
 //				std::cout << fnp << " isGood: " << inFile.good() << std::endl;
-			outFile << inFile.rdbuf();
-			std::cout << fnp << std::endl;
+//			outFile << inFile.rdbuf();
+			//std::cout << fnp << std::endl;
 
 		}
 	}
-	std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 }
 
 
