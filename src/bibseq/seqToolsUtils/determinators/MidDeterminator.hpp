@@ -36,6 +36,7 @@ namespace bibseq {
 
 
 
+
 class MidDeterminator {
 public:
 	struct midPos {
@@ -52,6 +53,7 @@ public:
 		enum class FailureCase{
 			NONE,
 			NO_MATCHING,
+			PARTIAL,
 			TOO_MANY_MATCHING,
 			MISMATCHING_MIDS,
 			MISMATCHING_DIRECTION
@@ -88,90 +90,108 @@ public:
 		bool rCompSame_;
 	};
 
+	struct MID{
+		MID(const std::string & name);
+
+		MID(const std::string & name, const std::string & forwardBar);
+
+		MID(const std::string & name,
+				const std::string & forwardBar,
+				const std::string & reverseBar);
+
+		std::string name_;
+
+		std::unique_ptr<MidInfo> forwardBar_;
+		std::unique_ptr<MidInfo> reverseBar_;
+
+		bool forSameAsRev_ { false };
+		bool forSameAsRevShorten_ { false };
+
+		bool dualBarcoded() const;
+
+	};
+
 	struct MidDeterminePars{
-		uint32_t variableStop_ = 0;
+		uint32_t searchStart_ = 0;
+		uint32_t searchStop_ = 0;
+		uint32_t allowableErrors_ = 0;
 		bool checkComplement_ = false;
-		bool barcodesBothEnds_ = false;
 		bool checkForShorten_ = false;
 	};
 
-	/**@b create MidDterminator from a table with ids and barcodes
-	 *
-	 * @param mids a table that has at least two columns titled id(string name of mid) and barcode(nucleoties)
-	 * @todo check for whether there are several mids of the same barcode by accident
-	 */
-	explicit MidDeterminator(const table & mids);
 
-	explicit MidDeterminator(const std::unordered_map<std::string, MidDeterminator::MidInfo> & mids);
+	struct MidSearchRes{
+		std::vector<MidDeterminator::midPos> forward_;
+		std::vector<MidDeterminator::midPos> reverse_;
+	};
 
-	MidDeterminator();
+	struct ProcessedRes{
+		enum class PROCESSED_CASE{
+			NONE,
+			NO_MATCHING,
+			PARTIALDUAL,
+			TOO_MANY_MATCHING,
+			MISMATCHING_MIDS,
+			MISMATCHING_DIRECTION,
+			MATCH
+		};
 
-	std::unordered_map<std::string, MidInfo> mids_;
+		static std::string getProcessedCaseName(PROCESSED_CASE pCase);
+		static VecStr getProcessedCaseNames();
+
+		bool rcomplement_{false};
+		std::string midName_;
+		PROCESSED_CASE case_{PROCESSED_CASE::NONE};
+
+
+	};
+
+
+  MidDeterminator(const table & mids, const MidDeterminePars & searchPars);
+	MidDeterminator(const bfs::path & idFileFnp, const MidDeterminePars & searchPars);
+
+	std::unordered_map<std::string, MID> mids_;
+	MidDeterminePars searchPars_;
+	MidDeterminePars shortenSearchPars_;
 
 private:
-	uint32_t allowableMismatches_ = 0;
-	bool midEndsRevComp_ = false;
 public:
 
-	void setAllowableMismatches(uint32_t allowableMismatches);
-	void setMidEndsRevComp(bool midEndsRevComp);
-
+	void containsMidByNameThrow(const std::string & name, const std::string & funcName) const;
 	bool containsMidByName(const std::string & name) const;
 	bool containsMidByBarcode(const std::string & barcode) const;
 
 	std::string getMidName(const std::string & barcode) const;
 
-	void addBarcode(const std::string & name, const std::string & barcode);
+	void addForwardReverseBarcode(const std::string & name, const std::string & forward, const std::string & reverse);
+	void addForwardBarcode(const std::string & name, const std::string & forward);
+	void addReverseBarcode(const std::string & name, const std::string & reverse);
 
 
 
+	static std::vector<midPos> frontDeterminePosMIDPos (
+			const std::string & seq,
+			const motif & bar,
+			const std::string & midName,
+			const MidDeterminePars & mPars);
 
-	std::vector<midPos> determinePossibleMidPos(const std::string & seq, uint32_t within);
-
-	std::vector<midPos> determinePossibleMidPosBack(const std::string & seq, uint32_t within);
-
-	std::vector<midPos> determinePossibleMidPosComp(const std::string & seq, uint32_t within);
-
-	std::vector<midPos> determinePossibleMidPosCompBack(const std::string & seq, uint32_t within);
-
-	std::vector<midPos> determinePossibleMidPosShorten(const std::string & seq, uint32_t within);
-
-	std::vector<midPos> determinePossibleMidPosBackShorten(const std::string & seq, uint32_t within);
-
-	std::vector<midPos> determinePossibleMidPosCompShorten(const std::string & seq, uint32_t within);
-
-	std::vector<midPos> determinePossibleMidPosCompBackShorten(const std::string & seq, uint32_t within);
-
-	void processInfoWithMidPos(seqInfo & info,
-			const MidDeterminator::midPos & pos,
-			MidDeterminator::MidDeterminePars pars);
-
-	void processInfoWithMidPos(seqInfo & info,
-			const MidDeterminator::midPos & frontPos,
-			const MidDeterminator::midPos & backPos);
-
-	void processInfoWithMidPos(PairedRead & info,
-			const MidDeterminator::midPos & pos,
-			MidDeterminator::MidDeterminePars pars);
-
-	void processInfoWithMidPos(PairedRead & info,
-			const MidDeterminator::midPos & frontPos,
-			const MidDeterminator::midPos & backPos);
-
-	std::pair<midPos, midPos> fullDetermine(seqInfo & info, MidDeterminePars pars);
-	std::pair<midPos, midPos> fullDetermine(PairedRead & seq, MidDeterminePars pars);
-
-
-	template<typename T>
-	std::pair<midPos, midPos> fullDetermine(T & read, MidDeterminePars pars){
-		return fullDetermine(getSeqBase(read), pars);
-	}
+	static std::vector<midPos> backDeterminePosMIDPos (
+			const std::string & seq,
+			const motif & bar,
+			const std::string & midName,
+			const MidDeterminePars & mPars);
 
 
 
-	static void increaseFailedBarcodeCounts(const MidDeterminator::midPos & pos, std::unordered_map<std::string, uint32_t> & counts);
+	MidSearchRes searchPairedEndRead(const PairedRead & seq) const;
+	ProcessedRes processSearchPairedEndRead(PairedRead & seq, const MidSearchRes & res) const;
+
+	MidSearchRes searchRead(const seqInfo & seq) const;
+	ProcessedRes processSearchRead(seqInfo & seq, const MidSearchRes & res) const;
 
 };
+
+
 
 
 } /* namespace bibseq */

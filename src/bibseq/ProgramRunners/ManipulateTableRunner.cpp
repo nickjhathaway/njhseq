@@ -246,11 +246,8 @@ int ManipulateTableRunner::addColumn(
 	VecStr element;
 	std::string elementStr = "";
 	setUp.processDefaultProgram(true);
-	setUp.setOption(columnName, "-newColumnName",
-			"Name of the new Column to add to table", true);
-	setUp.setOption(elementStr, "-element",
-			"What to Add to the Table Under Column, can be several comma sep values or just one",
-			true);
+	setUp.setOption(columnName, "--newColumnName","Name of the new Column to add to table", true);
+	setUp.setOption(elementStr, "--element","What to Add to the Table Under Column, can be several comma sep values or just one",true);
 	setUp.finishSetUp(std::cout);
 	table outTab(setUp.ioOptions_);
 	auto toks = tokenizeString(elementStr, ",");

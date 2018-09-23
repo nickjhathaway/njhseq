@@ -56,6 +56,43 @@ MidDeterminator::midPos::operator bool() const {
 
 
 
+
+std::string MidDeterminator::ProcessedRes::getProcessedCaseName(PROCESSED_CASE pCase){
+	std::string pCaseStr = "unhandledCase";
+	switch (pCase) {
+	case MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_DIRECTION:
+		pCaseStr = "MISMATCHING_DIRECTION";
+		break;
+	case MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_MIDS:
+		pCaseStr = "MISMATCHING_MIDS";
+		break;
+	case MidDeterminator::ProcessedRes::PROCESSED_CASE::NONE:
+		pCaseStr = "NONE";
+		break;
+	case MidDeterminator::ProcessedRes::PROCESSED_CASE::NO_MATCHING:
+		pCaseStr = "NO_MATCHING";
+		break;
+	case MidDeterminator::ProcessedRes::PROCESSED_CASE::TOO_MANY_MATCHING:
+		pCaseStr = "TOO_MANY_MATCHING";
+		break;
+	case MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL:
+		pCaseStr = "PARTIALDUAL";
+		break;
+	case MidDeterminator::ProcessedRes::PROCESSED_CASE::MATCH:
+		pCaseStr = "MATCH";
+		break;
+	default:
+		pCaseStr = "unhandledCase";
+		break;
+	}
+	return pCaseStr;
+}
+
+VecStr MidDeterminator::ProcessedRes::getProcessedCaseNames() {
+	return VecStr { "unhandledCase", "MISMATCHING_DIRECTION", "MISMATCHING_MIDS",
+			"NONE", "NO_MATCHING", "TOO_MANY_MATCHING", "PARTIALDUAL", "MATCH" };
+}
+
 std::string MidDeterminator::midPos::getFailureCaseName(FailureCase fCase){
 	std::string fCaseStr = "unhandledCase";
 	switch (fCase) {
@@ -74,6 +111,9 @@ std::string MidDeterminator::midPos::getFailureCaseName(FailureCase fCase){
 	case MidDeterminator::midPos::FailureCase::TOO_MANY_MATCHING:
 		fCaseStr = "TOO_MANY_MATCHING";
 		break;
+	case MidDeterminator::midPos::FailureCase::PARTIAL:
+		fCaseStr = "PARTIAL";
+		break;
 	default:
 		fCaseStr = "unhandledCase";
 		break;
@@ -83,7 +123,7 @@ std::string MidDeterminator::midPos::getFailureCaseName(FailureCase fCase){
 
 VecStr MidDeterminator::midPos::getFailureCaseNames() {
 	return VecStr { "NONE", "NO_MATCHING", "TOO_MANY_MATCHING",
-			"MISMATCHING_MIDS", "MISMATCHING_DIRECTION", "unhandledCase" };
+			"MISMATCHING_MIDS", "MISMATCHING_DIRECTION", "PARTIAL", "unhandledCase" };
 }
 
 
@@ -96,7 +136,8 @@ MidDeterminator::MidInfo::MidInfo(const std::string & midName,
 		midName_(midName),
 		bar_(std::make_unique<motif>(barcode)),
 		rcompBar_(std::make_unique<motif>(seqUtil::reverseComplement(barcode, "DNA")) ) {
-	if(!barcode.empty()){
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	if(barcode.empty()){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << " error, MID: " << midName << " can't be an empty string" << "\n";
 		throw std::runtime_error{ss.str()};
@@ -112,49 +153,211 @@ MidDeterminator::MidInfo::MidInfo(const std::string & midName,
 
 }
 
+MidDeterminator::MID::MID(const std::string & name):
+	name_(name) {
 
-MidDeterminator::MidDeterminator(const table & mids) {
-	if (!bib::in(std::string("id"), mids.columnNames_)
-			|| !bib::in(std::string("barcode"), mids.columnNames_)) {
+}
+
+MidDeterminator::MID::MID(const std::string & name, const std::string & forwardBar):
+	name_(name),
+		forwardBar_(std::make_unique<MidInfo>(name, forwardBar)) {
+
+}
+
+MidDeterminator::MID::MID(const std::string & name,
+		const std::string & forwardBar,
+		const std::string & reverseBar):
+	name_(name),
+	reverseBar_(std::make_unique<MidInfo>(name, reverseBar)) {
+	if("" != forwardBar){
+		forwardBar_ = std::make_unique<MidInfo>(name, forwardBar);
+		forSameAsRev_ = forwardBar == reverseBar;
+		forSameAsRevShorten_ = forwardBar_->shortenFrontBar_->motifOriginal_ == reverseBar_->shortenFrontBar_->motifOriginal_;
+	}
+}
+
+bool MidDeterminator::MID::dualBarcoded() const {
+	return nullptr != forwardBar_ && nullptr != reverseBar_;
+}
+
+
+MidDeterminator::MidDeterminator(const table & mids, const MidDeterminePars & searchPars):
+		searchPars_(searchPars),
+		shortenSearchPars_(searchPars) {
+	shortenSearchPars_.searchStart_ = 0;
+	shortenSearchPars_.searchStop_ = 0;
+	mids.checkForColumnsThrow(VecStr { "id", "barcode" }, __PRETTY_FUNCTION__);
+	bool containsSecondBarCodeColumn = mids.containsColumn("barcode2");
+	if (containsSecondBarCodeColumn) {
+		for (const auto & row : mids.content_) {
+			addForwardBarcode(
+					row[mids.getColPos("id")],
+					row[mids.getColPos("barcode")]);
+		}
+	} else {
+		for (const auto & row : mids.content_) {
+			if("" == row[mids.getColPos("barcode2")]){
+				addForwardBarcode(
+						row[mids.getColPos("id")],
+						row[mids.getColPos("barcode")]);
+			}else{
+				addForwardReverseBarcode(
+						row[mids.getColPos("id")],
+						row[mids.getColPos("barcode")],
+						row[mids.getColPos("barcode2")]);
+			}
+		}
+	}
+}
+
+MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
+		const MidDeterminePars & searchPars) :
+		searchPars_(searchPars), shortenSearchPars_(searchPars) {
+	shortenSearchPars_.searchStart_ = 0;
+	shortenSearchPars_.searchStop_ = 0;
+	if (searchPars.searchStop_ < searchPars.searchStart_) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": Error in creating MidDeterminator, need to have at "
-						"least two columns, id and barcode, only have "
-						+ bib::conToStr(mids.columnNames_, ",");
-		throw std::runtime_error {ss.str()};
+		ss << __PRETTY_FUNCTION__
+				<< ": error, barcode search start should be less than barcode search stop; searchStop: "
+				<< searchPars.searchStop_ << ", searchStart: "
+				<< searchPars.searchStart_ << "\n";
+		throw std::runtime_error { ss.str() };
 	}
-	for (const auto & row : mids.content_) {
-		addBarcode(row[mids.getColPos("id")],row[mids.getColPos("barcode")]);
+
+	if (!bfs::exists(idFileFnp)) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": error, "
+				<< bib::bashCT::boldRed(idFileFnp.string()) << " doesn't exist\n";
+		throw std::runtime_error { ss.str() };
+	}
+	auto firstLine = bib::files::getFirstLine(idFileFnp);
+	bib::strToLower(firstLine);
+	if (!bib::beginsWith(firstLine, "gene")
+			&& !bib::beginsWith(firstLine, "target")
+			&& !bib::beginsWith(firstLine, "id")) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": error the id file "
+				<< bib::bashCT::boldRed(idFileFnp.string())
+				<< " should start with either target, gene, or id (case insensitive)\n";
+		ss << "line: " << firstLine << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	bool readingPrimers = false;
+	bool readingMids = false;
+	InputStream idFile { InOptions { idFileFnp } };
+	std::string line = "";
+
+	while (bib::files::crossPlatGetline(idFile, line)) {
+		auto lowerLine = bib::strToLowerRet(line);
+		auto lowerLineToks = bib::tokenizeString(lowerLine, "whitespace");
+
+		if (lowerLineToks.size() > 1
+				&& ("gene" == lowerLineToks[0] || "target" == lowerLineToks[0])) {
+			readingPrimers = true;
+			readingMids = false;
+		} else if (lowerLineToks.size() > 1 && "id" == lowerLineToks[0]) {
+			readingPrimers = false;
+			readingMids = true;
+		} else if (readingPrimers) {
+			auto toks = bib::tokenizeString(line, "whitespace");
+			if (3 != toks.size()) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ": error in id file "
+						<< bib::bashCT::boldRed(idFileFnp.string())
+						<< "primer line should contain 3 items not " << toks.size() << "\n";
+				ss << "line: " << line << "\n";
+				throw std::runtime_error { ss.str() };
+			}
+			//addTarget(toks[0], toks[1], toks[2]);
+		} else if (readingMids) {
+			auto toks = bib::tokenizeString(line, "whitespace");
+			if (2 == toks.size()) {
+				addForwardBarcode(toks[0], toks[1]);
+			} else if (3 == toks.size()) {
+				addForwardReverseBarcode(toks[0], toks[1], toks[2]);
+			} else {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ": error in id file "
+						<< bib::bashCT::boldRed(idFileFnp.string())
+						<< "barcode line should contain 2 items not " << toks.size()
+						<< "\n";
+				ss << "line: " << line << "\n";
+				throw std::runtime_error { ss.str() };
+			}
+		}
 	}
 }
 
-MidDeterminator::MidDeterminator(const std::unordered_map<std::string, MidDeterminator::MidInfo> & mids){
-	for (const auto & mid : mids) {
-		addBarcode(mid.second.midName_,mid.second.bar_->motifOriginal_);
+
+
+
+
+
+void MidDeterminator::addForwardReverseBarcode(const std::string & name,
+		const std::string & forward, const std::string & reverse) {
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	containsMidByNameThrow(name,__PRETTY_FUNCTION__);
+	if("" == forward){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error for MID: " << name << " forward can't be blank" << "\n";
+		throw std::runtime_error{ss.str()};
 	}
+	if("" == reverse){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error for MID: " << name << " reverse can't be blank" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+
+	mids_.emplace(name, MID(name, forward, reverse));
 }
 
-MidDeterminator::MidDeterminator() {
+void MidDeterminator::addForwardBarcode(const std::string & name,
+		const std::string & forward) {
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	containsMidByNameThrow(name,__PRETTY_FUNCTION__);
+	if("" == forward){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error for MID: " << name << " forward can't be blank" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 
+	mids_.emplace(name, MID(name, forward));
 }
 
-
-void MidDeterminator::setAllowableMismatches(uint32_t allowableMismatches) {
-	allowableMismatches_ = allowableMismatches;
+void MidDeterminator::addReverseBarcode(const std::string & name,
+		const std::string & reverse) {
+	containsMidByNameThrow(name,__PRETTY_FUNCTION__);
+	if("" == reverse){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error for MID: " << name << " reverse can't be blank" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	mids_.emplace(name, MID(name, "", reverse));
 }
-
-void MidDeterminator::setMidEndsRevComp(bool midEndsRevComp){
-	midEndsRevComp_ = midEndsRevComp;
-}
-
 
 
 bool MidDeterminator::containsMidByName(const std::string & name) const {
 	return bib::in(name, mids_);
 }
+void MidDeterminator::containsMidByNameThrow(const std::string & name, const std::string & funcName) const {
+	if(containsMidByName(name)){
+		std::stringstream ss;
+		ss << funcName << ", error already contain MID name: " << name << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+}
+
+
+
 
 bool MidDeterminator::containsMidByBarcode(const std::string & barcode)const{
 	for(const auto & mid : mids_){
-		if(mid.second.bar_->motifOriginal_ == barcode){
+		if(nullptr != mid.second.forwardBar_ && mid.second.forwardBar_->bar_->motifOriginal_ == barcode){
+			return true;
+		}
+		if(nullptr != mid.second.reverseBar_ && mid.second.reverseBar_->bar_->motifOriginal_ == barcode){
 			return true;
 		}
 	}
@@ -163,597 +366,714 @@ bool MidDeterminator::containsMidByBarcode(const std::string & barcode)const{
 
 std::string MidDeterminator::getMidName(const std::string & barcode)const{
 	for(const auto & mid : mids_){
-		if(mid.second.bar_->motifOriginal_ == barcode){
+		if(nullptr != mid.second.forwardBar_ && mid.second.forwardBar_->bar_->motifOriginal_ == barcode){
+			return mid.first;
+		}
+		if(nullptr != mid.second.reverseBar_ && mid.second.reverseBar_->bar_->motifOriginal_ == barcode){
 			return mid.first;
 		}
 	}
 	return "no_name_for_barcode:" + barcode;
 }
 
-void MidDeterminator::addBarcode(const std::string & name, const std::string & barcode) {
-	if (containsMidByName(name)) {
-		std::stringstream ss;
-		ss << "Error, MidDeterminator already contains mid by name: " << name
-				<< "\n";
-		ss << "original barcode: " << mids_.at(name).bar_->motifOriginal_
-				<< ", adding barcode: " << barcode << "\n";
-		throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
-	}
-	if (containsMidByBarcode(barcode)) {
-		std::stringstream ss;
-		ss << "Error, MidDeterminator already contains mid by barcode: "
-				<< barcode << "\n";
-		ss << "original name: " << getMidName(barcode)
-				<< ", adding name: " << name << "\n";
-		throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
-	}
-	mids_.emplace(name,
-			MidInfo { name, barcode});
-}
 
 
+std::vector<MidDeterminator::midPos> MidDeterminator::frontDeterminePosMIDPos(
+		const std::string & seq,
+		const motif & bar,
+		const std::string & midName,
+		const MidDeterminator::MidDeterminePars & mPars) {
+	std::vector<midPos> ret;
+	if (seq.size() > bar.size()
+			&& mPars.allowableErrors_ + 1 <  bar.size()
+			&& mPars.searchStart_ + bar.size() < seq.size()) {
+
+		uint32_t searchStop  = std::min<uint32_t>(mPars.searchStop_ + bar.size(), seq.size() );
+		uint32_t searchStart = mPars.searchStart_;
 
 
-
-
-
-std::vector<MidDeterminator::midPos> MidDeterminator::determinePossibleMidPos(
-		const std::string & seq, uint32_t within) {
-	std::vector<midPos> possible;
-	for (auto & mid : mids_) {
-		if (seq.size() < mid.second.bar_->motifOriginal_.size()
-				|| allowableMismatches_ >= seq.size()) {
-			continue;
+		if(0 == mPars.searchStop_ ){
+			searchStop = mPars.searchStart_ + bar.size();
 		}
-		uint32_t searchStop = std::min<uint32_t>(within + mid.second.bar_->size(),
-				seq.size());
-		auto positions = mid.second.bar_->findPositionsFull(seq,
-				allowableMismatches_, 0, searchStop);
-		if (!positions.empty()) {
-			auto currentScore = mid.second.bar_->scoreMotif(
-					seq.substr(positions.front(),
-							mid.second.bar_->motifOriginal_.size()));
-			possible.emplace_back(mid.first, positions.front(),
-					mid.second.bar_->motifOriginal_.size(), currentScore);
-		}
-	}
-	return possible;
-}
 
-
-
-std::vector<MidDeterminator::midPos> MidDeterminator::determinePossibleMidPosBack(
-		const std::string & seq, uint32_t within) {
-	std::vector<midPos> possible;
-	for (auto & mid : mids_) {
-		if (seq.size() < mid.second.bar_->motifOriginal_.size()
-				|| allowableMismatches_ >= seq.size()) {
-			continue;
-		}
-		uint32_t searchStart = seq.size() - mid.second.bar_->size();
-		if (within > searchStart) {
-			searchStart = 0;
-		} else {
-			searchStart -= within;
-		}
-		auto positions = mid.second.bar_->findPositionsFull(seq,
-				allowableMismatches_, searchStart, seq.size());
-		if (!positions.empty()) {
-			auto currentScore = mid.second.bar_->scoreMotif(
-					seq.substr(positions.back(),
-							mid.second.bar_->motifOriginal_.size()));
-			possible.emplace_back(mid.first, positions.back(),
-					mid.second.bar_->motifOriginal_.size(), currentScore);
-		}
-	}
-	return possible;
-}
-
-std::vector<MidDeterminator::midPos> MidDeterminator::determinePossibleMidPosComp(const std::string & seq,
-		uint32_t within) {
-	std::vector<midPos> possible;
-	for (auto & mid : mids_) {
-		if (seq.size() < mid.second.rcompBar_->motifOriginal_.size()
-				|| allowableMismatches_ >= seq.size()) {
-			continue;
-		}
-		uint32_t searchStop = std::min<uint32_t>(within + mid.second.rcompBar_->size(), seq.size());
-		auto positions = mid.second.rcompBar_->findPositionsFull(seq, allowableMismatches_, 0,
+		auto positions = bar.findPositionsFull(
+				seq,
+				mPars.allowableErrors_,
+				searchStart,
 				searchStop);
 		if (!positions.empty()) {
-			auto currentScore = mid.second.rcompBar_->scoreMotif(
-					seq.substr(positions.front(), mid.second.rcompBar_->motifOriginal_.size()));
-			possible.emplace_back(mid.first, positions.front(),
-					mid.second.rcompBar_->motifOriginal_.size(), currentScore);
-			possible.back().inRevComp_ = true;
+			auto currentScore = bar.scoreMotif(
+					seq.substr(positions.front(), bar.size()));
+			ret.emplace_back(midName, positions.front(), bar.size(), currentScore);
 		}
 	}
-	return possible;
+	return ret;
 }
 
+std::vector<MidDeterminator::midPos> MidDeterminator::backDeterminePosMIDPos(
+		const std::string & seq, const motif & bar, const std::string & midName,
+		const MidDeterminator::MidDeterminePars & mPars) {
+	std::vector<midPos> ret;
+	if (seq.size() > bar.size()
+			&& mPars.allowableErrors_ + 1 <  bar.size()
+			&& mPars.searchStart_ + bar.size() < seq.size()) {
+
+		uint32_t searchStart = seq.size() - bar.size();
+		uint32_t searchStop = seq.size() - mPars.searchStart_;
 
 
-std::vector<MidDeterminator::midPos> MidDeterminator::determinePossibleMidPosCompBack(
-		const std::string & seq, uint32_t within) {
-	std::vector<midPos> possible;
-	for (auto & mid : mids_) {
-		if (seq.size() < mid.second.rcompBar_->motifOriginal_.size()
-				|| allowableMismatches_ >= seq.size()) {
-			continue;
-		}
-		uint32_t searchStart = seq.size() - mid.second.rcompBar_->size();
-		if (within > searchStart) {
+		if (mPars.searchStop_ > searchStart) {
 			searchStart = 0;
 		} else {
-			searchStart -= within;
+			searchStart -= mPars.searchStop_;
 		}
-		auto positions = mid.second.rcompBar_->findPositionsFull(seq,
-				allowableMismatches_, searchStart, seq.size());
+		if(0 == mPars.searchStop_ ){
+			searchStart = seq.size() - mPars.searchStart_ - bar.size();
+		}
+		auto positions = bar.findPositionsFull(seq,
+				mPars.allowableErrors_,
+				searchStart, searchStop);
 		if (!positions.empty()) {
-			auto currentScore = mid.second.rcompBar_->scoreMotif(
-					seq.substr(positions.back(),
-							mid.second.rcompBar_->motifOriginal_.size()));
-			possible.emplace_back(mid.first, positions.back(),
-								mid.second.rcompBar_->motifOriginal_.size(),
-								currentScore);
-			possible.back().inRevComp_ = true;
+			auto currentScore = bar.scoreMotif(
+					seq.substr(positions.back(), bar.size()));
+			ret.emplace_back(midName, positions.back(), bar.size(), currentScore);
 		}
 	}
-	return possible;
+	return ret;
 }
 
-std::vector<MidDeterminator::midPos> MidDeterminator::determinePossibleMidPosShorten(
-		const std::string & seq, uint32_t within) {
-	std::vector<midPos> possible;
-	for (auto & mid : mids_) {
-		if (seq.size() < mid.second.shortenFrontBar_->motifOriginal_.size()
-				|| allowableMismatches_ >= seq.size()) {
-			continue;
+MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
+		 PairedRead & seq, const MidSearchRes & res) const {
+
+	MidDeterminator::ProcessedRes ret;
+	if(res.forward_.empty()){
+		//currently requiring forward
+		if(1 == res.reverse_.size() && mids_.at(res.reverse_.front().midName_).dualBarcoded()){
+			//partial match, failed to find forward barcode of a dual barcoded sample
+			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
+			MetaDataInName meta;
+			meta.addMeta("PartialReverseMID", bib::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
+			seq.seqBase_.name_.append(meta.createMetaName());
+			seq.mateSeqBase_.name_.append(meta.createMetaName());
+		}else{
+			//no match
+			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::NO_MATCHING;
 		}
-		uint32_t searchStop = std::min<uint32_t>(within + mid.second.shortenFrontBar_->size(),
-				seq.size());
-		auto positions = mid.second.shortenFrontBar_->findPositionsFull(seq,
-				allowableMismatches_, 0, searchStop);
-		if (!positions.empty()) {
-			auto currentScore = mid.second.shortenFrontBar_->scoreMotif(
-					seq.substr(positions.front(),
-							mid.second.shortenFrontBar_->motifOriginal_.size()));
-			possible.emplace_back(mid.first, positions.front(),
-					mid.second.shortenFrontBar_->motifOriginal_.size(), currentScore);
-		}
-	}
-	return possible;
-}
-
-
-
-std::vector<MidDeterminator::midPos> MidDeterminator::determinePossibleMidPosBackShorten(
-		const std::string & seq, uint32_t within) {
-	std::vector<midPos> possible;
-	for (auto & mid : mids_) {
-		if (seq.size() < mid.second.shortenBackBar_->motifOriginal_.size()
-				|| allowableMismatches_ >= seq.size()) {
-			continue;
-		}
-		uint32_t searchStart = seq.size() - mid.second.shortenBackBar_->size();
-		if (within > searchStart) {
-			searchStart = 0;
-		} else {
-			searchStart -= within;
-		}
-		auto positions = mid.second.shortenBackBar_->findPositionsFull(seq,
-				allowableMismatches_, searchStart, seq.size());
-		if (!positions.empty()) {
-			auto currentScore = mid.second.shortenBackBar_->scoreMotif(
-					seq.substr(positions.back(),
-							mid.second.shortenBackBar_->motifOriginal_.size()));
-			possible.emplace_back(mid.first, positions.back(),
-					mid.second.shortenBackBar_->motifOriginal_.size(), currentScore);
-		}
-	}
-	return possible;
-}
-
-std::vector<MidDeterminator::midPos> MidDeterminator::determinePossibleMidPosCompShorten(const std::string & seq,
-		uint32_t within) {
-	std::vector<midPos> possible;
-	for (auto & mid : mids_) {
-		if (seq.size() < mid.second.shortenFrontRCompBar_->motifOriginal_.size()
-				|| allowableMismatches_ >= seq.size()) {
-			continue;
-		}
-		uint32_t searchStop = std::min<uint32_t>(within + mid.second.shortenFrontRCompBar_->size(), seq.size());
-		auto positions = mid.second.shortenFrontRCompBar_->findPositionsFull(seq, allowableMismatches_, 0,
-				searchStop);
-		if (!positions.empty()) {
-			auto currentScore = mid.second.shortenFrontRCompBar_->scoreMotif(
-					seq.substr(positions.front(), mid.second.shortenFrontRCompBar_->motifOriginal_.size()));
-			possible.emplace_back(mid.first, positions.front(),
-					mid.second.shortenFrontRCompBar_->motifOriginal_.size(), currentScore);
-			possible.back().inRevComp_ = true;
-		}
-	}
-	return possible;
-}
-
-
-
-std::vector<MidDeterminator::midPos> MidDeterminator::determinePossibleMidPosCompBackShorten(
-		const std::string & seq, uint32_t within) {
-	std::vector<midPos> possible;
-	for (auto & mid : mids_) {
-		if (seq.size() < mid.second.shortenBackRCompBar_->motifOriginal_.size()
-				|| allowableMismatches_ >= seq.size()) {
-			continue;
-		}
-		uint32_t searchStart = seq.size() - mid.second.shortenBackRCompBar_->size();
-		if (within > searchStart) {
-			searchStart = 0;
-		} else {
-			searchStart -= within;
-		}
-		auto positions = mid.second.shortenBackRCompBar_->findPositionsFull(seq,
-				allowableMismatches_, searchStart, seq.size());
-		if (!positions.empty()) {
-			auto currentScore = mid.second.shortenBackRCompBar_->scoreMotif(
-					seq.substr(positions.back(),
-							mid.second.shortenBackRCompBar_->motifOriginal_.size()));
-			possible.emplace_back(mid.first, positions.back(),
-								mid.second.shortenBackRCompBar_->motifOriginal_.size(),
-								currentScore);
-			possible.back().inRevComp_ = true;
-		}
-	}
-	return possible;
-}
-
-
-void MidDeterminator::processInfoWithMidPos(seqInfo & info,
-		const MidDeterminator::midPos & frontPos,
-		const MidDeterminator::midPos & backPos) {
-	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-//	std::cout << "backPos.midName_: " << backPos.midName_ << std::endl;
-//	std::cout << "frontPos.midPos_: " << frontPos.midName_ << std::endl;
-//	std::cout << "backPos.midPos_: " << backPos.midPos_ << std::endl;
-//	std::cout << "frontPos.midPos_: " << frontPos.midPos_ << std::endl;
-//	std::cout << "frontPos.midPos_ + frontPos.barcodeSize_: " << frontPos.midPos_ + frontPos.barcodeSize_ << std::endl;
-//	std::cout << " len(info): " << len(info) << std::endl;
-	info.trimBack(backPos.midPos_);
-	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-	info.trimFront(frontPos.midPos_ + frontPos.barcodeSize_);
-	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-	if(frontPos.inRevComp_){
-		info.reverseComplementRead(true, true);
-	}
-}
-
-void MidDeterminator::processInfoWithMidPos(seqInfo & info, const MidDeterminator::midPos & pos,
-		MidDeterminator::MidDeterminePars pars) {
-	/**@todo remove the same size other side, should add a better check for the other side barcode
-	 */
-
-	if (pars.variableStop_ > pos.midPos_ || (0 == pars.variableStop_ && 0 == pos.midPos_)) {
-		info.trimFront(pos.midPos_ + pos.barcodeSize_);
-		if (pars.barcodesBothEnds_) {
-			info.trimBack(len(info) - mids_.at(pos.midName_).bar_->size());
-		}
-	} else {
-		info.trimBack(pos.midPos_);
-		if (pars.barcodesBothEnds_) {
-			info.trimFront(mids_.at(pos.midName_).bar_->size());
-		}
-	}
-	if(pos.inRevComp_){
-		info.reverseComplementRead(true, true);
-	}
-}
-
-
-
-void MidDeterminator::processInfoWithMidPos(PairedRead & seq,
-		const MidDeterminator::midPos & firstPos,
-		const MidDeterminator::midPos & matePos) {
-	if(seq.mateRComplemented_){
-		seq.mateSeqBase_.trimBack(matePos.midPos_);
 	}else{
-		seq.mateSeqBase_.trimFront(matePos.midPos_ + matePos.barcodeSize_);
-	}
-	seq.seqBase_.trimFront(firstPos.midPos_ + firstPos.barcodeSize_);
-	if(firstPos.inRevComp_){
-		seq.seqBase_.reverseComplementRead(true, true);
-		seq.mateSeqBase_.reverseComplementRead(true, true);
-	}
-}
-
-void MidDeterminator::processInfoWithMidPos(PairedRead & seq,
-		const MidDeterminator::midPos & pos,
-		MidDeterminator::MidDeterminePars pars) {
-	/**@todo remove the same size other side, should add a better check for the other side barcode
-	 */
-
-
-}
-
-
-
-
-
-std::pair<MidDeterminator::midPos, MidDeterminator::midPos>  MidDeterminator::fullDetermine(PairedRead & seq, MidDeterminePars pars){
-
-//	if(seq.mateRComplemented_){
-//
-//	}
-//	std::vector<midPos> frontPossible = determinePossibleMidPos(seq.seqBase_.seq_, pars.variableStop_);
-//	std::vector<midPos> backPossible = determinePossibleMidPosComp(seq.mateSeqBase_.seq_, pars.variableStop_);
-//
-//
-//
-//	if (pars.barcodesBothEnds_) {
-//		addOtherVec(possible,
-//				determinePossibleMidPosBack(info.seq_, pars.variableStop_));
-//	}
-//
-//	if (pars.checkComplement_) {
-//		addOtherVec(possible,
-//				determinePossibleMidPosCompBack(info.seq_, pars.variableStop_));
-//	}
-//
-//	if (pars.checkComplement_ && pars.barcodesBothEnds_) {
-//		addOtherVec(possible,
-//				determinePossibleMidPosComp(info.seq_, pars.variableStop_));
-//	}
-//
-//	if (pars.checkForShorten_) {
-//		if (pars.barcodesBothEnds_) {
-//			addOtherVec(possible, determinePossibleMidPosShorten(info.seq_, 0));
-//		}
-//
-//		if (pars.barcodesBothEnds_) {
-//			addOtherVec(possible, determinePossibleMidPosBackShorten(info.seq_, 0));
-//		}
-//
-//		if (pars.checkComplement_) {
-//			addOtherVec(possible,
-//					determinePossibleMidPosCompBackShorten(info.seq_, 0));
-//		}
-//
-//		if (pars.checkComplement_ && pars.barcodesBothEnds_) {
-//			addOtherVec(possible, determinePossibleMidPosCompShorten(info.seq_, 0));
-//		}
-//	}
-//
-//
-
-
-
-	//std::cout << __PRETTY_FUNCTION__ << std::endl;
-	/**@todo expensive way to do this for now */
-	uint32_t spacerSize = 20;
-	seqInfo tempSeq = seq.seqBase_;
-	tempSeq.append(std::string(spacerSize, 'N'));
-	if(seq.mateRComplemented_){
-		tempSeq.append(seq.mateSeqBase_.seq_);
-	}else{
-		tempSeq.append(seqUtil::reverseComplement(seq.mateSeqBase_.seq_, "DNA"));
-	}
-	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-	size_t lengthOfTempSeq = len(tempSeq);
-	auto positions = fullDetermine(tempSeq, pars);
-	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-  if(positions.first){
-
-		if (positions.second) {
-			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-			if(seq.mateRComplemented_){
-				positions.second.midPos_ = positions.second.midPos_ - len(seq.seqBase_) - spacerSize;
-			}else{
-				positions.second.midPos_ = lengthOfTempSeq - positions.second.midPos_ - positions.second.barcodeSize_;
-			}
-
-			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-			processInfoWithMidPos(seq, positions.first, positions.second);
-			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-		} else {
-			//processInfoWithMidPos(seq, positions.first, pars);
-			if (pars.variableStop_ > positions.first.midPos_ || (0 == pars.variableStop_ && 0 == positions.first.midPos_)) {
-				seq.seqBase_.trimFront(positions.first.midPos_ + positions.first.barcodeSize_);
-				if (pars.barcodesBothEnds_) {
-					if(seq.mateRComplemented_){
-						seq.mateSeqBase_.trimBack(len(seq.mateSeqBase_) - mids_.at(positions.first.midName_).bar_->size());
+		if(res.forward_.size() == 1 && res.reverse_.size() < 2){
+			if(res.reverse_.size() == 1){
+				if(res.forward_.front().midName_ == res.reverse_.front().midName_){
+					if(res.forward_.front().inRevComp_ == res.reverse_.front().inRevComp_){
+						//match
+						ret.midName_ = res.forward_.front().midName_;
+						ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MATCH;
+						ret.rcomplement_ = res.forward_.front().inRevComp_;
+						if(res.forward_.front().inRevComp_){
+							//process
+							seq.seqBase_.trimFront(res.reverse_.front().midPos_ + res.reverse_.front().barcodeSize_);
+							seq.mateSeqBase_.trimFront(res.forward_.front().midPos_ + res.forward_.front().barcodeSize_);
+							//complement
+							seq.seqBase_.name_.append("_Comp");
+							seq.mateSeqBase_.name_.append("_Comp");
+							seqInfo tempMate = seq.seqBase_;
+							seq.seqBase_ = seq.mateSeqBase_;
+							seq.mateSeqBase_ = tempMate;
+						}else{
+							//process
+							seq.seqBase_.trimFront(res.forward_.front().midPos_ + res.forward_.front().barcodeSize_);
+							seq.mateSeqBase_.trimFront(res.reverse_.front().midPos_ + res.reverse_.front().barcodeSize_);
+						}
 					}else{
-						seq.mateSeqBase_.trimFront(mids_.at(positions.first.midName_).bar_->size());
+						//mismatching directions
+						ret.midName_ = res.forward_.front().midName_;
+						ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_DIRECTION;
+						ret.rcomplement_ = res.forward_.front().inRevComp_;
+						MetaDataInName meta;
+						meta.addMeta("ReverseMID", bib::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
+						meta.addMeta("ForwardMID", bib::pasteAsStr(res.forward_.front().midName_, ":", res.forward_.front().midPos_, ":", (res.forward_.front().inRevComp_ ? "InRComp": "InFor")));
+						seq.seqBase_.name_.append(meta.createMetaName());
+						seq.mateSeqBase_.name_.append(meta.createMetaName());
+					}
+				}else{
+					//mismatch
+					ret.midName_ = res.forward_.front().midName_;
+					ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_MIDS;
+					ret.rcomplement_ = res.forward_.front().inRevComp_;
+					MetaDataInName meta;
+					meta.addMeta("ReverseMID", bib::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
+					meta.addMeta("ForwardMID", bib::pasteAsStr(res.forward_.front().midName_, ":", res.forward_.front().midPos_, ":", (res.forward_.front().inRevComp_ ? "InRComp": "InFor")));
+					seq.seqBase_.name_.append(meta.createMetaName());
+					seq.mateSeqBase_.name_.append(meta.createMetaName());
+				}
+			}else{
+				if(mids_.at(res.forward_.front().midName_).dualBarcoded()){
+					//partial match, failed to find reverse barcode of a dual barcoded sample
+
+					ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
+					MetaDataInName meta;
+					meta.addMeta("PartialForwardMID", bib::pasteAsStr(res.forward_.front().midName_, ":", res.forward_.front().midPos_, ":", (res.forward_.front().inRevComp_ ? "InRComp": "InFor")));
+					seq.seqBase_.name_.append(meta.createMetaName());
+					seq.mateSeqBase_.name_.append(meta.createMetaName());
+
+				}else{
+					//match
+					ret.midName_ = res.forward_.front().midName_;
+					ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MATCH;
+					ret.rcomplement_ = res.forward_.front().inRevComp_;
+					if(res.forward_.front().inRevComp_){
+						//process
+						seq.mateSeqBase_.trimFront(res.forward_.front().midPos_ + res.forward_.front().barcodeSize_);
+						//complement
+						seq.seqBase_.name_.append("_Comp");
+						seq.mateSeqBase_.name_.append("_Comp");
+						seqInfo tempMate = seq.seqBase_;
+						seq.seqBase_ = seq.mateSeqBase_;
+						seq.mateSeqBase_ = tempMate;
+					}else{
+						//process
+						seq.seqBase_.trimFront(res.forward_.front().midPos_ + res.forward_.front().barcodeSize_);
 					}
 				}
-			} else {
-				if (seq.mateRComplemented_) {
-					positions.first.midPos_ = positions.first.midPos_
-							- len(seq.seqBase_) - spacerSize;
-					seq.mateSeqBase_.trimBack(positions.first.midPos_);
-				} else {
-					positions.first.midPos_ = lengthOfTempSeq - positions.first.midPos_ - positions.first.barcodeSize_;
-					seq.mateSeqBase_.trimFront(positions.first.midPos_ + positions.first.barcodeSize_);
-				}
-				if (pars.barcodesBothEnds_) {
-					/**@todo look into to see if this actually needed */
-					seq.seqBase_.trimFront(mids_.at(positions.first.midName_).bar_->size());
-				}
 			}
-			if(positions.first.inRevComp_){
-				//seq.seqBase_.reverseComplementRead(true, true);
-				//seq.mateSeqBase_.reverseComplementRead(true, true);
-				auto tempSeq = seq.seqBase_;
-				seq.seqBase_ = seq.mateSeqBase_;
-				seq.mateSeqBase_ = tempSeq;
-				seq.seqBase_.name_ += "_Comp";
-				seq.mateSeqBase_.name_ += "_Comp";
+		}else{
+			//indeterminate
+			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::TOO_MANY_MATCHING;
+			MetaDataInName meta;
+			std::string forwardMids = "";
+			std::string reverseMids = "";
+			for(const auto & forMid : res.forward_){
+				if("" != forwardMids){
+					forwardMids.append(",");
+				}
+				forwardMids.append(bib::pasteAsStr(forMid.midName_, ":", forMid.midPos_, ":", (forMid.inRevComp_ ? "InRComp": "InFor")));
 			}
+
+			for(const auto & revMid : res.reverse_){
+				if("" != forwardMids){
+					reverseMids.append(",");
+				}
+				reverseMids.append(bib::pasteAsStr(revMid.midName_, ":", revMid.midPos_, ":", (revMid.inRevComp_ ? "InRComp": "InFor")));
+			}
+
+			if ("" != forwardMids) {
+				meta.addMeta("ForwardMIDs", forwardMids);
+			}
+			if ("" != reverseMids) {
+				meta.addMeta("ReverseMIDs", reverseMids);
+			}
+			seq.seqBase_.name_.append(meta.createMetaName());
+			seq.mateSeqBase_.name_.append(meta.createMetaName());
 		}
-  }
-  return positions;
+	}
+
+	return ret;
 }
 
-std::pair<MidDeterminator::midPos, MidDeterminator::midPos> MidDeterminator::fullDetermine(
-		seqInfo & info, MidDeterminePars pars) {
-	midPos ret;
-	midPos backPos;
-	//determine possible mid positions;
-	std::vector<midPos> possible = determinePossibleMidPos(info.seq_, pars.variableStop_);
-	if (pars.barcodesBothEnds_) {
-		addOtherVec(possible,
-				determinePossibleMidPosBack(info.seq_, pars.variableStop_));
-	}
-	if (pars.checkComplement_) {
-		addOtherVec(possible,
-				determinePossibleMidPosCompBack(info.seq_, pars.variableStop_));
-	}
-	if (pars.checkComplement_ && pars.barcodesBothEnds_) {
-		addOtherVec(possible,
-				determinePossibleMidPosComp(info.seq_, pars.variableStop_));
-	}
-	if (pars.checkForShorten_) {
-		if (pars.barcodesBothEnds_) {
-			addOtherVec(possible, determinePossibleMidPosShorten(info.seq_, 0));
-		}
 
-		if (pars.barcodesBothEnds_) {
-			addOtherVec(possible, determinePossibleMidPosBackShorten(info.seq_, 0));
-		}
+MidDeterminator::MidSearchRes MidDeterminator::searchRead(
+		const seqInfo & seq) const {
+	std::vector<MidDeterminator::midPos> forwardBarMatches;
+	std::vector<MidDeterminator::midPos> reverseBarMatches;
 
-		if (pars.checkComplement_) {
-			addOtherVec(possible,
-					determinePossibleMidPosCompBackShorten(info.seq_, 0));
+	for (const auto & mid : mids_) {
+		if (nullptr != mid.second.forwardBar_) {
+			auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
+					seq.seq_, *(mid.second.forwardBar_->bar_), mid.second.name_,
+					searchPars_);
+			addOtherVec(forwardBarMatches, midPositions);
 		}
-
-		if (pars.checkComplement_ && pars.barcodesBothEnds_) {
-			addOtherVec(possible, determinePossibleMidPosCompShorten(info.seq_, 0));
+		if (nullptr != mid.second.reverseBar_) {
+			auto midPositions = MidDeterminator::backDeterminePosMIDPos(
+					seq.seq_, *(mid.second.reverseBar_->rcompBar_),
+					mid.second.name_, searchPars_);
+			addOtherVec(reverseBarMatches, midPositions);
 		}
 	}
 
-	if (1 == possible.size()) {
-		ret = possible.front();
-	} else if (!possible.empty()) {
-		//determine best
-		std::vector<midPos> best;
-		double bestScore = 0;
-		for (const auto & poss : possible) {
-			if (poss.normalizeScoreByLen() > bestScore) {
-				bestScore = poss.normalizeScoreByLen();
-				best.clear();
-				best.emplace_back(poss);
-			} else if (poss.normalizeScoreByLen() == bestScore && 0 != bestScore) {
-				best.emplace_back(poss);
+	if (searchPars_.checkForShorten_) {
+		for (const auto & mid : mids_) {
+			if (nullptr != mid.second.forwardBar_) {
+				auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
+						seq.seq_, *(mid.second.forwardBar_->shortenFrontBar_),
+						mid.second.name_, shortenSearchPars_);
+				addOtherVec(forwardBarMatches, midPositions);
+			}
+			if (nullptr != mid.second.reverseBar_) {
+				////std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+				auto midPositions = MidDeterminator::backDeterminePosMIDPos(
+						seq.seq_, *(mid.second.reverseBar_->shortenBackRCompBar_),
+						mid.second.name_, shortenSearchPars_);
+				addOtherVec(reverseBarMatches, midPositions);
 			}
 		}
-		if (1 == best.size()) {
-			ret = best.front();
-		} else if (2 == best.size()) {
-			if (best[0].midName_ == best[1].midName_) {
-				/**@todo odd way to allow for rev comp on one end and regular on the other if poeple's library's are like that*/
-				/**@todo also this doesn't handle if both aren't the best, like if one had a mismatch but the other didn't */
-				if (mids_.at(best[0].midName_).rCompSame_) {
-					if (best[0].midPos_ == best[1].midPos_) {
-						ret = best[0];
-					} else {
-						if (best[0].midPos_ < best[1].midPos_) {
-							ret = best[0];
-							backPos = best[1];
-						} else {
-							ret = best[1];
-							backPos = best[0];
-						}
-					}
-				} else {
-					if (midEndsRevComp_) {
-						if (best[0].inRevComp_ != best[1].inRevComp_) {
-							if (best[0].midPos_ < best[1].midPos_) {
-								ret = best[0];
-								backPos = best[1];
-							} else {
-								ret = best[1];
-								backPos = best[0];
-							}
-						} else {
-							ret.fCase_ = midPos::FailureCase::MISMATCHING_DIRECTION;
-						}
-					} else {
-						if (best[0].inRevComp_ == best[1].inRevComp_) {
-							if (best[0].midPos_ < best[1].midPos_) {
-								ret = best[0];
-								backPos = best[1];
-							} else {
-								ret = best[1];
-								backPos = best[0];
-							}
-						} else {
-							ret.fCase_ = midPos::FailureCase::MISMATCHING_DIRECTION;
-						}
-					}
+	}
+
+	if (searchPars_.checkComplement_) {
+		//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+
+		for (const auto & mid : mids_) {
+			if (mid.second.forSameAsRev_) {
+				continue;
+			}
+			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+
+			if (nullptr != mid.second.forwardBar_) {
+				//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+				auto midPositions = MidDeterminator::backDeterminePosMIDPos(
+						seq.seq_, *(mid.second.forwardBar_->rcompBar_),
+						mid.second.name_, searchPars_);
+				for (auto & m : midPositions) {
+					m.inRevComp_ = true;
 				}
-			} else {
-				//found two mids with different names
-				ret.fCase_ = midPos::FailureCase::MISMATCHING_MIDS;
+				addOtherVec(forwardBarMatches, midPositions);
 			}
-		} else if (best.size() > 2) {
-			if (std::all_of(best.begin() + 1, best.end(),
-					[&best](const midPos & pos) {return pos.midName_ == best.front().midName_;})
-					&& mids_.at(best[0].midName_).rCompSame_) {
-				std::sort(best.begin(), best.end(),
-						[](const midPos & first, const midPos & second) {
-							if(first.midPos_ == second.midPos_) {
-								return first.inRevComp_ > second.inRevComp_;
-							} else {
-								return first.midPos_ < second.midPos_;
-							}
-						});
-				if (best.size() == 3 || best.size() == 4) {
-					ret = best[0];
-					backPos = best[3];
-				} else {
-					//found more than one 4 mids with all the same name
-					ret.fCase_ = midPos::FailureCase::TOO_MANY_MATCHING;
+			if (nullptr != mid.second.reverseBar_) {
+				//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+				auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
+						seq.seq_, *(mid.second.reverseBar_->bar_),
+						mid.second.name_, searchPars_);
+				for (auto & m : midPositions) {
+					m.inRevComp_ = true;
 				}
-			} else {
-				//found more than two mids and they aren't the same name and their rev comp aren't the same as their forward
-				ret.fCase_ = midPos::FailureCase::TOO_MANY_MATCHING;
+				addOtherVec(reverseBarMatches, midPositions);
 			}
+		}
+		if (searchPars_.checkForShorten_) {
+			for (const auto & mid : mids_) {
+				if (mid.second.forSameAsRevShorten_) {
+					continue;
+				}
+				if (nullptr != mid.second.forwardBar_) {
+					auto midPositions = MidDeterminator::backDeterminePosMIDPos(
+							seq.seq_,
+							*(mid.second.forwardBar_->shortenBackRCompBar_), mid.second.name_,
+							shortenSearchPars_);
+					for (auto & m : midPositions) {
+						m.inRevComp_ = true;
+					}
+					addOtherVec(forwardBarMatches, midPositions);
+				}
+				if (nullptr != mid.second.reverseBar_) {
+					////std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+
+					auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
+							seq.seq_, *(mid.second.reverseBar_->shortenFrontBar_),
+							mid.second.name_, shortenSearchPars_);
+					for (auto & m : midPositions) {
+						m.inRevComp_ = true;
+					}
+					addOtherVec(reverseBarMatches, midPositions);
+				}
+			}
+		}
+	}
+	//
+	//if(0 == forwardBarMatches.size() && 0 ==reverseBarMatches.size()){
+	//right now requiring that the forward barcode is found
+	MidDeterminator::MidSearchRes res;
+	std::vector<MidDeterminator::midPos> bestForwardBarMatches;
+	std::vector<MidDeterminator::midPos> bestReverseBarMatches;
+	//determine best matches;
+	//forward
+//	if("[Mixture=Mixture5;Sample=Sample1-FrontBarcode;backEndBluntEndArtifact=false;complement=true;forwardBarcodePosition=0;forwardPrimerPosition=10;frontEndBluntEndArtifact=false;readNumber=1;refName=PfKH02;reversePrimerPosition=432;targetSeqLength=457]" == seq.name_ ){
+//		std::cout << bib::bashCT::boldGreen("forwardBarMatches.size(): ")<< forwardBarMatches.size() << std::endl;
+//	}
+
+	if (1 == forwardBarMatches.size()) {
+		bestForwardBarMatches = forwardBarMatches;
+	} else {
+		uint32_t bestBarcodeScore = 0;
+		for (const auto & forwardMatch : forwardBarMatches) {
+//			if("[Mixture=Mixture5;Sample=Sample1-FrontBarcode;backEndBluntEndArtifact=false;complement=true;forwardBarcodePosition=0;forwardPrimerPosition=10;frontEndBluntEndArtifact=false;readNumber=1;refName=PfKH02;reversePrimerPosition=432;targetSeqLength=457]" == seq.name_ ){
+//				std::cout << bib::json::writeAsOneLine(forwardMatch.toJson()) << std::endl;
+//			}
+			if (forwardMatch.barcodeScore_ > bestBarcodeScore) {
+				bestForwardBarMatches.clear();
+				bestForwardBarMatches.emplace_back(forwardMatch);
+				bestBarcodeScore = forwardMatch.barcodeScore_;
+			} else if (forwardMatch.barcodeScore_ == bestBarcodeScore) {
+				bestForwardBarMatches.emplace_back(forwardMatch);
+			}
+		}
+	}
+	//std::cout << bib::bashCT::boldGreen("reverseBarMatches.size(): ")<< reverseBarMatches.size() << std::endl;
+	//reverse
+	if (1 == reverseBarMatches.size()) {
+		bestReverseBarMatches = reverseBarMatches;
+	} else {
+		uint32_t bestBarcodeScore = 0;
+		for (const auto & reverseMath : reverseBarMatches) {
+			if (reverseMath.barcodeScore_ > bestBarcodeScore) {
+				bestReverseBarMatches.clear();
+				bestReverseBarMatches.emplace_back(reverseMath);
+				bestBarcodeScore = reverseMath.barcodeScore_;
+			} else if (reverseMath.barcodeScore_ == bestBarcodeScore) {
+				bestReverseBarMatches.emplace_back(reverseMath);
+			}
+		}
+	}
+
+	//utilize other size if multiple best matches
+	if (bestForwardBarMatches.size() > 1 && bestReverseBarMatches.size() == 1) {
+		bool foundMatch = false;
+		MidDeterminator::midPos frontMatch;
+		for (const auto & bestFor : bestForwardBarMatches) {
+			if (bestFor.midName_ == bestReverseBarMatches.front().midName_) {
+				frontMatch = bestFor;
+				foundMatch = true;
+				break;
+			}
+		}
+		if (foundMatch) {
+			bestForwardBarMatches.clear();
+			bestForwardBarMatches.emplace_back(frontMatch);
+		}
+	} else if (bestForwardBarMatches.size() == 1
+			&& bestReverseBarMatches.size() > 1) {
+		bool foundMatch = false;
+		MidDeterminator::midPos backMatch;
+		for (const auto & bestBack : bestReverseBarMatches) {
+			if (bestBack.midName_ == bestForwardBarMatches.front().midName_) {
+				backMatch = bestBack;
+				foundMatch = true;
+				break;
+			}
+		}
+		if (foundMatch) {
+			bestReverseBarMatches.clear();
+			bestReverseBarMatches.emplace_back(backMatch);
+		}
+	}
+	res.forward_ = bestForwardBarMatches;
+	res.reverse_ = bestReverseBarMatches;
+
+	return res;
+}
+MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
+		const MidDeterminator::MidSearchRes & res) const {
+	MidDeterminator::ProcessedRes ret;
+	if (res.forward_.empty()) {
+		//currently requiring forward
+		if (1 == res.reverse_.size()
+				&& mids_.at(res.reverse_.front().midName_).dualBarcoded()) {
+			//partial match, failed to find forward barcode of a dual barcoded sample
+			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
+			MetaDataInName meta;
+			meta.addMeta("PartialReverseMID",
+					bib::pasteAsStr(res.reverse_.front().midName_, ":",
+							res.reverse_.front().midPos_, ":",
+							(res.reverse_.front().inRevComp_ ? "InRComp" : "InFor")));
+			seq.name_.append(meta.createMetaName());
 		} else {
-			//best is empty... i think, if i'm following logic correctly
-			ret.fCase_ = midPos::FailureCase::NO_MATCHING;
+			//no match
+			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::NO_MATCHING;
 		}
 	} else {
-		ret.fCase_ = midPos::FailureCase::NO_MATCHING;
-	}
+		if (res.forward_.size() == 1 && res.reverse_.size() < 2) {
+			if (res.reverse_.size() == 1) {
+				if (res.forward_.front().midName_ == res.reverse_.front().midName_) {
+					if (res.forward_.front().inRevComp_
+							== res.reverse_.front().inRevComp_) {
+						//match
+						ret.midName_ = res.forward_.front().midName_;
+						ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MATCH;
+						ret.rcomplement_ = res.forward_.front().inRevComp_;
+						if (res.forward_.front().inRevComp_) {
+							//process
+							seq.trimBack(
+									res.forward_.front().midPos_);
+							seq.trimFront(
+									res.reverse_.front().midPos_
+											+ res.reverse_.front().barcodeSize_);
 
-	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-	if (ret) {
-		if (backPos) {
-			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-			if(ret.midPos_ < pars.variableStop_ && backPos.midPos_ < pars.variableStop_){
-				processInfoWithMidPos(info, backPos, pars);
-				ret = backPos;
-				backPos = midPos();
-			}else if(ret.midPos_ + pars.variableStop_ >= len(info) &&  backPos.midPos_ + pars.variableStop_ >= len(info)){
-				processInfoWithMidPos(info, ret, pars);
-				backPos = midPos();
-			}else{
-				processInfoWithMidPos(info, ret, backPos);
+							//complement
+							seq.name_.append("_Comp");
+							seq.reverseComplementRead(false, true);
+						} else {
+							//process
+							seq.trimBack(
+									res.reverse_.front().midPos_);
+							seq.trimFront(
+									res.forward_.front().midPos_
+											+ res.forward_.front().barcodeSize_);
+						}
+					} else {
+						//mismatching directions
+						ret.midName_ = res.forward_.front().midName_;
+						ret.case_ =
+								MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_DIRECTION;
+						ret.rcomplement_ = res.forward_.front().inRevComp_;
+						MetaDataInName meta;
+						meta.addMeta("ReverseMID",
+								bib::pasteAsStr(res.reverse_.front().midName_, ":",
+										res.reverse_.front().midPos_, ":",
+										(res.reverse_.front().inRevComp_ ? "InRComp" : "InFor")));
+						meta.addMeta("ForwardMID",
+								bib::pasteAsStr(res.forward_.front().midName_, ":",
+										res.forward_.front().midPos_, ":",
+										(res.forward_.front().inRevComp_ ? "InRComp" : "InFor")));
+						seq.name_.append(meta.createMetaName());
+					}
+				} else {
+					//mismatch
+					ret.midName_ = res.forward_.front().midName_;
+					ret.case_ =
+							MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_MIDS;
+					ret.rcomplement_ = res.forward_.front().inRevComp_;
+					MetaDataInName meta;
+					meta.addMeta("ReverseMID",
+							bib::pasteAsStr(res.reverse_.front().midName_, ":",
+									res.reverse_.front().midPos_, ":",
+									(res.reverse_.front().inRevComp_ ? "InRComp" : "InFor")));
+					meta.addMeta("ForwardMID",
+							bib::pasteAsStr(res.forward_.front().midName_, ":",
+									res.forward_.front().midPos_, ":",
+									(res.forward_.front().inRevComp_ ? "InRComp" : "InFor")));
+					seq.name_.append(meta.createMetaName());
+				}
+			} else {
+				if (mids_.at(res.forward_.front().midName_).dualBarcoded()) {
+					//partial match, failed to find reverse barcode of a dual barcoded sample
+
+					ret.case_ =
+							MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
+					MetaDataInName meta;
+					meta.addMeta("PartialForwardMID",
+							bib::pasteAsStr(res.forward_.front().midName_, ":",
+									res.forward_.front().midPos_, ":",
+									(res.forward_.front().inRevComp_ ? "InRComp" : "InFor")));
+					seq.name_.append(meta.createMetaName());
+
+				} else {
+//					if("[Mixture=Mixture5;Sample=Sample1-FrontBarcode;backEndBluntEndArtifact=false;complement=true;forwardBarcodePosition=0;forwardPrimerPosition=10;frontEndBluntEndArtifact=false;readNumber=1;refName=PfKH02;reversePrimerPosition=432;targetSeqLength=457]" == seq.name_ ){
+//						std::cout << res.forward_.front().toJson() << std::endl;
+//					}
+					//match
+					ret.midName_ = res.forward_.front().midName_;
+					ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MATCH;
+					ret.rcomplement_ = res.forward_.front().inRevComp_;
+					if (res.forward_.front().inRevComp_) {
+						//process
+						seq.trimBack(
+								res.forward_.front().midPos_);
+						//complement
+						seq.name_.append("_Comp");
+						seq.reverseComplementRead(false, true);
+					} else {
+						//process
+						seq.trimFront(
+								res.forward_.front().midPos_
+										+ res.forward_.front().barcodeSize_);
+					}
+				}
 			}
-			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 		} else {
-			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-			processInfoWithMidPos(info, ret, pars);
-			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+			//indeterminate
+			ret.case_ =
+					MidDeterminator::ProcessedRes::PROCESSED_CASE::TOO_MANY_MATCHING;
+			MetaDataInName meta;
+			std::string forwardMids = "";
+			std::string reverseMids = "";
+			for (const auto & forMid : res.forward_) {
+				if ("" != forwardMids) {
+					forwardMids.append(",");
+				}
+				forwardMids.append(
+						bib::pasteAsStr(forMid.midName_, ":", forMid.midPos_, ":",
+								(forMid.inRevComp_ ? "InRComp" : "InFor")));
+			}
+
+			for (const auto & revMid : res.reverse_) {
+				if ("" != forwardMids) {
+					reverseMids.append(",");
+				}
+				reverseMids.append(
+						bib::pasteAsStr(revMid.midName_, ":", revMid.midPos_, ":",
+								(revMid.inRevComp_ ? "InRComp" : "InFor")));
+			}
+
+			if ("" != forwardMids) {
+				meta.addMeta("ForwardMIDs", forwardMids);
+			}
+			if ("" != reverseMids) {
+				meta.addMeta("ReverseMIDs", reverseMids);
+			}
+			seq.name_.append(meta.createMetaName());
 		}
 	}
-	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-	return {ret, backPos};
+	return ret;
 }
 
-void MidDeterminator::increaseFailedBarcodeCounts(
-		const MidDeterminator::midPos & pos,
-		std::unordered_map<std::string, uint32_t> & counts) {
-	std::string fCaseStr = midPos::getFailureCaseName(pos.fCase_);
-	counts[fCaseStr] += 1;
+MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedRead & seq) const{
+	std::vector<MidDeterminator::midPos> forwardBarMatches;
+	std::vector<MidDeterminator::midPos> reverseBarMatches;
+
+	for (const auto & mid : mids_) {
+		if (nullptr != mid.second.forwardBar_) {
+			auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
+					seq.seqBase_.seq_, *(mid.second.forwardBar_->bar_),
+					mid.second.name_, searchPars_);
+			addOtherVec(forwardBarMatches, midPositions);
+		}
+		if (nullptr != mid.second.reverseBar_) {
+			auto midPositions =
+					MidDeterminator::frontDeterminePosMIDPos(
+					seq.mateSeqBase_.seq_, *(mid.second.reverseBar_->bar_),
+					mid.second.name_, searchPars_);
+			addOtherVec(reverseBarMatches, midPositions);
+		}
+	}
+
+	if(searchPars_.checkForShorten_){
+		for (const auto & mid : mids_) {
+			if (nullptr != mid.second.forwardBar_) {
+				auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
+						seq.seqBase_.seq_, *(mid.second.forwardBar_->shortenFrontBar_),
+						mid.second.name_, shortenSearchPars_);
+				addOtherVec(forwardBarMatches, midPositions);
+			}
+			if (nullptr != mid.second.reverseBar_) {
+				////std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+				auto midPositions =
+						MidDeterminator::frontDeterminePosMIDPos(
+						seq.mateSeqBase_.seq_, *(mid.second.reverseBar_->shortenFrontBar_),
+						mid.second.name_, shortenSearchPars_);
+				addOtherVec(reverseBarMatches, midPositions);
+			}
+		}
+	}
+
+	if(searchPars_.checkComplement_){
+		//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+
+		for (const auto & mid : mids_) {
+			if (mid.second.forSameAsRev_){
+				continue;
+			}
+			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+
+			if (nullptr != mid.second.forwardBar_) {
+				//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+				auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
+						seq.mateSeqBase_.seq_, *(mid.second.forwardBar_->bar_),
+						mid.second.name_, searchPars_);
+				for(auto & m : midPositions){
+					m.inRevComp_ = true;
+				}
+				addOtherVec(forwardBarMatches, midPositions);
+			}
+			if (nullptr != mid.second.reverseBar_) {
+				//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+				auto midPositions =
+						MidDeterminator::frontDeterminePosMIDPos(
+						seq.seqBase_.seq_, *(mid.second.reverseBar_->bar_),
+						mid.second.name_, searchPars_);
+				for(auto & m : midPositions){
+					m.inRevComp_ = true;
+				}
+				addOtherVec(reverseBarMatches, midPositions);
+			}
+		}
+		if(searchPars_.checkForShorten_){
+			for (const auto & mid : mids_) {
+				if (mid.second.forSameAsRevShorten_){
+					continue;
+				}
+				if (nullptr != mid.second.forwardBar_) {
+					auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
+							seq.mateSeqBase_.seq_, *(mid.second.forwardBar_->shortenFrontBar_),
+							mid.second.name_, shortenSearchPars_);
+					for(auto & m : midPositions){
+						m.inRevComp_ = true;
+					}
+					addOtherVec(forwardBarMatches, midPositions);
+				}
+				if (nullptr != mid.second.reverseBar_) {
+					////std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+
+					auto midPositions =
+							MidDeterminator::frontDeterminePosMIDPos(
+							seq.seqBase_.seq_, *(mid.second.reverseBar_->shortenFrontBar_),
+							mid.second.name_, shortenSearchPars_);
+					for(auto & m : midPositions){
+						m.inRevComp_ = true;
+					}
+					addOtherVec(reverseBarMatches, midPositions);
+				}
+			}
+		}
+	}
+	//
+	//if(0 == forwardBarMatches.size() && 0 ==reverseBarMatches.size()){
+	//right now requiring that the forward barcode is found
+	MidDeterminator::MidSearchRes res;
+	std::vector<MidDeterminator::midPos> bestForwardBarMatches;
+	std::vector<MidDeterminator::midPos> bestReverseBarMatches;
+	//determine best matches;
+	//forward
+	if(1 == forwardBarMatches.size()){
+		bestForwardBarMatches = forwardBarMatches;
+	}else{
+		uint32_t bestBarcodeScore = 0;
+		for(const auto & forwardMatch : forwardBarMatches){
+			if(forwardMatch.barcodeScore_ > bestBarcodeScore){
+				bestForwardBarMatches.clear();
+				bestForwardBarMatches.emplace_back(forwardMatch);
+			}else if(forwardMatch.barcodeScore_ == bestBarcodeScore){
+				bestForwardBarMatches.emplace_back(forwardMatch);
+			}
+		}
+	}
+	//std::cout << bib::bashCT::boldGreen("reverseBarMatches.size(): ")<< reverseBarMatches.size() << std::endl;
+	//reverse
+	if(1 == reverseBarMatches.size()){
+		bestReverseBarMatches = reverseBarMatches;
+	}else{
+		uint32_t bestBarcodeScore = 0;
+		for(const auto & reverseMath : reverseBarMatches){
+			if(reverseMath.barcodeScore_ > bestBarcodeScore){
+				bestReverseBarMatches.clear();
+				bestReverseBarMatches.emplace_back(reverseMath);
+			}else if(reverseMath.barcodeScore_ == bestBarcodeScore){
+				bestReverseBarMatches.emplace_back(reverseMath);
+			}
+		}
+	}
+
+	//utilize other size if multiple best matches
+	if(bestForwardBarMatches.size() > 1 && bestReverseBarMatches.size() == 1 ){
+		bool foundMatch = false;
+		MidDeterminator::midPos frontMatch;
+		for(const auto & bestFor : bestForwardBarMatches){
+			if(bestFor.midName_ == bestReverseBarMatches.front().midName_){
+				frontMatch = bestFor;
+				foundMatch = true;
+				break;
+			}
+		}
+		if(foundMatch){
+			bestForwardBarMatches.clear();
+			bestForwardBarMatches.emplace_back(frontMatch);
+		}
+	}else if(bestForwardBarMatches.size() == 1 && bestReverseBarMatches.size() > 1){
+		bool foundMatch = false;
+		MidDeterminator::midPos backMatch;
+		for(const auto & bestBack : bestReverseBarMatches){
+			if(bestBack.midName_ == bestForwardBarMatches.front().midName_){
+				backMatch = bestBack;
+				foundMatch = true;
+				break;
+			}
+		}
+		if(foundMatch){
+			bestReverseBarMatches.clear();
+			bestReverseBarMatches.emplace_back(backMatch);
+		}
+	}
+	res.forward_ = bestForwardBarMatches;
+	res.reverse_ = bestReverseBarMatches;
+
+	return res;
 }
 
 } /* namespace bibseq */
