@@ -62,10 +62,14 @@ public:
 	void setLongestUid();
 	bool sameRegion(const GenomicRegion & otherRegion) const;
 	bool sameRegion(const GFFCore & gff) const;
+	bool sameRegion(const Bed3RecordCore & otherRegion) const;
+
 	void checkRegion(const BamTools::BamReader & bReader,
 			const BamTools::RefVector & refs, const VecStr & twoBitRefs);
 
 	bool overlaps(const GenomicRegion & otherRegion,
+			const size_t overlapMin = 1) const;
+	bool overlaps(const Bed3RecordCore & otherRegion,
 			const size_t overlapMin = 1) const;
 	bool overlaps(const GFFCore & gff,
 			const size_t overlapMin = 1) const;
@@ -73,6 +77,8 @@ public:
 
 	size_t getOverlapLen(const GenomicRegion & otherRegion) const;
 	size_t getOverlapLen(const GFFCore & gff) const;
+	size_t getOverlapLen(const Bed3RecordCore & otherRegion) const;
+	size_t getOverlapLen(const std::string & chrom, const size_t start, const size_t end) const;
 
 	bool startsInThisRegion(const GenomicRegion & otherRegion) const;
 	bool endsInThisRegion(const GenomicRegion & otherRegion) const;

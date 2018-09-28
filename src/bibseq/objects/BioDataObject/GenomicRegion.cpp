@@ -155,38 +155,34 @@ void GenomicRegion::checkRegion(const BamTools::BamReader & bReader,
 }
 
 
-bool GenomicRegion::sameRegion(const GenomicRegion & otherRegion)const{
-	return otherRegion.chrom_ == chrom_ &&
-			otherRegion.start_ == start_ &&
-			otherRegion.end_ == end_;
+bool GenomicRegion::sameRegion(const GenomicRegion & otherRegion) const {
+	return otherRegion.chrom_ == chrom_ && otherRegion.start_ == start_
+			&& otherRegion.end_ == end_;
 }
-bool GenomicRegion::sameRegion(const GFFCore & gff)const{
+
+bool GenomicRegion::sameRegion(const Bed3RecordCore & otherRegion) const {
+	return otherRegion.chrom_ == chrom_ && otherRegion.chromStart_ == start_
+			&& otherRegion.chromEnd_ == end_;
+}
+
+bool GenomicRegion::sameRegion(const GFFCore & gff) const {
 	//have to take into account that posiitions in gff are 1 based
-	return gff.seqid_ == chrom_ &&
-			gff.start_ - 1 == start_ &&
-			gff.end_ == end_;
+	return gff.seqid_ == chrom_ && gff.start_ - 1 == start_ && gff.end_ == end_;
 }
 
 bool GenomicRegion::overlaps(const GenomicRegion & otherRegion,
 		const size_t overlapMin) const {
-	if(sameRegion(otherRegion)){
-		return true;
-	}
-	if(getOverlapLen(otherRegion) >=overlapMin){
-		return true;
-	}
-	return false;
+	return getOverlapLen(otherRegion) >=overlapMin;
+}
+
+bool GenomicRegion::overlaps(const Bed3RecordCore & otherRegion,
+		const size_t overlapMin) const{
+	return getOverlapLen(otherRegion) >=overlapMin;
 }
 
 bool GenomicRegion::overlaps(const GFFCore & gff,
 		const size_t overlapMin) const {
-	if(sameRegion(gff)){
-		return true;
-	}
-	if(getOverlapLen(gff) >=overlapMin){
-		return true;
-	}
-	return false;
+	return getOverlapLen(gff) >=overlapMin;
 }
 
 
@@ -209,33 +205,26 @@ bool GenomicRegion::startsInThisRegion(
 
 
 size_t GenomicRegion::getOverlapLen(const GenomicRegion & otherRegion) const {
-	if(otherRegion.chrom_ != chrom_){
-		return 0;
-	}
-	if( (otherRegion.start_ > start_ && otherRegion.start_ < end_) ||
-			(otherRegion.end_ > start_ && otherRegion.end_ < end_) ||
-			(start_ > otherRegion.start_ &&  start_ <  otherRegion.end_) ||
-			(end_ > otherRegion.start_ && end_  < otherRegion.end_)  ) {
-		auto overlapStart = std::max(otherRegion.start_, start_);
-		auto overlapEnd = std::min(otherRegion.end_, end_);
-		return overlapEnd - overlapStart;
-	}
-	return 0;
+	return getOverlapLen(otherRegion.chrom_, otherRegion.start_, otherRegion.end_);
 }
 
 size_t GenomicRegion::getOverlapLen(const GFFCore & gff) const {
-	auto chrom = gff.seqid_;
-	auto start = gff.start_ -1 ;
-	auto end = gff.end_;
-	if(chrom != chrom_){
+	return getOverlapLen(gff.seqid_, gff.start_ -1, gff.end_);
+}
+
+size_t GenomicRegion::getOverlapLen(const Bed3RecordCore & otherRegion) const {
+	return getOverlapLen(otherRegion.chrom_, otherRegion.chromStart_, otherRegion.chromEnd_);
+}
+
+size_t GenomicRegion::getOverlapLen(const std::string & otherChrom,
+		const size_t otherStart, const size_t otherEnd) const {
+	if (otherChrom != chrom_) {
 		return 0;
 	}
-	if( (start > start_ && start < end_) ||
-			(end > start_ && end < end_) ||
-			(start_ > start &&  start_ <  end) ||
-			(end_ > start && end_  < end)  ) {
-		auto overlapStart = std::max(start, start_);
-		auto overlapEnd = std::min(end, end_);
+	if ((otherStart >= start_ && otherStart <  end_) ||
+			(otherEnd    > start_ && otherEnd   <= end_)) {
+		auto overlapStart = std::max(otherStart, start_);
+		auto overlapEnd =   std::min(otherEnd,   end_);
 		return overlapEnd - overlapStart;
 	}
 	return 0;
