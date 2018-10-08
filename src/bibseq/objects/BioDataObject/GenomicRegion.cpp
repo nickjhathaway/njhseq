@@ -205,6 +205,7 @@ bool GenomicRegion::startsInThisRegion(
 
 
 size_t GenomicRegion::getOverlapLen(const GenomicRegion & otherRegion) const {
+	//std::cout << "otherRegion.uid_: " << otherRegion.uid_ << std::endl;
 	return getOverlapLen(otherRegion.chrom_, otherRegion.start_, otherRegion.end_);
 }
 
@@ -221,8 +222,27 @@ size_t GenomicRegion::getOverlapLen(const std::string & otherChrom,
 	if (otherChrom != chrom_) {
 		return 0;
 	}
+//	if(1724816	== otherStart && 1726997 == otherEnd ){
+//		std::cout << "uid_: " << uid_ << std::endl;
+//		std::cout << "otherStart: " << otherStart << std::endl;
+//		std::cout << "start_:     " << start_ << std::endl;
+//		std::cout << "otherEnd:   " << otherEnd << std::endl;
+//		std::cout << "end_:       " << end_ << std::endl;
+//		std::cout << "otherStart >= start_  " << bib::colorBool(otherStart >= start_) << std::endl;
+//		std::cout << "otherStart <  end_:   " << bib::colorBool(otherStart <  end_) << std::endl;
+//		std::cout << "otherEnd    > start_: " << bib::colorBool(otherEnd    > start_) << std::endl;
+//		std::cout << "otherEnd   <= end_:   " << bib::colorBool(otherEnd   <= end_) << std::endl;
+//		std::cout << "otherStart >= start_ && otherStart <  end_: " << bib::colorBool(otherStart >= start_ && otherStart <  end_) << std::endl;
+//		std::cout << "otherEnd    > start_ && otherEnd   <= end_: " << bib::colorBool(otherEnd    > start_ && otherEnd   <= end_) << std::endl;
+//		std::cout << "start_ >= otherStart && start_ <  otherEnd: " << bib::colorBool(start_ >= otherStart && start_ <  otherEnd) << std::endl;
+//		std::cout << "end_    > otherStart && end_   <= otherEnd: " << bib::colorBool(end_    > otherStart && end_   <= otherEnd) << std::endl;
+//
+//	}
+
 	if ((otherStart >= start_ && otherStart <  end_) ||
-			(otherEnd    > start_ && otherEnd   <= end_)) {
+			(otherEnd    > start_ && otherEnd   <= end_) ||
+			(start_ >= otherStart && start_ <  otherEnd) ||
+			(end_    > otherStart && end_   <= otherEnd)) {
 		auto overlapStart = std::max(otherStart, start_);
 		auto overlapEnd =   std::min(otherEnd,   end_);
 		return overlapEnd - overlapStart;

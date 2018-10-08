@@ -248,12 +248,12 @@ void GeneFromGffs::writeOutGeneInfo(TwoBit::TwoBitFile & tReader, const OutOptio
 	}
 }
 
-std::unordered_map<std::string,std::shared_ptr<GeneSeqInfo>> GeneFromGffs::generateGeneSeqInfo(TwoBit::TwoBitFile & tReader, bool oneBased) const{
+std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> GeneFromGffs::generateGeneSeqInfo(TwoBit::TwoBitFile & tReader, bool oneBased) const{
 	std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> ret;
 	for(const auto & transcript : mRNAs_){
 		GenomicRegion mRnaRegion(*transcript) ;
 		auto gDna = mRnaRegion.extractSeq(tReader);
-		auto cdsRegions = gffPtrsToGenomicRegs(CDS_.at(transcript->getAttr("ID")));
+		auto cdsRegions = gffPtrsToGenomicRegs(CDS_.at(transcript->getIDAttr() ));
 		seqInfo cDna;
 		seqInfo cDnaAln;
 		if(cdsRegions.size() > 1){
@@ -284,7 +284,7 @@ std::unordered_map<std::string,std::shared_ptr<GeneSeqInfo>> GeneFromGffs::gener
 			cDnaAln = cDna;
 		}else{
 			std::stringstream ss;
-			ss << __PRETTY_FUNCTION__ << ", error no CDS regions found for " << transcript->getAttr("ID") << "\n";
+			ss << __PRETTY_FUNCTION__ << ", error no CDS regions found for " << transcript->getIDAttr() << "\n";
 			throw std::runtime_error{ss.str()};
 		}
 		GeneSeqInfo::GeneSeqInfoPars giInfoPar;

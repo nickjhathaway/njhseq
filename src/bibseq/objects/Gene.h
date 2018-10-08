@@ -8,5 +8,4 @@
 
 #include "bibseq/objects/Gene/GeneSeqInfo.hpp"
 #include "bibseq/objects/Gene/GeneFromGffs.hpp"
-
-
+#include "bibseq/objects/Gene/GenomicAminoAcidPositionTyper.hpp"

@@ -52,7 +52,14 @@ public:
 	void increaseCounts(const std::vector<BamTools::BamAlignment> & bAlns,
 			const BamTools::RefVector & refData);
 
+	std::set<std::string> getIntersectingGffIds(const bfs::path & gffFnp, const VecStr & features = {"gene"})const ;
+
+	static GenomicRegionCounter countRegionsInBam(const bfs::path & bamFnp);
 };
+
+
+
+
 
 }  // namespace bibseq
 

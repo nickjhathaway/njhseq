@@ -25,6 +25,11 @@
 //
 
 #include "GenomicRegionCounter.hpp"
+#include "bibseq/objects/BioDataObject/BioDataFileIO.hpp"
+#include "bibseq/objects/BioDataObject/GFFCore.hpp"
+#include "bibseq/BamToolsUtils.h"
+
+
 
 namespace bibseq {
 
@@ -83,6 +88,59 @@ void GenomicRegionCounter::increaseCounts(
 		increaseCount(gRegion, 1);
 	}
 }
+
+
+std::set<std::string> GenomicRegionCounter::getIntersectingGffIds(const bfs::path & gffFnp, const VecStr & features)const {
+	std::set<std::string> idsFromData;
+	BioDataFileIO<GFFCore> reader { IoOptions(InOptions(gffFnp)) };
+	reader.openIn();
+	uint32_t count = 0;
+	std::string line = "";
+	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
+	while (nullptr != gRecord) {
+		if (bib::in(gRecord->type_, features) ) {
+			for (const auto & gCount : counts_) {
+				if (gCount.second.region_.overlaps(*gRecord)) {
+					idsFromData.emplace(gRecord->getIDAttr());
+					break;
+				}
+			}
+		}
+		bool end = false;
+		while ('#' == reader.inFile_->peek()) {
+			if (bib::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+				end = true;
+				break;
+			}
+			bib::files::crossPlatGetline(*reader.inFile_, line);
+		}
+		if (end) {
+			break;
+		}
+		gRecord = reader.readNextRecord();
+		++count;
+	}
+	return idsFromData;
+}
+
+
+
+GenomicRegionCounter GenomicRegionCounter::countRegionsInBam(const bfs::path & bamFnp){
+		GenomicRegionCounter gCounter;
+
+		BamTools::BamReader bReader;
+		bReader.Open(bamFnp.string());
+		checkBamOpenThrow(bReader, bamFnp);
+
+		BamTools::BamAlignment bAln;
+		auto refData = bReader.GetReferenceData();
+		while (bReader.GetNextAlignment(bAln)) {
+			if (bAln.IsMapped()) {
+				gCounter.increaseCount(GenomicRegion(bAln, refData), 1);
+			}
+		}
+		return gCounter;
+	}
 
 }  // namespace bibseq
 
