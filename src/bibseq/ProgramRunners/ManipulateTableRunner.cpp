@@ -251,24 +251,34 @@ int ManipulateTableRunner::addColumn(
 	setUp.finishSetUp(std::cout);
 	table outTab(setUp.ioOptions_);
 	auto toks = tokenizeString(elementStr, ",");
-	if (toks.size() > 1) {
-		if (outTab.content_.size() % toks.size() != 0) {
+	auto colToks = tokenizeString(columnName, ",");
+	if(colToks.size() > 1){
+		if(toks.size() != colToks.size()){
 			std::stringstream ss;
-			ss << bib::bashCT::red << "Error, table has "
-					<< outTab.content_.size() << " and the size of adding elements "
-					<< bib::conToStr(elementStr, ",") << " doesn't fit into it"
-					<< bib::bashCT::reset << std::endl;
+			ss << __PRETTY_FUNCTION__ << ", error, when adding multiple columns the number of elements need to match number of new columns" << "\n"
+					<< "New Columns #: " << colToks.size() << ", New Elements #: " << toks.size() <<"\n";
 			throw std::runtime_error{ss.str()};
-		} else {
-			outTab.addColumn(
-					repeatVector(toks, { outTab.content_.size() / toks.size() }),
-					columnName);
 		}
-	} else if (toks.size() == 1) {
-		outTab.addColumn(toks, columnName);
-	} else {
-		//shouldn't be zero...
+		outTab.addSingleValueColumns(toks, colToks);
+	}else{
+		if (toks.size() > 1) {
+			if (outTab.content_.size() % toks.size() != 0) {
+				std::stringstream ss;
+				ss << bib::bashCT::red << "Error, table has "
+						<< outTab.content_.size() << " and the size of adding elements "
+						<< bib::conToStr(elementStr, ",") << " doesn't fit into it"
+						<< bib::bashCT::reset << std::endl;
+				throw std::runtime_error{ss.str()};
+			} else {
+				outTab.addColumn(
+						repeatVector(toks, { outTab.content_.size() / toks.size() }),
+						columnName);
+			}
+		} else if (toks.size() == 1) {
+			outTab.addColumn(toks, columnName);
+		}
 	}
+
 	outTab.outPutContents(setUp.ioOptions_);
 	return 0;
 }
