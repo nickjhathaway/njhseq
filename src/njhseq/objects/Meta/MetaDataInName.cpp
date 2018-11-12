@@ -218,9 +218,9 @@ std::string MetaDataInName::pasteLevels(const VecStr & metalevels,
 		levelVals.emplace_back(getMeta(lev));
 	}
 	if ("" != sep) {
-		return bib::conToStr(levelVals, sep);
+		return njh::conToStr(levelVals, sep);
 	} else {
-		return bib::pasteAsStr(levelVals);
+		return njh::pasteAsStr(levelVals);
 	}
 }
 
