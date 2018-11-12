@@ -207,6 +207,23 @@ std::string MetaDataInName::getMeta(const std::string & key) const {
 	return "";
 }
 
+std::string MetaDataInName::pasteLevels(const std::string & sep) const{
+	return pasteLevels(getVectorOfMapKeys(meta_), sep);
+}
+
+std::string MetaDataInName::pasteLevels(const VecStr & metalevels,
+		const std::string & sep) const {
+	VecStr levelVals;
+	for(const auto & lev : metalevels){
+		levelVals.emplace_back(getMeta(lev));
+	}
+	if ("" != sep) {
+		return bib::conToStr(levelVals, sep);
+	} else {
+		return bib::pasteAsStr(levelVals);
+	}
+}
+
 std::string MetaDataInName::createMetaName() const {
 	std::string newMeta = "[";
 	auto metaKeys = bib::getVecOfMapKeys(meta_);

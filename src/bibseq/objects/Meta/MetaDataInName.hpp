@@ -72,6 +72,11 @@ public:
 	std::string createMetaName() const;
 	std::string createMetaName(const std::function<bool(const std::string &, const std::string &)> & metaKeyPredSorter) const;
 
+
+	std::string pasteLevels(const std::string & sep = "") const;
+	std::string pasteLevels(const VecStr & metalevels, const std::string & sep = "") const;
+
+
 	void resetMetaInName(std::string & name,
 			size_t pos = std::numeric_limits<size_t>::max()) const;
 
