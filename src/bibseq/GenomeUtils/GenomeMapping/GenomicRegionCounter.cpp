@@ -5,28 +5,33 @@
  *      Author: nick
  */
 
-// njhseq - A library for analyzing sequence data
+// bibseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of njhseq.
+// This file is part of bibseq.
 //
-// njhseq is free software: you can redistribute it and/or modify
+// bibseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// njhseq is distributed in the hope that it will be useful,
+// bibseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "GenomicRegionCounter.hpp"
+#include "bibseq/objects/BioDataObject/BioDataFileIO.hpp"
+#include "bibseq/objects/BioDataObject/GFFCore.hpp"
+#include "bibseq/BamToolsUtils.h"
 
-namespace njhseq {
+
+
+namespace bibseq {
 
 GenomicRegionCounter::GenomicRegionCount::GenomicRegionCount(
 		const GenomicRegion & region) :
@@ -65,7 +70,7 @@ void GenomicRegionCounter::increaseCount(const GenomicRegion & region,
 
 std::vector<GenomicRegion> GenomicRegionCounter::getRegionsLargestOnTop() const {
 	auto uids = getVectorOfMapKeys(counts_);
-	njh::sort(uids,
+	bib::sort(uids,
 			[this](const std::string & key1, const std::string & key2) {return counts_.at(key1).count_ > counts_.at(key2).count_;});
 	std::vector<GenomicRegion> ret;
 	for (const auto & key : uids) {
@@ -84,5 +89,58 @@ void GenomicRegionCounter::increaseCounts(
 	}
 }
 
-}  // namespace njhseq
+
+std::set<std::string> GenomicRegionCounter::getIntersectingGffIds(const bfs::path & gffFnp, const VecStr & features)const {
+	std::set<std::string> idsFromData;
+	BioDataFileIO<GFFCore> reader { IoOptions(InOptions(gffFnp)) };
+	reader.openIn();
+	uint32_t count = 0;
+	std::string line = "";
+	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
+	while (nullptr != gRecord) {
+		if (bib::in(gRecord->type_, features) ) {
+			for (const auto & gCount : counts_) {
+				if (gCount.second.region_.overlaps(*gRecord)) {
+					idsFromData.emplace(gRecord->getIDAttr());
+					break;
+				}
+			}
+		}
+		bool end = false;
+		while ('#' == reader.inFile_->peek()) {
+			if (bib::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+				end = true;
+				break;
+			}
+			bib::files::crossPlatGetline(*reader.inFile_, line);
+		}
+		if (end) {
+			break;
+		}
+		gRecord = reader.readNextRecord();
+		++count;
+	}
+	return idsFromData;
+}
+
+
+
+GenomicRegionCounter GenomicRegionCounter::countRegionsInBam(const bfs::path & bamFnp){
+		GenomicRegionCounter gCounter;
+
+		BamTools::BamReader bReader;
+		bReader.Open(bamFnp.string());
+		checkBamOpenThrow(bReader, bamFnp);
+
+		BamTools::BamAlignment bAln;
+		auto refData = bReader.GetReferenceData();
+		while (bReader.GetNextAlignment(bAln)) {
+			if (bAln.IsMapped()) {
+				gCounter.increaseCount(GenomicRegion(bAln, refData), 1);
+			}
+		}
+		return gCounter;
+	}
+
+}  // namespace bibseq
 

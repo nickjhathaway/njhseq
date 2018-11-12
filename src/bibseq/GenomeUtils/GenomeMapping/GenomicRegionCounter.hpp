@@ -5,28 +5,28 @@
  *  Created on: Mar 31, 2017
  *      Author: nick
  */
-// njhseq - A library for analyzing sequence data
+// bibseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of njhseq.
+// This file is part of bibseq.
 //
-// njhseq is free software: you can redistribute it and/or modify
+// bibseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// njhseq is distributed in the hope that it will be useful,
+// bibseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "njhseq/utils.h"
-#include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
+#include "bibseq/utils.h"
+#include "bibseq/objects/BioDataObject/GenomicRegion.hpp"
 
-namespace njhseq {
+namespace bibseq {
 class GenomicRegionCounter {
 public:
 
@@ -52,7 +52,14 @@ public:
 	void increaseCounts(const std::vector<BamTools::BamAlignment> & bAlns,
 			const BamTools::RefVector & refData);
 
+	std::set<std::string> getIntersectingGffIds(const bfs::path & gffFnp, const VecStr & features = {"gene"})const ;
+
+	static GenomicRegionCounter countRegionsInBam(const bfs::path & bamFnp);
 };
 
-}  // namespace njhseq
+
+
+
+
+}  // namespace bibseq
 
