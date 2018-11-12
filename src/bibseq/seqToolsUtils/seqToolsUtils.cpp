@@ -1,32 +1,32 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "bibseq/IO/SeqIO.h"
+#include "njhseq/IO/SeqIO.h"
 #include "seqToolsUtils.hpp"
-#include "bibseq/objects/seqObjects/Clusters/cluster.hpp"
+#include "njhseq/objects/seqObjects/Clusters/cluster.hpp"
 
-#include "bibseq/objects/kmer/kmerCalculator.hpp"
-#include "bibseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
+#include "njhseq/objects/kmer/kmerCalculator.hpp"
+#include "njhseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 table getSeqPortionCounts(const SeqIOOptions & opts, size_t position, uint32_t size, bool back){
 	SeqIO reader(opts);
 	reader.openIn();
@@ -41,7 +41,7 @@ table getSeqPortionCounts(const SeqIOOptions & opts, size_t position, uint32_t s
 				ss << "Error, size must be less than or equal to position when counting from the back of the sequence"
 						<< std::endl;
 				ss << "position: " << position << ", size:" << size << std::endl;
-				throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
+				throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
 			}
 			getSubStr = [](const seqInfo & read, size_t position, uint32_t size){
 				std::string ret = "";
@@ -89,7 +89,7 @@ table getSeqPortionCounts(const SeqIOOptions & opts, size_t position, uint32_t s
 				ss << "Error, size must be less than or equal to position when counting from the back of the sequence"
 						<< std::endl;
 				ss << "position: " << position << ", size:" << size << std::endl;
-				throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
+				throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
 			}
 			getSubStr = [](const seqInfo & read, size_t position, uint32_t size){
 				std::string ret = "";
@@ -169,7 +169,7 @@ std::string genHtmlStrForPsuedoMintree(std::string jsonFileName){
 	"<body>"
 	"<script src=\"http://d3js.org/d3.v3.min.js\"></script>"
 	"<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js\"></script>"
-	"<script src=\"http://bib8.umassmed.edu/~hathawan/js/psuedoMinTree.js\"></script>"
+	"<script src=\"http://njh8.umassmed.edu/~hathawan/js/psuedoMinTree.js\"></script>"
 	"<button id=\"save_svg\">Save as Svg</button>"
 	"<svg id = \"main\"></svg>"
 	"<script>"
@@ -231,7 +231,7 @@ Json::Value genMinTreeData(const std::vector<readObject> & reads,
 		popNames.emplace_back(n->name_);
 	}
 	auto nameColors = getColorsForNames(popNames);
-	auto ret = graphMis.toJsonMismatchGraphAll(bib::color("#000000"), nameColors);
+	auto ret = graphMis.toJsonMismatchGraphAll(njh::color("#000000"), nameColors);
 	return ret;
 }
 
@@ -270,7 +270,7 @@ Json::Value genMinTreeData(const std::vector<readObject> & reads, aligner & alig
 			alignerObj.alnHolder_.mergeOtherHolder(alnObj.second->alnHolder_);
 		}
 	}
-	return graphMis.toJsonMismatchGraphAll(bib::color("#000000"), nameColors);
+	return graphMis.toJsonMismatchGraphAll(njh::color("#000000"), nameColors);
 }
 
 Json::Value genMinTreeData(const std::vector<readObject> & reads) {
@@ -285,7 +285,7 @@ Json::Value genMinTreeData(const std::vector<readObject> & reads) {
 
 uint32_t countSeqs(const SeqIOOptions & opts, bool verbose) {
 	uint32_t ret = 0;
-	if (bib::files::bfs::exists(opts.firstName_)) {
+	if (njh::files::bfs::exists(opts.firstName_)) {
 		SeqIO reader(opts);
 		if(reader.in_.isFirstEmpty()){
 			return ret;
@@ -346,7 +346,7 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 			continue;
 		}
 		if (row.size() < 3) {
-			throw std::runtime_error { bib::err::F()
+			throw std::runtime_error { njh::err::F()
 					<< "setUpSampleDirs: rows should have at least 3 columns, row: "
 					<< rowPos << "has " << row.size() };
 		}
@@ -355,7 +355,7 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 				continue;
 			}
 			//Discrepancy  between people naming MID01 and MID1 so replacing MID0 with MID
-			sampleDirWithSubDirs[row[1]].emplace_back(bib::replaceString(row[colPos], "MID0", "MID"), row[0]);
+			sampleDirWithSubDirs[row[1]].emplace_back(njh::replaceString(row[colPos], "MID0", "MID"), row[0]);
 		}
 	}
 
@@ -385,7 +385,7 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 		for(const auto & row : inProfileTab.content_){
 			auto midName = row[inProfileTab.getColPos("name")];
 			auto midPos = midName.rfind("MID");
-			midName = bib::replaceString(midName.substr(midPos), "MID0", "MID");
+			midName = njh::replaceString(midName.substr(midPos), "MID0", "MID");
 			extractionInfo[row[inProfileTab.getColPos("IndexName")]][midName] = row;
 		}
 		if (count == 0) {
@@ -455,7 +455,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 			continue;
 		}
 		if (row.size() < 3) {
-			throw std::runtime_error { bib::err::F()
+			throw std::runtime_error { njh::err::F()
 					<< "setUpSampleDirs: rows should have at least 3 columns, row: "
 					<< rowPos << "has " << row.size() };
 		}
@@ -464,7 +464,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 				continue;
 			}
 			//Discrepancy  between people naming MID01 and MID1 so replacing MID0 with MID
-			sampleDirWithSubDirs[row[1]].emplace_back(bib::replaceString(row[colPos], "MID0", "MID"), row[0]);
+			sampleDirWithSubDirs[row[1]].emplace_back(njh::replaceString(row[colPos], "MID0", "MID"), row[0]);
 		}
 	}
 
@@ -472,7 +472,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 	std::unordered_map<std::string, std::unordered_map<std::string, VecStr>> extractionInfo;
 
 	for (const auto &dir : dirs) {
-		auto fullDirName = bib::appendAsNeededRet(dirName, "/") + dir;
+		auto fullDirName = njh::appendAsNeededRet(dirName, "/") + dir;
 		table inProfileTab(fullDirName + "/extractionProfile.tab.txt", "\t", true);
 		//i have accidentally added one more tab than is needed to
 		//extractionProfile which makes it so all rows have an empty
@@ -493,7 +493,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 		for(const auto & row : inProfileTab.content_){
 			auto midName = row[inProfileTab.getColPos("name")];
 			auto midPos = midName.rfind("MID");
-			midName = bib::replaceString(midName.substr(midPos), "MID0", "MID");
+			midName = njh::replaceString(midName.substr(midPos), "MID0", "MID");
 			extractionInfo[row[inProfileTab.getColPos("IndexName")]][midName] = row;
 		}
 		if (count == 0) {
@@ -542,10 +542,10 @@ void setUpSampleDirs(
 		const std::string& mainDirectoryName,
 		bool separatedDirs,
 		bool verbose) {
-	auto topDir = bib::replaceString(mainDirectoryName, "./", "");
+	auto topDir = njh::replaceString(mainDirectoryName, "./", "");
 
-	bib::appendAsNeeded(topDir, "/");
-	bib::files::makeDirP(bib::files::MkdirPar(topDir));
+	njh::appendAsNeeded(topDir, "/");
+	njh::files::makeDirP(njh::files::MkdirPar(topDir));
 	table inTab(sampleNamesFilename, "whitespace", false);
 
 	//first key is target/index, second key is samp, value is vector of rep names and then the full path name for that rep
@@ -558,7 +558,7 @@ void setUpSampleDirs(
 			continue;
 		}
 		if (row.size() < 3) {
-			throw std::runtime_error { bib::err::F() << __PRETTY_FUNCTION__
+			throw std::runtime_error { njh::err::F() << __PRETTY_FUNCTION__
 					<< ": rows should have at least 3 columns, row: " << rowPos << "has "
 					<< row.size() };
 		}
@@ -574,35 +574,35 @@ void setUpSampleDirs(
 					std::pair<std::string, std::string> { rep, "" });
 		}
 	}
-	//auto cwd = bib::files::get_cwd();
+	//auto cwd = njh::files::get_cwd();
 	try {
 		if (separatedDirs) {
 			for (auto & targetDirs : sampleDirWithSubDirs) {
 				if (verbose) {
-					std::cout << bib::bashCT::bold << "Making Target Dir: "
-							<< bib::bashCT::purple << topDir + targetDirs.first
-							<< bib::bashCT::reset << std::endl;
+					std::cout << njh::bashCT::bold << "Making Target Dir: "
+							<< njh::bashCT::purple << topDir + targetDirs.first
+							<< njh::bashCT::reset << std::endl;
 				}
-				bfs::path targetDir = bib::files::makeDir(topDir,
-						bib::files::MkdirPar(targetDirs.first, false));
+				bfs::path targetDir = njh::files::makeDir(topDir,
+						njh::files::MkdirPar(targetDirs.first, false));
 				for (auto & sampDirs : targetDirs.second) {
 					if (verbose) {
-						std::cout << bib::bashCT::bold << "Making Samp Dir: "
-								<< bib::bashCT::green << bib::files::make_path(targetDir,  sampDirs.first)
-								<< bib::bashCT::reset << std::endl;
+						std::cout << njh::bashCT::bold << "Making Samp Dir: "
+								<< njh::bashCT::green << njh::files::make_path(targetDir,  sampDirs.first)
+								<< njh::bashCT::reset << std::endl;
 					}
 
-					bfs::path sampDir = bib::files::makeDir(targetDir,
-							bib::files::MkdirPar(sampDirs.first, false));
+					bfs::path sampDir = njh::files::makeDir(targetDir,
+							njh::files::MkdirPar(sampDirs.first, false));
 					for (auto & rep : sampDirs.second) {
 						if (verbose) {
-							std::cout << bib::bashCT::bold << "Making Rep Dir: "
-									<< bib::bashCT::blue <<  bib::files::make_path(sampDir, rep.first)
-									<< bib::bashCT::reset << std::endl;
+							std::cout << njh::bashCT::bold << "Making Rep Dir: "
+									<< njh::bashCT::blue <<  njh::files::make_path(sampDir, rep.first)
+									<< njh::bashCT::reset << std::endl;
 						}
 
-						bfs::path repDir = bib::files::makeDir(sampDir,
-								bib::files::MkdirPar( rep.first, false));
+						bfs::path repDir = njh::files::makeDir(sampDir,
+								njh::files::MkdirPar( rep.first, false));
 						rep.second = bfs::absolute(repDir).string();
 					}
 				}
@@ -610,27 +610,27 @@ void setUpSampleDirs(
 		} else {
 			for (auto & targetDirs : sampleDirWithSubDirs) {
 				for (auto & sampDirs : targetDirs.second) {
-					std::string sampDir = bib::files::join(topDir, sampDirs.first).string();
-					if (!bib::files::bfs::exists(sampDir)) {
+					std::string sampDir = njh::files::join(topDir, sampDirs.first).string();
+					if (!njh::files::bfs::exists(sampDir)) {
 						if (verbose) {
-							std::cout << bib::bashCT::bold << "Making Samp Dir: "
-									<< bib::bashCT::green << topDir + sampDirs.first
-									<< bib::bashCT::reset << std::endl;
+							std::cout << njh::bashCT::bold << "Making Samp Dir: "
+									<< njh::bashCT::green << topDir + sampDirs.first
+									<< njh::bashCT::reset << std::endl;
 						}
 
-						bib::files::makeDir(topDir,
-								bib::files::MkdirPar(sampDirs.first, false));
+						njh::files::makeDir(topDir,
+								njh::files::MkdirPar(sampDirs.first, false));
 					}
 					for (auto & rep : sampDirs.second) {
 						if (verbose) {
-							std::cout << bib::bashCT::bold << "Making Rep Dir: "
-									<< bib::bashCT::blue
-									<< bib::appendAsNeeded(sampDir, "/") + rep.first
-									<< bib::bashCT::reset << std::endl;
+							std::cout << njh::bashCT::bold << "Making Rep Dir: "
+									<< njh::bashCT::blue
+									<< njh::appendAsNeeded(sampDir, "/") + rep.first
+									<< njh::bashCT::reset << std::endl;
 						}
 
-						std::string repDir = bib::files::makeDir(sampDir,
-								bib::files::MkdirPar(bib::pasteAsStr(targetDirs.first, "-", rep.first), false)).string();
+						std::string repDir = njh::files::makeDir(sampDir,
+								njh::files::MkdirPar(njh::pasteAsStr(targetDirs.first, "-", rep.first), false)).string();
 						rep.second = bfs::absolute(repDir).string();
 					}
 				}
@@ -638,15 +638,15 @@ void setUpSampleDirs(
 		}
 	} catch (std::exception & e) {
 		std::stringstream ss;
-		ss << bib::bashCT::boldRed(e.what()) << std::endl;
+		ss << njh::bashCT::boldRed(e.what()) << std::endl;
 		throw std::runtime_error { ss.str() };
 	}
 	//log the locations
-	bfs::path indexDir = bib::files::makeDir(mainDirectoryName,
-			bib::files::MkdirPar("locationByIndex", false));
+	bfs::path indexDir = njh::files::makeDir(mainDirectoryName,
+			njh::files::MkdirPar("locationByIndex", false));
 	for (const auto & targetDirs : sampleDirWithSubDirs) {
 		std::ofstream indexFile;
-		openTextFile(indexFile, bib::files::make_path(indexDir, targetDirs.first).string(), ".tab.txt", false,
+		openTextFile(indexFile, njh::files::make_path(indexDir, targetDirs.first).string(), ".tab.txt", false,
 				false);
 		for (const auto & sampDirs : targetDirs.second) {
 			for (auto & rep : sampDirs.second) {
@@ -676,9 +676,9 @@ std::vector<char> getAAs(bool noStopCodon){
 
 /////////tools for finding additional location output
 std::string makeIDNameComparable(const std::string& idName) {
-  std::string ans = bib::replaceString(idName, "MID0", "M");
-  ans = bib::replaceString(ans, "M0", "M");
-  return bib::replaceString(ans, "MID", "M");
+  std::string ans = njh::replaceString(idName, "MID0", "M");
+  ans = njh::replaceString(ans, "M0", "M");
+  return njh::replaceString(ans, "MID", "M");
 }
 std::string findIdNameFromFileName(const std::string& filename) {
   auto periodPos = filename.rfind(".");
@@ -780,4 +780,4 @@ table getSeqPosTab(const std::string & str){
 
 
 
-}  // namespace bib
+}  // namespace njh

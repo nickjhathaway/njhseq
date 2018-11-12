@@ -228,14 +228,14 @@ size_t GenomicRegion::getOverlapLen(const std::string & otherChrom,
 //		std::cout << "start_:     " << start_ << std::endl;
 //		std::cout << "otherEnd:   " << otherEnd << std::endl;
 //		std::cout << "end_:       " << end_ << std::endl;
-//		std::cout << "otherStart >= start_  " << bib::colorBool(otherStart >= start_) << std::endl;
-//		std::cout << "otherStart <  end_:   " << bib::colorBool(otherStart <  end_) << std::endl;
-//		std::cout << "otherEnd    > start_: " << bib::colorBool(otherEnd    > start_) << std::endl;
-//		std::cout << "otherEnd   <= end_:   " << bib::colorBool(otherEnd   <= end_) << std::endl;
-//		std::cout << "otherStart >= start_ && otherStart <  end_: " << bib::colorBool(otherStart >= start_ && otherStart <  end_) << std::endl;
-//		std::cout << "otherEnd    > start_ && otherEnd   <= end_: " << bib::colorBool(otherEnd    > start_ && otherEnd   <= end_) << std::endl;
-//		std::cout << "start_ >= otherStart && start_ <  otherEnd: " << bib::colorBool(start_ >= otherStart && start_ <  otherEnd) << std::endl;
-//		std::cout << "end_    > otherStart && end_   <= otherEnd: " << bib::colorBool(end_    > otherStart && end_   <= otherEnd) << std::endl;
+//		std::cout << "otherStart >= start_  " << njh::colorBool(otherStart >= start_) << std::endl;
+//		std::cout << "otherStart <  end_:   " << njh::colorBool(otherStart <  end_) << std::endl;
+//		std::cout << "otherEnd    > start_: " << njh::colorBool(otherEnd    > start_) << std::endl;
+//		std::cout << "otherEnd   <= end_:   " << njh::colorBool(otherEnd   <= end_) << std::endl;
+//		std::cout << "otherStart >= start_ && otherStart <  end_: " << njh::colorBool(otherStart >= start_ && otherStart <  end_) << std::endl;
+//		std::cout << "otherEnd    > start_ && otherEnd   <= end_: " << njh::colorBool(otherEnd    > start_ && otherEnd   <= end_) << std::endl;
+//		std::cout << "start_ >= otherStart && start_ <  otherEnd: " << njh::colorBool(start_ >= otherStart && start_ <  otherEnd) << std::endl;
+//		std::cout << "end_    > otherStart && end_   <= otherEnd: " << njh::colorBool(end_    > otherStart && end_   <= otherEnd) << std::endl;
 //
 //	}
 

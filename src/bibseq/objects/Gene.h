@@ -6,6 +6,6 @@
  */
 
 
-#include "bibseq/objects/Gene/GeneSeqInfo.hpp"
-#include "bibseq/objects/Gene/GeneFromGffs.hpp"
-#include "bibseq/objects/Gene/GenomicAminoAcidPositionTyper.hpp"
+#include "njhseq/objects/Gene/GeneSeqInfo.hpp"
+#include "njhseq/objects/Gene/GeneFromGffs.hpp"
+#include "njhseq/objects/Gene/GenomicAminoAcidPositionTyper.hpp"

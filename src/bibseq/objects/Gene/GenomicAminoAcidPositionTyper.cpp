@@ -8,11 +8,11 @@
 
 
 #include "GenomicAminoAcidPositionTyper.hpp"
-#include "bibseq/GenomeUtils/GenomeExtraction/ParsingAlignmentInfo.h"
-#include "bibseq/BamToolsUtils.h"
+#include "njhseq/GenomeUtils/GenomeExtraction/ParsingAlignmentInfo.h"
+#include "njhseq/BamToolsUtils.h"
 
 
-namespace bibseq {
+namespace njhseq {
 
 GenomicAminoAcidPositionTyper::GeneAminoTyperInfo::GeneAminoTyperInfo(const std::string & geneId) :
 		geneId_(geneId), altId_(geneId) {
@@ -31,11 +31,11 @@ GenomicAminoAcidPositionTyper::GenomicAminoAcidPositionTyper(const bfs::path & p
 
 	for (const auto & row : proteinMutantTypingTab_) {
 		uint32_t aaPos = inputZeroBased ?
-				bib::StrToNumConverter::stoToNum<uint32_t>(
+				njh::StrToNumConverter::stoToNum<uint32_t>(
 						row[proteinMutantTypingTab_.getColPos("AAPosition")]) :
-				bib::StrToNumConverter::stoToNum<uint32_t>(
+				njh::StrToNumConverter::stoToNum<uint32_t>(
 						row[proteinMutantTypingTab_.getColPos("AAPosition")]) - 1;
-		if(bib::in(aaPos, aminoPositionsForTyping_[row[proteinMutantTypingTab_.getColPos("ID")]])){
+		if(njh::in(aaPos, aminoPositionsForTyping_[row[proteinMutantTypingTab_.getColPos("ID")]])){
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", error in reading in "
 					<< proteinMutantTypingFnp << " gene id " << row[proteinMutantTypingTab_.getColPos("ID")]
@@ -54,12 +54,12 @@ GenomicAminoAcidPositionTyper::GenomicAminoAcidPositionTyper(const bfs::path & p
 			ss << __PRETTY_FUNCTION__ << ", error in reading in "
 					<< proteinMutantTypingFnp << " gene id " << geneId.first
 					<< " had more than one alternative ID in Gene column, found: "
-					<< bib::conToStr(altNamesForIds_[geneId.first], ", ") << "\n";
+					<< njh::conToStr(altNamesForIds_[geneId.first], ", ") << "\n";
 			throw std::runtime_error { ss.str() };
 		}
 	}
 	for(auto & positions : aminoPositionsForTyping_){
-		bib::sort(positions.second);
+		njh::sort(positions.second);
 	}
 }
 
@@ -124,7 +124,7 @@ std::map<uint32_t, char> GenomicAminoAcidPositionTyper::typeAlignment(
 			}
 		}
 	} else {
-		bib::sort(cDNAIntersectedWith,
+		njh::sort(cDNAIntersectedWith,
 				[](const GenomicRegion & reg1, const GenomicRegion & reg2) {
 					if(reg1.start_ < reg2.start_) {
 						return true;
@@ -192,7 +192,7 @@ std::map<uint32_t, char> GenomicAminoAcidPositionTyper::typeAlignment(
 
 	alignerObj.profilePrimerAlignment(currentGeneInfo.protein_, balnSeqTrans);
 
-	if (bib::in(currentGene.gene_->getIDAttr(), aminoPositionsForTyping_)) {
+	if (njh::in(currentGene.gene_->getIDAttr(), aminoPositionsForTyping_)) {
 		uint32_t proteinAlnStart =
 				alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
 		uint32_t proteinAlnStop =
@@ -216,4 +216,4 @@ std::map<uint32_t, char> GenomicAminoAcidPositionTyper::typeAlignment(
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq

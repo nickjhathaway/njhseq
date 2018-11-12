@@ -1,33 +1,33 @@
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 
 #include "ManipulateTableRunner.hpp"
-#include "bibseq/objects/dataContainers/tables/table.hpp"
-#include "bibseq/objects/Meta/MetaDataInName.hpp"
-#include "bibseq/programUtils/seqSetUp.hpp"
-#include "bibseq/IO.h"
+#include "njhseq/objects/dataContainers/tables/table.hpp"
+#include "njhseq/objects/Meta/MetaDataInName.hpp"
+#include "njhseq/programUtils/seqSetUp.hpp"
+#include "njhseq/IO.h"
 
-namespace bibseq {
+namespace njhseq {
 
 ManipulateTableRunner::ManipulateTableRunner() :
-		bib::progutils::ProgramRunner(
+		njh::progutils::ProgramRunner(
 				{ addFunc("addColumn", addColumn, false),
 				  addFunc("catOrganized",catOrganized, false),
 					addFunc("changeDelim", changeDelim, false),
@@ -56,7 +56,7 @@ ManipulateTableRunner::ManipulateTableRunner() :
 }
 //
 int ManipulateTableRunner::splitColumnContainingMeta(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 
 	std::string column = "";
 	bool keepMetaInColumn = false;
@@ -93,7 +93,7 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 					metaValues[m.first].emplace_back(m.second);
 				}
 				for(const auto & metaField : metaFields){
-					if(!bib::in(metaField, rowMeta.meta_)){
+					if(!njh::in(metaField, rowMeta.meta_)){
 						metaValues[metaField].emplace_back("NA");
 					}
 				}
@@ -133,7 +133,7 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 
 //
 int ManipulateTableRunner::extractColumnElementLength(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	seqSetUp setUp(inputCommands);
 	std::string filename = "";
 	std::string outFilename = "";
@@ -170,7 +170,7 @@ int ManipulateTableRunner::extractColumnElementLength(
 }
 
 int ManipulateTableRunner::countRowLengths(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.setOption(setUp.ioOptions_.inDelim_, "--delim", "The delimiter for the rows");
 	setUp.setOption(setUp.ioOptions_.hasHeader_, "--header", "File Contains Header");
@@ -181,7 +181,7 @@ int ManipulateTableRunner::countRowLengths(
 	std::string line;
 	uint32_t rowNumber = 0;
 	table outTab { VecStr { "Row", "length", "elements" } };
-	while (bib::files::crossPlatGetline(inFile, line)) {
+	while (njh::files::crossPlatGetline(inFile, line)) {
 		if (setUp.verbose_){
 			std::cout << "On " << rowNumber << std::endl;
 		}
@@ -207,7 +207,7 @@ int ManipulateTableRunner::countRowLengths(
 }
 
 int ManipulateTableRunner::tableExtractCriteria(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string columnName = "";
 	double cutOff = 1;
@@ -240,7 +240,7 @@ int ManipulateTableRunner::tableExtractCriteria(
 }
 
 int ManipulateTableRunner::addColumn(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string columnName = "";
 	VecStr element;
@@ -264,10 +264,10 @@ int ManipulateTableRunner::addColumn(
 		if (toks.size() > 1) {
 			if (outTab.content_.size() % toks.size() != 0) {
 				std::stringstream ss;
-				ss << bib::bashCT::red << "Error, table has "
+				ss << njh::bashCT::red << "Error, table has "
 						<< outTab.content_.size() << " and the size of adding elements "
-						<< bib::conToStr(elementStr, ",") << " doesn't fit into it"
-						<< bib::bashCT::reset << std::endl;
+						<< njh::conToStr(elementStr, ",") << " doesn't fit into it"
+						<< njh::bashCT::reset << std::endl;
 				throw std::runtime_error{ss.str()};
 			} else {
 				outTab.addColumn(
@@ -286,7 +286,7 @@ int ManipulateTableRunner::addColumn(
 
 
 int ManipulateTableRunner::roughHistogramOfColumn(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	uint32_t binNumbers = 10;
 	uint32_t width = 50;
 	ManipulateTableSetUp setUp(inputCommands);
@@ -310,8 +310,8 @@ int ManipulateTableRunner::roughHistogramOfColumn(
 
 	std::vector<double> columnValues;
 	for(const auto & row : inTab.content_){
-		if(row[colPos] != "*" && bib::strToLowerRet(row[colPos]) != "na" && bib::strToLowerRet(row[colPos]) != "nan"){
-			columnValues.emplace_back(bib::StrToNumConverter::stoToNum<double>(row[colPos]));
+		if(row[colPos] != "*" && njh::strToLowerRet(row[colPos]) != "na" && njh::strToLowerRet(row[colPos]) != "nan"){
+			columnValues.emplace_back(njh::StrToNumConverter::stoToNum<double>(row[colPos]));
 		}
 	}
 	auto min = vectorMinimum(columnValues);
@@ -328,7 +328,7 @@ int ManipulateTableRunner::roughHistogramOfColumn(
 		uint32_t count_ = 0;
 
 		std::string genId()const{
-			return bib::pasteAsStr(min_, "-", max_);
+			return njh::pasteAsStr(min_, "-", max_);
 		}
 	};
 
@@ -372,7 +372,7 @@ int ManipulateTableRunner::roughHistogramOfColumn(
 }
 
 int ManipulateTableRunner::countColumn(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.processDefaultProgram(true);
 	std::string columnName = "";
@@ -399,7 +399,7 @@ int ManipulateTableRunner::countColumn(
 }
 
 int ManipulateTableRunner::catOrganized(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.setUpCatOrganized();
 	table inTab(setUp.ioOptions_);
@@ -408,7 +408,7 @@ int ManipulateTableRunner::catOrganized(
 }
 
 int ManipulateTableRunner::changeDelim(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.setUpChangeDelim();
 	table inTab(setUp.ioOptions_);
@@ -417,7 +417,7 @@ int ManipulateTableRunner::changeDelim(
 }
 
 int ManipulateTableRunner::sortTable(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.setUpSortTable();
 	table inTab(setUp.ioOptions_);
@@ -429,7 +429,7 @@ int ManipulateTableRunner::sortTable(
 
 
 
-int ManipulateTableRunner::tableExtractColumns(const bib::progutils::CmdArgs & inputCommands){
+int ManipulateTableRunner::tableExtractColumns(const njh::progutils::CmdArgs & inputCommands){
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string columns;
 	bool getUniqueRows = false;
@@ -461,7 +461,7 @@ int ManipulateTableRunner::tableExtractColumns(const bib::progutils::CmdArgs & i
 	return 0;
 }
 
-int ManipulateTableRunner::tableExtractElementsWithPattern(const bib::progutils::CmdArgs & inputCommands){
+int ManipulateTableRunner::tableExtractElementsWithPattern(const njh::progutils::CmdArgs & inputCommands){
 	std::string column;
 	std::string patStr = "";
 	bool getUniqueRows = false;
@@ -488,7 +488,7 @@ int ManipulateTableRunner::tableExtractElementsWithPattern(const bib::progutils:
 	return 0;
 }
 
-int ManipulateTableRunner::tableExtractElementsStartingWith(const bib::progutils::CmdArgs & inputCommands){
+int ManipulateTableRunner::tableExtractElementsStartingWith(const njh::progutils::CmdArgs & inputCommands){
 	std::string column;
 	std::string patStr = "";
 	bool getUniqueRows = false;
@@ -515,7 +515,7 @@ int ManipulateTableRunner::tableExtractElementsStartingWith(const bib::progutils
 	return 0;
 }
 
-int ManipulateTableRunner::tableExtractColumnsStartsWith(const bib::progutils::CmdArgs & inputCommands){
+int ManipulateTableRunner::tableExtractColumnsStartsWith(const njh::progutils::CmdArgs & inputCommands){
 	std::string patStr = "";
 	bool getUniqueRows = false;
 	ManipulateTableSetUp setUp(inputCommands);
@@ -540,7 +540,7 @@ int ManipulateTableRunner::tableExtractColumnsStartsWith(const bib::progutils::C
 	return 0;
 }
 
-int ManipulateTableRunner::tableExtractColumnsWithPattern(const bib::progutils::CmdArgs & inputCommands){
+int ManipulateTableRunner::tableExtractColumnsWithPattern(const njh::progutils::CmdArgs & inputCommands){
 	std::string patStr = "";
 	bool getUniqueRows = false;
 	ManipulateTableSetUp setUp(inputCommands);
@@ -567,7 +567,7 @@ int ManipulateTableRunner::tableExtractColumnsWithPattern(const bib::progutils::
 
 
 int ManipulateTableRunner::trimContent(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string trimAt = "";
 	setUp.setUpTrimContent(trimAt);
@@ -580,7 +580,7 @@ int ManipulateTableRunner::trimContent(
 	return 0;
 }
 int ManipulateTableRunner::getStats(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string trimAt = "(";
 	setUp.setUpGetStats(trimAt);
@@ -595,7 +595,7 @@ int ManipulateTableRunner::getStats(
 }
 
 int ManipulateTableRunner::splitTable(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string column = "";
 	bool getStatsInstead = false;
@@ -631,7 +631,7 @@ int ManipulateTableRunner::splitTable(
 		for (const auto &tab : outTables) {
 			std::ofstream outFile;
 			openTextFile(outFile,
-					bib::files::make_path(setUp.directoryName_, tab.first).string(),
+					njh::files::make_path(setUp.directoryName_, tab.first).string(),
 					".txt", true, false);
 			if (setUp.ioOptions_.outOrganized_) {
 				tab.second.outPutContentOrganized(outFile);
@@ -644,7 +644,7 @@ int ManipulateTableRunner::splitTable(
 }
 
 int ManipulateTableRunner::aggregateTable(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string columnName = "";
 	std::string functionName = "mean";
@@ -664,7 +664,7 @@ int ManipulateTableRunner::aggregateTable(
 	return 0;
 }
 int ManipulateTableRunner::pivotTable(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string column = "";
 	std::string matchColumn = "";
@@ -688,21 +688,21 @@ int ManipulateTableRunner::pivotTable(
  * @param levels The maximum number of levels to search
  * @return A map of the directory paths with key being the file path and the value being a bool indicating if it is a directory or not
  */
-inline std::map<bib::files::bfs::path, bool> listAllFiles(
+inline std::map<njh::files::bfs::path, bool> listAllFiles(
 		const std::string & dirName, bool recursive,
 		const std::vector<std::string>& contains,
 		const std::vector<std::string>& doesNotContain,
 		uint32_t levels = std::numeric_limits < uint32_t > ::max()) {
 	std::map < bfs::path, bfs::path > filesGathering;
-	bib::files::listAllFilesHelper(dirName, recursive, filesGathering, 1, levels);
-	std::map<bfs::path, bool> files = bib::files::convertMapFnpFnpToFnpIsDir(
+	njh::files::listAllFilesHelper(dirName, recursive, filesGathering, 1, levels);
+	std::map<bfs::path, bool> files = njh::files::convertMapFnpFnpToFnpIsDir(
 			filesGathering);
 
 	if (!contains.empty()) {
-		std::map<bib::files::bfs::path, bool> specificFiles;
+		std::map<njh::files::bfs::path, bool> specificFiles;
 		for (const auto & f : files) {
-			if (bib::checkForSubStrs(f.first.string(), contains)
-					&& !bib::checkForSubStrs(f.first.string(), doesNotContain)) {
+			if (njh::checkForSubStrs(f.first.string(), contains)
+					&& !njh::checkForSubStrs(f.first.string(), doesNotContain)) {
 				specificFiles.emplace(f);
 			}
 		}
@@ -712,7 +712,7 @@ inline std::map<bib::files::bfs::path, bool> listAllFiles(
 }
 
 int ManipulateTableRunner::rBind(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	std::string contains = "";
 	std::string doesNotContains = "";
 	bool recursive = false;
@@ -739,7 +739,7 @@ int ManipulateTableRunner::rBind(
 	setUp.ioOptions_.out_.throwIfOutExistsNoOverWrite(__PRETTY_FUNCTION__);
 	VecStr containsVec = tokenizeString(contains, ",");
 	VecStr doesNotContainsVec = tokenizeString(doesNotContains, ",");
-	std::map<bib::files::bfs::path, bool> allFiles;
+	std::map<njh::files::bfs::path, bool> allFiles;
 	if("" != files){
 		auto vals = getInputValues(files, ",");
 		for(const auto & f : vals){
@@ -750,7 +750,7 @@ int ManipulateTableRunner::rBind(
 			allFiles = listAllFiles("./", recursive, containsVec, doesNotContainsVec,
 					levels);
 		} else {
-			allFiles = bib::files::listAllFiles("./", recursive, containsVec, levels);
+			allFiles = njh::files::listAllFiles("./", recursive, containsVec, levels);
 		}
 	}
 
@@ -761,7 +761,7 @@ int ManipulateTableRunner::rBind(
 		if (verbose) {
 			std::cout << file.first.string() << std::endl;
 		}
-		if (bib::files::bfs::is_directory(file.first)) {
+		if (njh::files::bfs::is_directory(file.first)) {
 			if (verbose) {
 				std::cout << "Skipping directory: " << file.first.string() << std::endl;
 			}
@@ -788,7 +788,7 @@ int ManipulateTableRunner::rBind(
 }
 
 int ManipulateTableRunner::cBind(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string contains = "";
 	bool recursive = false;
@@ -871,7 +871,7 @@ int ManipulateTableRunner::cBind(
 
 
 int ManipulateTableRunner::printCol(
-		const bib::progutils::CmdArgs & inputCommands) {
+		const njh::progutils::CmdArgs & inputCommands) {
 	bfs::path fnp = "";
 	std::string columnName = "";
 	std::string delim = "\t";
@@ -920,4 +920,4 @@ int ManipulateTableRunner::printCol(
 	printVector(col, "\n", out);
 	return 0;
 }
-}  // namespace bib
+}  // namespace njh
