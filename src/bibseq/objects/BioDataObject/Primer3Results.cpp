@@ -5,37 +5,37 @@
  *  Created on: Aug 16, 2017
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 
 #include "Primer3Results.hpp"
-#include "bibseq/IO/InputStream.hpp"
-#include "bibseq/helpers/seqUtil.hpp"
+#include "njhseq/IO/InputStream.hpp"
+#include "njhseq/helpers/seqUtil.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 Json::Value Primer3Results::region::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::typeStr(*this));
-	ret["start_"] =bib::json::toJson(start_);
-	ret["size_"] =bib::json::toJson(size_);
+	ret["class"] = njh::json::toJson(njh::typeStr(*this));
+	ret["start_"] =njh::json::toJson(start_);
+	ret["size_"] =njh::json::toJson(size_);
 	return ret;
 }
 
@@ -48,36 +48,36 @@ GenomicRegion Primer3Results::Primer::genRegion(const std::string & templateId) 
 
 Json::Value Primer3Results::Primer::toJson() const {
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::typeStr(*this));
-	ret["name_"] = bib::json::toJson(name_);
-	ret["penality_"] = bib::json::toJson(penality_);
-	ret["originalSeq_"] = bib::json::toJson(originalSeq_);
-	ret["fowardOrientationSeq_"] = bib::json::toJson(fowardOrientationSeq_);
-	ret["tm_"] = bib::json::toJson(tm_);
-	ret["gc_percent_"] = bib::json::toJson(gc_percent_);
-	ret["self_any_th_"] = bib::json::toJson(self_any_th_);
-	ret["self_end_th_"] = bib::json::toJson(self_end_th_);
-	ret["hairpin_th_"] = bib::json::toJson(hairpin_th_);
-	ret["end_stability_"] = bib::json::toJson(end_stability_);
-	ret["right_"] = bib::json::toJson(right_);
-	ret["originalPos_"] = bib::json::toJson(originalPos_);
-	ret["forwardOrientationPos_"] = bib::json::toJson(forwardOrientationPos_);
+	ret["class"] = njh::json::toJson(njh::typeStr(*this));
+	ret["name_"] = njh::json::toJson(name_);
+	ret["penality_"] = njh::json::toJson(penality_);
+	ret["originalSeq_"] = njh::json::toJson(originalSeq_);
+	ret["fowardOrientationSeq_"] = njh::json::toJson(fowardOrientationSeq_);
+	ret["tm_"] = njh::json::toJson(tm_);
+	ret["gc_percent_"] = njh::json::toJson(gc_percent_);
+	ret["self_any_th_"] = njh::json::toJson(self_any_th_);
+	ret["self_end_th_"] = njh::json::toJson(self_end_th_);
+	ret["hairpin_th_"] = njh::json::toJson(hairpin_th_);
+	ret["end_stability_"] = njh::json::toJson(end_stability_);
+	ret["right_"] = njh::json::toJson(right_);
+	ret["originalPos_"] = njh::json::toJson(originalPos_);
+	ret["forwardOrientationPos_"] = njh::json::toJson(forwardOrientationPos_);
 	return ret;
 }
 
 Json::Value Primer3Results::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::typeStr(*this));
-	ret["sequence_id_"] =bib::json::toJson(sequence_id_);
-	ret["sequence_template_"] =bib::json::toJson(sequence_template_);
-	ret["sequence_target_"] =bib::json::toJson(sequence_target_);
-	ret["sequence_excluded_region_"] =bib::json::toJson(sequence_excluded_region_);
-	ret["primer_left_num_returned_"] =bib::json::toJson(primer_left_num_returned_);
-	ret["primer_right_num_returned_"] =bib::json::toJson(primer_right_num_returned_);
-	ret["primer_internal_num_returned_"] =bib::json::toJson(primer_internal_num_returned_);
-	ret["primer_pair_num_returned_"] =bib::json::toJson(primer_pair_num_returned_);
+	ret["class"] = njh::json::toJson(njh::typeStr(*this));
+	ret["sequence_id_"] =njh::json::toJson(sequence_id_);
+	ret["sequence_template_"] =njh::json::toJson(sequence_template_);
+	ret["sequence_target_"] =njh::json::toJson(sequence_target_);
+	ret["sequence_excluded_region_"] =njh::json::toJson(sequence_excluded_region_);
+	ret["primer_left_num_returned_"] =njh::json::toJson(primer_left_num_returned_);
+	ret["primer_right_num_returned_"] =njh::json::toJson(primer_right_num_returned_);
+	ret["primer_internal_num_returned_"] =njh::json::toJson(primer_internal_num_returned_);
+	ret["primer_pair_num_returned_"] =njh::json::toJson(primer_pair_num_returned_);
 
-	ret["primers_"] =bib::json::toJson(primers_);
+	ret["primers_"] =njh::json::toJson(primers_);
 	return ret;
 }
 
@@ -98,7 +98,7 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 	std::shared_ptr<Primer3Results> currentResult = std::make_shared<
 			Primer3Results>();
 	std::regex primerInfoPat { "^(PRIMER_(LEFT|RIGHT)_[0-9]+)_?(.*)=.*" };
-	while (bib::files::crossPlatGetline(in, line)) {
+	while (njh::files::crossPlatGetline(in, line)) {
 		if ("=" == line) {
 			results.emplace_back(currentResult);
 			currentResult = std::make_shared<Primer3Results>();
@@ -126,7 +126,7 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 					throw std::runtime_error { ss.str() };
 				}
 				bool right = leftOrRight == "RIGHT";
-				if (!bib::in(name, currentResult->primers_)) {
+				if (!njh::in(name, currentResult->primers_)) {
 					currentResult->primers_[name] = std::make_shared<Primer>();
 					currentResult->primers_[name]->right_ = right;
 					currentResult->primers_[name]->name_ = name;
@@ -142,9 +142,9 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 								<< " for tok: " << toks[1] << "\n";
 						throw std::runtime_error { ss.str() };
 					}
-					auto start = bib::StrToNumConverter::stoToNum<uint32_t>(
+					auto start = njh::StrToNumConverter::stoToNum<uint32_t>(
 							positionToks[0]);
-					auto size = bib::StrToNumConverter::stoToNum<uint32_t>(
+					auto size = njh::StrToNumConverter::stoToNum<uint32_t>(
 							positionToks[1]);
 					currentResult->primers_[name]->originalPos_.start_ = start;
 					currentResult->primers_[name]->originalPos_.size_ = size;
@@ -156,7 +156,7 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 					}
 				} else if ("PENALTY" == match[3]) {
 					currentResult->primers_[name]->penality_ =
-							bib::StrToNumConverter::stoToNum<double>(toks[1]);
+							njh::StrToNumConverter::stoToNum<double>(toks[1]);
 				} else if ("SEQUENCE" == match[3]) {
 					currentResult->primers_[name]->originalSeq_ = toks[1];
 					if (right) {
@@ -168,23 +168,23 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 								currentResult->primers_[name]->originalSeq_;
 					}
 				} else if ("TM" == match[3]) {
-					currentResult->primers_[name]->tm_ = bib::StrToNumConverter::stoToNum<
+					currentResult->primers_[name]->tm_ = njh::StrToNumConverter::stoToNum<
 							double>(toks[1]);
 				} else if ("GC_PERCENT" == match[3]) {
 					currentResult->primers_[name]->gc_percent_ =
-							bib::StrToNumConverter::stoToNum<double>(toks[1]);
+							njh::StrToNumConverter::stoToNum<double>(toks[1]);
 				} else if ("SELF_ANY_TH" == match[3]) {
 					currentResult->primers_[name]->self_any_th_ =
-							bib::StrToNumConverter::stoToNum<double>(toks[1]);
+							njh::StrToNumConverter::stoToNum<double>(toks[1]);
 				} else if ("SELF_END_TH" == match[3]) {
 					currentResult->primers_[name]->self_end_th_ =
-							bib::StrToNumConverter::stoToNum<double>(toks[1]);
+							njh::StrToNumConverter::stoToNum<double>(toks[1]);
 				} else if ("HAIRPIN_TH" == match[3]) {
 					currentResult->primers_[name]->hairpin_th_ =
-							bib::StrToNumConverter::stoToNum<double>(toks[1]);
+							njh::StrToNumConverter::stoToNum<double>(toks[1]);
 				} else if ("END_STABILITY" == match[3]) {
 					currentResult->primers_[name]->end_stability_ =
-							bib::StrToNumConverter::stoToNum<double>(toks[1]);
+							njh::StrToNumConverter::stoToNum<double>(toks[1]);
 				} else {
 					std::stringstream ss;
 					ss << __PRETTY_FUNCTION__ << ", unhandled case for line: " << line
@@ -210,8 +210,8 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 							throw std::runtime_error { ss.str() };
 						}
 						currentResult->sequence_target_.emplace_back(
-								Primer3Results::region { bib::StrToNumConverter::stoToNum<
-										uint32_t>(regToks[0]), bib::StrToNumConverter::stoToNum<
+								Primer3Results::region { njh::StrToNumConverter::stoToNum<
+										uint32_t>(regToks[0]), njh::StrToNumConverter::stoToNum<
 										uint32_t>(regToks[1]) });
 					}
 				} else if ("SEQUENCE_EXCLUDED_REGION" == toks[0]) {
@@ -228,22 +228,22 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 							throw std::runtime_error { ss.str() };
 						}
 						currentResult->sequence_excluded_region_.emplace_back(
-								Primer3Results::region { bib::StrToNumConverter::stoToNum<
-										uint32_t>(regToks[0]), bib::StrToNumConverter::stoToNum<
+								Primer3Results::region { njh::StrToNumConverter::stoToNum<
+										uint32_t>(regToks[0]), njh::StrToNumConverter::stoToNum<
 										uint32_t>(regToks[1]) });
 					}
 				} else if ("PRIMER_LEFT_NUM_RETURNED" == toks[0]) {
 					currentResult->primer_left_num_returned_ =
-							bib::StrToNumConverter::stoToNum<uint32_t>(toks[1]);
+							njh::StrToNumConverter::stoToNum<uint32_t>(toks[1]);
 				} else if ("PRIMER_RIGHT_NUM_RETURNED" == toks[0]) {
 					currentResult->primer_right_num_returned_ =
-							bib::StrToNumConverter::stoToNum<uint32_t>(toks[1]);
+							njh::StrToNumConverter::stoToNum<uint32_t>(toks[1]);
 				} else if ("PRIMER_INTERNAL_NUM_RETURNED" == toks[0]) {
 					currentResult->primer_internal_num_returned_ =
-							bib::StrToNumConverter::stoToNum<uint32_t>(toks[1]);
+							njh::StrToNumConverter::stoToNum<uint32_t>(toks[1]);
 				} else if ("PRIMER_PAIR_NUM_RETURNED" == toks[0]) {
 					currentResult->primer_pair_num_returned_ =
-							bib::StrToNumConverter::stoToNum<uint32_t>(toks[1]);
+							njh::StrToNumConverter::stoToNum<uint32_t>(toks[1]);
 				} else {
 					std::stringstream ss;
 					ss << __PRETTY_FUNCTION__ << ", unhandled case for line: " << line
@@ -255,6 +255,6 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 	}
 	return results;
 }
-}  // namespace bibseq
+}  // namespace njhseq
 
 

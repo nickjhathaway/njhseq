@@ -4,28 +4,28 @@
  *  Created on: Jan 14, 2017
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "ConBasePathGraph.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 std::string ConBasePathGraph::ConPath::PosBase::getUid() const {
 	return estd::to_string(pos_) + estd::to_string(base_);
@@ -33,9 +33,9 @@ std::string ConBasePathGraph::ConPath::PosBase::getUid() const {
 
 Json::Value ConBasePathGraph::ConPath::PosBase::toJson() const {
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(*this);
-	ret["pos_"] = bib::json::toJson(pos_);
-	ret["base_"] = bib::json::toJson(base_);
+	ret["class"] = njh::getTypeName(*this);
+	ret["pos_"] = njh::json::toJson(pos_);
+	ret["base_"] = njh::json::toJson(base_);
 	return ret;
 }
 
@@ -59,9 +59,9 @@ std::string ConBasePathGraph::ConPath::getUid()const{
 
 Json::Value ConBasePathGraph::ConPath::toJson() const {
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(*this);
-	ret["count_"] = bib::json::toJson(count_);
-	ret["bases_"] = bib::json::toJson(bases_);
+	ret["class"] = njh::getTypeName(*this);
+	ret["count_"] = njh::json::toJson(count_);
+	ret["bases_"] = njh::json::toJson(bases_);
 	return ret;
 }
 
@@ -75,22 +75,22 @@ ConBasePathGraph::node::node(const ConBasePathGraph::ConPath::PosBase & val,
 
 Json::Value ConBasePathGraph::node::toJson() const {
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(*this);
-	ret["val_"] = bib::json::toJson(val_);
-	ret["cnt_"] = bib::json::toJson(cnt_);
-	ret["frac_"] = bib::json::toJson(frac_);
-	ret["headEdges_"] = bib::json::toJson(headEdges_);
-	ret["tailEdges_"] = bib::json::toJson(tailEdges_);
-	ret["visitCount_"] = bib::json::toJson(visitCount_);
+	ret["class"] = njh::getTypeName(*this);
+	ret["val_"] = njh::json::toJson(val_);
+	ret["cnt_"] = njh::json::toJson(cnt_);
+	ret["frac_"] = njh::json::toJson(frac_);
+	ret["headEdges_"] = njh::json::toJson(headEdges_);
+	ret["tailEdges_"] = njh::json::toJson(tailEdges_);
+	ret["visitCount_"] = njh::json::toJson(visitCount_);
 	return ret;
 }
 
 Json::Value ConBasePathGraph::edge::toJson() const {
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(*this);
-	ret["head_"] = bib::json::toJson(head_.lock()->val_.getUid());
-	ret["tail_"] = bib::json::toJson(tail_.lock()->val_.getUid());
-	ret["cnt_"] = bib::json::toJson(cnt_);
+	ret["class"] = njh::getTypeName(*this);
+	ret["head_"] = njh::json::toJson(head_.lock()->val_.getUid());
+	ret["tail_"] = njh::json::toJson(tail_.lock()->val_.getUid());
+	ret["cnt_"] = njh::json::toJson(cnt_);
 	return ret;
 }
 
@@ -180,7 +180,7 @@ ConBasePathGraph::edge::edge(const std::shared_ptr<node> & head,
 
 
 void ConBasePathGraph::addNode(const ConPath::PosBase & n, double cnt, double frac) {
-	if (bib::has(nodes_, n.getUid())) {
+	if (njh::has(nodes_, n.getUid())) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": Error, already contains node with name "
 				<< n.getUid() << "\n";
@@ -229,7 +229,7 @@ void ConBasePathGraph::writePaths(std::ostream & out) const {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__
 				<< ": Error, the following nodes weren't visited:\n";
-		ss << bib::conToStr(notVisitedNodes, ",") << "\n";
+		ss << njh::conToStr(notVisitedNodes, ",") << "\n";
 		throw std::runtime_error { ss.str() };
 	}
 }
@@ -255,7 +255,7 @@ std::vector<ConBasePathGraph::ConPath> ConBasePathGraph::getPaths() const {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__
 				<< ": Error, the following nodes weren't visited:\n";
-		ss << bib::conToStr(notVisitedNodes, ",") << "\n";
+		ss << njh::conToStr(notVisitedNodes, ",") << "\n";
 		throw std::runtime_error { ss.str() };
 	}
 	return ret;
@@ -298,5 +298,5 @@ Json::Value ConBasePathGraph::createSankeyOutput() const {
 }
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 

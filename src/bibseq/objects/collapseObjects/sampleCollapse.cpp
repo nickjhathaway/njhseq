@@ -5,33 +5,33 @@
 //  Created by Nicholas Hathaway on 12/31/13.
 //
 
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "sampleCollapse.hpp"
 
-namespace bibseq {
+namespace njhseq {
 namespace collapse {
 
 
 
-sampleCollapse::sampleCollapse(const std::vector<std::vector<bibseq::cluster>> &inputClusters,
+sampleCollapse::sampleCollapse(const std::vector<std::vector<njhseq::cluster>> &inputClusters,
                const std::string &sampName, uint32_t freqCutOff): sampName_(sampName) {
   uint32_t lowFreqCount = 0;
   std::map<std::string, double> allSampCounts;
@@ -214,12 +214,12 @@ void sampleCollapse::renameClusters(const std::string &sortBy) {
 
 // output
 std::string sampleCollapse::getSimpleSampInfoHeader(const std::string & delim) {
-	return bib::conToStr(getSimpleSampInfoHeaderVec(), delim);
+	return njh::conToStr(getSimpleSampInfoHeaderVec(), delim);
 }
 
 std::string sampleCollapse::getSimpleSampInfo(const std::string &delim) const {
 	// sampName\treadsUsed(%total)\thapsUsed
-	return bib::conToStr(getSimpleSampInfoVec(), delim);
+	return njh::conToStr(getSimpleSampInfoVec(), delim);
 }
 
 VecStr sampleCollapse::getSimpleSampInfoVec() const {
@@ -319,4 +319,4 @@ void sampleCollapse::writeFinalOrignalClusters(const std::string &outDirectory,
 
 
 }  // napsace collapse
-}  // namespace bib
+}  // namespace njh

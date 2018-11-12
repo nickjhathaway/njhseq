@@ -4,32 +4,32 @@
  *  Created on: Mar 31, 2017
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "MultiGenomeMapper.hpp"
-#include "bibseq/BamToolsUtils.h"
-#include "bibseq/objects/BioDataObject.h"
+#include "njhseq/BamToolsUtils.h"
+#include "njhseq/objects/BioDataObject.h"
 
 
 
 
-namespace bibseq {
+namespace njhseq {
 
 MultiGenomeMapper::MultiGenomeMapper(const inputParameters & pars):pars_(pars){
 
@@ -44,7 +44,7 @@ MultiGenomeMapper::MultiGenomeMapper(const bfs::path & genomeDir,
 MultiGenomeMapper::Genome::Genome(const std::string & name,
 		const bfs::path & fnp) :
 		name_(name), fnp_(fnp) {
-	bib::files::checkExistenceThrow(fnp_, __PRETTY_FUNCTION__);
+	njh::files::checkExistenceThrow(fnp_, __PRETTY_FUNCTION__);
 	fnpTwoBit_ = fnp_;
 	fnpTwoBit_.replace_extension(".2bit");
 }
@@ -56,7 +56,7 @@ void MultiGenomeMapper::Genome::createTwoBit() {
 	bool buildTwoBit = false;
 	if (!bfs::exists(fnpTwoBit_)) {
 		buildTwoBit = true;
-	} else if (bib::files::firstFileIsOlder(fnpTwoBit_, fnp_)) {
+	} else if (njh::files::firstFileIsOlder(fnpTwoBit_, fnp_)) {
 		buildTwoBit = true;
 		pars.overWrite = true;
 	}
@@ -78,8 +78,8 @@ Json::Value MultiGenomeMapper::Genome::chromosomeLengths() const {
 
 	TwoBit::TwoBitFile genFile(fnpTwoBit_);
 	auto lens = genFile.getSeqLens();
-	auto lenKeys = bib::getVecOfMapKeys(lens);
-	bib::sort(lenKeys);
+	auto lenKeys = njh::getVecOfMapKeys(lens);
+	njh::sort(lenKeys);
 	for (const auto & lenKey : lenKeys) {
 		Json::Value lenObj;
 		lenObj["name"] = lenKey;
@@ -92,12 +92,12 @@ Json::Value MultiGenomeMapper::Genome::chromosomeLengths() const {
 
 Json::Value MultiGenomeMapper::Genome::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(*this);
-	ret["name_"] = bib::json::toJson(name_);
-	ret["fnp_"] = bib::json::toJson(fnp_);
-	ret["fnpTwoBit_"] = bib::json::toJson(fnpTwoBit_);
-	ret["gffFnp_"] = bib::json::toJson(gffFnp_);
-	ret["chromosomeLengths_"] = bib::json::toJson(chromosomeLengths_);
+	ret["class"] = njh::getTypeName(*this);
+	ret["name_"] = njh::json::toJson(name_);
+	ret["fnp_"] = njh::json::toJson(fnp_);
+	ret["fnpTwoBit_"] = njh::json::toJson(fnpTwoBit_);
+	ret["gffFnp_"] = njh::json::toJson(gffFnp_);
+	ret["chromosomeLengths_"] = njh::json::toJson(chromosomeLengths_);
 	return ret;
 }
 
@@ -115,16 +115,16 @@ MultiGenomeMapper::inputParameters::inputParameters(const bfs::path & genomeDir,
 
 Json::Value MultiGenomeMapper::inputParameters::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(*this);
-	ret["genomeDir_"] = bib::json::toJson(genomeDir_);
-	ret["primaryGenome_"] = bib::json::toJson(primaryGenome_);
-	ret["selectedGenomes_"] = bib::json::toJson(selectedGenomes_);
-	ret["numThreads_"] = bib::json::toJson(numThreads_);
-	ret["gffDir_"] = bib::json::toJson(gffDir_);
-	ret["workingDirectory_"] = bib::json::toJson(workingDirectory_);
-	ret["keepTempFiles_"] = bib::json::toJson(keepTempFiles_);
-	ret["verbose_"] = bib::json::toJson(verbose_);
-	ret["gffIntersectPars_"] = bib::json::toJson(gffIntersectPars_);
+	ret["class"] = njh::getTypeName(*this);
+	ret["genomeDir_"] = njh::json::toJson(genomeDir_);
+	ret["primaryGenome_"] = njh::json::toJson(primaryGenome_);
+	ret["selectedGenomes_"] = njh::json::toJson(selectedGenomes_);
+	ret["numThreads_"] = njh::json::toJson(numThreads_);
+	ret["gffDir_"] = njh::json::toJson(gffDir_);
+	ret["workingDirectory_"] = njh::json::toJson(workingDirectory_);
+	ret["keepTempFiles_"] = njh::json::toJson(keepTempFiles_);
+	ret["verbose_"] = njh::json::toJson(verbose_);
+	ret["gffIntersectPars_"] = njh::json::toJson(gffIntersectPars_);
 	return ret;
 }
 
@@ -133,9 +133,9 @@ Json::Value MultiGenomeMapper::inputParameters::toJson() const{
 
 Json::Value MultiGenomeMapper::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(*this);
-	ret["pars_"] = bib::json::toJson(pars_);
-	ret["genomes_"] = bib::json::toJson(genomes_);
+	ret["class"] = njh::getTypeName(*this);
+	ret["pars_"] = njh::json::toJson(pars_);
+	ret["genomes_"] = njh::json::toJson(genomes_);
 	return ret;
 }
 
@@ -146,7 +146,7 @@ void MultiGenomeMapper::loadGffFnps(){
 
 void MultiGenomeMapper::loadGffFnps(const bfs::path & gffDir) {
 	for (auto & genome : genomes_) {
-		bfs::path gffFnp = bib::files::make_path(pars_.gffDir_,
+		bfs::path gffFnp = njh::files::make_path(pars_.gffDir_,
 				genome.second->fnp_.filename()).replace_extension("gff");
 		if (bfs::exists(gffFnp)) {
 			genome.second->gffFnp_ = gffFnp;
@@ -162,7 +162,7 @@ void MultiGenomeMapper::loadGffFnps(const bfs::path & gffDir) {
 
 void MultiGenomeMapper::loadInGenomes() {
 	std::lock_guard<std::mutex> lock(mut_);
-	auto fastaFiles = bib::files::gatherFiles(pars_.genomeDir_, ".fasta", false);
+	auto fastaFiles = njh::files::gatherFiles(pars_.genomeDir_, ".fasta", false);
 	if (fastaFiles.empty()) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__
@@ -176,7 +176,7 @@ void MultiGenomeMapper::loadInGenomes() {
 		if (std::string::npos != genomeName.rfind(".")) {
 			genomeName = genomeName.substr(0, genomeName.rfind("."));
 		}
-		if (pars_.selectedGenomes_.empty() || bib::in(genomeName, pars_.selectedGenomes_)) {
+		if (pars_.selectedGenomes_.empty() || njh::in(genomeName, pars_.selectedGenomes_)) {
 			genomes_[genomeName] = std::make_unique<Genome>(genomeName, f);
 		}
 	}
@@ -185,7 +185,7 @@ void MultiGenomeMapper::loadInGenomes() {
 void MultiGenomeMapper::setUpGenomes() {
 	std::lock_guard<std::mutex> lock(mut_);
 	loadGffFnps();
-	bib::concurrent::LockableQueue<std::string> queueGenome(getVectorOfMapKeys(genomes_));
+	njh::concurrent::LockableQueue<std::string> queueGenome(getVectorOfMapKeys(genomes_));
 	auto setUpGenome = [&queueGenome,this](){
 		std::string genome = "";
 		BioCmdsUtils bioRunner(pars_.verbose_);
@@ -206,7 +206,7 @@ void MultiGenomeMapper::setUpGenomes() {
 
 void MultiGenomeMapper::bioIndexAllGenomes() {
 	std::lock_guard<std::mutex> lock(mut_);
-	bib::concurrent::LockableQueue<std::string> queueGenome(getVectorOfMapKeys(genomes_));
+	njh::concurrent::LockableQueue<std::string> queueGenome(getVectorOfMapKeys(genomes_));
 	auto setUpGenome = [&queueGenome,this](){
 		std::string genome = "";
 		BioCmdsUtils bioRunner(pars_.verbose_);
@@ -227,11 +227,11 @@ void MultiGenomeMapper::bioIndexAllGenomes() {
 
 void MultiGenomeMapper::init() {
 	loadInGenomes();
-	if ("" != pars_.primaryGenome_ && !bib::in(pars_.primaryGenome_, genomes_)) {
+	if ("" != pars_.primaryGenome_ && !njh::in(pars_.primaryGenome_, genomes_)) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error primary genome: " << pars_.primaryGenome_
 				<< " wasn't found in " << pars_.genomeDir_ << "\n";
-		ss << "Options are: " << bib::conToStr(bib::getVecOfMapKeys(genomes_), ", ")
+		ss << "Options are: " << njh::conToStr(njh::getVecOfMapKeys(genomes_), ", ")
 				<< "\n";
 		throw std::runtime_error { ss.str() };
 	}
@@ -245,13 +245,13 @@ void MultiGenomeMapper::checkForGenomeThrow(const std::string & genome,
 	if(!hasGenome(genome)){
 		std::stringstream ss;
 		ss << funcName << ", error don't have genome: " << genome << "\n";
-		ss << "Options are: " << bib::conToStr(getVectorOfMapKeys(genomes_), ",") << "\n";
+		ss << "Options are: " << njh::conToStr(getVectorOfMapKeys(genomes_), ",") << "\n";
 		throw std::runtime_error{ss.str()};
 	}
 }
 
 bool MultiGenomeMapper::hasGenome(const std::string & genome) const{
-	return bib::in(genome, genomes_);
+	return njh::in(genome, genomes_);
 }
 
 
@@ -266,7 +266,7 @@ std::vector<bfs::path> MultiGenomeMapper::getGenomeFnps() const {
 void MultiGenomeMapper::setSelectedGenomes(
 		const std::string & genomesStr) {
 	if("" != genomesStr){
-		auto selectedGenomesVec = bib::tokenizeString(genomesStr, ",");
+		auto selectedGenomesVec = njh::tokenizeString(genomesStr, ",");
 		setSelectedGenomes(selectedGenomesVec);
 	}
 }
@@ -274,7 +274,7 @@ void MultiGenomeMapper::setSelectedGenomes(
 void MultiGenomeMapper::setSelectedGenomes(
 		const std::set<std::string> & genomes) {
 	pars_.selectedGenomes_ = genomes;
-	if(!bib::in(pars_.primaryGenome_, pars_.selectedGenomes_)){
+	if(!njh::in(pars_.primaryGenome_, pars_.selectedGenomes_)){
 		pars_.selectedGenomes_.emplace(pars_.primaryGenome_);
 	}
 }
@@ -293,12 +293,12 @@ std::unordered_map<std::string, MultiGenomeMapper::AlignCmdOutput> MultiGenomeMa
 				+ "_aligned.sorted.bam";
 		AlignCmdOutput output(opts.out_.outFilename_);
 		if (bfs::exists(opts.out_.outFilename_)
-				&& bib::files::firstFileIsOlder(opts.firstName_, opts.out_.outFilename_)
-				&& bib::files::firstFileIsOlder(genome.second->fnp_,
+				&& njh::files::firstFileIsOlder(opts.firstName_, opts.out_.outFilename_)
+				&& njh::files::firstFileIsOlder(genome.second->fnp_,
 						opts.out_.outFilename_)) {
 		} else {
 			output.rOutput_ = cmdRunner.bowtie2Align(opts, genome.second->fnp_);
-			//std::cout << bib::json::toJson(output.rOutput_) << std::endl;
+			//std::cout << njh::json::toJson(output.rOutput_) << std::endl;
 		}
 		ret.emplace(genome.first, output);
 	}
@@ -310,13 +310,13 @@ std::unordered_map<std::string, MultiGenomeMapper::AlignCmdOutput> MultiGenomeMa
 		const bfs::path & outputPrefix,
 		const BioCmdsUtils::LastZPars & pars) const {
 
-	bib::sys::requireExternalProgramThrow("samtools");
-	bib::sys::requireExternalProgramThrow("lastz");
+	njh::sys::requireExternalProgramThrow("samtools");
+	njh::sys::requireExternalProgramThrow("lastz");
 
 	std::unordered_map<std::string, AlignCmdOutput> ret;
 	std::mutex retMut;
 	auto genomeKeys = getVectorOfMapKeys(genomes_);
-	bib::concurrent::LockableQueue<std::string> queue(genomeKeys);
+	njh::concurrent::LockableQueue<std::string> queue(genomeKeys);
 
 
 	auto alignGenome = [this,&queue, &retMut,&inputOpts,&outputPrefix,&ret,&pars](){
@@ -327,8 +327,8 @@ std::unordered_map<std::string, MultiGenomeMapper::AlignCmdOutput> MultiGenomeMa
 			opts.out_.outFilename_ = outputPrefix.string() + genome + "_aligned.sorted.bam";
 			AlignCmdOutput output(opts.out_.outFilename_);
 			if (bfs::exists(opts.out_.outFilename_)
-					&& bib::files::firstFileIsOlder(opts.firstName_, opts.out_.outFilename_)
-					&& bib::files::firstFileIsOlder(genomes_.at(genome)->fnp_, opts.out_.outFilename_)) {
+					&& njh::files::firstFileIsOlder(opts.firstName_, opts.out_.outFilename_)
+					&& njh::files::firstFileIsOlder(genomes_.at(genome)->fnp_, opts.out_.outFilename_)) {
 			} else {
 				BioCmdsUtils::LastZPars parsCopy = pars;
 				parsCopy.genomeFnp = genomes_.at(genome)->fnpTwoBit_;
@@ -362,7 +362,7 @@ std::unordered_map<std::string, std::vector<GenomicRegion>> MultiGenomeMapper::g
 		const std::unordered_map<std::string, bfs::path> & bamFnps) const {
 	std::unordered_map<std::string, std::vector<GenomicRegion>> ret;
 	for (const auto & bamFnp : bamFnps) {
-		if (bib::in(bamFnp.first, genomes_)) {
+		if (njh::in(bamFnp.first, genomes_)) {
 			BamTools::BamReader bReader;
 			bReader.Open(bamFnp.second.string());
 			checkBamOpenThrow(bReader, bamFnp.second.string());
@@ -423,22 +423,22 @@ std::unordered_map<std::string, std::vector<seqInfo>> MultiGenomeMapper::getRefS
 	std::unordered_map<std::string, GenomicRegion> primaryRegion { {
 		pars_.primaryGenome_, region } };
 	auto primaryRef = extractRegions(primaryRegion);
-	auto refFnp = bib::files::make_path(alignmentsDir, "primaryRefSeq.fasta");
+	auto refFnp = njh::files::make_path(alignmentsDir, "primaryRefSeq.fasta");
 	SeqOutput::write(primaryRef, SeqIOOptions::genFastaOut(refFnp));
 	/*
 	 * 	auto alignOutputs = alignToGenomes(
 	 SeqIOOptions::genFastaIn(refFnp),
-	 bib::appendAsNeededRet(refAlignsDir.string(), "/"));
+	 njh::appendAsNeededRet(refAlignsDir.string(), "/"));
 	 */
 	auto alignOutputs = alignToGenomesLastz(SeqIOOptions::genFastaIn(refFnp),
-			bib::appendAsNeededRet(alignmentsDir.string(), "/"),
+			njh::appendAsNeededRet(alignmentsDir.string(), "/"),
 			lzPars);
 	auto bamFnps = MultiGenomeMapper::getBamFnps(alignOutputs);
 	auto allRegions = getRegionsFromBams(bamFnps);
 
 	std::unordered_map<std::string, std::vector<seqInfo>>  ret;
 	std::mutex retMut;
-	bib::concurrent::LockableQueue<std::string> genomesQueue(getVectorOfMapKeys(allRegions));
+	njh::concurrent::LockableQueue<std::string> genomesQueue(getVectorOfMapKeys(allRegions));
 
 	auto extractBestGenomeSeq = [this,&genomesQueue,&ret,&retMut, &allRegions,&alignmentsDir](){
 		std::string genome = "";
@@ -471,7 +471,7 @@ std::unordered_map<std::string, std::vector<seqInfo>> MultiGenomeMapper::getRefS
 			}
 			std::ofstream outBedFile;
 			OutOptions outBedOpts(
-					bib::files::make_path(alignmentsDir, genome + "_regions.bed"));
+					njh::files::make_path(alignmentsDir, genome + "_regions.bed"));
 			outBedOpts.openFile(outBedFile);
 			for (const auto & region : allRegions.at(genome)) {
 				outBedFile << region.genBedRecordCore().toDelimStr() << std::endl;
@@ -510,15 +510,15 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 	std::unordered_map<std::string, GenomicRegion> primaryRegion { {
 		pars_.primaryGenome_, region } };
 	auto primaryRef = extractRegions(primaryRegion);
-	auto refFnp = bib::files::make_path(refAlignsDir, "primaryRefSeq.fasta");
+	auto refFnp = njh::files::make_path(refAlignsDir, "primaryRefSeq.fasta");
 	SeqOutput::write(primaryRef, SeqIOOptions::genFastaOut(refFnp));
 	/*
 	 * 	auto alignOutputs = alignToGenomes(
 	 SeqIOOptions::genFastaIn(refFnp),
-	 bib::appendAsNeededRet(refAlignsDir.string(), "/"));
+	 njh::appendAsNeededRet(refAlignsDir.string(), "/"));
 	 */
 	auto alignOutputs = alignToGenomesLastz(SeqIOOptions::genFastaIn(refFnp),
-			bib::appendAsNeededRet(refAlignsDir.string(), "/"),
+			njh::appendAsNeededRet(refAlignsDir.string(), "/"),
 			lzPars);
 	auto bamFnps = MultiGenomeMapper::getBamFnps(alignOutputs);
 	auto allRegions = getRegionsFromBams(bamFnps);
@@ -538,7 +538,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 		primaryRefInfo = seqInfo(pars_.primaryGenome_, refSeq);
 	}
 	std::mutex refSeqsMut;
-	bib::concurrent::LockableQueue<std::string> genomesQueue(getVectorOfMapKeys(allRegions));
+	njh::concurrent::LockableQueue<std::string> genomesQueue(getVectorOfMapKeys(allRegions));
 	struct GenExtracRes{
 		uint32_t forwardHits_{0};
 		uint32_t reverseHits_{0};
@@ -584,7 +584,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 //					std::cout << trimmedExtractedSeq.name_ << std::endl;
 //					std::cout << reg.genBedRecordCore().toDelimStr() << std::endl;
 //					std::cout << extenedRegion.genBedRecordCore().toDelimStr() << std::endl;
-//					std::cout <<"trimmedExtractedSeq.on_: " <<  bib::colorBool(trimmedExtractedSeq.on_) << std::endl;
+//					std::cout <<"trimmedExtractedSeq.on_: " <<  njh::colorBool(trimmedExtractedSeq.on_) << std::endl;
 //					aligners[threadNumber].alignObjectA_.seqBase_.outPutSeq(std::cout);
 //					aligners[threadNumber].alignObjectB_.seqBase_.outPutSeq(std::cout);
 					if(trimmedExtractedSeq.on_){
@@ -612,7 +612,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 				intersectBedLocsWtihGffRecords(bedRegions, intersectPars);
 			}
 
-			OutputStream bedOut(OutOptions(bib::files::make_path(refAlignsDir, genome + "_regions.bed")));
+			OutputStream bedOut(OutOptions(njh::files::make_path(refAlignsDir, genome + "_regions.bed")));
 			for(const auto & reg : bedRegions){
 				++genomeExtractionsResults.at(genome).extractCounts_;
 				if(reg.reverseStrand()){
@@ -659,7 +659,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 					alignerObj.alignCacheGlobal(primaryRefInfo, genomeSeq);
 					scores.emplace_back(std::make_pair(alignerObj.parts_.score_, regPos));
 										}
-				bib::sort(scores, [](const auto & s1, const auto & s2 ){
+				njh::sort(scores, [](const auto & s1, const auto & s2 ){
 					return s1.first > s2.first;
 				});
 				{
@@ -697,17 +697,17 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 	for(uint32_t t = 0; t < pars_.numThreads_; ++t){
 		threads.emplace_back(std::thread(extractBestGenomeSeq, t));
 	}
-	bib::concurrent::joinAllThreads(threads);
+	njh::concurrent::joinAllThreads(threads);
 	table performanceTab(VecStr{"genome", "forwardStrandHits", "reverseStrandHits", "extractionCounts"});
 	auto genomeKeys = getVectorOfMapKeys(genomeExtractionsResults);
-	bib::sort(genomeKeys);
+	njh::sort(genomeKeys);
 	for(const auto & genomeKey : genomeKeys){
 		performanceTab.addRow(genomeKey,
 				genomeExtractionsResults[genomeKey].forwardHits_,
 				genomeExtractionsResults[genomeKey].reverseHits_,
 				genomeExtractionsResults[genomeKey].extractCounts_);
 	}
-	auto perTabOpts = TableIOOpts::genTabFileOut(bib::files::make_path(refAlignsDir, "extractionCounts"),true);
+	auto perTabOpts = TableIOOpts::genTabFileOut(njh::files::make_path(refAlignsDir, "extractionCounts"),true);
 	performanceTab.outPutContents(perTabOpts);
 
 	std::vector<seqInfo> ret;
@@ -738,5 +738,5 @@ std::unordered_map<std::string, bfs::path> MultiGenomeMapper::getBamFnps(
 	return ret;
 }
 
-}  // namespace bibseq
+}  // namespace njhseq
 

@@ -1,25 +1,25 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "gapScoring.hpp"
 
-namespace bibseq {
+namespace njhseq {
 // Constructors
 gapScoringParameters::gapScoringParameters(int32_t gOpen, int32_t gExtend, int32_t gLeftOpen, int32_t gLeftExtend,
                      int32_t gRightOpen, int32_t gRightExtend)
@@ -175,20 +175,20 @@ bool gapScoringParameters::operator<(const gapScoringParameters& otherPars) cons
 
 Json::Value gapScoringParameters::toJson() const {
 	Json::Value ret;
-	ret["class"] = "bibseq::gapScoringParameters";
-	ret["gapOpen_"] = bib::json::toJson(gapOpen_);
-	ret["gapExtend_"] = bib::json::toJson(gapExtend_);
-	ret["gapRightQueryOpen_"] = bib::json::toJson(gapRightQueryOpen_);
-	ret["gapRightQueryExtend_"] = bib::json::toJson(gapRightQueryExtend_);
-	ret["gapRightRefOpen_"] = bib::json::toJson(gapRightRefOpen_);
-	ret["gapRightRefExtend_"] = bib::json::toJson(gapRightRefExtend_);
-	ret["gapLeftQueryOpen_"] = bib::json::toJson(gapLeftQueryOpen_);
-	ret["gapLeftQueryExtend_"] = bib::json::toJson(gapLeftQueryExtend_);
-	ret["gapLeftRefOpen_"] = bib::json::toJson(gapLeftRefOpen_);
-	ret["gapLeftRefExtend_"] = bib::json::toJson(gapLeftRefExtend_);
-	ret["uniqueIdentifer_"] = bib::json::toJson(uniqueIdentifer_);
+	ret["class"] = "njhseq::gapScoringParameters";
+	ret["gapOpen_"] = njh::json::toJson(gapOpen_);
+	ret["gapExtend_"] = njh::json::toJson(gapExtend_);
+	ret["gapRightQueryOpen_"] = njh::json::toJson(gapRightQueryOpen_);
+	ret["gapRightQueryExtend_"] = njh::json::toJson(gapRightQueryExtend_);
+	ret["gapRightRefOpen_"] = njh::json::toJson(gapRightRefOpen_);
+	ret["gapRightRefExtend_"] = njh::json::toJson(gapRightRefExtend_);
+	ret["gapLeftQueryOpen_"] = njh::json::toJson(gapLeftQueryOpen_);
+	ret["gapLeftQueryExtend_"] = njh::json::toJson(gapLeftQueryExtend_);
+	ret["gapLeftRefOpen_"] = njh::json::toJson(gapLeftRefOpen_);
+	ret["gapLeftRefExtend_"] = njh::json::toJson(gapLeftRefExtend_);
+	ret["uniqueIdentifer_"] = njh::json::toJson(uniqueIdentifer_);
 	return ret;
 }
 
 
-}  // namespace bibseq
+}  // namespace njhseq

@@ -1,25 +1,25 @@
 #include "readChecker.hpp"
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace bibseq {
+namespace njhseq {
 
 ReadChecker::ReadChecker(std::string markWith, bool mark) :
 		markWith_(std::move(markWith)), mark_(mark) {
@@ -340,7 +340,7 @@ ReadCheckerOnQualityWindow::ReadCheckerOnQualityWindow(
 		uint32_t qualityWindowLength, uint32_t qualityWindowStep,
 		uint32_t qualityWindowThres, bool mark) :
 		ReadChecker(
-				bib::err::F() << "_failedWindowOf_wl:" << qualityWindowLength << ",ws:"
+				njh::err::F() << "_failedWindowOf_wl:" << qualityWindowLength << ",ws:"
 						<< qualityWindowStep << ",wt:" << qualityWindowThres, mark), qualityWindowLength_(
 				qualityWindowLength), qualityWindowStep_(qualityWindowStep), qualityWindowThres_(
 				qualityWindowThres) {
@@ -365,7 +365,7 @@ ReadCheckerOnQualityWindowTrim::ReadCheckerOnQualityWindowTrim(
 		uint32_t qualityWindowLength, uint32_t qualityWindowStep,
 		uint32_t qualityWindowThres, uint32_t minLen, bool mark) :
 		ReadChecker(
-				bib::err::F() << "_failedWindowOf_wl:" << qualityWindowLength << ",ws:"
+				njh::err::F() << "_failedWindowOf_wl:" << qualityWindowLength << ",ws:"
 						<< qualityWindowStep << ",wt:" << qualityWindowThres, mark), qualityWindowLength_(
 				qualityWindowLength), qualityWindowStep_(qualityWindowStep), qualityWindowThres_(
 				qualityWindowThres), minLen_(minLen) {
@@ -398,7 +398,7 @@ ReadCheckerOnNs::~ReadCheckerOnNs() {
 ReadCheckerOnKmerComp::ReadCheckerOnKmerComp(kmerInfo compareInfo,
 		uint32_t kLength, double kmerCutoff, bool mark) :
 		ReadChecker(
-				bib::err::F() << "_failedKmerCutOff:" << kmerCutoff << "_kLen_"
+				njh::err::F() << "_failedKmerCutOff:" << kmerCutoff << "_kLen_"
 						<< kLength, mark), compareInfo_(std::move(compareInfo)), kLength_(
 				kLength), kmerCutoff_(kmerCutoff) {
 }
@@ -443,4 +443,4 @@ bool ReadCheckerOnKmerComp::checkRead(PairedRead & seq) const {
 ReadCheckerOnKmerComp::~ReadCheckerOnKmerComp() {
 }
 
-}  // namespace bibseq
+}  // namespace njhseq

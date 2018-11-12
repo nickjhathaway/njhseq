@@ -1,31 +1,31 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "baseCluster.hpp"
-#include "bibseq/helpers/consensusHelper.hpp"
-#include "bibseq/readVectorManipulation/readVectorHelpers.h"
-#include "bibseq/IO/SeqIO/SeqOutput.hpp"
-#include "bibseq/objects/dataContainers/graphs/ConBasePathGraph.hpp"
+#include "njhseq/helpers/consensusHelper.hpp"
+#include "njhseq/readVectorManipulation/readVectorHelpers.h"
+#include "njhseq/IO/SeqIO/SeqOutput.hpp"
+#include "njhseq/objects/dataContainers/graphs/ConBasePathGraph.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 
 baseCluster::baseCluster() : readObject() {
@@ -111,7 +111,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 	if(seqBase_.cnt_ > 2){
 		/*//for debugging
 		bool print = false;
-		if(bib::containsSubString(seqBase_.name_, "lib1_Minor.00_seq.0001_5")){
+		if(njh::containsSubString(seqBase_.name_, "lib1_Minor.00_seq.0001_5")){
 			print = true;
 		}*/
 
@@ -162,7 +162,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 			std::cout << seqBase_.name_ << std::endl;
 			std::cout << "countAbovepCutOff: " << countAbovepCutOff << std::endl;
 			bfs::path counterFnp = firstReadName_ + "_baseCounts.tab.txt";
-			counterFnp = bib::files::findNonexitantFile(counterFnp.string());
+			counterFnp = njh::files::findNonexitantFile(counterFnp.string());
 			std::ofstream outFile(counterFnp.string());
 
 			outFile << "pos\tbase\tcount\tfrac" << "\n";
@@ -174,7 +174,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 				}
 			}
 			bfs::path insert_counterFnp = firstReadName_ + "_insertBaseCounts.tab.txt";
-			insert_counterFnp = bib::files::findNonexitantFile(insert_counterFnp.string());
+			insert_counterFnp = njh::files::findNonexitantFile(insert_counterFnp.string());
 			std::ofstream outInsertFile(insert_counterFnp.string());
 			outFile << "pos\tinsertPos\tbase\tcount\tfrac" << "\n";
 			for (const auto & insert : insertions) {
@@ -193,12 +193,12 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 			std::cout << firstReadName_ << std::endl;
 			std::cout << "countAbovepCutOff: " << countAbovepCutOff << std::endl;
 			bfs::path counterFnp = firstReadName_ + "_baseCounts.tab.txt";
-			counterFnp = bib::files::findNonexitantFile(counterFnp.string());
-			std::ofstream outFile(bib::replaceString(counterFnp.string(), "/", "_"));
+			counterFnp = njh::files::findNonexitantFile(counterFnp.string());
+			std::ofstream outFile(njh::replaceString(counterFnp.string(), "/", "_"));
 
 			outFile << "pos\tbase\tcount\tfrac" << std::endl;
 			for (const auto & counter : counters) {
-				if(bib::in(counter.first, importantPositions)){
+				if(njh::in(counter.first, importantPositions)){
 					for (const auto base : counter.second.alphabet_) {
 						if (counter.second.fractions_[base] > contentionCutOff) {
 							outFile << counter.first << "\t" << base << "\t"
@@ -209,13 +209,13 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 				}
 			}
 			bfs::path insert_counterFnp = firstReadName_ + "_insertBaseCounts.tab.txt";
-			insert_counterFnp = bib::files::findNonexitantFile(insert_counterFnp.string());
-			std::ofstream outInsertFile(bib::replaceString(insert_counterFnp.string(), "/", "_"));
+			insert_counterFnp = njh::files::findNonexitantFile(insert_counterFnp.string());
+			std::ofstream outInsertFile(njh::replaceString(insert_counterFnp.string(), "/", "_"));
 			outFile << "pos\tinsertPos\tbase\tcount\tfrac" << std::endl;
 			for (const auto & insert : insertions) {
 				for (const auto & counter : insert.second) {
 					for (const auto base : counter.second.alphabet_) {
-						if(bib::in(insert.first, importantPositions)){
+						if(njh::in(insert.first, importantPositions)){
 							outInsertFile << insert.first << "\t"
 									<< counter.first << "\t" << base << "\t"
 									<< counter.second.chars_[base] << "\t"
@@ -269,7 +269,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 				//alignerObj.alignCacheGlobal(seqBase_, seq);
 				alignerObj.alignCacheGlobalDiag(seqBase_, seq);
 
-				bib::sort(importantPositions);
+				njh::sort(importantPositions);
 				for(const auto pos : iter::range(importantPositions.size() - 1)){
 					auto headPos = importantPositions[pos];
 					auto headBase = alignerObj.alignObjectB_.seqBase_.seq_[alignerObj.getAlignPosForSeqAPos(headPos)];
@@ -532,7 +532,7 @@ std::string toSlimJsonErrors(const comparison & comp){
 	ret["lqMismatches_"] = comp.lqMismatches_;
 	ret["oneBaseIndel_"] = comp.oneBaseIndel_;
 	ret["twoBaseIndel_"] = comp.twoBaseIndel_;
-	return bib::json::writeAsOneLine(ret);
+	return njh::json::writeAsOneLine(ret);
 }
 
 
@@ -570,11 +570,11 @@ bool baseCluster::compare(baseCluster & read, aligner & alignerObj,
 			read.previousErrorChecks_[firstReadName_] = currentProfile;
 			previousErrorChecks_[read.firstReadName_] = currentProfile;
 			//std::stringstream ss;
-			//ss << bib::json::toJson(currentProfile) << std::endl;;
-			//std::cout << bib::removeAllWhitespace(ss.str()) << std::endl;;
+			//ss << njh::json::toJson(currentProfile) << std::endl;;
+			//std::cout << njh::removeAllWhitespace(ss.str()) << std::endl;;
 			//ss.str("");
-			//ss << bib::json::toJson(runParams.errors_) << std::endl;
-			//std::cout << bib::removeAllWhitespace(ss.str()) << std::endl;;
+			//ss << njh::json::toJson(runParams.errors_) << std::endl;
+			//std::cout << njh::removeAllWhitespace(ss.str()) << std::endl;;
 			ret = runParams.passErrorCheck(currentProfile);
 			//if (currentProfile.distances_.eventBasedIdentity_ > .95
 			//		&& read.seqBase_.cnt_ == 1 and !ret) {
@@ -671,4 +671,4 @@ void baseCluster::removeRead(const std::string & stubName){
 	removeRead(readPos);
 }
 
-}  // namespace bib
+}  // namespace njh

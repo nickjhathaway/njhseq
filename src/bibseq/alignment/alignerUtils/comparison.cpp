@@ -1,25 +1,25 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/alignment/alignerUtils/comparison.hpp"
+#include "njhseq/alignment/alignerUtils/comparison.hpp"
 
-namespace bibseq {
+namespace njhseq {
 void DistanceMet::reset() {
 	identities_ = 0;
 	identity_ = 0;
@@ -29,11 +29,11 @@ void DistanceMet::reset() {
 
 Json::Value DistanceMet::toJson()const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
-	ret["identities_"] = bib::json::toJson(identities_);
-	ret["identity_"] = bib::json::toJson(identity_);
-	ret["coverage_"] = bib::json::toJson(coverage_);
-	ret["covered_"] = bib::json::toJson(covered_);
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["identities_"] = njh::json::toJson(identities_);
+	ret["identity_"] = njh::json::toJson(identity_);
+	ret["coverage_"] = njh::json::toJson(coverage_);
+	ret["covered_"] = njh::json::toJson(covered_);
 	return ret;
 }
 
@@ -69,20 +69,20 @@ uint32_t DistanceComp::getNumOfEvents(bool countLowKmer)const{
 
 Json::Value DistanceComp::toJson()const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
-	ret["basesInAln_"] = bib::json::toJson(basesInAln_);
-	ret["percentMismatch_"] = bib::json::toJson(percentMismatch_);
-	ret["percentMatch_"] = bib::json::toJson(percentMatch_);
-	ret["percentGaps_"] = bib::json::toJson(percentGaps_);
-	ret["overLappingEvents_"] = bib::json::toJson(overLappingEvents_);
-	ret["eventBasedIdentity_"] = bib::json::toJson(eventBasedIdentity_);
-	ret["overLappingEventsHq_"] = bib::json::toJson(overLappingEventsHq_);
-	ret["eventBasedIdentityHq_"] = bib::json::toJson(eventBasedIdentityHq_);
-	ret["ref_"] = bib::json::toJson(ref_);
-	ret["query_"] = bib::json::toJson(query_);
-	ret["mismatches_"] = bib::json::toJson(mismatches_);
-	ret["lowKmerMismatches_"] = bib::json::toJson(lowKmerMismatches_);
-	ret["alignmentGaps_"] = bib::json::toJson(alignmentGaps_);
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["basesInAln_"] = njh::json::toJson(basesInAln_);
+	ret["percentMismatch_"] = njh::json::toJson(percentMismatch_);
+	ret["percentMatch_"] = njh::json::toJson(percentMatch_);
+	ret["percentGaps_"] = njh::json::toJson(percentGaps_);
+	ret["overLappingEvents_"] = njh::json::toJson(overLappingEvents_);
+	ret["eventBasedIdentity_"] = njh::json::toJson(eventBasedIdentity_);
+	ret["overLappingEventsHq_"] = njh::json::toJson(overLappingEventsHq_);
+	ret["eventBasedIdentityHq_"] = njh::json::toJson(eventBasedIdentityHq_);
+	ret["ref_"] = njh::json::toJson(ref_);
+	ret["query_"] = njh::json::toJson(query_);
+	ret["mismatches_"] = njh::json::toJson(mismatches_);
+	ret["lowKmerMismatches_"] = njh::json::toJson(lowKmerMismatches_);
+	ret["alignmentGaps_"] = njh::json::toJson(alignmentGaps_);
 	return ret;
 }
 
@@ -184,24 +184,24 @@ bool comparison::passIdThresholdHq(const comparison& generatedError) const {
 
 Json::Value comparison::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
-	ret["oneBaseIndel_"] = bib::json::toJson(oneBaseIndel_);
-	ret["twoBaseIndel_"] = bib::json::toJson(twoBaseIndel_);
-	ret["largeBaseIndel_"] = bib::json::toJson(largeBaseIndel_);
-	ret["hqMismatches_"] = bib::json::toJson(hqMismatches_);
-	ret["lqMismatches_"] = bib::json::toJson(lqMismatches_);
-	ret["lowKmerMismatches_"] = bib::json::toJson(lowKmerMismatches_);
-	ret["highQualityMatches_"] = bib::json::toJson(highQualityMatches_);
-	ret["lowQualityMatches_"] = bib::json::toJson(lowQualityMatches_);
-	ret["distances_"] = bib::json::toJson(distances_);
-	ret["refName_"] = bib::json::toJson(refName_);
-	ret["queryName_"] = bib::json::toJson(queryName_);
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["oneBaseIndel_"] = njh::json::toJson(oneBaseIndel_);
+	ret["twoBaseIndel_"] = njh::json::toJson(twoBaseIndel_);
+	ret["largeBaseIndel_"] = njh::json::toJson(largeBaseIndel_);
+	ret["hqMismatches_"] = njh::json::toJson(hqMismatches_);
+	ret["lqMismatches_"] = njh::json::toJson(lqMismatches_);
+	ret["lowKmerMismatches_"] = njh::json::toJson(lowKmerMismatches_);
+	ret["highQualityMatches_"] = njh::json::toJson(highQualityMatches_);
+	ret["lowQualityMatches_"] = njh::json::toJson(lowQualityMatches_);
+	ret["distances_"] = njh::json::toJson(distances_);
+	ret["refName_"] = njh::json::toJson(refName_);
+	ret["queryName_"] = njh::json::toJson(queryName_);
 	return ret;
 }
 
 std::ostream & operator <<(std::ostream & out, const comparison & comp) {
-	out << bib::json::writeAsOneLine(comp.toJson()) << std::endl;
+	out << njh::json::writeAsOneLine(comp.toJson()) << std::endl;
 	return out;
 }
 
-}  // namespace bibseq
+}  // namespace njhseq

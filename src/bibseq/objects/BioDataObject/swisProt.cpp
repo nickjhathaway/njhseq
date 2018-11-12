@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * swisProt.cpp
@@ -26,7 +26,7 @@
 
 #include "swisProt.hpp"
 
-namespace bibseq {
+namespace njhseq {
 void swisProt::readIdLine(const std::string & line){
 	/*
 	 * Prior to release 51, included with MoleculeType:
@@ -35,16 +35,16 @@ void swisProt::readIdLine(const std::string & line){
 	 * Newer files lack the MoleculeType:
 	 * ID   EntryName DataClass; SequenceLength AA.
 	 */
-	auto toks = bib::tokenizeString(line, "whitespace");
+	auto toks = njh::tokenizeString(line, "whitespace");
 	if(toks.size() == 4){
 		entryName_ = toks[0];
-		dataClass_ = bib::rstripRet(toks[1], ';');
+		dataClass_ = njh::rstripRet(toks[1], ';');
 		moleculeType_ = "";
 		sequenceLength_ = std::stoi(toks[3]);
 	}else if ( toks.size() == 5){
 		entryName_ = toks[0];
-		dataClass_ = bib::rstripRet(toks[1], ';');
-		moleculeType_ = bib::rstripRet(toks[2], ';');
+		dataClass_ = njh::rstripRet(toks[1], ';');
+		moleculeType_ = njh::rstripRet(toks[2], ';');
 		sequenceLength_ = std::stoi(toks[3]);
 	}else{
 		std::cout << "ID line has unrecognised format: " << std::endl;
@@ -52,7 +52,7 @@ void swisProt::readIdLine(const std::string & line){
 	}
 	VecStr dataClassPossible = VecStr {"STANDARD", "PRELIMINARY", "IPI", "Reviewed", "Unreviewed"};
 
-	if(bib::in(dataClass_, dataClassPossible)){
+	if(njh::in(dataClass_, dataClassPossible)){
 		std::stringstream ss;
 		ss << "Unrecognized data class" << std::endl;
 		ss << dataClass_ << std::endl;
@@ -72,4 +72,4 @@ void swisProt::printDescription(std::ostream & out, bool deep){
 	out << "}" << std::endl;
 
 }
-} /* namespace bib */
+} /* namespace njh */

@@ -1,31 +1,31 @@
 #include "ManipulateTableSetUp.hpp"
-#include "bibseq/IO.h"
-// bibseq - A library for analyzing sequence data
+#include "njhseq/IO.h"
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-namespace bibseq {
+namespace njhseq {
 
-ManipulateTableSetUp::ManipulateTableSetUp(int argc, char *argv[]) : bib::progutils::ProgramSetUp(argc, argv) {
+ManipulateTableSetUp::ManipulateTableSetUp(int argc, char *argv[]) : njh::progutils::ProgramSetUp(argc, argv) {
   initializeDefaults();
 }
-ManipulateTableSetUp::ManipulateTableSetUp(const bib::progutils::CmdArgs &inputCommands)
-    : bib::progutils::ProgramSetUp(inputCommands) {
+ManipulateTableSetUp::ManipulateTableSetUp(const njh::progutils::CmdArgs &inputCommands)
+    : njh::progutils::ProgramSetUp(inputCommands) {
   initializeDefaults();
 }
 
@@ -370,10 +370,10 @@ bool ManipulateTableSetUp::processSorting(bool required) {
 }
 void ManipulateTableSetUp::processWriteOutOptions() {
   if(setOption(ioOptions_.out_.outFilename_, "--out", "Out File Name")){
-  		if("" != bib::files::getExtension(ioOptions_.out_.outFilename_)){
-  			ioOptions_.out_.outExtention_ = "." + bib::files::getExtension(ioOptions_.out_.outFilename_);
-  		}else if("" != bib::files::getExtension(ioOptions_.in_.inFilename_)){
-  			ioOptions_.out_.outExtention_ = "." + bib::files::getExtension(ioOptions_.in_.inFilename_);
+  		if("" != njh::files::getExtension(ioOptions_.out_.outFilename_)){
+  			ioOptions_.out_.outExtention_ = "." + njh::files::getExtension(ioOptions_.out_.outFilename_);
+  		}else if("" != njh::files::getExtension(ioOptions_.in_.inFilename_)){
+  			ioOptions_.out_.outExtention_ = "." + njh::files::getExtension(ioOptions_.in_.inFilename_);
   		}
   }
   setOption(ioOptions_.out_.outExtention_, "--extension", "Out File Extension");
@@ -406,10 +406,10 @@ bool ManipulateTableSetUp::processDefaultProgram(bool fileRequired) {
 void ManipulateTableSetUp::processDirectoryOutputName(
     const std::string &defaultName, bool mustMakeDirectory) {
   if (setOption(directoryName_, "-dout", "Name of Out Directory")) {
-    directoryName_ = bib::files::makeDir("./", bib::files::MkdirPar(bib::replaceString(directoryName_, "./", ""))).string();
+    directoryName_ = njh::files::makeDir("./", njh::files::MkdirPar(njh::replaceString(directoryName_, "./", ""))).string();
   } else {
     if (mustMakeDirectory) {
-      directoryName_ = bib::files::makeDir("./", bib::files::MkdirPar(defaultName)).string();
+      directoryName_ = njh::files::makeDir("./", njh::files::MkdirPar(defaultName)).string();
     } else {
       directoryName_ = "./";
     }
@@ -418,11 +418,11 @@ void ManipulateTableSetUp::processDirectoryOutputName(
 }
 
 void ManipulateTableSetUp::printDefaultOptinalOptions(std::ostream &out) {
-  out << bib::bashCT::bold <<
-    		bib::bashCT::black <<
+  out << njh::bashCT::bold <<
+    		njh::bashCT::black <<
              "Optinal commands for all ManipulateTable programs, some might "
              "not "
-             "pertain to certain programs" << bib::bashCT::reset << std::endl;
+             "pertain to certain programs" << njh::bashCT::reset << std::endl;
   out << "1) -delim [option]: The name of the file to be read, use "
          "'-delim tab' for tab delimited files, defaults to whitespace"
       << std::endl;
@@ -434,8 +434,8 @@ void ManipulateTableSetUp::printDefaultOptinalOptions(std::ostream &out) {
   out << "4) -decending : If sorting, whether the sort should be decending "
          "rather "
          "than ascending" << std::endl;
-  out << bib::bashCT::bold <<
-    		bib::bashCT::black <<"Optional Write Options" << bib::bashCT::reset << std::endl;
+  out << njh::bashCT::bold <<
+    		njh::bashCT::black <<"Optional Write Options" << njh::bashCT::reset << std::endl;
   out << "1) -out [option]: A name of an outfile, defaults to standard out"
       << std::endl;
   out << "2) -outDelim [option] : The delimiter for output, defaults to the "
@@ -498,4 +498,4 @@ bool ManipulateTableSetUp::processDebug() {
   return setOption(debug_, "--debug", "Debug");
 }
 
-}  // namespace bib
+}  // namespace njh

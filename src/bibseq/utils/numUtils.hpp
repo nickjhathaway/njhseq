@@ -7,27 +7,27 @@
  *      Author: nickhathaway
  */
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/utils/utils.hpp"
+#include "njhseq/utils/utils.hpp"
 
-namespace bibseq {
+namespace njhseq {
 template<typename T>
 class scale {
 public:
@@ -51,10 +51,10 @@ public:
 
 	Json::Value toJson() const {
 		Json::Value ret;
-		ret["min_"] = bib::json::toJson(min_);
-		ret["max_"] = bib::json::toJson(max_);
-		ret["start_"] = bib::json::toJson(start_);
-		ret["stop_"] = bib::json::toJson(stop_);
+		ret["min_"] = njh::json::toJson(min_);
+		ret["max_"] = njh::json::toJson(max_);
+		ret["start_"] = njh::json::toJson(start_);
+		ret["stop_"] = njh::json::toJson(stop_);
 		return ret;
 	}
 };
@@ -112,6 +112,6 @@ inline unsigned uAbsdiff(unsigned a, unsigned b) {
 	return (result ^ n) - n; // 'result' if n = 0; '-result' if n = 0xFFFFFFFF
 }
 
-} /* namespace bibseq */
+} /* namespace njhseq */
 
 

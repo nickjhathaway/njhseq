@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * reading.cpp
@@ -25,10 +25,10 @@
  */
 
 #include "reading.hpp"
-#include "bibseq/objects/BioDataObject/BioDataFileIO.hpp"
-#include "bibseq/objects/BioDataObject/GenomicRegion.hpp"
+#include "njhseq/objects/BioDataObject/BioDataFileIO.hpp"
+#include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 std::vector<std::shared_ptr<GFFCore>> getGFFs(const bfs::path & filename) {
 	std::vector<std::shared_ptr<GFFCore>> ret;
@@ -41,11 +41,11 @@ std::vector<std::shared_ptr<GFFCore>> getGFFs(const bfs::path & filename) {
 		ret.emplace_back(std::move(gff));
 		bool end = false;
 		while ('#' == reader.inFile_->peek()) {
-			if (bib::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+			if (njh::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
 				end = true;
 				break;
 			}
-			bib::files::crossPlatGetline(*reader.inFile_, line);
+			njh::files::crossPlatGetline(*reader.inFile_, line);
 		}
 		if (end) {
 			break;
@@ -114,9 +114,9 @@ std::vector<std::shared_ptr<TandemRepeatFinderRecord>> getTandemRepeatFinderReco
 	std::vector<std::shared_ptr<TandemRepeatFinderRecord>> repeatRecords;
 	std::string currentSeqName = "";
 	std::string line = "";
-	while (bib::files::crossPlatGetline(*reader.inFile_, line)) {
-		if (bib::beginsWith(line, "Sequence")) {
-			auto toks = bib::tokenizeString(line, "whitespace");
+	while (njh::files::crossPlatGetline(*reader.inFile_, line)) {
+		if (njh::beginsWith(line, "Sequence")) {
+			auto toks = njh::tokenizeString(line, "whitespace");
 			if (toks.size() < 2) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error in processing line " << line
@@ -159,7 +159,7 @@ void checkPositionSortedBedThrow(const bfs::path & bedFnp,
 			}
 		} else {
 			alreadySeenChroms.emplace_back(bedRecord.chrom_);
-			if (bib::in(bedRecordNext.chrom_, alreadySeenChroms)) {
+			if (njh::in(bedRecordNext.chrom_, alreadySeenChroms)) {
 				std::stringstream ss;
 				ss << funcName << ", error record " << record << " has chrom "
 						<< bedRecordNext.chrom_
@@ -188,11 +188,11 @@ intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(const bfs
 
 Json::Value intersectBedLocsWtihGffRecordsPars::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
 
-	ret["gffFnp_"] = bib::json::toJson(gffFnp_);
-	ret["extraAttributes_"] = bib::json::toJson(extraAttributes_);
-	ret["selectFeatures_"] = bib::json::toJson(selectFeatures_);
+	ret["gffFnp_"] = njh::json::toJson(gffFnp_);
+	ret["extraAttributes_"] = njh::json::toJson(extraAttributes_);
+	ret["selectFeatures_"] = njh::json::toJson(selectFeatures_);
 
 	return ret;
 }
@@ -228,7 +228,7 @@ void checkPositionSortedNoOverlapsBedThrow(const bfs::path & bedFnp,
 			}
 		} else {
 			alreadySeenChroms.emplace_back(bedRecord.chrom_);
-			if (bib::in(bedRecordNext.chrom_, alreadySeenChroms)) {
+			if (njh::in(bedRecordNext.chrom_, alreadySeenChroms)) {
 				std::stringstream ss;
 				ss << funcName << ", error record " << record << " has chrom "
 						<< bedRecordNext.chrom_
@@ -260,7 +260,7 @@ void checkPositionSortedNoOverlapsBedThrow(const bfs::path & bedFnp,
 //		bedsByChrome[b->chrom_].emplace_back(b);
 //	}
 //	while (nullptr != gRecord) {
-//		if (pars.selectFeatures_.empty() || bib::in(gRecord->type_, pars.selectFeatures_)) {
+//		if (pars.selectFeatures_.empty() || njh::in(gRecord->type_, pars.selectFeatures_)) {
 //			auto gRegion = GenomicRegion(*gRecord);
 //			for (const auto & inputRegion : bedsByChrome[gRegion.chrom_]) {
 //				if (GenomicRegion(*inputRegion).overlaps(gRegion)) {
@@ -291,11 +291,11 @@ void checkPositionSortedNoOverlapsBedThrow(const bfs::path & bedFnp,
 //		}
 //		bool end = false;
 //		while ('#' == reader.inFile_->peek()) {
-//			if (bib::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+//			if (njh::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
 //				end = true;
 //				break;
 //			}
-//			bib::files::crossPlatGetline(*reader.inFile_, line);
+//			njh::files::crossPlatGetline(*reader.inFile_, line);
 //		}
 //		if (end) {
 //			break;
@@ -306,5 +306,5 @@ void checkPositionSortedNoOverlapsBedThrow(const bfs::path & bedFnp,
 //	return ret;
 //}
 
-}  // namespace bibseq
+}  // namespace njhseq
 

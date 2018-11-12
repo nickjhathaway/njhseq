@@ -5,36 +5,36 @@
 //  Created by Nicholas Hathaway on 10/22/13.
 //
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "bibseq/alignment.h"
-#include "bibseq/utils.h"
-#include "bibseq/readVectorManipulation/readVectorOperations.h"
-#include "bibseq/objects/seqObjects/readObject.hpp"
-#include "bibseq/objects/collapseObjects/opts/IterPar.hpp"
-#include "bibseq/objects/kmer/kmerInfo.hpp"
-#include "bibseq/objects/helperObjects/probabilityProfile.hpp"
-#include "bibseq/readVectorManipulation/readVectorHelpers/trimming/trimPars.h"
+#include "njhseq/alignment.h"
+#include "njhseq/utils.h"
+#include "njhseq/readVectorManipulation/readVectorOperations.h"
+#include "njhseq/objects/seqObjects/readObject.hpp"
+#include "njhseq/objects/collapseObjects/opts/IterPar.hpp"
+#include "njhseq/objects/kmer/kmerInfo.hpp"
+#include "njhseq/objects/helperObjects/probabilityProfile.hpp"
+#include "njhseq/readVectorManipulation/readVectorHelpers/trimming/trimPars.h"
 
 
-namespace bibseq {
+namespace njhseq {
 
 
 
@@ -403,7 +403,7 @@ void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
 
 template <class T>
 void readVecTrimmer::trimToMaxLength(std::vector<T> &reads, size_t maxLength) {
-  bib::for_each(reads, [&](T & read){ trimToMaxLength(read, maxLength);} );
+  njh::for_each(reads, [&](T & read){ trimToMaxLength(read, maxLength);} );
   return;
 }
 
@@ -414,13 +414,13 @@ void readVecTrimmer::trimToMaxLength(T &read, size_t maxLength) {
 
 template <class T>
 void readVecTrimmer::trimAtFirstQualScore(std::vector<T> &reads, const uint32_t qualCutOff){
-  bib::for_each(reads, [&](T & read){ trimAtFirstQualScore(read, qualCutOff);} );
+  njh::for_each(reads, [&](T & read){ trimAtFirstQualScore(read, qualCutOff);} );
   return;
 }
 
 template <class T>
 void readVecTrimmer::trimToLastQualScore(std::vector<T> &reads, const uint32_t qualCutOff){
-  bib::for_each(reads, [&](T & read){ trimToLastQualScore(read, qualCutOff);} );
+  njh::for_each(reads, [&](T & read){ trimToLastQualScore(read, qualCutOff);} );
   return;
 }
 
@@ -439,7 +439,7 @@ void readVecTrimmer::trimToLastQualScore(T &read, const uint32_t qualCutOff){
 
 template <class T>
 void readVecTrimmer::trimAtFirstBase(std::vector<T> &reads, const char base){
-  bib::for_each(reads, [&](T & read){ trimAtFirstBase(read, base);} );
+  njh::for_each(reads, [&](T & read){ trimAtFirstBase(read, base);} );
   return;
 }
 
@@ -456,7 +456,7 @@ void readVecTrimmer::trimAtLastBase(T &read, const char base){
 
 template <class T>
 void readVecTrimmer::trimAtLstripQualScore(std::vector<T> &reads, const uint32_t qualCutOff){
-  bib::for_each(reads, [&](T & read){ trimAtLstripQualScore(read, qualCutOff);} );
+  njh::for_each(reads, [&](T & read){ trimAtLstripQualScore(read, qualCutOff);} );
   return;
 }
 
@@ -467,7 +467,7 @@ void readVecTrimmer::trimAtLstripQualScore(T &read, const uint32_t qualCutOff){
 
 template <class T>
 void readVecTrimmer::trimAtRstripQualScore(std::vector<T> &reads, const uint32_t qualCutOff){
-  bib::for_each(reads, [&](T & read){ trimAtRstripQualScore(read, qualCutOff);} );
+  njh::for_each(reads, [&](T & read){ trimAtRstripQualScore(read, qualCutOff);} );
   return;
 }
 
@@ -478,7 +478,7 @@ void readVecTrimmer::trimAtRstripQualScore(T &read, const uint32_t qualCutOff){
 
 template <class T>
 void readVecTrimmer::trimAtLstripBase(std::vector<T> &reads, const char base){
-  bib::for_each(reads, [&](T & read){ trimAtLstripBase(read, base);} );
+  njh::for_each(reads, [&](T & read){ trimAtLstripBase(read, base);} );
   return;
 }
 
@@ -490,7 +490,7 @@ void readVecTrimmer::trimAtLstripBase(T &read, const char base){
 
 template <class T>
 void readVecTrimmer::trimAtRstripBase(std::vector<T> &reads, const char base){
-  bib::for_each(reads, [&](T & read){ trimAtRstripBase(read, base);} );
+  njh::for_each(reads, [&](T & read){ trimAtRstripBase(read, base);} );
   return;
 }
 
@@ -517,7 +517,7 @@ void readVecTrimmer::trimAtFirstSeq(T &read, const std::string & seq){
 
 template <class T>
 void readVecTrimmer::trimOffEndBases(std::vector<T> &reads, size_t endBases) {
-	bib::for_each(reads, [&](T & read){ trimOffEndBases(read, endBases);} );
+	njh::for_each(reads, [&](T & read){ trimOffEndBases(read, endBases);} );
   return;
 }
 template <class T>
@@ -528,7 +528,7 @@ void readVecTrimmer::trimOffEndBases(T &read, size_t endBases){
 template <class T>
 void readVecTrimmer::trimOffForwardBases(std::vector<T> &reads,
                                          size_t forwardBases) {
-	bib::for_each(reads, [&](T & read){ trimOffForwardBases(read, forwardBases);} );
+	njh::for_each(reads, [&](T & read){ trimOffForwardBases(read, forwardBases);} );
   return;
 }
 template <class T>
@@ -540,7 +540,7 @@ void readVecTrimmer::trimOffForwardBases(T &read, size_t forwardBases) {
 template<class T>
 void readVecTrimmer::trimEnds(std::vector<T> &reads, size_t forwardBases,
 		size_t endBases) {
-	bib::for_each(reads, [&](T & read) {trimEnds(read, forwardBases, endBases);});
+	njh::for_each(reads, [&](T & read) {trimEnds(read, forwardBases, endBases);});
 }
 
 template <class T>
@@ -554,7 +554,7 @@ template<class T>
 void readVecTrimmer::trimAtSequence(std::vector<T> &reads,
 		const seqInfo &reversePrimer, aligner &alignObj, const comparison & allowableErrors,
 		const FullTrimReadsPars::trimSeqPars & tSeqPars) {
-	bib::for_each(reads,
+	njh::for_each(reads,
 			[&](T& read) {trimAtSequence(read, reversePrimer, alignObj, allowableErrors, tSeqPars);});
 }
 
@@ -570,7 +570,7 @@ template<class T>
 void readVecTrimmer::trimBeforeSequence(std::vector<T> &reads,
 		const seqInfo &forwardSeq, aligner &alignObj, const comparison & allowableErrors,
 		const FullTrimReadsPars::trimSeqPars & tSeqPars) {
-	bib::for_each(reads,
+	njh::for_each(reads,
 			[&](T& read) {trimBeforeSequence(read, forwardSeq, alignObj, allowableErrors, tSeqPars);});
 }
 
@@ -586,7 +586,7 @@ void readVecTrimmer::trimBetweenSequences(
 		std::vector<T> &reads,
 					const seqInfo &forwardSeq, const seqInfo &backSeq, aligner &alignObj,
 					const comparison & allowableErrors, const FullTrimReadsPars::trimSeqPars & tSeqPars) {
-	bib::for_each(reads, [&](T& read){ trimBetweenSequences(read, forwardSeq,backSeq, alignObj, allowableErrors) ;});
+	njh::for_each(reads, [&](T& read){ trimBetweenSequences(read, forwardSeq,backSeq, alignObj, allowableErrors) ;});
   return;
 }
 
@@ -754,12 +754,12 @@ template<typename T>
 void readVecTrimmer::trimBetweenMostCommonKmers(std::vector<T> & seqs, const FullTrimReadsPars & pars,
 		aligner &alignObj) {
 	trimFromMostCommonKmer(seqs, pars, alignObj);
-	bib::for_each(seqs, [](T & seq) {getSeqBase(seq).on_ = true;});
+	njh::for_each(seqs, [](T & seq) {getSeqBase(seq).on_ = true;});
 	trimToMostCommonKmer(seqs, pars, alignObj);
 }
 
 
 
 
-}  // namespace bib
+}  // namespace njh
 

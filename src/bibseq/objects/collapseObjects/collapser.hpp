@@ -5,36 +5,36 @@
 //  Created by Nicholas Hathaway on 1/1/14.
 //
 
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "bibseq/utils.h"
-#include "bibseq/alignment.h"
-#include "bibseq/seqToolsUtils.h"
-#include "bibseq/readVectorManipulation.h"
-#include "bibseq/objects/kmer/kmerCalculator.hpp"
-#include "bibseq/objects/seqObjects/Clusters/cluster.hpp"
-#include "bibseq/objects/collapseObjects/opts.h"
-#include "bibseq/objects/dataContainers/tables/table.hpp"
+#include "njhseq/utils.h"
+#include "njhseq/alignment.h"
+#include "njhseq/seqToolsUtils.h"
+#include "njhseq/readVectorManipulation.h"
+#include "njhseq/objects/kmer/kmerCalculator.hpp"
+#include "njhseq/objects/seqObjects/Clusters/cluster.hpp"
+#include "njhseq/objects/collapseObjects/opts.h"
+#include "njhseq/objects/dataContainers/tables/table.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 
 
@@ -215,7 +215,7 @@ template<class CLUSTER>
 void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
 		const IterPar &runParams, aligner &alignerObj) const {
 	std::vector<uint64_t> positions(comparingReads.size());
-	bib::iota<uint64_t>(positions, 0);
+	njh::iota<uint64_t>(positions, 0);
 	collapseWithParameters(comparingReads, positions, runParams, alignerObj);
 }
 
@@ -255,7 +255,7 @@ void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
 				alignerObj);
 	}
 
-	bib::stopWatch watch;
+	njh::stopWatch watch;
 	watch.setLapName("updatingName");
 	for (const auto & pos : positions) {
 		if(!comparingReads[pos].remove){
@@ -316,7 +316,7 @@ std::vector<CLUSTER> collapser::runClustering(
 				&& iter.second.errors_.lqMismatches_ == 0
 				&& iter.second.errors_.largeBaseIndel_ == 0) {
 			std::vector<uint64_t> positions(currentClusters.size());
-			bib::iota<uint64_t>(positions, 0);
+			njh::iota<uint64_t>(positions, 0);
 			auto byCondensed = readVec::organizeByCondensedSeqPositions(
 					currentClusters, positions);
 			for (auto& condensedReads : byCondensed) {
@@ -326,7 +326,7 @@ std::vector<CLUSTER> collapser::runClustering(
 		} else {
 			collapseWithParameters(currentClusters, iter.second, alignerObj);
 		}
-		bib::stopWatch watch;
+		njh::stopWatch watch;
 		watch.setLapName("sorting vector");
 		readVecSorter::sortReadVector(currentClusters, "totalCount");
 		if (opts_.verboseOpts_.debug_) {
@@ -342,7 +342,7 @@ std::vector<CLUSTER> collapser::collapseLowFreqOneOffs(
 		std::vector<CLUSTER> &comparingReads, double lowFreqMultiplier,
 		aligner &alignerObj) const {
 	std::vector<uint64_t> positions(comparingReads.size());
-	bib::iota<uint64_t>(positions, 0);
+	njh::iota<uint64_t>(positions, 0);
 	uint32_t sizeOfReadVector = 0;
 	for (const auto & pos : positions) {
 		if (!comparingReads[pos].remove) {
@@ -409,7 +409,7 @@ std::vector<CLUSTER> collapser::collapseLowFreqOneOffs(
 	  }
 	}
 
-	bib::stopWatch watch;
+	njh::stopWatch watch;
 	watch.setLapName("updatingName");
 	for (const auto & pos : positions) {
 		if(!comparingReads[pos].remove){
@@ -463,13 +463,13 @@ void collapser::runClustering(std::vector<CLUSTER> &currentClusters,
 		CollapseIterations iteratorMap,
 		aligner &alignerObj) const{
 	{
-		bib::stopWatch watch;
+		njh::stopWatch watch;
 		auto comp =
 				[&currentClusters](const uint64_t & pos1, const uint64_t & pos2) {
 					return currentClusters[pos1] < currentClusters[pos2];
 				};
 		watch.setLapName("sortReadVector");
-		bib::sort(positions, comp);
+		njh::sort(positions, comp);
 		if (opts_.verboseOpts_.debug_) {
 			watch.logLapTimes(std::cout, true, 6, true);
 		}
@@ -492,13 +492,13 @@ void collapser::runClustering(std::vector<CLUSTER> &currentClusters,
 			collapseWithParameters(currentClusters, positions, iter.second,
 					alignerObj);
 		}
-		bib::stopWatch watch;
+		njh::stopWatch watch;
 		auto comp =
 				[&currentClusters](const uint64_t & pos1, const uint64_t & pos2) {
 					return currentClusters[pos1] < currentClusters[pos2];
 				};
 		watch.setLapName("sortReadVector");
-		bib::sort(positions, comp);
+		njh::sort(positions, comp);
 		if (opts_.verboseOpts_.debug_) {
 			watch.logLapTimes(std::cout, true, 6, true);
 		}
@@ -751,5 +751,5 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 	return ret;
 }
 
-}  // namespace bib
+}  // namespace njh
 

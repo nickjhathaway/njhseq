@@ -1,25 +1,25 @@
 #include "utils.hpp"
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 //////durations and date
-namespace bibseq {
+namespace njhseq {
 std::map<uint64_t, uint32_t> printStringLengths(const VecStr &strings,
                                                 std::ostream &out) {
   std::map<uint64_t, uint32_t> lengths;
@@ -205,4 +205,4 @@ size_t getCurrentRSS() {
   return (size_t)0L; /* Unsupported. */
 #endif
 }
-}  // namespace bib
+}  // namespace njh

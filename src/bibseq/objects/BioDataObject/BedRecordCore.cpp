@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * BedRecord.cpp
@@ -27,7 +27,7 @@
 #include "BedRecordCore.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 Bed6RecordCore::Bed6RecordCore(const std::string & line) {
 	auto toks = tokenizeString(line, "\t");
 	if (toks.size() < 6) {
@@ -44,7 +44,7 @@ Bed6RecordCore::Bed6RecordCore(const std::string & line) {
 	chromStart_ = "*" == toks[1] ? std::numeric_limits<uint32_t>::max() : estd::stou(toks[1]);
 	chromEnd_ = "*" == toks[2] ? std::numeric_limits<uint32_t>::max() : estd::stou(toks[2]);
 	name_ = toks[3];
-	score_ = bib::lexical_cast<double>(toks[4]);
+	score_ = njh::lexical_cast<double>(toks[4]);
 	if (toks[5] == "-") {
 		strand_ = '-';
 	} else if (toks[5] == "+") {
@@ -97,14 +97,14 @@ std::string Bed6RecordCore::toDelimStrWithExtra() const {
 
 Json::Value Bed6RecordCore::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
-	ret["chrom_"] = bib::json::toJson(chrom_);
-	ret["chromStart_"] = bib::json::toJson(chromStart_);
-	ret["chromEnd_"] = bib::json::toJson(chromEnd_);
-	ret["name_"] = bib::json::toJson(name_);
-	ret["score_"] = bib::json::toJson(score_);
-	ret["strand_"] = bib::json::toJson(strand_);
-	ret["extraFields_"] = bib::json::toJson(extraFields_);
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["chrom_"] = njh::json::toJson(chrom_);
+	ret["chromStart_"] = njh::json::toJson(chromStart_);
+	ret["chromEnd_"] = njh::json::toJson(chromEnd_);
+	ret["name_"] = njh::json::toJson(name_);
+	ret["score_"] = njh::json::toJson(score_);
+	ret["strand_"] = njh::json::toJson(strand_);
+	ret["extraFields_"] = njh::json::toJson(extraFields_);
 	return ret;
 }
 
@@ -114,15 +114,15 @@ std::vector<std::shared_ptr<Bed6RecordCore>> convertBed3ToBed6(const std::vector
 		std::string line = "";
 		if(b->extraFields_.size() >=3){
 			//this should unpack extraFields as one one
-			line = bib::conToStr(toVecStr(b->chrom_,
+			line = njh::conToStr(toVecStr(b->chrom_,
 					b->chromStart_,
 					b->chromEnd_,
 					b->extraFields_), "\t");
 		}else{
-			line = bib::conToStr(toVecStr(b->chrom_,
+			line = njh::conToStr(toVecStr(b->chrom_,
 					b->chromStart_,
 					b->chromEnd_,
-					bib::pasteAsStr(b->chrom_, b->chromStart_,
+					njh::pasteAsStr(b->chrom_, b->chromStart_,
 					b->chromEnd_),
 					b->length(),
 					'+'), "\t");
@@ -132,4 +132,4 @@ std::vector<std::shared_ptr<Bed6RecordCore>> convertBed3ToBed6(const std::vector
 	return ret;
 }
 
-} /* namespace bibseq */
+} /* namespace njhseq */

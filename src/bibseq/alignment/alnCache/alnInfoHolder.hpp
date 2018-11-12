@@ -1,22 +1,22 @@
 #pragma once
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 //
@@ -27,7 +27,7 @@
 
 
 
-#include "bibseq/alignment/alnCache/alnInfoHolderBase.hpp"
+#include "njhseq/alignment/alnCache/alnInfoHolderBase.hpp"
 
 
 #if __APPLE__ == 1 && __cpp_lib_shared_timed_mutex < 201402L && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ <= 101106
@@ -36,7 +36,7 @@
 #include <shared_mutex>
 #endif
 
-namespace bibseq {
+namespace njhseq {
 
 
 class alnInfoMasterHolder {
@@ -75,6 +75,6 @@ static std::unordered_map<std::string, std::unique_ptr<std::shared_timed_mutex>>
 }  // namespace alignment
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 

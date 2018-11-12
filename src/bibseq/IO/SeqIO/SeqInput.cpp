@@ -1,28 +1,28 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "SeqInput.hpp"
-#include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
+#include "njhseq/seqToolsUtils/seqToolsUtils.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 
 void SeqInput::seekToSeqIndex(size_t pos){
@@ -70,8 +70,8 @@ void SeqInput::buildIndex(const SeqIOOptions & ioOpts) {
 			secIndex.emplace_back(secpos);
 			secpos = reader.tellgSec();
 		}
-		bib::files::writePODvectorGz(outIndexName, index);
-		bib::files::writePODvectorGz(outSecIndexName, secIndex);
+		njh::files::writePODvectorGz(outIndexName, index);
+		njh::files::writePODvectorGz(outSecIndexName, secIndex);
 	}else{
 		SeqInput reader(ioOpts);
 		bfs::path outIndexName = ioOpts.firstName_.string() + ".idx.gz";
@@ -83,7 +83,7 @@ void SeqInput::buildIndex(const SeqIOOptions & ioOpts) {
 			index.emplace_back(pos);
 			pos = reader.tellgPri();
 		}
-		bib::files::writePODvectorGz(outIndexName, index);
+		njh::files::writePODvectorGz(outIndexName, index);
 	}
 
 }
@@ -93,17 +93,17 @@ bool SeqInput::loadIndex() {
 		bfs::path outIndexName = ioOptions_.firstName_.string() + ".idx.gz";
 		bfs::path secOutIndexName = ioOptions_.secondName_.string() + ".idx.gz";
 		bool indexNeedsUpdate = true;
-		if (bib::files::bfs::exists (outIndexName)) {
-			auto indexTime = bib::files::last_write_time(outIndexName);
-			auto fileTime = bib::files::last_write_time(
+		if (njh::files::bfs::exists (outIndexName)) {
+			auto indexTime = njh::files::last_write_time(outIndexName);
+			auto fileTime = njh::files::last_write_time(
 					ioOptions_.firstName_);
 			if (fileTime < indexTime) {
 				indexNeedsUpdate = false;
 			}
 		}
-		if (bib::files::bfs::exists (secOutIndexName)) {
-			auto indexTime = bib::files::last_write_time(secOutIndexName);
-			auto fileTime = bib::files::last_write_time(
+		if (njh::files::bfs::exists (secOutIndexName)) {
+			auto indexTime = njh::files::last_write_time(secOutIndexName);
+			auto fileTime = njh::files::last_write_time(
 					ioOptions_.secondName_);
 			if (fileTime < indexTime) {
 				indexNeedsUpdate = false;
@@ -113,13 +113,13 @@ bool SeqInput::loadIndex() {
 		}
 		if (indexNeedsUpdate) {
 			buildIndex(ioOptions_);
-			index_ = bib::files::readPODvectorGz<unsigned long long>(outIndexName);
-			secIndex_ = bib::files::readPODvectorGz<unsigned long long>(secOutIndexName);
+			index_ = njh::files::readPODvectorGz<unsigned long long>(outIndexName);
+			secIndex_ = njh::files::readPODvectorGz<unsigned long long>(secOutIndexName);
 			indexLoad_ = true;
 		} else {
 			if(!indexLoad_){
-				index_ = bib::files::readPODvectorGz<unsigned long long>(outIndexName);
-				secIndex_ = bib::files::readPODvectorGz<unsigned long long>(secOutIndexName);
+				index_ = njh::files::readPODvectorGz<unsigned long long>(outIndexName);
+				secIndex_ = njh::files::readPODvectorGz<unsigned long long>(secOutIndexName);
 				indexLoad_ = true;
 			}
 		}
@@ -127,9 +127,9 @@ bool SeqInput::loadIndex() {
 	}else{
 		bfs::path outIndexName = ioOptions_.firstName_.string() + ".idx.gz";
 		bool indexNeedsUpdate = true;
-		if (bib::files::bfs::exists (outIndexName)) {
-			auto indexTime = bib::files::last_write_time(outIndexName);
-			auto fileTime = bib::files::last_write_time(
+		if (njh::files::bfs::exists (outIndexName)) {
+			auto indexTime = njh::files::last_write_time(outIndexName);
+			auto fileTime = njh::files::last_write_time(
 					ioOptions_.firstName_);
 			if (fileTime < indexTime) {
 				indexNeedsUpdate = false;
@@ -137,11 +137,11 @@ bool SeqInput::loadIndex() {
 		}
 		if (indexNeedsUpdate) {
 			buildIndex(ioOptions_);
-			index_ = bib::files::readPODvectorGz<unsigned long long>(outIndexName);
+			index_ = njh::files::readPODvectorGz<unsigned long long>(outIndexName);
 			indexLoad_ = true;
 		} else {
 			if(!indexLoad_){
-				index_ = bib::files::readPODvectorGz<unsigned long long>(outIndexName);
+				index_ = njh::files::readPODvectorGz<unsigned long long>(outIndexName);
 				indexLoad_ = true;
 			}
 		}
@@ -187,7 +187,7 @@ void SeqInput::seekgSec(size_t pos){
 
 
 std::vector<unsigned long long> SeqInput::randomlySampleIndex(
-		bib::randomGenerator & gen, const std::string& sample) const {
+		njh::randomGenerator & gen, const std::string& sample) const {
 	uint32_t sampleNum = processRunCutoff(sample, index_.size());
 	return gen.unifRandSelectionVec(index_, sampleNum, false);
 }
@@ -279,11 +279,11 @@ void SeqInput::openIn() {
 	if (inOpen_) {
 		return;
 	}
-	if (bib::strToLowerRet(ioOptions_.firstName_.string()) != "stdin" &&  !bib::files::bfs::exists(ioOptions_.firstName_)) {
+	if (njh::strToLowerRet(ioOptions_.firstName_.string()) != "stdin" &&  !njh::files::bfs::exists(ioOptions_.firstName_)) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": Error file: " << bib::bashCT::boldRed(ioOptions_.firstName_.string()) << " doesn't exist\n";
-		if( "" != ioOptions_.secondName_.string() && !bib::files::bfs::exists(ioOptions_.secondName_.string())){
-			ss << "and file: " << bib::bashCT::boldRed(ioOptions_.secondName_.string()) << " doesn't exist\n";
+		ss << __PRETTY_FUNCTION__ << ": Error file: " << njh::bashCT::boldRed(ioOptions_.firstName_.string()) << " doesn't exist\n";
+		if( "" != ioOptions_.secondName_.string() && !njh::files::bfs::exists(ioOptions_.secondName_.string())){
+			ss << "and file: " << njh::bashCT::boldRed(ioOptions_.secondName_.string()) << " doesn't exist\n";
 		}
 		throw std::runtime_error { ss.str() };
 	}
@@ -457,9 +457,9 @@ bool SeqInput::readNextFastaStream(std::istream & fastaFile, seqInfo& read,
 	std::string buildingSeq = "";
 	std::string line = "";
 	if ('>' == fastaFile.peek()) {
-		bib::files::crossPlatGetline(fastaFile, name);
+		njh::files::crossPlatGetline(fastaFile, name);
 		while (fastaFile.peek() != std::ifstream::eofbit && fastaFile.good() && fastaFile.peek() != '>') {
-			bib::files::crossPlatGetline(fastaFile, line);
+			njh::files::crossPlatGetline(fastaFile, line);
 			buildingSeq.append(line);
 		}
 		if (!ioOptions_.includeWhiteSpaceInName_ && name.find(" ") != std::string::npos) {
@@ -493,10 +493,10 @@ bool SeqInput::readNextQualStream(std::istream & qualFile,
 	std::string buildingQual = "";
 	std::string line = "";
 	if ('>' == qualFile.peek()) {
-		bib::files::crossPlatGetline(qualFile, name);
+		njh::files::crossPlatGetline(qualFile, name);
 		while (qualFile.peek() != std::ifstream::eofbit && qualFile.good()
 				&& qualFile.peek() != '>') {
-			bib::files::crossPlatGetline(qualFile, line);
+			njh::files::crossPlatGetline(qualFile, line);
 			if ("" != buildingQual && ' ' != buildingQual.back()
 					&& ' ' != line.front()) {
 				buildingQual.push_back(' ');
@@ -589,12 +589,12 @@ bool SeqInput::readNextFastqStream(const VecStr & data, const uint32_t lCount, u
 			return false;
 		}
 		std::stringstream ss;
-		ss << bib::bashCT::bold << "Incomplete sequence, read only"
-				<< bib::bashCT::reset << std::endl;
+		ss << njh::bashCT::bold << "Incomplete sequence, read only"
+				<< njh::bashCT::reset << std::endl;
 		for (uint32_t i = 0; i < lCount; ++i) {
 			ss << "!" << data[i] << "!" << std::endl;
 		}
-		ss << bib::bashCT::bold << "exiting" << bib::bashCT::reset << std::endl;
+		ss << njh::bashCT::bold << "exiting" << njh::bashCT::reset << std::endl;
 		throw std::runtime_error { ss.str() };
 		return false;
 	} else {
@@ -612,7 +612,7 @@ bool SeqInput::readNextFastqStream(std::istream& is, uint32_t offSet,
 		if (count > 3) {
 			break;
 		} else {
-			bib::files::crossPlatGetline(is, data[count]);
+			njh::files::crossPlatGetline(is, data[count]);
 		}
 		++count;
 	}
@@ -870,5 +870,5 @@ void SeqInput::readHeader(std::istream& in, sffBinaryHeader& header) {
 	}
 }
 
-}  // namespace bibseq
+}  // namespace njhseq
 

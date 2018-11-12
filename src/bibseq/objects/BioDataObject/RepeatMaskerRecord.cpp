@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * .cpp
@@ -26,7 +26,7 @@
 
 #include "RepeatMaskerRecord.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 std::pair<uint32_t, bool> processNumberInParenthesesUint(std::string str){
 	if(str.front() == '(' && str.back() == ')'){
@@ -62,8 +62,8 @@ RepeatMaskerRecord::RepeatMaskerRecord(const std::string & line) :originalLine_(
 
 	VecStr toks{15};
 	uint32_t index = 0;
-	//std::cout << bib::bashCT::red << line << bib::bashCT::reset << std::endl;
-	//std::cout << bib::bashCT::bold;
+	//std::cout << njh::bashCT::red << line << njh::bashCT::reset << std::endl;
+	//std::cout << njh::bashCT::bold;
 	while(!ss.eof()){
 		std::string out;
 		ss >> out;
@@ -164,27 +164,27 @@ std::string RepeatMaskerRecord::toBedStr() const {
 
 Json::Value RepeatMaskerRecord::toJson() const {
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
-	ret["originalLine_"] = bib::json::toJson(originalLine_);
-	ret["swScore_"] = bib::json::toJson(swScore_);
-	ret["perSubstitutions_"] = bib::json::toJson(perSubstitutions_);
-	ret["perDelection_"] = bib::json::toJson(perDelection_);
-	ret["perInsertion_"] = bib::json::toJson(perInsertion_);
-	ret["nameOfQuery_"] = bib::json::toJson(nameOfQuery_);
-	ret["start_"] = bib::json::toJson(start_);
-	ret["end_"] = bib::json::toJson(end_);
-	ret["numOfBasesLeftInQuery_"] = bib::json::toJson(
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["originalLine_"] = njh::json::toJson(originalLine_);
+	ret["swScore_"] = njh::json::toJson(swScore_);
+	ret["perSubstitutions_"] = njh::json::toJson(perSubstitutions_);
+	ret["perDelection_"] = njh::json::toJson(perDelection_);
+	ret["perInsertion_"] = njh::json::toJson(perInsertion_);
+	ret["nameOfQuery_"] = njh::json::toJson(nameOfQuery_);
+	ret["start_"] = njh::json::toJson(start_);
+	ret["end_"] = njh::json::toJson(end_);
+	ret["numOfBasesLeftInQuery_"] = njh::json::toJson(
 			numOfBasesLeftInQuery_.first);
-	ret["reverseStrand_"] = bib::json::toJson((reverseStrand_ ? "-" : "+"));
-	ret["nameOfMatchedSeq_"] = bib::json::toJson(nameOfMatchedSeq_);
-	ret["repeatType_"] = bib::json::toJson(repeatType_);
-	ret["basesLeftInComplMatch_"] = bib::json::toJson(
+	ret["reverseStrand_"] = njh::json::toJson((reverseStrand_ ? "-" : "+"));
+	ret["nameOfMatchedSeq_"] = njh::json::toJson(nameOfMatchedSeq_);
+	ret["repeatType_"] = njh::json::toJson(repeatType_);
+	ret["basesLeftInComplMatch_"] = njh::json::toJson(
 			basesLeftInComplMatch_.first);
-	ret["startInMatch_"] = bib::json::toJson(startInMatch_.first);
-	ret["endInMatch_"] = bib::json::toJson(endInMatch_.first);
-	ret["regionSegment_"] = bib::json::toJson(regionSegment_);
+	ret["startInMatch_"] = njh::json::toJson(startInMatch_.first);
+	ret["endInMatch_"] = njh::json::toJson(endInMatch_.first);
+	ret["regionSegment_"] = njh::json::toJson(regionSegment_);
 	return ret;
 }
 
 
-} /* namespace bibseq */
+} /* namespace njhseq */

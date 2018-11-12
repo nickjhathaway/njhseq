@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * RefSeqGeneRecord.cpp
@@ -25,9 +25,9 @@
  */
 
 #include "RefSeqGeneRecord.hpp"
-#include "bibseq/objects/BioDataObject/BioDataFileIO.hpp"
+#include "njhseq/objects/BioDataObject/BioDataFileIO.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 RefSeqGeneRecord::RefSeqGeneRecord(const std::string & line){
 	auto toks = tokenizeString(line, "\t");
@@ -35,7 +35,7 @@ RefSeqGeneRecord::RefSeqGeneRecord(const std::string & line){
 		std::stringstream ss;
 		ss << "Error in processing line: "  << line << "\n";
 		ss << "should have 16 columns not " << toks.size() << "\n";
-		throw std::runtime_error{bib::bashCT::boldRed(ss.str())};
+		throw std::runtime_error{njh::bashCT::boldRed(ss.str())};
 	}
 	if(toks[0] == "none"){
 		bin_ = 0;
@@ -52,7 +52,7 @@ RefSeqGeneRecord::RefSeqGeneRecord(const std::string & line){
 		std::stringstream ss;
 		ss << "Error in processing strand column: "  << toks[3] << "\n";
 		ss << "be either + or - not " << toks[3] << "\n";
-		throw std::runtime_error{bib::bashCT::boldRed(ss.str())};
+		throw std::runtime_error{njh::bashCT::boldRed(ss.str())};
 	}
 	txStart_ = estd::stou(toks[4]);
 	txEnd_ = estd::stou(toks[5]);
@@ -72,7 +72,7 @@ RefSeqGeneRecord::RefSeqGeneRecord(const std::string & line){
 	if(toks[11] == "none"){
 		score_ = 0;
 	}else{
-		score_ = bib::lexical_cast<int32_t>(toks[11]);
+		score_ = njh::lexical_cast<int32_t>(toks[11]);
 	}
 	name2_ = toks[12];
 	cdsStartStat_ = parseComplStr(toks[13]);
@@ -107,7 +107,7 @@ std::unordered_map<std::string, std::shared_ptr<RefSeqGeneRecord>> getRefSeqRecs
 	//get name alias if any, should be a json dictionary, seq alias to name in refSeqGene file
 	if(aliasDictJsonFile != ""){
 		codedExtractNames.clear();
-		Json::Value root = bib::json::parseFile(aliasDictJsonFile.string());
+		Json::Value root = njh::json::parseFile(aliasDictJsonFile.string());
 		for (const auto & n : names) {
 			coder[root[n].asString()] = n;
 			codedExtractNames.emplace_back(root[n].asString());
@@ -120,7 +120,7 @@ std::unordered_map<std::string, std::shared_ptr<RefSeqGeneRecord>> getRefSeqRecs
 		if(names.empty()){
 			ret.emplace(currentRecord->name_, std::move(currentRecord));
 		}else{
-			if (bib::in(currentRecord->name_, codedExtractNames)) {
+			if (njh::in(currentRecord->name_, codedExtractNames)) {
 				//currentRecord->name2_ = coder[currentRecord->name_];
 				ret.emplace(currentRecord->name_, std::move(currentRecord));
 			}
@@ -154,7 +154,7 @@ RefSeqGeneRecord::completeness RefSeqGeneRecord::parseComplStr(const std::string
 		std::stringstream ss;
 		ss << "Error in processing completeness str: "  << str << "\n";
 		ss << "be none, unk, incmp, or cmpl not " << str << "\n";
-		throw std::runtime_error{bib::bashCT::boldRed(ss.str())};
+		throw std::runtime_error{njh::bashCT::boldRed(ss.str())};
 	}
 	return ret;
 }
@@ -180,4 +180,4 @@ std::string RefSeqGeneRecord::complToStr(const completeness & comInfo){
 	return ret;
 }
 
-} /* namespace bibseq */
+} /* namespace njhseq */

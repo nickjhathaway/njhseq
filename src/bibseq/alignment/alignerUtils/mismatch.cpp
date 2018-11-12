@@ -1,25 +1,25 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "mismatch.hpp"
 
-namespace bibseq {
+namespace njhseq {
 inline bool qualPass(const std::vector<uint32_t> & quals, uint32_t qualCutOff){
 	return quals.empty() ? true : std::all_of(quals.begin(), quals.end(),[qualCutOff](uint32_t qual){return qual >qualCutOff;});
 }
@@ -91,24 +91,24 @@ std::string mismatch::outputInfoString() const {
 }
 Json::Value mismatch::toJson()const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson("bibseq::mismatch");
-	ret["refBase"] = bib::json::toJson(refBase);
-	ret["refQual"] = bib::json::toJson(refQual);
-	ret["refLeadingQual"] = bib::json::toJson(refLeadingQual);
-	ret["refTrailingQual"] = bib::json::toJson(refTrailingQual);
-	ret["refBasePos"] = bib::json::toJson(refBasePos);
-	ret["seqBase"] = bib::json::toJson(seqBase);
-	ret["seqQual"] = bib::json::toJson(seqQual);
-	ret["seqLeadingQual"] = bib::json::toJson(seqLeadingQual);
-	ret["seqTrailingQual"] = bib::json::toJson(seqTrailingQual);
-	ret["seqBasePos"] = bib::json::toJson(seqBasePos);
-	ret["kMerFreqByPos"] = bib::json::toJson(kMerFreqByPos);
-	ret["kMerFreq"] = bib::json::toJson(kMerFreq);
-	ret["transition"] = bib::json::toJson(transition);
-	ret["freq"] = bib::json::toJson(freq);
-	ret["frac_"] = bib::json::toJson(frac_);
+	ret["class"] = njh::json::toJson("njhseq::mismatch");
+	ret["refBase"] = njh::json::toJson(refBase);
+	ret["refQual"] = njh::json::toJson(refQual);
+	ret["refLeadingQual"] = njh::json::toJson(refLeadingQual);
+	ret["refTrailingQual"] = njh::json::toJson(refTrailingQual);
+	ret["refBasePos"] = njh::json::toJson(refBasePos);
+	ret["seqBase"] = njh::json::toJson(seqBase);
+	ret["seqQual"] = njh::json::toJson(seqQual);
+	ret["seqLeadingQual"] = njh::json::toJson(seqLeadingQual);
+	ret["seqTrailingQual"] = njh::json::toJson(seqTrailingQual);
+	ret["seqBasePos"] = njh::json::toJson(seqBasePos);
+	ret["kMerFreqByPos"] = njh::json::toJson(kMerFreqByPos);
+	ret["kMerFreq"] = njh::json::toJson(kMerFreq);
+	ret["transition"] = njh::json::toJson(transition);
+	ret["freq"] = njh::json::toJson(freq);
+	ret["frac_"] = njh::json::toJson(frac_);
 	return ret;
 }
 
 
-}  // namespace bib
+}  // namespace njh

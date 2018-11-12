@@ -24,7 +24,7 @@
 #include <mutex>
 #include <condition_variable>
 
-namespace bibseq {
+namespace njhseq {
 namespace concurrent {
 
 // concurrent multi-producer/multi-consumer queue
@@ -74,4 +74,4 @@ public:
 };
 
 }  // namespace concurrent
-}  // namespace bibseq
+}  // namespace njhseq

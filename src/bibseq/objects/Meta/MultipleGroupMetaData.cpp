@@ -4,28 +4,28 @@
  *  Created on: Apr 7, 2017
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "MultipleGroupMetaData.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab,
 		const std::set<std::string> & availableSamples){
@@ -62,27 +62,27 @@ void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab,
 	}
 
 	for (const auto & samp : samples) {
-		if (bib::in(samp, samples_) || bib::in(samp, missingSamples_)) {
+		if (njh::in(samp, samples_) || njh::in(samp, missingSamples_)) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " Error, have sample: " << samp
 					<< " entered more than once in Sample column in " << groupingsFile_
 					<< "\n";
 			throw std::runtime_error { ss.str() };
 		}
-		if (bib::in(samp, availableSamples)) {
+		if (njh::in(samp, availableSamples)) {
 			samples_.insert(samp);
 		} else {
 			missingSamples_.insert(samp);
 		}
 	}
 	for (const auto & samp : availableSamples) {
-		if (!bib::in(samp, samples)) {
+		if (!njh::in(samp, samples)) {
 			missingMetaForSamples_.insert(samp);
 		}
 	}
 	for (const auto & col : groupsTab.columnNames_) {
 		if ("Sample" != col && "sample" != col) {
-			if (bib::in(col, groupData_)) {
+			if (njh::in(col, groupData_)) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << " Error, have grouping: " << col
 						<< " entered more than once in the column names in "
@@ -92,7 +92,7 @@ void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab,
 			groupData_.emplace(col, std::make_unique<GroupMetaData>(col));
 			VecStr grouping = groupsTab.getColumn(col);
 			for (const auto pos : iter::range(grouping.size())) {
-				if (bib::in(samples[pos], samples_)) {
+				if (njh::in(samples[pos], samples_)) {
 					groupData_[col]->addSampGroup(samples[pos], grouping[pos]);
 				}
 			}
@@ -144,7 +144,7 @@ void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab){
 	}
 
 	for (const auto & samp : samples) {
-		if (bib::in(samp, samples_) || bib::in(samp, missingSamples_)) {
+		if (njh::in(samp, samples_) || njh::in(samp, missingSamples_)) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " Error, have sample: " << samp
 					<< " entered more than once in Sample column in " << groupingsFile_
@@ -155,7 +155,7 @@ void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab){
 	}
 	for (const auto & col : groupsTab.columnNames_) {
 		if (sampleNameColName != col) {
-			if (bib::in(col, groupData_)) {
+			if (njh::in(col, groupData_)) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << " Error, have grouping: " << col
 						<< " entered more than once in the column names in "
@@ -165,7 +165,7 @@ void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab){
 			groupData_.emplace(col, std::make_unique<GroupMetaData>(col));
 			VecStr grouping = groupsTab.getColumn(col);
 			for (const auto pos : iter::range(grouping.size())) {
-				if (bib::in(samples[pos], samples_)) {
+				if (njh::in(samples[pos], samples_)) {
 					groupData_[col]->addSampGroup(samples[pos], grouping[pos]);
 				}
 			}
@@ -204,29 +204,29 @@ void MultipleGroupMetaData::resetInfo(){
 
 Json::Value MultipleGroupMetaData::toJson() const {
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
-	ret["groupingsFile_"] = bib::json::toJson(groupingsFile_);
-	ret["samples_"] = bib::json::toJson(samples_);
-	ret["missingSamples_"] = bib::json::toJson(missingSamples_);
-	ret["missingMetaForSamples_"] = bib::json::toJson(missingMetaForSamples_);
-	ret["groupData_"] = bib::json::toJson(groupData_);
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["groupingsFile_"] = njh::json::toJson(groupingsFile_);
+	ret["samples_"] = njh::json::toJson(samples_);
+	ret["missingSamples_"] = njh::json::toJson(missingSamples_);
+	ret["missingMetaForSamples_"] = njh::json::toJson(missingMetaForSamples_);
+	ret["groupData_"] = njh::json::toJson(groupData_);
 	return ret;
 }
 
 MultipleGroupMetaData MultipleGroupMetaData::fromJson(
 		const Json::Value & jsonValue) {
-	bib::json::MemberChecker checker(jsonValue);
+	njh::json::MemberChecker checker(jsonValue);
 	checker.failMemberCheckThrow(VecStr { "groupingsFile_", "samples_",
 			"missingSamples_", "missingMetaForSamples_", "groupData_" },
 			__PRETTY_FUNCTION__);
 
 	MultipleGroupMetaData ret(jsonValue["groupingsFile_"].asString());
 	auto jsonToStr = [](const Json::Value & v) {return v.asString();};
-	ret.samples_ = bib::json::jsonArrayToSet<std::string>(jsonValue["samples_"],
+	ret.samples_ = njh::json::jsonArrayToSet<std::string>(jsonValue["samples_"],
 			jsonToStr);
-	ret.missingSamples_ = bib::json::jsonArrayToSet<std::string>(
+	ret.missingSamples_ = njh::json::jsonArrayToSet<std::string>(
 			jsonValue["missingSamples_"], jsonToStr);
-	ret.missingMetaForSamples_ = bib::json::jsonArrayToSet<std::string>(
+	ret.missingMetaForSamples_ = njh::json::jsonArrayToSet<std::string>(
 			jsonValue["missingMetaForSamples_"], jsonToStr);
 	auto groupNames = jsonValue["groupData_"].getMemberNames();
 	uint32_t groupCount = 0;
@@ -252,7 +252,7 @@ void MultipleGroupMetaData::GroupPopInfo::increaseSubGroupCount(
 std::string MultipleGroupMetaData::GroupPopInfo::groupCountsStr() const{
 	std::string ret { "" };
 	for (const auto & subGroupCount : subGroupCounts_) {
-		ret += bib::pasteAsStr(subGroupCount.first, ":", subGroupCount.second, ";");
+		ret += njh::pasteAsStr(subGroupCount.first, ":", subGroupCount.second, ";");
 	}
 	return ret;
 }
@@ -260,7 +260,7 @@ std::string MultipleGroupMetaData::GroupPopInfo::groupCountsStr() const{
 std::string MultipleGroupMetaData::GroupPopInfo::groupFracsStr() const{
 	std::string ret { "" };
 	for (const auto & subGroupCount : subGroupCounts_) {
-		ret += bib::pasteAsStr(subGroupCount.first, ":",
+		ret += njh::pasteAsStr(subGroupCount.first, ":",
 				subGroupCount.second / static_cast<double>(numOfSamples_), ";");
 	}
 	return ret;
@@ -302,7 +302,7 @@ void MultipleGroupMetaData::transformSubFields(const std::string & field,
 	if(!hasMetaField(field)){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error, don't have field " << field << "\n";
-		ss << "Options are : " << bib::conToStr(bib::getVecOfMapKeys(groupData_)) << "\n";
+		ss << "Options are : " << njh::conToStr(njh::getVecOfMapKeys(groupData_)) << "\n";
 		throw std::runtime_error { ss.str() };
 	}
 	auto subGroupToSamplesOld = groupData_.at(field)->subGroupToSamples_;
@@ -319,25 +319,25 @@ void MultipleGroupMetaData::transformSubFields(const std::string & field,
 }
 
 bool MultipleGroupMetaData::hasMetaField(const std::string & metaField) const{
-	return bib::in(metaField, groupData_);
+	return njh::in(metaField, groupData_);
 }
 
 bool MultipleGroupMetaData::hasSample(const std::string & sample) const{
-	return bib::in(sample, samples_);
+	return njh::in(sample, samples_);
 }
 
 MetaDataInName MultipleGroupMetaData::getMetaForSample(const std::string & name, const VecStr & fields) const{
-	if(!bib::in(name, samples_)){
+	if(!njh::in(name, samples_)){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": error, no smaple: " << name << "\n";
-		ss << "Options are: " << bib::conToStr(samples_);
+		ss << "Options are: " << njh::conToStr(samples_);
 		throw std::runtime_error{ss.str()};
 	}
 	checkForFieldsThrow(fields);
 
 	MetaDataInName ret;
 	for(const auto & gMeta : groupData_){
-		if(bib::in(gMeta.first, fields)){
+		if(njh::in(gMeta.first, fields)){
 			ret.addMeta(gMeta.first, gMeta.second->getGroupForSample(name));
 		}
 	}
@@ -349,7 +349,7 @@ MetaDataInName MultipleGroupMetaData::genNaMeta( const VecStr & fields) const{
 
 	MetaDataInName ret;
 	for(const auto & gMeta : groupData_){
-		if(bib::in(gMeta.first, fields)){
+		if(njh::in(gMeta.first, fields)){
 			ret.addMeta(gMeta.first, "NA");
 		}
 	}
@@ -361,7 +361,7 @@ table MultipleGroupMetaData::leftJoinWithMeta(const table & sampleTable,
 	sampleTable.checkForColumnsThrow({sampleColumn}, __PRETTY_FUNCTION__);
 	auto sampleColPos = sampleTable.getColPos(sampleColumn);
 	auto metaLevels = getVectorOfMapKeys(groupData_);
-	bib::sort(metaLevels);
+	njh::sort(metaLevels);
 	table outTab(concatVecs(sampleTable.columnNames_, metaLevels));
 	for(auto row : sampleTable.content_){
 		for(const auto & field : metaLevels){
@@ -385,17 +385,17 @@ table MultipleGroupMetaData::leftJoinWithMeta(const table & sampleTable) const {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__
 				<< ", error found no column named that could match possible sample names, found only: "
-				<< bib::conToStr(sampleTable.columnNames_, ",") << "\n";
+				<< njh::conToStr(sampleTable.columnNames_, ",") << "\n";
 		throw std::runtime_error{ss.str()};
 	}else if(possibleMatches.size()  > 1){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__
 				<< ", error found too many columns that match possible sample names, found : "
-				<< bib::conToStr(getTargetsAtPositions(sampleTable.columnNames_, possibleMatches), ",") << "\n";
+				<< njh::conToStr(getTargetsAtPositions(sampleTable.columnNames_, possibleMatches), ",") << "\n";
 		throw std::runtime_error{ss.str()};
 	}
 	return leftJoinWithMeta(sampleTable, sampleTable.columnNames_[possibleMatches.front()]);
 }
 
 
-}  // namespace bibseq
+}  // namespace njhseq

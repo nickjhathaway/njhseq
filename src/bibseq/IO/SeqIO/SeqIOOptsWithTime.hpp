@@ -1,22 +1,22 @@
 #pragma once
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * SeqIOOptsWithTime.hpp
@@ -25,9 +25,9 @@
  *      Author: nick
  */
 
-#include "bibseq/IO/SeqIO/SeqInput.hpp"
+#include "njhseq/IO/SeqIO/SeqInput.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 /**@brief SeqIOOpts with a time point member to keep track if the input file has changed
@@ -65,7 +65,7 @@ public:
 	 */
 	template<typename T>
 	std::vector<T> get() {
-		time_ = bib::files::last_write_time(opts_.firstName_);
+		time_ = njh::files::last_write_time(opts_.firstName_);
 		SeqInput reader(opts_);
 		return reader.readAllReads<T>();
 	}
@@ -78,7 +78,7 @@ public:
 	 */
 	template<typename T>
 	std::vector<T> get(size_t pos, size_t number) {
-		time_ = bib::files::last_write_time(opts_.firstName_);
+		time_ = njh::files::last_write_time(opts_.firstName_);
 		SeqInput reader(opts_);
 		return reader.getReads<T>(pos, number);
 	}
@@ -89,7 +89,7 @@ public:
 	 */
 	template<typename T>
 	std::vector<std::shared_ptr<T>> getPtrs() {
-		time_ = bib::files::last_write_time(opts_.firstName_);
+		time_ = njh::files::last_write_time(opts_.firstName_);
 		SeqInput reader(opts_);
 		return reader.readAllReadsPtrs<T>();
 	}
@@ -102,7 +102,7 @@ public:
 	 */
 	template<typename T>
 	std::vector<std::shared_ptr<T>> getPtrs(size_t pos, size_t number) {
-		time_ = bib::files::last_write_time(opts_.firstName_);
+		time_ = njh::files::last_write_time(opts_.firstName_);
 		SeqInput reader(opts_);
 		return reader.getReadsPtrs<T>(pos, number);
 	}
@@ -116,5 +116,5 @@ public:
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 

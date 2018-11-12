@@ -1,22 +1,22 @@
 #pragma once
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * BamToolsUtils.hpp
@@ -30,13 +30,13 @@
 #include <api/BamWriter.h>
 
 
-#include "bibseq/common.h"
-#include "bibseq/objects/BioDataObject/GenomicRegion.hpp"
-#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
-#include "bibseq/alignment/alnCache.h"
-#include "bibseq/objects/dataContainers/tables/table.hpp"
+#include "njhseq/common.h"
+#include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
+#include "njhseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+#include "njhseq/alignment/alnCache.h"
+#include "njhseq/objects/dataContainers/tables/table.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 std::vector<GenomicRegion> genGenRegionsFromRefData(const BamTools::RefVector & rData);
@@ -108,19 +108,19 @@ void setBamFileRegionThrow(BamTools::BamReader & bReader, const GenomicRegion & 
 void checkBamFilesForIndexesAndAbilityToOpen(const std::vector<bfs::path> & bamFnps);
 
 
-} /* namespace bibseq */
+} /* namespace njhseq */
 
 
 
-namespace bib {
+namespace njh {
 namespace json {
 namespace JsonConversion {
 template<>
 inline Json::Value toJson(const BamTools::CigarOp & cOps){
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(cOps);
-	ret["Length"] = bib::json::toJson(cOps.Length);
-	ret["Type"] = bib::json::toJson(cOps.Type);
+	ret["class"] = njh::getTypeName(cOps);
+	ret["Length"] = njh::json::toJson(cOps.Length);
+	ret["Type"] = njh::json::toJson(cOps.Type);
 	return ret;
 }
 
@@ -149,24 +149,24 @@ inline Json::Value toJson(const BamTools::CigarOp & cOps){
 template<>
 inline Json::Value toJson(const BamTools::BamAlignment & bAln){
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(bAln);
-	ret["AlignedBases"] = bib::json::toJson(bAln.AlignedBases);
-	ret["AlignmentFlag"] = bib::json::toJson(bAln.AlignmentFlag);
-	ret["Bin"] = bib::json::toJson(bAln.Bin);
-	ret["CigarData"] = bib::json::toJson(bAln.CigarData);
-	ret["Filename"] = bib::json::toJson(bAln.Filename);
-	ret["InsertSize"] = bib::json::toJson(bAln.InsertSize);
-	ret["Length"] = bib::json::toJson(bAln.Length);
-	ret["MapQuality"] = bib::json::toJson(bAln.MapQuality);
-	ret["MatePosition"] = bib::json::toJson(bAln.MatePosition);
-	ret["MateRefID"] = bib::json::toJson(bAln.MateRefID);
-	ret["Name"] = bib::json::toJson(bAln.Name);
-	ret["Position"] = bib::json::toJson(bAln.Position);
-	ret["Qualities"] = bib::json::toJson(bAln.Qualities);
-	ret["QueryBases"] = bib::json::toJson(bAln.QueryBases);
-	ret["RefID"] = bib::json::toJson(bAln.RefID);
-	ret["TagDataRaw"] = bib::json::toJson(bAln.TagData);
-	ret["TagNames"] = bib::json::toJson(bAln.GetTagNames());
+	ret["class"] = njh::getTypeName(bAln);
+	ret["AlignedBases"] = njh::json::toJson(bAln.AlignedBases);
+	ret["AlignmentFlag"] = njh::json::toJson(bAln.AlignmentFlag);
+	ret["Bin"] = njh::json::toJson(bAln.Bin);
+	ret["CigarData"] = njh::json::toJson(bAln.CigarData);
+	ret["Filename"] = njh::json::toJson(bAln.Filename);
+	ret["InsertSize"] = njh::json::toJson(bAln.InsertSize);
+	ret["Length"] = njh::json::toJson(bAln.Length);
+	ret["MapQuality"] = njh::json::toJson(bAln.MapQuality);
+	ret["MatePosition"] = njh::json::toJson(bAln.MatePosition);
+	ret["MateRefID"] = njh::json::toJson(bAln.MateRefID);
+	ret["Name"] = njh::json::toJson(bAln.Name);
+	ret["Position"] = njh::json::toJson(bAln.Position);
+	ret["Qualities"] = njh::json::toJson(bAln.Qualities);
+	ret["QueryBases"] = njh::json::toJson(bAln.QueryBases);
+	ret["RefID"] = njh::json::toJson(bAln.RefID);
+	ret["TagDataRaw"] = njh::json::toJson(bAln.TagData);
+	ret["TagNames"] = njh::json::toJson(bAln.GetTagNames());
 	std::unordered_map<std::string, Json::Value> tagData;
 	for(const auto & tag : bAln.GetTagNames()){
 		//tagData[tag] = bAln.GetTag()
@@ -182,31 +182,31 @@ inline Json::Value toJson(const BamTools::BamAlignment & bAln){
 			bAln.GetTag(tag, val);
 		}
 		Json::Value jVal;
-		jVal["type"] = bib::json::toJson(type);
-		jVal["val"] = bib::json::toJson(val);
+		jVal["type"] = njh::json::toJson(type);
+		jVal["val"] = njh::json::toJson(val);
 		tagData[tag] = jVal;
 		//std::cout << "\t" << type << std::endl;
 		//std::cout << "\t" << val << std::endl;
 	}
-	ret["TagData"] = bib::json::toJson(tagData);
-	ret["endPosition"] = bib::json::toJson(bAln.GetEndPosition());
-	ret["IsDuplicate"] = bib::json::toJson(bAln.IsDuplicate());
-	ret["IsFailedQC"] = bib::json::toJson(bAln.IsFailedQC());
-	ret["IsFirstMate"] = bib::json::toJson(bAln.IsFirstMate());
-	ret["IsMapped"] = bib::json::toJson(bAln.IsMapped());
-	ret["IsMateMapped"] = bib::json::toJson(bAln.IsMateMapped());
-	ret["IsMateReverseStrand"] = bib::json::toJson(bAln.IsMateReverseStrand());
-	ret["IsPaired"] = bib::json::toJson(bAln.IsPaired());
-	ret["IsPrimaryAlignment"] = bib::json::toJson(bAln.IsPrimaryAlignment());
-	ret["IsProperPair"] = bib::json::toJson(bAln.IsProperPair());
-	ret["IsReverseStrand"] = bib::json::toJson(bAln.IsReverseStrand());
-	ret["IsSecondMate"] = bib::json::toJson(bAln.IsSecondMate());
+	ret["TagData"] = njh::json::toJson(tagData);
+	ret["endPosition"] = njh::json::toJson(bAln.GetEndPosition());
+	ret["IsDuplicate"] = njh::json::toJson(bAln.IsDuplicate());
+	ret["IsFailedQC"] = njh::json::toJson(bAln.IsFailedQC());
+	ret["IsFirstMate"] = njh::json::toJson(bAln.IsFirstMate());
+	ret["IsMapped"] = njh::json::toJson(bAln.IsMapped());
+	ret["IsMateMapped"] = njh::json::toJson(bAln.IsMateMapped());
+	ret["IsMateReverseStrand"] = njh::json::toJson(bAln.IsMateReverseStrand());
+	ret["IsPaired"] = njh::json::toJson(bAln.IsPaired());
+	ret["IsPrimaryAlignment"] = njh::json::toJson(bAln.IsPrimaryAlignment());
+	ret["IsProperPair"] = njh::json::toJson(bAln.IsProperPair());
+	ret["IsReverseStrand"] = njh::json::toJson(bAln.IsReverseStrand());
+	ret["IsSecondMate"] = njh::json::toJson(bAln.IsSecondMate());
 	return ret;
 }
 
 }  // namespace JsonConversion
 }  // namespace json
-}  // namespace bib
+}  // namespace njh
 
 
 

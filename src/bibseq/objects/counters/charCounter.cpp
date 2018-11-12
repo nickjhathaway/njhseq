@@ -5,31 +5,31 @@
  *      Author: nickhathaway
  */
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "charCounter.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 Json::Value charCounter::toJson() const {
 	Json::Value ret;
-	ret["class"] = bib::json::toJson("bibseq::charCounter");
+	ret["class"] = njh::json::toJson("njhseq::charCounter");
 	auto & chars = ret["chars_"];
 	for (auto let : alphabet_) {
 		chars[std::string(1, let)] = chars_[let];
@@ -45,14 +45,14 @@ Json::Value charCounter::toJson() const {
 
 	auto & allQuals = ret["allQualities_"];
 	for (auto let : alphabet_) {
-		allQuals[std::string(1, let)] = bib::json::toJson(allQualities_[let]);
+		allQuals[std::string(1, let)] = njh::json::toJson(allQualities_[let]);
 	}
-	ret["allowNewChars_"] = bib::json::toJson(allowNewChars_);
-	ret["alphabet_"] = bib::json::toJson(alphabet_);
-	ret["originalAlphabet_"] = bib::json::toJson(originalAlphabet_);
+	ret["allowNewChars_"] = njh::json::toJson(allowNewChars_);
+	ret["alphabet_"] = njh::json::toJson(alphabet_);
+	ret["originalAlphabet_"] = njh::json::toJson(originalAlphabet_);
 	double GCContent = chars_['G'] + chars_['C'] + chars_['g'] + chars_['c'];
-	ret["gcContent"] = bib::json::toJson(GCContent / getTotalCount());
-	ret["totalCount"] = bib::json::toJson(getTotalCount());
+	ret["gcContent"] = njh::json::toJson(GCContent / getTotalCount());
+	ret["totalCount"] = njh::json::toJson(getTotalCount());
 
 	return ret;
 }
@@ -380,11 +380,11 @@ void charCounter::resetAlphabet(bool keepOld) {
 		alphabet_.clear();
 	}
 	for (const auto & c : present) {
-		if (!bib::in(c, alphabet_)) {
+		if (!njh::in(c, alphabet_)) {
 			alphabet_.emplace_back(c);
 		}
 	}
-	bib::sort(alphabet_);
+	njh::sort(alphabet_);
 }
 
 void charCounter::addOtherCounts(const charCounter & otherCounter,
@@ -403,4 +403,4 @@ void charCounter::increaseRates(substituteMatrix & mat, char refBase) const{
 	}
 }
 
-} /* namespace bibseq */
+} /* namespace njhseq */

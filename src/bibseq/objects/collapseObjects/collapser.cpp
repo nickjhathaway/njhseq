@@ -3,31 +3,31 @@
 //
 //  Created by Nicholas Hathaway on 1/1/14.
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "collapser.hpp"
-#include "bibseq/objects/seqObjects/seqKmers/KmerVecUtils.hpp"
-#include "bibseq/objects/helperObjects/nucCompCluster.hpp"
-#include "bibseq/helpers/profiler.hpp"
-#include "bibseq/objects/seqObjects/Clusters/clusterUtils.hpp"
+#include "njhseq/objects/seqObjects/seqKmers/KmerVecUtils.hpp"
+#include "njhseq/objects/helperObjects/nucCompCluster.hpp"
+#include "njhseq/helpers/profiler.hpp"
+#include "njhseq/objects/seqObjects/Clusters/clusterUtils.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 table collapser::markChimerasTest(std::vector<cluster> &processedReads,
@@ -410,8 +410,8 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
   //create snapshots directory if taking snap shots
   std::string snapShotsDirectoryName = "";
 	if (snapShotsOpts.snapShots_) {
-		snapShotsDirectoryName = bib::files::makeDir(mainDirectory,
-				bib::files::MkdirPar(snapShotsOpts.snapShotsDirName_, false)).string();
+		snapShotsDirectoryName = njh::files::makeDir(mainDirectory,
+				njh::files::MkdirPar(snapShotsOpts.snapShotsDirName_, false)).string();
 	}
   for (const auto & iter : iteratorMap.iters_) {
   	if(opts_.verboseOpts_.verbose_){
@@ -438,7 +438,7 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
 			opts_.verboseOpts_.verbose_ = opts_.verboseOpts_.debug_;
 
 			std::vector<uint64_t> positions(clusters.size(), 0);
-			bib::iota<uint64_t>(positions, 0);
+			njh::iota<uint64_t>(positions, 0);
 			auto byCondensed = readVec::organizeByCondensedSeqPositions(
 					clusters, positions);
 			for (auto& condensedReads : byCondensed) {
@@ -453,7 +453,7 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
     } else {
     	collapseWithParameters(clusters, iter.second, alignerObj);
     }
-		bib::stopWatch watch;
+		njh::stopWatch watch;
 		watch.setLapName("sorting vector");
 		readVecSorter::sortReadVector(clusters, "totalCount");
 		if (opts_.verboseOpts_.debug_) {
@@ -462,7 +462,7 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
     //write out current iteration if taking snapshots
     if (snapShotsOpts.snapShots_) {
       bfs::path iterDir =
-          bib::files::makeDir(snapShotsDirectoryName, bib::files::MkdirPar(std::to_string(iter.first), false));
+          njh::files::makeDir(snapShotsDirectoryName, njh::files::MkdirPar(std::to_string(iter.first), false));
       std::vector<cluster> currentClusters =
           readVecSplitter::splitVectorOnRemove(clusters).first;
       std::string seqName = bfs::basename(ioOpts.firstName_);
@@ -490,7 +490,7 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 
 

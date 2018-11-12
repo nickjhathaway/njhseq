@@ -4,34 +4,34 @@
 //  Created by Nicholas Hathaway on 1/2/14.
 //
 
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 
 #include "populationCollapse.hpp"
-namespace bibseq {
+namespace njhseq {
 namespace collapse {
 
 
 populationCollapse::populationCollapse(const std::string &populationName) :
 		populationName_(populationName) {
-	if (bib::containsSubString(populationName_, ".")) {
+	if (njh::containsSubString(populationName_, ".")) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ":Error populationName_ can't contain '.', "
 				<< populationName_ << "\n";
@@ -44,7 +44,7 @@ populationCollapse::populationCollapse(
 		const std::string &populationName) :
 		input_(clusterSet(inputClusters)),
 		populationName_(populationName) {
-	if (bib::containsSubString(populationName_, ".")) {
+	if (njh::containsSubString(populationName_, ".")) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": Error populationName_ can't contain '.', "
 				<< populationName_ << "\n";
@@ -108,7 +108,7 @@ uint32_t populationCollapse::numOfSamps() const {
 
 void populationCollapse::renameClusters() {
 	//need to consider different ways of sort reads before renaming the clustering
-  bib::sort(collapsed_.clusters_,[](const sampleCluster & clus1, const sampleCluster & clus2){
+  njh::sort(collapsed_.clusters_,[](const sampleCluster & clus1, const sampleCluster & clus2){
   	if(clus1.numberOfRuns() == clus2.numberOfRuns()){
   		return clus1.getCumulativeFrac() >clus2.getCumulativeFrac();
   	}else{
@@ -161,7 +161,7 @@ void populationCollapse::renameToOtherPopNames(const std::vector<readObject> &pr
   }
 
 	uint32_t id = 0;
-	if (bib::in(populationName_, previousIdsByExp)) {
+	if (njh::in(populationName_, previousIdsByExp)) {
 		id = (*std::max_element(previousIdsByExp[populationName_].begin(),
 				previousIdsByExp[populationName_].end())) + 1;
 	}
@@ -331,4 +331,4 @@ VecStr populationCollapse::getPopInfoHeaderVec() {
 
 
 }  // namespace collapse
-}  // namespace bibseq
+}  // namespace njhseq

@@ -4,30 +4,30 @@
  *  Created on: Feb 2, 2017
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "bamExtractUtils.hpp"
-#include "bibseq/BamToolsUtils/BamAlnsCache.hpp"
-#include "bibseq/BamToolsUtils/BamAlnsCacheWithRegion.hpp"
-#include "bibseq/IO/SeqIO.h"
+#include "njhseq/BamToolsUtils/BamAlnsCache.hpp"
+#include "njhseq/BamToolsUtils/BamAlnsCacheWithRegion.hpp"
+#include "njhseq/IO/SeqIO.h"
 
-namespace bibseq {
+namespace njhseq {
 
 
 uint32_t BamExtractor::ExtractCounts::getTotal(){
@@ -320,7 +320,7 @@ void BamExtractor::writeExtractReadsFromBamRegion(
 BamExtractor::ExtractedFilesWithStichingOpts BamExtractor::writeExtractReadsFromBamRegionStitch(
 		const bfs::path & bamFnp, const GenomicRegion & region, double percInRegion,
 		const OutOptions & outOpts, const std::string & extraFlashCms) {
-	bib::sys::requireExternalProgramThrow("flash");
+	njh::sys::requireExternalProgramThrow("flash");
 
 	BamTools::BamReader bReader;
 	BamTools::BamAlignment bAln;
@@ -452,7 +452,7 @@ BamExtractor::ExtractedFilesWithStichingOpts BamExtractor::writeExtractReadsFrom
 	pairWriter.closeOut();
 	if (outOptsPaired.outExists()) {
 		std::stringstream flashCmd;
-		auto stitchFilesBase = bib::files::prependFileBasename(outOpts.outName(),
+		auto stitchFilesBase = njh::files::prependFileBasename(outOpts.outName(),
 				"stiched_");
 		flashCmd << "flash " << outOptsPaired.getPriamryOutName() << " "
 				<< outOptsPaired.getSecondaryOutName() << " -o " << stitchFilesBase
@@ -465,9 +465,9 @@ BamExtractor::ExtractedFilesWithStichingOpts BamExtractor::writeExtractReadsFrom
 			flashCmd << " -x 0.02 ";
 		}
 		flashCmd << " > "
-				<< bib::files::make_path(stitchFilesBase.parent_path(), "flashLog")
+				<< njh::files::make_path(stitchFilesBase.parent_path(), "flashLog")
 				<< " 2>&1\n";
-		auto flashOut = bib::sys::run(VecStr { flashCmd.str() });
+		auto flashOut = njh::sys::run(VecStr { flashCmd.str() });
 		if (!flashOut.success_) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " error in running flash to stitch reads"
@@ -477,19 +477,19 @@ BamExtractor::ExtractedFilesWithStichingOpts BamExtractor::writeExtractReadsFrom
 			throw std::runtime_error { ss.str() };
 		}
 		OutOptions flashRunLogOpts(
-				bib::files::make_path(stitchFilesBase.parent_path(),
+				njh::files::make_path(stitchFilesBase.parent_path(),
 						"flashRunLog.json"));
 		std::ofstream outFlashRunLog;
 		flashRunLogOpts.openFile(outFlashRunLog);
 		outFlashRunLog << flashOut.toJson() << std::endl;
 		ret.stitched_ = SeqIOOptions::genFastqIn(
-				bib::appendAsNeededRet(stitchFilesBase.string(),
+				njh::appendAsNeededRet(stitchFilesBase.string(),
 						".extendedFrags.fastq"));
 
 		ret.notCombinedPairs_ = SeqIOOptions::genPairedIn(
-				bib::appendAsNeededRet(stitchFilesBase.string(),
+				njh::appendAsNeededRet(stitchFilesBase.string(),
 						".notCombined_1.fastq"),
-				bib::appendAsNeededRet(stitchFilesBase.string(),
+				njh::appendAsNeededRet(stitchFilesBase.string(),
 						".notCombined_2.fastq"));
 	}
 
@@ -1206,7 +1206,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWriteAsSingles
 	auto outUnpaired = SeqIOOptions::genFastqOut(opts.out_.outFilename_);
 	outUnpaired.out_.transferOverwriteOpts(opts.out_);
 	auto outUnpairedUnMapped = SeqIOOptions::genFastqOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
 	outUnpairedUnMapped.out_.transferOverwriteOpts(opts.out_);
 
 	SeqOutput mappedSinglesWriter(outUnpaired);
@@ -1257,10 +1257,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 		bool throwAwayUnmmpaedMates) {
 
 	auto outPairsUnMapped = SeqIOOptions::genPairedOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
 	outPairsUnMapped.out_.transferOverwriteOpts(opts.out_);
 	auto outUnpairedUnMapped = SeqIOOptions::genFastqOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
 	outUnpairedUnMapped.out_.transferOverwriteOpts(opts.out_);
 
 	auto outPairs = SeqIOOptions::genPairedOut(opts.out_.outFilename_);
@@ -1269,20 +1269,20 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 	outUnpaired.out_.transferOverwriteOpts(opts.out_);
 
 	auto outPairsMateUnmapped = SeqIOOptions::genPairedOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "mateUnmapped_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "mateUnmapped_"));
 	outPairsMateUnmapped.out_.transferOverwriteOpts(opts.out_);
 
 	auto thrownAwayMate = SeqIOOptions::genFastqOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "thrownAwayMate_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "thrownAwayMate_"));
 	thrownAwayMate.out_.transferOverwriteOpts(opts.out_);
 
 
 	auto outPairsInverse = SeqIOOptions::genPairedOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "inverse_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "inverse_"));
 	outPairsInverse.out_.transferOverwriteOpts(opts.out_);
 
 	auto outPairsDiscordant = SeqIOOptions::genPairedOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "discordant_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "discordant_"));
 	outPairsDiscordant.out_.transferOverwriteOpts(opts.out_);
 
 	SeqOutput unmappedPairWriter(outPairsUnMapped);
@@ -1324,13 +1324,13 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 	BamTools::BamAlignment bAln;
 	BamAlnsCache alnCache;
 
-	OutOptions inverseBedOpts(bib::files::prependFileBasename(opts.out_.outFilename_, "inverse_"), ".bed");
+	OutOptions inverseBedOpts(njh::files::prependFileBasename(opts.out_.outFilename_, "inverse_"), ".bed");
 	inverseBedOpts.transferOverwriteOpts(opts.out_);
 
-	OutOptions discordantBedOpts(bib::files::prependFileBasename(opts.out_.outFilename_, "discordant_"), ".bed");
+	OutOptions discordantBedOpts(njh::files::prependFileBasename(opts.out_.outFilename_, "discordant_"), ".bed");
 	discordantBedOpts.transferOverwriteOpts(opts.out_);
 
-	OutOptions mappedBedOpts(bib::files::prependFileBasename(opts.out_.outFilename_, "mapped_"), ".bed");
+	OutOptions mappedBedOpts(njh::files::prependFileBasename(opts.out_.outFilename_, "mapped_"), ".bed");
 	mappedBedOpts.transferOverwriteOpts(opts.out_);
 	std::unique_ptr<OutputStream> inverseBedOut;
 	std::unique_ptr<OutputStream> discordantBedOut;
@@ -1542,10 +1542,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWrite(
 		bool throwAwayUnmmpaedMates) {
 
 	auto outPairsUnMapped = SeqIOOptions::genPairedOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
 	outPairsUnMapped.out_.transferOverwriteOpts(opts.out_);
 	auto outUnpairedUnMapped = SeqIOOptions::genFastqOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
 	outUnpairedUnMapped.out_.transferOverwriteOpts(opts.out_);
 
 	auto outPairs = SeqIOOptions::genPairedOut(opts.out_.outFilename_);
@@ -1554,20 +1554,20 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWrite(
 	outUnpaired.out_.transferOverwriteOpts(opts.out_);
 
 	auto outPairsMateUnmapped = SeqIOOptions::genPairedOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "mateUnmapped_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "mateUnmapped_"));
 	outPairsMateUnmapped.out_.transferOverwriteOpts(opts.out_);
 
 	auto thrownAwayMate = SeqIOOptions::genFastqOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "thrownAwayMate_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "thrownAwayMate_"));
 	thrownAwayMate.out_.transferOverwriteOpts(opts.out_);
 
 
 	auto outPairsInverse = SeqIOOptions::genPairedOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "inverse_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "inverse_"));
 	outPairsInverse.out_.transferOverwriteOpts(opts.out_);
 
 	auto outPairsDiscordant = SeqIOOptions::genPairedOut(
-			bib::files::prependFileBasename(opts.out_.outFilename_, "discordant_"));
+			njh::files::prependFileBasename(opts.out_.outFilename_, "discordant_"));
 	outPairsDiscordant.out_.transferOverwriteOpts(opts.out_);
 
 	SeqOutput unmappedPairWriter(outPairsUnMapped);
@@ -1822,7 +1822,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::writeUnMappedSeqs(const SeqIOOpti
 	BamTools::BamAlignment bAln;
 	BamAlnsCache alnCache;
 
-	bfs::path outBam(bib::appendAsNeededRet(opts.out_.outFilename_.string(), ".bam"));
+	bfs::path outBam(njh::appendAsNeededRet(opts.out_.outFilename_.string(), ".bam"));
 	OutOptions outBamOpts(outBam);
 	outBamOpts.transferOverwriteOpts(opts.out_);
 	if(outBamOpts.outExists() && !outBamOpts.overWriteFile_){
@@ -2025,7 +2025,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		refNameToId[refData[pos].RefName] = pos;
 	}
 
-	bfs::path outBam(bib::appendAsNeededRet(inOutOpts.out_.outFilename_.string(), ".bam"));
+	bfs::path outBam(njh::appendAsNeededRet(inOutOpts.out_.outFilename_.string(), ".bam"));
 	OutOptions outBamOpts(outBam);
 	outBamOpts.transferOverwriteOpts(inOutOpts.out_);
 	if(outBamOpts.outExists() && !outBamOpts.overWriteFile_){
@@ -2041,14 +2041,14 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	auto outPairs = SeqIOOptions::genPairedOut(inOutOpts.out_.outFilename_);
 	outPairs.out_.transferOverwriteOpts(inOutOpts.out_);
 
-	auto outPairsUnmappedMate = SeqIOOptions::genPairedOut(bib::files::prependFileBasename(inOutOpts.out_.outFilename_, "mateUnmapped_"));
+	auto outPairsUnmappedMate = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "mateUnmapped_"));
 	outPairsUnmappedMate.out_.transferOverwriteOpts(inOutOpts.out_);
 
-	auto thrownAwayUnammpedMateOpts = SeqIOOptions::genFastqOut(bib::files::prependFileBasename(inOutOpts.out_.outFilename_, "thrownAwayMate_"));
+	auto thrownAwayUnammpedMateOpts = SeqIOOptions::genFastqOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "thrownAwayMate_"));
 	thrownAwayUnammpedMateOpts.out_.transferOverwriteOpts(inOutOpts.out_);
 
 	//inverse here is if when the pairs are put into the orientation of the target region of interest they end up being not being in the same orientation or regular inverse as well
-	auto outPairsInverse = SeqIOOptions::genPairedOut(bib::files::prependFileBasename(inOutOpts.out_.outFilename_, "inverse_"));
+	auto outPairsInverse = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "inverse_"));
 	outPairsInverse.out_.transferOverwriteOpts(inOutOpts.out_);
 
 	auto outUnpaired = SeqIOOptions::genFastqOut(inOutOpts.out_.outFilename_);
@@ -2238,7 +2238,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //				print = true;
 //			}
 //			if(print){
-//				std::cout << bib::json::toJson(bAln) << std::endl;
+//				std::cout << njh::json::toJson(bAln) << std::endl;
 //			}
 			if (bAln.IsPaired()) {
 				if (!alnCache.has(bAln.Name)) {
@@ -2438,7 +2438,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	 *  should maybe investigate where they are falling or when remapping consider taking these now  */
 	std::ofstream orphansSiblingsLocationFile;
 	if(debug_){
-		OutOptions orphansSiblingsLocationFileOpt(bib::files::make_path(inOutOpts.out_.outFilename_.parent_path(), "orphansSiblingsStats.tab.txt"));
+		OutOptions orphansSiblingsLocationFileOpt(njh::files::make_path(inOutOpts.out_.outFilename_.parent_path(), "orphansSiblingsStats.tab.txt"));
 		orphansSiblingsLocationFileOpt.openFile(orphansSiblingsLocationFile);
 		orphansSiblingsLocationFile << "OrphanName\tdistance\tclosetRegions\tRefId\tPosition\tIsMapped\tMateRefId\tMatePosition\tIsMateMapped" << "\n";
 	}
@@ -2516,13 +2516,13 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 						}
 						orphansSiblingsLocationFile << search->Name
 								<< "\t" << (bestRegions.empty() ? "none" : estd::to_string(smallestDistance))
-								<< "\t" << (bestRegions.empty() ? "none" : bib::conToStr(bestRegions, ","))
+								<< "\t" << (bestRegions.empty() ? "none" : njh::conToStr(bestRegions, ","))
 								<< "\t" << (search->RefID < 0 ? std::string("*") : refData[search->RefID].RefName)
 								<< "\t" << search->Position
-								<< "\t" << bib::boolToStr(search->IsMapped())
+								<< "\t" << njh::boolToStr(search->IsMapped())
 								<< "\t" << (search->MateRefID < 0 ? std::string("*") : refData[search->MateRefID].RefName)
 								<< "\t" << search->MatePosition
-								<< "\t" << bib::boolToStr(search->IsMateMapped())
+								<< "\t" << njh::boolToStr(search->IsMateMapped())
 								<< "\n";
 					} else {
 						orphansSiblingsLocationFile << search->Name
@@ -2530,10 +2530,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 								<< "\t" << "*"
 								<< "\t" << (search->RefID < 0 ? std::string("*") : refData[search->RefID].RefName)
 								<< "\t" << search->Position
-								<< "\t" << bib::boolToStr(search->IsMapped())
+								<< "\t" << njh::boolToStr(search->IsMapped())
 								<< "\t" << (search->MateRefID < 0 ? std::string("*") : refData[search->MateRefID].RefName)
 								<< "\t" << search->MatePosition
-								<< "\t" << bib::boolToStr(search->IsMateMapped())
+								<< "\t" << njh::boolToStr(search->IsMateMapped())
 								<< "\n";
 					}
 				}
@@ -2572,4 +2572,4 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	return ret;
 }
 
-}  // namespace bibseq
+}  // namespace njhseq

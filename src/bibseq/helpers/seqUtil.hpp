@@ -1,22 +1,22 @@
 #pragma once
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 //
 //  seqUtil
@@ -25,15 +25,15 @@
 //
 
 
-#include "bibseq/utils.h"
-#include "bibseq/objects/kmer/kmer.hpp"
-#include "bibseq/seqToolsUtils/aminoAcidInfo.hpp"
+#include "njhseq/utils.h"
+#include "njhseq/objects/kmer/kmer.hpp"
+#include "njhseq/seqToolsUtils/aminoAcidInfo.hpp"
 
-#include "bibseq/objects/dataContainers/tables/table.hpp"
-#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
-#include "bibseq/objects/counters/charCounter.hpp"
+#include "njhseq/objects/dataContainers/tables/table.hpp"
+#include "njhseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+#include "njhseq/objects/counters/charCounter.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 class seqUtil {
 
@@ -159,6 +159,6 @@ class seqUtil {
 
 
 }; // class seqUtils
-}  // namespace bibseq
+}  // namespace njhseq
 
 

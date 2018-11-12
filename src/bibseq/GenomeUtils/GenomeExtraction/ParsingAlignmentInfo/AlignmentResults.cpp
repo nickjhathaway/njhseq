@@ -4,29 +4,29 @@
  *  Created on: Apr 29, 2017
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "AlignmentResults.hpp"
-#include "bibseq/BamToolsUtils/BamToolsUtils.hpp"
+#include "njhseq/BamToolsUtils/BamToolsUtils.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 AlignmentResults::AlignmentResults(const BamTools::BamAlignment & bAln,
 		const BamTools::RefVector & refData,
@@ -140,8 +140,8 @@ char AlignmentResults::getAlignedBase(const GenomicRegion & region){
 			|| region.start_ >= gRegion_.end_){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error region and determine region don't match up" << "\n";
-		ss << "Query Region: " << bib::json::writeAsOneLine(region.toJson()) << '\n';
-		ss << "Determined Region: " << bib::json::writeAsOneLine(gRegion_.toJson()) << '\n';
+		ss << "Query Region: " << njh::json::writeAsOneLine(region.toJson()) << '\n';
+		ss << "Determined Region: " << njh::json::writeAsOneLine(gRegion_.toJson()) << '\n';
 	}
 	if(nullptr == refSeqAligned_ || nullptr == alnSeqAligned_){
 		setAlignedObjects();
@@ -195,7 +195,7 @@ std::vector<std::shared_ptr<AlignmentResults>> getUniqueLocationResults(
 	if(alnResults.size() <= 1){
 		return alnResults;
 	}
-	bib::sort(alnResults,
+	njh::sort(alnResults,
 			[](const std::shared_ptr<AlignmentResults> & results1,
 					const std::shared_ptr<AlignmentResults> & results2) {
 				return results1->gRegion_.createUidFromCoords() < results2->gRegion_.createUidFromCoords();
@@ -210,4 +210,4 @@ std::vector<std::shared_ptr<AlignmentResults>> getUniqueLocationResults(
 	return ret;
 }
 
-} /* namespace bibseq */
+} /* namespace njhseq */

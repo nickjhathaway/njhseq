@@ -5,41 +5,41 @@
  *      Author: nick
  */
 
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 
 #include "SampleCollapseCollection.hpp"
-#include "bibseq/objects/seqObjects/Clusters/clusterUtils.hpp"
+#include "njhseq/objects/seqObjects/Clusters/clusterUtils.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 namespace collapse {
 
 
 Json::Value SampleCollapseCollection::PreFilteringCutOffs::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
-	ret["clusterSizeCutOff"] = bib::json::toJson(clusterSizeCutOff );
-	ret["sampleMinReadCount"] = bib::json::toJson(sampleMinReadCount );
-	ret["replicateMinReadCount"] = bib::json::toJson(replicateMinReadCount );
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["clusterSizeCutOff"] = njh::json::toJson(clusterSizeCutOff );
+	ret["sampleMinReadCount"] = njh::json::toJson(sampleMinReadCount );
+	ret["replicateMinReadCount"] = njh::json::toJson(replicateMinReadCount );
 
 	return ret;
 }
@@ -49,7 +49,7 @@ SampleCollapseCollection::PreFilteringCutOffs::PreFilteringCutOffs() {
 }
 SampleCollapseCollection::PreFilteringCutOffs::PreFilteringCutOffs(
 		const Json::Value & coreJson) {
-	bib::json::MemberChecker checker(coreJson);
+	njh::json::MemberChecker checker(coreJson);
 
 	checker.failMemberCheckThrow(VecStr {"clusterSizeCutOff", "sampleMinReadCount",
 			"replicateMinReadCount"}, __PRETTY_FUNCTION__);
@@ -69,15 +69,15 @@ SampleCollapseCollection::SampleCollapseCollection(SeqIOOptions inputOptions,
 		masterOutputDir_(outputDir),
 		popNames_(popNames),
 		preFiltCutOffs_(preFiltCutOffs){
-	samplesOutputDir_ = bib::files::make_path(masterOutputDir_, "samplesOutput");
-	populationOutputDir_ = bib::files::make_path(masterOutputDir_, "population");
-	bib::files::makeDir(bib::files::MkdirPar(samplesOutputDir_.string(), true));
+	samplesOutputDir_ = njh::files::make_path(masterOutputDir_, "samplesOutput");
+	populationOutputDir_ = njh::files::make_path(masterOutputDir_, "population");
+	njh::files::makeDir(njh::files::MkdirPar(samplesOutputDir_.string(), true));
 
 }
 
 SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson){
 
-	bib::json::MemberChecker checker(coreJson);
+	njh::json::MemberChecker checker(coreJson);
 
 	checker.failMemberCheckThrow(VecStr {"preFiltCutOffs_", "inputOptions_",
 			"masterInputDir_", "masterOutputDir_", "popNames_",
@@ -87,27 +87,27 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 	masterInputDir_ = coreJson["masterInputDir_"].asString();
 	masterOutputDir_ = coreJson["masterOutputDir_"].asString();
 	popNames_ = PopNamesInfo(coreJson["popNames_"]["populationName_"].asString(),
-			bib::json::jsonArrayToSet<std::string>(coreJson["popNames_"]["samples_"],
+			njh::json::jsonArrayToSet<std::string>(coreJson["popNames_"]["samples_"],
 					[](const Json::Value & val){ return val.asString();}));
 	preFiltCutOffs_ = PreFilteringCutOffs(coreJson["preFiltCutOffs_"]);
 
 	populationOutputDir_ = coreJson["populationOutputDir_"].asString();
 	samplesOutputDir_ = coreJson["samplesOutputDir_"].asString();
-	passingSamples_ = bib::json::jsonArrayToVec<std::string>(coreJson["passingSamples_"],
+	passingSamples_ = njh::json::jsonArrayToVec<std::string>(coreJson["passingSamples_"],
 			[](const Json::Value & val){ return val.asString();});
-	lowRepCntSamples_ = bib::json::jsonArrayToVec<std::string>(coreJson["lowRepCntSamples_"],
+	lowRepCntSamples_ = njh::json::jsonArrayToVec<std::string>(coreJson["lowRepCntSamples_"],
 				[](const Json::Value & val){ return val.asString();});
 
 	//load in group meta data if it is available
-	if(bfs::exists(bib::files::make_path(masterOutputDir_, "groups", "groupMetaData.json"))){
+	if(bfs::exists(njh::files::make_path(masterOutputDir_, "groups", "groupMetaData.json"))){
 		groupMetaData_ = std::make_unique<MultipleGroupMetaData>(
 				MultipleGroupMetaData::fromJson(
-						bib::json::parseFile(
-								bib::files::make_path(masterOutputDir_, "groups",
+						njh::json::parseFile(
+								njh::files::make_path(masterOutputDir_, "groups",
 										"groupMetaData.json").string())));
 
 		groupDataPaths_ = std::make_unique<AllGroupDataPaths>(
-				bib::files::make_path(bib::files::normalize(masterOutputDir_), "groups"),
+				njh::files::make_path(njh::files::normalize(masterOutputDir_), "groups"),
 				groupMetaData_);
 	}
 }
@@ -117,10 +117,10 @@ void SampleCollapseCollection::addGroupMetaData(
 		const bfs::path & groupingsFile) {
 
 	groupMetaData_ = std::make_unique<MultipleGroupMetaData>(
-			bib::files::normalize(groupingsFile), popNames_.samples_);
+			njh::files::normalize(groupingsFile), popNames_.samples_);
 	/**@todo add some output to output directory that states the samples missing and missing meta*/
 	groupDataPaths_ = std::make_unique<AllGroupDataPaths>(
-			bib::files::make_path(bib::files::normalize(masterOutputDir_), "groups"),
+			njh::files::make_path(njh::files::normalize(masterOutputDir_), "groups"),
 			groupMetaData_);
 }
 
@@ -137,7 +137,7 @@ void SampleCollapseCollection::checkForSampleThrow(const std::string & funcName,
 	if (!hasSample(sampleName)) {
 		std::stringstream ss;
 		ss << funcName << ": error, sample " << sampleName << " isn't in samples_" << "\n";
-		ss << "Options are: " << bib::conToStr(popNames_.samples_, ",") << "\n";
+		ss << "Options are: " << njh::conToStr(popNames_.samples_, ",") << "\n";
 		throw std::runtime_error { ss.str() };
 	}
 }
@@ -146,12 +146,12 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 		aligner & alignerObj, const collapser & collapserObj,
 		const ChimeraOpts & chiOpts) {
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
-	auto sampleDir = bib::files::make_path(masterInputDir_, sampleName);
-	auto analysisFiles = bib::files::listAllFiles(sampleDir.string(), true, {
+	auto sampleDir = njh::files::make_path(masterInputDir_, sampleName);
+	auto analysisFiles = njh::files::listAllFiles(sampleDir.string(), true, {
 			std::regex { "^" + inputOptions_.firstName_.string() + "$" } }, 2);
 	std::vector<RepFile> repFiles;
 	for (const auto & af : analysisFiles) {
-		auto fileToks = bib::tokenizeString(
+		auto fileToks = njh::tokenizeString(
 				bfs::relative(af.first, sampleDir).string(), "/");
 		if (2 != fileToks.size()) {
 			std::stringstream ss;
@@ -205,7 +205,7 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 	}
 	if(!inputClusters.empty()){
 		std::lock_guard<std::mutex> lock(mut_);
-		if (bib::in(sampleName, sampleCollapses_)) {
+		if (njh::in(sampleName, sampleCollapses_)) {
 			sampleCollapses_[sampleName] = std::make_shared<sampleCollapse>(
 					inputClusters, sampleName, preFiltCutOffs_.clusterSizeCutOff);
 		} else {
@@ -215,7 +215,7 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 		}
 	} else {
 		std::lock_guard<std::mutex> lock(mut_);
-		if (bib::in(sampleName, sampleCollapses_)) {
+		if (njh::in(sampleName, sampleCollapses_)) {
 			sampleCollapses_[sampleName] = std::make_shared<sampleCollapse>(
 					lowCntInputClusters, sampleName, preFiltCutOffs_.clusterSizeCutOff);
 		} else {
@@ -230,28 +230,28 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 bfs::path SampleCollapseCollection::getSampleFinalHapsPath(
 		const std::string & sampleName) const {
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
-	return bib::files::make_path(samplesOutputDir_, sampleName, "final",
+	return njh::files::make_path(samplesOutputDir_, sampleName, "final",
 			sampleName + inputOptions_.getOutExtension());
 }
 
 bfs::path SampleCollapseCollection::getPopFinalHapsPath() const {
-	return bib::files::make_path(populationOutputDir_,
+	return njh::files::make_path(populationOutputDir_,
 			"PopSeqs" + inputOptions_.getOutExtension());
 
 }
 
 
 bfs::path SampleCollapseCollection::getPopInfoPath() const {
-	return bib::files::make_path(populationOutputDir_,
+	return njh::files::make_path(populationOutputDir_,
 			"populationCluster.tab.txt");
 }
 
 bfs::path SampleCollapseCollection::getSampInfoPath() const {
 	/**@todo need to make this standard, currently set by SeekDeep processClusters*/
-	return bib::files::make_path(masterOutputDir_, "selectedClustersInfo.tab.txt");
+	return njh::files::make_path(masterOutputDir_, "selectedClustersInfo.tab.txt");
 }
 bfs::path SampleCollapseCollection::getHapIdTabPath() const {
-	return bib::files::make_path(masterOutputDir_,
+	return njh::files::make_path(masterOutputDir_,
 			"hapIdTable.tab.txt");
 }
 
@@ -262,7 +262,7 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
 	auto sampPtr = std::make_shared<sampleCollapse>(sampleName);
 	auto & samp = *sampPtr;
-	auto sampleDir = bib::files::make_path(masterOutputDir_, "samplesOutput",
+	auto sampleDir = njh::files::make_path(masterOutputDir_, "samplesOutput",
 			sampleName);
 
 	std::map<std::string, double> allSampCounts;
@@ -271,12 +271,12 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 	std::map<std::string, double> finalSampCounts;
 	std::map<std::string, sampInfo> finalSampInfos;
 
-//	auto finalClustersFiles = bib::files::filesInFolder(
-//			bib::files::make_path(sampleDir, "final/clusters"));
-//	auto excludedClustersFiles = bib::files::filesInFolder(
-//			bib::files::make_path(sampleDir, "excluded/clusters"));
+//	auto finalClustersFiles = njh::files::filesInFolder(
+//			njh::files::make_path(sampleDir, "final/clusters"));
+//	auto excludedClustersFiles = njh::files::filesInFolder(
+//			njh::files::make_path(sampleDir, "excluded/clusters"));
 	seqInfo seq;
-	auto finalClustersFileOpts = SeqIOOptions(bib::files::make_path(sampleDir, "final/clusters/inputClusters" + inputOptions_.getOutExtension()),
+	auto finalClustersFileOpts = SeqIOOptions(njh::files::make_path(sampleDir, "final/clusters/inputClusters" + inputOptions_.getOutExtension()),
 			inputOptions_.inFormat_, true);
 	std::unordered_map<std::string, std::vector<seqInfo>> finalClusterInputClusters;
 	if(finalClustersFileOpts.inExists()){
@@ -299,9 +299,9 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 	MapStrStr refCompInfosCollapsed;
 	MapStrStr refCompInfosExcluded;
 	if (bfs::exists(
-			bib::files::join(sampleDir.string(), "refCompInfos.tab.txt"))) {
+			njh::files::join(sampleDir.string(), "refCompInfos.tab.txt"))) {
 		table refCompTab(
-				bib::files::join(sampleDir.string(), "refCompInfos.tab.txt"), "\t",
+				njh::files::join(sampleDir.string(), "refCompInfos.tab.txt"), "\t",
 				true);
 		//std::cout << __PRETTY_FUNCTION__ << " " << sampleName << std::endl;
 		for (const auto & row : refCompTab.content_) {
@@ -312,9 +312,9 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 	}
 
 	if (bfs::exists(
-			bib::files::join(sampleDir.string(), "refCompInfosExcluded.tab.txt"))) {
+			njh::files::join(sampleDir.string(), "refCompInfosExcluded.tab.txt"))) {
 		table refCompTab(
-				bib::files::join(sampleDir.string(), "refCompInfosExcluded.tab.txt"), "\t",
+				njh::files::join(sampleDir.string(), "refCompInfosExcluded.tab.txt"), "\t",
 				true);
 		//std::cout << __PRETTY_FUNCTION__ << " " << sampleName << std::endl;
 		for (const auto & row : refCompTab.content_) {
@@ -325,7 +325,7 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 	}
 	std::unordered_map<std::string, std::vector<seqInfo>> excludedInputClusters;
 	auto excludedClustersFileOpts = SeqIOOptions(
-			bib::files::make_path(sampleDir,
+			njh::files::make_path(sampleDir,
 					"excluded/clusters/inputClusters" + inputOptions_.getOutExtension()),
 			inputOptions_.inFormat_, true);
 	if (excludedClustersFileOpts.inExists()) {
@@ -359,12 +359,12 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 		finalSampInfos[sCount.first] = sampInfo(sCount.first, sCount.second);
 	}
 	auto finalFileOpts = SeqIOOptions(
-			bib::files::make_path(sampleDir, "final/",
+			njh::files::make_path(sampleDir, "final/",
 					sampleName + inputOptions_.getOutExtension()).string(),
 			inputOptions_.inFormat_, true);
 
 	auto excludedFileOpts = SeqIOOptions(
-			bib::files::make_path(sampleDir, "excluded/",
+			njh::files::make_path(sampleDir, "excluded/",
 					sampleName + inputOptions_.getOutExtension()).string(),
 			inputOptions_.inFormat_, true);
 
@@ -374,7 +374,7 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 		reader.openIn();
 		while (reader.readNextRead(seq)) {
 //			auto finalSubFileOpts = SeqIOOptions(
-//					bib::files::make_path(sampleDir, "final/clusters",
+//					njh::files::make_path(sampleDir, "final/clusters",
 //							seq.name_ + inputOptions_.getOutExtension()).string(),
 //					inputOptions_.inFormat_, true);
 //			SeqInput subReader(finalSubFileOpts);
@@ -394,7 +394,7 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 		reader.openIn();
 		while (reader.readNextRead(seq)) {
 //			auto excludedSubFileOpts = SeqIOOptions(
-//					bib::files::make_path(sampleDir, "excluded/clusters",
+//					njh::files::make_path(sampleDir, "excluded/clusters",
 //							seq.name_ + inputOptions_.getOutExtension()).string(),
 //					inputOptions_.inFormat_, true);
 //			SeqInput subReader(excludedSubFileOpts);
@@ -450,30 +450,30 @@ void SampleCollapseCollection::collapseLowFreqOneOffsSample(
 void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
 	auto samp = sampleCollapses_.at(sampleName);
-	auto sampDir = bib::files::make_path(masterOutputDir_, "samplesOutput",
+	auto sampDir = njh::files::make_path(masterOutputDir_, "samplesOutput",
 			sampleName);
-	auto finalDir = bib::files::make_path(masterOutputDir_, "samplesOutput",
+	auto finalDir = njh::files::make_path(masterOutputDir_, "samplesOutput",
 			sampleName, "final");
-	auto finalClustersDir = bib::files::make_path(masterOutputDir_,
+	auto finalClustersDir = njh::files::make_path(masterOutputDir_,
 			"samplesOutput", sampleName, "final", "clusters");
-	auto excludedDir = bib::files::make_path(masterOutputDir_, "samplesOutput",
+	auto excludedDir = njh::files::make_path(masterOutputDir_, "samplesOutput",
 			sampleName, "excluded");
-	auto excludedClusteredDir = bib::files::make_path(masterOutputDir_,
+	auto excludedClusteredDir = njh::files::make_path(masterOutputDir_,
 			"samplesOutput", sampleName, "excluded", "clusters");
 
-	bib::files::makeDir(bib::files::MkdirPar(sampDir.string(), true));
+	njh::files::makeDir(njh::files::MkdirPar(sampDir.string(), true));
 
-	bib::files::makeDirP(bib::files::MkdirPar(finalClustersDir.string()));
+	njh::files::makeDirP(njh::files::MkdirPar(finalClustersDir.string()));
 
-	bib::files::makeDirP(bib::files::MkdirPar(excludedClusteredDir.string()));
+	njh::files::makeDirP(njh::files::MkdirPar(excludedClusteredDir.string()));
 	//final
 	if(!samp->collapsed_.clusters_.empty()){
 		SeqIOOptions finalOutOpts(
-				bib::files::join(finalDir.string(), sampleName).string()
+				njh::files::join(finalDir.string(), sampleName).string()
 						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
 		SeqOutput::write(samp->collapsed_.clusters_, finalOutOpts);
 		SeqIOOptions clusOutOpts(
-				bib::files::make_path(finalClustersDir.string(), "inputClusters").string()
+				njh::files::make_path(finalClustersDir.string(), "inputClusters").string()
 						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
 		clusOutOpts.out_.overWriteFile_ = true;
 		SeqOutput inputClustersWriter(clusOutOpts);
@@ -501,12 +501,12 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 	//excluded
 	if(!samp->excluded_.clusters_.empty()){
 		SeqIOOptions excluddOutOpts(
-				bib::files::join(excludedDir.string(), sampleName).string()
+				njh::files::join(excludedDir.string(), sampleName).string()
 						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
 		SeqOutput::write(samp->excluded_.clusters_, excluddOutOpts);
 
 		SeqIOOptions clusOutOpts(
-				bib::files::make_path(excludedClusteredDir.string(), "inputClusters").string()
+				njh::files::make_path(excludedClusteredDir.string(), "inputClusters").string()
 						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
 		clusOutOpts.out_.overWriteFile_ = true;
 		SeqOutput inputClustersWriter(clusOutOpts);
@@ -540,7 +540,7 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 		refCompTab.outPutContents(
 				TableIOOpts(
 						OutOptions(
-								bib::files::join(sampDir.string(), "refCompInfos.tab.txt")),
+								njh::files::join(sampDir.string(), "refCompInfos.tab.txt")),
 						"\t", true));
 
 		std::map<std::string, std::string> refCompInfosExcluded;
@@ -551,7 +551,7 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 		refCompExcludedTab.outPutContents(
 				TableIOOpts(
 						OutOptions(
-								bib::files::join(sampDir.string(), "refCompInfosExcluded.tab.txt")),
+								njh::files::join(sampDir.string(), "refCompInfosExcluded.tab.txt")),
 						"\t", true));
 	}
 	clearSample(sampleName);
@@ -581,7 +581,7 @@ void SampleCollapseCollection::investigateChimeras(double chiCutOff,
 		VecStr clustersSavedFromChi;
 		setUpSampleFromPrevious(sampleName);
 		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				bib::in(sampleName, lowRepCntSamples_)){
+				njh::in(sampleName, lowRepCntSamples_)){
 			continue;
 		}
 
@@ -598,12 +598,12 @@ void SampleCollapseCollection::investigateChimeras(double chiCutOff,
 				bool saved = false;
 				for (const auto & otherSampleName : popNames_.samples_) {
 					if (otherSampleName != sampleName
-							&& !bib::containsSubString(stringToLowerReturn(otherSampleName),
+							&& !njh::containsSubString(stringToLowerReturn(otherSampleName),
 									"control")
-							&& !bib::containsSubString(stringToLowerReturn(sampleName),
+							&& !njh::containsSubString(stringToLowerReturn(sampleName),
 									"control")) {
 						auto otherSampOpts = SeqIOOptions(
-								bib::files::make_path(masterOutputDir_, "samplesOutput",
+								njh::files::make_path(masterOutputDir_, "samplesOutput",
 										otherSampleName, "final",
 										otherSampleName + inputOptions_.getOutExtension()).string(),
 								inputOptions_.inFormat_, true);
@@ -659,7 +659,7 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 	for (const auto & sampleName : popNames_.samples_) {
 		setUpSampleFromPrevious(sampleName);
 		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount ||
-				bib::in(sampleName, lowRepCntSamples_)){
+				njh::in(sampleName, lowRepCntSamples_)){
 			continue;
 		}
 		passingSamples_.emplace_back(sampleName);
@@ -702,12 +702,12 @@ void SampleCollapseCollection::doPopulationClustering(
 
 void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dumpTable) {
 	if (popCollapse_) {
-		auto popSubClusDir = bib::files::make_path(popDir, "clusters");
+		auto popSubClusDir = njh::files::make_path(popDir, "clusters");
 		//clear previous population dir or create if for the first time
-		bib::files::makeDir(bib::files::MkdirPar(popDir.string(), true));
-		bib::files::makeDir(bib::files::MkdirPar(popSubClusDir.string(), true));
+		njh::files::makeDir(njh::files::MkdirPar(popDir.string(), true));
+		njh::files::makeDir(njh::files::MkdirPar(popSubClusDir.string(), true));
 		SeqIOOptions popOutOpts(
-				bib::files::make_path(popDir,
+				njh::files::make_path(popDir,
 						"PopSeqs" + inputOptions_.getOutExtension()),
 				inputOptions_.outFormat_);
 
@@ -722,13 +722,13 @@ void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dum
 			refCompTab.outPutContents(
 					TableIOOpts(
 							OutOptions(
-									bib::files::join(popDir.string(), "refCompInfos.tab.txt")),
+									njh::files::join(popDir.string(), "refCompInfos.tab.txt")),
 							"\t", true));
 
 		}
 		std::unordered_map<std::string, double> readTotals;
 		SeqIOOptions inputPopClustersOpts(
-									bib::files::join(popSubClusDir.string(), "inputClusters").string()
+									njh::files::join(popSubClusDir.string(), "inputClusters").string()
 											+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
 		inputPopClustersOpts.out_.overWriteFile_ = true;
 		SeqOutput inputPopClusWriter(inputPopClustersOpts);
@@ -758,10 +758,10 @@ void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dum
 		readNumsTab.sortTable("sample", false);
 		readNumsTab.outPutContents(
 				TableIOOpts(
-						OutOptions(bib::files::join(popDir.string(), "readTotals.tab.txt")),
+						OutOptions(njh::files::join(popDir.string(), "readTotals.tab.txt")),
 						"\t", true));
 		if(dumpTable){
-			printPopulationCollapseInfo(bib::files::make_path(popDir, "populationCluster.tab.txt"));
+			printPopulationCollapseInfo(njh::files::make_path(popDir, "populationCluster.tab.txt"));
 		}
 		popCollapse_ = nullptr;
 	}
@@ -809,18 +809,18 @@ void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & s
 			popNames_.populationName_);
 
 	table readNumsTab(
-			bib::files::make_path(popDir,
+			njh::files::make_path(popDir,
 					"readTotals.tab.txt").string(), "\t", true);
 	std::unordered_map<std::string, sampInfo> sampInfos;
 	for (const auto & row : readNumsTab.content_) {
 		auto sampName = row[readNumsTab.getColPos("sample")];
 		sampInfos[sampName] = sampInfo(sampName,
-				bib::lexical_cast<double>(row[readNumsTab.getColPos("readTotal")]));
+				njh::lexical_cast<double>(row[readNumsTab.getColPos("readTotal")]));
 	}
 
 	MapStrStr refCompInfos;
-	if (bfs::exists(bib::files::join(popDir.string(), "refCompInfos.tab.txt"))) {
-		table refCompTab(bib::files::join(popDir.string(), "refCompInfos.tab.txt"),
+	if (bfs::exists(njh::files::join(popDir.string(), "refCompInfos.tab.txt"))) {
+		table refCompTab(njh::files::join(popDir.string(), "refCompInfos.tab.txt"),
 				"\t", true);
 		for (const auto & row : refCompTab.content_) {
 			refCompInfos[row[refCompTab.getColPos("read")]] =
@@ -829,7 +829,7 @@ void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & s
 	}
 
 	auto popInputClustersOpts = SeqIOOptions(
-			bib::files::make_path(popDir,
+			njh::files::make_path(popDir,
 					"clusters/inputClusters" + inputOptions_.getOutExtension()),
 			inputOptions_.inFormat_, true);
 	SeqInput inputReader(popInputClustersOpts);
@@ -857,7 +857,7 @@ void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & s
 	while (reader.readNextRead(seq)) {
 		std::vector<seqInfo> subSeqs;
 		std::set<std::string> subSamples;
-//		auto subClustersPath = bib::files::make_path(popSubClusDir,
+//		auto subClustersPath = njh::files::make_path(popSubClusDir,
 //				seq.name_ + inputOptions_.getOutExtension());
 //		SeqIOOptions subClusInOpts = SeqIOOptions(subClustersPath.string(),
 //				inputOptions_.inFormat_, true);
@@ -874,7 +874,7 @@ void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & s
 					inputSampleName = meta.getMeta("samp");
 				}
 			}
-			if (bib::in(inputSampleName, samples)) {
+			if (njh::in(inputSampleName, samples)) {
 				subSeq.cnt_ = subSeq.frac_
 						* sampInfos.at(subSeq.getOwnSampName()).runReadCnt_;
 				subSeqs.emplace_back(subSeq);
@@ -1002,7 +1002,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 	for (const auto& sampName : samples) {
 		setUpSampleFromPrevious(sampName);
 		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				bib::in(sampName, lowRepCntSamples_)){
+				njh::in(sampName, lowRepCntSamples_)){
 			continue;
 		}
 		if (maxRunCount
@@ -1015,7 +1015,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 	for (const auto& sampName : samples) {
 		setUpSampleFromPrevious(sampName);
 		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				bib::in(sampName, lowRepCntSamples_)){
+				njh::in(sampName, lowRepCntSamples_)){
 			continue;
 		}
 		for (const auto clusPos : iter::range(
@@ -1065,12 +1065,12 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 }
 
 void SampleCollapseCollection::symlinkInSampleFinals() const {
-	auto finalDir = bib::files::make_path(masterOutputDir_, "final");
-	bib::files::makeDir(bib::files::MkdirPar(finalDir.string(), true));
+	auto finalDir = njh::files::make_path(masterOutputDir_, "final");
+	njh::files::makeDir(njh::files::MkdirPar(finalDir.string(), true));
 	for (const auto & samp : popNames_.samples_) {
 		auto sampFinalHapFile = getSampleFinalHapsPath(samp);
 		if(bfs::exists(sampFinalHapFile)){
-			bfs::create_symlink(bfs::relative(sampFinalHapFile, finalDir), bib::files::make_path(finalDir, sampFinalHapFile.filename()));
+			bfs::create_symlink(bfs::relative(sampFinalHapFile, finalDir), njh::files::make_path(finalDir, sampFinalHapFile.filename()));
 		}
 	}
 }
@@ -1081,16 +1081,16 @@ bool SampleCollapseCollection::groupMetaLoaded() const{
 
 void SampleCollapseCollection::createGroupInfoFiles(){
 	if(nullptr != groupMetaData_){
-		auto groupsTopDir = bib::files::make_path(masterOutputDir_, "groups");
-		bib::files::makeDir(bib::files::MkdirPar(groupsTopDir.string(), true));
+		auto groupsTopDir = njh::files::make_path(masterOutputDir_, "groups");
+		njh::files::makeDir(njh::files::MkdirPar(groupsTopDir.string(), true));
 		std::ofstream groupMetaJsonFile;
 		openTextFile(groupMetaJsonFile,
-				bib::files::make_path(groupsTopDir, "groupMetaData.json").string(),
+				njh::files::make_path(groupsTopDir, "groupMetaData.json").string(),
 				".json", false, true);
 		groupMetaJsonFile << groupMetaData_->toJson() << std::endl;
 		for(const auto & group : groupMetaData_->groupData_){
-			auto mainGroupDir = bib::files::make_path(groupsTopDir, group.first);
-			bib::files::makeDir(bib::files::MkdirPar(mainGroupDir.string(), true));
+			auto mainGroupDir = njh::files::make_path(groupsTopDir, group.first);
+			njh::files::makeDir(njh::files::MkdirPar(mainGroupDir.string(), true));
 			std::unordered_map<std::string, table> popTabs;
 			std::unordered_map<std::string, table> sampTabs;
 			std::unordered_map<std::string, table> hapIdTabs;
@@ -1111,7 +1111,7 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 					bool unique = true;
 					for(const auto & otherUid : popUids){
 						if(popUid.first != otherUid.first){
-							if(bib::in(uid, otherUid.second)){
+							if(njh::in(uid, otherUid.second)){
 								unique = false;
 								break;
 							}
@@ -1125,7 +1125,7 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			for(auto & popTab : popTabs){
 
 				popTab.second.addColumn({group.first + ":" + popTab.first}, "g_GroupName");
-				popTab.second.addColumn({bib::conToStr(uniquePopUids[popTab.first])}, "g_hapsFoundOnlyInThisGroup");
+				popTab.second.addColumn({njh::conToStr(uniquePopUids[popTab.first])}, "g_hapsFoundOnlyInThisGroup");
 				popTab.second.addColumn({estd::to_string(uniquePopUids[popTab.first].size())}, "p_TotalUniqueHaplotypes");
 			}
 			for(auto & sampTab : sampTabs){
@@ -1145,48 +1145,48 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			table outTab(groupInfoColNames);
 
 			for(const auto & popTab : popTabs){
-				auto subGroupDir = bib::files::make_path(mainGroupDir, popTab.first);
-				bib::files::makeDir(bib::files::MkdirPar(subGroupDir.string()));
-				popTab.second.outPutContents(TableIOOpts(OutOptions(bib::files::make_path(subGroupDir,"popFile.tab.txt")), "\t", true));
-				sampTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(bib::files::make_path(subGroupDir,"sampFile.tab.txt")), "\t", true));
-				hapIdTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(bib::files::make_path(subGroupDir,"hapIdTable.tab.txt")), "\t", true));
+				auto subGroupDir = njh::files::make_path(mainGroupDir, popTab.first);
+				njh::files::makeDir(njh::files::MkdirPar(subGroupDir.string()));
+				popTab.second.outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"popFile.tab.txt")), "\t", true));
+				sampTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"sampFile.tab.txt")), "\t", true));
+				hapIdTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"hapIdTable.tab.txt")), "\t", true));
 				std::ofstream subGroupMetaJsonFile;
 				openTextFile(subGroupMetaJsonFile,
-						bib::files::make_path(subGroupDir, "subGroupNamesData.json").string(),
+						njh::files::make_path(subGroupDir, "subGroupNamesData.json").string(),
 						".json", false, true);
 				auto popNames = popTab.second.getColumn("h_popUID");
 				auto sampNames = sampTabs.at(popTab.first).getColumnLevels("s_Name");
 				Json::Value nameMetaData;
-				nameMetaData["popUIDs"] = bib::json::toJson(popNames);
-				nameMetaData["sampNames"] = bib::json::toJson(sampNames);
+				nameMetaData["popUIDs"] = njh::json::toJson(popNames);
+				nameMetaData["sampNames"] = njh::json::toJson(sampNames);
 				subGroupMetaJsonFile << nameMetaData << std::endl;
 				outTab.rbind(popTab.second.getColumns(groupInfoColNames), false);
 			}
 			outTab = outTab.getUniqueRows();
 			outTab.sortTable("g_GroupName", false);
-			outTab.outPutContents(TableIOOpts(OutOptions(bib::files::make_path(mainGroupDir,"groupInfo.tab.txt")), "\t", true));
+			outTab.outPutContents(TableIOOpts(OutOptions(njh::files::make_path(mainGroupDir,"groupInfo.tab.txt")), "\t", true));
 		}
 
 		bool verbose = false;
 		if(verbose){
 			std::cout << "Missing meta data for the following samples:" << std::endl;
-			std::cout << bib::conToStr(groupMetaData_->missingMetaForSamples_, "\n") << std::endl;
+			std::cout << njh::conToStr(groupMetaData_->missingMetaForSamples_, "\n") << std::endl;
 			std::cout << "Missing clustering data for the following samples:" << std::endl;
-			std::cout << bib::conToStr(groupMetaData_->missingSamples_, "\n") << std::endl;
+			std::cout << njh::conToStr(groupMetaData_->missingSamples_, "\n") << std::endl;
 		}
 	}
 }
 
 void SampleCollapseCollection::outputRepAgreementInfo() {
-	bfs::path sampRepInfoDir = bib::files::makeDir(masterOutputDir_.string(),
-			bib::files::MkdirPar("sampRepAgreementInfo", true));
+	bfs::path sampRepInfoDir = njh::files::makeDir(masterOutputDir_.string(),
+			njh::files::MkdirPar("sampRepAgreementInfo", true));
 	table rmseTab(VecStr { "sampleName", "RMSE" });
 	table repInfoTab(
 			VecStr { "sampleName", "clusterName", "repName", "fraction" });
 	for (const auto & sampleName : popNames_.samples_) {
 		setUpSampleFromPrevious(sampleName);
 		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount ||
-				bib::in(sampleName, lowRepCntSamples_) ){
+				njh::in(sampleName, lowRepCntSamples_) ){
 			continue;
 		}
 		auto & samp = *(sampleCollapses_[sampleName]);
@@ -1254,7 +1254,7 @@ double SampleCollapseCollection::calculatePIE(const std::set<std::string> & samp
 void SampleCollapseCollection::createCoreJsonFile() const{
 	auto coreJson = toJsonCore();
 	std::ofstream outCoreJsonFile;
-	OutOptions outOpts(bib::files::make_path(masterOutputDir_, "coreInfo.json"));
+	OutOptions outOpts(njh::files::make_path(masterOutputDir_, "coreInfo.json"));
 	outOpts.overWriteFile_ = true;
 	openTextFile(outCoreJsonFile, outOpts);
 	outCoreJsonFile << coreJson << std::endl;
@@ -1262,15 +1262,15 @@ void SampleCollapseCollection::createCoreJsonFile() const{
 
 Json::Value SampleCollapseCollection::toJsonCore() const{
 	Json::Value ret;
-	ret["inputOptions_"] = bib::json::toJson(inputOptions_);
-	ret["masterInputDir_"] = bib::json::toJson(bfs::absolute(masterInputDir_));
-	ret["masterOutputDir_"] = bib::json::toJson(bfs::absolute(masterOutputDir_));
-	ret["samplesOutputDir_"] = bib::json::toJson(bfs::absolute(samplesOutputDir_));
-	ret["populationOutputDir_"] = bib::json::toJson(bfs::absolute(populationOutputDir_));
-	ret["popNames_"] = bib::json::toJson(popNames_);
-	ret["passingSamples_"] = bib::json::toJson(passingSamples_);
-	ret["lowRepCntSamples_"] = bib::json::toJson(lowRepCntSamples_);
-	ret["preFiltCutOffs_"] = bib::json::toJson(preFiltCutOffs_);
+	ret["inputOptions_"] = njh::json::toJson(inputOptions_);
+	ret["masterInputDir_"] = njh::json::toJson(bfs::absolute(masterInputDir_));
+	ret["masterOutputDir_"] = njh::json::toJson(bfs::absolute(masterOutputDir_));
+	ret["samplesOutputDir_"] = njh::json::toJson(bfs::absolute(samplesOutputDir_));
+	ret["populationOutputDir_"] = njh::json::toJson(bfs::absolute(populationOutputDir_));
+	ret["popNames_"] = njh::json::toJson(popNames_);
+	ret["passingSamples_"] = njh::json::toJson(passingSamples_);
+	ret["lowRepCntSamples_"] = njh::json::toJson(lowRepCntSamples_);
+	ret["preFiltCutOffs_"] = njh::json::toJson(preFiltCutOffs_);
 	return ret;
 }
 
@@ -1288,7 +1288,7 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 	for(const auto & clus : popCollapse_->collapsed_.clusters_){
 		popUidNames.emplace_back(clus.getStubName(true));
 	}
-	bib::sort(popUidNames);
+	njh::sort(popUidNames);
 	std::vector<std::vector<std::string>> inputContent = std::vector<std::vector<std::string>>{popUidNames.size(), std::vector<std::string>{}};
 	for(const auto & popPos : iter::range(popUidNames.size())){
 		inputContent[popPos].emplace_back(popUidNames[popPos]);
@@ -1297,7 +1297,7 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 	for (const auto & samp : samples) {
 		setUpSampleFromPrevious(samp);
 		if(sampleCollapses_[samp]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				bib::in(samp, lowRepCntSamples_)){
+				njh::in(samp, lowRepCntSamples_)){
 			continue;
 		}
 		std::unordered_map<std::string, double> popUidToFrac;
@@ -1338,5 +1338,5 @@ void SampleCollapseCollection::excludeOnFrac(const std::string & sampleName,
 }
 
 }  // namespace collapse
-}  // namespace bibseq
+}  // namespace njhseq
 

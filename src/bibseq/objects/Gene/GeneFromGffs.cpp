@@ -6,17 +6,17 @@
  */
 
 #include "GeneFromGffs.hpp"
-#include "bibseq/objects/BioDataObject/reading.hpp"
-#include "bibseq/objects/BioDataObject/BioDataFileIO.hpp"
+#include "njhseq/objects/BioDataObject/reading.hpp"
+#include "njhseq/objects/BioDataObject/BioDataFileIO.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRecords){
 	VecStr alreadyAddedIDs;
 	//just from what i've seen from chado annotations
 	VecStr acceptableMrnaLikeRecords = {"mRNA", "ncRNA", "rRNA", "snoRNA", "tRNA", "snRNA"};
 	for(const auto & record : geneRecords){
-		if(record->hasAttr("ID") && bib::in(record->getAttr("ID"), alreadyAddedIDs)){
+		if(record->hasAttr("ID") && njh::in(record->getAttr("ID"), alreadyAddedIDs)){
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__
 					<< ", error already have record with ID "
@@ -34,7 +34,7 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 				throw std::runtime_error{ss.str()};
 			}
 			gene_ = record;
-		}else if(bib::in(record->type_, acceptableMrnaLikeRecords)){
+		}else if(njh::in(record->type_, acceptableMrnaLikeRecords)){
 			mRNAs_.emplace_back(record);
 		}else if("CDS" == record->type_){
 			CDS_[record->getAttr("Parent")].emplace_back(record);
@@ -59,7 +59,7 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 		}
 		if(!found){
 			missingMessage << "CDS_ has records for " << CD.first << " but not fond in mRNAs_" << "\n";
-			missingMessage << "options: " << bib::conToStr(bib::convert<std::shared_ptr<GFFCore>,std::string>(mRNAs_, [](const std::shared_ptr<GFFCore> & gffRecord){
+			missingMessage << "options: " << njh::conToStr(njh::convert<std::shared_ptr<GFFCore>,std::string>(mRNAs_, [](const std::shared_ptr<GFFCore> & gffRecord){
 				return gffRecord->getAttr("ID");
 			}), ",") << "\n";
 			failed = true;
@@ -75,7 +75,7 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 		}
 		if(!found){
 			missingMessage << "exons_ has records for " << exon.first << " but not fond in mRNAs_" << "\n";
-			missingMessage << "options: " << bib::conToStr(bib::convert<std::shared_ptr<GFFCore>,std::string>(mRNAs_, [](const std::shared_ptr<GFFCore> & gffRecord){
+			missingMessage << "options: " << njh::conToStr(njh::convert<std::shared_ptr<GFFCore>,std::string>(mRNAs_, [](const std::shared_ptr<GFFCore> & gffRecord){
 				return gffRecord->getAttr("ID");
 			}), ",") << "\n";
 			failed = true;
@@ -84,20 +84,20 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 	//check to see that mRNAs have CDS and exon records
 	//if there are no exons, then create them from the CDS
 	for(const auto & mRNA : mRNAs_){
-		if (!bib::in(mRNA->getAttr("ID"), CDS_)
-				&& !bib::in(mRNA->getAttr("ID"), exons_)) {
+		if (!njh::in(mRNA->getAttr("ID"), CDS_)
+				&& !njh::in(mRNA->getAttr("ID"), exons_)) {
 			missingMessage << mRNA->getAttr("ID") << " missing from CDS_ and exons_, gene records should have either CDS or exon features" << "\n";
-			missingMessage << "options: " << bib::conToStr(bib::getVecOfMapKeys(CDS_), ",") << "\n";
+			missingMessage << "options: " << njh::conToStr(njh::getVecOfMapKeys(CDS_), ",") << "\n";
 			failed = true;
-		} else if (!bib::in(mRNA->getAttr("ID"), CDS_)
-				&& bib::in(mRNA->getAttr("ID"), exons_)) {
+		} else if (!njh::in(mRNA->getAttr("ID"), CDS_)
+				&& njh::in(mRNA->getAttr("ID"), exons_)) {
 			//this is a lazy way of doing this but most of the other functions assume CDS_ always has records
 			CDS_[mRNA->getAttr("ID")] = exons_[mRNA->getAttr("ID")];
 		}
 		//apparently some gff files only have CDS and not exons so the bellow is now commented out
-//		if(!bib::in(mRNA->getAttr("ID"), exons_)){
+//		if(!njh::in(mRNA->getAttr("ID"), exons_)){
 //			missingMessage << mRNA->getAttr("ID") << " missing from exons_" << "\n";
-//			missingMessage << "options: " << bib::conToStr(bib::getVecOfMapKeys(exons_), ",") << "\n";
+//			missingMessage << "options: " << njh::conToStr(njh::getVecOfMapKeys(exons_), ",") << "\n";
 //			failed = true;
 //		}
 	}
@@ -115,7 +115,7 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 void GeneFromGffs::writeGffRecords(std::ostream & out) const{
 	gene_->writeGffRecord(out);
 	auto writeOutRecs = [&out](const std::unordered_map<std::string, std::vector<std::shared_ptr<GFFCore>>> & records, const std::string & id){
-		if(bib::in(id, records)){
+		if(njh::in(id, records)){
 			for(const auto & rec : records.at(id) ){
 				rec->writeGffRecord(out);
 			}
@@ -136,11 +136,11 @@ std::string GeneFromGffs::getOneGeneDetailedName() const{
 	auto allNames = getGeneDetailedName();
 	std::set<std::string> uniqueNames;
 	for(const auto & name : allNames){
-		if("na" != bib::strToLowerRet(name.second)){
+		if("na" != njh::strToLowerRet(name.second)){
 			uniqueNames.insert(name.second);
 		}
 	}
-	return bib::conToStr(uniqueNames, ", ");
+	return njh::conToStr(uniqueNames, ", ");
 }
 
 std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName() const {
@@ -148,7 +148,7 @@ std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName()
 	for (const auto & m : mRNAs_) {
 		std::string name = "";
 		if ("chado" == gene_->source_) {
-			if (bib::in(m->getIDAttr(), polypeptides_)) {
+			if (njh::in(m->getIDAttr(), polypeptides_)) {
 				if (polypeptides_.at(m->getIDAttr()).size() == 1
 						&& polypeptides_.at(m->getIDAttr()).front()->hasAttr("product")) {
 					auto productToks = tokenizeString(polypeptides_.at(m->getIDAttr()).front()->getAttr("product"), ";");
@@ -188,7 +188,7 @@ std::unordered_map<std::string, std::vector<Bed6RecordCore>> GeneFromGffs::getIn
 	for(const auto & transcript : infoTab){
 		for(const auto & row : transcript.second){
 			std::stringstream line;
-			line << bib::conToStr(VecStr{
+			line << njh::conToStr(VecStr{
 				row[transcript.second.getColPos("chrom")],
 					row[transcript.second.getColPos("start")],
 					row[transcript.second.getColPos("end")],
@@ -319,7 +319,7 @@ std::unordered_map<std::string, table> GeneFromGffs::getIntronExonTables() const
 					exon1.getLen());
 		} else {
 			auto exonGenRegs = gffPtrsToGenomicRegs(CDS_.at(transcript->getIDAttr()));
-			bib::sort(exonGenRegs, [](const GenomicRegion & reg1, const GenomicRegion & reg2){
+			njh::sort(exonGenRegs, [](const GenomicRegion & reg1, const GenomicRegion & reg2){
 				return reg1.start_ < reg2.start_;
 			});
 			struct CDnaPos {
@@ -369,7 +369,7 @@ std::unordered_map<std::string, table> GeneFromGffs::getIntronExonTables() const
 					++intronCount;
 				}
 			}
-			bib::sort(exonGenRegs, [](const GenomicRegion & reg1, const GenomicRegion & reg2){
+			njh::sort(exonGenRegs, [](const GenomicRegion & reg1, const GenomicRegion & reg2){
 				return reg1.start_ < reg2.start_;
 			});
 
@@ -377,15 +377,15 @@ std::unordered_map<std::string, table> GeneFromGffs::getIntronExonTables() const
 
 				transTab.addRow(gene_->getIDAttr(),
 						transcript->getIDAttr(),
-						(bib::containsSubString(reg.uid_, "exon") ? "exon" : "intron"),
+						(njh::containsSubString(reg.uid_, "exon") ? "exon" : "intron"),
 						transcript->seqid_,
 						reg.start_,
 						reg.end_,
 						reg.uid_,
 						reg.getLen(),
 						transcript->strand_,
-						(bib::containsSubString(reg.uid_, "exon") ? estd::to_string(exonCDNAPositions[reg.uid_].start_) : "NA"),
-						(bib::containsSubString(reg.uid_, "exon") ? estd::to_string(exonCDNAPositions[reg.uid_].end_) : "NA"));
+						(njh::containsSubString(reg.uid_, "exon") ? estd::to_string(exonCDNAPositions[reg.uid_].start_) : "NA"),
+						(njh::containsSubString(reg.uid_, "exon") ? estd::to_string(exonCDNAPositions[reg.uid_].end_) : "NA"));
 			}
 		}
 		ret[transcript->getIDAttr()] = transTab;
@@ -409,7 +409,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 	VecStr deirvedFromRecordFeatures {"polypeptide"};
 	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
 	while (nullptr != gRecord) {
-		if(gRecord->hasAttr("ID") && bib::in(gRecord->getAttr("ID"), ids) ){
+		if(gRecord->hasAttr("ID") && njh::in(gRecord->getAttr("ID"), ids) ){
 			if("gene" != gRecord->type_){
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error feature type needs to be gene, not " << gRecord->type_ << "\n";
@@ -421,12 +421,12 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 		}else if(gRecord->hasAttr("Parent")){
 			auto currentParent = gRecord->getAttr("Parent");
 			for(auto & p : parents){
-				if(bib::in(currentParent, p.second)){
+				if(njh::in(currentParent, p.second)){
 					p.second.insert(gRecord->getAttr("ID"));
 					gffRecs[p.first].emplace_back(std::make_shared<GFFCore>(*gRecord));
 				}
 			}
-		} else if(bib::in(gRecord->type_, deirvedFromRecordFeatures) ){
+		} else if(njh::in(gRecord->type_, deirvedFromRecordFeatures) ){
 			cache.emplace_back(std::make_shared<GFFCore>(*gRecord));
 		}
 		if("gene" == gRecord->type_){
@@ -437,7 +437,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 				if(fromCache->hasAttr("Derives_from")){
 					auto currentParent = fromCache->getAttr("Derives_from");
 					for(auto & p : parents){
-						if(bib::in(currentParent, p.second)){
+						if(njh::in(currentParent, p.second)){
 							gffRecs[p.first].emplace_back(std::make_shared<GFFCore>(*fromCache));
 						}
 					}
@@ -447,11 +447,11 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 		}
 		bool end = false;
 		while ('#' == reader.inFile_->peek()) {
-			if (bib::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+			if (njh::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
 				end = true;
 				break;
 			}
-			bib::files::crossPlatGetline(*reader.inFile_, line);
+			njh::files::crossPlatGetline(*reader.inFile_, line);
 		}
 		if (end) {
 			break;
@@ -466,4 +466,4 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 	return genes;
 }
 
-} /* namespace bibseq */
+} /* namespace njhseq */

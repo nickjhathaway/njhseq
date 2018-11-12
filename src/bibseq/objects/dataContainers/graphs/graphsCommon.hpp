@@ -6,38 +6,38 @@
  *      Author: nick
  */
 
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include <bibcpp/jsonUtils.h>
-#include <bibcpp/graphics.h>
+#include <njhcpp/jsonUtils.h>
+#include <njhcpp/graphics.h>
 
-#include "bibseq/common.h"
-#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
-#include "bibseq/seqToolsUtils/distCalc.hpp"
+#include "njhseq/common.h"
+#include "njhseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+#include "njhseq/seqToolsUtils/distCalc.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
-std::vector<bib::color> getColsBetweenExcludeClosest(bib::color first,
-		bib::color last, uint32_t num);
+std::vector<njh::color> getColsBetweenExcludeClosest(njh::color first,
+		njh::color last, uint32_t num);
 
-std::unordered_map<std::string, bib::color> getColorsForNames(
+std::unordered_map<std::string, njh::color> getColorsForNames(
 		const VecStr & popNames);
 void jsonTreeToDot(Json::Value treeData, std::ostream & outDot);
 
@@ -48,7 +48,7 @@ void genSimpleTreeJs(std::ostream & out);
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 
 

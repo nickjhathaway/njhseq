@@ -1,22 +1,22 @@
 #pragma once
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * alignerUtils.h
@@ -27,11 +27,11 @@
 
 
 
-#include "bibseq/alignment/alignerUtils/comparison.hpp"
-#include "bibseq/alignment/alignerUtils/alignerUtils.hpp"
-#include "bibseq/alignment/alignerUtils/gapScoring.hpp"
-#include "bibseq/alignment/alignerUtils/QualScorePars.hpp"
-#include "bibseq/alignment/alignerUtils/substituteMatrix.hpp"
-#include "bibseq/alignment/alignerUtils/mismatch.hpp"
-#include "bibseq/alignment/alignerUtils/gaps.hpp"
+#include "njhseq/alignment/alignerUtils/comparison.hpp"
+#include "njhseq/alignment/alignerUtils/alignerUtils.hpp"
+#include "njhseq/alignment/alignerUtils/gapScoring.hpp"
+#include "njhseq/alignment/alignerUtils/QualScorePars.hpp"
+#include "njhseq/alignment/alignerUtils/substituteMatrix.hpp"
+#include "njhseq/alignment/alignerUtils/mismatch.hpp"
+#include "njhseq/alignment/alignerUtils/gaps.hpp"
 

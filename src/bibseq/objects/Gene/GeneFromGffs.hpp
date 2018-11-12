@@ -7,10 +7,10 @@
  *      Author: nick
  */
 
-#include "bibseq/objects/Gene/GeneSeqInfo.hpp"
+#include "njhseq/objects/Gene/GeneSeqInfo.hpp"
 #include <TwoBit.h>
 
-namespace bibseq {
+namespace njhseq {
 
 class GeneFromGffs {
 public:
@@ -47,5 +47,5 @@ public:
 };
 
 
-} /* namespace bibseq */
+} /* namespace njhseq */
 

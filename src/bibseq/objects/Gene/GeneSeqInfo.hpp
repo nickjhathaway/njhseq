@@ -8,12 +8,12 @@
  */
 
 
-#include "bibseq/alignment/aligner/aligner.hpp"
-#include "bibseq/objects/dataContainers/tables/table.hpp"
+#include "njhseq/alignment/aligner/aligner.hpp"
+#include "njhseq/objects/dataContainers/tables/table.hpp"
 
-#include "bibseq/objects/BioDataObject/GenomicRegion.hpp"
+#include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 /**@brief class with info on a gene
  *
@@ -62,4 +62,4 @@ public:
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq

@@ -1,25 +1,25 @@
 #include "vectorUtils.hpp"
-#include <bibcpp/utils/lexical_cast.hpp>
+#include <njhcpp/utils/lexical_cast.hpp>
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-namespace bibseq {
+namespace njhseq {
 
 std::string getSubVector(const std::string& vec, uint32_t start,
 		uint32_t size) {
@@ -94,7 +94,7 @@ std::vector<uint32_t> getPositionsOfSubStrTarget(const VecStr& vec,
 	uint32_t pos = 0;
 	std::vector<uint32_t> positions;
 	for (const auto& iter : vec) {
-		if (bib::containsSubString(iter, target)) {
+		if (njh::containsSubString(iter, target)) {
 			positions.push_back(pos);
 		}
 		++pos;
@@ -107,7 +107,7 @@ std::vector<uint32_t> getPositionsOfTargetStartsWith(
   uint32_t pos = 0;
   std::vector<uint32_t> positions;
   for (const auto& iter : vec) {
-    if (bib::beginsWith(iter, target)) {
+    if (njh::beginsWith(iter, target)) {
       positions.push_back(pos);
     }
     ++pos;
@@ -135,7 +135,7 @@ VecStr getStringsContains(const VecStr& vec, const std::string& contains) {
 
 
 double getMeanFromVecStr(const VecStr & strNums){
-	auto converted = bib::lexical_cast_con<VecStr, std::vector<double>>(strNums);
+	auto converted = njh::lexical_cast_con<VecStr, std::vector<double>>(strNums);
 	return vectorMean(converted);
 }
-}  // namespace bibseq
+}  // namespace njhseq

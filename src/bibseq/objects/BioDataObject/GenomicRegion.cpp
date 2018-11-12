@@ -5,31 +5,31 @@
  *      Author: nick
  */
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "GenomicRegion.hpp"
-#include "bibseq/objects/BioDataObject/reading.hpp"
-#include "bibseq/helpers/seqUtil.hpp"
+#include "njhseq/objects/BioDataObject/reading.hpp"
+#include "njhseq/helpers/seqUtil.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 GenomicRegion::GenomicRegion() :
 		uid_(""), chrom_(""), start_(0), end_(0) {
@@ -54,7 +54,7 @@ GenomicRegion::GenomicRegion(const Bed6RecordCore & bed) :
 
 GenomicRegion::GenomicRegion(const Bed3RecordCore & bed) :
 		GenomicRegion(
-				bib::pasteAsStr(bed.chrom_, "-", bed.chromStart_, "-", bed.chromEnd_),
+				njh::pasteAsStr(bed.chrom_, "-", bed.chromStart_, "-", bed.chromEnd_),
 				bed.chrom_, bed.chromStart_, bed.chromEnd_, false) {
 	//add name if extract fields present, might not always be name though
 	if(bed.extraFields_.size() > 0){
@@ -64,7 +64,7 @@ GenomicRegion::GenomicRegion(const Bed3RecordCore & bed) :
 
 
 GenomicRegion::GenomicRegion(const TandemRepeatFinderRecord & trfRecord):GenomicRegion(
-		bib::pasteAsStr(trfRecord.repeatPatSeq_, "_x", trfRecord.numberOfAlignedRepeats_),
+		njh::pasteAsStr(trfRecord.repeatPatSeq_, "_x", trfRecord.numberOfAlignedRepeats_),
 		trfRecord.seqName_, trfRecord.start_ - 1, trfRecord.end_, false) {
 
 }
@@ -72,7 +72,7 @@ GenomicRegion::GenomicRegion(const TandemRepeatFinderRecord & trfRecord):Genomic
 
 GenomicRegion::GenomicRegion(const GFFCore & gff) :
 		GenomicRegion(
-				bib::pasteAsStr(gff.seqid_, "_", gff.start_ - 1, "_", gff.end_),
+				njh::pasteAsStr(gff.seqid_, "_", gff.start_ - 1, "_", gff.end_),
 				gff.seqid_, gff.start_ - 1, gff.end_, '-' == gff.strand_ ) {
 	if (gff.hasAttr("ID")) {
 		uid_.append("_" + urldecode(gff.getAttr("ID")));
@@ -99,14 +99,14 @@ GenomicRegion::GenomicRegion(const BamTools::BamAlignment & bAln,
 
 void GenomicRegion::checkRegion(const BamTools::BamReader & bReader,
 		const BamTools::RefVector & refs, const VecStr & twoBitRefs){
-	if (!bib::in(chrom_, twoBitRefs)) {
+	if (!njh::in(chrom_, twoBitRefs)) {
 		std::stringstream ss;
 		ss << "Error, ref name: " << chrom_
 				<< " not in TwoBit file, options are: " << std::endl;
-		ss << bib::conToStr(twoBitRefs, ",") << std::endl;
+		ss << njh::conToStr(twoBitRefs, ",") << std::endl;
 		throw std::runtime_error{ss.str()};
 	}
-	if (!bib::has(refs, chrom_,
+	if (!njh::has(refs, chrom_,
 			[](const BamTools::RefData & rData, const std::string & refName) {
 					return rData.RefName == refName;})) {
 		std::stringstream ss;
@@ -278,8 +278,8 @@ std::string GenomicRegion::createUidFromCoords() const {
 //	meta.addMeta("start_", start_);
 //	meta.addMeta("end_", end_);
 //	return meta.createMetaName();
-	//return bib::pasteAsStr(chrom_, ":", start_, "-", end_);
-	return bib::pasteAsStr(chrom_, "-", start_, "-", end_);
+	//return njh::pasteAsStr(chrom_, ":", start_, "-", end_);
+	return njh::pasteAsStr(chrom_, "-", start_, "-", end_);
 }
 std::string GenomicRegion::createUidFromCoordsStrand() const {
 //	MetaDataInName meta;
@@ -287,8 +287,8 @@ std::string GenomicRegion::createUidFromCoordsStrand() const {
 //	meta.addMeta("start_", start_);
 //	meta.addMeta("end_", end_);
 //	return meta.createMetaName();
-	//return bib::pasteAsStr(chrom_, ":", start_, "-", end_);
-	return bib::pasteAsStr(chrom_, "-", start_, "-", end_, "-", reverseSrand_ ? "rev" : "for");
+	//return njh::pasteAsStr(chrom_, ":", start_, "-", end_);
+	return njh::pasteAsStr(chrom_, "-", start_, "-", end_, "-", reverseSrand_ ? "rev" : "for");
 }
 
 double GenomicRegion::getPercInRegion(const BamTools::BamAlignment & bAln,
@@ -374,14 +374,14 @@ void GenomicRegion::setUidWtihCoordsStrand(){
 
 Json::Value GenomicRegion::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
-	ret["uid_"] = bib::json::toJson(uid_);
-	ret["alternateUids_"] = bib::json::toJson(alternateUids_);
-	ret["chrom_"] = bib::json::toJson(chrom_);
-	ret["start_"] = bib::json::toJson(start_);
-	ret["end_"] = bib::json::toJson(end_);
-	ret["reverseSrand_"] = bib::json::toJson(reverseSrand_);
-	ret["off_"] = bib::json::toJson(off_);
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["uid_"] = njh::json::toJson(uid_);
+	ret["alternateUids_"] = njh::json::toJson(alternateUids_);
+	ret["chrom_"] = njh::json::toJson(chrom_);
+	ret["start_"] = njh::json::toJson(start_);
+	ret["end_"] = njh::json::toJson(end_);
+	ret["reverseSrand_"] = njh::json::toJson(reverseSrand_);
+	ret["off_"] = njh::json::toJson(off_);
 	return ret;
 }
 
@@ -438,24 +438,24 @@ std::vector<GenomicRegion> gatherRegions(const std::string & bedFile,
 
 std::vector<GenomicRegion> bedPtrsToGenomicRegs(
 		const std::vector<std::shared_ptr<Bed6RecordCore>> & beds) {
-	return bib::convert<std::shared_ptr<Bed6RecordCore>, GenomicRegion>(beds,
+	return njh::convert<std::shared_ptr<Bed6RecordCore>, GenomicRegion>(beds,
 			[](const std::shared_ptr<Bed6RecordCore> & bed)->GenomicRegion {return GenomicRegion(*bed);});
 }
 
 std::vector<GenomicRegion> bed3PtrsToGenomicRegs(
 		const std::vector<std::shared_ptr<Bed3RecordCore>> & beds){
-	return bib::convert<std::shared_ptr<Bed3RecordCore>, GenomicRegion>(beds,
+	return njh::convert<std::shared_ptr<Bed3RecordCore>, GenomicRegion>(beds,
 			[](const std::shared_ptr<Bed3RecordCore> & bed)->GenomicRegion {return GenomicRegion(*bed);});
 }
 
 std::vector<GenomicRegion> gffPtrsToGenomicRegs(
 		const std::vector<std::shared_ptr<GFFCore>> & gffs){
-	return bib::convert<std::shared_ptr<GFFCore>, GenomicRegion>(gffs,
+	return njh::convert<std::shared_ptr<GFFCore>, GenomicRegion>(gffs,
 			[](const std::shared_ptr<GFFCore> & gff)->GenomicRegion {return GenomicRegion(*gff);});
 }
 
 void sortGRegionsByStart(std::vector<GenomicRegion> & regions){
-	bib::sort(regions, [](const GenomicRegion & reg1, const GenomicRegion & reg2){
+	njh::sort(regions, [](const GenomicRegion & reg1, const GenomicRegion & reg2){
 		if(reg1.chrom_ == reg2.chrom_){
 			return reg1.start_ < reg2.start_;
 		}else{
@@ -464,4 +464,4 @@ void sortGRegionsByStart(std::vector<GenomicRegion> & regions){
 	});
 }
 
-}  // namespace bibseq
+}  // namespace njhseq

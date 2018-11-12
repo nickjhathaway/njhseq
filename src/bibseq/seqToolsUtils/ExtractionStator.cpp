@@ -4,29 +4,29 @@
  *  Created on: Sep 29, 2015
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "ExtractionStator.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 ExtractionStator::ExtractionStator() {
 
@@ -49,13 +49,13 @@ ExtractionStator::ExtractionStator(uint32_t totalReadCount,
 
 
 void ExtractionStator::increaseFailedForward(const std::string & midName, const std::string & seqName){
-	bool rComp =  bib::containsSubString(seqName, "_Comp");
+	bool rComp =  njh::containsSubString(seqName, "_Comp");
 	++failedForward_[midName][rComp];
 }
 
 void ExtractionStator::increaseCounts(const std::string & midName, const std::string & seqName,
 		extractCase eCase) {
-	bool rComp = bib::containsSubString(seqName, "_Comp");
+	bool rComp = njh::containsSubString(seqName, "_Comp");
 	switch (eCase) {
 	case extractCase::GOOD:
 		++counts_[midName][rComp].good_;
@@ -89,8 +89,8 @@ void ExtractionStator::increaseCounts(const std::string & midName, const std::st
 		break;
 	default:
 		std::stringstream ss;
-		ss << bib::bashCT::boldBlack(__PRETTY_FUNCTION__)
-			 << bib::bashCT::boldRed(": shouldn't be happending..., unknown case: ")
+		ss << njh::bashCT::boldBlack(__PRETTY_FUNCTION__)
+			 << njh::bashCT::boldRed(": shouldn't be happending..., unknown case: ")
 			 << std::endl;
 		throw std::runtime_error{ss.str()};
 		break;
@@ -126,7 +126,7 @@ void ExtractionStator::outFailedForwardStats(std::ostream & out, const std::stri
 	for(auto & ff : failedForward_){
 		uint32_t total = 0;
 		for(auto & mid : counts_){
-			if(bib::endsWith(mid.first, ff.first)){
+			if(njh::endsWith(mid.first, ff.first)){
 				total += mid.second[true].getTotal() + mid.second[false].getTotal();
 			}
 		}
@@ -162,4 +162,4 @@ void ExtractionStator::outTotalStats(std::ostream & out, const std::string & del
 			getPercentageString(totalContam, totalReadCount_)), delim) << "\n";
 }
 
-}  // namespace bibseq
+}  // namespace njhseq

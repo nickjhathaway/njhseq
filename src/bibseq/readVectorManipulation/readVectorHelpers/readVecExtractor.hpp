@@ -5,32 +5,32 @@
 //  Created by Nicholas Hathaway on 8/11/13.
 //
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/alignment.h"
-#include "bibseq/utils.h"
-#include "bibseq/readVectorManipulation/readVectorOperations.h"
-#include "bibseq/helpers/seqUtil.hpp"
-#include "bibseq/readVectorManipulation/readVectorHelpers/readVecTrimmer.hpp"
-#include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
-#include "bibseq/objects/helperObjects/motif.hpp"
-namespace bibseq {
+#include "njhseq/alignment.h"
+#include "njhseq/utils.h"
+#include "njhseq/readVectorManipulation/readVectorOperations.h"
+#include "njhseq/helpers/seqUtil.hpp"
+#include "njhseq/readVectorManipulation/readVectorHelpers/readVecTrimmer.hpp"
+#include "njhseq/seqToolsUtils/seqToolsUtils.hpp"
+#include "njhseq/objects/helperObjects/motif.hpp"
+namespace njhseq {
 
 class readVecExtractor {
 
@@ -187,7 +187,7 @@ class readVecExtractor {
       // found
       for (auto& read : unrecognizedReads) {
         read.seqBase_.reverseComplementRead();
-        read.seqBase_.name_ = bib::replaceString(read.seqBase_.name_, "_Comp", "");
+        read.seqBase_.name_ = njh::replaceString(read.seqBase_.name_, "_Comp", "");
       }
     }
 
@@ -234,7 +234,7 @@ class readVecExtractor {
         // found
         for (auto& read : revReadsUnRec) {
           read.seqBase_.reverseComplementRead();
-          read.seqBase_.name_ = bib::replaceString(read.seqBase_.name_, "_Comp", "");
+          read.seqBase_.name_ = njh::replaceString(read.seqBase_.name_, "_Comp", "");
         }
       }
       if(errors < 1){
@@ -322,7 +322,7 @@ class readVecExtractor {
                                               const VecStr& names) {
     std::vector<T> ans;
     for (const auto& read : reads) {
-      if (bib::contains(names, read.seqBase_.name_)) {
+      if (njh::contains(names, read.seqBase_.name_)) {
         ans.emplace_back(read);
       }
     }
@@ -333,7 +333,7 @@ class readVecExtractor {
                                               const VecStr& names) {
     std::vector<T> ans;
     for (const auto& read : reads) {
-      if (!bib::contains(names, read.seqBase_.name_)) {
+      if (!njh::contains(names, read.seqBase_.name_)) {
         ans.emplace_back(read);
       }
     }
@@ -501,7 +501,7 @@ class readVecExtractor {
   						}else{
   							readComp.trimFront(positions.back() + barcodeMotifs.at(matchBar).motifOriginal_.size());
   						}
-  						readComp.seqBase_.name_ = bib::replaceString(readComp.seqBase_.name_, "_Comp", appendStr);
+  						readComp.seqBase_.name_ = njh::replaceString(readComp.seqBase_.name_, "_Comp", appendStr);
   						readsByMID[matchBar].emplace_back(readComp);
   					}else{
   						auto positions = barcodeMotifs.at(matchBar).findPositionsFull(read.seqBase_.seq_, err, forStop, forwardPosition.first);
@@ -525,4 +525,4 @@ class readVecExtractor {
   	return unmatched;
   }
 };
-}  // namespace bib
+}  // namespace njh

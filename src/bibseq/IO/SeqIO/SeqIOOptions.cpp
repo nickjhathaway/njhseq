@@ -1,28 +1,28 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "SeqIOOptions.hpp"
 
-#include <bibcpp/debug.h>
+#include <njhcpp/debug.h>
 
 
-namespace bibseq {
+namespace njhseq {
 
 bool SeqIOOptions::isPairedIn() const {
 	return inFormat_ == inFormats::FASTQPAIRED
@@ -35,7 +35,7 @@ bool SeqIOOptions::isPairedOut() const {
 }
 
 bool SeqIOOptions::inExists() const{
-	return bib::files::bfs::exists(firstName_);
+	return njh::files::bfs::exists(firstName_);
 }
 
 bool SeqIOOptions::outExists() const{
@@ -107,24 +107,24 @@ SeqIOOptions::outFormats SeqIOOptions::getOutFormat(const std::string & format){
 SeqIOOptions::inFormats SeqIOOptions::getInFormatFromFnp(const bfs::path & fnp){
 	auto fnpStr = fnp.string();
 	inFormats in = inFormats::NOFORMAT;
-	if (bib::endsWith(fnpStr, ".fastq") || bib::endsWith(fnpStr, ".fq")
-			|| bib::endsWith(fnpStr, ".fnq")) {
+	if (njh::endsWith(fnpStr, ".fastq") || njh::endsWith(fnpStr, ".fq")
+			|| njh::endsWith(fnpStr, ".fnq")) {
 		in =  inFormats::FASTQ;
-	} else if (bib::endsWith(fnpStr, "_R1.fastq") || bib::endsWith(fnpStr, "_1.fastq")) {
+	} else if (njh::endsWith(fnpStr, "_R1.fastq") || njh::endsWith(fnpStr, "_1.fastq")) {
 		in =  inFormats::FASTQPAIRED;
-	} else if (bib::endsWith(fnpStr, "_R1.fastq.gz") || bib::endsWith(fnpStr, "_1.fastq.gz")) {
+	} else if (njh::endsWith(fnpStr, "_R1.fastq.gz") || njh::endsWith(fnpStr, "_1.fastq.gz")) {
 		in =  inFormats::FASTQPAIREDGZ;
-	} else if (bib::endsWith(fnpStr, ".fastq.gz")) {
+	} else if (njh::endsWith(fnpStr, ".fastq.gz")) {
 		in =  inFormats::FASTQGZ;
-	} else if (bib::endsWith(fnpStr, ".fasta") || bib::endsWith(fnpStr, ".fa")) {
+	} else if (njh::endsWith(fnpStr, ".fasta") || njh::endsWith(fnpStr, ".fa")) {
 		in =  inFormats::FASTA;
-	} else if (bib::endsWith(fnpStr, ".fasta.gz")) {
+	} else if (njh::endsWith(fnpStr, ".fasta.gz")) {
 		in =  inFormats::FASTAGZ;
-	} else if (bib::endsWith(fnpStr, ".bam")) {
+	} else if (njh::endsWith(fnpStr, ".bam")) {
 		in =  inFormats::BAM;
-	} else if (bib::endsWith(fnpStr, ".sff.txt")) {
+	} else if (njh::endsWith(fnpStr, ".sff.txt")) {
 		in =  inFormats::SFFTXT;
-	} else if (bib::endsWith(fnpStr, ".sff")){
+	} else if (njh::endsWith(fnpStr, ".sff")){
 		in =  inFormats::SFFBIN;
 	}else {
 		std::stringstream ss;
@@ -138,23 +138,23 @@ SeqIOOptions::inFormats SeqIOOptions::getInFormatFromFnp(const bfs::path & fnp){
 SeqIOOptions::outFormats SeqIOOptions::getOutFormatFromFnp(const bfs::path & fnp){
 	auto fnpStr = fnp.string();
 	outFormats out = outFormats::NOFORMAT;
-	if (bib::endsWith(fnpStr, ".fastq") || bib::endsWith(fnpStr, ".fq") || bib::endsWith(fnpStr, ".fnq")) {
+	if (njh::endsWith(fnpStr, ".fastq") || njh::endsWith(fnpStr, ".fq") || njh::endsWith(fnpStr, ".fnq")) {
 		out =  outFormats::FASTQ;
-	} else if (bib::endsWith(fnpStr, "_R1.fastq") || bib::endsWith(fnpStr, "_1.fastq")) {
+	} else if (njh::endsWith(fnpStr, "_R1.fastq") || njh::endsWith(fnpStr, "_1.fastq")) {
 		out =  outFormats::FASTQPAIRED;
-	} else if (bib::endsWith(fnpStr, "_R1.fastq.gz") || bib::endsWith(fnpStr, "_1.fastq.gz")) {
+	} else if (njh::endsWith(fnpStr, "_R1.fastq.gz") || njh::endsWith(fnpStr, "_1.fastq.gz")) {
 		out =  outFormats::FASTQPAIREDGZ;
-	} else if (bib::endsWith(fnpStr, ".fastq.gz")) {
+	} else if (njh::endsWith(fnpStr, ".fastq.gz")) {
 		out =  outFormats::FASTQGZ;
-	} else if (bib::endsWith(fnpStr, ".fasta") || bib::endsWith(fnpStr, ".fa")) {
+	} else if (njh::endsWith(fnpStr, ".fasta") || njh::endsWith(fnpStr, ".fa")) {
 		out =  outFormats::FASTA;
-	} else if (bib::endsWith(fnpStr, ".fasta.gz")) {
+	} else if (njh::endsWith(fnpStr, ".fasta.gz")) {
 		out =  outFormats::FASTAGZ;
-	} else if (bib::endsWith(fnpStr, ".bam")) {
+	} else if (njh::endsWith(fnpStr, ".bam")) {
 		out =  outFormats::FASTQ;
-	} else if (bib::endsWith(fnpStr, ".sff.txt")) {
+	} else if (njh::endsWith(fnpStr, ".sff.txt")) {
 		out =  outFormats::FASTQ;
-	} else if (bib::endsWith(fnpStr, ".sff")){
+	} else if (njh::endsWith(fnpStr, ".sff")){
 		out =  outFormats::FASTQ;
 	}else {
 		std::stringstream ss;
@@ -173,11 +173,11 @@ std::string SeqIOOptions::getOutExtension() const{
 
 
 bfs::path SeqIOOptions::getPriamryOutName() const{
-	return bib::appendAsNeededRet(out_.outFilename_.string(), getOutExtension(outFormat_));
+	return njh::appendAsNeededRet(out_.outFilename_.string(), getOutExtension(outFormat_));
 }
 
 bfs::path SeqIOOptions::getSecondaryOutName() const{
-	return bib::appendAsNeededRet(out_.outFilename_.string(), getOutExtensionSecondary(outFormat_));
+	return njh::appendAsNeededRet(out_.outFilename_.string(), getOutExtensionSecondary(outFormat_));
 }
 
 
@@ -607,7 +607,7 @@ SeqIOOptions::SeqIOOptions() {
 }
 
 SeqIOOptions::SeqIOOptions(const std::string & jsonStr) {
-	auto root = bib::json::parse(jsonStr);
+	auto root = njh::json::parse(jsonStr);
 	firstName_ = root.get("firstName_", "").asString();
 	secondName_ = root.get("secondName_", "").asString();
 	inFormat_ = getInFormat(root.get("inFormat_", "").asString());
@@ -623,17 +623,17 @@ SeqIOOptions::SeqIOOptions(const std::string & jsonStr) {
 
 Json::Value SeqIOOptions::toJson() const {
 	Json::Value ret;
-	ret["firstName_"] = bib::json::toJson(firstName_);
-	ret["secondName_"] = bib::json::toJson(secondName_);
-	ret["inFormat_"] = bib::json::toJson(inFormat_ == inFormats::NOFORMAT ? std::string("NOFORMAT") : getInFormat(inFormat_));
-	ret["outFormat_"] = bib::json::toJson(outFormat_ == outFormats::NOFORMAT ? std::string("NOFORMAT") :getOutFormat(outFormat_));
+	ret["firstName_"] = njh::json::toJson(firstName_);
+	ret["secondName_"] = njh::json::toJson(secondName_);
+	ret["inFormat_"] = njh::json::toJson(inFormat_ == inFormats::NOFORMAT ? std::string("NOFORMAT") : getInFormat(inFormat_));
+	ret["outFormat_"] = njh::json::toJson(outFormat_ == outFormats::NOFORMAT ? std::string("NOFORMAT") :getOutFormat(outFormat_));
 	ret["out_"] = out_.toJson();
-	ret["revComplMate_"] = bib::json::toJson(revComplMate_);
-	ret["processed_"] = bib::json::toJson(processed_);
-	ret["lowerCaseBases_"] = bib::json::toJson(lowerCaseBases_);
-	ret["removeGaps_"] = bib::json::toJson(removeGaps_);
-	ret["includeWhiteSpaceInName_"] = bib::json::toJson(includeWhiteSpaceInName_);
-	ret["extra_"] = bib::json::toJson(extra_);
+	ret["revComplMate_"] = njh::json::toJson(revComplMate_);
+	ret["processed_"] = njh::json::toJson(processed_);
+	ret["lowerCaseBases_"] = njh::json::toJson(lowerCaseBases_);
+	ret["removeGaps_"] = njh::json::toJson(removeGaps_);
+	ret["includeWhiteSpaceInName_"] = njh::json::toJson(includeWhiteSpaceInName_);
+	ret["extra_"] = njh::json::toJson(extra_);
 	return ret;
 }
 
@@ -648,7 +648,7 @@ SeqIOOptions::SeqIOOptions(const bfs::path & outFilename, outFormats outFormat) 
 	if("" == out_.outExtention_&&
 			outFormat != SeqIOOptions::outFormats::NOFORMAT){
 		out_.outExtention_ = getOutExtension(outFormat_);
-	}else if("" != out_.outExtention_ && !bib::beginsWith(out_.outExtention_,".f") &&
+	}else if("" != out_.outExtention_ && !njh::beginsWith(out_.outExtention_,".f") &&
 			(outFormat == SeqIOOptions::outFormats::FASTA || outFormat == SeqIOOptions::outFormats::FASTQ)){
 		out_.outExtention_ = getOutExtension(outFormat_);
 	}
@@ -661,7 +661,7 @@ SeqIOOptions::SeqIOOptions(const bfs::path & outFilename, outFormats outFormat,
 	if("" == out_.outExtention_&&
 			outFormat != SeqIOOptions::outFormats::NOFORMAT){
 		out_.outExtention_ = getOutExtension(outFormat_);
-	}else if("" != out_.outExtention_ && !bib::beginsWith(out_.outExtention_,".f") &&
+	}else if("" != out_.outExtention_ && !njh::beginsWith(out_.outExtention_,".f") &&
 			(outFormat == SeqIOOptions::outFormats::FASTA || outFormat == SeqIOOptions::outFormats::FASTQ)){
 		out_.outExtention_ = getOutExtension(outFormat_);
 	}
@@ -678,4 +678,4 @@ SeqIOOptions::SeqIOOptions(const bfs::path & firstName, inFormats inFormat,
 }
 
 
-}  // namespace bibseq
+}  // namespace njhseq

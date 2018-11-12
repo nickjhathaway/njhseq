@@ -5,30 +5,30 @@
 //  Created by Nicholas Hathaway on 10/7/13.
 //
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/utils.h"
-#include "bibseq/IO/IOUtils.hpp"
-#include "bibseq/objects/dataContainers/tables/TableIOOpts.hpp"
+#include "njhseq/utils.h"
+#include "njhseq/IO/IOUtils.hpp"
+#include "njhseq/objects/dataContainers/tables/TableIOOpts.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 
 
@@ -311,7 +311,7 @@ public:
 	}
 	template<typename UnaryPredicate>
 	table extractByComp(const std::string & columnName, UnaryPredicate p) const {
-		if (bib::in(columnName, columnNames_)) {
+		if (njh::in(columnName, columnNames_)) {
 			uint32_t pos = getFirstPositionOfTarget(columnNames_, columnName);
 			return extractByComp(pos, p);
 		} else {
@@ -341,6 +341,6 @@ public:
 			const std::string & funcName) const;
 
 };
-}  // namespace bib
+}  // namespace njh
 
 

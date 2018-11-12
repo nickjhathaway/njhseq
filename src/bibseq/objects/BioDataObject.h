@@ -1,35 +1,35 @@
 #pragma once
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/objects/BioDataObject/Bed3RecordCore.hpp"
-#include "bibseq/objects/BioDataObject/BedRecordCore.hpp"
-#include "bibseq/objects/BioDataObject/BLASTHitTabular.hpp"
-#include "bibseq/objects/BioDataObject/BioDataFileIO.hpp"
-#include "bibseq/objects/BioDataObject/GenomicRegion.hpp"
-#include "bibseq/objects/BioDataObject/GFFCore.hpp"
-#include "bibseq/objects/BioDataObject/reading.hpp"
-#include "bibseq/objects/BioDataObject/RefSeqGeneRecord.hpp"
-#include "bibseq/objects/BioDataObject/RepeatMaskerRecord.hpp"
-#include "bibseq/objects/BioDataObject/swisProt.hpp"
-#include "bibseq/objects/BioDataObject/Primer3Results.hpp"
-#include "bibseq/objects/BioDataObject/HmmerDomainHitTab.hpp"
-#include "bibseq/objects/BioDataObject/parsers.h"
+#include "njhseq/objects/BioDataObject/Bed3RecordCore.hpp"
+#include "njhseq/objects/BioDataObject/BedRecordCore.hpp"
+#include "njhseq/objects/BioDataObject/BLASTHitTabular.hpp"
+#include "njhseq/objects/BioDataObject/BioDataFileIO.hpp"
+#include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
+#include "njhseq/objects/BioDataObject/GFFCore.hpp"
+#include "njhseq/objects/BioDataObject/reading.hpp"
+#include "njhseq/objects/BioDataObject/RefSeqGeneRecord.hpp"
+#include "njhseq/objects/BioDataObject/RepeatMaskerRecord.hpp"
+#include "njhseq/objects/BioDataObject/swisProt.hpp"
+#include "njhseq/objects/BioDataObject/Primer3Results.hpp"
+#include "njhseq/objects/BioDataObject/HmmerDomainHitTab.hpp"
+#include "njhseq/objects/BioDataObject/parsers.h"
 
 

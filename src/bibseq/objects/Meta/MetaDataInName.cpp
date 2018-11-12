@@ -4,29 +4,29 @@
  *  Created on: Jan 27, 2017
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "MetaDataInName.hpp"
-#include "bibseq/utils/stringUtils.hpp"
+#include "njhseq/utils/stringUtils.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 MetaDataInName::MetaDataInName() {
@@ -144,9 +144,9 @@ void MetaDataInName::processNameForMeta(const std::string & name, bool replace){
 					<< std::endl;
 			throw std::runtime_error { ss.str() };
 		}
-		auto toks = bib::tokenizeString(modName.substr(modName_firstBracket + 1, modName_secondBracket - modName_firstBracket - 1), ";");
+		auto toks = njh::tokenizeString(modName.substr(modName_firstBracket + 1, modName_secondBracket - modName_firstBracket - 1), ";");
 		for(const auto & tok : toks){
-			auto subToks = bib::tokenizeString(tok, "=");
+			auto subToks = njh::tokenizeString(tok, "=");
 			if(2 != subToks.size()){
 				std::stringstream ss;
 				ss << "Error in : " << __PRETTY_FUNCTION__
@@ -158,16 +158,16 @@ void MetaDataInName::processNameForMeta(const std::string & name, bool replace){
 				auto metaFieldKey = subToks[0];
 				auto metaFieldValue = subToks[1];
 				for(const auto & nameReplace : extractKeyToks){
-					metaFieldKey = bib::replaceString(metaFieldKey, nameReplace.first, nameReplace.second);
-					metaFieldValue = bib::replaceString(metaFieldValue, nameReplace.first, nameReplace.second);
+					metaFieldKey = njh::replaceString(metaFieldKey, nameReplace.first, nameReplace.second);
+					metaFieldValue = njh::replaceString(metaFieldValue, nameReplace.first, nameReplace.second);
 				}
 				addMeta(metaFieldKey, metaFieldValue, replace);
 			}
 		}
 	}else{
-		auto toks = bib::tokenizeString(name.substr(firstBracket + 1, secondBracket - firstBracket - 1), ";");
+		auto toks = njh::tokenizeString(name.substr(firstBracket + 1, secondBracket - firstBracket - 1), ";");
 		for(const auto & tok : toks){
-			auto subToks = bib::tokenizeString(tok, "=");
+			auto subToks = njh::tokenizeString(tok, "=");
 			if(2 != subToks.size()){
 				std::stringstream ss;
 				ss << "Error in : " << __PRETTY_FUNCTION__
@@ -189,7 +189,7 @@ void MetaDataInName::containsMetaThrow(const std::string & key, const std::strin
 	if(!containsMeta(key)){
 		std::stringstream ss;
 		ss << funcName << ", error no meta field " << key << "\n";
-		ss << "Options are: " << bib::conToStr(bib::getVecOfMapKeys(meta_), ", ") << "\n";
+		ss << "Options are: " << njh::conToStr(njh::getVecOfMapKeys(meta_), ", ") << "\n";
 		throw std::runtime_error{ss.str()};
 	}
 }
@@ -201,7 +201,7 @@ std::string MetaDataInName::getMeta(const std::string & key) const {
 	}else{
 		std::stringstream ss;
 		ss << __FILE__ << " - " << __LINE__ << " : " << __PRETTY_FUNCTION__ << ", error no meta field " << key << "\n";
-		ss << "Options are: " << bib::conToStr(bib::getVecOfMapKeys(meta_), ", ") << "\n";
+		ss << "Options are: " << njh::conToStr(njh::getVecOfMapKeys(meta_), ", ") << "\n";
 		throw std::runtime_error{ss.str()};
 	}
 	return "";
@@ -209,14 +209,14 @@ std::string MetaDataInName::getMeta(const std::string & key) const {
 
 std::string MetaDataInName::createMetaName() const {
 	std::string newMeta = "[";
-	auto metaKeys = bib::getVecOfMapKeys(meta_);
+	auto metaKeys = njh::getVecOfMapKeys(meta_);
 	//sort integer by their actual numerical values if all keys numbers
-	if(std::all_of(metaKeys.begin(), metaKeys.end(), [](const std::string & str){ return bib::strAllDigits(str);}) ){
-		bib::sort(metaKeys, [](const std::string & str1, const std::string & str2){
-			return bib::StrToNumConverter::stoToNum<uint32_t>(str1) < bib::StrToNumConverter::stoToNum<uint32_t>(str2);
+	if(std::all_of(metaKeys.begin(), metaKeys.end(), [](const std::string & str){ return njh::strAllDigits(str);}) ){
+		njh::sort(metaKeys, [](const std::string & str1, const std::string & str2){
+			return njh::StrToNumConverter::stoToNum<uint32_t>(str1) < njh::StrToNumConverter::stoToNum<uint32_t>(str2);
 		});
 	}else{
-		bib::sort(metaKeys);
+		njh::sort(metaKeys);
 	}
 	for (const auto & metaKey : metaKeys) {
 		const auto & meta = meta_.at(metaKey);
@@ -232,8 +232,8 @@ std::string MetaDataInName::createMetaName() const {
 
 std::string MetaDataInName::createMetaName(const std::function<bool(const std::string &, const std::string &)> & metaKeyPredSorter) const{
 	std::string newMeta = "[";
-	auto metaKeys = bib::getVecOfMapKeys(meta_);
-	bib::sort(metaKeys, metaKeyPredSorter);
+	auto metaKeys = njh::getVecOfMapKeys(meta_);
+	njh::sort(metaKeys, metaKeyPredSorter);
 	for (const auto & metaKey : metaKeys) {
 		const auto & meta = meta_.at(metaKey);
 		if ("[" != newMeta) {
@@ -309,11 +309,11 @@ bool MetaDataInName::nameHasMetaData(const std::string & name) {
 
 Json::Value MetaDataInName::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
-	ret["meta_"] = bib::json::toJson(meta_);
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["meta_"] = njh::json::toJson(meta_);
 	return ret;
 }
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 

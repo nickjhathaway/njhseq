@@ -5,25 +5,25 @@
 //  Created by Nicholas Hathaway on 11/18/13.
 //
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-namespace bibseq {
+namespace njhseq {
 namespace readVec {
 // getters
 template <typename T>
@@ -42,18 +42,18 @@ int getTotalReadCount(const std::vector<T>& reads, bool countRemove = false) {
 }
 template<typename T>
 void allPrintSeqs(const std::vector<T> & reads, std::ostream & out = std::cout){
-	bib::for_each(reads, [&](const T & read){ getSeqBase(read).outPutSeq(out);});
+	njh::for_each(reads, [&](const T & read){ getSeqBase(read).outPutSeq(out);});
 }
 
 template<typename T>
 std::vector<T> getSeqsWithNames(const std::vector<T> & reads, const VecStr & names){
 	std::vector<T> ans;
 	auto checker = [&](const T & read){
-		if(bib::in(getSeqBase(read).name_, names)){
+		if(njh::in(getSeqBase(read).name_, names)){
 			ans.emplace_back(read);
 		}
 	};
-	bib::for_each(reads, checker);
+	njh::for_each(reads, checker);
 	return ans;
 }
 
@@ -244,7 +244,7 @@ VecStr translateAllRet(const std::vector<T>& reads,bool complement, bool reverse
 template <typename T>
 void updateQaulCountsMultiple(const std::vector<T>& reads,
                               std::map<uint32_t, uint32_t>& qualCounts) {
-  bib::for_each(reads, [&](const T& read) { read.updateQualCounts(qualCounts); });
+  njh::for_each(reads, [&](const T& read) { read.updateQualCounts(qualCounts); });
   return;
 }
 template <typename T>
@@ -252,7 +252,7 @@ void updateQualCountsMultiple(
     const std::vector<T> reads,
     std::map<std::string, std::map<double, uint32_t>>& counts,
     int qualWindowSize, std::array<double, 100> errorLookUp) {
-  bib::for_each(reads, [&](const T& read) {
+  njh::for_each(reads, [&](const T& read) {
     read.updateQualCounts(counts, qualWindowSize, errorLookUp);
   });
   return;
@@ -283,8 +283,8 @@ bool checkIfReadVecsAreSame(const std::vector<T> & reads1,
 		}
 		if(reads1[readPos].seqBase_.qual_ != reads2[readPos].seqBase_.qual_){
 			std::cout << "failed qual_ on read " << readPos << std::endl;
-			std::cout << "qual_ of 1: " << bib::conToStr(reads1[readPos].seqBase_.qual_,",") << std::endl;
-			std::cout << "qual_ of 2: " << bib::conToStr(reads2[readPos].seqBase_.qual_,",") << std::endl;
+			std::cout << "qual_ of 1: " << njh::conToStr(reads1[readPos].seqBase_.qual_,",") << std::endl;
+			std::cout << "qual_ of 2: " << njh::conToStr(reads2[readPos].seqBase_.qual_,",") << std::endl;
 			return false;
 		}
 		if(reads1[readPos].seqBase_.frac_ != reads2[readPos].seqBase_.frac_){
@@ -307,4 +307,4 @@ bool checkIfReadVecsAreSame(const std::vector<T> & reads1,
 
 
 }  // readVec
-}  // namespace bib
+}  // namespace njh

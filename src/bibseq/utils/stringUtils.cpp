@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <algorithm>
 #include <string>
@@ -27,10 +27,10 @@
 #include <cppitertools/range.hpp>
 
 #include "stringUtils.hpp"
-#include "bibseq/utils/numUtils.hpp"
-#include <bibcpp/files.h>
+#include "njhseq/utils/numUtils.hpp"
+#include <njhcpp/files.h>
 
-namespace bibseq {
+namespace njhseq {
 void addToStr(std::string & str, char c){
 	str.push_back(c);
 }
@@ -41,7 +41,7 @@ void addToStr(std::string & str, const std::string & otherStr){
 
 VecStr streamToVecStr(std::istream& stream) {
   VecStr lines;
-  for (std::string line; bib::files::crossPlatGetline(stream, line);) {
+  for (std::string line; njh::files::crossPlatGetline(stream, line);) {
     lines.emplace_back(line);
   }
   return lines;
@@ -141,7 +141,7 @@ void removeChar(std::string& inputStr, const char& theChar) {
 
 VecStr tokenizeString(const std::string& str, const std::string& delim,
                       bool addEmptyToEnd) {
-	return bib::tokenizeString(str, delim, addEmptyToEnd);
+	return njh::tokenizeString(str, delim, addEmptyToEnd);
 }
 
 std::vector<size_t> findOccurences(const std::string& target,
@@ -443,4 +443,4 @@ uint32_t countEndChar(const std::string & str){
 	}
 	return ret;
 }
-}  // namespace bib
+}  // namespace njh

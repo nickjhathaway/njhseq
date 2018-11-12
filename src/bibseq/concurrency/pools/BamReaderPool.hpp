@@ -25,14 +25,14 @@
 #include <boost/filesystem.hpp>
 
 #include <api/BamReader.h> // bamtools
-#include <bibcpp.h>
-#include "bibseq/utils.h"
-#include "bibseq/concurrency/ConcurrentQueue.hpp"
+#include <njhcpp.h>
+#include "njhseq/utils.h"
+#include "njhseq/concurrency/ConcurrentQueue.hpp"
 
 
 
 
-namespace bibseq {
+namespace njhseq {
 namespace concurrent {
 
 
@@ -77,7 +77,7 @@ public:
 	const bfs::path& getFile() const;
 };
 
-class BamReaderPoolException: public bib::err::Exception {
+class BamReaderPoolException: public njh::err::Exception {
 public:
 	BamReaderPoolException(const std::string s) :
 			Exception(s) {
@@ -89,4 +89,4 @@ public:
 };
 
 } // namepsace concurrent
-} // namespace bibseq
+} // namespace njhseq

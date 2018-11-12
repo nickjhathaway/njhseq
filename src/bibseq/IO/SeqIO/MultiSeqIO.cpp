@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * MultiSeqIO.cpp
@@ -28,7 +28,7 @@
 
 #include "MultiSeqIO.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 bool MultiSeqIO::containsReader(const std::string & uid) const {
 	return readIos_.find(uid) != readIos_.end();
@@ -38,10 +38,10 @@ void MultiSeqIO::addReader(const std::string & uid,
 		const SeqIOOptions & opts) {
 	if (containsReader(uid)) {
 		std::stringstream ss;
-		ss << bib::bashCT::bold << bib::bashCT::red << __PRETTY_FUNCTION__
-				<< bib::bashCT::resetAdd(bib::bashCT::red)
+		ss << njh::bashCT::bold << njh::bashCT::red << __PRETTY_FUNCTION__
+				<< njh::bashCT::resetAdd(njh::bashCT::red)
 				<< ": trying to add a reader that already exists: " << uid
-				<< bib::bashCT::reset;
+				<< njh::bashCT::reset;
 		throw std::runtime_error { ss.str() };
 	} else {
 		readIos_.emplace(uid, std::make_unique<SeqIO>(opts));
@@ -122,10 +122,10 @@ void MultiSeqIO::setOpenLimit(uint32_t limit) {
 void MultiSeqIO::containsReaderThrow(const std::string & uid) const {
 	if (!containsReader(uid)) {
 		std::stringstream ss;
-		ss << bib::bashCT::bold << bib::bashCT::red << __PRETTY_FUNCTION__
-				<< bib::bashCT::resetAdd(bib::bashCT::red)
+		ss << njh::bashCT::bold << njh::bashCT::red << __PRETTY_FUNCTION__
+				<< njh::bashCT::resetAdd(njh::bashCT::red)
 				<< ": trying to use reader that hasn't been added: " << uid
-				<< bib::bashCT::reset;
+				<< njh::bashCT::reset;
 		throw std::runtime_error { ss.str() };
 	}
 }
@@ -175,6 +175,6 @@ void MultiSeqIO::openOut(const std::string & uid){
 }
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 

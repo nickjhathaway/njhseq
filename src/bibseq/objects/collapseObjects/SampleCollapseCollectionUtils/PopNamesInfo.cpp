@@ -4,28 +4,28 @@
  *  Created on: Jul 31, 2016
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "PopNamesInfo.hpp"
 
-namespace bibseq {
+namespace njhseq {
 PopNamesInfo::PopNamesInfo(std::string populationName,
 		std::set<std::string> samples) :
 		populationName_(populationName), samples_(samples) {
@@ -55,7 +55,7 @@ PopNamesInfo::PopNamesInfo(std::string populationName, VecStr samples) :
 }
 
 void PopNamesInfo::checkPopNameThrow()const{
-	if(bib::containsSubString(populationName_, ".")){
+	if(njh::containsSubString(populationName_, ".")){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": Error, population name can't have a period in it, " << populationName_ << std::endl;
 		throw std::runtime_error{ss.str()};
@@ -63,18 +63,18 @@ void PopNamesInfo::checkPopNameThrow()const{
 }
 
 bool PopNamesInfo::hasSample(const std::string & sample) const {
-	return bib::has(samples_, sample);
+	return njh::has(samples_, sample);
 }
 
 
 Json::Value PopNamesInfo::toJson() const{
 	Json::Value ret;
-	ret["class"] =           bib::json::toJson(bib::getTypeName(*this));
-	ret["samples_"] =        bib::json::toJson(samples_);
-	ret["populationName_"] = bib::json::toJson(populationName_);
+	ret["class"] =           njh::json::toJson(njh::getTypeName(*this));
+	ret["samples_"] =        njh::json::toJson(samples_);
+	ret["populationName_"] = njh::json::toJson(populationName_);
 	return ret;
 }
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 

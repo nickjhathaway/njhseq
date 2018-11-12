@@ -5,29 +5,29 @@
  *      Author: nick
  */
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "MidDeterminator.hpp"
-#include "bibseq/helpers/seqUtil.hpp"
-#include "bibseq/IO/SeqIO.h"
+#include "njhseq/helpers/seqUtil.hpp"
+#include "njhseq/IO/SeqIO.h"
 
-namespace bibseq {
+namespace njhseq {
 
 MidDeterminator::midPos::midPos() :
 		midName_("unrecognized"), midPos_(midPos::npos), barcodeSize_(0), barcodeScore_(
@@ -42,11 +42,11 @@ MidDeterminator::midPos::midPos(const std::string & midName, uint64_t midPos,
 
 Json::Value MidDeterminator::midPos::toJson() const {
 	Json::Value ret;
-	ret["midName_"] = bib::json::toJson(midName_);
-	ret["midPos_"] = bib::json::toJson(midPos_);
-	ret["barcodeSize_"] = bib::json::toJson(barcodeSize_);
-	ret["barcodeScore_"] = bib::json::toJson(barcodeScore_);
-	ret["inRevComp_"] = bib::json::toJson(inRevComp_);
+	ret["midName_"] = njh::json::toJson(midName_);
+	ret["midPos_"] = njh::json::toJson(midPos_);
+	ret["barcodeSize_"] = njh::json::toJson(barcodeSize_);
+	ret["barcodeScore_"] = njh::json::toJson(barcodeScore_);
+	ret["inRevComp_"] = njh::json::toJson(inRevComp_);
 	return ret;
 }
 
@@ -227,17 +227,17 @@ MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
 	if (!bfs::exists(idFileFnp)) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": error, "
-				<< bib::bashCT::boldRed(idFileFnp.string()) << " doesn't exist\n";
+				<< njh::bashCT::boldRed(idFileFnp.string()) << " doesn't exist\n";
 		throw std::runtime_error { ss.str() };
 	}
-	auto firstLine = bib::files::getFirstLine(idFileFnp);
-	bib::strToLower(firstLine);
-	if (!bib::beginsWith(firstLine, "gene")
-			&& !bib::beginsWith(firstLine, "target")
-			&& !bib::beginsWith(firstLine, "id")) {
+	auto firstLine = njh::files::getFirstLine(idFileFnp);
+	njh::strToLower(firstLine);
+	if (!njh::beginsWith(firstLine, "gene")
+			&& !njh::beginsWith(firstLine, "target")
+			&& !njh::beginsWith(firstLine, "id")) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": error the id file "
-				<< bib::bashCT::boldRed(idFileFnp.string())
+				<< njh::bashCT::boldRed(idFileFnp.string())
 				<< " should start with either target, gene, or id (case insensitive)\n";
 		ss << "line: " << firstLine << "\n";
 		throw std::runtime_error { ss.str() };
@@ -247,9 +247,9 @@ MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
 	InputStream idFile { InOptions { idFileFnp } };
 	std::string line = "";
 
-	while (bib::files::crossPlatGetline(idFile, line)) {
-		auto lowerLine = bib::strToLowerRet(line);
-		auto lowerLineToks = bib::tokenizeString(lowerLine, "whitespace");
+	while (njh::files::crossPlatGetline(idFile, line)) {
+		auto lowerLine = njh::strToLowerRet(line);
+		auto lowerLineToks = njh::tokenizeString(lowerLine, "whitespace");
 
 		if (lowerLineToks.size() > 1
 				&& ("gene" == lowerLineToks[0] || "target" == lowerLineToks[0])) {
@@ -259,18 +259,18 @@ MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
 			readingPrimers = false;
 			readingMids = true;
 		} else if (readingPrimers) {
-			auto toks = bib::tokenizeString(line, "whitespace");
+			auto toks = njh::tokenizeString(line, "whitespace");
 			if (3 != toks.size()) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ": error in id file "
-						<< bib::bashCT::boldRed(idFileFnp.string())
+						<< njh::bashCT::boldRed(idFileFnp.string())
 						<< "primer line should contain 3 items not " << toks.size() << "\n";
 				ss << "line: " << line << "\n";
 				throw std::runtime_error { ss.str() };
 			}
 			//addTarget(toks[0], toks[1], toks[2]);
 		} else if (readingMids) {
-			auto toks = bib::tokenizeString(line, "whitespace");
+			auto toks = njh::tokenizeString(line, "whitespace");
 			if (2 == toks.size()) {
 				addForwardBarcode(toks[0], toks[1]);
 			} else if (3 == toks.size()) {
@@ -278,7 +278,7 @@ MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
 			} else {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ": error in id file "
-						<< bib::bashCT::boldRed(idFileFnp.string())
+						<< njh::bashCT::boldRed(idFileFnp.string())
 						<< "barcode line should contain 2 items not " << toks.size()
 						<< "\n";
 				ss << "line: " << line << "\n";
@@ -370,7 +370,7 @@ void MidDeterminator::addReverseBarcode(const std::string & name,
 
 
 bool MidDeterminator::containsMidByName(const std::string & name) const {
-	return bib::in(name, mids_);
+	return njh::in(name, mids_);
 }
 void MidDeterminator::containsMidByNameThrow(const std::string & name, const std::string & funcName) const {
 	if(containsMidByName(name)){
@@ -483,7 +483,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 			//partial match, failed to find forward barcode of a dual barcoded sample
 			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
 			MetaDataInName meta;
-			meta.addMeta("PartialReverseMID", bib::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
+			meta.addMeta("PartialReverseMID", njh::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
 			seq.seqBase_.name_.append(meta.createMetaName());
 			seq.mateSeqBase_.name_.append(meta.createMetaName());
 		}else{
@@ -520,8 +520,8 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 						ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_DIRECTION;
 						ret.rcomplement_ = res.forward_.front().inRevComp_;
 						MetaDataInName meta;
-						meta.addMeta("ReverseMID", bib::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
-						meta.addMeta("ForwardMID", bib::pasteAsStr(res.forward_.front().midName_, ":", res.forward_.front().midPos_, ":", (res.forward_.front().inRevComp_ ? "InRComp": "InFor")));
+						meta.addMeta("ReverseMID", njh::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
+						meta.addMeta("ForwardMID", njh::pasteAsStr(res.forward_.front().midName_, ":", res.forward_.front().midPos_, ":", (res.forward_.front().inRevComp_ ? "InRComp": "InFor")));
 						seq.seqBase_.name_.append(meta.createMetaName());
 						seq.mateSeqBase_.name_.append(meta.createMetaName());
 					}
@@ -531,8 +531,8 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 					ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_MIDS;
 					ret.rcomplement_ = res.forward_.front().inRevComp_;
 					MetaDataInName meta;
-					meta.addMeta("ReverseMID", bib::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
-					meta.addMeta("ForwardMID", bib::pasteAsStr(res.forward_.front().midName_, ":", res.forward_.front().midPos_, ":", (res.forward_.front().inRevComp_ ? "InRComp": "InFor")));
+					meta.addMeta("ReverseMID", njh::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
+					meta.addMeta("ForwardMID", njh::pasteAsStr(res.forward_.front().midName_, ":", res.forward_.front().midPos_, ":", (res.forward_.front().inRevComp_ ? "InRComp": "InFor")));
 					seq.seqBase_.name_.append(meta.createMetaName());
 					seq.mateSeqBase_.name_.append(meta.createMetaName());
 				}
@@ -542,7 +542,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 
 					ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
 					MetaDataInName meta;
-					meta.addMeta("PartialForwardMID", bib::pasteAsStr(res.forward_.front().midName_, ":", res.forward_.front().midPos_, ":", (res.forward_.front().inRevComp_ ? "InRComp": "InFor")));
+					meta.addMeta("PartialForwardMID", njh::pasteAsStr(res.forward_.front().midName_, ":", res.forward_.front().midPos_, ":", (res.forward_.front().inRevComp_ ? "InRComp": "InFor")));
 					seq.seqBase_.name_.append(meta.createMetaName());
 					seq.mateSeqBase_.name_.append(meta.createMetaName());
 
@@ -576,14 +576,14 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 				if("" != forwardMids){
 					forwardMids.append(",");
 				}
-				forwardMids.append(bib::pasteAsStr(forMid.midName_, ":", forMid.midPos_, ":", (forMid.inRevComp_ ? "InRComp": "InFor")));
+				forwardMids.append(njh::pasteAsStr(forMid.midName_, ":", forMid.midPos_, ":", (forMid.inRevComp_ ? "InRComp": "InFor")));
 			}
 
 			for(const auto & revMid : res.reverse_){
 				if("" != forwardMids){
 					reverseMids.append(",");
 				}
-				reverseMids.append(bib::pasteAsStr(revMid.midName_, ":", revMid.midPos_, ":", (revMid.inRevComp_ ? "InRComp": "InFor")));
+				reverseMids.append(njh::pasteAsStr(revMid.midName_, ":", revMid.midPos_, ":", (revMid.inRevComp_ ? "InRComp": "InFor")));
 			}
 
 			if ("" != forwardMids) {
@@ -707,7 +707,7 @@ MidDeterminator::MidSearchRes MidDeterminator::searchRead(
 	//determine best matches;
 	//forward
 //	if("[Mixture=Mixture5;Sample=Sample1-FrontBarcode;backEndBluntEndArtifact=false;complement=true;forwardBarcodePosition=0;forwardPrimerPosition=10;frontEndBluntEndArtifact=false;readNumber=1;refName=PfKH02;reversePrimerPosition=432;targetSeqLength=457]" == seq.name_ ){
-//		std::cout << bib::bashCT::boldGreen("forwardBarMatches.size(): ")<< forwardBarMatches.size() << std::endl;
+//		std::cout << njh::bashCT::boldGreen("forwardBarMatches.size(): ")<< forwardBarMatches.size() << std::endl;
 //	}
 
 	if (1 == forwardBarMatches.size()) {
@@ -716,7 +716,7 @@ MidDeterminator::MidSearchRes MidDeterminator::searchRead(
 		uint32_t bestBarcodeScore = 0;
 		for (const auto & forwardMatch : forwardBarMatches) {
 //			if("[Mixture=Mixture5;Sample=Sample1-FrontBarcode;backEndBluntEndArtifact=false;complement=true;forwardBarcodePosition=0;forwardPrimerPosition=10;frontEndBluntEndArtifact=false;readNumber=1;refName=PfKH02;reversePrimerPosition=432;targetSeqLength=457]" == seq.name_ ){
-//				std::cout << bib::json::writeAsOneLine(forwardMatch.toJson()) << std::endl;
+//				std::cout << njh::json::writeAsOneLine(forwardMatch.toJson()) << std::endl;
 //			}
 			if (forwardMatch.barcodeScore_ > bestBarcodeScore) {
 				bestForwardBarMatches.clear();
@@ -727,7 +727,7 @@ MidDeterminator::MidSearchRes MidDeterminator::searchRead(
 			}
 		}
 	}
-	//std::cout << bib::bashCT::boldGreen("reverseBarMatches.size(): ")<< reverseBarMatches.size() << std::endl;
+	//std::cout << njh::bashCT::boldGreen("reverseBarMatches.size(): ")<< reverseBarMatches.size() << std::endl;
 	//reverse
 	if (1 == reverseBarMatches.size()) {
 		bestReverseBarMatches = reverseBarMatches;
@@ -791,7 +791,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
 			MetaDataInName meta;
 			meta.addMeta("PartialReverseMID",
-					bib::pasteAsStr(res.reverse_.front().midName_, ":",
+					njh::pasteAsStr(res.reverse_.front().midName_, ":",
 							res.reverse_.front().midPos_, ":",
 							(res.reverse_.front().inRevComp_ ? "InRComp" : "InFor")));
 			seq.name_.append(meta.createMetaName());
@@ -836,11 +836,11 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 						ret.rcomplement_ = res.forward_.front().inRevComp_;
 						MetaDataInName meta;
 						meta.addMeta("ReverseMID",
-								bib::pasteAsStr(res.reverse_.front().midName_, ":",
+								njh::pasteAsStr(res.reverse_.front().midName_, ":",
 										res.reverse_.front().midPos_, ":",
 										(res.reverse_.front().inRevComp_ ? "InRComp" : "InFor")));
 						meta.addMeta("ForwardMID",
-								bib::pasteAsStr(res.forward_.front().midName_, ":",
+								njh::pasteAsStr(res.forward_.front().midName_, ":",
 										res.forward_.front().midPos_, ":",
 										(res.forward_.front().inRevComp_ ? "InRComp" : "InFor")));
 						seq.name_.append(meta.createMetaName());
@@ -853,11 +853,11 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 					ret.rcomplement_ = res.forward_.front().inRevComp_;
 					MetaDataInName meta;
 					meta.addMeta("ReverseMID",
-							bib::pasteAsStr(res.reverse_.front().midName_, ":",
+							njh::pasteAsStr(res.reverse_.front().midName_, ":",
 									res.reverse_.front().midPos_, ":",
 									(res.reverse_.front().inRevComp_ ? "InRComp" : "InFor")));
 					meta.addMeta("ForwardMID",
-							bib::pasteAsStr(res.forward_.front().midName_, ":",
+							njh::pasteAsStr(res.forward_.front().midName_, ":",
 									res.forward_.front().midPos_, ":",
 									(res.forward_.front().inRevComp_ ? "InRComp" : "InFor")));
 					seq.name_.append(meta.createMetaName());
@@ -870,7 +870,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 							MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
 					MetaDataInName meta;
 					meta.addMeta("PartialForwardMID",
-							bib::pasteAsStr(res.forward_.front().midName_, ":",
+							njh::pasteAsStr(res.forward_.front().midName_, ":",
 									res.forward_.front().midPos_, ":",
 									(res.forward_.front().inRevComp_ ? "InRComp" : "InFor")));
 					seq.name_.append(meta.createMetaName());
@@ -910,7 +910,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 					forwardMids.append(",");
 				}
 				forwardMids.append(
-						bib::pasteAsStr(forMid.midName_, ":", forMid.midPos_, ":",
+						njh::pasteAsStr(forMid.midName_, ":", forMid.midPos_, ":",
 								(forMid.inRevComp_ ? "InRComp" : "InFor")));
 			}
 
@@ -919,7 +919,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 					reverseMids.append(",");
 				}
 				reverseMids.append(
-						bib::pasteAsStr(revMid.midName_, ":", revMid.midPos_, ":",
+						njh::pasteAsStr(revMid.midName_, ":", revMid.midPos_, ":",
 								(revMid.inRevComp_ ? "InRComp" : "InFor")));
 			}
 
@@ -1055,7 +1055,7 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 			}
 		}
 	}
-	//std::cout << bib::bashCT::boldGreen("reverseBarMatches.size(): ")<< reverseBarMatches.size() << std::endl;
+	//std::cout << njh::bashCT::boldGreen("reverseBarMatches.size(): ")<< reverseBarMatches.size() << std::endl;
 	//reverse
 	if(1 == reverseBarMatches.size()){
 		bestReverseBarMatches = reverseBarMatches;
@@ -1107,4 +1107,4 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 	return res;
 }
 
-} /* namespace bibseq */
+} /* namespace njhseq */

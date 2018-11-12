@@ -5,33 +5,33 @@
  *  Created on: Jan 30, 2017
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include <bibcpp/system.h>
-#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
-#include "bibseq/alignment/alnCache/alnInfoGlobal.hpp"
-#include "bibseq/IO/SeqIO/SeqInput.hpp"
-#include "bibseq/alignment/aligner/alignCalc.hpp"
-#include "bibseq/readVectorManipulation/readVectorHelpers/readVecTrimmer.hpp"
-#include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
+#include <njhcpp/system.h>
+#include "njhseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+#include "njhseq/alignment/alnCache/alnInfoGlobal.hpp"
+#include "njhseq/IO/SeqIO/SeqInput.hpp"
+#include "njhseq/alignment/aligner/alignCalc.hpp"
+#include "njhseq/readVectorManipulation/readVectorHelpers/readVecTrimmer.hpp"
+#include "njhseq/seqToolsUtils/seqToolsUtils.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 class Muscler{
@@ -77,7 +77,7 @@ public:
 	void muscleSeqs(std::vector<T> & seqs,
 			const std::vector<POSTYPE> & selected){
 		//create temporary file, the last 6 xs will be randomized characters
-		bfs::path tmpnameStr = bib::files::make_path(workingPath_, "tmpfileXXXXXX").string();
+		bfs::path tmpnameStr = njh::files::make_path(workingPath_, "tmpfileXXXXXX").string();
 		char * tmpname = strdup(tmpnameStr.c_str());
 		auto mkTempRet = mkstemp(tmpname);
 		if(-1 == mkTempRet){
@@ -92,14 +92,14 @@ public:
 			//in it's own scope so that that tFile gets flushed at termination, (i could just call flush but this way i won't forget)
 			std::ofstream tFile(tmpname);
 			if(!tFile){
-				throw std::runtime_error{bib::bashCT::boldRed("Error in opening " + std::string(tmpname))};
+				throw std::runtime_error{njh::bashCT::boldRed("Error in opening " + std::string(tmpname))};
 			}
 			//make name the read position as muscle will reorganize the seqs afterwards
 
 			for (const auto & pos : selected) {
 				if (pos >= seqs.size()) {
 					throw std::out_of_range {
-							"Error in bibseq::sys::muscleSeqs, position out of range, pos: "
+							"Error in njhseq::sys::muscleSeqs, position out of range, pos: "
 									+ estd::to_string(pos) + ", size: "
 									+ estd::to_string(seqs.size()) };
 				}
@@ -109,7 +109,7 @@ public:
 					seqsWithStopCodonEndings.emplace_back(pos);
 					getSeqBase(seqs[pos]).trimBack(len(seqs[pos]) - 1);
 				}
-				if (!bib::containsSubString(getSeqBase(seqs[pos]).seq_, "*")
+				if (!njh::containsSubString(getSeqBase(seqs[pos]).seq_, "*")
 						&& "" != getSeqBase(seqs[pos]).seq_) {
 					++seqsWritten;
 					tFile << ">" << pos << "\n";
@@ -122,13 +122,13 @@ public:
 			std::vector<readObject> tempObjs;
 			try {
 				std::vector<std::string> cmds { musclePath_.string(), "-quiet", "-in", tmpname };
-				auto rOut = bib::sys::run(cmds);
+				auto rOut = njh::sys::run(cmds);
 				if(!rOut.success_){
 					std::stringstream sErr;
 					sErr << rOut.stdOut_ << std::endl;
-					sErr << bib::bashCT::red << "failure:" << std::endl;
+					sErr << njh::bashCT::red << "failure:" << std::endl;
 					sErr << rOut.stdErr_ << std::endl;
-					sErr << bib::bashCT::reset << std::endl;
+					sErr << njh::bashCT::reset << std::endl;
 					throw std::runtime_error{sErr.str()};
 				}
 				std::stringstream ss(rOut.stdOut_);
@@ -147,12 +147,12 @@ public:
 			} catch (std::exception & e) {
 				std::cerr << e.what() << std::endl;
 				if(!keepTemp_){
-					bib::files::bfs::remove(tmpname);
+					njh::files::bfs::remove(tmpname);
 				}
 				throw e;
 			}
 			if(!keepTemp_){
-				bib::files::bfs::remove(tmpname);
+				njh::files::bfs::remove(tmpname);
 			}
 		}
 	}
@@ -174,7 +174,7 @@ public:
 	void muscleSeqs(std::vector<T> & seqs,
 			const std::unordered_map<uint32_t, Muscler::MusPosSize> & posSizes){
 		//create temporary file, the last 6 xs will be randomized characters
-		bfs::path tmpnameStr = bib::files::make_path(workingPath_, "tmpfileXXXXXX").string();
+		bfs::path tmpnameStr = njh::files::make_path(workingPath_, "tmpfileXXXXXX").string();
 		char * tmpname = strdup(tmpnameStr.c_str());
 		auto mkTempRet = mkstemp(tmpname);
 		if(-1 == mkTempRet){
@@ -196,7 +196,7 @@ public:
 			//in it's own scope so that that tFile gets flushed at termination
 			std::ofstream tFile(tmpname);
 			if(!tFile){
-				throw std::runtime_error{bib::bashCT::boldRed("Error in opening " + std::string(tmpname))};
+				throw std::runtime_error{njh::bashCT::boldRed("Error in opening " + std::string(tmpname))};
 			}
 			//make name the read position as muscle will reorganize the seqs afterwards
 
@@ -226,7 +226,7 @@ public:
 					subSeq->trimBack(len(*subSeq) - 1);
 				}
 
-				if(!bib::containsSubString(subSeq->seq_, "*")
+				if(!njh::containsSubString(subSeq->seq_, "*")
 							&& "" != getSeqBase(seqs[pos.first]).seq_
 							&& getSeqBase(seqs[pos.first]).seq_.find_first_not_of('-') != std::string::npos) {
 
@@ -243,14 +243,14 @@ public:
 			std::vector<readObject> tempObjs;
 			try {
 				std::vector<std::string> cmds { musclePath_.string(), "-quiet", "-in", tmpname };
-				auto rOut = bib::sys::run(cmds);
+				auto rOut = njh::sys::run(cmds);
 				if(!rOut.success_){
 					std::stringstream sErr;
 					sErr << __PRETTY_FUNCTION__ << ", error " << "\n";
 					sErr << rOut.stdOut_ << std::endl;
-					sErr << bib::bashCT::red << "failure:" << std::endl;
+					sErr << njh::bashCT::red << "failure:" << std::endl;
 					sErr << rOut.stdErr_ << std::endl;
-					sErr << bib::bashCT::reset << std::endl;
+					sErr << njh::bashCT::reset << std::endl;
 					throw std::runtime_error{sErr.str()};
 				}
 				std::stringstream ss(rOut.stdOut_);
@@ -264,7 +264,7 @@ public:
 					auto gAlnInfo = genGlobalAlnInfo(seq.seq_);
 					alignCalc::rearrangeGlobalQueryOnly(subInfos[pos]->seq_, '-', gAlnInfo );
 					alignCalc::rearrangeGlobalQueryOnly(subInfos[pos]->qual_, 0, gAlnInfo );
-					if(bib::in(pos, seqsWithStopCodonEndings)){
+					if(njh::in(pos, seqsWithStopCodonEndings)){
 						subInfos[pos]->append("*");
 					}
 					if(std::numeric_limits<uint32_t>::max() == posSizes.at(pos).size_){
@@ -290,13 +290,13 @@ public:
 			} catch (std::exception & e) {
 				std::cerr << e.what() << std::endl;
 				if(!keepTemp_){
-					bib::files::bfs::remove(tmpname);
+					njh::files::bfs::remove(tmpname);
 				}
 				throw std::runtime_error{e.what()};
 			}
 		}
 		if(!keepTemp_){
-			bib::files::bfs::remove(tmpname);
+			njh::files::bfs::remove(tmpname);
 		}
 	}
 
@@ -307,7 +307,7 @@ public:
 	template<typename T>
 	void muscleSeqs(std::vector<T> & seqs){
 		std::vector<uint64_t> allSelected(seqs.size());
-		bib::iota<uint64_t>(allSelected, 0);
+		njh::iota<uint64_t>(allSelected, 0);
 		muscleSeqs(seqs, allSelected);
 	}
 
@@ -816,5 +816,5 @@ public:
 
 
 
-} /* namespace bibseq */
+} /* namespace njhseq */
 

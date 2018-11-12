@@ -5,27 +5,27 @@
  *      Author: nick
  */
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "MasterTableCache.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 MasterTableCache::MasterTableCache(const TableIOOpts & tabOpts,
 		const std::string & dir, bool recursive, uint32_t depth,
@@ -38,21 +38,21 @@ MasterTableCache::MasterTableCache(const TableIOOpts & tabOpts,
 }
 
 void MasterTableCache::collectFiles() {
-	files_ = bib::files::listAllFiles(dir_, recursive_, { pattern_ }, depth_);
+	files_ = njh::files::listAllFiles(dir_, recursive_, { pattern_ }, depth_);
 }
 bool MasterTableCache::needsUpdate() const {
 	bool needsUpdate = false;
-	if (!bib::files::bfs::exists(tabOpts_.out_.outFilename_)) {
+	if (!njh::files::bfs::exists(tabOpts_.out_.outFilename_)) {
 		needsUpdate = true;
 	} else {
-		auto masterWriteTime = bib::files::last_write_time(
+		auto masterWriteTime = njh::files::last_write_time(
 				tabOpts_.out_.outFilename_);
 		for (const auto & file : files_) {
-			if (bib::files::normalize(file.first)
-					== bib::files::normalize(tabOpts_.out_.outFilename_)) {
+			if (njh::files::normalize(file.first)
+					== njh::files::normalize(tabOpts_.out_.outFilename_)) {
 				continue;
 			}
-			auto currentFileWriteTime = bib::files::last_write_time(file.first);
+			auto currentFileWriteTime = njh::files::last_write_time(file.first);
 			if (masterWriteTime < currentFileWriteTime) {
 				needsUpdate = true;
 				break;
@@ -67,8 +67,8 @@ void MasterTableCache::updateTab() {
 	if (needsUpdate()) {
 		masterTab_ = table();
 		for (const auto & file : files_) {
-			if (bib::files::normalize(file.first)
-					== bib::files::normalize(tabOpts_.out_.outFilename_)) {
+			if (njh::files::normalize(file.first)
+					== njh::files::normalize(tabOpts_.out_.outFilename_)) {
 				continue;
 			}
 			table fileTab = table(file.first.string(), tabOpts_.outDelim_,
@@ -88,5 +88,5 @@ void MasterTableCache::writeTab(){
 }
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 

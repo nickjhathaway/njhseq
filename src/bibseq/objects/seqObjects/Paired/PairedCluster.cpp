@@ -5,31 +5,31 @@
  *      Author: nick
  */
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "PairedCluster.hpp"
-#include "bibseq/helpers/consensusHelper.hpp"
-#include "bibseq/readVectorManipulation/readVectorHelpers/readVecSorter.hpp"
-#include "bibseq/IO/SeqIO/SeqOutput.hpp"
+#include "njhseq/helpers/consensusHelper.hpp"
+#include "njhseq/readVectorManipulation/readVectorHelpers/readVecSorter.hpp"
+#include "njhseq/IO/SeqIO/SeqOutput.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 void PairedCluster::addRead(const PairedCluster & otherRead){
 	addOtherVec(reads_, otherRead.reads_);
@@ -210,7 +210,7 @@ void collapseIdenticalPairedClusters(std::vector<PairedRead> & clusters,
 						clusters[sub.second.front()].seqBase_.qual_[qualPos] = vectorMedianRef(quals);
 					}
 				}else {
-					std::cerr << bib::bashCT::red << bib::bashCT::bold
+					std::cerr << njh::bashCT::red << njh::bashCT::bold
 							<< "Unrecognized qualRep for collapseIdenticalPairedClusters\n"
 							<< "should be mean, max, or median\n"
 							<< "not " << qualRep << "\n";
@@ -219,7 +219,7 @@ void collapseIdenticalPairedClusters(std::vector<PairedRead> & clusters,
 			}
 		}
 	}
-	bib::sort(removeThese);
+	njh::sort(removeThese);
 	for(const auto & pos : iter::reversed(removeThese)){
 		clusters.erase(clusters.begin() + pos);
 	}
@@ -238,4 +238,4 @@ void PairedCluster::writeOutClustersWithConsensus(std::ostream & firstOut,std::o
 }
 
 
-} /* namespace bibseq */
+} /* namespace njhseq */

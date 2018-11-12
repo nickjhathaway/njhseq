@@ -6,27 +6,27 @@
  */
 
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "MasterTableStaticCache.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 MasterTableStaticCache::MasterTableStaticCache(const TableIOOpts & opts,
 		const std::vector<bfs::path> & files,
@@ -37,19 +37,19 @@ MasterTableStaticCache::MasterTableStaticCache(const TableIOOpts & opts,
 		loadTabs();
 	} else {
 		masterTab_ = table(
-				bib::appendAsNeededRet(opts_.out_.outFilename_.string(),
+				njh::appendAsNeededRet(opts_.out_.outFilename_.string(),
 						opts_.out_.outExtention_), opts.outDelim_, opts_.hasHeader_);
 	}
 }
 
 bool MasterTableStaticCache::outUpToDate() const {
-	auto outFilename = bib::appendAsNeededRet(opts_.out_.outFilename_.string(),
+	auto outFilename = njh::appendAsNeededRet(opts_.out_.outFilename_.string(),
 			opts_.out_.outExtention_);
 	bool outOutDated = false;
 	if (bfs::exists(outFilename)) {
-		auto outTime = bib::files::last_write_time(outFilename);
+		auto outTime = njh::files::last_write_time(outFilename);
 		for (const auto & file : files_.files_) {
-			if (outTime < bib::files::last_write_time(file.fnp_)) {
+			if (outTime < njh::files::last_write_time(file.fnp_)) {
 				outOutDated = true;
 				break;
 			}
@@ -100,7 +100,7 @@ void MasterTableStaticCache::writeTabGz(){
 	writeTab();
 
 	bfs::path gzPath = opts_.out_.outName().string() + ".gz";
-	if(!bfs::exists(gzPath) || bib::files::firstFileIsOlder(gzPath, opts_.out_.outName())){
+	if(!bfs::exists(gzPath) || njh::files::firstFileIsOlder(gzPath, opts_.out_.outName())){
 		auto gzOpts = IoOptions(InOptions(opts_.out_.outName()), OutOptions(gzPath));
 		gzOpts.out_.overWriteFile_ = opts_.out_.overWriteFile_;
 		gzZipFile(gzOpts);
@@ -108,6 +108,6 @@ void MasterTableStaticCache::writeTabGz(){
 
 }
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 

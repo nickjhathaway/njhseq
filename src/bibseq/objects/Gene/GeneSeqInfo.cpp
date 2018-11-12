@@ -9,7 +9,7 @@
 #include "GeneSeqInfo.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 GeneSeqInfo::GeneSeqInfo(const seqInfo & cDna, const seqInfo & gDna,
 		GeneSeqInfoPars pars) :
@@ -109,9 +109,9 @@ Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(uint32_t aaStart,
 	ret.chrom_ = pars_.region_.chrom_;
 	ret.strand_ = pars_.region_.reverseSrand_ ? '-' : '+';
 	if(pars_.oneBasedPos_){
-		ret.name_ = bib::pasteAsStr("[AA", aaStart, "-", "AA", aaStop, "]");
+		ret.name_ = njh::pasteAsStr("[AA", aaStart, "-", "AA", aaStop, "]");
 	}else{
-		ret.name_ = bib::pasteAsStr("[AA", aaStart, "-", "AA", aaStop, ")");
+		ret.name_ = njh::pasteAsStr("[AA", aaStart, "-", "AA", aaStop, ")");
 	}
 	if(pars_.oneBasedPos_){
 		/** @todo the one base does not currently work*/
@@ -166,7 +166,7 @@ Bed6RecordCore GeneSeqInfo::genBedFromCDNAPositions(uint32_t start,
 	Bed6RecordCore ret;
 	ret.chrom_ = pars_.region_.chrom_;
 	ret.strand_ = pars_.region_.reverseSrand_ ? '-' : '+';
-	ret.name_ = bib::pasteAsStr("CDNA", start, "-", "CDNA", stop);
+	ret.name_ = njh::pasteAsStr("CDNA", start, "-", "CDNA", stop);
 	if(pars_.region_.reverseSrand_){
 		ret.chromEnd_ = vectorMaximum(vecStrToVecNum<uint32_t>(cDnaPosSplit.at(estd::to_string(start)).getColumn("gDnaPos"))) + 1 - posOffset;
 		ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(cDnaPosSplit.at(estd::to_string(stop)).getColumn("gDnaPos"))) - posOffset;
@@ -180,10 +180,10 @@ Bed6RecordCore GeneSeqInfo::genBedFromCDNAPositions(uint32_t start,
 
 GeneSeqInfo::GenePosInfo rowToGenePosInfo(const table & infoTab, const VecStr & row){
 	GeneSeqInfo::GenePosInfo info;
-	info.gDNAPos_ = bib::StrToNumConverter::stoToNum<uint32_t>(row[infoTab.getColPos("gDnaPos")]);
-	info.cDNAPos_ = bib::StrToNumConverter::stoToNum<uint32_t>(row[infoTab.getColPos("cDnaPos")]);
-	info.aaPos_ = bib::StrToNumConverter::stoToNum<uint32_t>(row[infoTab.getColPos("aaPos")]);
-	info.codonPos_ = bib::StrToNumConverter::stoToNum<uint32_t>(row[infoTab.getColPos("codonPos")]);
+	info.gDNAPos_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infoTab.getColPos("gDnaPos")]);
+	info.cDNAPos_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infoTab.getColPos("cDnaPos")]);
+	info.aaPos_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infoTab.getColPos("aaPos")]);
+	info.codonPos_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infoTab.getColPos("codonPos")]);
 
 	info.base_ = row[infoTab.getColPos("base")].front();
 	info.base_ = row[infoTab.getColPos("aminoAcid")].front();
@@ -237,23 +237,23 @@ std::unordered_map<uint32_t, std::tuple<GeneSeqInfo::GenePosInfo,GeneSeqInfo::Ge
 			throw std::runtime_error { ss.str() };
 		}
 		auto codonSplit = aa.second.splitTableOnColumn("codonPos");
-		if (!bib::in(std::string("0"), codonSplit)
-				|| !bib::in(std::string("1"), codonSplit)
-				|| !bib::in(std::string("2"), codonSplit)) {
+		if (!njh::in(std::string("0"), codonSplit)
+				|| !njh::in(std::string("1"), codonSplit)
+				|| !njh::in(std::string("2"), codonSplit)) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", codon column should have 0, 1, and 2 not "
-					<< bib::conToStr(getVectorOfMapKeys(codonSplit), ", ") << "\n";
+					<< njh::conToStr(getVectorOfMapKeys(codonSplit), ", ") << "\n";
 			throw std::runtime_error { ss.str() };
 		}
 		auto codon0 = rowToGenePosInfo(infoTab_, codonSplit.at("0").content_.front());
 		auto codon1 = rowToGenePosInfo(infoTab_, codonSplit.at("1").content_.front());
 		auto codon2 = rowToGenePosInfo(infoTab_, codonSplit.at("2").content_.front());
-		ret[bib::StrToNumConverter::stoToNum<uint32_t>(aa.first)] = std::make_tuple(codon0, codon1, codon2);
+		ret[njh::StrToNumConverter::stoToNum<uint32_t>(aa.first)] = std::make_tuple(codon0, codon1, codon2);
 	}
 	return ret;
 }
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 

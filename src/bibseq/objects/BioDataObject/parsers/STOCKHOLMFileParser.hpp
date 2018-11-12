@@ -7,10 +7,10 @@
  */
 
 
-#include "bibseq/IO.h"
-#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+#include "njhseq/IO.h"
+#include "njhseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 class STOCKHOLMFileParser{
 	//parser made based off of https://en.wikipedia.org/wiki/Stockholm_format
@@ -45,7 +45,7 @@ public:
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 
 

@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * BedRecord.cpp
@@ -26,10 +26,10 @@
 
 #include "Bed3RecordCore.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 Bed3RecordCore::Bed3RecordCore(const std::string & line) {
-	auto toks = bib::tokenizeString(line, "\t");
+	auto toks = njh::tokenizeString(line, "\t");
 	if (toks.size() < 3) {
 		std::stringstream ss;
 		ss << "Error in parsing line: " << line << "\n";
@@ -81,11 +81,11 @@ std::string Bed3RecordCore::toDelimStrWithExtra() const {
 
 Json::Value Bed3RecordCore::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson("bibseq::Bed3RecordCore");
-	ret["chrom_"] = bib::json::toJson(chrom_);
-	ret["chromStart_"] = bib::json::toJson(chromStart_);
-	ret["chromEnd_"] = bib::json::toJson(chromEnd_);
-	ret["extraFields_"] = bib::json::toJson(extraFields_);
+	ret["class"] = njh::json::toJson("njhseq::Bed3RecordCore");
+	ret["chrom_"] = njh::json::toJson(chrom_);
+	ret["chromStart_"] = njh::json::toJson(chromStart_);
+	ret["chromEnd_"] = njh::json::toJson(chromEnd_);
+	ret["extraFields_"] = njh::json::toJson(extraFields_);
 	return ret;
 }
 
@@ -134,4 +134,4 @@ Bed3RecordCore::~Bed3RecordCore(){
 
 }
 
-} /* namespace bibseq */
+} /* namespace njhseq */

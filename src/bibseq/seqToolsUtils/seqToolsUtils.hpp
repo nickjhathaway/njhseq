@@ -5,42 +5,42 @@
 //  Created by Nicholas Hathaway on 4/27/13.
 //
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/objects/seqObjects/readObject.hpp"
-#include "bibseq/objects/seqObjects/sffObject.hpp"
+#include "njhseq/objects/seqObjects/readObject.hpp"
+#include "njhseq/objects/seqObjects/sffObject.hpp"
 
-#include "bibseq/seqToolsUtils/aminoAcidInfo.hpp"
-#include "bibseq/alignment.h"
-#include "bibseq/helpers/seqUtil.hpp"
-#include "bibseq/utils.h"
-#include "bibseq/readVectorManipulation/readVectorHelpers/readVecSorter.hpp"
-#include "bibseq/objects/helperObjects/probabilityProfile.hpp"
-#include "bibseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
-
-
-#include "bibseq/objects/Meta/MetaDataInName.hpp"
-
-#include <bibcpp/graphics/colorUtils.hpp>
+#include "njhseq/seqToolsUtils/aminoAcidInfo.hpp"
+#include "njhseq/alignment.h"
+#include "njhseq/helpers/seqUtil.hpp"
+#include "njhseq/utils.h"
+#include "njhseq/readVectorManipulation/readVectorHelpers/readVecSorter.hpp"
+#include "njhseq/objects/helperObjects/probabilityProfile.hpp"
+#include "njhseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
 
 
-namespace bibseq {
+#include "njhseq/objects/Meta/MetaDataInName.hpp"
+
+#include <njhcpp/graphics/colorUtils.hpp>
+
+
+namespace njhseq {
 
 table getSeqPortionCounts(const SeqIOOptions & opts, size_t position, uint32_t size, bool back = false);
 
@@ -114,7 +114,7 @@ Json::Value genDetailMinTreeData(const std::vector<T> & reads,
 			comparison maxEvents = graph.setMinimumEventConnections();
 		}
 	}
-	auto treeData = graph.toD3Json(bib::color("#000000"), nameColors);
+	auto treeData = graph.toD3Json(njh::color("#000000"), nameColors);
 	return treeData;
 }
 
@@ -305,11 +305,11 @@ uint32_t seqQualSizeAgreementCheck(const std::vector<T>& reads) {
   return count;
 }
 template <typename T>
-std::unordered_map<std::string, bib::color> getColorsForNames(
+std::unordered_map<std::string, njh::color> getColorsForNames(
     const std::vector<T>& reads, double sat, double lum) {
-  std::unordered_map<std::string, bib::color> colorsForName;
+  std::unordered_map<std::string, njh::color> colorsForName;
   uint32_t count = 0;
-  std::vector<bib::color> colors = bib::evenHuesAll(sat, lum, len(reads));
+  std::vector<njh::color> colors = njh::evenHuesAll(sat, lum, len(reads));
   for (const auto& read : reads) {
     colorsForName[read.getReadId()] = colors[count];
     ++count;
@@ -564,6 +564,6 @@ std::vector<char> determineAlphabet(const std::vector<T> & seqs){
 	return std::vector<char>{retSet.begin(), retSet.end()};
 }
 
-}  // namespace bib
+}  // namespace njh
 
 

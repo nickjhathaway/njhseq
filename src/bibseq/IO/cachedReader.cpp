@@ -1,26 +1,26 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "cachedReader.hpp"
-#include <bibcpp/bashUtils.h>
+#include <njhcpp/bashUtils.h>
 
-namespace bibseq {
+namespace njhseq {
 
 void cachedReader::seek(uint64_t filePosition){
 	is_.seekg(filePosition);
@@ -33,14 +33,14 @@ cachedReader::cachedReader(std::istream & is): is_(is){
 }
 
 bool cachedReader::refillBuffer(){
-	//std::cout << bib::bashCT::cyan << "refillBuffer" << bib::bashCT::reset  << std::endl;
+	//std::cout << njh::bashCT::cyan << "refillBuffer" << njh::bashCT::reset  << std::endl;
 	lineNum_ = 0;
 	std::string tempStr;
-	while(lineNum_ < bufferMax_ && bib::files::crossPlatGetline(is_, tempStr)){
+	while(lineNum_ < bufferMax_ && njh::files::crossPlatGetline(is_, tempStr)){
 		lineBuffer_[lineNum_] = tempStr;
 		//std::cout << "\tlineNum_: " << lineNum_ << std::endl;
 		//std::cout << "\t\t" << lineBuffer_[lineNum_] << std::endl;
-		//std::cout << bib::colorBool(is_.eof()) <<std::endl;
+		//std::cout << njh::colorBool(is_.eof()) <<std::endl;
 		++lineNum_;
 	}
 
@@ -51,26 +51,26 @@ bool cachedReader::refillBuffer(){
 			throw std::runtime_error{"error in reading during cachedReader::refillBuffer()"};
 		}
 		doneReadering_ = true;
-		//std::cout << "refillBuffer success : " << bib::colorBool(false) << std::endl;
+		//std::cout << "refillBuffer success : " << njh::colorBool(false) << std::endl;
 		return false;
 	}else{
-		//std::cout << "refillBuffer success : " << bib::colorBool(true) << std::endl;
+		//std::cout << "refillBuffer success : " << njh::colorBool(true) << std::endl;
 		// did read in some in the buffer
 		return true;
 	}
 }
 
 const std::string & cachedReader::currentLine(){
-	//std::cout << bib::bashCT::bold << "Reading currentLine: " << bib::bashCT::reset  << std::endl;
+	//std::cout << njh::bashCT::bold << "Reading currentLine: " << njh::bashCT::reset  << std::endl;
 	if(bufferPos_ >= bufferMax_){
 		refillBuffer();
 	}
-	//std::cout << bib::bashCT::blue << "currentLine: " << bufferPos_ << bib::bashCT::reset << std::endl;
+	//std::cout << njh::bashCT::blue << "currentLine: " << bufferPos_ << njh::bashCT::reset << std::endl;
 	return lineBuffer_[bufferPos_];
 }
 
 bool cachedReader::setNextLine(){
-	//std::cout << bib::bashCT::bold << "setting next line: " << bib::bashCT::reset  << std::endl;
+	//std::cout << njh::bashCT::bold << "setting next line: " << njh::bashCT::reset  << std::endl;
 	++bufferPos_;
 	//std::cout << bufferPos_ << ":" << lineNum_ << " of " << lineBuffer_.size()<< std::endl;
 	if(bufferPos_ < lineNum_){
@@ -89,4 +89,4 @@ bool cachedReader::done(){
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq

@@ -6,29 +6,29 @@
  *      Author: nick
  */
 
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 
-#include "bibseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
+#include "njhseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 
@@ -54,11 +54,11 @@ public:
 	  }
 	  for(const auto & first : distances){
 	  	for(const auto & second : first.second){
-	  		if(!bib::in(first.first, readNames) || !bib::in(second.first, readNames)){
+	  		if(!njh::in(first.first, readNames) || !njh::in(second.first, readNames)){
 	  			std::stringstream ss;
 	  			ss << "Error finding " << first.first << " or " << second.first << std::endl;
 	  			ss << "in " << vectorToString(readNames, ", ") << std::endl;
-	  			throw std::runtime_error{bib::bashCT::boldRed(ss.str())};
+	  			throw std::runtime_error{njh::bashCT::boldRed(ss.str())};
 	  		}else{
 	  			this->addEdge(first.first,
 	  				  				second.first,
@@ -160,8 +160,8 @@ public:
 	}
 
 
-	Json::Value toJsonMismatchGraphAll(bib::color backgroundColor,
-			std::unordered_map<std::string, bib::color> nameColors ){
+	Json::Value toJsonMismatchGraphAll(njh::color backgroundColor,
+			std::unordered_map<std::string, njh::color> nameColors ){
 	  Json::Value graphJson;
 	  graphJson["backgroundColor"] = "#" +  backgroundColor.hexStr_ ;
 	  auto & nodes = graphJson["nodes"];
@@ -179,7 +179,7 @@ public:
 			this->determineGroups();
 		}
 
-		bib::randomGenerator gen;
+		njh::randomGenerator gen;
 	  uint64_t pos = 0;
 	  double minReadCnt = std::numeric_limits<double>::max();
 	  double maxReadCnt = std::numeric_limits<double>::lowest();
@@ -197,8 +197,8 @@ public:
   		nameToNewPos[n->name_] = pos;
   		++pos;
 	  	//std::cout << n->name_ << " : " << n->group_  << " : " << n->value_ << std::endl;
-	  	nodes[nCount]["name"] = bib::json::toJson(n->name_);
-	  	nodes[nCount]["group"] = bib::json::toJson(n->group_);
+	  	nodes[nCount]["name"] = njh::json::toJson(n->name_);
+	  	nodes[nCount]["group"] = njh::json::toJson(n->group_);
 	  	nodes[nCount]["color"] = "#" + nameColors[n->name_].hexStr_;
 	  	nodes[nCount]["size"] = cntScale.get(n->value_->cnt_);
 	  	++nCount;
@@ -207,10 +207,10 @@ public:
 		for(const auto & e : this->edges_){
 			if(e->on_){
 				if(e->dist_ == 0){
-					links[lCount]["source"] = bib::json::toJson(nameToNewPos[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_]);
-					links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
-					links[lCount]["value"] = bib::json::toJson(1);
-					links[lCount]["on"] = bib::json::toJson(e->on_);
+					links[lCount]["source"] = njh::json::toJson(nameToNewPos[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_]);
+					links[lCount]["target"] = njh::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
+					links[lCount]["value"] = njh::json::toJson(1);
+					links[lCount]["on"] = njh::json::toJson(e->on_);
 					auto lColor = getColsBetweenExcludeClosest(nameColors[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_],
 							nameColors[e->nodeToNode_.begin()->second.lock()->name_], 1);
 					links[lCount]["color"] = "#" + lColor.front().hexStr_;
@@ -224,24 +224,24 @@ public:
 								+ estd::to_string(mis) + e->nodeToNode_.begin()->second.lock()->name_;
 			  		nameToNewPos[newName] = pos;
 			  		++pos;
-				  	nodes[nCount]["name"] = bib::json::toJson(newName);
-				  	nodes[nCount]["group"] = bib::json::toJson(e->nodeToNode_.begin()->second.lock()->group_);
+				  	nodes[nCount]["name"] = njh::json::toJson(newName);
+				  	nodes[nCount]["group"] = njh::json::toJson(e->nodeToNode_.begin()->second.lock()->group_);
 				  	nodes[nCount]["color"] = "red";
 				  	nodes[nCount]["size"] = 10;
 				  	++nCount;
-						links[lCount]["source"] = bib::json::toJson(nameToNewPos[lastName]);
-						links[lCount]["target"] = bib::json::toJson(nameToNewPos[newName]);
-						links[lCount]["value"] = bib::json::toJson(1);
-						links[lCount]["on"] = bib::json::toJson(true);
+						links[lCount]["source"] = njh::json::toJson(nameToNewPos[lastName]);
+						links[lCount]["target"] = njh::json::toJson(nameToNewPos[newName]);
+						links[lCount]["value"] = njh::json::toJson(1);
+						links[lCount]["on"] = njh::json::toJson(true);
 						links[lCount]["color"] = "#" + lColors[mis].hexStr_;
 						++lCount;
 						lastName = newName;
 					}
 
-					links[lCount]["source"] = bib::json::toJson(nameToNewPos[lastName]);
-					links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
-					links[lCount]["value"] = bib::json::toJson(1);
-					links[lCount]["on"] = bib::json::toJson(true);
+					links[lCount]["source"] = njh::json::toJson(nameToNewPos[lastName]);
+					links[lCount]["target"] = njh::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
+					links[lCount]["value"] = njh::json::toJson(1);
+					links[lCount]["on"] = njh::json::toJson(true);
 					links[lCount]["color"] = "#" + lColors[e->dist_].hexStr_;
 					++lCount;
 				}
@@ -252,7 +252,7 @@ public:
 
 	Json::Value toJsonMismatchGraph(uint32_t groupCutOff,
 				uint32_t mismatchesAllowed,
-				bib::color backgroundColor, double hueStart, double hueStop,
+				njh::color backgroundColor, double hueStart, double hueStop,
 		    double lumStart, double lumStop,
 		    double satStart, double satStop){
 		Json::Value graphJson;
@@ -264,11 +264,11 @@ public:
 		this->turnOffEdgesAbove(mismatchesAllowed);
 		this->determineGroups();
 
-		bib::randomGenerator gen;
+		njh::randomGenerator gen;
 		uint64_t pos = 0;
 		double minReadCnt = std::numeric_limits<double>::max();
 		double maxReadCnt = std::numeric_limits<double>::lowest();
-		std::unordered_map<uint32_t, bib::color> groupColors;
+		std::unordered_map<uint32_t, njh::color> groupColors;
 	  std::unordered_map<uint32_t, uint32_t> groupCounts;
 	  uint32_t numOfCutOffGroups = 0;
 	  for(const auto & n : this->nodes_){
@@ -283,7 +283,7 @@ public:
 		}
 		//printOutMapContents(groupCounts,"\t", std::cout);
 		//printVector(groups);
-		auto gColors = bib::getColsBetweenInc(hueStart, hueStop,
+		auto gColors = njh::getColsBetweenInc(hueStart, hueStop,
 	  		lumStart, lumStop,
 	  		satStart, satStop,
 	  		groups.size());
@@ -307,8 +307,8 @@ public:
 				nameToNewPos[n->name_] = pos;
 				++pos;
 				//std::cout << n->name_ << " : " << n->group_  << " : " << n->value_ << std::endl;
-				nodes[nCount]["name"] = bib::json::toJson(n->name_);
-				nodes[nCount]["group"] = bib::json::toJson(n->group_);
+				nodes[nCount]["name"] = njh::json::toJson(n->name_);
+				nodes[nCount]["group"] = njh::json::toJson(n->group_);
 				nodes[nCount]["color"] = "#" + groupColors[n->group_].hexStr_;
 				nodes[nCount]["size"] = cntScale.get(n->value_->cnt_);
 				++nCount;
@@ -318,10 +318,10 @@ public:
 		for(const auto & e : this->edges_){
 			if(e->on_ && groupCounts[e->nodeToNode_.begin()->second.lock()->group_] >= groupCutOff){
 				if(e->dist_ == 0){
-					links[lCount]["source"] = bib::json::toJson(nameToNewPos[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_]);
-					links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
-					links[lCount]["value"] = bib::json::toJson(1);
-					links[lCount]["on"] = bib::json::toJson(e->on_);
+					links[lCount]["source"] = njh::json::toJson(nameToNewPos[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_]);
+					links[lCount]["target"] = njh::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
+					links[lCount]["value"] = njh::json::toJson(1);
+					links[lCount]["on"] = njh::json::toJson(e->on_);
 					auto lColor = getColsBetweenExcludeClosest(groupColors[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->group_],
 							groupColors[e->nodeToNode_.begin()->second.lock()->group_], 1);
 					links[lCount]["color"] = "#" + lColor.front().hexStr_;
@@ -335,24 +335,24 @@ public:
 								+ estd::to_string(mis) + e->nodeToNode_.begin()->second.lock()->name_;
 						nameToNewPos[newName] = pos;
 						++pos;
-						nodes[nCount]["name"] = bib::json::toJson(newName);
-						nodes[nCount]["group"] = bib::json::toJson(e->nodeToNode_.begin()->second.lock()->group_);
+						nodes[nCount]["name"] = njh::json::toJson(newName);
+						nodes[nCount]["group"] = njh::json::toJson(e->nodeToNode_.begin()->second.lock()->group_);
 						nodes[nCount]["color"] = "red";
 						nodes[nCount]["size"] = 10;
 						++nCount;
-						links[lCount]["source"] = bib::json::toJson(nameToNewPos[lastName]);
-						links[lCount]["target"] = bib::json::toJson(nameToNewPos[newName]);
-						links[lCount]["value"] = bib::json::toJson(1);
-						links[lCount]["on"] = bib::json::toJson(true);
+						links[lCount]["source"] = njh::json::toJson(nameToNewPos[lastName]);
+						links[lCount]["target"] = njh::json::toJson(nameToNewPos[newName]);
+						links[lCount]["value"] = njh::json::toJson(1);
+						links[lCount]["on"] = njh::json::toJson(true);
 						links[lCount]["color"] = "#" + lColors[mis].hexStr_;
 						++lCount;
 						lastName = newName;
 					}
 
-					links[lCount]["source"] = bib::json::toJson(nameToNewPos[lastName]);
-					links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
-					links[lCount]["value"] = bib::json::toJson(1);
-					links[lCount]["on"] = bib::json::toJson(true);
+					links[lCount]["source"] = njh::json::toJson(nameToNewPos[lastName]);
+					links[lCount]["target"] = njh::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
+					links[lCount]["value"] = njh::json::toJson(1);
+					links[lCount]["on"] = njh::json::toJson(true);
 					links[lCount]["color"] = "#" + lColors[e->dist_].hexStr_;
 					++lCount;
 				}
@@ -361,7 +361,7 @@ public:
 		return graphJson;
 	}
 
-	Json::Value toJsonMismatchGraph(bib::color backgroundColor, double hueStart, double hueStop,
+	Json::Value toJsonMismatchGraph(njh::color backgroundColor, double hueStart, double hueStop,
 			    double lumStart, double lumStop,
 			    double satStart, double satStop){
 			Json::Value graphJson;
@@ -374,7 +374,7 @@ public:
 			uint64_t pos = 0;
 			double minReadCnt = std::numeric_limits<double>::max();
 			double maxReadCnt = std::numeric_limits<double>::lowest();
-			std::unordered_map<uint32_t, bib::color> groupColors;
+			std::unordered_map<uint32_t, njh::color> groupColors;
 		  std::unordered_map<uint32_t, uint32_t> groupCounts;
 		  for(const auto & n : this->nodes_){
 		  	++groupCounts[n->group_];
@@ -383,7 +383,7 @@ public:
 			for(const auto & g : groupCounts){
 					groups.emplace_back(g.first);
 			}
-			auto gColors = bib::getColsBetweenInc(hueStart, hueStop,
+			auto gColors = njh::getColsBetweenInc(hueStart, hueStop,
 		  		lumStart, lumStop,
 		  		satStart, satStop,
 		  		groups.size());
@@ -406,8 +406,8 @@ public:
 				nameToNewPos[n->name_] = pos;
 				++pos;
 				//std::cout << n->name_ << " : " << n->group_  << " : " << n->value_ << std::endl;
-				nodes[nCount]["name"] = bib::json::toJson(n->name_);
-				nodes[nCount]["group"] = bib::json::toJson(n->group_);
+				nodes[nCount]["name"] = njh::json::toJson(n->name_);
+				nodes[nCount]["group"] = njh::json::toJson(n->group_);
 				nodes[nCount]["color"] = "#" + groupColors[n->group_].hexStr_;
 				nodes[nCount]["size"] = cntScale.get(n->value_->cnt_);
 				++nCount;
@@ -416,10 +416,10 @@ public:
 			for(const auto & e : this->edges_){
 				if(e->on_){
 					if(e->dist_ == 0){
-						links[lCount]["source"] = bib::json::toJson(nameToNewPos[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_]);
-						links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
-						links[lCount]["value"] = bib::json::toJson(1);
-						links[lCount]["on"] = bib::json::toJson(e->on_);
+						links[lCount]["source"] = njh::json::toJson(nameToNewPos[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_]);
+						links[lCount]["target"] = njh::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
+						links[lCount]["value"] = njh::json::toJson(1);
+						links[lCount]["on"] = njh::json::toJson(e->on_);
 						auto lColor = getColsBetweenExcludeClosest(groupColors[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->group_],
 								groupColors[e->nodeToNode_.begin()->second.lock()->group_], 1);
 						links[lCount]["color"] = "#" + lColor.front().hexStr_;
@@ -433,24 +433,24 @@ public:
 									+ estd::to_string(mis) + e->nodeToNode_.begin()->second.lock()->name_;
 							nameToNewPos[newName] = pos;
 							++pos;
-							nodes[nCount]["name"] = bib::json::toJson(newName);
-							nodes[nCount]["group"] = bib::json::toJson(e->nodeToNode_.begin()->second.lock()->group_);
+							nodes[nCount]["name"] = njh::json::toJson(newName);
+							nodes[nCount]["group"] = njh::json::toJson(e->nodeToNode_.begin()->second.lock()->group_);
 							nodes[nCount]["color"] = "red";
 							nodes[nCount]["size"] = 10;
 							++nCount;
-							links[lCount]["source"] = bib::json::toJson(nameToNewPos[lastName]);
-							links[lCount]["target"] = bib::json::toJson(nameToNewPos[newName]);
-							links[lCount]["value"] = bib::json::toJson(1);
-							links[lCount]["on"] = bib::json::toJson(true);
+							links[lCount]["source"] = njh::json::toJson(nameToNewPos[lastName]);
+							links[lCount]["target"] = njh::json::toJson(nameToNewPos[newName]);
+							links[lCount]["value"] = njh::json::toJson(1);
+							links[lCount]["on"] = njh::json::toJson(true);
 							links[lCount]["color"] = "#" + lColors[mis].hexStr_;
 							++lCount;
 							lastName = newName;
 						}
 
-						links[lCount]["source"] = bib::json::toJson(nameToNewPos[lastName]);
-						links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
-						links[lCount]["value"] = bib::json::toJson(1);
-						links[lCount]["on"] = bib::json::toJson(true);
+						links[lCount]["source"] = njh::json::toJson(nameToNewPos[lastName]);
+						links[lCount]["target"] = njh::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
+						links[lCount]["value"] = njh::json::toJson(1);
+						links[lCount]["on"] = njh::json::toJson(true);
 						links[lCount]["color"] = "#" + lColors[e->dist_].hexStr_;
 						++lCount;
 					}
@@ -460,5 +460,5 @@ public:
 		}
 };
 
-}  // namespace bibseq
+}  // namespace njhseq
 

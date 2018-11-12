@@ -7,36 +7,36 @@
  */
 
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
-#include "bibseq/objects/dataContainers/graphs/readDistGraph.hpp"
-#include "bibseq/alignment/alignerUtils/comparison.hpp"
-#include "bibseq/alignment/aligner.h"
+#include "njhseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
+#include "njhseq/objects/dataContainers/graphs/readDistGraph.hpp"
+#include "njhseq/alignment/alignerUtils/comparison.hpp"
+#include "njhseq/alignment/aligner.h"
 
-#include "bibseq/seqToolsUtils/RefDetermination/BestRefDetector.hpp"
-#include "bibseq/objects/Meta/MultipleGroupMetaData.hpp"
-#include "bibseq/concurrency/pools/AlignerPool.hpp"
+#include "njhseq/seqToolsUtils/RefDetermination/BestRefDetector.hpp"
+#include "njhseq/objects/Meta/MultipleGroupMetaData.hpp"
+#include "njhseq/concurrency/pools/AlignerPool.hpp"
 
 
 
-namespace bibseq {
+namespace njhseq {
 
 class ReadCompGraph: public njhUndirWeightedGraph<comparison,
 		std::shared_ptr<seqInfo>> {
@@ -87,8 +87,8 @@ public:
 
 	void setJustBestConnection(bool doTies);
 
-	Json::Value toD3Json(bib::color backgroundColor,
-			const std::unordered_map<std::string, bib::color> & nameColors);
+	Json::Value toD3Json(njh::color backgroundColor,
+			const std::unordered_map<std::string, njh::color> & nameColors);
 
 
 
@@ -103,7 +103,7 @@ public:
 		std::string colorField = "";
 		std::string labelField = "";
 		bool noLabel = false;
-		std::unordered_map<std::string, bib::color> colorLookup;
+		std::unordered_map<std::string, njh::color> colorLookup;
 		std::unique_ptr<MultipleGroupMetaData> seqMeta;
 		uint32_t minlength = 50;
 		uint32_t kLen = 47;
@@ -136,15 +136,15 @@ public:
 
 
 
-		std::unordered_map<std::string, bib::color> generateColorLookup(const bfs::path & fieldColorFnp){
+		std::unordered_map<std::string, njh::color> generateColorLookup(const bfs::path & fieldColorFnp){
 			table colorTab;
-			std::unordered_map<std::string, bib::color> colorLookup;
+			std::unordered_map<std::string, njh::color> colorLookup;
 			if("" != fieldColorFnp){
 				colorTab  = table(fieldColorFnp, "\t", true);
 				if("" != colorField){
 					colorTab.checkForColumnsThrow(VecStr{colorField, "color"}, __PRETTY_FUNCTION__);
 					for(const auto & row : colorTab.content_){
-						colorLookup[row[colorTab.getColPos(colorField)]] = bib::color(row[colorTab.getColPos("color")]);
+						colorLookup[row[colorTab.getColPos(colorField)]] = njh::color(row[colorTab.getColPos("color")]);
 					}
 				}
 			} else if("" != colorField){
@@ -157,7 +157,7 @@ public:
 	};
 
 	Json::Value getSingleLineJsonOut(const ConnectedHaplotypeNetworkPars & netPars,
-			const std::unordered_map<std::string, bib::color> & colorLookup);
+			const std::unordered_map<std::string, njh::color> & colorLookup);
 
 	void writeAdjListPerId(const OutOptions & linksOutOpts,
 			const ConnectedHaplotypeNetworkPars & netPars);
@@ -203,5 +203,5 @@ ReadCompGraph genReadComparisonGraph(const std::vector<T> & reads,
 			numThreads);
 }
 
-}  // namespace bibseq
+}  // namespace njhseq
 

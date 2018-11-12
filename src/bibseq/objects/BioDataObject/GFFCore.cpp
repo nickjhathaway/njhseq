@@ -1,22 +1,22 @@
 
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * GFFCore.cpp
@@ -29,7 +29,7 @@
 
 #include "GFFCore.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 GFFCore::GFFCore() :
 		seqid_("."), source_("."), type_("."), start_(
@@ -47,7 +47,7 @@ void convertGFFValue(const std::string & valStr, T & val){
 	if(valStr == "."){
 		val = std::numeric_limits<T>::max();
 	}else{
-		val = bib::StrToNumConverter::stoToNum<T>(valStr);
+		val = njh::StrToNumConverter::stoToNum<T>(valStr);
 	}
 }
 
@@ -57,7 +57,7 @@ std::string encodeGFFValue(const T & val){
 }
 
 GFFCore::GFFCore(const std::string & line){
-	auto toks = bib::tokenizeString(line, "\t");
+	auto toks = njh::tokenizeString(line, "\t");
 	if (toks.size() < 9) {
 		std::stringstream ss;
 		ss << "Error in parsing line: " << line << "\n";
@@ -90,9 +90,9 @@ GFFCore::GFFCore(const std::string & line){
 		ss << "Error in converting frame, should be 0,1,2, or ., not" << toks[7]<< std::endl;
 		throw std::runtime_error { ss.str() };
 	}
-	auto attrValueToks = bib::tokenizeString(toks[8], ";");
+	auto attrValueToks = njh::tokenizeString(toks[8], ";");
 	for (const auto & tok : attrValueToks) {
-		auto attributeToks = bib::tokenizeString(tok, "=");
+		auto attributeToks = njh::tokenizeString(tok, "=");
 		if (2 != attributeToks.size()) {
 			std::stringstream ss;
 			ss << "Error in parsing GFF line: " << line << "\n";
@@ -134,21 +134,21 @@ bool GFFCore::isReverseStrand() const{
 
 Json::Value GFFCore::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::typeStr(*this));
-	ret["seqid_"] = bib::json::toJson(seqid_);
-	ret["source_"] = bib::json::toJson(source_);
-	ret["type_"] = bib::json::toJson(type_);
-	ret["start_"] = bib::json::toJson(start_);
-	ret["end_"] = bib::json::toJson(end_);
-	ret["score_"] = bib::json::toJson(score_);
-	ret["strand_"] = bib::json::toJson(strand_);
-	ret["phase_"] = bib::json::toJson(phase_);
+	ret["class"] = njh::json::toJson(njh::typeStr(*this));
+	ret["seqid_"] = njh::json::toJson(seqid_);
+	ret["source_"] = njh::json::toJson(source_);
+	ret["type_"] = njh::json::toJson(type_);
+	ret["start_"] = njh::json::toJson(start_);
+	ret["end_"] = njh::json::toJson(end_);
+	ret["score_"] = njh::json::toJson(score_);
+	ret["strand_"] = njh::json::toJson(strand_);
+	ret["phase_"] = njh::json::toJson(phase_);
 	auto & attributes = ret["attributes_"];
 	for(const auto & attr : attributes_){
 		if("Alias" == attr.first){
-			attributes[attr.first] = bib::json::toJson(tokenizeString(attr.second, ","));
+			attributes[attr.first] = njh::json::toJson(tokenizeString(attr.second, ","));
 		}else{
-			attributes[attr.first] = bib::json::toJson(attr.second);
+			attributes[attr.first] = njh::json::toJson(attr.second);
 		}
 	}
 	return ret;
@@ -169,10 +169,10 @@ void GFFCore::writeGffRecord(std::ostream & out) const{
 				if("" != attrs){
 					attrs.push_back(';');
 				}
-				attrs+= bib::pasteAsStr(attr.first, "=", urlencode(attr.second));
+				attrs+= njh::pasteAsStr(attr.first, "=", urlencode(attr.second));
 			}
 			out << attrs;
 			out <<"\n";
 }
 
-}  // namespace bibseq
+}  // namespace njhseq

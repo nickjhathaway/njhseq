@@ -1,25 +1,25 @@
 #include "sampleCluster.hpp"
-#include <bibcpp/common.h>
+#include <njhcpp/common.h>
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-namespace bibseq {
+namespace njhseq {
 sampleCluster::sampleCluster(const seqInfo& initializerRead,
 		const std::map<std::string, sampInfo>& infos) {
 	seqBase_ = initializerRead;
@@ -267,7 +267,7 @@ VecStr sampleCluster::getClusterInfoHeaderVec() {
 }
 
 std::string sampleCluster::getClusterInfoHeader(const std::string & delim) {
-	return bib::conToStr(getClusterInfoHeaderVec(), delim);
+	return njh::conToStr(getClusterInfoHeaderVec(), delim);
 }
 
 std::string sampleCluster::getClusterInfo(const std::string& delim ) const{
@@ -303,7 +303,7 @@ std::string sampleCluster::getRepsInfoHeader(uint32_t maxRunCount, bool checking
   	if(i > 1){
   		ss << delim;
   	}
-    ss << bib::replaceString(templateRunSring.str(), "NUM", std::to_string(i));
+    ss << njh::replaceString(templateRunSring.str(), "NUM", std::to_string(i));
   }
   if(checkingExpected){
   	ss << delim << "c_bestExpected";
@@ -426,7 +426,7 @@ std::string sampleCluster::getFullPopInfo(double popReadCnt,
 
 std::string sampleCluster::getPopInfoHeader(const std::string & delim){
 
-	return bib::conToStr(getPopInfoHeaderVec(), delim);
+	return njh::conToStr(getPopInfoHeaderVec(), delim);
 }
 
 VecStr sampleCluster::getPopInfoHeaderVec() {
@@ -452,13 +452,13 @@ VecStr sampleCluster::getPopInfoVec(double popReadCnt, uint32_t popClusNum,
 
 std::string sampleCluster::getPopInfo(double popReadCnt, uint32_t popClusNum,
 		uint32_t sampNum, const std::string& delim) const {
-	return bib::conToStr(getPopInfoVec(popReadCnt, popClusNum, sampNum), delim);
+	return njh::conToStr(getPopInfoVec(popReadCnt, popClusNum, sampNum), delim);
 }
 
 std::vector<uint32_t> sampleCluster::getReadPositions(const VecStr & forClusters)const{
 	std::vector<uint32_t> ret;
 	for(const auto & readPos : iter::range(reads_.size())){
-		if(bib::in(reads_[readPos]->seqBase_.name_, forClusters)){
+		if(njh::in(reads_[readPos]->seqBase_.name_, forClusters)){
 			ret.emplace_back(readPos);
 		}
 	}
@@ -467,4 +467,4 @@ std::vector<uint32_t> sampleCluster::getReadPositions(const VecStr & forClusters
 
 
 
-}  // namespace bib
+}  // namespace njh

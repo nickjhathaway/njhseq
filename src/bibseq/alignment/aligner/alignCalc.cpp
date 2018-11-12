@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 /*
@@ -29,7 +29,7 @@
 #include "alignCalc.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 void alignCalc::runSmithSave(const std::string& objA, const std::string& objB,
                          alnParts& parts) {
@@ -600,7 +600,7 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
       tracerNext = parts.ScoreMatrix_[icursor][jcursor].upInheritPtr;
       if (tracerNext != 'U' && tracerNext != 'B') {
         parts.gHolder_.gapInfos_.emplace_back(
-        		bibseq::gapInfo(jcursor, gapBSize, false));
+        		njhseq::gapInfo(jcursor, gapBSize, false));
         gapBSize = 0;
       }
       --icursor;
@@ -609,7 +609,7 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
       tracerNext = parts.ScoreMatrix_[icursor][jcursor].leftInheritPtr;
       if (tracerNext != 'L') {
         parts.gHolder_.gapInfos_.emplace_back(
-        		bibseq::gapInfo(icursor, gapASize, true));
+        		njhseq::gapInfo(icursor, gapASize, true));
         gapASize = 0;
       }
       --jcursor;
@@ -625,16 +625,16 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
       tracerNext = parts.ScoreMatrix_[icursor][jcursor].upInheritPtr;
       if (tracerNext != 'U' && tracerNext != 'B') {
         parts.gHolder_.gapInfos_.emplace_back(
-        		bibseq::gapInfo(jcursor, gapBSize, false));
+        		njhseq::gapInfo(jcursor, gapBSize, false));
         gapBSize = 0;
       }
       --icursor;
     }
   }
   if ((tracerNext == 'U' || tracerNext == 'B') && gapBSize != 0) {
-    parts.gHolder_.gapInfos_.emplace_back(bibseq::gapInfo(jcursor, gapBSize, false));
+    parts.gHolder_.gapInfos_.emplace_back(njhseq::gapInfo(jcursor, gapBSize, false));
   } else if (tracerNext == 'L' && gapASize != 0) {
-    parts.gHolder_.gapInfos_.emplace_back(bibseq::gapInfo(icursor, gapASize, true));
+    parts.gHolder_.gapInfos_.emplace_back(njhseq::gapInfo(icursor, gapASize, true));
   }
 }
 
@@ -910,7 +910,7 @@ void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::str
       tracerNext = parts.ScoreMatrix_[icursor][jcursor].upInheritPtr;
       if (tracerNext != 'U') {
         parts.gHolder_.gapInfos_.emplace_back(
-        		bibseq::gapInfo(jcursor, gapBSize, false));
+        		njhseq::gapInfo(jcursor, gapBSize, false));
         gapBSize = 0;
       }
       --icursor;
@@ -919,7 +919,7 @@ void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::str
       tracerNext = parts.ScoreMatrix_[icursor][jcursor].leftInheritPtr;
       if (tracerNext != 'L') {
         parts.gHolder_.gapInfos_.emplace_back(
-        		bibseq::gapInfo(icursor, gapASize, true));
+        		njhseq::gapInfo(icursor, gapASize, true));
         gapASize = 0;
       }
       --jcursor;
@@ -930,9 +930,9 @@ void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::str
     }
   }
   if ((tracerNext == 'U') && gapBSize != 0) {
-    parts.gHolder_.gapInfos_.emplace_back(bibseq::gapInfo(jcursor, gapBSize, false));
+    parts.gHolder_.gapInfos_.emplace_back(njhseq::gapInfo(jcursor, gapBSize, false));
   } else if (tracerNext == 'L' && gapASize != 0) {
-    parts.gHolder_.gapInfos_.emplace_back(bibseq::gapInfo(icursor, gapASize, true));
+    parts.gHolder_.gapInfos_.emplace_back(njhseq::gapInfo(icursor, gapASize, true));
   }
 	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ <<  std::endl;
 
@@ -1364,8 +1364,8 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 //  std::cout  << "lastCursors.lenb_: " << lastCursors.lenb_ << std::endl;
 //  std::cout  << "fillStartA: " << fillStartA << std::endl;
 //  std::cout  << "fillStartB: " << fillStartB << std::endl;
-//  std::cout  << "aFull: " << bib::colorBool(aFull) << std::endl;
-//  std::cout  << "bFull: " << bib::colorBool(bFull) << std::endl;
+//  std::cout  << "aFull: " << njh::colorBool(aFull) << std::endl;
+//  std::cout  << "bFull: " << njh::colorBool(bFull) << std::endl;
 //  std::cout << std::endl;
 //  if(print){
 //  		std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
@@ -1375,8 +1375,8 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 ////  	  std::cout  << "fillStartB: " << fillStartB << std::endl;
 //  	  std::cout  << "lastCursors.lena_: " << lastCursors.lena_ << std::endl;
 //  	  std::cout  << "lastCursors.lenb_: " << lastCursors.lenb_ << std::endl;
-//  	  std::cout  << "aFull: " << bib::colorBool(aFull) << std::endl;
-//  	  std::cout  << "bFull: " << bib::colorBool(bFull) << std::endl;
+//  	  std::cout  << "aFull: " << njh::colorBool(aFull) << std::endl;
+//  	  std::cout  << "bFull: " << njh::colorBool(bFull) << std::endl;
 //  	  std::cout << std::endl;
 //  }
   // initialize first column
@@ -1409,8 +1409,8 @@ alignCalc::MatCursor alignCalc::runNeedleDiagonalSaveStep(
 //  				std::cout << "\t" << "lastCursors.lenb_: " << lastCursors.lenb_ << std::endl;
 //  				std::cout << "\t" << "lena             : " << lena << std::endl;
 //  				std::cout << "\t" << "lenb             : " << lenb << std::endl;
-//  				std::cout << "\t" << "startb == lastCursors.lastStartB_: " << bib::colorBool(startb == lastCursors.lastStartB_) << std::endl;
-//  				std::cout << "\t" << "starta > lastCursors.lastStartA_ : " << bib::colorBool(starta > lastCursors.lastStartA_) << std::endl;
+//  				std::cout << "\t" << "startb == lastCursors.lastStartB_: " << njh::colorBool(startb == lastCursors.lastStartB_) << std::endl;
+//  				std::cout << "\t" << "starta > lastCursors.lastStartA_ : " << njh::colorBool(starta > lastCursors.lastStartA_) << std::endl;
 //
 //  			}
   			char ptrFlag;
@@ -2107,7 +2107,7 @@ void alignCalc::runNeedleDiagonalSave(
 		auto nextCursor = runNeedleDiagonalSaveStep(objA, objB, internalAlignmentBlockSize, internalAlignmentBlockWalkbackSize, cursors, parts);;
 //	  std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 
-		if(bib::in(std::make_pair(cursors.icursor_, cursors.jcursor_), previousCursors)){
+		if(njh::in(std::make_pair(cursors.icursor_, cursors.jcursor_), previousCursors)){
 			internalAlignmentBlockSize += internalAlignmentBlockSize/4;
 			//internalAlignmentBlockWalkbackSize += internalAlignmentBlockWalkbackSize/4;
 		}
@@ -2257,7 +2257,7 @@ void alignCalc::runNeedleDiagonalSave(
       //score = parts.ScoreMatrix_[icursor][jcursor].upInherit;
       if (tracerNext != 'U' && tracerNext != 'B') {
         parts.gHolder_.gapInfos_.emplace_back(
-        		bibseq::gapInfo(jcursor, gapBSize, false));
+        		njhseq::gapInfo(jcursor, gapBSize, false));
         gapBSize = 0;
       }
       --icursor;
@@ -2267,7 +2267,7 @@ void alignCalc::runNeedleDiagonalSave(
       //score = parts.ScoreMatrix_[icursor][jcursor].leftInherit;
       if (tracerNext != 'L') {
         parts.gHolder_.gapInfos_.emplace_back(
-        		bibseq::gapInfo(icursor, gapASize, true));
+        		njhseq::gapInfo(icursor, gapASize, true));
         gapASize = 0;
       }
       --jcursor;
@@ -2285,7 +2285,7 @@ void alignCalc::runNeedleDiagonalSave(
       //score = parts.ScoreMatrix_[icursor][jcursor].upInherit;
       if (tracerNext != 'U' && tracerNext != 'B') {
         parts.gHolder_.gapInfos_.emplace_back(
-        		bibseq::gapInfo(jcursor, gapBSize, false));
+        		njhseq::gapInfo(jcursor, gapBSize, false));
         gapBSize = 0;
       }
       --icursor;
@@ -2302,13 +2302,13 @@ void alignCalc::runNeedleDiagonalSave(
     }
   }
   if ((tracerNext == 'U' || tracerNext == 'B') && gapBSize != 0) {
-    parts.gHolder_.gapInfos_.emplace_back(bibseq::gapInfo(jcursor, gapBSize, false));
+    parts.gHolder_.gapInfos_.emplace_back(njhseq::gapInfo(jcursor, gapBSize, false));
   } else if (tracerNext == 'L' && gapASize != 0) {
-    parts.gHolder_.gapInfos_.emplace_back(bibseq::gapInfo(icursor, gapASize, true));
+    parts.gHolder_.gapInfos_.emplace_back(njhseq::gapInfo(icursor, gapASize, true));
   }
   //std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 }
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 

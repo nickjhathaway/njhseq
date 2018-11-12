@@ -6,32 +6,32 @@
  */
 
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 
 #include "ReadCompGraph.hpp"
-#include "bibseq/IO/OutputStream.hpp"
-#include "bibseq/concurrency/PairwisePairFactory.hpp"
+#include "njhseq/IO/OutputStream.hpp"
+#include "njhseq/concurrency/PairwisePairFactory.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 
 std::map<uint32_t, std::vector<char>> ReadCompGraph::getVariantSnpLociMap(
@@ -39,7 +39,7 @@ std::map<uint32_t, std::vector<char>> ReadCompGraph::getVariantSnpLociMap(
 	std::map<uint32_t, std::set<char>> ret;
 	auto & n = nodes_[nameToNodePos_.at(name)];
 	for (const auto & e : n->edges_) {
-		if (bib::in(e->nodeToNode_.at(name).lock()->name_, names)) {
+		if (njh::in(e->nodeToNode_.at(name).lock()->name_, names)) {
 			if (e->dist_.refName_ == name) {
 				for (const auto & m : e->dist_.distances_.mismatches_) {
 					ret[m.second.refBasePos].insert(m.second.seqBase);
@@ -83,12 +83,12 @@ std::map<uint32_t, std::vector<gap>> ReadCompGraph::getVariantIndelLociMap(
 	std::map<uint32_t, std::vector<gap>> ret;
 	auto & n = nodes_[nameToNodePos_.at(name)];
 	for (const auto & e : n->edges_) {
-		if (bib::in(e->nodeToNode_.at(name).lock()->name_, names)) {
+		if (njh::in(e->nodeToNode_.at(name).lock()->name_, names)) {
 			if (e->dist_.refName_ == name) {
 				for (const auto & g : e->dist_.distances_.alignmentGaps_) {
 					auto mainSearch = ret.find(g.second.refPos_);
 					if(ret.end() == mainSearch ||
-							!bib::contains(mainSearch->second, g.second, [](const gap & g1, const gap & g2){ return g1.compare(g2);})){
+							!njh::contains(mainSearch->second, g.second, [](const gap & g1, const gap & g2){ return g1.compare(g2);})){
 						ret[g.second.refPos_].emplace_back(g.second);
 					}
 					if (expand > 0) {
@@ -97,7 +97,7 @@ std::map<uint32_t, std::vector<gap>> ReadCompGraph::getVariantIndelLociMap(
 								auto expandPos = g.second.refPos_ - pos;
 								auto expandSearch = ret.find(expandPos);
 								if (ret.end() == expandSearch
-										|| !bib::contains(expandSearch->second, g.second,
+										|| !njh::contains(expandSearch->second, g.second,
 												[](const gap & g1, const gap & g2) {return g1.compare(g2);})) {
 									ret[expandPos].emplace_back(g.second);
 								}
@@ -106,7 +106,7 @@ std::map<uint32_t, std::vector<gap>> ReadCompGraph::getVariantIndelLociMap(
 								auto expandPos = g.second.refPos_ + pos;
 								auto expandSearch = ret.find(expandPos);
 								if (ret.end() == expandSearch
-										|| !bib::contains(expandSearch->second, g.second,
+										|| !njh::contains(expandSearch->second, g.second,
 												[](const gap & g1, const gap & g2) {return g1.compare(g2);})) {
 									ret[expandPos].emplace_back(g.second);
 								}
@@ -120,7 +120,7 @@ std::map<uint32_t, std::vector<gap>> ReadCompGraph::getVariantIndelLociMap(
 					gapCopy.switchSeqAndRef();
 					auto mainSearch = ret.find(gapCopy.refPos_);
 					if(ret.end() == mainSearch ||
-							!bib::contains(mainSearch->second, gapCopy, [](const gap & g1, const gap & g2){ return g1.compare(g2);})){
+							!njh::contains(mainSearch->second, gapCopy, [](const gap & g1, const gap & g2){ return g1.compare(g2);})){
 						ret[gapCopy.refPos_].emplace_back(gapCopy);
 					}
 					if (expand > 0) {
@@ -129,7 +129,7 @@ std::map<uint32_t, std::vector<gap>> ReadCompGraph::getVariantIndelLociMap(
 								auto expandPos = gapCopy.refPos_ - pos;
 								auto expandSearch = ret.find(expandPos);
 								if (ret.end() == expandSearch
-										|| !bib::contains(expandSearch->second, gapCopy,
+										|| !njh::contains(expandSearch->second, gapCopy,
 												[](const gap & g1, const gap & g2) {return g1.compare(g2);})) {
 									ret[expandPos].emplace_back(gapCopy);
 								}
@@ -138,7 +138,7 @@ std::map<uint32_t, std::vector<gap>> ReadCompGraph::getVariantIndelLociMap(
 								auto expandPos = gapCopy.refPos_ + pos;
 								auto expandSearch = ret.find(expandPos);
 								if (ret.end() == expandSearch
-										|| !bib::contains(expandSearch->second, gapCopy,
+										|| !njh::contains(expandSearch->second, gapCopy,
 												[](const gap & g1, const gap & g2) {return g1.compare(g2);})) {
 									ret[expandPos].emplace_back(gapCopy);
 								}
@@ -292,16 +292,16 @@ Json::Value createSnpNode(const std::string & snpName, uint32_t group,
 	ret["color"] = "red";
 	ret["type"] = "snp";
 	ret["size"] = snpNodeSize;
-	ret["name"] = bib::json::toJson(snpName);
-	ret["group"] = bib::json::toJson(group);
-	ret["ref"] = bib::json::toJson(comp.refName_);
-	ret["refBase"] = bib::json::toJson(estd::to_string(mis.refBase));
-	ret["refBaseQual"] = bib::json::toJson(estd::to_string(mis.refQual));
-	ret["refPos"] = bib::json::toJson(mis.refBasePos);
-	ret["seq"] = bib::json::toJson(comp.queryName_);
-	ret["seqBase"] = bib::json::toJson(estd::to_string(mis.seqBase));
-	ret["seqBaseQual"] = bib::json::toJson(estd::to_string(mis.seqQual));
-	ret["seqPos"] = bib::json::toJson(mis.seqBasePos);
+	ret["name"] = njh::json::toJson(snpName);
+	ret["group"] = njh::json::toJson(group);
+	ret["ref"] = njh::json::toJson(comp.refName_);
+	ret["refBase"] = njh::json::toJson(estd::to_string(mis.refBase));
+	ret["refBaseQual"] = njh::json::toJson(estd::to_string(mis.refQual));
+	ret["refPos"] = njh::json::toJson(mis.refBasePos);
+	ret["seq"] = njh::json::toJson(comp.queryName_);
+	ret["seqBase"] = njh::json::toJson(estd::to_string(mis.seqBase));
+	ret["seqBaseQual"] = njh::json::toJson(estd::to_string(mis.seqQual));
+	ret["seqPos"] = njh::json::toJson(mis.seqBasePos);
 	return ret;
 }
 
@@ -312,14 +312,14 @@ Json::Value createIndelNode(const std::string & indelName, uint32_t group,
 	ret["color"] = "yellow";
 	ret["type"] = "indel";
 	ret["size"] = indelBaseNodeSize * alnGap.size_;
-	ret["name"] = bib::json::toJson(indelName);
-	ret["group"] = bib::json::toJson(group);
-	ret["ref"] = bib::json::toJson(comp.refName_);
-	ret["seqPos"] = bib::json::toJson(alnGap.seqPos_);
-	ret["seq"] = bib::json::toJson(comp.queryName_);
-	ret["refPos"] = bib::json::toJson(alnGap.refPos_);
-	ret["inRef"] = bib::json::toJson(alnGap.ref_);
-	ret["gapSeq"] = bib::json::toJson(alnGap.gapedSequence_);
+	ret["name"] = njh::json::toJson(indelName);
+	ret["group"] = njh::json::toJson(group);
+	ret["ref"] = njh::json::toJson(comp.refName_);
+	ret["seqPos"] = njh::json::toJson(alnGap.seqPos_);
+	ret["seq"] = njh::json::toJson(comp.queryName_);
+	ret["refPos"] = njh::json::toJson(alnGap.refPos_);
+	ret["inRef"] = njh::json::toJson(alnGap.ref_);
+	ret["gapSeq"] = njh::json::toJson(alnGap.gapedSequence_);
 	//std::string gapSeqFiller = repeatString("&mdash;", alnGap.gapedSequence_.size());
 	std::string gapSeqFiller = "";
 	std::string refDisplay = "";
@@ -331,8 +331,8 @@ Json::Value createIndelNode(const std::string & indelName, uint32_t group,
 		seqDispaly = gapSeqFiller;
 		refDisplay = alnGap.gapedSequence_;
 	}
-	ret["refDisplay"] = bib::json::toJson(refDisplay);
-	ret["seqDisplay"] = bib::json::toJson(seqDispaly);
+	ret["refDisplay"] = njh::json::toJson(refDisplay);
+	ret["seqDisplay"] = njh::json::toJson(seqDispaly);
 
 	return ret;
 }
@@ -341,13 +341,13 @@ Json::Value createIndelNode(const std::string & indelName, uint32_t group,
 
 Json::Value createVariantNode(const seqInfo & seqBase, uint32_t group,
 		double totalReadCount, const scale<double> & cntScale,
-		const bib::color & color) {
+		const njh::color & color) {
 	Json::Value ret;
-	ret["name"] = bib::json::toJson(seqBase.name_);
-	ret["frac"] = bib::json::toJson(
+	ret["name"] = njh::json::toJson(seqBase.name_);
+	ret["frac"] = njh::json::toJson(
 			roundDecPlaces(seqBase.cnt_ / totalReadCount, 3));
-	ret["cnt"] = bib::json::toJson(seqBase.cnt_);
-	ret["group"] = bib::json::toJson(group);
+	ret["cnt"] = njh::json::toJson(seqBase.cnt_);
+	ret["group"] = njh::json::toJson(group);
 	ret["color"] = "#" + color.hexStr_;
 	ret["size"] = cntScale.get(seqBase.cnt_);
 	ret["type"] = "variant";
@@ -356,25 +356,25 @@ Json::Value createVariantNode(const seqInfo & seqBase, uint32_t group,
 
 Json::Value createVariantNode(const seqInfo & seqBase, uint32_t group,
 		double totalReadCount, const scale<double> & cntScale,
-		const std::unordered_map<std::string, bib::color> & nameColors) {
+		const std::unordered_map<std::string, njh::color> & nameColors) {
 	return createVariantNode(seqBase, group, totalReadCount, cntScale, nameColors.at(seqBase.name_));
 }
 
 Json::Value createLink(uint32_t source, uint32_t target, bool on,
-		const bib::color & color, uint32_t value = 1) {
+		const njh::color & color, uint32_t value = 1) {
 	Json::Value ret;
-	ret["source"] = bib::json::toJson(source);
-	ret["target"] = bib::json::toJson(target);
-	ret["value"] = bib::json::toJson(value);
-	ret["on"] = bib::json::toJson(on);
+	ret["source"] = njh::json::toJson(source);
+	ret["target"] = njh::json::toJson(target);
+	ret["value"] = njh::json::toJson(value);
+	ret["on"] = njh::json::toJson(on);
 	ret["color"] = "#" + color.hexStr_;
 	return ret;
 }
 
 
 
-Json::Value ReadCompGraph::toD3Json(bib::color backgroundColor,
-		const std::unordered_map<std::string, bib::color> & nameColors) {
+Json::Value ReadCompGraph::toD3Json(njh::color backgroundColor,
+		const std::unordered_map<std::string, njh::color> & nameColors) {
 	Json::Value graphJson;
 	graphJson["backgroundColor"] = "#" + backgroundColor.hexStr_;
 	auto & totalDiffs = graphJson["totalDiffs"];
@@ -501,7 +501,7 @@ Json::Value ReadCompGraph::toD3Json(bib::color backgroundColor,
 
 
 Json::Value ReadCompGraph::getSingleLineJsonOut(const ConnectedHaplotypeNetworkPars & netPars,
-		const std::unordered_map<std::string, bib::color> & colorLookup){
+		const std::unordered_map<std::string, njh::color> & colorLookup){
 	Json::Value outputJson;
 		auto & nodes = outputJson["nodes"];
 		auto & links = outputJson["links"];
@@ -537,11 +537,11 @@ Json::Value ReadCompGraph::getSingleLineJsonOut(const ConnectedHaplotypeNetworkP
 					node["label"] = "";
 				}
 				if(nullptr != netPars.seqMeta && "" != netPars.colorField){
-					node["color"] = bib::mapAt(colorLookup, netPars.seqMeta->groupData_.at(netPars.colorField)->getGroupForSample(n->name_)).getHexStr();
+					node["color"] = njh::mapAt(colorLookup, netPars.seqMeta->groupData_.at(netPars.colorField)->getGroupForSample(n->name_)).getHexStr();
 				}else{
 					node["color"] = "#00A0FA";
 				}
-				node["size"] = bib::json::toJson(nodeSizeScale.get(n->value_->cnt_));
+				node["size"] = njh::json::toJson(nodeSizeScale.get(n->value_->cnt_));
 				nodes.append(node);
 			}
 		}
@@ -602,7 +602,7 @@ void ReadCompGraph::addEdgesBasedOnIdOrMinDif(const ConnectedHaplotypeNetworkPar
 	PairwisePairFactory pFactory(nodes_.size());
 
 	std::mutex graphMut;
-	bib::ProgressBar pBar(pFactory.totalCompares_);
+	njh::ProgressBar pBar(pFactory.totalCompares_);
 	auto addEdges = [this,&pFactory,&kInfos,&alnPool,&netPars,&graphMut,&pBar](){
 		auto alignerObj = alnPool.popAligner();
 		PairwisePairFactory::PairwisePairVec pairs;
@@ -638,7 +638,7 @@ void ReadCompGraph::addEdgesBasedOnIdOrMinDif(const ConnectedHaplotypeNetworkPar
 	for(uint32_t t = 0; t < netPars.numThreads; ++t){
 		threads.emplace_back(addEdges);
 	}
-	bib::concurrent::joinAllJoinableThreads(threads);
+	njh::concurrent::joinAllJoinableThreads(threads);
 
 	if(netPars.setJustBest){
 		//turn of same seq connections as so the best connection will not be just equal matches
@@ -873,5 +873,5 @@ std::string ReadCompGraph::ConnectedHaplotypeNetworkPars::htmlPageForConnectHpaN
 
 		)FOOBAR";
 
-}  // namespace bibseq
+}  // namespace njhseq
 

@@ -5,36 +5,36 @@
 //  Created by Nicholas Hathaway on 10/16/13.
 //
 
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "bibseq/objects/dataContainers/tables/TableIOOpts.hpp"
-#include <bibcpp/progutils.h>
+#include "njhseq/objects/dataContainers/tables/TableIOOpts.hpp"
+#include <njhcpp/progutils.h>
 
-namespace bibseq {
+namespace njhseq {
 
-class ManipulateTableSetUp : public bib::progutils::ProgramSetUp {
+class ManipulateTableSetUp : public njh::progutils::ProgramSetUp {
 
  public:
   // constructors
   ManipulateTableSetUp(int argc, char *argv[]);
-  ManipulateTableSetUp(const bib::progutils::CmdArgs &inputCommands);
+  ManipulateTableSetUp(const njh::progutils::CmdArgs &inputCommands);
   // common defaults defaults
 
   TableIOOpts ioOptions_;
@@ -83,6 +83,6 @@ class ManipulateTableSetUp : public bib::progutils::ProgramSetUp {
                                   bool mustMakeDirectory);
   void printDefaultOptinalOptions(std::ostream &out);
 };
-}  // namespace bibseq
+}  // namespace njhseq
 
 

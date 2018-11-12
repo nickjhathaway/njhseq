@@ -5,28 +5,28 @@
  *  Created on: Jun 13, 2017
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
-#include "bibseq/concurrency/PairwisePairFactory.hpp"
+#include "njhseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
+#include "njhseq/concurrency/PairwisePairFactory.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 template<typename VAL = double>
@@ -73,7 +73,7 @@ public:
 		 * @param delim the delimiter to put inbetween the points
 		 */
 		void writeVals(std::ostream & out, const std::string & delim = "\t") const {
-			out << bib::conToStr(vals_, delim);
+			out << njh::conToStr(vals_, delim);
 		}
 	};
 	/**@brief a simple matrix class, mostly invented to do dbscan on a matrix of points
@@ -226,18 +226,18 @@ public:
 			ss << __PRETTY_FUNCTION__ << ": error in opening " << fnp << "\n";
 			throw std::runtime_error { ss.str() };
 		}
-		bool inputMightHaveRowNames = bib::files::hasPossibleRowNames(fnp);
-		uint32_t expectedColNum = bib::files::getExpectedNumCol(fnp);
+		bool inputMightHaveRowNames = njh::files::hasPossibleRowNames(fnp);
+		uint32_t expectedColNum = njh::files::getExpectedNumCol(fnp);
 		std::string line;
 		if(inputMightHaveRowNames){
 			colNames = true;
 			firstColRowNames = true;
 		}
 		if(colNames){
-			bib::files::crossPlatGetline(inFile, line);
+			njh::files::crossPlatGetline(inFile, line);
 			ret.colNames_= tokenizeString(line, "whitespace");
 		}
-		while (bib::files::crossPlatGetline(inFile, line)) {
+		while (njh::files::crossPlatGetline(inFile, line)) {
 			auto toks = tokenizeString(line, "whitespace");
 			uint32_t rowNameOffset = (firstColRowNames ? 1 : 0);
 			if (toks.size() != expectedColNum + rowNameOffset) {
@@ -260,11 +260,11 @@ public:
 	}
 };
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 
 //example program below
-//int runDbscan(const bib::progutils::CmdArgs & inputCommands){
+//int runDbscan(const njh::progutils::CmdArgs & inputCommands){
 //	bfs::path fnp = "";
 //	OutOptions outOpts(bfs::path("out.tab.txt"));
 //	njhUndirWeightedGraph<double, std::shared_ptr<BasicPointMatrix<double>::BasicPoint>>::dbscanPars dbscanPars;
@@ -281,7 +281,7 @@ public:
 //	setUp.finishSetUp(std::cout);
 //	std::ofstream outFile;
 //	outOpts.openFile(outFile);
-//	bib::stopWatch watch;
+//	njh::stopWatch watch;
 //	watch.setLapName("Reading in");
 //	auto mat = BasicPointMatrix<double>::readInBasicMatrix(fnp, dbscanPars);
 //	watch.startNewLap("Adding nodes");

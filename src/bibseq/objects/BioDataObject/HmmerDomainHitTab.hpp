@@ -8,10 +8,10 @@
 
 
 
-#include "bibseq/common.h"
-#include "bibseq/utils.h"
+#include "njhseq/common.h"
+#include "njhseq/utils.h"
 
-namespace bibseq {
+namespace njhseq {
 
 
 class HmmerDomainHitTab{
@@ -60,7 +60,7 @@ public:
 };
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 
 

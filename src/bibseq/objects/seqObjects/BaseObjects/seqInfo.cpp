@@ -1,27 +1,27 @@
 #include "seqInfo.hpp"
-#include "bibseq/helpers/seqUtil.hpp"
-#include <bibcpp/bashUtils.h>
+#include "njhseq/helpers/seqUtil.hpp"
+#include <njhcpp/bashUtils.h>
 
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-namespace bibseq {
+namespace njhseq {
 
 seqInfo::seqInfo() :
 		name_(""), seq_(""), cnt_(1), frac_(0) {
@@ -103,20 +103,20 @@ void seqInfo::updateName() {
 
 Json::Value seqInfo::toJsonJustInfo() const {
 	Json::Value ret;
-	ret["cnt"] = bib::json::toJson(cnt_);
-	ret["frac"] = bib::json::toJson(frac_);
-	ret["name"] = bib::json::toJson(name_);
-	ret["on"] = bib::json::toJson(on_);
+	ret["cnt"] = njh::json::toJson(cnt_);
+	ret["frac"] = njh::json::toJson(frac_);
+	ret["name"] = njh::json::toJson(name_);
+	ret["on"] = njh::json::toJson(on_);
 	return ret;
 }
 Json::Value seqInfo::toJson() const {
 	Json::Value ret;
-	ret["seq"] = bib::json::toJson(seq_);
-	ret["qual"] = bib::json::toJson(qual_);
-	ret["cnt"] = bib::json::toJson(cnt_);
-	ret["frac"] = bib::json::toJson(frac_);
-	ret["name"] = bib::json::toJson(name_);
-	ret["on"] = bib::json::toJson(on_);
+	ret["seq"] = njh::json::toJson(seq_);
+	ret["qual"] = njh::json::toJson(qual_);
+	ret["cnt"] = njh::json::toJson(cnt_);
+	ret["frac"] = njh::json::toJson(frac_);
+	ret["name"] = njh::json::toJson(name_);
+	ret["on"] = njh::json::toJson(on_);
 	return ret;
 }
 
@@ -152,7 +152,7 @@ void seqInfo::processRead(bool processed) {
 						"_#, _t#, or _f# where # is the number of reads the sequence "
 						"represents" << "\n";
 				ss << "failed due to name not have a _ or _t, " << name_ << "\n";
-				throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
+				throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
 			} else {
 				toks = tokenizeString(name_, "_");
 			}
@@ -178,7 +178,7 @@ void seqInfo::processRead(bool processed) {
 					"represents" << "\n";
 			ss << "failed due to # containing a non-digit character, "
 					<< toks[toks.size() - 1] << "\n";
-			throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
+			throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
 		}
 	} else {
 		//leave the count that it was originally when constructed
@@ -192,18 +192,18 @@ const std::unordered_map<char, uint32_t> seqInfo::ansiBaseColor =
 						't', 69 }, { 'n', 145 }, { 'N', 145 }, { '-', 102 } };
 
 void seqInfo::outPutSeqAnsi(std::ostream& fastaFile) const {
-	fastaFile << bib::bashCT::addBGColor(145) << ">" << name_
-			<< bib::bashCT::reset << "\n";
+	fastaFile << njh::bashCT::addBGColor(145) << ">" << name_
+			<< njh::bashCT::reset << "\n";
 	for (const auto & c : seq_) {
 		if(ansiBaseColor.find(c) == ansiBaseColor.end()){
-			fastaFile << bib::bashCT::addBGColor(16) << c
-					<< bib::bashCT::reset;
+			fastaFile << njh::bashCT::addBGColor(16) << c
+					<< njh::bashCT::reset;
 		}else{
-			fastaFile << bib::bashCT::addBGColor(ansiBaseColor.at(c)) << c
-					<< bib::bashCT::reset;
+			fastaFile << njh::bashCT::addBGColor(ansiBaseColor.at(c)) << c
+					<< njh::bashCT::reset;
 		}
 	}
-	fastaFile << bib::bashCT::reset << "\n";
+	fastaFile << njh::bashCT::reset << "\n";
 }
 void seqInfo::prepend(const std::string& seq, uint32_t defaultQuality) {
 	prepend(seq, std::vector<uint32_t>(1, defaultQuality));
@@ -225,7 +225,7 @@ void seqInfo::append(const std::string& seq,
 				"quality score for seq length" << "\n";
 		ss << "trying to add " << qual.size() << " qualities and a seq of length "
 				<< seq.length() << "\n";
-		throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
+		throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
 	}
 }
 
@@ -266,14 +266,14 @@ void seqInfo::reverseHRunsQuals() {
 	quals.push_back(currentQuals);
 	qual_.clear();
 	for (auto hrQuals : quals) {
-		bib::reverse(hrQuals);
+		njh::reverse(hrQuals);
 		addOtherVec(qual_, hrQuals);
 	}
 }
 
 void seqInfo::reverseComplementRead(bool mark, bool regQualReverse) {
 	if (regQualReverse) {
-		bib::reverse(qual_);
+		njh::reverse(qual_);
 	} else {
 		std::vector<std::vector<uint32_t>> quals;
 		std::vector<uint32_t> currentQuals;
@@ -298,7 +298,7 @@ void seqInfo::reverseComplementRead(bool mark, bool regQualReverse) {
 	if (mark) {
 		//if name already contains _Comp and then remove _Comp
 		if (name_.find("_Comp") != std::string::npos) {
-			name_ = bib::replaceString(name_, "_Comp", "");
+			name_ = njh::replaceString(name_, "_Comp", "");
 		} else {
 			name_.append("_Comp");
 		}
@@ -318,7 +318,7 @@ void seqInfo::prepend(const std::string& seq,
 				"quality score for seq length" << "\n";
 		ss << "trying to add " << qual.size() << " qualities and a seq of length "
 				<< seq.length() << "\n";
-		throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
+		throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
 	}
 }
 
@@ -423,11 +423,11 @@ void seqInfo::removeBase(size_t pos) {
 	if (pos >= seq_.size()) {
 		std::stringstream ss;
 		ss << "pos: " << pos << " out of bounds of seq " << seq_.size() << "\n";
-		throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
+		throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
 	} else if (pos >= qual_.size()) {
 		std::stringstream ss;
 		ss << "pos: " << pos << " out of bounds of qual " << qual_.size() << "\n";
-		throw std::runtime_error { bib::bashCT::boldRed(ss.str()) };
+		throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
 	} else {
 		seq_.erase(seq_.begin() + pos);
 		qual_.erase(qual_.begin() + pos);
@@ -491,7 +491,7 @@ void seqInfo::markAsChimeric() {
 
 void seqInfo::unmarkAsChimeric() {
 	if (name_.find("CHI") != std::string::npos) {
-		name_ = bib::replaceString(name_, "CHI_", "");
+		name_ = njh::replaceString(name_, "CHI_", "");
 	}
 }
 
@@ -520,7 +520,7 @@ void seqInfo::outPut(std::ostream& outFile,
 	} else if (options.out_.outFormat_ == "fasta") {
 		outPutSeq(outFile);
 	} else {
-		throw std::runtime_error { bib::bashCT::boldRed(
+		throw std::runtime_error { njh::bashCT::boldRed(
 				"in " + std::string(__PRETTY_FUNCTION__) + " : unrecognized option: "
 						+ options.out_.outFormat_) };
 	}
@@ -532,7 +532,7 @@ void seqInfo::outPut(std::ostream& outFile, std::ostream& outFile2,
 		outPutSeq(outFile);
 		outPutQual(outFile2);
 	} else {
-		throw std::runtime_error { bib::bashCT::boldRed(
+		throw std::runtime_error { njh::bashCT::boldRed(
 				"in " + std::string(__PRETTY_FUNCTION__) + " : unrecognized option: "
 						+ options.out_.outFormat_) };
 	}
@@ -574,7 +574,7 @@ std::string seqInfo::getStubName(bool removeChiFlag) const {
 	}
 
 	if (removeChiFlag) {
-		outString = bib::replaceString(outString, "CHI_", "");
+		outString = njh::replaceString(outString, "CHI_", "");
 	}
 //	if (removeChiFlag) {
 //		if(MetaDataInName::nameHasMetaData(outString)){
@@ -618,7 +618,7 @@ void seqInfo::addQual(const std::vector<uint32_t> & quals) {
 }
 
 double seqInfo::getQualCheck(uint32_t qualCutOff) const {
-	uint32_t count = bib::count_if(qual_,
+	uint32_t count = njh::count_if(qual_,
 			[&qualCutOff](uint32_t qual) {return qual >=qualCutOff;});
 	return static_cast<double>(count) / qual_.size();
 }
@@ -649,7 +649,7 @@ double seqInfo::getAverageQual() const {
 /*
  double seqInfo::getAverageErrorRate() const {
  //return 0;
- bib::randomGenerator gen;
+ njh::randomGenerator gen;
  double sum = 0;
  for (auto q : qual_) {
  sum += std::pow(10.0, -(gen.unifRand(0.01, 4.0) / 10.0));
@@ -693,7 +693,7 @@ std::string getStubNameExternal(const std::string & name, bool removeChiFlag)  {
 	}
 
 	if (removeChiFlag) {
-		outString = bib::replaceString(outString, "CHI_", "");
+		outString = njh::replaceString(outString, "CHI_", "");
 	}
 //	if (removeChiFlag) {
 //		if(MetaDataInName::nameHasMetaData(outString)){
@@ -731,7 +731,7 @@ std::string seqInfo::getOwnSampName() const {
 		name = name.substr(firstBracket);
 	}
 	VecStr toks = tokenizeString(name, ".");
-	return bib::replaceString(toks[0], "CHI_", "");
+	return njh::replaceString(toks[0], "CHI_", "");
 	*/
 }
 
@@ -828,4 +828,4 @@ bool seqInfo::operator ==(const seqInfo & other) const{
 }
 
 
-}  // namespace bibseq
+}  // namespace njhseq

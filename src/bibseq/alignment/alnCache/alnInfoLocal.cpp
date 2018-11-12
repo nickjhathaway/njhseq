@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * alnInfoLocal.cpp
@@ -27,8 +27,8 @@
 
 
 #include "alnInfoLocal.hpp"
-#include "bibseq/utils/vectorUtils.hpp"
-namespace bibseq {
+#include "njhseq/utils/vectorUtils.hpp"
+namespace njhseq {
 
 void alnInfoLocal::writeInfoSingleLine(std::ostream &indexFile, uint64_t seq1,
                                        uint64_t seq2) const {
@@ -72,14 +72,14 @@ alnInfoLocal alnInfoLocal::readInfo(std::stringstream& ss,
 
 Json::Value alnInfoLocal::toJson() const {
 	Json::Value ret;
-	ret["class"] = "bibseq::alnInfoLocal";
-	ret["gapInfos_"] = bib::json::toJson(gapInfos_);
-	ret["localAStart_"] = bib::json::toJson(localAStart_);
-	ret["localASize_"] = bib::json::toJson(localASize_);
-	ret["localBStart_"] = bib::json::toJson(localBStart_);
-	ret["localBSize_"] = bib::json::toJson(localBSize_);
-	ret["score_"] = bib::json::toJson(score_);
-	ret["addFromFile_"] = bib::json::toJson(addFromFile_);
+	ret["class"] = "njhseq::alnInfoLocal";
+	ret["gapInfos_"] = njh::json::toJson(gapInfos_);
+	ret["localAStart_"] = njh::json::toJson(localAStart_);
+	ret["localASize_"] = njh::json::toJson(localASize_);
+	ret["localBStart_"] = njh::json::toJson(localBStart_);
+	ret["localBSize_"] = njh::json::toJson(localBSize_);
+	ret["score_"] = njh::json::toJson(score_);
+	ret["addFromFile_"] = njh::json::toJson(addFromFile_);
 	return ret;
 }
 
@@ -103,4 +103,4 @@ alnInfoLocal::alnInfoLocal(const std::vector<gapInfo>& gInfos, uint32_t localASt
       score_(score),
       addFromFile_(addFromFile) {}
 
-}  // namespace bibseq
+}  // namespace njhseq

@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * BamToolsUtils.cpp
@@ -27,7 +27,7 @@
 #include <api/BamReader.h>
 #include "BamToolsUtils.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 std::vector<GenomicRegion> genGenRegionsFromRefData(const BamTools::RefVector & rData){
@@ -220,7 +220,7 @@ bool IsBamSorted(const std::string & filename, bool verbose) {
 			}
 		} else {
 			alreadySeenRefIds.emplace_back(previousAln.RefID);
-			if (bib::in(aln.RefID, alreadySeenRefIds)) {
+			if (njh::in(aln.RefID, alreadySeenRefIds)) {
 				return false;
 			}
 		}
@@ -262,7 +262,7 @@ std::vector<BamTools::RefData> tabToRefDataVec(const table & refDataTab){
 	VecStr neededCols{"refId", "refName", "refLength"};
 	VecStr missing;
 	for(const auto & col : neededCols){
-		if(!bib::in(col, refDataTab.columnNames_)){
+		if(!njh::in(col, refDataTab.columnNames_)){
 			missing.emplace_back(col);
 		}
 	}
@@ -270,7 +270,7 @@ std::vector<BamTools::RefData> tabToRefDataVec(const table & refDataTab){
 	if (!missing.empty()) {
 		std::stringstream ss;
 		ss << "In: " << __PRETTY_FUNCTION__ << "Missing the following columns: "
-				<< bib::bashCT::boldRed(vectorToString(missing, ",")) << std::endl;
+				<< njh::bashCT::boldRed(vectorToString(missing, ",")) << std::endl;
 		throw std::runtime_error { ss.str() };
 	}
 	uint32_t id = 0;
@@ -278,14 +278,14 @@ std::vector<BamTools::RefData> tabToRefDataVec(const table & refDataTab){
 		auto currentRefId = estd::stou(row[refDataTab.getColPos("refId")]);
 		if (currentRefId != id) {
 			std::stringstream ss;
-			ss << "In: " << bib::bashCT::boldRed(__PRETTY_FUNCTION__)
+			ss << "In: " << njh::bashCT::boldRed(__PRETTY_FUNCTION__)
 					<< ", RefIds are not in order, expected " << id << " but found "
 					<< currentRefId << " indstead" << std::endl;
 			throw std::runtime_error { ss.str() };
 		}
 		++id;
 		ret.emplace_back(row[refDataTab.getColPos("refName")],
-				bib::lexical_cast<int32_t>(row[refDataTab.getColPos("refLength")]));
+				njh::lexical_cast<int32_t>(row[refDataTab.getColPos("refLength")]));
 	}
 	return ret;
 }
@@ -303,16 +303,16 @@ void logAlnInfo(std::ostream & out, BamTools::RefVector & refInfo,
 
 	out << indent << "aln.Name:                       " << aln.Name << std::endl;
 	out << indent << "aln.MapQuality:                 " << aln.MapQuality<< std::endl;
-	out << indent << "aln.IsFirstMate():              " << bib::colorBool(aln.IsFirstMate()) << std::endl;
+	out << indent << "aln.IsFirstMate():              " << njh::colorBool(aln.IsFirstMate()) << std::endl;
 	out << indent << "aln.Position:                   " << aln.Position << std::endl;
 	out << indent << "refInfo[aln.RefID].RefName:     " << refInfo[aln.RefID].RefName << std::endl;
 	out << indent << "aln.GetEndPosition():           " << aln.GetEndPosition() << std::endl;
-	out << indent << "aln.IsReverseStrand():          " << bib::colorBool(aln.IsReverseStrand()) << std::endl;
+	out << indent << "aln.IsReverseStrand():          " << njh::colorBool(aln.IsReverseStrand()) << std::endl;
 	out << indent << "aln.AlignedBases.size():        " << aln.AlignedBases.size() << std::endl;
 	out << indent << "aln.QueryBases.size():          " << aln.QueryBases.size() << std::endl;
 	out << indent << "aln.MatePosition:               " << aln.MatePosition << std::endl;
 	out << indent << "refInfo[aln.MateRefID].RefName: " << refInfo[aln.MateRefID].RefName << std::endl;
-	out << indent << "aln.IsMateReverseStrand():      " << bib::colorBool(aln.IsMateReverseStrand()) << std::endl;
+	out << indent << "aln.IsMateReverseStrand():      " << njh::colorBool(aln.IsMateReverseStrand()) << std::endl;
 	out << indent << "aln.InsertSize:                 " << aln.InsertSize << std::endl << std::endl;
 
 }
@@ -323,11 +323,11 @@ void setBamFileRegionThrow(BamTools::BamReader & bReader, const GenomicRegion & 
 	for (auto pos : iter::range(refData.size())) {
 		refNameToId[refData[pos].RefName] = pos;
 	}
-	if(!bib::in(region.chrom_,refNameToId)){
+	if(!njh::in(region.chrom_,refNameToId)){
 		std::stringstream ss;
 		ss << "Error in " << __PRETTY_FUNCTION__ << std::endl;
 		ss << "Region: " << region.chrom_ << " not found in bam file" << std::endl;
-		ss << "Options are: " << bib::conToStr(getVectorOfMapKeys(refNameToId), ",") << std::endl;
+		ss << "Options are: " << njh::conToStr(getVectorOfMapKeys(refNameToId), ",") << std::endl;
 		throw std::runtime_error { ss.str() };
 	}
 	if (!bReader.SetRegion(refNameToId.at(region.chrom_), region.start_,
@@ -368,4 +368,4 @@ void checkBamFilesForIndexesAndAbilityToOpen(const std::vector<bfs::path> & bamF
 	}
 }
 
-} /* namespace bibseq */
+} /* namespace njhseq */

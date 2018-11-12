@@ -1,28 +1,28 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "readVecTrimmer.hpp"
 
 
 
 
-namespace bibseq {
+namespace njhseq {
 
 
 void readVecTrimmer::trimAtRstripQualScore(seqInfo &seq, const uint32_t qualCutOff){
@@ -237,7 +237,7 @@ void readVecTrimmer::trimAtSequence(seqInfo &seq, const seqInfo &reversePrimer,
 	if(seq.name_ == "contig1[length=273;region=ama1_subRegion;sample=QG0183-C]_t210"){
 		std::cout << seq.toJsonJustInfo() << std::endl;
 		std::cout << alignObj.comp_.toJson() << std::endl;
-		std::cout << "passInspection: " << bib::colorBool(passInspection) << std::endl;
+		std::cout << "passInspection: " << njh::colorBool(passInspection) << std::endl;
 
 	}*/
 
@@ -350,7 +350,7 @@ void readVecTrimmer::trimBeforeSequence(seqInfo &seq, const seqInfo &forwardSeq,
 	if(!passInspection){
 		std::cout << seq.toJsonJustInfo() << std::endl;
 		std::cout << alignObj.comp_.toJson() << std::endl;
-		std::cout << "passInspection: " << bib::colorBool(passInspection) << std::endl;
+		std::cout << "passInspection: " << njh::colorBool(passInspection) << std::endl;
 	}*/
 	seq.on_ = passInspection;
 
@@ -393,4 +393,4 @@ void readVecTrimmer::trimBetweenSequences(seqInfo &seq, const seqInfo &forwardSe
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq

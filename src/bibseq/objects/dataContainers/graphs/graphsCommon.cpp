@@ -4,31 +4,31 @@
  *  Created on: Dec 16, 2016
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 #include "graphsCommon.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
-std::vector<bib::color> getColsBetweenExcludeClosest(bib::color first,
-																						bib::color last,
+std::vector<njh::color> getColsBetweenExcludeClosest(njh::color first,
+																						njh::color last,
 																						uint32_t num){
 	if(std::abs(first.hue_ - last.hue_) > 180){
 		if(first.hue_ < last.hue_){
@@ -37,15 +37,15 @@ std::vector<bib::color> getColsBetweenExcludeClosest(bib::color first,
 			last.hue_ += 360;
 		}
 	}
-	auto ret = bib::getColsBetweenInc(first.hue_, last.hue_, first.lum_, last.lum_, first.lSat_, last.lSat_, num + 2);
-	return std::vector<bib::color>(ret.begin() + 1, ret.end() - 1);
+	auto ret = njh::getColsBetweenInc(first.hue_, last.hue_, first.lum_, last.lum_, first.lSat_, last.lSat_, num + 2);
+	return std::vector<njh::color>(ret.begin() + 1, ret.end() - 1);
 }
 
 
-std::unordered_map<std::string,bib::color> getColorsForNames(const VecStr & popNames){
+std::unordered_map<std::string,njh::color> getColorsForNames(const VecStr & popNames){
 
-	auto popColors = bib::njhColors(popNames.size());
-	bibseq::VecStr popColorsStrs(popColors.size(), "");
+	auto popColors = njh::njhColors(popNames.size());
+	njhseq::VecStr popColorsStrs(popColors.size(), "");
 	uint32_t count = 0;
 	uint32_t halfCount = 0;
 	for(const auto & cPos : iter::range(popColors.size())) {
@@ -59,7 +59,7 @@ std::unordered_map<std::string,bib::color> getColorsForNames(const VecStr & popN
 		}
 		popColorsStrs[cPos] = "#" + popColors[pos].hexStr_;
 	}
-	std::unordered_map<std::string,bib::color> nameColors;
+	std::unordered_map<std::string,njh::color> nameColors;
 	for(auto pos : iter::range(popNames.size())){
 		nameColors[popNames[pos]] = popColorsStrs[pos];
 	}
@@ -67,7 +67,7 @@ std::unordered_map<std::string,bib::color> getColorsForNames(const VecStr & popN
 }
 
 void jsonTreeToDot(Json::Value treeData, std::ostream & outDot){
-	bib::color bgColor = bib::color(treeData["backgroundColor"].asString());
+	njh::color bgColor = njh::color(treeData["backgroundColor"].asString());
 	outDot << "graph G  { " << std::endl;
 	outDot << "bgcolor =\"" << bgColor.getHexStr() <<"\"" << std::endl;
 	outDot << "#overlap = false; " << std::endl;
@@ -99,8 +99,8 @@ void jsonTreeToDot(Json::Value treeData, std::ostream & outDot){
 			++mCounts;
 		}else{
 			//dot doesn't allow for "." in the names, it splits the name into two different things
-			decoder[node["name"].asString() ] = bib::replaceString(node["name"].asString(), ".","_");
-			outDot << bib::replaceString(node["name"].asString(), ".","_") << " [shape=circle,style=filled,fixedsize "
+			decoder[node["name"].asString() ] = njh::replaceString(node["name"].asString(), ".","_");
+			outDot << njh::replaceString(node["name"].asString(), ".","_") << " [shape=circle,style=filled,fixedsize "
 			                                    "=true, color = \"#000000\", fillcolor ="
 			          << "\"" << node["color"].asString() << "\""
 			          << ", width = " << cntScale.get(node["size"].asDouble())<< "]"
@@ -236,6 +236,6 @@ void genSimpleTreeJs(std::ostream & out) {
 }
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 

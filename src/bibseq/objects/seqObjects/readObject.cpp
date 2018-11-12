@@ -1,25 +1,25 @@
 #include "readObject.hpp"
 
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-namespace bibseq {
+namespace njhseq {
 
 
 readObject::readObject(const seqInfo& seqBase, bool processed)
@@ -62,19 +62,19 @@ std::string readObject::getMeta(const std::string & key) const {
 
 Json::Value readObject::toJson()const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
 	ret["super"] = baseReadObject::toJson();
-	ret["sampName"] = bib::json::toJson(sampName);
-	ret["expectsString"] = bib::json::toJson(expectsString);
-	ret["meta_"] = bib::json::toJson(meta_);
-	ret["averageErrorRate"] = bib::json::toJson(averageErrorRate);
-	ret["fractionAboveQualCheck_"] = bib::json::toJson(fractionAboveQualCheck_);
-	ret["remove"] = bib::json::toJson(remove);
-	ret["counter_"] = bib::json::toJson(counter_);
-	ret["condensedSeq"] = bib::json::toJson(condensedSeq);
-	ret["condensedSeqQual"] = bib::json::toJson(condensedSeqQual);
-	ret["condensedSeqQualPos"] = bib::json::toJson(condensedSeqQualPos);
-	ret["condensedSeqCount"] = bib::json::toJson(condensedSeqCount);
+	ret["sampName"] = njh::json::toJson(sampName);
+	ret["expectsString"] = njh::json::toJson(expectsString);
+	ret["meta_"] = njh::json::toJson(meta_);
+	ret["averageErrorRate"] = njh::json::toJson(averageErrorRate);
+	ret["fractionAboveQualCheck_"] = njh::json::toJson(fractionAboveQualCheck_);
+	ret["remove"] = njh::json::toJson(remove);
+	ret["counter_"] = njh::json::toJson(counter_);
+	ret["condensedSeq"] = njh::json::toJson(condensedSeq);
+	ret["condensedSeqQual"] = njh::json::toJson(condensedSeqQual);
+	ret["condensedSeqQualPos"] = njh::json::toJson(condensedSeqQualPos);
+	ret["condensedSeqCount"] = njh::json::toJson(condensedSeqCount);
 	return ret;
 }
 
@@ -388,7 +388,7 @@ bool readObject::operator<=(const readObject& otherRead) const {
 }
 
 double readObject::getQualCheck(uint32_t qualCutOff) const{
-  auto basesAboveQualCheck = bib::count_if(seqBase_.qual_, [&qualCutOff](const uint32_t & q){ return q>=qualCutOff;});
+  auto basesAboveQualCheck = njh::count_if(seqBase_.qual_, [&qualCutOff](const uint32_t & q){ return q>=qualCutOff;});
   return static_cast<double>(basesAboveQualCheck) / seqBase_.qual_.size();
 }
 
@@ -523,4 +523,4 @@ void readObject::updateQaulCountsAtPos(
 
 readObject::~readObject(){}
 
-}  // namespace bib
+}  // namespace njh

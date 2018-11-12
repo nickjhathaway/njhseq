@@ -5,28 +5,28 @@
  *      Author: nick
  */
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "PrimerDeterminator.hpp"
-#include "bibseq/helpers/seqUtil.hpp"
+#include "njhseq/helpers/seqUtil.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 size_t PrimerDeterminator::getMaxPrimerSize() const {
 	size_t ret = 0;
@@ -43,24 +43,24 @@ size_t PrimerDeterminator::getMaxPrimerSize() const {
 
 PrimerDeterminator::PrimerDeterminator(const table & primers) {
 
-//	std::cout << bib::colorBool(!bib::in(std::string("geneName"), primers.columnNames_)) << std::endl;
-//	std::cout << bib::colorBool(!bib::in(std::string("targetName"), primers.columnNames_)) << std::endl;
-//	std::cout << bib::colorBool((!bib::in(std::string("geneName"), primers.columnNames_) && !bib::in(std::string("targetName"), primers.columnNames_))) << std::endl;
-//	std::cout << bib::colorBool(!bib::in(std::string("forwardPrimer"), primers.columnNames_)) << std::endl;
-//	std::cout << bib::colorBool(!bib::in(std::string("reversePrimer"), primers.columnNames_)) << std::endl;
+//	std::cout << njh::colorBool(!njh::in(std::string("geneName"), primers.columnNames_)) << std::endl;
+//	std::cout << njh::colorBool(!njh::in(std::string("targetName"), primers.columnNames_)) << std::endl;
+//	std::cout << njh::colorBool((!njh::in(std::string("geneName"), primers.columnNames_) && !njh::in(std::string("targetName"), primers.columnNames_))) << std::endl;
+//	std::cout << njh::colorBool(!njh::in(std::string("forwardPrimer"), primers.columnNames_)) << std::endl;
+//	std::cout << njh::colorBool(!njh::in(std::string("reversePrimer"), primers.columnNames_)) << std::endl;
 
-	if ((!bib::in(std::string("geneName"), primers.columnNames_) && !bib::in(std::string("targetName"), primers.columnNames_))
-			|| !bib::in(std::string("forwardPrimer"), primers.columnNames_)
-			|| !bib::in(std::string("reversePrimer"), primers.columnNames_)) {
+	if ((!njh::in(std::string("geneName"), primers.columnNames_) && !njh::in(std::string("targetName"), primers.columnNames_))
+			|| !njh::in(std::string("forwardPrimer"), primers.columnNames_)
+			|| !njh::in(std::string("reversePrimer"), primers.columnNames_)) {
 		throw std::runtime_error {
 				"Error in creating PrimerDeterminator, need to have at "
 						"least the following three columns, geneName or targetName and forwardPrimer, reversePrimer, only have "
-						+ bib::conToStr(primers.columnNames_, ",") };
+						+ njh::conToStr(primers.columnNames_, ",") };
 	}
 
 	std::string idCol = "geneName";
 
-	if(bib::in(std::string("targetName"), primers.columnNames_)){
+	if(njh::in(std::string("targetName"), primers.columnNames_)){
 		idCol = "targetName";
 	}
 
@@ -84,7 +84,7 @@ PrimerDeterminator::PrimerDeterminator(const std::unordered_map<std::string, pri
 }
 
 bool PrimerDeterminator::containsTarget(const std::string & targetName) const{
-	return bib::in(targetName, primers_);
+	return njh::in(targetName, primers_);
 }
 
 PrimerDeterminator::primerInfo::primerInfo(const std::string & primerPairName,
@@ -277,7 +277,7 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 
 bool PrimerDeterminator::checkForReversePrimer(seqInfo & info,
 		const std::string & primerName,const PrimerDeterminatorPars & pars, aligner & alignObj) {
-	if (!bib::in(primerName, primers_)) {
+	if (!njh::in(primerName, primers_)) {
 		throw std::runtime_error { std::string(__PRETTY_FUNCTION__) + ": No primer info for: "
 				+ primerName };
 	}
@@ -329,7 +329,7 @@ bool PrimerDeterminator::checkForReversePrimer(seqInfo & info,
 
 bool PrimerDeterminator::checkForForwardPrimerInRev(seqInfo & info, const std::string & primerName,const PrimerDeterminatorPars & pars,
 		aligner & alignObj){
-	if (!bib::in(primerName, primers_)) {
+	if (!njh::in(primerName, primers_)) {
 		throw std::runtime_error { std::string(__PRETTY_FUNCTION__) + ": No primer info for: "
 				+ primerName };
 	}
@@ -374,4 +374,4 @@ bool PrimerDeterminator::checkForForwardPrimerInRev(seqInfo & info, const std::s
 }
 
 
-} /* namespace bibseq */
+} /* namespace njhseq */

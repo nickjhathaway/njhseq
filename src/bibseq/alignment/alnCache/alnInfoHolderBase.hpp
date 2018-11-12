@@ -1,22 +1,22 @@
 #pragma once
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * alnInfoHolderBase.hpp
@@ -28,12 +28,12 @@
 
 
 
-#include "bibseq/alignment/alnCache/alnInfoGlobal.hpp"
-#include "bibseq/alignment/alnCache/alnInfoLocal.hpp"
-#include "bibseq/alignment/alignerUtils.h"
-#include "bibseq/IO/fileUtils.hpp"
+#include "njhseq/alignment/alnCache/alnInfoGlobal.hpp"
+#include "njhseq/alignment/alnCache/alnInfoLocal.hpp"
+#include "njhseq/alignment/alignerUtils.h"
+#include "njhseq/IO/fileUtils.hpp"
 
-namespace bibseq {
+namespace njhseq {
 template<typename T>
 class alnInfoHolderBase {
 public:
@@ -47,9 +47,9 @@ public:
 		for (const auto &file : allFiles) {
 			//std::cout << file.first << std::endl;
 			//std::cout << "INDEX_" + alnType + ".txt" << std::endl;
-			if (bib::containsSubString(file.first, "README_" + alnType + ".txt")) {
+			if (njh::containsSubString(file.first, "README_" + alnType + ".txt")) {
 				readReadMeFile(file.first);
-			} else if (bib::containsSubString(file.first,
+			} else if (njh::containsSubString(file.first,
 					"INDEX_" + alnType + ".txt")) {
 				readIndex(file.first);
 			}
@@ -76,11 +76,11 @@ public:
    */
   Json::Value toJson() const {
   	Json::Value ret;
-  	ret["class"] = bib::TypeName::get<alnInfoHolderBase>();
-  	ret["gapPars_"] = bib::json::toJson(gapPars_);
-  	ret["scoring_"] = bib::json::toJson(scoring_);
-  	ret["alnType_"] = bib::json::toJson(alnType_);
-  	ret["infos_"] = bib::json::toJson(infos_);
+  	ret["class"] = njh::TypeName::get<alnInfoHolderBase>();
+  	ret["gapPars_"] = njh::json::toJson(gapPars_);
+  	ret["scoring_"] = njh::json::toJson(scoring_);
+  	ret["alnType_"] = njh::json::toJson(alnType_);
+  	ret["infos_"] = njh::json::toJson(infos_);
   	return ret;
   }
 
@@ -212,15 +212,15 @@ public:
 	}
 	void writeOutInfos(std::string parentDirectory,
 										 std::string outDirectoryName) const{
-		bfs::path outDir = bib::files::join(parentDirectory,
-				bib::appendAsNeededRet(outDirectoryName, "/"));
+		bfs::path outDir = njh::files::join(parentDirectory,
+				njh::appendAsNeededRet(outDirectoryName, "/"));
 
-		if(!bib::files::bfs::exists(outDir)){
-			bib::files::makeDir(bib::files::MkdirPar(outDir));
+		if(!njh::files::bfs::exists(outDir)){
+			njh::files::makeDir(njh::files::MkdirPar(outDir));
 		}
 		// write out info for readMeFile
-		bfs::path readMeFilename = bib::files::join(outDir.string(), "README_" + alnType_ + ".txt");
-		if (!bib::files::bfs::exists(readMeFilename)) {
+		bfs::path readMeFilename = njh::files::join(outDir.string(), "README_" + alnType_ + ".txt");
+		if (!njh::files::bfs::exists(readMeFilename)) {
 			std::ofstream outReadMeFile;
 			openTextFile(outReadMeFile, readMeFilename, ".txt", false,
 									 false);
@@ -240,7 +240,7 @@ public:
 			}
 		}
 		std::ofstream indexFile;
-		bfs::path indexFilename = bib::files::join(outDir.string(), "INDEX_" + alnType_ + ".txt");
+		bfs::path indexFilename = njh::files::join(outDir.string(), "INDEX_" + alnType_ + ".txt");
 		indexFile.open(indexFilename.string(), std::ios::app);
 
 		// openTextFile(indexFile, , ".txt" ,false, true);
@@ -300,6 +300,6 @@ public:
 };
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 

@@ -19,7 +19,7 @@
 
 #include "BamReaderPool.hpp"
 
-namespace bibseq {
+namespace njhseq {
 namespace concurrent {
 
 BamReaderPool::BamReaderPool(const bfs::path& file, const size_t size) :

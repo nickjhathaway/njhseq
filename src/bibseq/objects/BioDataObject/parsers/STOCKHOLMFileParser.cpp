@@ -8,11 +8,11 @@
 #include "STOCKHOLMFileParser.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 
 STOCKHOLMFileParser::STOCKHOLMFileParser(const bfs::path & fnp):fnp_(fnp){
 	if("STDIN" != fnp.string()){
-		bib::files::checkExistenceThrow(fnp, __PRETTY_FUNCTION__);
+		njh::files::checkExistenceThrow(fnp, __PRETTY_FUNCTION__);
 	}
 }
 
@@ -25,17 +25,17 @@ void STOCKHOLMFileParser::parseFile(){
 	std::string line  = "";
 	//get header
 	uint32_t lineNumber = 1;
-	bib::files::crossPlatGetline(in, line);
+	njh::files::crossPlatGetline(in, line);
 	if("# STOCKHOLM 1.0" != line ){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", first line in " << fnp_ << " was not \"# STOCKHOLM 1.0\" reading not supported" << "\n";
 		throw std::runtime_error{ss.str()};
 	}
 
-	while(bib::files::crossPlatGetline(in, line)){
+	while(njh::files::crossPlatGetline(in, line)){
 		++lineNumber;
 		//end of reading
-		if(bib::beginsWith(line, "//")){
+		if(njh::beginsWith(line, "//")){
 			break;
 		}
 		//skip over empty lines
@@ -52,12 +52,12 @@ void STOCKHOLMFileParser::parseFile(){
 					throw std::runtime_error{ss.str()};
 				}
 				auto feature = toks[1];
-				if(bib::in(feature, perFileAnnotation_)){
+				if(njh::in(feature, perFileAnnotation_)){
 					std::stringstream ss;
 					ss << __PRETTY_FUNCTION__ << ", error in processing line " << lineNumber << ", for " << front << ", already have feature: " << feature << "\n";
 					throw std::runtime_error{ss.str()};
 				}
-				perFileAnnotation_[feature]= bib::conToStr(getSubVector(toks, 2), " ");
+				perFileAnnotation_[feature]= njh::conToStr(getSubVector(toks, 2), " ");
 			}else if("#=GC" == front){
 				auto toks = tokenizeString(line, "whitespace");
 				if(toks.size() != 3){
@@ -79,7 +79,7 @@ void STOCKHOLMFileParser::parseFile(){
 					throw std::runtime_error{ss.str()};
 				}
 				auto feature = toks[1];
-				if(bib::in(feature, perColumnAnnotation_)){
+				if(njh::in(feature, perColumnAnnotation_)){
 					std::stringstream ss;
 					ss << __PRETTY_FUNCTION__ << ", error in processing line " << lineNumber << ", for " << front << ", already have column feature: " << feature << "\n";
 					throw std::runtime_error{ss.str()};
@@ -94,12 +94,12 @@ void STOCKHOLMFileParser::parseFile(){
 				}
 				auto seqname = toks[1];
 				auto feature = toks[2];
-				if(bib::in(feature, perSeqAnnotation_[seqname])){
+				if(njh::in(feature, perSeqAnnotation_[seqname])){
 					std::stringstream ss;
 					ss << __PRETTY_FUNCTION__ << ", error in processing line " << lineNumber << ", for " << front << ", already have feature: " << feature << " for seq " << seqname << "\n";
 					throw std::runtime_error{ss.str()};
 				}
-				perSeqAnnotation_[seqname][feature]= bib::conToStr(getSubVector(toks, 3), " ");
+				perSeqAnnotation_[seqname][feature]= njh::conToStr(getSubVector(toks, 3), " ");
 			}else if("#=GR" == front){
 				auto toks = tokenizeString(line, "whitespace");
 				if(toks.size() != 4){
@@ -109,12 +109,12 @@ void STOCKHOLMFileParser::parseFile(){
 				}
 				auto seqname = toks[1];
 				auto feature = toks[2];
-				if(!bib::in(seqname, readInSeqs_)){
+				if(!njh::in(seqname, readInSeqs_)){
 					std::stringstream ss;
 					ss << __PRETTY_FUNCTION__ << ", error in processing line " << lineNumber << ", for " << front << " have not read in seq: " << seqname  << ", yet"<< "\n";
 					throw std::runtime_error{ss.str()};
 				}
-				if(bib::in(feature, perResidueAnnotation_[seqname])){
+				if(njh::in(feature, perResidueAnnotation_[seqname])){
 					std::stringstream ss;
 					ss << __PRETTY_FUNCTION__ << ", error in processing line " << lineNumber << ", for " << front << ", already have feature: " << feature << " for seq " << seqname << "\n";
 					throw std::runtime_error{ss.str()};
@@ -140,7 +140,7 @@ void STOCKHOLMFileParser::parseFile(){
 				ss << __PRETTY_FUNCTION__ << ", error in processing line " << lineNumber << ", lines should have 2 items separated by whitespace" << "\n";
 				throw std::runtime_error{ss.str()};
 			}
-			if(bib::in(toks[0], readInSeqs_)){
+			if(njh::in(toks[0], readInSeqs_)){
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error in processing line " << lineNumber << ", already read in seq " << toks[0] << "\n";
 				throw std::runtime_error{ss.str()};
@@ -183,7 +183,7 @@ void STOCKHOLMFileParser::writeOutFile(const OutOptions & opts) const{
 		}
 	}
 	for(const auto & seq : seqs_){
-		if(bib::in(seq.name_, perSeqAnnotation_)){
+		if(njh::in(seq.name_, perSeqAnnotation_)){
 			for (const auto & feature : perSeqAnnotation_.at(seq.name_)) {
 				out << "#=GS " << seq.name_
 						<< std::string(maxnameSize - seq.name_.size(), ' ') << " "
@@ -197,7 +197,7 @@ void STOCKHOLMFileParser::writeOutFile(const OutOptions & opts) const{
 		out << seq.name_ << std::string(maxnameSize + 5 - seq.name_.size(), ' ')
 		<< " " << "  " << " "
 		<< seq.seq_ << std::endl;
-		if(bib::in(seq.name_, perResidueAnnotation_)){
+		if(njh::in(seq.name_, perResidueAnnotation_)){
 			for(const auto & feature : perResidueAnnotation_.at(seq.name_)){
 				out << "#=GR "  << seq.name_ << std::string(maxnameSize - seq.name_.size(), ' ')
 				 << " " << feature.first << " " << feature.second << std::endl;
@@ -211,5 +211,5 @@ void STOCKHOLMFileParser::writeOutFile(const OutOptions & opts) const{
 	out << "//" << std::endl;;
 }
 
-}  // namespace bibseq
+}  // namespace njhseq
 

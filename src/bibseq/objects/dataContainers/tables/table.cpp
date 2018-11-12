@@ -1,28 +1,28 @@
 #include "table.hpp"
-#include "bibseq/IO/fileUtils.hpp"
-#include "bibseq/IO/InputStream.hpp"
-#include <bibcpp/bashUtils.h>
+#include "njhseq/IO/fileUtils.hpp"
+#include "njhseq/IO/InputStream.hpp"
+#include <njhcpp/bashUtils.h>
 
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-namespace bibseq {
+namespace njhseq {
 
 
 
@@ -82,14 +82,14 @@ void table::addSingleValueColumns(const VecStr & columnValues,
 }
 
 bool table::containsColumn(const std::string & colName)const{
-	return bib::in(colName, columnNames_);
+	return njh::in(colName, columnNames_);
 }
 
 
 
 bool table::containsColumn(const std::string & colName,
 		std::function<bool(const std::string&, const std::string &)> comp) const {
-	return bib::has(columnNames_, colName, comp);
+	return njh::has(columnNames_, colName, comp);
 }
 
 bool table::containsColumns(const VecStr & colNames)const{
@@ -121,9 +121,9 @@ void table::setColNamePositions(){
 uint32_t table::getColPos(const std::string & colName) const {
 	auto search = colNameToPos_.find(colName);
 	if (search == colNameToPos_.end()) {
-		throw std::runtime_error { bib::bashCT::boldRed(
+		throw std::runtime_error { njh::bashCT::boldRed(
 				"No column " + colName + " in header," + "available colnames are: "
-						+ bib::bashCT::blue + bib::conToStr(columnNames_, ",")) };
+						+ njh::bashCT::blue + njh::conToStr(columnNames_, ",")) };
 	}
 	return search->second;
 }
@@ -148,7 +148,7 @@ table::table(std::istream & in, const std::string &inDelim,
 
 	std::string currentLine = "";
 	uint32_t lineCount = 0;
-	while(bib::files::crossPlatGetline(in, currentLine)){
+	while(njh::files::crossPlatGetline(in, currentLine)){
 		if(lineCount == 0 && header){
 			columnNames_ = tokenizeString(currentLine, inDelim_, true);
 		}else{
@@ -237,7 +237,7 @@ void table::padWithZeros() {
 table table::getColumns(const VecStr &specificColumnNames) const{
 	VecStr missing;
 	for(const auto & col : specificColumnNames){
-		if(!bib::in(col, columnNames_)){
+		if(!njh::in(col, columnNames_)){
 			missing.emplace_back(col);
 		}
 	}
@@ -277,11 +277,11 @@ VecStr table::getColumn(const std::string &specifcColumnName) const {
   uint32_t colPos = getFirstPositionOfTarget(columnNames_, specifcColumnName);
   if(colPos == 4294967295){
   	std::stringstream ss;
-  	ss << bib::bashCT::bold
-				<< "Can't find col: " << bib::bashCT::red << specifcColumnName
-				<< bib::bashCT::reset << "\n";
-  	ss << "options are : " << bib::bashCT::bold << vectorToString(columnNames_, ",") << bib::bashCT::reset << "\n";
-  	throw std::runtime_error{bib::bashCT::boldRed(ss.str())};
+  	ss << njh::bashCT::bold
+				<< "Can't find col: " << njh::bashCT::red << specifcColumnName
+				<< njh::bashCT::reset << "\n";
+  	ss << "options are : " << njh::bashCT::bold << vectorToString(columnNames_, ",") << njh::bashCT::reset << "\n";
+  	throw std::runtime_error{njh::bashCT::boldRed(ss.str())};
   }
   return getColumn(colPos);
 }
@@ -291,7 +291,7 @@ VecStr table::getColumn(uint32_t colPos) const {
   	std::stringstream ss;
   	ss << "positions: " << colPos << " is out of the bounds of "
               << columnNames_.size() << " return nothing" << "\n";
-  	throw std::runtime_error{bib::bashCT::boldRed(ss.str())};
+  	throw std::runtime_error{njh::bashCT::boldRed(ss.str())};
   } else {
     for (const auto &fIter : content_) {
       ans.emplace_back(fIter[colPos]);
@@ -406,7 +406,7 @@ void table::sortTable(const std::string &firstColumn,
 	uint32_t colPos2 = getColPos(secondColumn);
 	bool col2Numeric = isVecOfDoubleStr(getColumn(secondColumn));
 	if(decending){
-		bib::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric](const VecStr & vec1, const VecStr & vec2){
+		njh::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric](const VecStr & vec1, const VecStr & vec2){
 				if(vec1[colPos1] == vec2[colPos1]){
 					if(col2Numeric){
 						return std::stod(vec1[colPos2]) > std::stod(vec2[colPos2]);
@@ -422,7 +422,7 @@ void table::sortTable(const std::string &firstColumn,
 				}
 			});
 	}else{
-		bib::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric](const VecStr & vec1, const VecStr & vec2){
+		njh::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric](const VecStr & vec1, const VecStr & vec2){
 				if(vec1[colPos1] == vec2[colPos1]){
 					if(col2Numeric){
 						return std::stod(vec1[colPos2]) < std::stod(vec2[colPos2]);
@@ -451,7 +451,7 @@ void table::sortTable(const std::string &firstColumn,
 	uint32_t colPos3 = getColPos(thirdColumn);
 	bool col3Numeric = isVecOfDoubleStr(getColumn(thirdColumn));
 	if(decending){
-		bib::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric,&colPos3,&col3Numeric](const VecStr & vec1, const VecStr & vec2){
+		njh::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric,&colPos3,&col3Numeric](const VecStr & vec1, const VecStr & vec2){
 				if(vec1[colPos1] == vec2[colPos1]){
 					if(vec1[colPos2] == vec2[colPos2]){
 						if(col3Numeric){
@@ -475,7 +475,7 @@ void table::sortTable(const std::string &firstColumn,
 				}
 			});
 	}else{
-		bib::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric,&colPos3,&col3Numeric](const VecStr & vec1, const VecStr & vec2){
+		njh::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric,&colPos3,&col3Numeric](const VecStr & vec1, const VecStr & vec2){
 				if(vec1[colPos1] == vec2[colPos1]){
 					if(vec1[colPos2] == vec2[colPos2]){
 						if(col3Numeric){
@@ -513,7 +513,7 @@ void table::sortTable(const std::string &firstColumn,
 	uint32_t colPos4 = getColPos(fourthColumn);
 	bool col4Numeric = isVecOfDoubleStr(getColumn(fourthColumn));
 	if(decending){
-		bib::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric,&colPos3,&col3Numeric,&colPos4,&col4Numeric](const VecStr & vec1, const VecStr & vec2){
+		njh::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric,&colPos3,&col3Numeric,&colPos4,&col4Numeric](const VecStr & vec1, const VecStr & vec2){
 				if(vec1[colPos1] == vec2[colPos1]){
 					if(vec1[colPos2] == vec2[colPos2]){
 						if(vec1[colPos3] == vec2[colPos3]){
@@ -545,7 +545,7 @@ void table::sortTable(const std::string &firstColumn,
 				}
 			});
 	}else{
-		bib::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric,&colPos3,&col3Numeric,&colPos4,&col4Numeric](const VecStr & vec1, const VecStr & vec2){
+		njh::sort(content_,[&colPos1,&col1Numeric,&colPos2,&col2Numeric,&colPos3,&col3Numeric,&colPos4,&col4Numeric](const VecStr & vec1, const VecStr & vec2){
 				if(vec1[colPos1] == vec2[colPos1]){
 					if(vec1[colPos2] == vec2[colPos2]){
 						if(vec1[colPos3] == vec2[colPos3]){
@@ -650,13 +650,13 @@ void table::rbind(const table &otherTable, bool fill) {
   // should add in column name checking
 	bool containsOtherColumns = std::any_of(otherTable.columnNames_.begin(),
 			otherTable.columnNames_.end(), [this](const std::string & col){
-			return !bib::in(col, columnNames_);
+			return !njh::in(col, columnNames_);
 		;});
 	if(containsOtherColumns){
 		if(fill){
 			VecStr missingCols;
 			for(const auto & col : columnNames_){
-				if(!bib::in(col, otherTable.columnNames_)){
+				if(!njh::in(col, otherTable.columnNames_)){
 					missingCols.emplace_back(col);
 				}
 			}
@@ -672,21 +672,21 @@ void table::rbind(const table &otherTable, bool fill) {
 			std::stringstream ss;
 			ss << "Error in : " << __PRETTY_FUNCTION__
 					<< ", adding a table that has contains column names this table doesn't have "<< std::endl;
-			ss << "Other table column names: " << bib::conToStr(otherTable.columnNames_) << std::endl;
-			ss << "This table column names: " << bib::conToStr(columnNames_) << std::endl;
+			ss << "Other table column names: " << njh::conToStr(otherTable.columnNames_) << std::endl;
+			ss << "This table column names: " << njh::conToStr(columnNames_) << std::endl;
 			throw std::runtime_error{ss.str()};
 		}
 	}
 	bool missingColumNmaes = std::any_of(columnNames_.begin(),
 			columnNames_.end(), [&otherTable](const std::string & col){
-			return !bib::in(col, otherTable.columnNames_);
+			return !njh::in(col, otherTable.columnNames_);
 		;});
 	if(missingColumNmaes){
 		if(fill){
 			VecStr containedCols;
 			VecStr missingCols;
 			for(const auto & col : columnNames_){
-				if(bib::in(col, otherTable.columnNames_)){
+				if(njh::in(col, otherTable.columnNames_)){
 					containedCols.emplace_back(col);
 				}else{
 					missingCols.emplace_back(col);
@@ -707,8 +707,8 @@ void table::rbind(const table &otherTable, bool fill) {
 			std::stringstream ss;
 			ss << "Error in : " << __PRETTY_FUNCTION__
 					<< ", adding a table that has doesn't contains column names this table has"<< std::endl;
-			ss << "Other table column names: " << bib::conToStr(otherTable.columnNames_) << std::endl;
-			ss << "This table column names: " << bib::conToStr(columnNames_) << std::endl;
+			ss << "Other table column names: " << njh::conToStr(otherTable.columnNames_) << std::endl;
+			ss << "This table column names: " << njh::conToStr(columnNames_) << std::endl;
 			ss << "Use fill=true if you want to fill these missing columns with a defualt value,"
 					" 0 for numeric columns, blank for string columns" << std::endl;
 			throw std::runtime_error{ss.str()};
@@ -1018,8 +1018,8 @@ std::map<std::string, uint32_t> table::countColumn(
   if (colPos.empty()) {
   	std::stringstream ss;
     ss << "No column named, "
-    		<< bib::bashCT::bold << columnName
-    		<< bib::bashCT::reset << "\n";
+    		<< njh::bashCT::bold << columnName
+    		<< njh::bashCT::reset << "\n";
     ss << "Options are : "; printVector(columnNames_, ", ");
     throw std::runtime_error{ss.str()};
   }
@@ -1062,7 +1062,7 @@ void table::removeEmpty(bool addPadding) {
 		}
 	}
 	if(!emptyPositions.empty()){
-		bib::sort(emptyPositions);
+		njh::sort(emptyPositions);
 		for(const auto & pos : iter::reversed(emptyPositions)){
 			content_.erase(content_.begin() + pos);
 		}
@@ -1088,11 +1088,11 @@ table table::countColumn(const std::vector<uint32_t> & colPositions){
 	}
 	if(!pass){
 		std::stringstream ss;
-		ss << bib::bashCT::red << bib::bashCT::bold
+		ss << njh::bashCT::red << njh::bashCT::bold
 				<< "Error in table::countColumn(const std::vector<uint32_t> & colPositions), out of range error\n"
-				<< bib::bashCT::blue << vectorToString(colPositions, ",")
-				<< bib::bashCT::red << " out of range of " << columnNames_.size()
-				<< bib::bashCT::reset << "\n";
+				<< njh::bashCT::blue << vectorToString(colPositions, ",")
+				<< njh::bashCT::red << " out of range of " << columnNames_.size()
+				<< njh::bashCT::reset << "\n";
 		throw std::runtime_error{ss.str()};
 	}
 	std::map<std::string, uint32_t> counts;
@@ -1140,7 +1140,7 @@ table table::extractNumColGreater(uint32_t colPos, double cutOff)const{
 void table::checkForColumnsThrow(const VecStr & requiredColumns, const std::string & funcName) const{
 	VecStr columnsNotFound;
 	for (const auto & col : requiredColumns) {
-		if (!bib::in(col, columnNames_)) {
+		if (!njh::in(col, columnNames_)) {
 			columnsNotFound.emplace_back(col);
 		}
 	}
@@ -1154,4 +1154,4 @@ void table::checkForColumnsThrow(const VecStr & requiredColumns, const std::stri
 	}
 }
 
-}  // namespace bib
+}  // namespace njh

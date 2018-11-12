@@ -5,32 +5,32 @@
  *      Author: nick
  */
 
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "TableReader.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 TableReader::TableReader(const TableIOOpts & tabOpts): tabOpts_(tabOpts){
 	//inital header reader
-	bib::files::checkExistenceThrow(tabOpts_.in_.inFilename_);
-	std::string currentLine = bib::files::getFirstLine(
+	njh::files::checkExistenceThrow(tabOpts_.in_.inFilename_);
+	std::string currentLine = njh::files::getFirstLine(
 			tabOpts_.in_.inFilename_);
 	auto toks = tokenizeString(currentLine, tabOpts_.inDelim_, true);
 	VecStr columnNames;
@@ -44,7 +44,7 @@ TableReader::TableReader(const TableIOOpts & tabOpts): tabOpts_(tabOpts){
 	header_ = table(columnNames);
 	in_ = std::make_unique<InputStream>(tabOpts_.in_);
 	if(tabOpts_.hasHeader_){
-		bib::files::crossPlatGetline(*in_, currentLine);
+		njh::files::crossPlatGetline(*in_, currentLine);
 	}
 }
 
@@ -52,7 +52,7 @@ TableReader::TableReader(const TableIOOpts & tabOpts): tabOpts_(tabOpts){
 bool TableReader::getNextRow(VecStr & row){
 	std::string currentLine = "";
 	row.clear();
-	if(bib::files::crossPlatGetline(*in_, currentLine)){
+	if(njh::files::crossPlatGetline(*in_, currentLine)){
 		row = tokenizeString(currentLine, tabOpts_.inDelim_, true);
 		if(row.size() != header_.nCol()){
 			std::stringstream ss;
@@ -75,4 +75,4 @@ VecStr TableReader::extractCols(const VecStr & row, const VecStr & cols) const{
 	return ret;
 }
 
-}  // namespace bibseq
+}  // namespace njhseq

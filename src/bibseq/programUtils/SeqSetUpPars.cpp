@@ -5,45 +5,45 @@
  *      Author: nick
  */
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "SeqSetUpPars.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 
 
 Json::Value QualFilteringPars::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(*this);
-	ret["checkingQWindow"] = bib::json::toJson(checkingQWindow);
+	ret["class"] = njh::getTypeName(*this);
+	ret["checkingQWindow"] = njh::json::toJson(checkingQWindow);
 
-	ret["qualWindow_"] = bib::json::toJson(qualWindow_);
-	ret["qualityWindowLength_"] = bib::json::toJson(qualityWindowLength_);
-	ret["qualityWindowStep_"] = bib::json::toJson(qualityWindowStep_);
-	ret["qualityWindowThres_"] = bib::json::toJson(qualityWindowThres_);
-	ret["checkingQFrac_"] = bib::json::toJson(checkingQFrac_);
-	ret["qualCheck_"] = bib::json::toJson(qualCheck_);
-	ret["qualCheckCutOff_"] = bib::json::toJson(qualCheckCutOff_);
-	ret["trimAtQualCutOff_"] = bib::json::toJson(trimAtQualCutOff_);
-	ret["trimAtQual_"] = bib::json::toJson(trimAtQual_);
+	ret["qualWindow_"] = njh::json::toJson(qualWindow_);
+	ret["qualityWindowLength_"] = njh::json::toJson(qualityWindowLength_);
+	ret["qualityWindowStep_"] = njh::json::toJson(qualityWindowStep_);
+	ret["qualityWindowThres_"] = njh::json::toJson(qualityWindowThres_);
+	ret["checkingQFrac_"] = njh::json::toJson(checkingQFrac_);
+	ret["qualCheck_"] = njh::json::toJson(qualCheck_);
+	ret["qualCheckCutOff_"] = njh::json::toJson(qualCheckCutOff_);
+	ret["trimAtQualCutOff_"] = njh::json::toJson(trimAtQualCutOff_);
+	ret["trimAtQual_"] = njh::json::toJson(trimAtQual_);
 
 	return ret;
 }
@@ -166,4 +166,4 @@ void SeqSetUpPars::initializeDefaults() {
 
 }
 
-}  // namespace bibseq
+}  // namespace njhseq

@@ -4,62 +4,62 @@
  *  Created on: Sep 13, 2016
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
 
 #include "AllGroupDataPaths.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 AllGroupDataPaths::GroupDataPaths::SubGroupDataPaths::SubGroupDataPaths(
 		const bfs::path & mainDir) :
 		mainDir_(mainDir), popFileFnp_(
-				bib::files::make_path(mainDir, "popFile.tab.txt")), sampFileFnp_(
-				bib::files::make_path(mainDir, "sampFile.tab.txt")),
-				hapIdTabFnp_(bib::files::make_path(mainDir, "hapIdTable.tab.txt")),
+				njh::files::make_path(mainDir, "popFile.tab.txt")), sampFileFnp_(
+				njh::files::make_path(mainDir, "sampFile.tab.txt")),
+				hapIdTabFnp_(njh::files::make_path(mainDir, "hapIdTable.tab.txt")),
 				subGroupNamesDataFnp_(
-				bib::files::make_path(mainDir, "subGroupNamesData.json")) {
+				njh::files::make_path(mainDir, "subGroupNamesData.json")) {
 }
 
 
 
 Json::Value AllGroupDataPaths::GroupDataPaths::SubGroupDataPaths::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(*this);
-	ret["mainDir_"] = bib::json::toJson(mainDir_);
-	ret["popFileFnp_"] = bib::json::toJson(popFileFnp_);
-	ret["sampFileFnp_"] = bib::json::toJson(sampFileFnp_);
-	ret["subGroupNamesDataFnp_"] = bib::json::toJson(subGroupNamesDataFnp_);
+	ret["class"] = njh::getTypeName(*this);
+	ret["mainDir_"] = njh::json::toJson(mainDir_);
+	ret["popFileFnp_"] = njh::json::toJson(popFileFnp_);
+	ret["sampFileFnp_"] = njh::json::toJson(sampFileFnp_);
+	ret["subGroupNamesDataFnp_"] = njh::json::toJson(subGroupNamesDataFnp_);
 	return ret;
 }
 
 VecStr AllGroupDataPaths::GroupDataPaths::SubGroupDataPaths::readInPopUIDs() const {
-	auto meta = bib::json::parseFile(subGroupNamesDataFnp_.string());
-	return bib::json::jsonArrayToVec<std::string>(meta["popUIDs"],
+	auto meta = njh::json::parseFile(subGroupNamesDataFnp_.string());
+	return njh::json::jsonArrayToVec<std::string>(meta["popUIDs"],
 			[](const Json::Value & val) {return val.asString();});
 }
 
 VecStr AllGroupDataPaths::GroupDataPaths::SubGroupDataPaths::readInSampNames() const {
-	auto meta = bib::json::parseFile(subGroupNamesDataFnp_.string());
-	return bib::json::jsonArrayToVec<std::string>(meta["sampNames"],
+	auto meta = njh::json::parseFile(subGroupNamesDataFnp_.string());
+	return njh::json::jsonArrayToVec<std::string>(meta["sampNames"],
 			[](const Json::Value & val) {return val.asString();});
 }
 
@@ -67,18 +67,18 @@ VecStr AllGroupDataPaths::GroupDataPaths::SubGroupDataPaths::readInSampNames() c
 AllGroupDataPaths::GroupDataPaths::GroupDataPaths(const bfs::path & mainDir,
 		const std::set<std::string> & subGroups) :
 		mainDir_(mainDir), groupInfoFnp_(
-				bib::files::make_path(mainDir, "groupInfo.tab.txt")) {
+				njh::files::make_path(mainDir, "groupInfo.tab.txt")) {
 	for (const auto & group : subGroups) {
-		groupPaths_.emplace(group, bib::files::make_path(mainDir_, group));
+		groupPaths_.emplace(group, njh::files::make_path(mainDir_, group));
 	}
 }
 
 Json::Value AllGroupDataPaths::GroupDataPaths::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(*this);
-	ret["mainDir_"] = bib::json::toJson(mainDir_);
-	ret["groupInfoFnp_"] = bib::json::toJson(groupInfoFnp_);
-	ret["groupPaths_"] = bib::json::toJson(groupPaths_);
+	ret["class"] = njh::getTypeName(*this);
+	ret["mainDir_"] = njh::json::toJson(mainDir_);
+	ret["groupInfoFnp_"] = njh::json::toJson(groupInfoFnp_);
+	ret["groupPaths_"] = njh::json::toJson(groupPaths_);
 
 	return ret;
 }
@@ -94,16 +94,16 @@ AllGroupDataPaths::AllGroupDataPaths(const bfs::path & mainDir,
 
 	for (const auto & group : groupMetaData->groupData_) {
 		allGroupPaths_.emplace(group.first,
-				GroupDataPaths(bib::files::make_path(mainDir, group.first),
+				GroupDataPaths(njh::files::make_path(mainDir, group.first),
 						group.second->subGroupsLevels_));
 	}
 }
 
 Json::Value AllGroupDataPaths::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::getTypeName(*this);
-	ret["mainDir_"] = bib::json::toJson(mainDir_);
-	ret["allGroupPaths_"] = bib::json::toJson(allGroupPaths_);
+	ret["class"] = njh::getTypeName(*this);
+	ret["mainDir_"] = njh::json::toJson(mainDir_);
+	ret["allGroupPaths_"] = njh::json::toJson(allGroupPaths_);
 
 	return ret;
 }
@@ -111,4 +111,4 @@ Json::Value AllGroupDataPaths::toJson() const{
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq

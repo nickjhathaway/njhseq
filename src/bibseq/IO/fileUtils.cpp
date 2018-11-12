@@ -1,36 +1,36 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "fileUtils.hpp"
-#include "bibseq/utils/utils.hpp"
-#include "bibseq/utils/stringUtils.hpp"
-#include <bibcpp/files/fileUtilities.hpp>
-#include "bibseq/IO/InputStream.hpp"
+#include "njhseq/utils/utils.hpp"
+#include "njhseq/utils/stringUtils.hpp"
+#include <njhcpp/files/fileUtilities.hpp>
+#include "njhseq/IO/InputStream.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 VecStr getNewestDirs(const std::string & dirName, const std::string & con){
   VecStr ret;
-  auto dirs = bib::files::listAllFiles(dirName, false, {con});
+  auto dirs = njh::files::listAllFiles(dirName, false, {con});
 
-  std::map<std::string, std::map<std::string,bib::files::bfs::path>> filesByTime;
+  std::map<std::string, std::map<std::string,njh::files::bfs::path>> filesByTime;
   for(const auto & d : dirs){
   	if(d.second){
   		auto toks = tokenizeString(d.first.string(), "/");
@@ -108,7 +108,7 @@ std::map<std::string, std::pair<std::string, bool>> listFilesInDir(
 void openTextFile(std::ofstream &file, bfs::path filename,
                   std::string fileExtention, bool overWrite,
                   bool exitOnFailure) {
-  bib::files::openTextFile(file, filename, fileExtention, overWrite, false, exitOnFailure);
+  njh::files::openTextFile(file, filename, fileExtention, overWrite, false, exitOnFailure);
 }
 
 void openTextFile(std::ofstream &file, bfs::path filename,
@@ -125,7 +125,7 @@ void openTextFile(std::ofstream &file, bfs::path filename,
 
 void openTextFile(std::ofstream &file, const OutOptions & options) {
 
-	bib::files::openTextFile(file, options.outName().string(), options.overWriteFile_,
+	njh::files::openTextFile(file, options.outName().string(), options.overWriteFile_,
 			options.append_, options.exitOnFailureToWrite_);
 }
 
@@ -309,7 +309,7 @@ std::string cleanOut(const std::string &in, uint32_t width,
 
 void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & outopts){
 	//std::cout << outopts.toJson() << std::endl;
-	bib::OutputStream outFile(outopts);
+	njh::OutputStream outFile(outopts);
 //	std::ofstream outFile("hapsForTorrevib-300-pairedEnd-targets/Pf3D7_03_v3-221289-221709-for/finalOutput.fasta");
 	//outopts.openBinaryFile(outFile);
 	//check files
@@ -341,8 +341,8 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 		//check file size because rdbuf() from an empty no good file causes the bad bit to be set for the outfile and nothing afterwards getting written
 		if (0 != bfs::file_size(fnp)) {
 			//std::ifstream inFile(fnp.string(), std::ios::in | std::ios::binary);
-//			fileContents << bib::files::get_file_contents(fnp, false);
-//			outFile << bib::files::get_file_contents(fnp, false);
+//			fileContents << njh::files::get_file_contents(fnp, false);
+//			outFile << njh::files::get_file_contents(fnp, false);
 			InputStream in(fnp);
 //		std::cout << fnp << " isGood: " << in.good() << std::endl;
 //		std::cout << fnp << " peeking: " << in.peek() << std::endl;
@@ -361,4 +361,4 @@ void concatenateFiles(const std::vector<bfs::path> & fnps, const OutOptions & ou
 }
 
 
-}  // namespace bib
+}  // namespace njh

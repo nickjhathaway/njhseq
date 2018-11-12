@@ -10,4 +10,4 @@
 
 
 
-#include "bibseq/objects/BioDataObject/parsers/STOCKHOLMFileParser.hpp"
+#include "njhseq/objects/BioDataObject/parsers/STOCKHOLMFileParser.hpp"

@@ -5,29 +5,29 @@
  *  Created on: Apr 29, 2017
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "bibseq/seqToolsUtils/seqToolsUtils.hpp"
-#include "bibseq/objects/BioDataObject/GenomicRegion.hpp"
+#include "njhseq/seqToolsUtils/seqToolsUtils.hpp"
+#include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 /**@brief wrapper class to hold bam alignment record and the sequences from both the reference and the alignment and comparison of the two
@@ -87,7 +87,7 @@ public:
  * @param bamFnp the bam file to extract from, can be unsorted and unidexed
  * @param twoBitFnp the twobit file that the sequence was aligned to so the ref seq can be acquired
  * @param allowableErrors the number of errors to allow
- * @return a vector of bibseq::AlignmentResults shared pointers that passed the threshold and that mapped
+ * @return a vector of njhseq::AlignmentResults shared pointers that passed the threshold and that mapped
  */
 std::vector<std::shared_ptr<AlignmentResults>> gatherMapResults(
 		const bfs::path & bamFnp, const bfs::path & twoBitFnp,
@@ -99,7 +99,7 @@ std::vector<std::shared_ptr<AlignmentResults>> gatherMapResults(
  *
  * @param bamFnp the bam file to extract from, can be unsorted and unidexed
  * @param twoBitFnp the twobit file that the sequence was aligned to so the ref seq can be acquired
- * @return a vector of bibseq::AlignmentResults shared pointers that at least ampped
+ * @return a vector of njhseq::AlignmentResults shared pointers that at least ampped
  */
 std::vector<std::shared_ptr<AlignmentResults>> gatherMapResults(
 		const bfs::path & bamFnp, const bfs::path & twoBitFnp);
@@ -113,5 +113,5 @@ std::vector<std::shared_ptr<AlignmentResults>> getUniqueLocationResults(
 		std::vector<std::shared_ptr<AlignmentResults>> & alnResults);
 
 
-} /* namespace bibseq */
+} /* namespace njhseq */
 

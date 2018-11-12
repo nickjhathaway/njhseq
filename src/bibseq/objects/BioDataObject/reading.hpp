@@ -1,22 +1,22 @@
 #pragma once
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * reading.hpp
@@ -25,18 +25,18 @@
  *      Author: nick
  */
 
-#include "bibseq/objects/BioDataObject/BedRecordCore.hpp"
-#include "bibseq/objects/BioDataObject/GFFCore.hpp"
-#include "bibseq/objects/BioDataObject/RefSeqGeneRecord.hpp"
-#include "bibseq/objects/BioDataObject/RepeatMaskerRecord.hpp"
-#include "bibseq/objects/BioDataObject/GenomicRegion.hpp"
+#include "njhseq/objects/BioDataObject/BedRecordCore.hpp"
+#include "njhseq/objects/BioDataObject/GFFCore.hpp"
+#include "njhseq/objects/BioDataObject/RefSeqGeneRecord.hpp"
+#include "njhseq/objects/BioDataObject/RepeatMaskerRecord.hpp"
+#include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 
-#include "bibseq/objects/BioDataObject/swisProt.hpp"
-#include "bibseq/objects/BioDataObject/TandemRepeatFinderRecord.hpp"
-#include "bibseq/objects/BioDataObject/BioDataFileIO.hpp"
+#include "njhseq/objects/BioDataObject/swisProt.hpp"
+#include "njhseq/objects/BioDataObject/TandemRepeatFinderRecord.hpp"
+#include "njhseq/objects/BioDataObject/BioDataFileIO.hpp"
 
 
-namespace bibseq {
+namespace njhseq {
 std::vector<std::shared_ptr<GFFCore>> getGFFs(const bfs::path & filename);
 
 std::vector<std::shared_ptr<Bed6RecordCore>> getBeds(const bfs::path & filename);
@@ -92,7 +92,7 @@ Json::Value intersectBedLocsWtihGffRecords(
 		bedsByChrome[getRef(beds[bPos]).chrom_].emplace_back(bPos);
 	}
 	while (nullptr != gRecord) {
-		if (pars.selectFeatures_.empty() || bib::in(gRecord->type_, pars.selectFeatures_)) {
+		if (pars.selectFeatures_.empty() || njh::in(gRecord->type_, pars.selectFeatures_)) {
 			auto gRegion = GenomicRegion(*gRecord);
 			for (auto & inputRegionPos : bedsByChrome[gRegion.chrom_]) {
 
@@ -124,11 +124,11 @@ Json::Value intersectBedLocsWtihGffRecords(
 		}
 		bool end = false;
 		while ('#' == reader.inFile_->peek()) {
-			if (bib::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+			if (njh::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
 				end = true;
 				break;
 			}
-			bib::files::crossPlatGetline(*reader.inFile_, line);
+			njh::files::crossPlatGetline(*reader.inFile_, line);
 		}
 		if (end) {
 			break;
@@ -141,5 +141,5 @@ Json::Value intersectBedLocsWtihGffRecords(
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 

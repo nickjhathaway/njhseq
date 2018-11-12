@@ -6,29 +6,29 @@
  *      Author: nickhathaway
  */
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/objects/dataContainers/graphs/graphsCommon.hpp"
+#include "njhseq/objects/dataContainers/graphs/graphsCommon.hpp"
 
 
 
-namespace bibseq {
+namespace njhseq {
 /**@brief
  *
  * @todo need to go through and make sure checks for if edges and nodes are on for all functions
@@ -452,7 +452,7 @@ public:
 	}
 
 	void addNode(const std::string & uid, const VALUE & value){
-		if(bib::in(uid, nameToNodePos_)){
+		if(njh::in(uid, nameToNodePos_)){
 			throw std::runtime_error{std::string(__PRETTY_FUNCTION__) + ": already contains node with uid: " + uid + ", can't have duplicate names"};
 		}
 		nameToNodePos_[uid] = nodes_.size();
@@ -771,13 +771,13 @@ public:
 	  		largeGroups.emplace(n->group_);
 	  	}
 	  }
-	  std::unordered_map<uint32_t, bib::color> gColors;
+	  std::unordered_map<uint32_t, njh::color> gColors;
 	  uint32_t groupsAboveCutOff = largeGroups.size();
-	  std::vector<bib::color> groupColors;
+	  std::vector<njh::color> groupColors;
 	  if(groupsAboveCutOff > 1){
-	  	groupColors = bib::getColsBetweenInc(0, 360 - 360.0/groupsAboveCutOff, 0.5, 0.5, 1,1, groupsAboveCutOff);
+	  	groupColors = njh::getColsBetweenInc(0, 360 - 360.0/groupsAboveCutOff, 0.5, 0.5, 1,1, groupsAboveCutOff);
 	  }else{
-	  	groupColors = {bib::color{"#FF0000"}};
+	  	groupColors = {njh::color{"#FF0000"}};
 	  }
 	  for(auto e : iter::enumerate(largeGroups)){
 	  	gColors[e.element] = groupColors[e.index];
@@ -788,13 +788,13 @@ public:
 	  		nameToNewPos[n->name_] = pos;
 	  		++pos;
 		  	//std::cout << n->name_ << " : " << n->group_  << " : " << n->value_ << std::endl;
-		  	nodes[nCount]["name"] = bib::json::toJson(n->name_);
-		  	nodes[nCount]["group"] = bib::json::toJson(n->group_);
-		  	nodes[nCount]["corePoint"] = bib::json::toJson(n->corePoint_);
-		  	if(nameToColor.empty() || !bib::in(nameToColor[n->name_], nameToColor)){
-		  		nodes[nCount]["color"] = bib::json::toJson(gColors[n->group_].getHexStr());
+		  	nodes[nCount]["name"] = njh::json::toJson(n->name_);
+		  	nodes[nCount]["group"] = njh::json::toJson(n->group_);
+		  	nodes[nCount]["corePoint"] = njh::json::toJson(n->corePoint_);
+		  	if(nameToColor.empty() || !njh::in(nameToColor[n->name_], nameToColor)){
+		  		nodes[nCount]["color"] = njh::json::toJson(gColors[n->group_].getHexStr());
 		  	}else{
-		  		nodes[nCount]["color"] = bib::json::toJson(nameToColor[n->name_]);
+		  		nodes[nCount]["color"] = njh::json::toJson(nameToColor[n->name_]);
 		  	}
 		  	nodes[nCount]["size"]  = 30 ;
 		  	++nCount;
@@ -804,14 +804,14 @@ public:
 		for(const auto & e : edges_){
 			if(e->on_){
 				if(groupCounts[e->nodeToNode_.begin()->second.lock()->group_] >= groupSizeCutOff){
-					links[lCount]["source"] = bib::json::toJson(nameToNewPos[nodes_[nameToNodePos_[e->nodeToNode_.begin()->first]]->name_]);
-					links[lCount]["target"] = bib::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
-					links[lCount]["value"] = bib::json::toJson(e->dist_);
-					links[lCount]["on"] = bib::json::toJson(e->on_);
-			  	if(nameToColor.empty() || !bib::in(e->nodeToNode_.begin()->second.lock()->name_, nameToColor)){
-			  		links[lCount]["color"] = bib::json::toJson(gColors[e->nodeToNode_.begin()->second.lock()->group_].getHexStr());
+					links[lCount]["source"] = njh::json::toJson(nameToNewPos[nodes_[nameToNodePos_[e->nodeToNode_.begin()->first]]->name_]);
+					links[lCount]["target"] = njh::json::toJson(nameToNewPos[e->nodeToNode_.begin()->second.lock()->name_]);
+					links[lCount]["value"] = njh::json::toJson(e->dist_);
+					links[lCount]["on"] = njh::json::toJson(e->on_);
+			  	if(nameToColor.empty() || !njh::in(e->nodeToNode_.begin()->second.lock()->name_, nameToColor)){
+			  		links[lCount]["color"] = njh::json::toJson(gColors[e->nodeToNode_.begin()->second.lock()->group_].getHexStr());
 			  	}else{
-			  		links[lCount]["color"] = bib::json::toJson(nameToColor[e->nodeToNode_.begin()->second.lock()->name_]);
+			  		links[lCount]["color"] = njh::json::toJson(nameToColor[e->nodeToNode_.begin()->second.lock()->name_]);
 			  	}
 					++lCount;
 				}
@@ -849,4 +849,4 @@ public:
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq

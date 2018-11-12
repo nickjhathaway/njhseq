@@ -4,28 +4,28 @@
  *  Created on: May 6, 2016
  *      Author: nick
  */
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "CollapseIterations.hpp"
-#include "bibseq/objects/dataContainers/tables/table.hpp"
+#include "njhseq/objects/dataContainers/tables/table.hpp"
 
-namespace bibseq {
+namespace njhseq {
 CollapseIterations::CollapseIterations(const CollapseIterations& other) :
 		iters_(other.iters_), onPerId_(other.onPerId_) {
 	//std::cout << "copy constructor of CollapseIterations\n";
@@ -86,7 +86,7 @@ CollapseIterations::CollapseIterations(const std::string & parametersFilename,
 					tempVect.emplace_back(std::stod(row[colPos]));
 				}else{
 					std::stringstream ss;
-					ss << __PRETTY_FUNCTION__ <<", error in parsing " << parametersFilename << " on row: " << bib::conToStr(row, ":") << "\n";
+					ss << __PRETTY_FUNCTION__ <<", error in parsing " << parametersFilename << " on row: " << njh::conToStr(row, ":") << "\n";
 					ss << "Couldn't convert " << row[colPos] << " into a number" << '\n';
 					throw std::runtime_error{ss.str()};
 				}
@@ -117,10 +117,10 @@ void CollapseIterations::addIteration(uint32_t iterNum, std::vector<double> pars
 }
 
 void CollapseIterations::addIteration(uint32_t iterNum, const IterPar & par) {
-	if (bib::in(iterNum, iters_)) {
+	if (njh::in(iterNum, iters_)) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << " : " << "Iteration number: "
-				<< bib::bashCT::boldRed(estd::to_string(iterNum))
+				<< njh::bashCT::boldRed(estd::to_string(iterNum))
 				<< " already in iterations ";
 		throw std::runtime_error { ss.str() };
 	}
@@ -499,5 +499,5 @@ CollapseIterations CollapseIterations::genOtu99(uint32_t stopCheck, bool onHqPer
 
 
 
-}  // namespace bibseq
+}  // namespace njhseq
 

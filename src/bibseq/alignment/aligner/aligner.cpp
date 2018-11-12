@@ -1,27 +1,27 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "bibseq/alignment/aligner/alignCalc.hpp"
+#include "njhseq/alignment/aligner/alignCalc.hpp"
 #include "aligner.hpp"
-#include "bibseq/helpers/seqUtil.hpp"
+#include "njhseq/helpers/seqUtil.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 
 void aligner::resetAlnCache(){
@@ -1421,7 +1421,7 @@ void aligner::noAlignSetAndScore(const seqInfo& objectA,
 void aligner::processAlnInfoInputNoCheck(const std::string& alnInfoDirName, bool verbose){
 	//std::cout << __FILE__ << ' '<< __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	if (alnInfoDirName != "") {
-		if(bib::files::bfs::exists(alnInfoDirName)){
+		if(njh::files::bfs::exists(alnInfoDirName)){
 			//std::cout << __FILE__ << ' '<< __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			alnHolder_.read(alnInfoDirName, verbose);
 		}
@@ -1430,8 +1430,8 @@ void aligner::processAlnInfoInputNoCheck(const std::string& alnInfoDirName, bool
 
 void aligner::processAlnInfoOutputNoCheck(const std::string& outAlnInfoDirName, bool verbose){
 	if ("" != outAlnInfoDirName) {
-		if(!bib::files::bfs::exists(outAlnInfoDirName)){
-			bib::files::makeDir(bib::files::MkdirPar(outAlnInfoDirName));
+		if(!njh::files::bfs::exists(outAlnInfoDirName)){
+			njh::files::makeDir(njh::files::MkdirPar(outAlnInfoDirName));
 		}
 		alnHolder_.write(outAlnInfoDirName, verbose);
 	}
@@ -1440,7 +1440,7 @@ void aligner::processAlnInfoOutputNoCheck(const std::string& outAlnInfoDirName, 
 void aligner::processAlnInfoInput(const std::string& alnInfoDirName, bool verbose) {
 	if (alnInfoDirName != "") {
 		alignment::alnCacheDirSearchLock.lock();
-		auto fullPath = bib::files::normalize(alnInfoDirName).string();
+		auto fullPath = njh::files::normalize(alnInfoDirName).string();
 		auto search = alignment::alnCacheDirLocks.find(fullPath);
 		if (search == alignment::alnCacheDirLocks.end()) {
 			alignment::alnCacheDirLocks.emplace(fullPath, std::make_unique<std::shared_timed_mutex>());
@@ -1457,7 +1457,7 @@ void aligner::processAlnInfoInput(const std::string& alnInfoDirName, bool verbos
 void aligner::processAlnInfoOutput(const std::string& outAlnInfoDirName, bool verbose) {
 	if (outAlnInfoDirName != "") {
 		alignment::alnCacheDirSearchLock.lock();
-		auto fullPath = bib::files::normalize(outAlnInfoDirName).string();
+		auto fullPath = njh::files::normalize(outAlnInfoDirName).string();
 		auto search = alignment::alnCacheDirLocks.find(fullPath);
 		if (search == alignment::alnCacheDirLocks.end()) {
 			alignment::alnCacheDirLocks.emplace(fullPath, std::make_unique<std::shared_timed_mutex>());
@@ -1482,4 +1482,4 @@ void aligner::setGeneralScorring(int32_t generalMatch, int32_t generalMismatch){
 }
 
 
-}  // namespace bib
+}  // namespace njh

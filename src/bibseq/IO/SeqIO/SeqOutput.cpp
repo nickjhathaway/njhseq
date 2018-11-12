@@ -1,21 +1,21 @@
 //
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 /*
  * SeqOutput.cpp
@@ -26,9 +26,9 @@
 
 
 #include "SeqOutput.hpp"
-#include <bibcpp/bashUtils.h>
-#include "bibseq/IO/fileUtils.hpp"
-namespace bibseq {
+#include <njhcpp/bashUtils.h>
+#include "njhseq/IO/fileUtils.hpp"
+namespace njhseq {
 SeqOutput::SeqOutput(const SeqIOOptions & options) :
 				ioOptions_(options) {}
 
@@ -47,7 +47,7 @@ void SeqOutput::openOut() {
 				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
 				break;
 			case SeqIOOptions::outFormats::FASTAGZ:
-				if(!bib::endsWith(prim_outOpts.outExtention_, ".gz")){
+				if(!njh::endsWith(prim_outOpts.outExtention_, ".gz")){
 					prim_outOpts.outExtention_.append(".gz");
 				}
 				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
@@ -62,7 +62,7 @@ void SeqOutput::openOut() {
 				if("" == prim_outOpts.outExtention_){
 					prim_outOpts.outExtention_ = ".fastq.gz";
 				}
-				if(!bib::endsWith(prim_outOpts.outExtention_, ".gz")){
+				if(!njh::endsWith(prim_outOpts.outExtention_, ".gz")){
 					prim_outOpts.outExtention_.append(".gz");
 				}
 				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
@@ -140,7 +140,7 @@ void SeqOutput::writeNoCheck(const seqInfo & read) {
 		read.outPutQual(*secondaryOut_);
 		break;
 	default:
-		throw std::runtime_error { bib::bashCT::boldRed(
+		throw std::runtime_error { njh::bashCT::boldRed(
 				"in " + std::string(__PRETTY_FUNCTION__)
 						+ " : unrecognized out format case") };
 		break;
@@ -248,4 +248,4 @@ bfs::path SeqOutput::getSecondaryOutFnp() const{
 
 }
 
-}  // namespace bibseq
+}  // namespace njhseq

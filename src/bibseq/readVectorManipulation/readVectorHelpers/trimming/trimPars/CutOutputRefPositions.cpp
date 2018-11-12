@@ -5,40 +5,40 @@
  *      Author: nick
  */
 
-// bibseq - A library for analyzing sequence data
+// njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
-// This file is part of bibseq.
+// This file is part of njhseq.
 //
-// bibseq is free software: you can redistribute it and/or modify
+// njhseq is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// bibseq is distributed in the hope that it will be useful,
+// njhseq is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with bibseq.  If not, see <http://www.gnu.org/licenses/>.
+// along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "CutOutputRefPositions.hpp"
 
-namespace bibseq {
+namespace njhseq {
 
 Json::Value CutOutputRefPositions::toJson() const{
 	Json::Value ret;
-	ret["class"] = bib::json::toJson(bib::getTypeName(*this));
-	ret["name_"] = bib::json::toJson(name_);
-	ret["refStart_"] = bib::json::toJson(refStart_);
-	ret["refStartLength_"] = bib::json::toJson(refStartLength_);
-	ret["refStop_"] = bib::json::toJson(refStop_);
-	ret["refStopLength_"] = bib::json::toJson(refStopLength_);
-	ret["refStartStr_"] = bib::json::toJson(bib::pasteAsStr(refStart_, ":", refStartLength_));
-	ret["refStopStr_"] = bib::json::toJson(bib::pasteAsStr(refStop_, ":", refStopLength_));
-	ret["checkComp_"] = bib::json::toJson(checkComp_);
-	ret["comp_"] = bib::json::toJson(comp_);
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["name_"] = njh::json::toJson(name_);
+	ret["refStart_"] = njh::json::toJson(refStart_);
+	ret["refStartLength_"] = njh::json::toJson(refStartLength_);
+	ret["refStop_"] = njh::json::toJson(refStop_);
+	ret["refStopLength_"] = njh::json::toJson(refStopLength_);
+	ret["refStartStr_"] = njh::json::toJson(njh::pasteAsStr(refStart_, ":", refStartLength_));
+	ret["refStopStr_"] = njh::json::toJson(njh::pasteAsStr(refStop_, ":", refStopLength_));
+	ret["checkComp_"] = njh::json::toJson(checkComp_);
+	ret["comp_"] = njh::json::toJson(comp_);
 	return ret;
 }
 
@@ -46,7 +46,7 @@ std::vector<CutOutputRefPositions> CutOutputRefPositions::readInPositions(
 		const bfs::path & positionsJsonFnp) {
 	std::vector<CutOutputRefPositions> ret;
 
-	auto refPositionsJson = bib::json::parseFile(positionsJsonFnp.string());
+	auto refPositionsJson = njh::json::parseFile(positionsJsonFnp.string());
 	if (!refPositionsJson.isArray()) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error, expected " << positionsJsonFnp
@@ -174,12 +174,12 @@ void CutOutputRefPositions::setPositions(CutOutputRefPositions & refPositions,
 						<< ", error, should be two numbers separated by a colon, not "
 						<< refPositions.refStopStr_ << ", for --refStop" << "\n";
 			}
-			refPositions.refStop_ = bib::StrToNumConverter::stoToNum<uint32_t>(
+			refPositions.refStop_ = njh::StrToNumConverter::stoToNum<uint32_t>(
 					toks[0]);
-			refPositions.refStopLength_ = bib::StrToNumConverter::stoToNum<uint32_t>(
+			refPositions.refStopLength_ = njh::StrToNumConverter::stoToNum<uint32_t>(
 					toks[1]);
 		} else {
-			refPositions.refStop_ = bib::StrToNumConverter::stoToNum<uint32_t>(
+			refPositions.refStop_ = njh::StrToNumConverter::stoToNum<uint32_t>(
 					refPositions.refStopStr_);
 		}
 	}
@@ -192,12 +192,12 @@ void CutOutputRefPositions::setPositions(CutOutputRefPositions & refPositions,
 						<< ", error, should be two numbers separated by a colon, not "
 						<< refPositions.refStartStr_ << ", for --refStart" << "\n";
 			}
-			refPositions.refStart_ = bib::StrToNumConverter::stoToNum<uint32_t>(
+			refPositions.refStart_ = njh::StrToNumConverter::stoToNum<uint32_t>(
 					toks[0]);
-			refPositions.refStartLength_ = bib::StrToNumConverter::stoToNum<uint32_t>(
+			refPositions.refStartLength_ = njh::StrToNumConverter::stoToNum<uint32_t>(
 					toks[1]);
 		} else {
-			refPositions.refStart_ = bib::StrToNumConverter::stoToNum<uint32_t>(
+			refPositions.refStart_ = njh::StrToNumConverter::stoToNum<uint32_t>(
 					refPositions.refStartStr_);
 		}
 	}
@@ -205,10 +205,10 @@ void CutOutputRefPositions::setPositions(CutOutputRefPositions & refPositions,
 }
 
 std::string CutOutputRefPositions::getId() const{
-	return bib::pasteAsStr(refStart_, ":", refStartLength_, "-", refStop_, ":", refStopLength_);
+	return njh::pasteAsStr(refStart_, ":", refStartLength_, "-", refStop_, ":", refStopLength_);
 }
 
-}  // namespace bibseq
+}  // namespace njhseq
 
 
 
