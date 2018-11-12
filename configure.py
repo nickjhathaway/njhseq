@@ -6,7 +6,7 @@ sys.path.append("scripts/setUpScripts")
 from utils import Utils
 from genFuncs import genHelper
 def main():
-    name = "bibseq"
+    name = "njhseq"
     #libs = "bamtools:develop,bibcpp:develop,armadillo:8.200.0"
     libs = "TwoBit:develop,bamtools:develop"
     args = genHelper.parseNjhConfigureArgs()
