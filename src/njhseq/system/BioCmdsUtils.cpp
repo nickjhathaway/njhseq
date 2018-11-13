@@ -428,7 +428,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 					if(bfs::exists(checkFileBarcodes)){
 						bfs::remove(checkFileBarcodes);
 					}
-					bfs::copy(currentBarcodeFnp, checkFileBarcodes);
+					bfs::copy_file(currentBarcodeFnp, checkFileBarcodes);
 				}
 			}
 			IoOptions firstMateIoOpts { InOptions(orgFirstMateFnp), OutOptions(
