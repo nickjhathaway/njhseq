@@ -305,7 +305,7 @@ void SeqInput::openIn() {
 			failedToOpen = true;
 		}
 	};
-	readerFunc_ = [this](seqInfo & seq) {
+	readerFunc_ = [](seqInfo & seq) {
 		std::stringstream ss;
 		ss << "Error in seqInput, readerFunc_ not set" << "\n";
 		throw std::runtime_error{ss.str()};
