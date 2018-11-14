@@ -248,6 +248,9 @@ MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
 	std::string line = "";
 
 	while (njh::files::crossPlatGetline(idFile, line)) {
+		if (njh::beginsWith(line, "#") || njh::allWhiteSpaceStr(line)) {
+			continue;
+		}
 		auto lowerLine = njh::strToLowerRet(line);
 		auto lowerLineToks = njh::tokenizeString(lowerLine, "whitespace");
 
