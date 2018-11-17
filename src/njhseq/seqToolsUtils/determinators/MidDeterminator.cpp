@@ -267,7 +267,7 @@ MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ": error in id file "
 						<< njh::bashCT::boldRed(idFileFnp.string())
-						<< "primer line should contain 3 items not " << toks.size() << "\n";
+						<< " primer line should contain 3 items not " << toks.size() << "\n";
 				ss << "line: " << line << "\n";
 				throw std::runtime_error { ss.str() };
 			}
@@ -282,7 +282,7 @@ MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ": error in id file "
 						<< njh::bashCT::boldRed(idFileFnp.string())
-						<< "barcode line should contain 2 items not " << toks.size()
+						<< " barcode line should contain 2 items not " << toks.size()
 						<< "\n";
 				ss << "line: " << line << "\n";
 				throw std::runtime_error { ss.str() };
