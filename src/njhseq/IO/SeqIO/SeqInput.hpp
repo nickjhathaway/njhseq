@@ -61,6 +61,9 @@ public:
 	bool readNextRead(seqInfo & read);
 	bool readNextRead(PairedRead & read);
 
+	bool readNextReadLock(seqInfo & read);
+	bool readNextReadLock(PairedRead & read);
+
 
 
 	template<typename T>
@@ -129,10 +132,17 @@ public:
 	size_t tellgSec();
 	void seekgSec(size_t pos);
 
-	bool inOpen() const;
+	bool inOpen();
+	bool inOpenLockFree() const;
+
 	void openIn();
+	void openInLockFree();
+
 	void closeIn();
+	void closeInLockFree();
+
 	void reOpenIn();
+	void reOpenInLockFree();
 
 	std::mutex mut_;
 	std::unique_ptr<sffObject> lastSffRead_;
