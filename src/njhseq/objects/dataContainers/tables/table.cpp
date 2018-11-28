@@ -760,6 +760,7 @@ table table::getColumnsMatchingPattern(const std::regex & pattern) const {
 	std::vector<uint32_t> positions = getPositionsMatchingPattern(columnNames_,
 			pattern);
 	if (positions.size() == 0) {
+    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that matched pattern" << "\n";
 		return table();
 	} else {
 		return getColumns(positions);
@@ -770,10 +771,94 @@ table table::getColumnsContainingPattern(const std::regex & pattern) const {
 	std::vector<uint32_t> positions = getPositionsContainingPattern(columnNames_,
 			pattern);
 	if (positions.size() == 0) {
+    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that contain pattern" << "\n";
+
 		return table();
 	} else {
 		return getColumns(positions);
 	}
+}
+
+table table::getColumnsStartWith(const std::string &startsWith) const{
+  std::vector<uint32_t> positions =
+      getPositionsOfTargetStartsWith(columnNames_, startsWith);
+  if (positions.size() == 0) {
+    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that started with: " << startsWith
+              << " returning the whole table" << "\n";
+    return table();
+  } else {
+    return getColumns(positions);
+  }
+}
+
+table table::getColumnsNotMatchingPattern(const std::regex & pattern) const {
+	std::vector<uint32_t> positions = getPositionsMatchingPattern(columnNames_,
+			pattern);
+	if (positions.size() == columnNames_.size()) {
+    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that matched pattern" << "\n";
+		return table();
+	} else {
+		std::vector<uint32_t> outPositions;
+		for(const auto pos : iter::range(columnNames_.size())){
+			if(!njh::in(pos, positions)){
+				outPositions.emplace_back(pos);
+			}
+		}
+		return getColumns(outPositions);
+	}
+}
+
+table table::getColumnsNotContainingPattern(const std::regex & pattern) const {
+	std::vector<uint32_t> positions = getPositionsContainingPattern(columnNames_,
+			pattern);
+	if (positions.size() == columnNames_.size()) {
+    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that contain pattern" << "\n";
+
+		return table();
+	} else {
+		std::vector<uint32_t> outPositions;
+		for(const auto pos : iter::range(columnNames_.size())){
+			if(!njh::in(pos, positions)){
+				outPositions.emplace_back(pos);
+			}
+		}
+		return getColumns(positions);
+	}
+}
+
+table table::getColumnsNotStartWith(const std::string &startsWith) const{
+  std::vector<uint32_t> positions =
+      getPositionsOfTargetStartsWith(columnNames_, startsWith);
+  if (positions.size() == columnNames_.size()) {
+    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that started with: " << startsWith
+              << " returning the whole table" << "\n";
+    return table();
+  } else {
+		std::vector<uint32_t> outPositions;
+		for(const auto pos : iter::range(columnNames_.size())){
+			if(!njh::in(pos, positions)){
+				outPositions.emplace_back(pos);
+			}
+		}
+    return getColumns(positions);
+  }
+}
+
+
+
+
+table table::getRowsNotContainingPattern(const std::string &forColumn,
+		const std::regex & pattern) const {
+  VecStr col = getColumn(forColumn);
+  std::vector<uint32_t> positions = getPositionsContainingPattern(col, pattern);
+  return table(getTargetsNotAtPositions(content_, positions), columnNames_);
+}
+
+table table::getRowsNotMatchingPattern(const std::string &forColumn,
+		const std::regex & pattern) const {
+  VecStr col = getColumn(forColumn);
+  std::vector<uint32_t> positions = getPositionsMatchingPattern(col, pattern);
+  return table(getTargetsNotAtPositions(content_, positions), columnNames_);
 }
 
 table table::getRowsContainingPattern(const std::string &forColumn,
@@ -790,17 +875,7 @@ table table::getRowsMatchingPattern(const std::string &forColumn,
   return table(getTargetsAtPositions(content_, positions), columnNames_);
 }
 
-table table::getColumnsStartWith(const std::string &startsWith) const{
-  std::vector<uint32_t> positions =
-      getPositionsOfTargetStartsWith(columnNames_, startsWith);
-  if (positions.size() == 0) {
-    std::cout << "Couldn't find any columns that started with: " << startsWith
-              << " returning the whole table" << "\n";
-    return *this;
-  } else {
-    return getColumns(positions);
-  }
-}
+
 
 table table::getUniqueRows() const{
   return table(collapseUniqueVectors(content_), columnNames_);

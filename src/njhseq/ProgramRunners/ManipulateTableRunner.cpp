@@ -461,23 +461,33 @@ int ManipulateTableRunner::tableExtractColumns(const njh::progutils::CmdArgs & i
 	return 0;
 }
 
-int ManipulateTableRunner::tableExtractElementsWithPattern(const njh::progutils::CmdArgs & inputCommands){
+int ManipulateTableRunner::tableExtractElementsWithPattern(
+		const njh::progutils::CmdArgs & inputCommands) {
 	std::string column;
 	std::string patStr = "";
 	bool getUniqueRows = false;
+	bool opposite = false;
 	ManipulateTableSetUp setUp(inputCommands);
 
 	setUp.processFileName();
 	setUp.processNonRquiredDefaults();
 	setUp.processSorting();
-	setUp.setOption(patStr, "--patStr", "Pattern to match elements in column with", true);
+	setUp.setOption(patStr, "--patStr",
+			"Pattern to match elements in column with", true);
 	setUp.setOption(column, "--column", "Name of the column to search", true);
-	setUp.setOption(getUniqueRows, "--getUniqueRows", "GetUniqueRows");
+	setUp.setOption(getUniqueRows, "--getUniqueRows", "Get Unique Rows");
+	setUp.setOption(opposite, "--opposite",
+			"Get elements in column that doesn't match this pattern");
+
 	setUp.finishSetUp(std::cout);
 
 	table inTab(setUp.ioOptions_);
-	table outTab = inTab.getRowsMatchingPattern(column, std::regex{patStr});
-
+	table outTab;
+	if (opposite) {
+		outTab = inTab.getRowsNotContainingPattern(column, std::regex { patStr });
+	} else {
+		outTab = inTab.getRowsMatchingPattern(column, std::regex { patStr });
+	}
 	if (setUp.sortByColumn_ != "") {
 		outTab.sortTable(setUp.sortByColumn_, setUp.decending_);
 	}
