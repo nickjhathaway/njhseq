@@ -800,7 +800,7 @@ table table::getColumnsNotMatchingPattern(const std::regex & pattern) const {
 	} else {
 		std::vector<uint32_t> outPositions;
 		for(const auto pos : iter::range(columnNames_.size())){
-			if(!njh::in(pos, positions)){
+			if(!njh::in<uint32_t>(pos, positions)){
 				outPositions.emplace_back(pos);
 			}
 		}
@@ -818,7 +818,7 @@ table table::getColumnsNotContainingPattern(const std::regex & pattern) const {
 	} else {
 		std::vector<uint32_t> outPositions;
 		for(const auto pos : iter::range(columnNames_.size())){
-			if(!njh::in(pos, positions)){
+			if(!njh::in<uint32_t>(pos, positions)){
 				outPositions.emplace_back(pos);
 			}
 		}
@@ -836,7 +836,7 @@ table table::getColumnsNotStartWith(const std::string &startsWith) const{
   } else {
 		std::vector<uint32_t> outPositions;
 		for(const auto pos : iter::range(columnNames_.size())){
-			if(!njh::in(pos, positions)){
+			if(!njh::in<uint32_t>(pos, positions)){
 				outPositions.emplace_back(pos);
 			}
 		}
