@@ -30,5 +30,6 @@
 #include "njhseq/objects/dataContainers/graphs/readDistGraph.hpp"
 #include "njhseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
 #include "njhseq/objects/dataContainers/graphs/ConBasePathGraph.hpp"
+#include "njhseq/objects/dataContainers/graphs/SeqOverlapGraph.hpp"
 
 

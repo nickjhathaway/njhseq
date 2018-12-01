@@ -166,22 +166,31 @@ SeqInput::SeqInput(const SeqInput& that){
 	ioOptions_ = that.ioOptions_;
 }
 
-bool SeqInput::inOpen() const {
+bool SeqInput::inOpen() {
+	std::lock_guard<std::mutex> lock(mut_);
+	return inOpenLockFree();
+}
+
+bool SeqInput::inOpenLockFree() const {
 	return inOpen_;
 }
 
 
 size_t SeqInput::tellgPri(){
+	std::lock_guard<std::mutex> lock(mut_);
 	return priReader_->tellg();
 }
 void SeqInput::seekgPri(size_t pos){
+	std::lock_guard<std::mutex> lock(mut_);
 	priReader_->seekg(pos);
 }
 
 size_t SeqInput::tellgSec(){
+	std::lock_guard<std::mutex> lock(mut_);
 	return secReader_->tellg();
 }
 void SeqInput::seekgSec(size_t pos){
+	std::lock_guard<std::mutex> lock(mut_);
 	secReader_->seekg(pos);
 }
 
@@ -275,88 +284,100 @@ void SeqInput::setReaderFunc(){
 	};
 }
 
-void SeqInput::openIn() {
+void SeqInput::openInLockFree() {
 	if (inOpen_) {
 		return;
 	}
-	if (njh::strToLowerRet(ioOptions_.firstName_.string()) != "stdin" &&  !njh::files::bfs::exists(ioOptions_.firstName_)) {
+	if (njh::strToLowerRet(ioOptions_.firstName_.string()) != "stdin"
+			&& !njh::files::bfs::exists(ioOptions_.firstName_)) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": Error file: " << njh::bashCT::boldRed(ioOptions_.firstName_.string()) << " doesn't exist\n";
-		if( "" != ioOptions_.secondName_.string() && !njh::files::bfs::exists(ioOptions_.secondName_.string())){
-			ss << "and file: " << njh::bashCT::boldRed(ioOptions_.secondName_.string()) << " doesn't exist\n";
+		ss << __PRETTY_FUNCTION__ << ": Error file: "
+				<< njh::bashCT::boldRed(ioOptions_.firstName_.string())
+				<< " doesn't exist\n";
+		if ("" != ioOptions_.secondName_.string()
+				&& !njh::files::bfs::exists(ioOptions_.secondName_.string())) {
+			ss << "and file: "
+					<< njh::bashCT::boldRed(ioOptions_.secondName_.string())
+					<< " doesn't exist\n";
 		}
 		throw std::runtime_error { ss.str() };
 	}
 	bool failedToOpen = false;
 
-	auto openPrim = [this,&failedToOpen](){
-		priReader_ = std::make_unique<InputStream>(InOptions(ioOptions_.firstName_));
-		if (!(*priReader_)) {
-			failedToOpen = true;
-		}
-	};
-	auto openPrimSec = [this,&failedToOpen](){
-		priReader_ = std::make_unique<InputStream>(InOptions(ioOptions_.firstName_));
-		if (!(*priReader_)) {
-			failedToOpen = true;
-		}
-		secReader_ = std::make_unique<InputStream>(InOptions(ioOptions_.secondName_));
-		if (!(*secReader_)) {
-			failedToOpen = true;
-		}
-	};
+	auto openPrim =
+			[this,&failedToOpen]() {
+				priReader_ = std::make_unique<InputStream>(InOptions(ioOptions_.firstName_));
+				if (!(*priReader_)) {
+					failedToOpen = true;
+				}
+			};
+	auto openPrimSec =
+			[this,&failedToOpen]() {
+				priReader_ = std::make_unique<InputStream>(InOptions(ioOptions_.firstName_));
+				if (!(*priReader_)) {
+					failedToOpen = true;
+				}
+				secReader_ = std::make_unique<InputStream>(InOptions(ioOptions_.secondName_));
+				if (!(*secReader_)) {
+					failedToOpen = true;
+				}
+			};
 	readerFunc_ = [](seqInfo & seq) {
 		std::stringstream ss;
 		ss << "Error in seqInput, readerFunc_ not set" << "\n";
-		throw std::runtime_error{ss.str()};
+		throw std::runtime_error {ss.str()};
 		return false;
 	};
 	std::stringstream ssFormatCheck;
 	switch (ioOptions_.inFormat_) {
-		case SeqIOOptions::inFormats::FASTQ:
-		case SeqIOOptions::inFormats::FASTQGZ:
-		case SeqIOOptions::inFormats::FASTA:
-		case SeqIOOptions::inFormats::FASTAGZ:
-			openPrim();
-			break;
-		case SeqIOOptions::inFormats::FASTQPAIREDGZ:
-		case SeqIOOptions::inFormats::FASTQPAIRED:
-		case SeqIOOptions::inFormats::FASTAQUAL:
-			openPrimSec();
-			break;
-		case SeqIOOptions::inFormats::BAM:
-			bReader_ = std::make_unique<BamTools::BamReader>();
-			aln_ = std::make_unique<BamTools::BamAlignment>();
-			bReader_->Open(ioOptions_.firstName_.string());
-			if (!bReader_->IsOpen()) {
-				failedToOpen = true;
-			}
-			break;
-		case SeqIOOptions::inFormats::SFFTXT:
-			openPrim();
-			sffTxtHeader_ = std::make_unique<VecStr>(readSffTxtHeader(*priReader_));
-			break;
-		case SeqIOOptions::inFormats::SFFBIN:
-			//priReader_ = std::make_unique<std::ifstream>(ioOptions_.firstName_.string(),std::ios::binary);
-//			if (!(*priReader_)) {
-//				failedToOpen = true;
-//			}
-			openPrim();
-			sffBinHeader_ = std::make_unique<sffBinaryHeader>();
-			readHeader(*priReader_, *sffBinHeader_);
-			break;
-		default:
-			ssFormatCheck << "Unrecognized file type : " << " in " << __PRETTY_FUNCTION__
-					<< ", not reading " << ioOptions_.firstName_ << std::endl;
-			ssFormatCheck << "Acceptable types are fasta,fastaQual,fastq,fastqPaired, bam, fastagz, sff, and sffbin" << std::endl;
-			throw std::runtime_error { ssFormatCheck.str() };
-			break;
+	case SeqIOOptions::inFormats::FASTQ:
+	case SeqIOOptions::inFormats::FASTQGZ:
+	case SeqIOOptions::inFormats::FASTA:
+	case SeqIOOptions::inFormats::FASTAGZ:
+		openPrim();
+		break;
+	case SeqIOOptions::inFormats::FASTQPAIREDGZ:
+	case SeqIOOptions::inFormats::FASTQPAIRED:
+	case SeqIOOptions::inFormats::FASTAQUAL:
+		openPrimSec();
+		break;
+	case SeqIOOptions::inFormats::BAM:
+		bReader_ = std::make_unique<BamTools::BamReader>();
+		aln_ = std::make_unique<BamTools::BamAlignment>();
+		bReader_->Open(ioOptions_.firstName_.string());
+		if (!bReader_->IsOpen()) {
+			failedToOpen = true;
+		}
+		break;
+	case SeqIOOptions::inFormats::SFFTXT:
+		openPrim();
+		sffTxtHeader_ = std::make_unique<VecStr>(readSffTxtHeader(*priReader_));
+		break;
+	case SeqIOOptions::inFormats::SFFBIN:
+		//priReader_ = std::make_unique<std::ifstream>(ioOptions_.firstName_.string(),std::ios::binary);
+		//			if (!(*priReader_)) {
+		//				failedToOpen = true;
+		//			}
+		openPrim();
+		sffBinHeader_ = std::make_unique<sffBinaryHeader>();
+		readHeader(*priReader_, *sffBinHeader_);
+		break;
+	default:
+		ssFormatCheck << "Unrecognized file type : " << " in "
+				<< __PRETTY_FUNCTION__ << ", not reading " << ioOptions_.firstName_
+				<< std::endl;
+		ssFormatCheck
+				<< "Acceptable types are fasta,fastaQual,fastq,fastqPaired, bam, fastagz, sff, and sffbin"
+				<< std::endl;
+		throw std::runtime_error { ssFormatCheck.str() };
+		break;
 	}
 
 	if (failedToOpen) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": Error in opening : " << ioOptions_.firstName_;
-		if(""!= ioOptions_.secondName_) {
+		ss << __PRETTY_FUNCTION__ << ": Error in opening : "
+				<< ioOptions_.firstName_;
+		if ("" != ioOptions_.secondName_) {
 			ss << " or " << ioOptions_.secondName_;
 		}
 		ss << "\n";
@@ -366,7 +387,11 @@ void SeqInput::openIn() {
 	inOpen_ = true;
 }
 
-void SeqInput::closeIn() {
+void SeqInput::openIn() {
+	std::lock_guard<std::mutex> lock(mut_);
+	openInLockFree();
+}
+void SeqInput::closeInLockFree() {
 	if(inOpen_){
 		priReader_ = nullptr;
 		secReader_ = nullptr;
@@ -386,14 +411,33 @@ void SeqInput::closeIn() {
 		};
 	}
 }
+void SeqInput::closeIn() {
+	std::lock_guard<std::mutex> lock(mut_);
+	closeInLockFree();
+}
 
 void SeqInput::reOpenIn(){
-	closeIn();
-	openIn();
+	std::lock_guard<std::mutex> lock(mut_);
+	reOpenInLockFree();
+}
+
+void SeqInput::reOpenInLockFree(){
+	closeInLockFree();
+	openInLockFree();
+}
+
+bool SeqInput::readNextReadLock(seqInfo & seq) {
+	std::lock_guard<std::mutex> lock(mut_);
+	return readNextRead(seq);
 }
 
 bool SeqInput::readNextRead(seqInfo & seq) {
 	return firstTimeReaderFunc_(seq);
+}
+
+bool SeqInput::readNextReadLock(PairedRead & seq) {
+	std::lock_guard<std::mutex> lock(mut_);
+	return readNextRead(seq);
 }
 
 bool SeqInput::readNextRead(PairedRead & seq) {

@@ -201,6 +201,10 @@ public:
 	table getColumnsContainingPattern(const std::regex & pattern) const;
 	table getColumnsStartWith(const std::string &startsWith) const;
 
+	table getColumnsNotMatchingPattern(const std::regex & pattern) const;
+	table getColumnsNotContainingPattern(const std::regex & pattern) const;
+	table getColumnsNotStartWith(const std::string &startsWith) const;
+
 	VecStr getColumn(const std::string &specifcColumnName) const;
 	VecStr getColumn(uint32_t pos) const;
 	std::vector<std::string *> getColumnPointer(
@@ -216,9 +220,15 @@ public:
 
 	table getRowsStartsWith(const std::string &forColumn,
 			const std::string &startsWtih) const;
+
 	table getRowsMatchingPattern(const std::string &forColumn,
 			const std::regex & pattern) const;
 	table getRowsContainingPattern(const std::string &forColumn,
+			const std::regex & pattern) const;
+
+	table getRowsNotMatchingPattern(const std::string &forColumn,
+			const std::regex & pattern) const;
+	table getRowsNotContainingPattern(const std::string &forColumn,
 			const std::regex & pattern) const;
 
 	// get unique rows only
