@@ -60,7 +60,7 @@ public:
 		PreFilteringCutOffs();
 		PreFilteringCutOffs(const Json::Value & val);
 
-		uint32_t clusterSizeCutOff{1};
+		uint32_t clusterSizeCutOff{2};
 		uint32_t sampleMinReadCount{0};
 		uint32_t replicateMinReadCount{0};
 
