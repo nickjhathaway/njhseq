@@ -385,7 +385,8 @@ std::vector<CLUSTER> collapser::collapseLowFreqOneOffs(
 	    ++count;
 	    comparison comp = clus.getComparison(reverseRead, alignerObj, false);
 	    //can only get here if clus.seqBase_.frac >  reverseRead.seqBase_.frac_ * lowFreqMultiplier so can just check if only diffs by 1 mismatch
-	    bool matching = ((comp.hqMismatches_ + comp.lqMismatches_ + comp.lowKmerMismatches_) <=1
+//	    bool matching = ((comp.hqMismatches_ + comp.lqMismatches_ + comp.lowKmerMismatches_) <=1
+	    bool matching = ((comp.hqMismatches_) <=1
 	    		&& comp.largeBaseIndel_ == 0
 					&& comp.twoBaseIndel_ == 0
 					&& comp.oneBaseIndel_ == 0);
