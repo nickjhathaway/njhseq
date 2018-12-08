@@ -182,6 +182,9 @@ struct seqInfo {
 
 };
 
+
+
+
 template<>
 inline seqInfo::size_type len(const seqInfo & info) {
 	return info.seq_.size();

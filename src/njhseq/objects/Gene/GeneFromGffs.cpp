@@ -40,6 +40,8 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 			CDS_[record->getAttr("Parent")].emplace_back(record);
 		}else if("exon" == record->type_){
 			exons_[record->getAttr("Parent")].emplace_back(record);
+//		}else if("pseudogenic_exon" == record->type_){
+//			exons_[record->getAttr("Parent")].emplace_back(record);
 		}else if("polypeptide" == record->type_){
 			polypeptides_[record->getAttr("Derives_from")].emplace_back(record);
 		}else {
