@@ -410,9 +410,10 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 	std::string line = "";
 	VecStr deirvedFromRecordFeatures {"polypeptide"};
 	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
+	VecStr allowableFeatureType {"gene", "pseudogene"};
 	while (nullptr != gRecord) {
 		if(gRecord->hasAttr("ID") && njh::in(gRecord->getAttr("ID"), ids) ){
-			if("gene" != gRecord->type_){
+			if(!njh::in(gRecord->type_, allowableFeatureType)) {// "gene" != gRecord->type_){
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error feature type needs to be gene, not " << gRecord->type_ << "\n";
 				throw std::runtime_error{ss.str()};
