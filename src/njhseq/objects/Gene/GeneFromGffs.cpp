@@ -15,6 +15,7 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 	VecStr alreadyAddedIDs;
 	//just from what i've seen from chado annotations
 	VecStr acceptableMrnaLikeRecords = {"mRNA", "ncRNA", "rRNA", "snoRNA", "tRNA", "snRNA"};
+	VecStr allowableGeneFeatures{"gene", "pseudogene"};
 	for(const auto & record : geneRecords){
 		if(record->hasAttr("ID") && njh::in(record->getAttr("ID"), alreadyAddedIDs)){
 			std::stringstream ss;
@@ -23,7 +24,8 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 					<< record->getAttr("ID")  << "\n";
 			throw std::runtime_error{ss.str()};
 		}
-		if("gene" == record->type_ ){
+
+		if(njh::in(record->type_, allowableGeneFeatures)){// "gene" == record->type_){
 			if (nullptr != gene_) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__
@@ -40,8 +42,8 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 			CDS_[record->getAttr("Parent")].emplace_back(record);
 		}else if("exon" == record->type_){
 			exons_[record->getAttr("Parent")].emplace_back(record);
-//		}else if("pseudogenic_exon" == record->type_){
-//			exons_[record->getAttr("Parent")].emplace_back(record);
+		}else if("pseudogenic_exon" == record->type_){
+			exons_[record->getAttr("Parent")].emplace_back(record);
 		}else if("polypeptide" == record->type_){
 			polypeptides_[record->getAttr("Derives_from")].emplace_back(record);
 		}else {
@@ -104,12 +106,18 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 //		}
 	}
 
+	if(nullptr == gene_){
+		missingMessage << "input didn't have a record with feature type that match any of the following allowable gnee feature types " << njh::conToStrEndSpecial(allowableGeneFeatures, ", ", " or ") << "\n";
+		failed = true;
+	}
+
 	if(failed){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error missing records: " << "\n";
 		ss << missingMessage.str();
 		throw std::runtime_error{ss.str()};
 	}
+
 }
 
 
@@ -468,5 +476,115 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 	}
 	return genes;
 }
+
+
+void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars & pars){
+		if(pars.ids.empty()){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error no IDs read in" << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		auto genes = GeneFromGffs::getGenesFromGffForIds(pars.inputFile, pars.ids);
+		if(genes.empty()){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error no records found matching ids: " << njh::conToStr(pars.ids, ", ") << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		std::vector<Bed6RecordCore> allTranscriptRecords;
+		TwoBit::TwoBitFile tReader(pars.twoBitFnp);
+
+		std::string gffHeader = "";
+		{
+			std::stringstream gffHeaderStream;
+			//write header
+			std::ifstream infile(pars.inputFile.string());
+			std::string line = "";
+			while('#' == infile.peek()){
+				njh::files::crossPlatGetline(infile, line);
+				gffHeaderStream << line << std::endl;
+			}
+			gffHeader = gffHeaderStream.str();
+		}
+
+		for(const auto & gene : genes){
+			//std::cout << gene.first << "\t" << gene.second->getOneGeneDetailedName() << std::endl;
+	//		auto names = gene.second->getGeneDetailedName();
+	//		for(const auto & name : names){
+	//			std::cout << name.first << "\t" << name.second << std::endl;
+	//		}
+			auto gsInfos = gene.second->generateGeneSeqInfo(tReader, false);
+			//gff
+			auto gffOpts = OutOptions(bfs::path(pars.outOpts.outFilename_.string() + "_" + gene.second->gene_->getAttr("ID") + ".gff"));
+			gffOpts.transferOverwriteOpts(pars.outOpts);
+			OutputStream gffOut(gffOpts);
+			gffOut << gffHeader;
+			gene.second->writeGffRecords(gffOut);
+
+			for(const auto & transcript : gene.second->mRNAs_){
+
+				GenomicRegion mRnaRegion(*transcript);
+				OutOptions transcriptOut(bfs::path(pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_basePositions"), ".tab.txt");
+				transcriptOut.transferOverwriteOpts(pars.outOpts);
+				auto tOutFile = transcriptOut.openFile();
+				auto gsInfo = gsInfos[transcript->getIDAttr()];
+				gsInfo->infoTab_.addColumn(VecStr{transcript->getIDAttr()}, "transcript");
+				gsInfo->infoTab_.addColumn(VecStr{gene.second->gene_->getIDAttr()}, "GeneID");
+				gsInfo->infoTab_.addColumn(VecStr{std::string(1, transcript->strand_)}, "strand");
+				gsInfo->infoTab_.outPutContents(*tOutFile, "\t");
+				auto gDNAOpts = SeqIOOptions::genFastaOut(    pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_gDNA");
+				auto cDNAOpts = SeqIOOptions::genFastaOut(    pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_cDNA");
+				auto proteinOpts = SeqIOOptions::genFastaOut( pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_protein");
+				auto tableOpts = TableIOOpts::genTabFileOut(  pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_exonIntronPositions", true);
+				auto bedOpts = OutOptions(bfs::path(          pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_exonIntronPositions.bed"));
+				auto transcriptBedOpts = OutOptions(bfs::path(pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + ".bed"));
+
+				bedOpts.transferOverwriteOpts(pars.outOpts);
+				transcriptBedOpts.transferOverwriteOpts(pars.outOpts);
+				tableOpts.out_.transferOverwriteOpts(pars.outOpts);
+
+				// transcript
+				OutputStream transcriptBedOut(transcriptBedOpts);
+				auto transcriptBedRecord = GenomicRegion(*transcript).genBedRecordCore();
+				MetaDataInName transcriptMeta;
+				transcriptMeta.addMeta("TranscriptID", transcript->getAttr("ID"));
+				transcriptMeta.addMeta("ID", gene.second->gene_->getAttr("ID"));
+
+				transcriptBedRecord.extraFields_.emplace_back(transcriptMeta.createMetaName());
+				transcriptBedOut << GenomicRegion(*transcript).genBedRecordCore().toDelimStrWithExtra() <<std::endl;
+				allTranscriptRecords.emplace_back(transcriptBedRecord);
+
+				//exon and introns
+				auto exonIntronPositions = gene.second->getIntronExonTables();
+				auto exonIntronBeds = gene.second->getIntronExonBedLocs();
+				exonIntronPositions[transcript->getIDAttr()].outPutContents(tableOpts);
+				BioDataFileIO<Bed6RecordCore> reader{IoOptions(bedOpts)};
+				reader.openWrite(exonIntronBeds[transcript->getIDAttr()], [](const Bed6RecordCore & record, std::ostream & out){
+					out << record.toDelimStrWithExtra() << std::endl;
+				});
+
+				//gDNA and cDNA
+				gDNAOpts.out_.transferOverwriteOpts(pars.outOpts);
+				cDNAOpts.out_.transferOverwriteOpts(pars.outOpts);
+				proteinOpts.out_.transferOverwriteOpts(pars.outOpts);
+				gsInfo->cDna_.name_ = transcript->getAttr("ID") + "_CodingDNA";
+				gsInfo->gDna_.name_ = transcript->getAttr("ID") + "_GenomicDNA";
+				SeqOutput::write(std::vector<seqInfo>{gsInfo->gDna_}, gDNAOpts);
+				SeqOutput::write(std::vector<seqInfo>{gsInfo->cDna_}, cDNAOpts);
+				gsInfo->cDna_.name_ = transcript->getAttr("ID") + "_protein";
+				gsInfo->cDna_.translate(false, false);
+				if('*' == gsInfo->cDna_.seq_.back()){
+					gsInfo->cDna_.trimBack(gsInfo->cDna_.seq_.size() - 1);
+				}
+				SeqOutput::write(std::vector<seqInfo>{gsInfo->cDna_}, proteinOpts);
+			}
+		}
+		if(allTranscriptRecords.size() > 1){
+			auto transcriptBedOpts = OutOptions(bfs::path(pars.outOpts.outFilename_.string() + "_" + "allTranscripts" + ".bed"));
+			OutputStream transcriptBedOut(transcriptBedOpts);
+			for(const auto & bedRecod : allTranscriptRecords){
+				transcriptBedOut << bedRecod.toDelimStrWithExtra() << std::endl;
+			}
+		}
+	}
 
 } /* namespace njhseq */

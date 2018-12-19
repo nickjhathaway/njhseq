@@ -44,6 +44,16 @@ public:
 
 	static std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> getGenesFromGffForIds(const bfs::path & gffFnp, const std::set<std::string> & ids);
 
+	struct gffRecordIDsToGeneInfoPars{
+		bfs::path inputFile = "";
+		bfs::path twoBitFnp = "";
+		OutOptions outOpts{bfs::path("out"), ".tab.txt"};
+		std::set<std::string> ids;
+
+	};
+
+	static void gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars & pars);
+
 };
 
 
