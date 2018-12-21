@@ -173,7 +173,7 @@ std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName()
 					}
 				}
 			}
-		} else if ("PlasmoDB" == gene_->source_) {
+		} else if ("PlasmoDB" == gene_->source_ || "pf3k" == gene_->source_) {
 			if (gene_->hasAttr("description")) {
 				name = gene_->getAttr("description");
 			}
@@ -548,6 +548,9 @@ void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars & par
 				MetaDataInName transcriptMeta;
 				transcriptMeta.addMeta("TranscriptID", transcript->getAttr("ID"));
 				transcriptMeta.addMeta("ID", gene.second->gene_->getAttr("ID"));
+				transcriptMeta.addMeta("feature", gene.second->gene_->type_);
+				transcriptMeta.addMeta("description", gene.second->getOneGeneDetailedName());
+
 
 				transcriptBedRecord.extraFields_.emplace_back(transcriptMeta.createMetaName());
 				transcriptBedOut << GenomicRegion(*transcript).genBedRecordCore().toDelimStrWithExtra() <<std::endl;
