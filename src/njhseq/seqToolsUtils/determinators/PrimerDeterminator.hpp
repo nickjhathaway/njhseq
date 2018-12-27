@@ -38,6 +38,7 @@ public:
 
 		bool primerToLowerCase_ { true };
 		uint32_t primerWithin_ { 0 };
+		uint32_t primerStart_ { 0 };
 		bool trimExtra_ { false };
 		bool checkComplement_ { false };
 	};

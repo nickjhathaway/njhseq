@@ -466,7 +466,11 @@ std::vector<GenomicRegion> gffPtrsToGenomicRegs(
 void sortGRegionsByStart(std::vector<GenomicRegion> & regions){
 	njh::sort(regions, [](const GenomicRegion & reg1, const GenomicRegion & reg2){
 		if(reg1.chrom_ == reg2.chrom_){
-			return reg1.start_ < reg2.start_;
+			if(reg1.start_ == reg2.start_) {
+				return reg1.end_ < reg2.end_;
+			} else {
+				return reg1.start_ < reg2.start_;
+			}
 		}else{
 			return reg1.chrom_ < reg2.chrom_;
 		}
