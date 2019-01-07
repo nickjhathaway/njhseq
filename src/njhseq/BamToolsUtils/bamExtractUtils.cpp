@@ -1300,8 +1300,6 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 
 
 
-
-
 	BamExtractor::ExtractedFilesOpts ret;
 	ret.inPairs_ = SeqIOOptions::genPairedIn(outPairs.getPriamryOutName(), outPairs.getSecondaryOutName());
 	ret.inPairsUnMapped_ = SeqIOOptions::genPairedIn(outPairsUnMapped.getPriamryOutName(), outPairsUnMapped.getSecondaryOutName());
@@ -1321,6 +1319,11 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 	bReader.Open(opts.firstName_.string());
 	checkBamOpenThrow(bReader, opts.firstName_.string());
 	auto rData = bReader.GetReferenceData();
+
+	BamTools::BamWriter bWriter;
+	bWriter.Open(njh::files::prependFileBasename(bfs::path(opts.out_.outFilename_).replace_extension(".bam"), "mapped_").string(), bReader.GetHeader(), rData);
+
+
 	BamTools::BamAlignment bAln;
 	BamAlnsCache alnCache;
 
@@ -1368,6 +1371,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 					mappedSinglesWriter.openWrite(
 							seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
 									SangerQualOffset));
+					bWriter.SaveAlignment(bAln);
 				}
 			}
 		} else {
@@ -1406,6 +1410,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 						unmappedPairWriter.openWrite(
 								PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(*search),
 										false));
+
 					} else {
 						unmappedPairWriter.openWrite(
 								PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
@@ -1446,6 +1451,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 									mappedPairWriter.openWrite(
 											PairedRead(searchSeq, bAlnSeq, false));
 								}
+								bWriter.SaveAlignment(bAln);
+								bWriter.SaveAlignment(*search);
 								if(debug_){
 									(*mappedBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
 									(*mappedBedOut) << GenomicRegion(*search, rData).genBedRecordCore().toDelimStr() << std::endl;
@@ -1464,6 +1471,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 									discordantPairWriter.openWrite(
 											PairedRead(searchSeq, bAlnSeq, false));
 								}
+								bWriter.SaveAlignment(bAln);
+								bWriter.SaveAlignment(*search);
 							}
 						}
 					} else {
@@ -1480,9 +1489,11 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 							if (balnMapped && !searchMapped) {
 								mappedSinglesWriter.openWrite(bAlnSeq);
 								thrownAwayMateWriter.openWrite(searchSeq);
+								bWriter.SaveAlignment(bAln);
 							} else if (!balnMapped && searchMapped) {
 								mappedSinglesWriter.openWrite(searchSeq);
 								thrownAwayMateWriter.openWrite(bAlnSeq);
+								bWriter.SaveAlignment(*search);
 							}
 						}else{
 							if (bAln.IsFirstMate()) {
@@ -1492,6 +1503,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 								mateUnmappedPairWriter.openWrite(
 										PairedRead(searchSeq, bAlnSeq, false));
 							}
+							bWriter.SaveAlignment(bAln);
+							bWriter.SaveAlignment(*search);
 						}
 					}
 				}
@@ -1524,6 +1537,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 					mappedSinglesWriter.openWrite(
 							seqInfo(search->Name, search->QueryBases, search->Qualities,
 									SangerQualOffset));
+					bWriter.SaveAlignment(*search);
 				}
 			}
 			alnCache.remove(name);
@@ -2080,9 +2094,18 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
 					SangerQualOffset);
 			//put in the orientation of the output region
+//			bool revComp = bAln.IsReverseStrand();
 			if(region.reverseSrand_){
 				outSeq.reverseComplementRead(false, true);
+//				revComp = !revComp;
 			}
+//			MetaDataInName seqMeta;
+//			if(MetaDataInName::nameHasMetaData(outSeq.name_)){
+//				seqMeta = MetaDataInName(outSeq.name_);
+//			}
+//			seqMeta.addMeta("isFirstMate", bAln.IsFirstMate());
+//			seqMeta.addMeta("RevComp", revComp);
+//			seqMeta.resetMetaInName(outSeq.name_);
 			writer.openWrite(outSeq);
 		}
 		bWriter.SaveAlignment(bAln);
@@ -2136,6 +2159,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				pairWriter.openWrite(PairedRead(bamAlnToSeqInfo(searchAln), bamAlnToSeqInfo(bAln)));
 			}
 		}else{
+
 			if (bAln.IsFirstMate()) {
 				pairWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
 			} else {
