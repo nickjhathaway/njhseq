@@ -28,6 +28,32 @@
 #include "njhseq/helpers/seqUtil.hpp"
 namespace njhseq {
 
+
+substituteMatrix::substituteMatrix(const std::array<std::array<int32_t, 127>, 127> & mat){
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
+	for(const auto i : iter::range(mat.size())){
+		for(const auto & j : iter::range(mat[i].size())){
+			mat_[i][j] = mat[i][j];
+		}
+	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
+}
+
+substituteMatrix::substituteMatrix(const substituteMatrix & other){
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
+	for(const auto i : iter::range(other.mat_.size())){
+		for(const auto & j : iter::range(other.mat_[i].size())){
+			mat_[i][j] = other.mat_[i][j];
+		}
+	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
+}
+
+
 std::array<std::array<double, 127>, 127> substituteMatrix::getRates(const std::vector<char> & alphabet)const{
 	std::array<std::array<double, 127>, 127> ret;
 	std::array<double, 127> sums;

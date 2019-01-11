@@ -25,21 +25,28 @@ namespace njhseq {
 
 
 void aligner::resetAlnCache(){
-	alnHolder_ = alnInfoMasterHolder(parts_.gapScores_, parts_.scoring_);
+	alnHolder_.clearHolders();
+	alnHolder_.addHolder(parts_.gapScores_, parts_.scoring_);
 }
 
 aligner::aligner() :
-		parts_(alnParts()), alnHolder_(
-				alnInfoMasterHolder(parts_.gapScores_, parts_.scoring_)) {
+		parts_(alnParts()) {
 	countEndGaps_ = false;
 	weighHomopolymers_ = false;
+	alnHolder_.addHolder(parts_.gapScores_, parts_.scoring_);
 	setDefaultQualities();
 }
 
 aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
 		const substituteMatrix& scoreMatrix) :
-		parts_(maxSize, gapPars, scoreMatrix), alnHolder_(
-				alnInfoMasterHolder(gapPars, scoreMatrix)) {
+		parts_(maxSize, gapPars, scoreMatrix) {
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	alnHolder_.addHolder(parts_.gapScores_, parts_.scoring_);
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	alnInfoMasterHolder alnHolderCopy(gapPars, parts_.scoring_);
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	alnHolder_ = alnHolderCopy;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	countEndGaps_ = false;
 	weighHomopolymers_ = false;
 	setDefaultQualities();
@@ -47,8 +54,8 @@ aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
 
 aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
 		const substituteMatrix& scoreMatrix, bool countEndGaps) :
-		parts_(maxSize, gapPars, scoreMatrix), alnHolder_(
-				alnInfoMasterHolder(gapPars, scoreMatrix)), countEndGaps_(countEndGaps) {
+		parts_(maxSize, gapPars, scoreMatrix), countEndGaps_(countEndGaps) {
+	alnHolder_.addHolder(parts_.gapScores_, parts_.scoring_);
 	weighHomopolymers_ = false;
 	setDefaultQualities();
 }
@@ -56,9 +63,11 @@ aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
 aligner::aligner(uint64_t maxSize, const gapScoringParameters & gapPars,
 		const substituteMatrix& subMatrix, const KmerMaps& kmaps,
 		QualScorePars qScorePars, bool countEndGaps, bool weighHomopolymers) :
-		parts_(maxSize, gapPars, subMatrix), alnHolder_(gapPars, subMatrix), kMaps_(
+		parts_(maxSize, gapPars, subMatrix),  kMaps_(
 				kmaps), qScorePars_(qScorePars), countEndGaps_(countEndGaps), weighHomopolymers_(
 				weighHomopolymers) {
+	alnHolder_.addHolder(parts_.gapScores_, parts_.scoring_);
+
 }
 
 void aligner::setGapScoring(const gapScoringParameters & gapPars){
