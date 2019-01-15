@@ -60,7 +60,7 @@ public:
 		PreFilteringCutOffs();
 		PreFilteringCutOffs(const Json::Value & val);
 
-		uint32_t clusterSizeCutOff{2};
+		uint32_t clusterSizeCutOff{3};
 		uint32_t sampleMinReadCount{0};
 		uint32_t replicateMinReadCount{0};
 
@@ -88,6 +88,7 @@ public:
 	VecStr passingSamples_;
 	VecStr lowRepCntSamples_;
 	PreFilteringCutOffs preFiltCutOffs_;
+	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> oututSampClusToOldNameKey_;
 	std::map<std::string, std::shared_ptr<collapse::sampleCollapse>> sampleCollapses_;
 	std::unique_ptr<populationCollapse> popCollapse_;
 	std::unique_ptr<MultipleGroupMetaData> groupMetaData_;
@@ -187,6 +188,7 @@ public:
 			const std::unordered_map<std::string, double> & customCutOffsMap,
 			bool fracExcludeOnlyInFinalAverageFrac);
 
+	bool filterCommonlyLowFreqHaps(double lowFreqCutOff = 0.01);
 
 
 

@@ -629,7 +629,6 @@ void SampleCollapseCollection::investigateChimeras(double chiCutOff,
 								saved = true;
 								break;
 							}
-
 						}
 					}
 				}
@@ -655,6 +654,7 @@ void SampleCollapseCollection::investigateChimeras(double chiCutOff,
 
 std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 	passingSamples_.clear();
+	oututSampClusToOldNameKey_.clear();
 	std::vector<sampleCluster> output;
 	for (const auto & sampleName : popNames_.samples_) {
 		setUpSampleFromPrevious(sampleName);
@@ -672,7 +672,9 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 				sampleName, totalReadCnt_) } };
 		for (const auto &out : samp.collapsed_.clusters_) {
 			output.emplace_back(sampleCluster(out.createRead(), outSampInfos));
+			std::string oldName = output.back().seqBase_.name_;
 			output.back().updateName();
+			oututSampClusToOldNameKey_[sampleName][oldName] = output.back().seqBase_.name_;
 			output.back().reads_.front()->seqBase_.name_ =
 					output.back().seqBase_.name_;
 		}
@@ -698,6 +700,55 @@ void SampleCollapseCollection::doPopulationClustering(
 	for(const auto & sampleCounts :clusterTotals){
 		popCollapse_->collapsed_.info_.updateCoi(sampleCounts.second);
 	}
+}
+
+bool SampleCollapseCollection::filterCommonlyLowFreqHaps(double lowFreqCutOff){
+	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
+	std::vector<uint32_t> lowFreqHaps;
+	for(const auto & clusPos : iter::range(popCollapse_->collapsed_.clusters_.size())){
+		const auto & clus = popCollapse_->collapsed_.clusters_[clusPos];
+		auto avgFrac = clus.getCumulativeFrac()/clus.sampInfos().size();
+		std::cout << clus.seqBase_.name_ << " avgFrac: " << avgFrac << std::endl;
+		if(avgFrac < lowFreqCutOff){
+			bool save = false;
+			for(const auto & subClus : clus.reads_){
+				if(subClus->seqBase_.frac_ > 2 * lowFreqCutOff){
+					save = true;
+				}
+			}
+			if(!save){
+				lowFreqHaps.emplace_back(clusPos);
+			}
+		}
+	}
+	if(lowFreqHaps.empty()){
+		return false;
+	}
+	std::unordered_map<std::string, std::vector<std::string>> hapsToBeRemovePerSample;
+	for(const auto & lowFreqHap : lowFreqHaps){
+		for(const auto & clus : popCollapse_->collapsed_.clusters_[lowFreqHap].reads_){
+			hapsToBeRemovePerSample[clus->getOwnSampName()].emplace_back(oututSampClusToOldNameKey_[clus->getOwnSampName()][clus->seqBase_.name_]);
+		}
+	}
+	for(const auto & sampClusters : hapsToBeRemovePerSample){
+		setUpSampleFromPrevious(sampClusters.first);
+		std::vector<uint32_t> toBeExcluded;
+		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
+			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
+				toBeExcluded.push_back(clusPos);
+			}
+		}
+		std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
+		for(const auto exclude : toBeExcluded){
+			sampleCollapses_.at(sampClusters.first)->excluded_.clusters_.emplace_back(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude]);
+			sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.erase(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.begin() + exclude);
+		}
+		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
+		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
+
+		dumpSample(sampClusters.first);
+	}
+	return true;
 }
 
 void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dumpTable) {

@@ -816,7 +816,8 @@ void seqInfo::processNameForMeta(std::unordered_map<std::string, std::string> & 
 }
 
 bool seqInfo::isChimeric() const {
-	return name_.find("CHI") != std::string::npos;
+	return njh::beginsWith(name_, "CHI_");
+	//return name_.find("CHI") != std::string::npos;
 }
 
 bool seqInfo::operator ==(const seqInfo & other) const{
@@ -826,6 +827,47 @@ bool seqInfo::operator ==(const seqInfo & other) const{
 			cnt_ == other.cnt_ &&
 			frac_ == other.frac_;
 }
+
+
+
+void seqInfo::adjustHomopolymerRunQualities() {
+  std::string condensedSeq = "";
+  std::vector<uint32_t> condensedSeqQual;
+  std::vector<uint32_t>condensedSeqCount;
+  std::vector<std::pair<uint32_t, uint32_t>>condensedSeqQualPos;
+  int currentCount = 1;
+  std::vector<uint32_t> currentQuals;
+  currentQuals.push_back(qual_[0]);
+  std::pair<uint32_t, uint32_t> currentQualPos {0,1};
+  uint32_t i = 1;
+  for (; i < seq_.length(); i++) {
+    if (seq_[i] == seq_[i - 1]) {
+      currentQuals.push_back(qual_[i]);
+      ++currentCount;
+    } else {
+      condensedSeq.push_back(seq_[i - 1]);
+      condensedSeqQual.push_back(vectorMean(currentQuals));
+      currentQualPos.second = currentQuals.size();
+      condensedSeqQualPos.emplace_back(currentQualPos);
+      currentQualPos.first = i;
+      condensedSeqCount.push_back(currentCount);
+      currentCount = 1;
+      currentQuals.clear();
+      currentQuals.push_back(qual_[i]);
+    }
+  }
+  condensedSeq.push_back(seq_[i - 1]);
+  condensedSeqQual.push_back(vectorMean(currentQuals));
+  currentQualPos.second = currentQuals.size();
+  condensedSeqQualPos.emplace_back(currentQualPos);
+  condensedSeqCount.push_back(currentCount);
+  qual_.clear();
+  for (const auto& i : iter::range<uint64_t>(0, condensedSeq.length())) {
+    addOtherVec(qual_, std::vector<uint32_t>(condensedSeqCount[i],
+                                                      condensedSeqQual[i]));
+  }
+}
+
 
 
 }  // namespace njhseq

@@ -127,6 +127,92 @@ void sampleCollapse::excludeChimeras(bool update) {
   }
 }
 
+void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update, double lowFreqMultiplier, aligner &alignerObj, bool skipChimeras){
+	std::vector<uint64_t> positions(collapsed_.clusters_.size());
+	njh::iota<uint64_t>(positions, 0);
+	uint32_t sizeOfReadVector = 0;
+	for (const auto & pos : positions) {
+		if (!collapsed_.clusters_[pos].remove) {
+			++sizeOfReadVector;
+		}
+	}
+	if (sizeOfReadVector > 2) {
+		std::vector<uint32_t> toBeExcluded;
+		uint32_t clusterCounter = 0;
+		size_t amountAdded = 0;
+		for (const auto &reverseReadPos : iter::reversed(positions)) {
+			auto & reverseRead = collapsed_.clusters_[reverseReadPos];
+			if (reverseRead.remove) {
+				continue;
+			} else {
+				++clusterCounter;
+			}
+			if(skipChimeras && reverseRead.seqBase_.isChimeric()){
+				continue;
+			}
+			uint32_t count = 0;
+		  for (const auto &clusPos : positions) {
+		    if (collapsed_.clusters_[clusPos].remove) {
+		      continue;
+		    }
+		  	const auto & clus = collapsed_.clusters_[clusPos];
+		  	if (clus.seqBase_.frac_ <= reverseRead.seqBase_.frac_ * lowFreqMultiplier) {
+		      continue;
+		    }
+		    if (clus.seqBase_.name_ == reverseRead.seqBase_.name_) {
+		      continue;
+		    }
+		    ++count;
+		    comparison comp = clus.getComparison(reverseRead, alignerObj, false);
+		    //can only get here if clus.seqBase_.frac >  reverseRead.seqBase_.frac_ * lowFreqMultiplier so can just check if only diffs by 1 mismatch
+	//	    bool matching = ((comp.hqMismatches_ + comp.lqMismatches_ + comp.lowKmerMismatches_) <=1
+		    bool matching = ((comp.hqMismatches_) <=1
+		    		&& comp.largeBaseIndel_ == 0
+						&& comp.twoBaseIndel_ == 0
+						&& comp.oneBaseIndel_ == 0);
+		    //also add if only different by one 1 base indel
+		    if(!matching){
+		    	if(comp.distances_.alignmentGaps_.size() == 1
+		    			&& comp.distances_.alignmentGaps_.begin()->second.size_ == 1
+							&& comp.largeBaseIndel_ == 0
+							&& comp.twoBaseIndel_ == 0 &&
+							(comp.hqMismatches_ + comp.lqMismatches_ + comp.lowKmerMismatches_) == 0){
+		    		matching = true;
+		    	}
+		    }
+				if (matching) {
+	        ++amountAdded;
+	        toBeExcluded.push_back(reverseReadPos);
+	        reverseRead.remove = true;
+	        break;
+		    }
+		  }
+		}
+		if(!toBeExcluded.empty()){
+			std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
+			for(const auto toExcludePos : toBeExcluded){
+				excluded_.clusters_.emplace_back(collapsed_.clusters_[toExcludePos]);
+				collapsed_.clusters_.erase(collapsed_.clusters_.begin() + toExcludePos);
+			}
+		  if (update) {
+		    updateAfterExclustion();
+		  }
+		}
+	}
+}
+
+
+
+
+void sampleCollapse::markChimeras(double fracCutOff) {
+  for (auto &clus : collapsed_.clusters_) {
+    if (clus.isClusterAtLeastChimericCutOff(fracCutOff)) {
+      clus.seqBase_.markAsChimeric();
+      clus.remove = true;
+    }
+  }
+}
+
 // excludes
 void sampleCollapse::excludeChimeras(bool update, double fracCutOff) {
   for (auto &clus : collapsed_.clusters_) {
@@ -144,6 +230,24 @@ void sampleCollapse::excludeChimeras(bool update, double fracCutOff) {
     updateAfterExclustion();
   }
 }
+
+void sampleCollapse::excludeChimerasNoReMark(bool update) {
+  for (auto &clus : collapsed_.clusters_) {
+    if (clus.seqBase_.isChimeric()) {
+      clus.remove = true;
+    }
+  }
+  uint32_t chimeraNum = 0;
+  //collapsed_.clusters_ = readVecSplitter::splitVectorOnRemoveAdd(
+  //    collapsed_.clusters_, excluded_.clusters_, chimeraNum, "none", false);
+  collapsed_.clusters_ = readVecSplitter::splitVectorWithNameContainingAdd(
+        collapsed_.clusters_,"CHI_", excluded_.clusters_, chimeraNum, false);
+  if (update) {
+    updateAfterExclustion();
+  }
+}
+
+
 
 
 void sampleCollapse::excludeFraction(double fractionCutOff, bool update) {
@@ -183,7 +287,6 @@ void sampleCollapse::excludeFractionAnyRep(double fractionCutOff, bool update) {
   if (update) {
     updateAfterExclustion();
   }
-
 }
 
 

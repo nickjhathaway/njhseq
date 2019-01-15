@@ -23,6 +23,7 @@
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+//AvgFracFoundAt
 
 #include "populationCollapse.hpp"
 namespace njhseq {

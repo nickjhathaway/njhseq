@@ -74,7 +74,8 @@ public:
 	template<class CLUSTER>
 	std::vector<CLUSTER> collapseLowFreqOneOffs(std::vector<CLUSTER> &currentClusters,
 			double lowFreqMultiplier,
-			aligner &alignerObj) const;
+			aligner &alignerObj,
+			bool skipChimeras = true) const;
 
 
 	template<class CLUSTER>
@@ -340,7 +341,8 @@ std::vector<CLUSTER> collapser::runClustering(
 template<class CLUSTER>
 std::vector<CLUSTER> collapser::collapseLowFreqOneOffs(
 		std::vector<CLUSTER> &comparingReads, double lowFreqMultiplier,
-		aligner &alignerObj) const {
+		aligner &alignerObj,
+		bool skipChimeras) const {
 	std::vector<uint64_t> positions(comparingReads.size());
 	njh::iota<uint64_t>(positions, 0);
 	uint32_t sizeOfReadVector = 0;
@@ -360,10 +362,14 @@ std::vector<CLUSTER> collapser::collapseLowFreqOneOffs(
 	size_t amountAdded = 0;
 	for (const auto &reverseReadPos : iter::reversed(positions)) {
 		auto & reverseRead = comparingReads[reverseReadPos];
+
 		if (reverseRead.remove) {
 			continue;
 		} else {
 			++clusterCounter;
+		}
+		if(skipChimeras && reverseRead.seqBase_.isChimeric()){
+			continue;
 		}
 		if (opts_.verboseOpts_.verbose_ && clusterCounter % 100 == 0) {
 			std::cout << "\r" << "Currently on cluster " << clusterCounter << " of "
@@ -400,7 +406,6 @@ std::vector<CLUSTER> collapser::collapseLowFreqOneOffs(
 	    		matching = true;
 	    	}
 	    }
-
 			if (matching) {
         ++amountAdded;
         clus.addRead(reverseRead);
