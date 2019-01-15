@@ -54,19 +54,27 @@ sampleCollapse::sampleCollapse(const std::vector<std::vector<njhseq::cluster>> &
   	}
   }
 
-  addOtherVec(input_.clusters_, sampleClusterReads);
+	addOtherVec(input_.clusters_, sampleClusterReads);
 
-  for(const auto & seq : sampleClusterReads){
-  	if(seq.seqBase_.cnt_ > freqCutOff){
-  		collapsed_.clusters_.emplace_back(seq);
-  	}else{
-  		excluded_.clusters_.emplace_back(seq);
-  		++lowFreqCount;
-  	}
-  }
-  //161104-miseq-D10-GHA-4
-  updateInitialInfos();
-  updateCollapsedInfos();
+	for (auto & seq : sampleClusterReads) {
+		if (seq.seqBase_.cnt_ > freqCutOff) {
+			collapsed_.clusters_.emplace_back(seq);
+		} else {
+			MetaDataInName filteredMeta;
+			if(MetaDataInName::nameHasMetaData(seq.seqBase_.name_)){
+				filteredMeta = MetaDataInName(seq.seqBase_.name_);
+			}
+			filteredMeta.addMeta("ExcludeFailedReadCutOff", "TRUE");
+			if (seq.seqBase_.isChimeric()) {
+				filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+			}
+			seq.seqBase_.resetMetaInName(filteredMeta);
+			excluded_.clusters_.emplace_back(seq);
+			++lowFreqCount;
+		}
+	}
+	updateInitialInfos();
+	updateCollapsedInfos();
 }
 
 void sampleCollapse::updateExclusionInfos() {
@@ -191,6 +199,15 @@ void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update, double l
 		if(!toBeExcluded.empty()){
 			std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
 			for(const auto toExcludePos : toBeExcluded){
+				MetaDataInName filteredMeta;
+				if(MetaDataInName::nameHasMetaData(collapsed_.clusters_[toExcludePos].seqBase_.name_)){
+					filteredMeta = MetaDataInName(collapsed_.clusters_[toExcludePos].seqBase_.name_);
+				}
+				filteredMeta.addMeta("ExcludeFailedLowFreqOneOff", "TRUE");
+				if (collapsed_.clusters_[toExcludePos].seqBase_.isChimeric()) {
+					filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+				}
+				collapsed_.clusters_[toExcludePos].seqBase_.resetMetaInName(filteredMeta);
 				excluded_.clusters_.emplace_back(collapsed_.clusters_[toExcludePos]);
 				collapsed_.clusters_.erase(collapsed_.clusters_.begin() + toExcludePos);
 			}
@@ -215,94 +232,152 @@ void sampleCollapse::markChimeras(double fracCutOff) {
 
 // excludes
 void sampleCollapse::excludeChimeras(bool update, double fracCutOff) {
-  for (auto &clus : collapsed_.clusters_) {
-    if (clus.isClusterAtLeastChimericCutOff(fracCutOff)) {
-      clus.seqBase_.markAsChimeric();
-      clus.remove = true;
-    }
-  }
-  uint32_t chimeraNum = 0;
-  collapsed_.clusters_ = readVecSplitter::splitVectorOnRemoveAdd(
-      collapsed_.clusters_, excluded_.clusters_, chimeraNum, "none", false);
-  //collapsed_.clusters_ = readVecSplitter::splitVectorWithNameContainingAdd(
-  //      collapsed_.clusters_,"CHI_", excluded_.clusters_, chimeraNum, false);
-  if (update) {
-    updateAfterExclustion();
-  }
+	std::vector<uint32_t> toBeExcluded;
+	for(const auto clusPos : iter::range(collapsed_.clusters_.size())){
+		if(collapsed_.clusters_[clusPos].isClusterAtLeastChimericCutOff(fracCutOff)){
+			collapsed_.clusters_[clusPos].seqBase_.markAsChimeric();
+			toBeExcluded.push_back(clusPos);
+		}
+	}
+	if(!toBeExcluded.empty()){
+		std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
+		for (const auto exclude : toBeExcluded) {
+			MetaDataInName filteredMeta;
+			if(MetaDataInName::nameHasMetaData(collapsed_.clusters_[exclude].seqBase_.name_)){
+				filteredMeta = MetaDataInName(collapsed_.clusters_[exclude].seqBase_.name_);
+			}
+			filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+			collapsed_.clusters_[exclude].seqBase_.resetMetaInName(filteredMeta);
+			excluded_.clusters_.emplace_back(collapsed_.clusters_[exclude]);
+			collapsed_.clusters_.erase(collapsed_.clusters_.begin() + exclude);
+		}
+	  if (update) {
+	    updateAfterExclustion();
+	  }
+	}
 }
 
 void sampleCollapse::excludeChimerasNoReMark(bool update) {
-  for (auto &clus : collapsed_.clusters_) {
-    if (clus.seqBase_.isChimeric()) {
-      clus.remove = true;
-    }
-  }
-  uint32_t chimeraNum = 0;
-  //collapsed_.clusters_ = readVecSplitter::splitVectorOnRemoveAdd(
-  //    collapsed_.clusters_, excluded_.clusters_, chimeraNum, "none", false);
-  collapsed_.clusters_ = readVecSplitter::splitVectorWithNameContainingAdd(
-        collapsed_.clusters_,"CHI_", excluded_.clusters_, chimeraNum, false);
-  if (update) {
-    updateAfterExclustion();
-  }
+	std::vector<uint32_t> toBeExcluded;
+	for(const auto clusPos : iter::range(collapsed_.clusters_.size())){
+		if(collapsed_.clusters_[clusPos].seqBase_.isChimeric()){
+			toBeExcluded.push_back(clusPos);
+		}
+	}
+	if(!toBeExcluded.empty()){
+		std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
+		for (const auto exclude : toBeExcluded) {
+			MetaDataInName filteredMeta;
+			if(MetaDataInName::nameHasMetaData(collapsed_.clusters_[exclude].seqBase_.name_)){
+				filteredMeta = MetaDataInName(collapsed_.clusters_[exclude].seqBase_.name_);
+			}
+			filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+			collapsed_.clusters_[exclude].seqBase_.resetMetaInName(filteredMeta);
+			excluded_.clusters_.emplace_back(collapsed_.clusters_[exclude]);
+			collapsed_.clusters_.erase(collapsed_.clusters_.begin() + exclude);
+		}
+	  if (update) {
+	    updateAfterExclustion();
+	  }
+	}
 }
 
 
 
 
 void sampleCollapse::excludeFraction(double fractionCutOff, bool update) {
-
-	uint32_t fractionCutOffNum = 0;
-
-  collapsed_.clusters_ = readVecSplitter::splitVectorOnReadFractionAdd(
-      collapsed_.clusters_, fractionCutOff, excluded_.clusters_,
-      fractionCutOffNum, false);
-
-  if (update) {
-    updateAfterExclustion();
-  }
-
+	std::vector<uint32_t> toBeExcluded;
+	for(const auto clusPos : iter::range(collapsed_.clusters_.size())){
+		if(collapsed_.clusters_[clusPos].seqBase_.frac_ < fractionCutOff){
+			toBeExcluded.push_back(clusPos);
+		}
+	}
+	if(!toBeExcluded.empty()){
+		std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
+		for (const auto exclude : toBeExcluded) {
+			MetaDataInName filteredMeta;
+			if(MetaDataInName::nameHasMetaData(collapsed_.clusters_[exclude].seqBase_.name_)){
+				filteredMeta = MetaDataInName(collapsed_.clusters_[exclude].seqBase_.name_);
+			}
+			filteredMeta.addMeta("ExcludeFailedFracCutOff", "TRUE");
+			if (collapsed_.clusters_[exclude].seqBase_.isChimeric()) {
+				filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+			}
+			collapsed_.clusters_[exclude].seqBase_.resetMetaInName(filteredMeta);
+			excluded_.clusters_.emplace_back(collapsed_.clusters_[exclude]);
+			collapsed_.clusters_.erase(collapsed_.clusters_.begin() + exclude);
+		}
+	  if (update) {
+	    updateAfterExclustion();
+	  }
+	}
 }
 
 void sampleCollapse::excludeFractionAnyRep(double fractionCutOff, bool update) {
-	uint32_t fractionCutOffNum = 0;
-	std::vector<sampleCluster> keep;
-	for(const auto & clus : collapsed_.clusters_){
+	std::vector<uint32_t> toBeExcluded;
+	for(const auto clusPos : iter::range(collapsed_.clusters_.size())){
+		const auto & clus = collapsed_.clusters_[clusPos];
 		bool excluded = false;
 		for(const auto & sampleInfo : clus.sampInfos()){
 			if(sampleInfo.second.numberOfClusters_ > 0 && sampleInfo.second.fraction_ < fractionCutOff){
-				excluded_.clusters_.emplace_back(clus);
-				++fractionCutOffNum;
 				excluded = true;
 				break;
 			}
 		}
-		if(!excluded){
-			keep.emplace_back(clus);
+		if(excluded){
+			toBeExcluded.push_back(clusPos);
 		}
 	}
-  if(fractionCutOffNum > 0){
-  	collapsed_.clusters_ = keep;
-  }
-  if (update) {
-    updateAfterExclustion();
-  }
+	if(!toBeExcluded.empty()){
+		std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
+		for (const auto exclude : toBeExcluded) {
+			MetaDataInName filteredMeta;
+			if(MetaDataInName::nameHasMetaData(collapsed_.clusters_[exclude].seqBase_.name_)){
+				filteredMeta = MetaDataInName(collapsed_.clusters_[exclude].seqBase_.name_);
+			}
+			filteredMeta.addMeta("ExcludeFailedFracCutOff", "TRUE");
+			if (collapsed_.clusters_[exclude].seqBase_.isChimeric()) {
+				filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+			}
+			collapsed_.clusters_[exclude].seqBase_.resetMetaInName(filteredMeta);
+			excluded_.clusters_.emplace_back(collapsed_.clusters_[exclude]);
+			collapsed_.clusters_.erase(collapsed_.clusters_.begin() + exclude);
+		}
+	  if (update) {
+	    updateAfterExclustion();
+	  }
+	}
 }
 
 
 void sampleCollapse::excludeBySampNum(uint32_t sampsRequired, bool update) {
-  uint32_t splitCount = 0;
-  for (auto &clus : collapsed_.clusters_) {
-    if (clus.numberOfRuns() < sampsRequired) {
-      clus.remove = true;
-    }
-  }
-  collapsed_.clusters_ = readVecSplitter::splitVectorOnRemoveAdd(
-      collapsed_.clusters_, excluded_.clusters_, splitCount, "none", false);
-  if (update) {
-    updateAfterExclustion();
-  }
+	std::vector<uint32_t> toBeExcluded;
+	for(const auto clusPos : iter::range(collapsed_.clusters_.size())){
+		if(collapsed_.clusters_[clusPos].numberOfRuns() < sampsRequired){
+			toBeExcluded.push_back(clusPos);
+		}
+	}
+	if(!toBeExcluded.empty()){
+		std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
+		for (const auto exclude : toBeExcluded) {
+			MetaDataInName filteredMeta;
+			if(MetaDataInName::nameHasMetaData(collapsed_.clusters_[exclude].seqBase_.name_)){
+				filteredMeta = MetaDataInName(collapsed_.clusters_[exclude].seqBase_.name_);
+			}
+			filteredMeta.addMeta("ExcludeFailedRunsCutOff", "TRUE");
+			if (collapsed_.clusters_[exclude].seqBase_.isChimeric()) {
+				filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+			}
+			collapsed_.clusters_[exclude].seqBase_.resetMetaInName(filteredMeta);
+			excluded_.clusters_.emplace_back(collapsed_.clusters_[exclude]);
+			collapsed_.clusters_.erase(collapsed_.clusters_.begin() + exclude);
+		}
+	  if (update) {
+	    updateAfterExclustion();
+	  }
+	}
 }
+
 void sampleCollapse::renameClusters(const std::string &sortBy) {
   readVecSorter::sortReadVector(collapsed_.clusters_, sortBy);
   renameReadNames(collapsed_.clusters_, sampName_, true, false);

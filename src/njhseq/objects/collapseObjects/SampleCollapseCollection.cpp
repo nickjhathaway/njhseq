@@ -702,13 +702,13 @@ void SampleCollapseCollection::doPopulationClustering(
 	}
 }
 
-bool SampleCollapseCollection::filterCommonlyLowFreqHaps(double lowFreqCutOff){
+bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
 	std::vector<uint32_t> lowFreqHaps;
 	for(const auto & clusPos : iter::range(popCollapse_->collapsed_.clusters_.size())){
 		const auto & clus = popCollapse_->collapsed_.clusters_[clusPos];
 		auto avgFrac = clus.getCumulativeFrac()/clus.sampInfos().size();
-		std::cout << clus.seqBase_.name_ << " avgFrac: " << avgFrac << std::endl;
+		//std::cout << clus.seqBase_.name_ << " avgFrac: " << avgFrac << std::endl;
 		if(avgFrac < lowFreqCutOff){
 			bool save = false;
 			for(const auto & subClus : clus.reads_){
@@ -740,6 +740,16 @@ bool SampleCollapseCollection::filterCommonlyLowFreqHaps(double lowFreqCutOff){
 		}
 		std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
 		for(const auto exclude : toBeExcluded){
+			MetaDataInName filteredMeta;
+			if(MetaDataInName::nameHasMetaData(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_)){
+				filteredMeta = MetaDataInName(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_);
+			}
+			filteredMeta.addMeta("ExcludeFailedFracCutOff", "TRUE");
+			if (sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.isChimeric()) {
+				filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+			}
+			sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.resetMetaInName(filteredMeta);
+
 			sampleCollapses_.at(sampClusters.first)->excluded_.clusters_.emplace_back(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude]);
 			sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.erase(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.begin() + exclude);
 		}
@@ -1038,6 +1048,179 @@ table SampleCollapseCollection::genPopulationCollapseInfo() const {
 void SampleCollapseCollection::printSampleCollapseInfo(const bfs::path& fileName){
 	auto sampTab = genSampleCollapseInfo(popNames_.samples_);
 	sampTab.outPutContents(TableIOOpts(OutOptions(fileName.string(), ".txt"), "\t", true));
+}
+
+
+
+
+void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts, bool skipExcludeReadCntCutOff) {
+	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
+	OutputStream allSubClusterInfo(outOpts);
+	uint32_t maxRunCount = 0;
+	std::set<std::string> allMetaFields;
+	for (const auto & sampName : popNames_.samples_) {
+		setUpSampleFromPrevious(sampName);
+		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
+				njh::in(sampName, lowRepCntSamples_)){
+			continue;
+		}
+		for(const auto & excluded : sampleCollapses_.at(sampName)->excluded_.clusters_){
+			if(MetaDataInName::nameHasMetaData(excluded.seqBase_.name_)){
+				MetaDataInName excmeta(excluded.seqBase_.name_);
+				for(const auto & mf : excmeta.meta_){
+					allMetaFields.emplace(mf.first);
+				}
+			}
+		}
+		for(const auto & collapsed : sampleCollapses_.at(sampName)->collapsed_.clusters_){
+			if(MetaDataInName::nameHasMetaData(collapsed.seqBase_.name_)){
+				MetaDataInName excmeta(collapsed.seqBase_.name_);
+				for(const auto & mf : excmeta.meta_){
+					allMetaFields.emplace(mf.first);
+				}
+			}
+		}
+		if (maxRunCount
+				< sampleCollapses_.at(sampName)->collapsed_.info_.infos_.size()) {
+			maxRunCount =
+					sampleCollapses_.at(sampName)->collapsed_.info_.infos_.size();
+		}
+		clearSample(sampName);
+	}
+	std::string delim = "\t";
+	allSubClusterInfo << "s_name";
+	allSubClusterInfo << delim << "h_PopUID";
+	allSubClusterInfo << delim << "c_Name";
+	allSubClusterInfo << delim << "c_ReadCnt";
+	allSubClusterInfo << delim << "c_RunCnt";
+	allSubClusterInfo << delim << "c_seq";
+	allSubClusterInfo << delim << "c_ClusterCnt";
+	allSubClusterInfo << delim << "c_IncludedInFinalAnalysis";
+	for(const auto & mf : allMetaFields){
+		allSubClusterInfo << delim << "c_" << mf;
+	}
+	for(const auto runNum : iter::range<uint32_t>(1, maxRunCount + 1)){
+		allSubClusterInfo << delim << "R" << runNum << "_Name";
+		allSubClusterInfo << delim << "R" << runNum << "_ReadCnt";
+		allSubClusterInfo << delim << "R" << runNum << "_ClusterCnt";
+	}
+
+	allSubClusterInfo << std::endl;
+	for (const auto& sampName : popNames_.samples_) {
+		setUpSampleFromPrevious(sampName);
+		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
+				njh::in(sampName, lowRepCntSamples_)){
+			continue;
+		}
+		auto sampPtr = sampleCollapses_.at(sampName);
+		for (const auto clusPos : iter::range(sampPtr->collapsed_.clusters_.size())) {
+			const auto & clus = sampPtr->collapsed_.clusters_[clusPos];
+			allSubClusterInfo  << sampName
+					<< delim << popCollapse_->collapsed_.clusters_[popCollapse_->collapsed_.subClustersPositions_.at(
+							clus.getStubName(true))].seqBase_.name_;
+			allSubClusterInfo
+						<< delim << clus.seqBase_.name_
+						<< delim << clus.seqBase_.cnt_
+						<< delim << clus.numberOfRuns()
+						<< delim << clus.seqBase_.seq_
+						<< delim << clus.reads_.size();
+			allSubClusterInfo << delim << "TRUE";
+			MetaDataInName seqMeta;
+			if(MetaDataInName::nameHasMetaData(clus.seqBase_.name_)){
+				seqMeta = MetaDataInName(clus.seqBase_.name_);
+			}
+			for(const auto & mField : allMetaFields){
+				allSubClusterInfo << delim;
+				if(seqMeta.containsMeta(mField)){
+					allSubClusterInfo << seqMeta.getMeta(mField);
+				}else{
+					allSubClusterInfo << "NA";
+				}
+			}
+			for (const auto &info : sampPtr->input_.info_.infos_) {
+				allSubClusterInfo << delim;
+				auto search = clus.sampInfos().find(info.first);
+				if (search == clus.sampInfos().end() || search->second.readCnt_ == 0) {
+					allSubClusterInfo << info.first;
+					allSubClusterInfo << delim << 0;
+					allSubClusterInfo << delim << 0;
+				} else {
+					allSubClusterInfo << info.first;
+					allSubClusterInfo << delim << clus.sampInfos().at(info.first).readCnt_;
+					allSubClusterInfo << delim << clus.sampInfos().at(info.first).numberOfClusters_;
+				}
+			}
+			if(clus.sampInfos().size() < maxRunCount){
+				for(uint32_t i = 0; i < maxRunCount - clus.sampInfos().size(); ++i){
+					allSubClusterInfo << delim << delim << delim;
+				}
+			}
+			allSubClusterInfo << std::endl;
+		}
+		for (const auto clusPos : iter::range(sampPtr->excluded_.clusters_.size())) {
+			const auto & clus = sampPtr->excluded_.clusters_[clusPos];
+
+			{
+				MetaDataInName seqMeta;
+				if(MetaDataInName::nameHasMetaData(clus.seqBase_.name_)){
+					seqMeta = MetaDataInName(clus.seqBase_.name_);
+				}
+				if(skipExcludeReadCntCutOff && seqMeta.containsMeta("ExcludeFailedReadCutOff")){
+					continue;
+				}
+			}
+			allSubClusterInfo  << sampName
+					;
+			std::string matchingPopName;
+			for(const auto & pop : popCollapse_->collapsed_.clusters_){
+				if(pop.seqBase_.seq_ == clus.seqBase_.seq_){
+					matchingPopName = pop.seqBase_.name_;
+				}
+			}
+			allSubClusterInfo << delim << matchingPopName;
+
+			allSubClusterInfo
+						<< delim << clus.seqBase_.name_
+
+						<< delim << clus.seqBase_.cnt_
+						<< delim << clus.numberOfRuns()
+						<< delim << clus.seqBase_.seq_
+						<< delim << clus.reads_.size();
+			allSubClusterInfo << delim << "FALSE";
+			MetaDataInName seqMeta;
+			if(MetaDataInName::nameHasMetaData(clus.seqBase_.name_)){
+				seqMeta = MetaDataInName(clus.seqBase_.name_);
+			}
+			for(const auto & mField : allMetaFields){
+				allSubClusterInfo << delim;
+				if(seqMeta.containsMeta(mField)){
+					allSubClusterInfo << seqMeta.getMeta(mField);
+				}else{
+					allSubClusterInfo << "NA";
+				}
+			}
+			for (const auto &info : sampPtr->input_.info_.infos_) {
+				allSubClusterInfo << delim;
+				auto search = clus.sampInfos().find(info.first);
+				if (search == clus.sampInfos().end() || search->second.readCnt_ == 0) {
+					allSubClusterInfo << info.first;
+					allSubClusterInfo << delim << 0;
+					allSubClusterInfo << delim << 0;
+				} else {
+					allSubClusterInfo << info.first;
+					allSubClusterInfo << delim << clus.sampInfos().at(info.first).readCnt_;
+					allSubClusterInfo << delim << clus.sampInfos().at(info.first).numberOfClusters_;
+				}
+			}
+			if(clus.sampInfos().size() < maxRunCount){
+				for(uint32_t i = 0; i < maxRunCount - clus.sampInfos().size(); ++i){
+					allSubClusterInfo << delim << delim << delim;
+				}
+			}
+			allSubClusterInfo << std::endl;
+		}
+		clearSample(sampName);
+	}
 }
 
 table SampleCollapseCollection::genSampleCollapseInfo(

@@ -166,6 +166,8 @@ public:
 	void printSampleCollapseInfo(const bfs::path& fileName);
 	table genSampleCollapseInfo(const std::set<std::string> & samples);
 
+	void printAllSubClusterInfo(const OutOptions& outOpts, bool skipExcludeReadCntCutOff = true);
+
 
 	void symlinkInSampleFinals() const;
 
@@ -188,7 +190,7 @@ public:
 			const std::unordered_map<std::string, double> & customCutOffsMap,
 			bool fracExcludeOnlyInFinalAverageFrac);
 
-	bool filterCommonlyLowFreqHaps(double lowFreqCutOff = 0.01);
+	bool excludeCommonlyLowFreqHaps(double lowFreqCutOff = 0.01);
 
 
 
