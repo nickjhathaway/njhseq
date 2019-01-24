@@ -50,8 +50,19 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 			others_[record->getAttr("Parent")].emplace_back(record);
 		}
 	}
+
+	//a hack for now, should check this, i think it's because what I'm looking at is a virus that there's no MRNA records but putting this so it works for now
 	std::stringstream missingMessage;
 	bool failed = false;
+	if(nullptr == gene_){
+		missingMessage << "input didn't have a record with feature type that match any of the following allowable gnee feature types " << njh::conToStrEndSpecial(allowableGeneFeatures, ", ", " or ") << "\n";
+		failed = true;
+	}
+
+	if(!failed && mRNAs_.empty() && "RefSeq" == gene_->source_){
+		mRNAs_.emplace_back(gene_);
+	}
+
 	//check that CDS and exons have parents that are in mRNAs
 	for(const auto & CD : CDS_){
 		bool found = false;
@@ -106,10 +117,7 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 //		}
 	}
 
-	if(nullptr == gene_){
-		missingMessage << "input didn't have a record with feature type that match any of the following allowable gnee feature types " << njh::conToStrEndSpecial(allowableGeneFeatures, ", ", " or ") << "\n";
-		failed = true;
-	}
+
 
 	if(failed){
 		std::stringstream ss;
