@@ -526,7 +526,7 @@ Json::Value ReadCompGraph::getSingleLineJsonOut(const ConnectedHaplotypeNetworkP
 			if(n->on_){
 				Json::Value node;
 				node["id"] = n->name_;
-				if(!netPars.noLabel){
+				if(!netPars.noNodeLabel){
 					if(nullptr != netPars.seqMeta && "" != netPars.labelField){
 						auto labForName = netPars.seqMeta->groupData_.at(netPars.labelField)->getGroupForSample(n->name_);
 						node["label"] = "NA" ==  labForName ? std::string("") : labForName ;
@@ -570,6 +570,9 @@ Json::Value ReadCompGraph::getSingleLineJsonOut(const ConnectedHaplotypeNetworkP
 				link["source"] = e->nodeToNode_.begin()->first ;
 				link["target"] = e->nodeToNode_.begin()->second.lock()->name_ ;
 				link["value"] = linkSizeScale.get(e->dist_.distances_.eventBasedIdentity_);
+				if(!netPars.noLinkLabel){
+					link["label"] = e->dist_.distances_.getNumOfEvents(true);
+				}
 				links.append(link);
 			}
 		}
@@ -688,7 +691,7 @@ std::string ReadCompGraph::ConnectedHaplotypeNetworkPars::htmlPageForConnectHpaN
 		var svg = d3.select("svg"),
 		    width = +svg.attr("width"),
 		    height = +svg.attr("height");
-		    
+
 		function addSvgSaveButton(buttonId, topSvg, name) {
 		    	name = name || "graph.svg"
 		    	if(!name.endsWith('.svg')){
@@ -743,21 +746,28 @@ std::string ReadCompGraph::ConnectedHaplotypeNetworkPars::htmlPageForConnectHpaN
 		  //n = n * 2
 		  for (var i = 0; i < n; ++i) {
 		    //postMessage({type: "tick", progress: i / n});
-		    console.log(i,"", n);
+		    //console.log(i,"", n);
 		    initializerSimulation.tick();
 		  }
 
-		  var link = svg.append("g")
+		  svg.append("g")
 		      .attr("class", "links")
 		    .selectAll("line")
 		    .data(graph.links)
-		    .enter().append("line")
-		      .attr("stroke-width", function(d) { return Math.sqrt(d.value); })
-		      .attr("stroke", "#999")
-		      .attr("stroke-opacity", 0.6);
+					.enter().append("g")
+						.attr("class", function(d) {return "link";})
+		    		.append("line")
 
 
-		  svg.selectAll(".node")
+			var link = svg.selectAll(".link")
+			link.select("line").attr("stroke-width", function(d) { return Math.sqrt(d.value); })
+					.attr("stroke", "#999")
+					.attr("stroke-opacity", 0.6)
+					.attr("id", function(d,i){ return "linkId_" + i});
+
+		  svg.append("g")
+		      .attr("class", "nodes")
+					.selectAll(".node")
 		    		.data(graph.nodes)
 		    		.enter().append("g")
 		    			.attr("class", function(d) {return "node";})
@@ -766,6 +776,7 @@ std::string ReadCompGraph::ConnectedHaplotypeNetworkPars::htmlPageForConnectHpaN
 		    			          .on("drag", dragged)
 		    			          .on("end", dragended))
 		    			.append("circle");
+
 		  var node = svg.selectAll(".node");
 		  node.select("circle")
 		    		  .attr("r", function(d) { return Math.sqrt(d.size/Math.PI); })
@@ -791,7 +802,7 @@ std::string ReadCompGraph::ConnectedHaplotypeNetworkPars::htmlPageForConnectHpaN
 		              .text(function(d) { return d.id; });
 		          */
 
-		  
+
 
 		  simulation
 		      .nodes(graph.nodes)
@@ -812,12 +823,34 @@ std::string ReadCompGraph::ConnectedHaplotypeNetworkPars::htmlPageForConnectHpaN
 		      	  .style("stroke-width", "1px")
 		      	  .text(function(d) {return d.label;});
 
+			var linktext = svg.selectAll("g.linklabelholder").data(graph.links);
+			    linktext.enter().append("g").attr("class", "linklabelholder")
+			     .append("text")
+			     .attr("class", "linklabel")
+			     .attr("dx", 1)
+			     .attr("dy", ".35em")
+			     .attr("text-anchor", "middle")
+					 .style("fill","#000")
+					 .style("font-family", "\"HelveticaNeue-Light\", \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif")
+					 .style("font-size", "12px")
+					 //.style("font-weight","900")
+					 .style("pointer-events", "none")
+					 .style("stroke", "#000")
+					 .style("stroke-width", "1px")
+			     .text(function(d) { return d.label });
+
+
 		    function ticked() {
-		  	    link.attr("x1", function(d) { return d.source.x; })
+					  // links
+		  	    link.select("line").attr("x1", function(d) { return d.source.x; })
 		  	        .attr("y1", function(d) { return d.source.y; })
 		  	        .attr("x2", function(d) { return d.target.x; })
 		  	        .attr("y2", function(d) { return d.target.y; });
-		  	    node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")" ; });
+						//link.attr("transform", function(d) { return console.log(d);"translate(" + d.x + "," + d.y + ")" ; });
+						// link label
+			      svg.selectAll(".linklabelholder").attr("transform", function(d) {return "translate(" + (d.source.x + d.target.x) / 2 + "," + (d.source.y + d.target.y) / 2 + ")"; });
+						// node (which contains the node labels)
+						node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")" ; });
 		  	};
 		  	//for drag objects start
 		  	function dragstarted(d) {
@@ -837,37 +870,6 @@ std::string ReadCompGraph::ConnectedHaplotypeNetworkPars::htmlPageForConnectHpaN
 		  	  d.fy = null;
 		  	};
 		    });
-		  /*
-		  function ticked() {
-		    link
-		        .attr("x1", function(d) { return d.source.x; })
-		        .attr("y1", function(d) { return d.source.y; })
-		        .attr("x2", function(d) { return d.target.x; })
-		        .attr("y2", function(d) { return d.target.y; });
-
-		    node
-		        .attr("cx", function(d) { return d.x; })
-		        .attr("cy", function(d) { return d.y; });
-		  }
-		});
-
-		function dragstarted(d) {
-		  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-		  d.fx = d.x;
-		  d.fy = d.y;
-		}
-
-		function dragged(d) {
-		  d.fx = d3.event.x;
-		  d.fy = d3.event.y;
-		}
-
-		function dragended(d) {
-		  if (!d3.event.active) simulation.alphaTarget(0);
-		  d.fx = null;
-		  d.fy = null;
-		}*/
-
 		</script>
 
 
