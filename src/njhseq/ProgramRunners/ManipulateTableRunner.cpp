@@ -60,11 +60,13 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 
 	std::string column = "";
 	bool keepMetaInColumn = false;
+	bool prefixWithColName = false;
 	bool removeEmptyColumn = false;
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.setOption(column, "--column", "Column to split which contains meta with the following formating [key1=val1;key2=val2;]", true);
 	setUp.setOption(keepMetaInColumn, "--keepMetaInColumn", "Keep meta in the original column");
 	setUp.setOption(removeEmptyColumn, "--removeEmptyColumn", "remove original column if it becomes an empty column");
+	setUp.setOption(prefixWithColName, "--prefixWithColName", "Prefix new columns with column name");
 	setUp.processFileName(true);
 	setUp.processNonRquiredDefaults();
 	bool sorting = setUp.processSorting();
@@ -109,13 +111,16 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 				}
 			}
 		}
-		if(allEmpty && removeEmptyColumn){
+		if (allEmpty && removeEmptyColumn) {
 			inTab.deleteColumn(column);
 		}
-		for(const auto & m : metaValues){
-			inTab.addColumn(m.second, m.first);
+		for (const auto & m : metaValues) {
+			std::string newColName = m.first;
+			if (prefixWithColName) {
+				newColName = column + "-" + m.first;
+			}
+			inTab.addColumn(m.second, newColName);
 		}
-
 		if(sorting){
 			inTab.sortTable(setUp.sortByColumn_, setUp.decending_);
 		}

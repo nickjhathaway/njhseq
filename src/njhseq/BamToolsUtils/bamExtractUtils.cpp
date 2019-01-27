@@ -2590,7 +2590,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 								writeMateFilteredOff(bAln, region);
 								writeTheThrownAwayMate(*search, searchSeq);
 							}
-						}else{
+						} else {
 							if (searchIn && bAlnIn) {
 								//if these checks end up being the same it means the seq is now in the original orientation
 								//if false then they are now in the reverse complement of what they use to be

@@ -49,7 +49,11 @@ GenomicRegion::GenomicRegion(const std::string & uid, const std::string & chrom,
 GenomicRegion::GenomicRegion(const Bed6RecordCore & bed) :
 		GenomicRegion(bed.name_, bed.chrom_, bed.chromStart_, bed.chromEnd_,
 				'-' == bed.strand_) {
-
+	if(bed.extraFields_.size() > 0){
+		if(MetaDataInName::nameHasMetaData(bed.extraFields_[0])){
+			meta_ = MetaDataInName(bed.extraFields_[0]);
+		}
+	}
 }
 
 GenomicRegion::GenomicRegion(const Bed3RecordCore & bed) :
@@ -257,8 +261,12 @@ void GenomicRegion::addAltUid(const std::string & altUid) {
 }
 
 Bed6RecordCore GenomicRegion::genBedRecordCore() const {
-	return Bed6RecordCore(chrom_, start_, end_, uid_, getLen(),
+	Bed6RecordCore ret (chrom_, start_, end_, uid_, getLen(),
 			reverseSrand_ ? '-' : '+');
+	if(!meta_.meta_.empty()){
+		ret.extraFields_.emplace_back(meta_.createMetaName());
+	}
+	return ret;
 }
 
 Bed3RecordCore GenomicRegion::genBed3RecordCore() const{
@@ -448,7 +456,9 @@ std::vector<GenomicRegion> gatherRegions(const std::string & bedFile,
 std::vector<GenomicRegion> bedPtrsToGenomicRegs(
 		const std::vector<std::shared_ptr<Bed6RecordCore>> & beds) {
 	return njh::convert<std::shared_ptr<Bed6RecordCore>, GenomicRegion>(beds,
-			[](const std::shared_ptr<Bed6RecordCore> & bed)->GenomicRegion {return GenomicRegion(*bed);});
+			[](const std::shared_ptr<Bed6RecordCore> & bed)->GenomicRegion {
+		return GenomicRegion(*bed);
+	});
 }
 
 std::vector<GenomicRegion> bed3PtrsToGenomicRegs(
