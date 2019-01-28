@@ -136,6 +136,8 @@ seqInfo seqInfo::translateRet(bool complement, bool reverse,
 		size_t start) const {
 	seqInfo ret(*this);
 	ret.translate(complement, reverse, start);
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << "\t" << ret.seq_ << std::endl;
 	return ret;
 }
 
