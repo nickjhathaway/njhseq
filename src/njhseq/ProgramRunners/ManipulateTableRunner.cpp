@@ -20,6 +20,8 @@
 
 #include "ManipulateTableRunner.hpp"
 #include "njhseq/objects/dataContainers/tables/table.hpp"
+#include "njhseq/objects/dataContainers/tables/TableReader.hpp"
+
 #include "njhseq/objects/Meta/MetaDataInName.hpp"
 #include "njhseq/programUtils/seqSetUp.hpp"
 #include "njhseq/IO.h"
@@ -609,52 +611,28 @@ int ManipulateTableRunner::getStats(
 	return 0;
 }
 
+
+
+
 int ManipulateTableRunner::splitTable(
 		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string column = "";
-	bool getStatsInstead = false;
-	bool splitingLoose = false;
-	std::string splitLooseOccurrence = "";
+	setUp.setUpSplitTable(column);
 
-	setUp.setUpSplitTable(column, getStatsInstead, splitingLoose,
-			splitLooseOccurrence);
+	TableReader tabReader(setUp.ioOptions_);
+	tabReader.header_.checkForColumnsThrow({column}, __PRETTY_FUNCTION__);
+
+	MultiOutputStreamCache writer;
+	VecStr line;
+	while(tabReader.getNextRow(line)){
+		std::string colVal = line[tabReader.header_.getColPos(column)];
+		if(!writer.containsReader(colVal)){
+			writer.addOutputStream(colVal, OutOptions(njh::files::make_path(setUp.directoryName_, colVal)));
+		}
+		writer.add(colVal, line);
+	}
 	table inTab(setUp.ioOptions_);
-	inTab.fillWithZeros();
-	std::map < std::string, table > tables;
-	if (splitingLoose) {
-		if (splitLooseOccurrence == "") {
-			tables = inTab.splitTableOnColumnLoose(column);
-		} else {
-			tables = inTab.splitTableOnColumnLoose(column, splitLooseOccurrence);
-		}
-	} else {
-		tables = inTab.splitTableOnColumn(column);
-	}
-	std::map < std::string, table > outTables;
-	if (getStatsInstead) {
-		for (const auto &tabIter : tables) {
-			outTables.insert( { tabIter.first, tabIter.second.getStatsTable() });
-		}
-	} else {
-		outTables = tables;
-	}
-	if (setUp.directoryName_ == "./") {
-		table::printOutSplitTable(outTables, std::cout,
-				setUp.ioOptions_.outDelim_, setUp.ioOptions_.outOrganized_);
-	} else {
-		for (const auto &tab : outTables) {
-			std::ofstream outFile;
-			openTextFile(outFile,
-					njh::files::make_path(setUp.directoryName_, tab.first).string(),
-					".txt", true, false);
-			if (setUp.ioOptions_.outOrganized_) {
-				tab.second.outPutContentOrganized(outFile);
-			} else {
-				tab.second.outPutContents(outFile, setUp.ioOptions_.outDelim_);
-			}
-		}
-	}
 	return 0;
 }
 

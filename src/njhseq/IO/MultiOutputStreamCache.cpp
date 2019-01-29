@@ -1,9 +1,3 @@
-#pragma once
-//
-//  readers.h
-//
-//  Created by Nicholas Hathaway on 7/20/13.
-//
 //
 // njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
@@ -23,14 +17,17 @@
 // You should have received a copy of the GNU General Public License
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "njhseq/IO/SeqIO.h"
-#include "njhseq/IO/cachedReader.hpp"
-#include "njhseq/IO/IOUtils.hpp"
-#include "njhseq/IO/fileUtils.hpp"
-#include "njhseq/IO/FileWithTime.hpp"
-#include "njhseq/IO/IOOptions.h"
-#include "njhseq/IO/OutputStream.hpp"
-#include "njhseq/IO/InputStream.hpp"
+/*
+ * MultiOutputStream.cpp
+ *
+ *  Created on: Jan 28, 2019
+ *      Author: nick
+ */
 
-#include "njhseq/IO/MultiOutputStream.hpp"
-#include "njhseq/IO/MultiOutputStreamCache.hpp"
+#include "MultiOutputStreamCache.hpp"
+
+namespace njhseq {
+
+
+
+}  // namespace njhseq
