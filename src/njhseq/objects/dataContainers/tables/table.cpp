@@ -161,6 +161,7 @@ table::table(std::istream & in, const std::string &inDelim,
 			columnNames_.emplace_back("col." + leftPadNumStr(i, content_[0].size()));
 		}
 	}
+
 	addPaddingToEndOfRows();
 	setColNamePositions();
 }
@@ -172,7 +173,7 @@ table::table(const bfs::path &filename, const std::string &inDelim,
   setColNamePositions();
 }
 void table::addPaddingToEndOfRows(const std::string & padding) {
-  size_t maxRowLength = 0;
+  size_t maxRowLength = columnNames_.size();
   for (auto &iter : content_) {
     if (iter.size() > maxRowLength) {
       maxRowLength = iter.size();
