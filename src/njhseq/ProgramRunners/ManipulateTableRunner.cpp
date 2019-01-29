@@ -619,7 +619,9 @@ int ManipulateTableRunner::splitTable(
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string column = "";
 	setUp.setUpSplitTable(column);
-
+	if("./" != setUp.directoryName_){
+		setUp.startARunLog(setUp.directoryName_);
+	}
 	TableReader tabReader(setUp.ioOptions_);
 	tabReader.header_.checkForColumnsThrow({column}, __PRETTY_FUNCTION__);
 
