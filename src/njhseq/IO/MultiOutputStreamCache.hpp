@@ -41,9 +41,7 @@ public:
 	 * @param uid the uid for the reader
 	 * @param opts The options for the reader
 	 */
-	void addOutputStream(const std::string & uid, const OutOptions & opts) {
-		writers_.addStream(uid, opts);
-	}
+	void addOutputStream(const std::string & uid, const OutOptions & opts);
 
 	/**@brief Add a read to cache for the uid SeqIO
 	 *
@@ -53,14 +51,7 @@ public:
 	 * @param uid the uid of the SeqIO
 	 * @param read the read to add
 	 */
-	void add(const std::string & uid, const std::string & line) {
-		writers_.containsStreamThrow(uid);
-		cache_[uid].push_back(line);
-		++cacheSize_;
-		if (cacheSize_ == cacheLimit_) {
-			writeCache();
-		}
-	}
+	void add(const std::string & uid, const std::string & line);
 	/**@brief Add a reads to cache for the uid SeqIO
 	 *
 	 * This will add the reads to the cache and if it hits the cache limit
@@ -69,88 +60,48 @@ public:
 	 * @param uid the uid of the SeqIO
 	 * @param reads the reads to add
 	 */
-	void add(const std::string & uid, const std::vector<std::string> & lines) {
-		writers_.containsStreamThrow(uid);
-		for (const auto & line : lines) {
-			cache_[uid].push_back(line);
-			++cacheSize_;
-			if (cacheSize_ == cacheLimit_) {
-				writeCache();
-			}
-		}
-	}
+	void add(const std::string & uid, const std::vector<std::string> & lines);
 	/**@brief Write cache and then clear it
 	 *
 	 */
-	void writeCache() {
-		for (const auto & lines : cache_) {
-			if(lines.second.empty()){
-				continue;
-			}
-			//std::cout << __PRETTY_FUNCTION__ << std::endl;
-			writers_.openWrite(lines.first, lines.second);
-			//std::cout << __PRETTY_FUNCTION__ << std::endl;
-		}
-		for (auto & reads : cache_) {
-			reads.second.clear();
-		}
-		cacheSize_ = 0;
-	}
+	void writeCache();
 
 	/**@brief Close all the output read files for all the readObjectIOs held in MultiOutputStreamCache::writer_
 	 *
 	 */
-	void closeOutAll() {
-		writeCache();
-		writers_.closeOutAll();
-	}
+	void closeOutAll();
 
 	/**@brief Close all the output read files for all the readObjectIOs held in MultiOutputStreamCache::writer_ for reopening (their option will be changed to append to append to the file now on re-opening)
 	 *
 	 */
-	void closeOutForReopeningAll() {
-		writeCache();
-		writers_.closeOutForReopeningAll();
-	}
+	void closeOutForReopeningAll();
 
 	/**@brief Get the current cache limit
 	 *
 	 * @return
 	 */
-	uint32_t getCacheLimit() const {
-		return cacheLimit_;
-	}
+	uint32_t getCacheLimit() const;
 
 	/**@brief Set the cache limit
 	 *
 	 * @param cacheLimit Set the new cache limit
 	 */
-	void setCacheLimit(uint32_t cacheLimit) {
-		cacheLimit_ = cacheLimit;
-	}
+	void setCacheLimit(uint32_t cacheLimit);
 
 	/**@brief Set the file open limit for MultiOutputStreamCache::writer_
 	 *
 	 * @param fileOpenLimit the new file open limit
 	 */
-	void setOpenLimit(uint32_t fileOpenLimit){
-		writers_.setOpenLimit(fileOpenLimit);
-	}
+	void setOpenLimit(uint32_t fileOpenLimit);
 
 	/**@brief On destruction, close out writers which will also write the cache
 	 *
 	 */
-	~MultiOutputStreamCache(){
-		closeOutForReopeningAll();
-	}
+	~MultiOutputStreamCache();
 
-	void containsReaderThrow(const std::string & uid) const {
-		writers_.containsStreamThrow(uid);
-	}
+	void containsReaderThrow(const std::string & uid) const;
 
-	bool containsReader(const std::string & uid) const {
-		return writers_.containsStream(uid);
-	}
+	bool containsReader(const std::string & uid) const;
 
 private:
 

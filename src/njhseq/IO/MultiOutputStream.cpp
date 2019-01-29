@@ -65,11 +65,16 @@ void MultiOutputStream::openWrite(const std::string & uid, const std::string & l
 }
 
 void MultiOutputStream::openWrite(const std::string & uid, const std::vector<std::string> & lines, bool flush) {
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	openOut(uid);
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	std::lock_guard<std::mutex> lock(outStreams_.at(uid)->mut_);
 	for(const auto & line : lines){
+		//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 		outStreams_.at(uid)->writeNoCheck(line, flush);
+		//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	}
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 }
 
 
@@ -96,6 +101,7 @@ void MultiOutputStream::closeOutForReopeningAll() {
 }
 
 void MultiOutputStream::closeNext() {
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	auto nextUp = outsOpen_.front();
 	outsOpen_.pop_front();
 	while (openPriorityCounts_[nextUp] > 1) {
@@ -103,10 +109,13 @@ void MultiOutputStream::closeNext() {
 		nextUp = outsOpen_.front();
 		outsOpen_.pop_front();
 	}
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	auto outStream = outStreams_.find(nextUp);
 	std::lock_guard<std::mutex> lock(outStream->second->mut_);
 	outStream->second->closeOutForReopening();
 	openPriorityCounts_[nextUp] = 0;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+
 }
 
 uint32_t MultiOutputStream::getOpenLimit() const {
@@ -135,37 +144,39 @@ void MultiOutputStream::containsStreamThrow(const std::string & uid) const {
 
 
 void MultiOutputStream::openOut(const std::string & uid){
+
 	//std::cout << __PRETTY_FUNCTION__ << 1 << std::endl;
-	//std::cout << uid << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	containsStreamThrow(uid);
-	//std::cout << __PRETTY_FUNCTION__ << 2 << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	mut_.lock();
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	std::lock_guard<std::mutex> lock(outStreams_.at(uid)->mut_);
-	//std::cout << __PRETTY_FUNCTION__ << 3 << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	auto outStream = outStreams_.find(uid);
 	//std::cout << __PRETTY_FUNCTION__ << 4 << std::endl;
 	if (!outStream->second->outOpen()) {
 		//std::cout << __PRETTY_FUNCTION__ << 5 << std::endl;
 		if (outCurrentlyOpen_ >= outOpenLimit_) {
-			//std::cout << __PRETTY_FUNCTION__ << 6 << std::endl;
+			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			closeNext();
-			//std::cout << __PRETTY_FUNCTION__ << 7 << std::endl;
+			//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 		} else {
 			//std::cout << __PRETTY_FUNCTION__ << 8 << std::endl;
 			++outCurrentlyOpen_;
 			//std::cout << __PRETTY_FUNCTION__ << 9 << std::endl;
 		}
-		//std::cout << __PRETTY_FUNCTION__ << 10 << std::endl;
+		//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 		outStream->second->openOut();
-		//std::cout << __PRETTY_FUNCTION__ << 11 << std::endl;
+		//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	}
-	//std::cout << __PRETTY_FUNCTION__ << 12 << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	outsOpen_.push_back(uid);
-	//std::cout << __PRETTY_FUNCTION__ << 13 << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	++openPriorityCounts_[uid];
-	//std::cout << __PRETTY_FUNCTION__ << 14 << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	mut_.unlock();
-	//std::cout << __PRETTY_FUNCTION__ << 15 << std::endl;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 }
 
 

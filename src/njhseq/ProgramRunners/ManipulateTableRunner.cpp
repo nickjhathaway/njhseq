@@ -628,9 +628,9 @@ int ManipulateTableRunner::splitTable(
 	while(tabReader.getNextRow(line)){
 		std::string colVal = line[tabReader.header_.getColPos(column)];
 		if(!writer.containsReader(colVal)){
-			writer.addOutputStream(colVal, OutOptions(njh::files::make_path(setUp.directoryName_, colVal)));
+			writer.addOutputStream(colVal, OutOptions(njh::files::make_path(setUp.directoryName_, colVal + tabReader.tabOpts_.out_.outExtention_)));
 		}
-		writer.add(colVal, line);
+		writer.add(colVal, njh::conToStr(line, tabReader.tabOpts_.outDelim_));
 	}
 	table inTab(setUp.ioOptions_);
 	return 0;

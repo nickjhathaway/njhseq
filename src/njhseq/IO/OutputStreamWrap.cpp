@@ -39,6 +39,7 @@ bool OutputStreamWrap::outOpen() const{
 
 void OutputStreamWrap::openOut(){
 	out_ = std::make_unique<OutputStream>(opts_);
+	outOpen_ = true;
 }
 
 void OutputStreamWrap::closeOut(){
