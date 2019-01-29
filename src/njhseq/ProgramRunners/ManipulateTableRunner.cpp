@@ -639,6 +639,7 @@ int ManipulateTableRunner::splitTable(
 	return 0;
 }
 
+
 int ManipulateTableRunner::aggregateTable(
 		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
