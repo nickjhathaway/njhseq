@@ -140,11 +140,14 @@ VecStr table::getColumnLevels(const std::string & colName) const {
 	return getColumnLevels(getColPos(colName));
 }
 
-table::table(std::istream & in, const std::string &inDelim,
-        bool header): hasHeader_(header), inDelim_(inDelim){
+void table::populateTable(std::istream & in, const std::string &inDelim, bool header){
+	inDelim_ = inDelim;
 	if(inDelim == "tab"){
 		inDelim_ = "\t";
 	}
+	hasHeader_ = header;
+	content_.clear();
+	columnNames_.clear();
 
 	std::string currentLine = "";
 	uint32_t lineCount = 0;
@@ -164,14 +167,19 @@ table::table(std::istream & in, const std::string &inDelim,
 
 	addPaddingToEndOfRows();
 	setColNamePositions();
+
 }
 
-table::table(const bfs::path &filename, const std::string &inDelim,
-             bool header) {
-	InputStream in(filename);
-  *this = table(in, inDelim, header);
-  setColNamePositions();
+table::table(std::istream & in, const std::string &inDelim,
+        bool header){
+	populateTable(in, inDelim, header);
 }
+
+table::table(const bfs::path &filename, const std::string &inDelim,bool header) {
+	InputStream in(filename);
+	populateTable(in, inDelim, header);
+}
+
 void table::addPaddingToEndOfRows(const std::string & padding) {
   size_t maxRowLength = columnNames_.size();
   for (auto &iter : content_) {
