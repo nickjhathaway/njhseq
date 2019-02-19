@@ -260,6 +260,7 @@ njh::sys::RunOutput BioCmdsUtils::bowtie2Align(const SeqIOOptions & opts,
 				<< njh::bashCT::reset << std::endl;
 	}
 	auto ret = njh::sys::run( { templateCmd.str() });
+
 	BioCmdsUtils::checkRunOutThrow(ret, __PRETTY_FUNCTION__);
 	std::stringstream samtoolsCmds;
 	samtoolsCmds << "samtools sort " << outputFnpTempSam <<" -o " << outputFnp

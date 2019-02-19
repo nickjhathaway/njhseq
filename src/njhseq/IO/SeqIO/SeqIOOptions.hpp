@@ -116,6 +116,10 @@ struct SeqIOOptions {
 	bool isPairedIn() const;
 	bool isPairedOut() const;
 
+	bool isInGz() const;
+	bool isOutGz() const;
+
+
   //fastq
   static SeqIOOptions genFastqIn(const bfs::path & inFilename, bool processed =false);
 	static SeqIOOptions genFastqOut(const bfs::path & outFilename);
