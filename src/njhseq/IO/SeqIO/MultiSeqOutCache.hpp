@@ -155,7 +155,7 @@ public:
 private:
 
 	std::unordered_map<std::string, std::vector<T>> cache_; /**< The cache of reads*/
-	uint32_t cacheLimit_ = 10000;/**< The cache limit*/
+	uint32_t cacheLimit_ = 50000;/**< The cache limit*/
 	uint32_t cacheSize_ = 0;/**< The current cache size*/
 	MultiSeqIO writers_;/**< The MultiSeqIO responsible for writing the cache*/
 };

@@ -98,10 +98,10 @@ public:
 	 * @param read The seqInfo to write
 	 */
 	template<typename T>
-	void write(const std::string & uid, const T & read) {
+	void write(const std::string & uid, const T & seq) {
 		containsReaderThrow(uid);
 		std::lock_guard<std::mutex> lock(readIos_.at(uid)->mut_);
-		readIos_.at(uid)->out_.write(read);
+		readIos_.at(uid)->out_.write(seq);
 	}
 
 	/**@brief Write the given seqInfo for reader with uid, will open the the reader's outputs if they are not currently opened
@@ -111,11 +111,13 @@ public:
 	 * @param read The seq object to write
 	 */
 	template<typename T>
-	void openWrite(const std::string & uid, const T & read) {
+	void openWrite(const std::string & uid, const T & seq) {
 		openOut(uid);
 		std::lock_guard<std::mutex> lock(readIos_.at(uid)->mut_);
+
 		auto readIO = readIos_.find(uid);
-		readIO->second->out_.writeNoCheck(read);
+
+		readIO->second->out_.writeNoCheck(seq);
 	}
 
 	/**@brief Open uid writer if it isn't open and update priority queue
