@@ -139,10 +139,17 @@ public:
 					auto & currentRead = getSeqBase(seqs[std::stoul(seq.name_)]);
 					auto gAlnInfo = genGlobalAlnInfo(seq.seq_);
 					alignCalc::rearrangeGlobalQueryOnly(currentRead.seq_, '-', gAlnInfo );
-					alignCalc::rearrangeGlobalQueryOnly(currentRead.qual_, 0, gAlnInfo );
+					alignCalc::rearrangeGlobalQueryOnly(currentRead.qual_, 0,  gAlnInfo );
 				}
 				for(const auto & pos : seqsWithStopCodonEndings){
-					getSeqBase(seqs[pos]).append("*");
+					if('-' == getSeqBase(seqs[pos]).seq_.back() ){
+						uint32_t lastBase = getSeqBase(seqs[pos]).seq_.find_last_not_of("-");
+						if(lastBase < len(getSeqBase(seqs[pos]))){
+							getSeqBase(seqs[pos]).insert(lastBase + 1, seqInfo("", "*"));
+						}
+					}else{
+						getSeqBase(seqs[pos]).append("*");
+					}
 				}
 			} catch (std::exception & e) {
 				std::cerr << e.what() << std::endl;

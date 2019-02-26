@@ -684,14 +684,15 @@ std::string findIdNameFromFileName(const std::string& filename) {
   auto periodPos = filename.rfind(".");
   auto lastMPos = filename.rfind("MID");
 
-  if (periodPos != std::string::npos && !isdigit(filename[periodPos - 1])) {
-    auto underScorePos = filename.rfind("_");
-    if(std::string::npos == underScorePos || lastMPos > underScorePos){
-    	periodPos = filename.rfind(".");
-    }else{
-    	periodPos = filename.rfind("_");
-    }
-  }
+  //not sure why this was here, changed by NJH 2019_01_14
+//  if (periodPos != std::string::npos && !isdigit(filename[periodPos - 1])) {
+//    auto underScorePos = filename.rfind("_");
+//    if(std::string::npos == underScorePos || lastMPos > underScorePos){
+//    	periodPos = filename.rfind(".");
+//    }else{
+//    	periodPos = filename.rfind("_");
+//    }
+//  }
   //std::cout << "lastMPos: " << lastMPos << std::endl;
   if(lastMPos == std::string::npos){
   	return filename;

@@ -24,6 +24,50 @@
 
 namespace njhseq {
 
+readVecTrimmer::BreakUpRes::BreakUpRes(const seqInfo & seqBase, uint32_t start,
+		uint32_t end, const std::string & pat) :
+		seqBase_(seqBase), start_(start), end_(end), pat_(pat) {
+
+}
+
+std::vector<readVecTrimmer::BreakUpRes> readVecTrimmer::breakUpSeqOnPat(const seqInfo & seq,
+		const std::string & pattern) {
+	njh::PatPosFinder pFinder(pattern);
+	return breakUpSeqOnPat(seq, pFinder);
+}
+std::vector<readVecTrimmer::BreakUpRes> readVecTrimmer::breakUpSeqOnPat(const seqInfo & seq,
+		const njh::PatPosFinder & pFinder) {
+	std::vector<BreakUpRes> ret;
+	auto pats = pFinder.getPatPositions(seq.seq_);
+
+	if (!pats.empty()) {
+		if (0 != pats.front().pos_) {
+			size_t start = 0;
+			size_t end = pats.front().pos_;
+			auto subSeq = seq.getSubRead(start, end - start);
+			ret.emplace_back(subSeq, start, end, pats.front().pat_);
+		}
+		if (pats.size() > 1) {
+			for (const auto & patPos : iter::range(pats.size() - 1)) {
+				const auto & p = pats[patPos];
+				size_t start = p.pos_ + p.pat_.size();
+				size_t end = pats[patPos + 1].pos_;
+				auto subSeq = seq.getSubRead(start, end - start);
+				ret.emplace_back(subSeq, start, end, p.pat_);
+			}
+		}
+		if (seq.seq_.size() != pats.back().end()) {
+			size_t start = pats.back().end();
+			size_t end = seq.seq_.size();
+			auto subSeq = seq.getSubRead(start, end - start);
+			ret.emplace_back(subSeq, start, end, pats.back().pat_);
+		}
+	} else {
+		ret.emplace_back(seq, 0, len(seq), "");
+	}
+	return ret;
+}
+
 
 void readVecTrimmer::trimAtRstripQualScore(seqInfo &seq, const uint32_t qualCutOff){
 	if(!seq.qual_.empty()){

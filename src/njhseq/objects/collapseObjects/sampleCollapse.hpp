@@ -59,6 +59,11 @@ public:
 	// excludes
 	void excludeChimeras(bool update);
 	void excludeChimeras(bool update, double fracCutOff);
+	void excludeChimerasNoReMark(bool update);
+	void markChimeras(double fracCutOff);
+
+	void excludeLowFreqOneOffs(bool update, double lowFreqMultiplier, aligner &alignerObj, bool skipChimeras = true);
+
 	void excludeFraction(double fractionCutOff, bool update);
 	void excludeFractionAnyRep(double fractionCutOff, bool update);
 	void excludeBySampNum(uint32_t sampsRequired, bool update);

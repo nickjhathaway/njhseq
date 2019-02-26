@@ -200,7 +200,7 @@ void genSimpleTreeJs(std::ostream & out) {
 		out << "      .call(force.drag);" << std::endl;
 		out << "" << std::endl;
 		out << "  node.append(\"title\")" << std::endl;
-		out << "      .text(function(d) { return d.name; });" << std::endl;
+		out << "      .text(function(d) { return d.name + \" group:\" + d.group; });" << std::endl;
 		out << "" << std::endl;
 		out << "function tick() {" << std::endl;
 		out << "    link.attr(\"x1\", function(d) { return d.source.x; })" << std::endl;

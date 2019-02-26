@@ -402,10 +402,20 @@ std::vector<std::vector<T>> findClumps(const std::vector<T>& positions,
 template<typename T>
 std::vector<T> getSubVector(const std::vector<T>& vec, uint32_t start,
 		uint32_t size) {
-	return std::numeric_limits<uint32_t>::max() != size ? std::vector<T>(vec.begin() + start, vec.begin() + size + start) : std::vector<T>(vec.begin() + start, vec.end());
+	if(start > vec.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "start: " << start << " greater than vector size: " << vec.size() << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	return std::numeric_limits<uint32_t>::max() != size ? std::vector<T>(vec.begin() + start, size + start > vec.size() ? vec.end() : vec.begin() + size + start) : std::vector<T>(vec.begin() + start, vec.end());
 }
 template<typename T>
 std::vector<T> getSubVector(const std::vector<T>& vec, uint32_t start) {
+	if(start > vec.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "start: " << start << " greater than vector size: " << vec.size() << "\n";
+		throw std::runtime_error{ss.str()};
+	}
 	return std::vector<T>(vec.begin() + start, vec.end());
 }
 

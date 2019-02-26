@@ -232,6 +232,20 @@ public:
 			const GlobalAlnTrimPars & trimPars,
 			aligner &alignerObj);
 
+
+
+	struct BreakUpRes {
+		BreakUpRes(const seqInfo & seqBase, uint32_t start, uint32_t end,
+				const std::string & pat);
+		seqInfo seqBase_;
+		uint32_t start_;
+		uint32_t end_;
+		std::string pat_;
+	};
+
+	static std::vector<BreakUpRes> breakUpSeqOnPat(const seqInfo & seq, const std::string & pattern);
+	static std::vector<BreakUpRes> breakUpSeqOnPat(const seqInfo & seq, const njh::PatPosFinder & pFinder);
+
 };
 
 template<typename SEQYPTE, typename REFSEQ>

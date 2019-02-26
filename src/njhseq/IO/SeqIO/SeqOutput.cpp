@@ -119,25 +119,27 @@ void SeqOutput::closeOutForReopening() {
 
 void SeqOutput::write(const seqInfo & read) {
 	if (!outOpen_) {
-		throw std::runtime_error {
-				"Error in readObjectIOOpt, attempted to write when out files aren't open, out file: " + ioOptions_.out_.outName().string() };
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "attempted to write when out files aren't open, out file: " + ioOptions_.out_.outName().string() << "\n";
+		throw std::runtime_error{ss.str()};
 	}
 	writeNoCheck(read);
 }
 
-void SeqOutput::writeNoCheck(const seqInfo & read) {
+void SeqOutput::writeNoCheck(const seqInfo & seq) {
 	switch (ioOptions_.outFormat_) {
 	case SeqIOOptions::outFormats::FASTA:
 	case SeqIOOptions::outFormats::FASTAGZ:
-		read.outPutSeq(*primaryOut_);
+
+		seq.outPutSeq(*primaryOut_);
 		break;
 	case SeqIOOptions::outFormats::FASTQ:
 	case SeqIOOptions::outFormats::FASTQGZ:
-		read.outPutFastq(*primaryOut_);
+		seq.outPutFastq(*primaryOut_);
 		break;
 	case SeqIOOptions::outFormats::FASTAQUAL:
-		read.outPutSeq(*primaryOut_);
-		read.outPutQual(*secondaryOut_);
+		seq.outPutSeq(*primaryOut_);
+		seq.outPutQual(*secondaryOut_);
 		break;
 	default:
 		throw std::runtime_error { njh::bashCT::boldRed(

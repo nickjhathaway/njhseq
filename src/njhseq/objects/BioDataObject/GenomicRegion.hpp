@@ -55,6 +55,8 @@ public:
 	bool reverseSrand_ = false;
 	bool off_ = false;
 
+	MetaDataInName meta_;
+
 	uint32_t getLen() const;
 	Bed6RecordCore genBedRecordCore() const;
 	Bed3RecordCore genBed3RecordCore() const;

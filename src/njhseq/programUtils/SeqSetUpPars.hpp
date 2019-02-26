@@ -41,7 +41,7 @@ struct QualFilteringPars {
 
   bool checkingQFrac_ = false;
   uint32_t qualCheck_ = 30;
-  double qualCheckCutOff_ = 0.75;
+  double qualCheckCutOff_ = 0.80;
 
   uint32_t trimAtQualCutOff_ = 2;
   bool trimAtQual_ = false;

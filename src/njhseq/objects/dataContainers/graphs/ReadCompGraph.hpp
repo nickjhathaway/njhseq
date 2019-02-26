@@ -102,7 +102,9 @@ public:
 		bool doTies = false;
 		std::string colorField = "";
 		std::string labelField = "";
-		bool noLabel = false;
+		bool noNodeLabel = false;
+		bool noLinkLabel = false;
+
 		std::unordered_map<std::string, njh::color> colorLookup;
 		std::unique_ptr<MultipleGroupMetaData> seqMeta;
 		uint32_t minlength = 50;

@@ -23,10 +23,20 @@ namespace njhseq {
 
 std::string getSubVector(const std::string& vec, uint32_t start,
 		uint32_t size) {
-	return std::numeric_limits<uint32_t>::max() != size ? std::string(vec.begin() + start, vec.begin() + size + start): std::string(vec.begin() + start, vec.end());
+	if(start > vec.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "start: " << start << " greater than string size: " << vec.size() << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	return std::numeric_limits<uint32_t>::max() != size ? std::string(vec.begin() + start, size + start > vec.size() ? vec.end() : vec.begin() + size + start): std::string(vec.begin() + start, vec.end());
 }
 
 std::string getSubVector(const std::string& vec, uint32_t start) {
+	if(start > vec.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "start: " << start << " greater than vector size: " << vec.size() << "\n";
+		throw std::runtime_error{ss.str()};
+	}
 	return std::string(vec.begin() + start, vec.end());;
 }
 

@@ -348,12 +348,17 @@ std::string seqUtil::convertToProtein(const std::string &seq, size_t start,
   }
   outSeq.resize(numChar / 3);  // numChar is exactly divisible by 3.
   // In below, cB is currentBase.
-  char cB[3], newBase;
-  std::string cBstring = "   ";
+  char cB[3];
+	char newBase;
+
+//  std::cout << "seq: " << seq << std::endl;
+
   for (size_t i = start; i < seq.size() - 2; i += 3) {
+//  	std::cout << "i: " << i << ", outSeq: " << outSeq << std::endl;
     cB[0] = static_cast<char>(toupper(seq[i]));
     cB[1] = static_cast<char>(toupper(seq[i + 1]));
     cB[2] = static_cast<char>(toupper(seq[i + 2]));
+//    std::cout << "\tcB:" << cB << std::endl;
     if (cB[0] == 'T') {
       cB[0] = 'U';
     }
@@ -451,6 +456,7 @@ std::string seqUtil::convertToProtein(const std::string &seq, size_t start,
 		}
 
     if (forceStartM && (i == start)) {
+    	std::string cBstring = "   ";
       cBstring[0] = cB[0];
       cBstring[1] = cB[1];
       cBstring[2] = cB[2];
@@ -462,6 +468,9 @@ std::string seqUtil::convertToProtein(const std::string &seq, size_t start,
     }
     outSeq[(i - start) / 3] = newBase;
   }
+
+//	std::cout << "final outSeq: " << outSeq << std::endl;
+
   return outSeq;
 }
 

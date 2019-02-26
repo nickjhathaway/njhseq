@@ -79,9 +79,9 @@ public:
 	/**
 	 * Given an std::array of std::array just put it in
 	 */
-	substituteMatrix(const std::array<std::array<int32_t, 127>, 127> & mat):mat_(mat){
+	substituteMatrix(const std::array<std::array<int32_t, 127>, 127> & mat);
+	substituteMatrix(const substituteMatrix & other);
 
-	}
 	//members
 	std::array<std::array<int32_t, 127>, 127> mat_;
 

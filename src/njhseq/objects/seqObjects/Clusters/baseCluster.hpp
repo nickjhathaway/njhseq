@@ -93,7 +93,7 @@ class baseCluster : public readObject {
   		const IterPar & runParams,
   		const CollapserOpts & collapserOptsObj);
 
-  comparison getComparison(baseCluster & read, aligner & alignerObj, bool checkKmers);
+  comparison getComparison(baseCluster & read, aligner & alignerObj, bool checkKmers) const;
 
 
   readObject createRead() const;

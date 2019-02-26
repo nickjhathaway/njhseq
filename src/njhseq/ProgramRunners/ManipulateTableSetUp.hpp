@@ -62,8 +62,7 @@ class ManipulateTableSetUp : public njh::progutils::ProgramSetUp {
 
   void setUpTrimContent(std::string &trimAt);
   void setUpGetStats(std::string &trimAt);
-  void setUpSplitTable(std::string &column, bool &getStatsInstead,
-                       bool &splitingLoose, std::string &splitLooseOccurrence);
+  void setUpSplitTable(std::string &column);
   void setUpAggregateTable(std::string &functionName, bool &advance,
                            std::string &columnName);
 

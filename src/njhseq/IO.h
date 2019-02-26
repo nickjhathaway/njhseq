@@ -31,3 +31,6 @@
 #include "njhseq/IO/IOOptions.h"
 #include "njhseq/IO/OutputStream.hpp"
 #include "njhseq/IO/InputStream.hpp"
+
+#include "njhseq/IO/MultiOutputStream.hpp"
+#include "njhseq/IO/MultiOutputStreamCache.hpp"

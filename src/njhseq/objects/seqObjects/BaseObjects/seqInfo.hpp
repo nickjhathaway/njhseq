@@ -178,9 +178,14 @@ struct seqInfo {
 
 	void resetMetaInName(const MetaDataInName & meta);
 
+	void adjustHomopolymerRunQualities();
+
   using size_type = std::string::size_type;
 
 };
+
+
+
 
 template<>
 inline seqInfo::size_type len(const seqInfo & info) {

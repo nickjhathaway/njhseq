@@ -24,6 +24,17 @@
 
 namespace njhseq {
 
+bool SeqIOOptions::isInGz() const{
+	return inFormat_ == inFormats::FASTAGZ
+			|| inFormat_ == inFormats::FASTQGZ
+			|| inFormat_ == inFormats::FASTQPAIREDGZ;
+}
+bool SeqIOOptions::isOutGz() const{
+	return outFormat_ == outFormats::FASTQPAIRED
+			|| outFormat_ == outFormats::FASTQPAIREDGZ
+			|| outFormat_ == outFormats::FASTQPAIREDGZ;
+}
+
 bool SeqIOOptions::isPairedIn() const {
 	return inFormat_ == inFormats::FASTQPAIRED
 			|| inFormat_ == inFormats::FASTQPAIREDGZ;
@@ -50,11 +61,11 @@ SeqIOOptions::inFormats SeqIOOptions::getInFormat(const std::string & format){
 		in =  inFormats::FASTQPAIRED;
 	} else if (format == "fastqPairedgz" || "_R1.fastq.gz"  == format || "_1.fastq.gz" == format) {
 		in =  inFormats::FASTQPAIREDGZ;
-	} else if (format == "fastqgz" || "fastq.gz" == format) {
+	} else if (format == "fastqgz" || ".fastq.gz" == format || "fastq.gz" == format) {
 		in =  inFormats::FASTQGZ;
 	} else if (format == "fasta" || format == "fa") {
 		in =  inFormats::FASTA;
-	} else if (format == "fastagz" || ".fasta.gz" == format) {
+	} else if (format == "fastagz" || ".fasta.gz" == format || "fasta.gz" == format) {
 		in =  inFormats::FASTAGZ;
 	} else if (format == "bam") {
 		in =  inFormats::BAM;
@@ -68,7 +79,7 @@ SeqIOOptions::inFormats SeqIOOptions::getInFormat(const std::string & format){
 		std::stringstream ss;
 		ss << "Unrecognized file type : " << format
 				<< ", in " << __PRETTY_FUNCTION__ << std::endl;
-		ss << "Acceptable types are fasta,fastaQual,fastq,fastqPaired, bam, fastagz, sff, and sffbin" << std::endl;
+		ss << "Acceptable types are fastq,fq,fnq,fastqPaired,_R1.fastq,_1.fastq,fastqPairedgz,_R1.fastq.gz,_1.fastq.gz,fastqgz,fastq.gz,.fastq.gz,.fasta,fa,fasta,fa,fastagz,.fasta.gz,bam,fastaQual,sff, and sffbin" << std::endl;
 		throw std::runtime_error { ss.str() };
 	}
 	return in;

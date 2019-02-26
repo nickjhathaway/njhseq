@@ -27,5 +27,6 @@
 #include "njhseq/helpers/seqUtil.hpp"
 #include "njhseq/helpers/profiler.hpp"
 #include "njhseq/helpers/consensusHelper.hpp"
+#include "njhseq/helpers/GHDNA.hpp"
 
 

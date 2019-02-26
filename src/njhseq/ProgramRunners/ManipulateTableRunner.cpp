@@ -20,6 +20,8 @@
 
 #include "ManipulateTableRunner.hpp"
 #include "njhseq/objects/dataContainers/tables/table.hpp"
+#include "njhseq/objects/dataContainers/tables/TableReader.hpp"
+
 #include "njhseq/objects/Meta/MetaDataInName.hpp"
 #include "njhseq/programUtils/seqSetUp.hpp"
 #include "njhseq/IO.h"
@@ -60,11 +62,13 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 
 	std::string column = "";
 	bool keepMetaInColumn = false;
+	bool prefixWithColName = false;
 	bool removeEmptyColumn = false;
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.setOption(column, "--column", "Column to split which contains meta with the following formating [key1=val1;key2=val2;]", true);
 	setUp.setOption(keepMetaInColumn, "--keepMetaInColumn", "Keep meta in the original column");
 	setUp.setOption(removeEmptyColumn, "--removeEmptyColumn", "remove original column if it becomes an empty column");
+	setUp.setOption(prefixWithColName, "--prefixWithColName", "Prefix new columns with column name");
 	setUp.processFileName(true);
 	setUp.processNonRquiredDefaults();
 	bool sorting = setUp.processSorting();
@@ -109,13 +113,16 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 				}
 			}
 		}
-		if(allEmpty && removeEmptyColumn){
+		if (allEmpty && removeEmptyColumn) {
 			inTab.deleteColumn(column);
 		}
-		for(const auto & m : metaValues){
-			inTab.addColumn(m.second, m.first);
+		for (const auto & m : metaValues) {
+			std::string newColName = m.first;
+			if (prefixWithColName) {
+				newColName = column + "-" + m.first;
+			}
+			inTab.addColumn(m.second, newColName);
 		}
-
 		if(sorting){
 			inTab.sortTable(setUp.sortByColumn_, setUp.decending_);
 		}
@@ -604,54 +611,34 @@ int ManipulateTableRunner::getStats(
 	return 0;
 }
 
+
+
+
 int ManipulateTableRunner::splitTable(
 		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	std::string column = "";
-	bool getStatsInstead = false;
-	bool splitingLoose = false;
-	std::string splitLooseOccurrence = "";
+	setUp.setUpSplitTable(column);
+	if("./" != setUp.directoryName_){
+		setUp.startARunLog(setUp.directoryName_);
+	}
+	TableReader tabReader(setUp.ioOptions_);
+	tabReader.header_.checkForColumnsThrow({column}, __PRETTY_FUNCTION__);
 
-	setUp.setUpSplitTable(column, getStatsInstead, splitingLoose,
-			splitLooseOccurrence);
+	MultiOutputStreamCache writer;
+	VecStr line;
+	while(tabReader.getNextRow(line)){
+		std::string colVal = line[tabReader.header_.getColPos(column)];
+		if(!writer.containsReader(colVal)){
+			writer.addOutputStream(colVal, OutOptions(njh::files::make_path(setUp.directoryName_, colVal + tabReader.tabOpts_.out_.outExtention_)));
+			writer.add(colVal, njh::conToStr(tabReader.header_.columnNames_, tabReader.tabOpts_.outDelim_));
+		}
+		writer.add(colVal, njh::conToStr(line, tabReader.tabOpts_.outDelim_));
+	}
 	table inTab(setUp.ioOptions_);
-	inTab.fillWithZeros();
-	std::map < std::string, table > tables;
-	if (splitingLoose) {
-		if (splitLooseOccurrence == "") {
-			tables = inTab.splitTableOnColumnLoose(column);
-		} else {
-			tables = inTab.splitTableOnColumnLoose(column, splitLooseOccurrence);
-		}
-	} else {
-		tables = inTab.splitTableOnColumn(column);
-	}
-	std::map < std::string, table > outTables;
-	if (getStatsInstead) {
-		for (const auto &tabIter : tables) {
-			outTables.insert( { tabIter.first, tabIter.second.getStatsTable() });
-		}
-	} else {
-		outTables = tables;
-	}
-	if (setUp.directoryName_ == "./") {
-		table::printOutSplitTable(outTables, std::cout,
-				setUp.ioOptions_.outDelim_, setUp.ioOptions_.outOrganized_);
-	} else {
-		for (const auto &tab : outTables) {
-			std::ofstream outFile;
-			openTextFile(outFile,
-					njh::files::make_path(setUp.directoryName_, tab.first).string(),
-					".txt", true, false);
-			if (setUp.ioOptions_.outOrganized_) {
-				tab.second.outPutContentOrganized(outFile);
-			} else {
-				tab.second.outPutContents(outFile, setUp.ioOptions_.outDelim_);
-			}
-		}
-	}
 	return 0;
 }
+
 
 int ManipulateTableRunner::aggregateTable(
 		const njh::progutils::CmdArgs & inputCommands) {

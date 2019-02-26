@@ -92,9 +92,33 @@ public:
 		return nullptr != inFile_;
 	}
 
-	bool isOutOpen() const{
-		return  nullptr != out_;
+	bool isOutOpen() const {
+		return nullptr != out_;
 	}
+
+	std::vector<DATA> readAll() {
+		std::vector<DATA> ret;
+		DATA record;
+		openIn();
+		while (readNextRecord(record)) {
+			ret.emplace_back(record);
+		}
+		closeIn();
+		return ret;
+	}
+
+	std::vector<std::shared_ptr<DATA>> readAllPtrs() {
+		std::vector<std::shared_ptr<DATA>> ret;
+		std::shared_ptr<DATA> record = readNextRecord();
+		openIn();
+		while (nullptr != record) {
+			ret.emplace_back(std::make_shared<DATA>(*record));
+			record = readNextRecord();
+		}
+		closeIn();
+		return ret;
+	}
+
 
 	bool readNextRecord(DATA & record) {
 		if(!isInOpen()){

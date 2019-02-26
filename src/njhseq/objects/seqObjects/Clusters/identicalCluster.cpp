@@ -56,6 +56,14 @@ void identicalCluster::setRep(const std::string& repQual){
 		throw std::runtime_error{ss.str()};
 	}
 }
+
+
+void identicalCluster::setBestSeqRep() {
+  setSeq();
+  seqBase_.qual_.clear();
+  seqBase_.qual_ = reads_.front()->seqBase_.qual_;
+}
+
 void identicalCluster::setBestQualRep() {
   setSeq();
   seqBase_.qual_.clear();
@@ -69,11 +77,12 @@ void identicalCluster::setBestQualRep() {
     seqBase_.qual_.push_back(currentQual);
   }
 }
+
 void identicalCluster::setWorstQualRep() {
   setSeq();
   seqBase_.qual_.clear();
   for (auto i : iter::range(seqBase_.seq_.length())) {
-    uint32_t currentQual = UINT32_MAX;
+    uint32_t currentQual = std::numeric_limits<uint32_t>::max();
     for (const auto& read : reads_) {
       if (read->seqBase_.qual_[i] < currentQual) {
         currentQual = read->seqBase_.qual_[i];
@@ -81,12 +90,6 @@ void identicalCluster::setWorstQualRep() {
     }
     seqBase_.qual_.push_back(currentQual);
   }
-}
-
-void identicalCluster::setBestSeqRep() {
-  setSeq();
-  seqBase_.qual_.clear();
-  seqBase_.qual_ = reads_.front()->seqBase_.qual_;
 }
 
 void identicalCluster::setAverageQualRep() {
@@ -112,4 +115,5 @@ void identicalCluster::setMedianQualRep() {
     seqBase_.qual_.push_back(qualToInsert);
   }
 }
+
 }  // namespace njh

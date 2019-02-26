@@ -241,44 +241,10 @@ void ManipulateTableSetUp::setUpGetStats(std::string &trimAt) {
   finishSetUp(std::cout);
 }
 
-void ManipulateTableSetUp::setUpSplitTable(std::string &column,
-                                           bool &getStatsInstead,
-                                           bool &splitingLoose,
-                                           std::string &splitLooseOccurrence) {
-  if (needsHelp()) {
-    std::stringstream tempOut;
-    tempOut << "splitTable" << std::endl;
-    tempOut << "Will take a table and create multiple tables by taking all "
-               "the rows that have the same name in -column" << std::endl;
-    tempOut << "Required commands" << std::endl;
-    tempOut << "1) -file [option]: The name of the file to be read"
-            << std::endl;
-    tempOut
-        << "2) -column [option]: The name of the column to split the table on"
-        << std::endl;
-    tempOut << "Additional Optional Options" << std::endl;
-    tempOut << "1) -loose : Split column so that the split is done if an "
-               "element is simply contained in any of the split column"
-            << std::endl;
-    tempOut << "2) -trimAt [option] : If doing a loose split, can trim at "
-               "the first occurence of the given option before spliting"
-            << std::endl;
-    tempOut << "3) -getStats : If stats on each split table is desired "
-               "rather than simply the data" << std::endl;
-    tempOut << "4) -dout [option] : If a directory of outfiles for each "
-               "split table is desired" << std::endl;
-    printDefaultOptinalOptions(tempOut);
-    std::cout << cleanOut(tempOut.str(), width_, indent_);
-    exit(1);
-  }
+void ManipulateTableSetUp::setUpSplitTable(std::string &column) {
   processDefaultProgram();
-  setOption(column, "-column", "ColumnToSplitOn", true);
-  if (setOption(splitingLoose, "-loose", "SplittingTableLoose")) {
-    setOption(splitLooseOccurrence, "-atOccurrence,-trimAt",
-              "SplitLooseAtFirstOccurenceOf");
-  }
-  setOption(getStatsInstead, "-getStats", "GettingStats");
-  processDirectoryOutputName("splitTables", false);
+  setOption(column, "--column", "Column To Split On, a seperate table will be created for each unique value in this column", true);
+  processDirectoryOutputName("./", false);
   finishSetUp(std::cout);
 }
 
@@ -405,16 +371,46 @@ bool ManipulateTableSetUp::processDefaultProgram(bool fileRequired) {
 
 void ManipulateTableSetUp::processDirectoryOutputName(
     const std::string &defaultName, bool mustMakeDirectory) {
-  if (setOption(directoryName_, "-dout", "Name of Out Directory")) {
-    directoryName_ = njh::files::makeDir("./", njh::files::MkdirPar(njh::replaceString(directoryName_, "./", ""))).string();
-  } else {
-    if (mustMakeDirectory) {
-      directoryName_ = njh::files::makeDir("./", njh::files::MkdirPar(defaultName)).string();
-    } else {
-      directoryName_ = "./";
-    }
-  }
-
+	//std::cout << defaultName << std::endl;
+	bool overWriteDir_ = false;
+	setOption(overWriteDir_, "--overWriteDir",
+			"If the directory already exists over write it",false, "Output Directory");
+	directoryName_ = "./";
+	if (setOption(directoryName_, "--dout", "Output Directory Name", false, "Output Directory")) {
+		if (!failed_) {
+			//std::cout << directoryName_ << std::endl;
+			std::string newDirectoryName = njh::replaceString(directoryName_,
+					"TODAY", getCurrentDate()) + "/";
+			if (njh::files::bfs::exists(newDirectoryName) && overWriteDir_) {
+				njh::files::rmDirForce(newDirectoryName);
+			} else if (njh::files::bfs::exists(newDirectoryName)
+					&& !overWriteDir_) {
+				failed_ = true;
+				addWarning(
+						"Directory: " + newDirectoryName
+								+ " already exists, use --overWriteDir to over write it");
+			}
+			njh::files::makeDirP(
+					njh::files::MkdirPar(newDirectoryName, overWriteDir_));
+			directoryName_ = newDirectoryName;
+		}
+	} else {
+		if (mustMakeDirectory && !failed_) {
+			std::string newDirectoryName = njh::replaceString(defaultName, "TODAY",
+					getCurrentDate()) + "/";
+			if (njh::files::bfs::exists(newDirectoryName) && overWriteDir_) {
+				njh::files::rmDirForce(newDirectoryName);
+			} else if (njh::files::bfs::exists(newDirectoryName)
+					&& !overWriteDir_) {
+				failed_ = true;
+				addWarning(
+						"Directory: " + newDirectoryName
+								+ " already exists, use --overWriteDir to over write it");
+			}
+			directoryName_ = njh::files::makeDir("./",
+					njh::files::MkdirPar(defaultName, overWriteDir_)).string();
+		}
+	}
 }
 
 void ManipulateTableSetUp::printDefaultOptinalOptions(std::ostream &out) {
