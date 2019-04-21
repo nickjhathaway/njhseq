@@ -33,6 +33,22 @@ namespace njhseq {
 class PrimerDeterminator {
 public:
 
+	struct PrimerPositionScore {
+		PrimerPositionScore() {
+		}
+		PrimerPositionScore(const uint32_t start, const uint32_t end,
+				const std::string & primerName, const comparison & comp) :
+				start_(start), end_(end), primerName_(primerName), comp_(comp) {
+		}
+		uint32_t start_ { std::numeric_limits<uint32_t>::max()-1 };
+		uint32_t end_ { std::numeric_limits<uint32_t>::max() };
+		std::string primerName_;
+		comparison comp_;
+		double getNormalizedScore() {
+			return comp_.alnScore_ / (end_ - start_);
+		}
+	};
+
 	struct PrimerDeterminatorPars {
 		comparison allowable_;
 
@@ -70,6 +86,8 @@ public:
 
 	size_t getMaxPrimerSize() const;
 
+
+
 	template<typename T>
 	std::string determineForwardPrimer(T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
 		return determineForwardPrimer(getSeqBase(read), pars, alignerObj);
@@ -87,7 +105,6 @@ public:
 	bool checkForReversePrimer(T & read, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj) {
 		return checkForReversePrimer(getSeqBase(read), primerName,pars, alignObj);
 	}
-
 	bool checkForReversePrimer(seqInfo & info, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj);
 
 	template<typename T>
@@ -96,6 +113,25 @@ public:
 	}
 
 	bool checkForForwardPrimerInRev(seqInfo & info, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj);
+
+
+	//just getting positions
+	template<typename T>
+	PrimerPositionScore determineBestForwardPrimerPosFront(const T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
+		return determineBestForwardPrimerPosFront(getSeqBase(read), pars, alignerObj);
+	}
+	PrimerPositionScore determineBestForwardPrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
+
+
+	template<typename T>
+	PrimerPositionScore determineBestReversePrimerPosFront(const T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
+		return determineBestReversePrimerPosFront(getSeqBase(read), pars, alignerObj);
+	}
+	PrimerPositionScore determineBestReversePrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
+
+
+
+
 };
 
 } /* namespace njhseq */

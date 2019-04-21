@@ -37,44 +37,32 @@ public:
 	/**
 	 * Simple 1 for match -1 for mismatch
 	 */
-	substituteMatrix(){
-		setWithSimple(1,-1);
-	}
+	substituteMatrix();
 	//constructor
 	/**
 	 * Given match and mismatch values
 	 */
-	substituteMatrix(int32_t match, int32_t mismatch){
-		setWithSimple(match, mismatch);
-	}
+	substituteMatrix(int32_t match, int32_t mismatch);
 	//constructor
 	/**
 	 * Given a map of maps of score for char to char
 	 */
-	substituteMatrix(const std::map<char, std::map<char, int32_t>> & mapScores){
-		setWithMap(mapScores);
-	}
+	substituteMatrix(const std::map<char, std::map<char, int32_t>> & mapScores);
 	//constructor
 	/**
 	 * Given a unordered_map of unordered_maps of score for char to char
 	 */
-	substituteMatrix(const std::unordered_map<char, std::unordered_map<char, int32_t>> & mapScores){
-		setWithUnoMap(mapScores);
-	}
+	substituteMatrix(const std::unordered_map<char, std::unordered_map<char, int32_t>> & mapScores);
 	//constructor
 	/**
 	 * Given the file name of scoring matrix file
 	 */
-	substituteMatrix(const std::string & filename){
-		setWithFilename(filename);
-	}
+	substituteMatrix(const std::string & filename);
 	//constructor
 	/**
 	 * Given an array with scores for a basic DNA sub matrix
 	 */
-	substituteMatrix(const int matchMatrix[4][4]){
-		setWtihDNAArray(matchMatrix);
-	}
+	substituteMatrix(const int matchMatrix[4][4]);
 	//constructor
 	/**
 	 * Given an std::array of std::array just put it in
