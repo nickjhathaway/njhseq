@@ -716,12 +716,13 @@ int ManipulateTableRunner::rBind(
 	bool verbose = false;
 	std::string files = "";
 	uint32_t levels = std::numeric_limits < uint32_t > ::max();
-
+	std::string directory = "./";
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.description_ = "Program to bind together text files representing tables with similar information";
 	setUp.examples_.emplace_back("MASTERPROGRAM SUBPROGRAM --files file1.tsv,file2.tsv,file3.tsv --header --delim tab --out combined.tsv --overWrite #combined a list of files");
 	setUp.examples_.emplace_back("MASTERPROGRAM SUBPROGRAM --contains _info.txt --header --delim tab --out combined.tsv --overWrite #combine together all files in current directory that contain _info.txt in their name");
 	setUp.setOption(levels, "--depth", "Depth of search");
+	setUp.setOption(directory, "--directory", "Directory to search, defaults to current directory");
 	setUp.setOption(verbose, "--verbose,-v", "verbose");
 	setUp.setOption(doesNotContains, "--doesNotContains", "Does Not Contains");
 	setUp.setOption(files, "--files", "A direct list of files to combine");
@@ -744,10 +745,10 @@ int ManipulateTableRunner::rBind(
 		}
 	}else{
 		if (doesNotContains != "") {
-			allFiles = listAllFiles("./", recursive, containsVec, doesNotContainsVec,
+			allFiles = listAllFiles(directory, recursive, containsVec, doesNotContainsVec,
 					levels);
 		} else {
-			allFiles = njh::files::listAllFiles("./", recursive, containsVec, levels);
+			allFiles = njh::files::listAllFiles(directory, recursive, containsVec, levels);
 		}
 	}
 
