@@ -26,6 +26,7 @@
  */
 
 #include "njhseq/IO/SeqIO/MultiSeqIO.hpp"
+#include <shared_mutex>
 
 namespace njhseq {
 
@@ -42,6 +43,7 @@ public:
 	 * @param opts The options for the reader
 	 */
 	void addReader(const std::string & uid, const SeqIOOptions & opts) {
+		std::unique_lock<std::shared_timed_mutex> lock(mut_);
 		writers_.addReader(uid, opts);
 	}
 
@@ -55,6 +57,7 @@ public:
 	 */
 	void add(const std::string & uid, const T & read) {
 		writers_.containsReaderThrow(uid);
+		std::unique_lock<std::shared_timed_mutex> lock(mut_);
 		cache_[uid].push_back(read);
 		++cacheSize_;
 		if (cacheSize_ == cacheLimit_) {
@@ -71,6 +74,7 @@ public:
 	 */
 	void add(const std::string & uid, const std::vector<T> & reads) {
 		writers_.containsReaderThrow(uid);
+		std::unique_lock<std::shared_timed_mutex> lock(mut_);
 		for (const auto & read : reads) {
 			cache_[uid].push_back(read);
 			++cacheSize_;
@@ -83,6 +87,11 @@ public:
 	 *
 	 */
 	void writeCache() {
+		std::unique_lock<std::shared_timed_mutex> lock(mut_);
+		writeCacheLockFree();
+	}
+
+	void writeCacheLockFree() {
 		for (const auto & reads : cache_) {
 			if(reads.second.empty()){
 				continue;
@@ -101,6 +110,7 @@ public:
 	 *
 	 */
 	void closeOutAll() {
+		std::unique_lock<std::shared_timed_mutex> lock(mut_);
 		writeCache();
 		writers_.closeOutAll();
 	}
@@ -109,15 +119,17 @@ public:
 	 *
 	 */
 	void closeOutForReopeningAll() {
+		std::unique_lock<std::shared_timed_mutex> lock(mut_);
 		writeCache();
 		writers_.closeOutForReopeningAll();
 	}
 
 	/**@brief Get the current cache limit
 	 *
-	 * @return
+	 * @return the cache limit
 	 */
 	uint32_t getCacheLimit() const {
+		std::shared_lock<std::shared_timed_mutex> lock(mut_);
 		return cacheLimit_;
 	}
 
@@ -126,6 +138,7 @@ public:
 	 * @param cacheLimit Set the new cache limit
 	 */
 	void setCacheLimit(uint32_t cacheLimit) {
+		std::unique_lock<std::shared_timed_mutex> lock(mut_);
 		cacheLimit_ = cacheLimit;
 	}
 
@@ -134,6 +147,7 @@ public:
 	 * @param fileOpenLimit the new file open limit
 	 */
 	void setOpenLimit(uint32_t fileOpenLimit){
+		std::unique_lock<std::shared_timed_mutex> lock(mut_);
 		writers_.setOpenLimit(fileOpenLimit);
 	}
 
@@ -145,10 +159,12 @@ public:
 	}
 
 	void containsReaderThrow(const std::string & uid) const {
+		std::shared_lock<std::shared_timed_mutex> lock(mut_);
 		writers_.containsReaderThrow(uid);
 	}
 
 	bool containsReader(const std::string & uid) const {
+		std::shared_lock<std::shared_timed_mutex> lock(mut_);
 		return writers_.containsReader(uid);
 	}
 
@@ -158,6 +174,8 @@ private:
 	uint32_t cacheLimit_ = 50000;/**< The cache limit*/
 	uint32_t cacheSize_ = 0;/**< The current cache size*/
 	MultiSeqIO writers_;/**< The MultiSeqIO responsible for writing the cache*/
+
+	std::shared_timed_mutex mut_; /**< to make thread safe*/
 };
 
 }  // namespace njhseq
