@@ -43,7 +43,7 @@ public:
 	 * @param opts The options for the reader
 	 */
 	void addReader(const std::string & uid, const SeqIOOptions & opts) {
-		std::unique_lock<std::shared_timed_mutex> lock(mut_);
+		std::unique_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		writers_.addReader(uid, opts);
 	}
 
@@ -57,7 +57,7 @@ public:
 	 */
 	void add(const std::string & uid, const T & read) {
 		writers_.containsReaderThrow(uid);
-		std::unique_lock<std::shared_timed_mutex> lock(mut_);
+		std::unique_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		cache_[uid].push_back(read);
 		++cacheSize_;
 		if (cacheSize_ == cacheLimit_) {
@@ -74,7 +74,7 @@ public:
 	 */
 	void add(const std::string & uid, const std::vector<T> & reads) {
 		writers_.containsReaderThrow(uid);
-		std::unique_lock<std::shared_timed_mutex> lock(mut_);
+		std::unique_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		for (const auto & read : reads) {
 			cache_[uid].push_back(read);
 			++cacheSize_;
@@ -87,7 +87,7 @@ public:
 	 *
 	 */
 	void writeCache() {
-		std::unique_lock<std::shared_timed_mutex> lock(mut_);
+		std::unique_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		writeCacheLockFree();
 	}
 
@@ -110,7 +110,7 @@ public:
 	 *
 	 */
 	void closeOutAll() {
-		std::unique_lock<std::shared_timed_mutex> lock(mut_);
+		std::unique_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		writeCache();
 		writers_.closeOutAll();
 	}
@@ -119,7 +119,7 @@ public:
 	 *
 	 */
 	void closeOutForReopeningAll() {
-		std::unique_lock<std::shared_timed_mutex> lock(mut_);
+		std::unique_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		writeCache();
 		writers_.closeOutForReopeningAll();
 	}
@@ -129,7 +129,7 @@ public:
 	 * @return the cache limit
 	 */
 	uint32_t getCacheLimit() const {
-		std::shared_lock<std::shared_timed_mutex> lock(mut_);
+		std::shared_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		return cacheLimit_;
 	}
 
@@ -138,7 +138,7 @@ public:
 	 * @param cacheLimit Set the new cache limit
 	 */
 	void setCacheLimit(uint32_t cacheLimit) {
-		std::unique_lock<std::shared_timed_mutex> lock(mut_);
+		std::unique_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		cacheLimit_ = cacheLimit;
 	}
 
@@ -147,7 +147,7 @@ public:
 	 * @param fileOpenLimit the new file open limit
 	 */
 	void setOpenLimit(uint32_t fileOpenLimit){
-		std::unique_lock<std::shared_timed_mutex> lock(mut_);
+		std::unique_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		writers_.setOpenLimit(fileOpenLimit);
 	}
 
@@ -159,12 +159,12 @@ public:
 	}
 
 	void containsReaderThrow(const std::string & uid) const {
-		std::shared_lock<std::shared_timed_mutex> lock(mut_);
+		std::shared_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		writers_.containsReaderThrow(uid);
 	}
 
 	bool containsReader(const std::string & uid) const {
-		std::shared_lock<std::shared_timed_mutex> lock(mut_);
+		std::shared_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		return writers_.containsReader(uid);
 	}
 
