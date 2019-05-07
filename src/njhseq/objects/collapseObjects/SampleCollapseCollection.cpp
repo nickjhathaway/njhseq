@@ -246,10 +246,17 @@ bfs::path SampleCollapseCollection::getPopInfoPath() const {
 			"populationCluster.tab.txt");
 }
 
+
+bfs::path SampleCollapseCollection::getFinalSampHapsPath(const std::string & sample) const {
+	checkForSampleThrow(sample, __PRETTY_FUNCTION__);
+	return njh::files::make_path(masterOutputDir_, "final", sample + inputOptions_.getOutExtension());
+}
+
 bfs::path SampleCollapseCollection::getSampInfoPath() const {
 	/**@todo need to make this standard, currently set by SeekDeep processClusters*/
 	return njh::files::make_path(masterOutputDir_, "selectedClustersInfo.tab.txt");
 }
+
 bfs::path SampleCollapseCollection::getHapIdTabPath() const {
 	return njh::files::make_path(masterOutputDir_,
 			"hapIdTable.tab.txt");

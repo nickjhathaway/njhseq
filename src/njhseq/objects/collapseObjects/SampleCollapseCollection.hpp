@@ -129,6 +129,7 @@ public:
 	bfs::path getPopInfoPath() const;
 	bfs::path getSampInfoPath() const;
 	bfs::path getHapIdTabPath() const;
+	bfs::path getFinalSampHapsPath(const std::string & sample) const;
 
 	uint32_t numOfSamples() const;
 
