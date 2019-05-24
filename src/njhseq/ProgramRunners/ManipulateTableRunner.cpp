@@ -54,6 +54,7 @@ ManipulateTableRunner::ManipulateTableRunner() :
 					addFunc("tableExtractColumnsWithPattern",tableExtractColumnsWithPattern, false),
 					addFunc("splitColumnContainingMeta",splitColumnContainingMeta, false),
 					addFunc("roughHistogramOfColumn",roughHistogramOfColumn, false),
+					addFunc("removeColumns",removeColumns, false),
 				}, "ManipulateTable", "1") {
 }
 //
@@ -245,6 +246,25 @@ int ManipulateTableRunner::tableExtractCriteria(
 	outTab.outPutContents(setUp.ioOptions_);
 	return 0;
 }
+
+
+int ManipulateTableRunner::removeColumns(
+		const njh::progutils::CmdArgs & inputCommands) {
+	ManipulateTableSetUp setUp(inputCommands);
+	VecStr columns;
+	setUp.processDefaultProgram(true);
+	setUp.setOption(columns, "--columns","Columns to remove", true);
+	setUp.finishSetUp(std::cout);
+	table outTab(setUp.ioOptions_);
+
+	outTab.checkForColumnsThrow(columns, __PRETTY_FUNCTION__);
+	for(const auto & col : columns){
+		outTab.deleteColumn(col);
+	}
+	outTab.outPutContents(setUp.ioOptions_);
+	return 0;
+}
+
 
 int ManipulateTableRunner::addColumn(
 		const njh::progutils::CmdArgs & inputCommands) {
@@ -714,6 +734,7 @@ int ManipulateTableRunner::rBind(
 	std::string doesNotContains = "";
 	bool recursive = false;
 	bool verbose = false;
+	bool fill = false;
 	std::string files = "";
 	uint32_t levels = std::numeric_limits < uint32_t > ::max();
 	std::string directory = "./";
@@ -729,6 +750,8 @@ int ManipulateTableRunner::rBind(
 	setUp.processDefaultProgram(false);
 	setUp.setOption(contains, "--contains", "contains", "" == files);
 	setUp.setOption(recursive, "--recursive", "recursive");
+	setUp.setOption(fill, "--fill", "fill in missing columns with NAs when combining tables");
+
 	if(setUp.needsHelp()){
 		setUp.printFlags(std::cout);
 		exit(1);
@@ -771,7 +794,7 @@ int ManipulateTableRunner::rBind(
 		} else {
 			table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
 			try {
-				mainTable.rbind(inTab, false);
+				mainTable.rbind(inTab, fill);
 			}catch (std::exception & e) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", failed to add table from " << file.first << "\n";

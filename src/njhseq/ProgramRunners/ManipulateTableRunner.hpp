@@ -35,6 +35,7 @@ class ManipulateTableRunner : public njh::progutils::ProgramRunner {
   static int catOrganized(const njh::progutils::CmdArgs & inputCommands);
 
   static int addColumn(const njh::progutils::CmdArgs & inputCommands);
+  static int removeColumns(const njh::progutils::CmdArgs & inputCommands);
   static int changeDelim(const njh::progutils::CmdArgs & inputCommands);
   static int sortTable(const njh::progutils::CmdArgs & inputCommands);
 
