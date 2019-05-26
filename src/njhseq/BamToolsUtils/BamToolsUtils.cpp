@@ -236,22 +236,32 @@ bool IsBamSorted(const std::string & filename, bool verbose) {
 
 void checkBamOpenThrow(BamTools::BamReader & bReader,
 		const bfs::path & bamFnp) {
+	checkBamOpenThrow(bReader, bamFnp, "");
+}
+
+void checkBamOpenThrow(BamTools::BamReader & bReader,
+		const bfs::path & bamFnp, const std::string & funcName) {
 	if (!bReader.IsOpen()) {
 		std::stringstream ss;
 		if (!bfs::exists(bamFnp)) {
-			ss << "Error " << bamFnp << " doesn't exist" << std::endl;
+			ss << "Error in " << funcName << ", bam file: " << bamFnp << " doesn't exist" << "\n";
 		} else {
-			ss << "Error in opening " << bamFnp << std::endl;
+			ss << "Error in opening " << bamFnp <<", " << bReader.GetErrorString()<< "\n";
 		}
 		throw std::runtime_error { ss.str() };
 	}
 }
 
 void loadBamIndexThrow(BamTools::BamReader & bReader){
+	loadBamIndexThrow(bReader, "");
+}
+
+void loadBamIndexThrow(BamTools::BamReader & bReader, const std::string & funcName){
 	if(!bReader.LocateIndex()){
 		std::stringstream ss;
-		ss << "Error: can't find index for " << bReader.GetFilename() << std::endl;
-		ss << "Should be " << bReader.GetFilename() << ".bai" << std::endl;
+		ss << "Error in " << funcName << ": can't find index for " << bReader.GetFilename() << "\n";
+		ss << "Should be " << bReader.GetFilename() << ".bai" << "\n";
+		ss << bReader.GetErrorString() << "\n";
 		throw std::runtime_error{ss.str()};
 	}
 }
