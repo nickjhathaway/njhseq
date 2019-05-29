@@ -33,10 +33,9 @@ Bed3RecordCore::Bed3RecordCore(const std::string & line) {
 	if (toks.size() < 3) {
 		std::stringstream ss;
 		ss << "Error in parsing line: " << line << "\n";
-		ss << "Error in read bed file, need to have at least first 6 fields not: "
-				<< toks.size() << std::endl;
-		ss << "1)chrom,2)chromStart,3)chromEnd,4)name,5)score,6)strand"
-				<< std::endl;
+		ss << "Error in read bed file, need to have at least first 3 fields not: "
+				<< toks.size() << "\n";
+		ss << "1)chrom,2)chromStart,3)chromEnd" << "\n";
 		throw std::runtime_error { ss.str() };
 	}
 
