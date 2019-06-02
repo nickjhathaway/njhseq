@@ -75,12 +75,28 @@ public:
 			const size_t overlapMin = 1) const;
 	bool overlaps(const GFFCore & gff,
 			const size_t overlapMin = 1) const;
+	bool overlaps(const std::string & chrom, const size_t start, const size_t end,
+			const size_t overlapMin = 1) const;
 
 
 	size_t getOverlapLen(const GenomicRegion & otherRegion) const;
 	size_t getOverlapLen(const GFFCore & gff) const;
 	size_t getOverlapLen(const Bed3RecordCore & otherRegion) const;
 	size_t getOverlapLen(const std::string & chrom, const size_t start, const size_t end) const;
+
+
+	size_t distBetweenRegions(const GenomicRegion & otherRegion);
+	size_t distBetweenRegions(const GFFCore & otherRegion);
+	size_t distBetweenRegions(const Bed3RecordCore & otherRegion);
+	/**@brief Can the distance between two different regions, if on different chroms returns std::numeric<uint32_t>::max(), overlaps return 0
+	 *
+	 * @param chrom the chromosome of the other region
+	 * @param start the start on the chromsome
+	 * @param end the end of the chromosome
+	 * @return the distance between the regions
+	 */
+	size_t distBetweenRegions(const std::string & chrom, const size_t start, const size_t end);
+
 
 	bool startsInThisRegion(const GenomicRegion & otherRegion) const;
 	bool endsInThisRegion(const GenomicRegion & otherRegion) const;

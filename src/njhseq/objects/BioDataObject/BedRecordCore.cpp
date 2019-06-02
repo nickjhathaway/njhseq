@@ -122,8 +122,7 @@ std::vector<std::shared_ptr<Bed6RecordCore>> convertBed3ToBed6(const std::vector
 			line = njh::conToStr(toVecStr(b->chrom_,
 					b->chromStart_,
 					b->chromEnd_,
-					njh::pasteAsStr(b->chrom_, b->chromStart_,
-					b->chromEnd_),
+					njh::pasteAsStr(b->chrom_, "-", b->chromStart_, "-", b->chromEnd_),
 					b->length(),
 					'+'), "\t");
 		}
