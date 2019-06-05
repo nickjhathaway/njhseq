@@ -324,6 +324,17 @@ bool MetaDataInName::nameHasMetaData(const std::string & name) {
 }
 
 
+MetaDataInName MetaDataInName::genMetaFromJson(const Json::Value & val){
+	MetaDataInName ret;
+	njh::json::MemberChecker memChecker(val);
+	memChecker.failMemberCheckThrow(VecStr{"meta_"}, __PRETTY_FUNCTION__);
+	for(const auto & metaName : val["meta_"].getMemberNames()){
+		ret.addMeta(metaName, val["meta_"][metaName]);
+	}
+	return ret;
+}
+
+
 Json::Value MetaDataInName::toJson() const{
 	Json::Value ret;
 	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
