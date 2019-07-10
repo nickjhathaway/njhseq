@@ -158,6 +158,14 @@ void seqInfo::processRead(bool processed) {
 			} else {
 				toks = tokenizeString(name_, "_");
 			}
+		}else if (name_.rfind("_t") != std::string::npos
+				&& name_.rfind("_f") != std::string::npos){
+			if(name_.rfind("_t") > name_.rfind("_f")){
+				toks = tokenizeString(name_, "_t");
+			}else{
+				toks = tokenizeString(name_, "_f");
+				setFraction = true;
+			}
 		} else if (name_.rfind("_t") != std::string::npos) {
 			toks = tokenizeString(name_, "_t");
 		} else {
