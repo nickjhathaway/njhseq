@@ -612,13 +612,11 @@ void BamExtractor::writeExtractReadsFromBam(const bfs::path & bamFnp,
 		refNameToId[refData[pos].RefName] = pos;
 	}
 	//pair writer
-	SeqIOOptions outOptsPaired(outOpts.outFilename_,
-			SeqIOOptions::outFormats::FASTQPAIRED, outOpts);
+	SeqIOOptions outOptsPaired(outOpts.outFilename_, SeqIOOptions::outFormats::FASTQPAIREDGZ, outOpts);
 	SeqOutput pairWriter(outOptsPaired);
 
 	//non paired writer
-	SeqIOOptions outOptsSingle(outOpts.outFilename_,
-			SeqIOOptions::outFormats::FASTQ, outOpts);
+	SeqIOOptions outOptsSingle(outOpts.outFilename_, SeqIOOptions::outFormats::FASTQGZ, outOpts);
 	SeqOutput writer(outOptsSingle);
 
 	while (bReader.GetNextAlignment(bAln)) {
