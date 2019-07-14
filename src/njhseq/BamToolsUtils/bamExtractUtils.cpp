@@ -619,6 +619,14 @@ void BamExtractor::writeExtractReadsFromBam(const bfs::path & bamFnp,
 	SeqIOOptions outOptsSingle(outOpts.outFilename_, SeqIOOptions::outFormats::FASTQGZ, outOpts);
 	SeqOutput writer(outOptsSingle);
 
+	//R1 orphans
+	SeqIOOptions outOptsSingle_R1Orphans(outOpts.outFilename_.string() + "_R1Orphans", SeqIOOptions::outFormats::FASTQGZ, outOpts);
+	SeqOutput writer_R1Orphans(outOptsSingle_R1Orphans);
+
+	//R2 orphans
+	SeqIOOptions outOptsSingle_R2Orphans(outOpts.outFilename_.string() + "_R2Orphans", SeqIOOptions::outFormats::FASTQGZ, outOpts);
+	SeqOutput writer_R2Orphans(outOptsSingle_R2Orphans);
+
 	while (bReader.GetNextAlignment(bAln)) {
 		//skip secondary alignments
 		if (!bAln.IsPrimaryAlignment()) {
@@ -711,7 +719,11 @@ void BamExtractor::writeExtractReadsFromBam(const bfs::path & bamFnp,
 		auto names = alnCache.getNames();
 		for (const auto & name : names) {
 			auto search = alnCache.get(name);
-			writer.openWrite(bamAlnToSeqInfo(*search));
+			if(search->IsFirstMate()){
+				writer_R1Orphans.openWrite(bamAlnToSeqInfo(*search));
+			}else{
+				writer_R2Orphans.openWrite(bamAlnToSeqInfo(*search));
+			}
 			alnCache.remove(name);
 		}
 	}
