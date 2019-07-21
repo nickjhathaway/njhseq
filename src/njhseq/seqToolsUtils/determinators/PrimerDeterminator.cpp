@@ -97,6 +97,22 @@ PrimerDeterminator::primerInfo::primerInfo(const std::string & primerPairName,
 		reversePrimerInfo_(seqInfo { primerPairName, seqUtil::reverseComplement(reversePrimer,"DNA") }),
 		reversePrimerInfoForDir_(seqInfo { primerPairName,reversePrimer }) {
 
+	forwardPrimerInfoLetCounter_.increaseCountByString(forwardPrimerInfo_.seq_);
+	forwardPrimerInfoLetCounter_.resetAlphabet(false);
+	forwardPrimerInfoLetCounter_.setFractions();
+
+	forwardPrimerInfoRevDirLetCounter_.increaseCountByString(forwardPrimerInfoRevDir_.seq_);
+	forwardPrimerInfoRevDirLetCounter_.resetAlphabet(false);
+	forwardPrimerInfoRevDirLetCounter_.setFractions();
+
+	reversePrimerInfoLetCounter_.increaseCountByString(reversePrimerInfo_.seq_);
+	reversePrimerInfoLetCounter_.resetAlphabet(false);
+	reversePrimerInfoLetCounter_.setFractions();
+
+	reversePrimerInfoForDirLetCounter_.increaseCountByString(reversePrimerInfoForDir_.seq_);
+	reversePrimerInfoForDirLetCounter_.resetAlphabet(false);
+	reversePrimerInfoForDirLetCounter_.setFractions();
+
 }
 
 
@@ -105,10 +121,26 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info,
 		const PrimerDeterminatorPars & pars,
 		aligner & alignerObj){
 	std::vector<PrimerPositionScore> determinedPrimers;
+	const uint32_t maxPSize = getMaxPrimerSize();
+	seqInfo readBegin(info.name_ + "_readBegin",
+			info.seq_.substr(pars.primerStart_, pars.primerWithin_ + maxPSize + 5));
+	charCounter letCounter;
+	letCounter.increaseCountByString(readBegin.seq_);
+
 	for (const auto& currentPrimer : primers_) {
+		uint32_t basesShared = 2;
+		for(const auto c : currentPrimer.second.reversePrimerInfoForDirLetCounter_.alphabet_){
+			basesShared += std::min(letCounter.chars_[c], currentPrimer.second.reversePrimerInfoForDirLetCounter_.chars_[c]);
+		}
+		if(static_cast<double>(basesShared)/currentPrimer.second.reversePrimerInfoForDir_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
+			continue;
+		}
+//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
+//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
+
 		// find reverse primer in forward direction or if it isn't found return unrecognized
-		auto readBegin = seqInfo(info.name_ + "_readBegin",
-				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.reversePrimerInfoForDir_.seq_.size() + 5));
+//		auto readBegin = seqInfo(info.name_ + "_readBegin",
+//				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.reversePrimerInfoForDir_.seq_.size() + 5));
 
 		/**@todo put in a check to make sure of semi-global alignment */
 		alignerObj.alignCacheGlobal(readBegin,
@@ -185,11 +217,26 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info,
 
 PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestReversePrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj){
 	std::vector<PrimerPositionScore> determinedPrimers;
+	const uint32_t maxPSize = getMaxPrimerSize();
+	seqInfo readBegin(info.name_ + "_readBegin",
+			info.seq_.substr(pars.primerStart_, pars.primerWithin_ + maxPSize + 5));
+	charCounter letCounter;
+	letCounter.increaseCountByString(readBegin.seq_);
 
 	for (const auto& currentPrimer : primers_) {
+		uint32_t basesShared = 2;
+		for(const auto c : currentPrimer.second.reversePrimerInfoForDirLetCounter_.alphabet_){
+			basesShared += std::min(letCounter.chars_[c], currentPrimer.second.reversePrimerInfoForDirLetCounter_.chars_[c]);
+		}
+		if(static_cast<double>(basesShared)/currentPrimer.second.reversePrimerInfoForDir_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
+			continue;
+		}
+//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
+//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
+
 		// find reverse primer in forward direction or if it isn't found return unrecognized
-		auto readBegin = seqInfo(info.name_ + "_readBegin",
-				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.reversePrimerInfoForDir_.seq_.size() + 5));
+//		auto readBegin = seqInfo(info.name_ + "_readBegin",
+//				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.reversePrimerInfoForDir_.seq_.size() + 5));
 //		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
 //				currentPrimer.second.reversePrimerInfoForDir_.seq_);
 //		alignerObj.rearrangeObjs(readBegin,
@@ -257,11 +304,25 @@ PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestReverse
 
 PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestForwardPrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj){
 	std::vector<PrimerPositionScore> determinedPrimers;
+	const uint32_t maxPSize = getMaxPrimerSize();
+	seqInfo readBegin(info.name_ + "_readBegin",
+			info.seq_.substr(pars.primerStart_, pars.primerWithin_ + maxPSize + 5));
+	charCounter letCounter;
+	letCounter.increaseCountByString(readBegin.seq_);
 
 	for (const auto& currentPrimer : primers_) {
+		uint32_t basesShared = 2;
+		for(const auto c : currentPrimer.second.forwardPrimerInfoLetCounter_.alphabet_){
+			basesShared += std::min(letCounter.chars_[c], currentPrimer.second.forwardPrimerInfoLetCounter_.chars_[c]);
+		}
+		if(static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
+			continue;
+		}
+//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
+//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
 		// find reverse primer in forward direction or if it isn't found return unrecognized
-		auto readBegin = seqInfo(info.name_ + "_readBegin",
-				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.forwardPrimerInfo_.seq_.size() + 5));
+//		auto readBegin = seqInfo(info.name_ + "_readBegin",
+//				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.forwardPrimerInfo_.seq_.size() + 5));
 //		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
 //				currentPrimer.second.forwardPrimerInfo_.seq_);
 //		alignerObj.rearrangeObjs(readBegin,
@@ -330,11 +391,23 @@ PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestForward
 std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 		const PrimerDeterminatorPars & pars, aligner & alignerObj) {
 	std::vector<PrimerPositionScore> determinedPrimers;
+	const uint32_t maxPSize = getMaxPrimerSize();
+	seqInfo readBegin(info.name_ + "_readBegin",
+			info.seq_.substr(pars.primerStart_, pars.primerWithin_ + maxPSize + 5));
+	charCounter letCounter;
+	letCounter.increaseCountByString(readBegin.seq_);
 
 	for (const auto& currentPrimer : primers_) {
+		uint32_t basesShared = 2;
+		for(const auto c : currentPrimer.second.forwardPrimerInfoLetCounter_.alphabet_){
+			basesShared += std::min(letCounter.chars_[c], currentPrimer.second.forwardPrimerInfoLetCounter_.chars_[c]);
+		}
+		if(static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
+			continue;
+		}
+//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
+//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
 		// find reverse primer in forward direction or if it isn't found return unrecognized
-		auto readBegin = seqInfo(info.name_ + "_readBegin",
-				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.forwardPrimerInfo_.seq_.size() + 5));
 //		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
 //				currentPrimer.second.forwardPrimerInfo_.seq_);
 //		alignerObj.rearrangeObjs(readBegin,

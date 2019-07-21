@@ -70,6 +70,12 @@ public:
 		std::string reversePrimer_;      /**< 5`-3` direction */
 		seqInfo reversePrimerInfo_;			 /**< 3`-5` direction */
 		seqInfo reversePrimerInfoForDir_;/**< 5`-3` direction */
+
+		charCounter forwardPrimerInfoLetCounter_;
+		charCounter forwardPrimerInfoRevDirLetCounter_;
+		charCounter reversePrimerInfoLetCounter_;
+		charCounter reversePrimerInfoForDirLetCounter_;
+
 	};
 
 	explicit PrimerDeterminator(const table & primers);
