@@ -1277,6 +1277,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 				}
 			}
 			rowStream << delim << clusPos
+							<< delim << clus.seqBase_.name_
 							<< delim << clus.getClusterInfo(delim)
 							<< delim << clus.getRepsInfo(
 							sampleCollapses_.at(sampName)->input_.info_.infos_,
@@ -1298,6 +1299,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 		}
 	}
 	headerStream << delim << "c_clusterID"
+			<< delim << "c_name"
 			<< delim << sampleCluster::getClusterInfoHeader(delim) << delim
 			<< sampleCluster::getRepsInfoHeader(maxRunCount, checkingExpected, delim);
 	table ret(tokenizeString(headerStream.str(), delim));

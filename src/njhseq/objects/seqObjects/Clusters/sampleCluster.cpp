@@ -248,7 +248,7 @@ VecStr sampleCluster::getChimeraInfoVec() const {
 	return toVecStr(chiReadCnt, chiClusCnt, chiRepCnt);
 }
 
-
+//c_clusterID
 VecStr sampleCluster::getClusterInfoVec() const{
 	return toVecStr(seqBase_.frac_
   		, getReadWeightedAveragedFrac()
