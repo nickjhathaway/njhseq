@@ -698,11 +698,12 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 		threads.emplace_back(std::thread(extractBestGenomeSeq, t));
 	}
 	njh::concurrent::joinAllThreads(threads);
-	table performanceTab(VecStr{"genome", "forwardStrandHits", "reverseStrandHits", "extractionCounts"});
+	table performanceTab(VecStr{"genome", "region", "forwardStrandHits", "reverseStrandHits", "extractionCounts"});
 	auto genomeKeys = getVectorOfMapKeys(genomeExtractionsResults);
 	njh::sort(genomeKeys);
 	for(const auto & genomeKey : genomeKeys){
 		performanceTab.addRow(genomeKey,
+				region.uid_,
 				genomeExtractionsResults[genomeKey].forwardHits_,
 				genomeExtractionsResults[genomeKey].reverseHits_,
 				genomeExtractionsResults[genomeKey].extractCounts_);
