@@ -1188,7 +1188,6 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 
 			allSubClusterInfo
 						<< delim << clus.seqBase_.name_
-
 						<< delim << clus.seqBase_.cnt_
 						<< delim << clus.numberOfRuns()
 						<< delim << clus.seqBase_.seq_
