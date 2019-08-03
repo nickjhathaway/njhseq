@@ -1365,7 +1365,6 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 				}
 			}
 			for(auto & popTab : popTabs){
-
 				popTab.second.addColumn({group.first + ":" + popTab.first}, "g_GroupName");
 				popTab.second.addColumn({njh::conToStr(uniquePopUids[popTab.first])}, "g_hapsFoundOnlyInThisGroup");
 				popTab.second.addColumn({estd::to_string(uniquePopUids[popTab.first].size())}, "p_TotalUniqueHaplotypes");
