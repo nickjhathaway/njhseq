@@ -1264,6 +1264,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 					sampleCollapses_.at(sampName)->collapsed_.clusters_[clusPos];
 			std::stringstream rowStream;
 			rowStream  << sampName
+					<< delim << popCollapse_->populationName_
 					<< delim << popCollapse_->collapsed_.clusters_[popCollapse_->collapsed_.subClustersPositions_.at(
 							clus.getStubName(true))].getPopInfo(
 							popCollapse_->collapsed_.info_.totalReadCount_,
@@ -1290,6 +1291,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 	}
 	std::stringstream headerStream;
 	headerStream << "s_Sample"
+			<< delim << "p_name"
 			<< delim << sampleCluster::getPopInfoHeader(delim)
 			<< delim << collapse::sampleCollapse::getSimpleSampInfoHeader(delim);
 	if(nullptr != groupMetaData_){
