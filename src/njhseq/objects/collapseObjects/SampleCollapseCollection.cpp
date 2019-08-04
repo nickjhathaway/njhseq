@@ -773,12 +773,14 @@ bool SampleCollapseCollection::excludeOneSampOnlyOneOffHaps(double fracCutOff, a
 	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
 	std::vector<uint32_t> lowFreqHaps;
 	std::unordered_map<std::string, VecStr> samplesWithUniqHaps;
-	for(const auto & clusPos : iter::range(popCollapse_->collapsed_.clusters_.size())){
-		const auto & clus = popCollapse_->collapsed_.clusters_[clusPos];
-		if(1 == clus.sampleClusters().size()){
-			auto avgFrac = clus.getCumulativeFrac()/clus.sampInfos().size();
+	for(const auto & popClus : popCollapse_->collapsed_.clusters_){
+		if(1 == popClus.sampleClusters().size()){
+			auto avgFrac = popClus.getCumulativeFrac()/popClus.sampInfos().size();
 			if(avgFrac < fracCutOff){
-				samplesWithUniqHaps[clus.getOwnSampName()].emplace_back(oututSampClusToOldNameKey_[clus.getOwnSampName()][clus.seqBase_.name_]);
+				//this should just be one anyways
+				for(const auto & clus : popClus.reads_){
+					samplesWithUniqHaps[clus->getOwnSampName()].emplace_back(oututSampClusToOldNameKey_[clus->getOwnSampName()][clus->seqBase_.name_]);
+				}
 			}
 		}
 	}
