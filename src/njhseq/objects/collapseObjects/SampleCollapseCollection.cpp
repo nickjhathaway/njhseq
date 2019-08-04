@@ -751,7 +751,7 @@ bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 			if(MetaDataInName::nameHasMetaData(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_)){
 				filteredMeta = MetaDataInName(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_);
 			}
-			filteredMeta.addMeta("ExcludeFailedFracCutOff", "TRUE");
+			filteredMeta.addMeta("ExcludeCommonlyLowFreq", "TRUE");
 			if (sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.isChimeric()) {
 				filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
 			}
@@ -763,6 +763,66 @@ bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
 		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
 
+		dumpSample(sampClusters.first);
+	}
+	return true;
+}
+
+
+bool SampleCollapseCollection::excludeOneSampOnlyOneOffHaps(double fracCutOff, aligner & alignerObj){
+	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
+	std::vector<uint32_t> lowFreqHaps;
+	std::unordered_map<std::string, VecStr> samplesWithUniqHaps;
+	for(const auto & clusPos : iter::range(popCollapse_->collapsed_.clusters_.size())){
+		const auto & clus = popCollapse_->collapsed_.clusters_[clusPos];
+		if(1 == clus.sampleClusters().size()){
+			auto avgFrac = clus.getCumulativeFrac()/clus.sampInfos().size();
+			if(avgFrac < fracCutOff){
+				samplesWithUniqHaps[clus.getOwnSampName()].emplace_back(oututSampClusToOldNameKey_[clus.getOwnSampName()][clus.seqBase_.name_]);
+			}
+		}
+	}
+	if(samplesWithUniqHaps.empty()){
+		return false;
+	}
+
+	for(const auto & sampClusters : samplesWithUniqHaps){
+		setUpSampleFromPrevious(sampClusters.first);
+		std::vector<uint32_t> toBeExcluded;
+		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
+			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
+				bool oneOffAnother = false;
+				for(const auto & clus : sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_){
+					alignerObj.alignCacheGlobal(clus, sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos]);
+					alignerObj.profileAlignment(clus, sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos],
+							false, false, false);
+					if(alignerObj.comp_.distances_.getNumOfEvents(true) <=1){
+						oneOffAnother = true;
+						break;
+					}
+				}
+				if(oneOffAnother){
+					toBeExcluded.push_back(clusPos);
+				}
+			}
+		}
+		std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
+		for(const auto exclude : toBeExcluded){
+			MetaDataInName filteredMeta;
+			if(MetaDataInName::nameHasMetaData(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_)){
+				filteredMeta = MetaDataInName(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_);
+			}
+			filteredMeta.addMeta("ExcludeOneSampOnlyOneOffAnother", "TRUE");
+			if (sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.isChimeric()) {
+				filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+			}
+			sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.resetMetaInName(filteredMeta);
+
+			sampleCollapses_.at(sampClusters.first)->excluded_.clusters_.emplace_back(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude]);
+			sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.erase(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.begin() + exclude);
+		}
+		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
+		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
 		dumpSample(sampClusters.first);
 	}
 	return true;
