@@ -144,7 +144,7 @@ void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update, double l
 			++sizeOfReadVector;
 		}
 	}
-	if (sizeOfReadVector > 2) {
+	if (sizeOfReadVector > 1) {
 		std::vector<uint32_t> toBeExcluded;
 		uint32_t clusterCounter = 0;
 		size_t amountAdded = 0;
@@ -164,16 +164,18 @@ void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update, double l
 		      continue;
 		    }
 		  	const auto & clus = collapsed_.clusters_[clusPos];
-		  	if (clus.seqBase_.frac_ <= reverseRead.seqBase_.frac_ * lowFreqMultiplier) {
-		      continue;
-		    }
 		    if (clus.seqBase_.name_ == reverseRead.seqBase_.name_) {
 		      continue;
 		    }
+		  	if (clus.seqBase_.frac_ <= reverseRead.seqBase_.frac_ * lowFreqMultiplier) {
+		      continue;
+		    }
+
 		    ++count;
 		    comparison comp = clus.getComparison(reverseRead, alignerObj, false);
 		    //can only get here if clus.seqBase_.frac >  reverseRead.seqBase_.frac_ * lowFreqMultiplier so can just check if only diffs by 1 mismatch
 	//	    bool matching = ((comp.hqMismatches_ + comp.lqMismatches_ + comp.lowKmerMismatches_) <=1
+
 		    bool matching = ((comp.hqMismatches_) <=1
 		    		&& comp.largeBaseIndel_ == 0
 						&& comp.twoBaseIndel_ == 0
