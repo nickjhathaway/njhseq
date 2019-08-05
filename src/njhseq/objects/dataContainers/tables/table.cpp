@@ -598,12 +598,11 @@ void table::sortTable(const std::string &byThisColumn, bool decending) {
 	}
 	VecStr col = getColumn(byThisColumn);
 	uint32_t colPos = getColPos(byThisColumn);
-
 	if (isVecOfDoubleStr(col)) {
 		if (isVecOfIntStr(col)) {
 			std::sort(content_.begin(), content_.end(),
 					[&colPos](const VecStr & vec1, const VecStr & vec2) {
-				return std::stoi(vec1[colPos]) < std::stoi(vec2[colPos]);});
+				return std::stoll(vec1[colPos]) < std::stoll(vec2[colPos]);});
 		} else {
 			std::sort(content_.begin(), content_.end(),
 					[&colPos](const VecStr & vec1, const VecStr & vec2) {
