@@ -33,6 +33,11 @@ public:
 
 	GenomicAminoAcidPositionTyper(const bfs::path & proteinMutantTypingFnp,
 			bool inputZeroBased = false);
+	/**@brief Give a map of Gene ID to amino acid position (zero based positioning)
+	 *
+	 * @param aminoPositionsForTyping key = Gene ID (eg. PF3D7_0810800-1) and the amino acid positions to type
+	 */
+	GenomicAminoAcidPositionTyper(const std::unordered_map<std::string, std::vector<uint32_t>> & aminoPositionsForTyping);
 
 	bfs::path proteinMutantTypingFnp_;
 	bool inputZeroBased_;

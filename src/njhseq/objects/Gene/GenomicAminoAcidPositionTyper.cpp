@@ -63,6 +63,15 @@ GenomicAminoAcidPositionTyper::GenomicAminoAcidPositionTyper(const bfs::path & p
 	}
 }
 
+GenomicAminoAcidPositionTyper::GenomicAminoAcidPositionTyper(
+		const std::unordered_map<std::string, std::vector<uint32_t>> & aminoPositionsForTyping) :
+		inputZeroBased_(true), aminoPositionsForTyping_(aminoPositionsForTyping) {
+	proteinMutantTypingTab_ = table(VecStr{"ID", "AAPosition"});
+	for(const auto & gene : aminoPositionsForTyping){
+		proteinMutantTypingTab_.addRow(gene.first, gene.second);
+	}
+}
+
 std::set<std::string> GenomicAminoAcidPositionTyper::getGeneIds() const {
 	auto idsVec = proteinMutantTypingTab_.getColumnLevels("ID");
 	return std::set<std::string>(idsVec.begin(), idsVec.end());
