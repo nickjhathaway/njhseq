@@ -68,7 +68,9 @@ GenomicAminoAcidPositionTyper::GenomicAminoAcidPositionTyper(
 		inputZeroBased_(true), aminoPositionsForTyping_(aminoPositionsForTyping) {
 	proteinMutantTypingTab_ = table(VecStr{"ID", "AAPosition"});
 	for(const auto & gene : aminoPositionsForTyping){
-		proteinMutantTypingTab_.addRow(gene.first, gene.second);
+		for(const auto & pos : gene.second){
+			proteinMutantTypingTab_.addRow(gene.first, pos);
+		}
 	}
 }
 
