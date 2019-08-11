@@ -89,6 +89,12 @@ public:
 	std::vector<size_t> findPositionsFull(const std::string & wholeProtein,
 			uint32_t allowableErrors, size_t start, size_t stop) const;
 
+	std::vector<size_t> findPositionsSubSets(
+			const std::string & wholeProtein,
+			uint32_t allowableErrors,
+			size_t start, size_t stop,
+			uint32_t motifStart, uint32_t motifEnd) const;
+
 	size_t size()const;
 };
 

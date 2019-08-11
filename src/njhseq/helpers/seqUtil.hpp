@@ -144,6 +144,10 @@ class seqUtil {
   static std::unordered_map<uint64_t, std::string> findMinimumHammingDistance(
       const std::string &seq, const std::string &subSeq, int kLength);
   static std::string createDegenerativeString(const VecStr &dnaString);
+  static std::string genMotifStrAccountDegenBase(const std::string & primer);
+
+
+
   static std::vector<uint32_t> rearrangeQuals(
       const std::vector<uint32_t> &qual,
       const std::vector<uint32_t> &positions);

@@ -1203,6 +1203,38 @@ std::string seqUtil::createDegenerativeString(const VecStr &dnaString) {
   }
   return ans;
 }
+std::string seqUtil::genMotifStrAccountDegenBase(const std::string & primer){
+	std::unordered_map<char, std::vector<char>> degenBaseExapnd = {
+			{ 'N', std::vector<char>{'A', 'C','G', 'T'}},
+			{ 'K', std::vector<char>{'G', 'T'}},
+			{ 'Y', std::vector<char>{'C', 'T'}},
+			{ 'W', std::vector<char>{'A', 'T'}},
+			{ 'S', std::vector<char>{'C', 'G'}},
+			{ 'R', std::vector<char>{'A', 'G'}},
+			{ 'M', std::vector<char>{'A', 'C'}},
+			{ 'B', std::vector<char>{'C', 'G', 'T'}},
+			{ 'D', std::vector<char>{'A', 'G', 'T'}},
+			{ 'H', std::vector<char>{'A', 'C', 'T'}},
+			{ 'V', std::vector<char>{'A', 'C', 'G'}}
+	};
+	std::string primerMotif = "";
+	for(const auto base : primer){
+		if(njh::in(base, degenBaseExapnd)){
+			std::string degen = "[";
+			for(const auto & d : degenBaseExapnd.at(base)){
+				degen.push_back(d);
+			}
+			degen.push_back(']');
+		}else{
+			primerMotif.push_back(base);
+		}
+	}
+	return primerMotif;
+}
+
+
+
+
 
 std::vector<uint32_t> seqUtil::getQualPositions(const std::string &consensus,
                                                 const std::string &compare) {
