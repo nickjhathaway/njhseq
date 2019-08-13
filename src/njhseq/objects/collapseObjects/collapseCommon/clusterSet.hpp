@@ -55,7 +55,7 @@ public:
 		for (auto& clus : clusters_) {
 
 			std::string bestRef = njh::conToStr(
-					profiler::compareToRefSingle(refSeqs, clus, alignerObj, local,
+					profiler::compareToRefSingleMetaReturn(refSeqs, clus, alignerObj, local,
 							eventBased), ";");
 
 			clus.expectsString = bestRef;

@@ -50,6 +50,11 @@ class profiler {
 			const READ& read, aligner& alignerObj, bool local, bool eventBased);
 
 	template<typename READ, typename REF>
+	static VecStr compareToRefSingleMetaReturn(const std::vector<REF>& refSeqs,
+			const READ& read, aligner& alignerObj, bool local, bool eventBased);
+
+
+	template<typename READ, typename REF>
 	static void compareToRef(std::vector<REF> inputRefs,
 			std::vector<READ> inputClusters, aligner& alignerObj,
 			const std::string& workingDir, bool local, bool verbose, bool eventBased);
@@ -211,6 +216,62 @@ VecStr profiler::compareToRefSingle(const std::vector<REF>& refSeqs,
 				<< "," << alignerObj.comp_.largeBaseIndel_
 				<< "," << alignerObj.comp_.lqMismatches_
 				<< "," << alignerObj.comp_.hqMismatches_;
+    ret.emplace_back(profile.str());
+  }
+  return ret;
+}
+
+template <typename READ, typename REF>
+VecStr profiler::compareToRefSingleMetaReturn(const std::vector<REF>& refSeqs,
+		const READ& read, aligner& alignerObj, bool local, bool eventBased) {
+
+	double bestScore = std::numeric_limits<double>::lowest();
+	std::vector<uint32_t> bestReadPos;
+
+	for (const auto inputPos : iter::range(refSeqs.size())) {
+		const auto & input = refSeqs[inputPos];
+		if (getSeqBase(read).name_ == getSeqBase(input).name_) {
+			continue;
+		}
+		alignerObj.alignCache(input, read, local);
+		alignerObj.profilePrimerAlignment(input, read);
+		double currentScore = 0;
+		if (eventBased) {
+			currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
+		} else {
+			currentScore = alignerObj.parts_.score_;
+		}
+		/*
+		std::cout << "name: " << getSeqBase(read).name_ << std::endl;
+		std::cout << "\tcurrentScore: "  << currentScore << std::endl;
+		std::cout << "\tbestScore: "  << bestScore << std::endl;*/
+		if (currentScore == bestScore) {
+			bestReadPos.emplace_back(inputPos);
+		} else if (currentScore > bestScore) {
+			bestReadPos.clear();
+			bestReadPos.emplace_back(inputPos);
+			bestScore = currentScore;
+		}
+	}
+  VecStr ret;
+  for (const auto& bestPos : bestReadPos) {
+  	const auto & best = refSeqs[bestPos];
+		alignerObj.alignCache(best, read, local);
+		alignerObj.profilePrimerAlignment(best, read);
+    std::stringstream profile;
+    double score = 0;
+    if(eventBased){
+    	score = alignerObj.comp_.distances_.eventBasedIdentity_;
+    } else {
+    	score = alignerObj.parts_.score_;
+    }
+    MetaDataInName meta;
+    meta.addMeta("score", score);
+    meta.addMeta("indels", alignerObj.comp_.oneBaseIndel_ + alignerObj.comp_.twoBaseIndel_ + alignerObj.comp_.largeBaseIndel_);
+    meta.addMeta("mismatches", alignerObj.comp_.lqMismatches_ + alignerObj.comp_.hqMismatches_);
+
+    profile << best.seqBase_.name_
+    		<< meta.createMetaName();
     ret.emplace_back(profile.str());
   }
   return ret;

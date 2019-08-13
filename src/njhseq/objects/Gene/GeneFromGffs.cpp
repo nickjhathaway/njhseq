@@ -14,7 +14,7 @@ namespace njhseq {
 GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRecords){
 	VecStr alreadyAddedIDs;
 	//just from what i've seen from chado annotations
-	VecStr acceptableMrnaLikeRecords = {"mRNA", "ncRNA", "rRNA", "snoRNA", "tRNA", "snRNA"};
+	VecStr acceptableMrnaLikeRecords = {"mRNA", "ncRNA", "rRNA", "snoRNA", "tRNA", "snRNA", "transcript"};
 	VecStr allowableGeneFeatures{"gene", "pseudogene"};
 	for(const auto & record : geneRecords){
 		if(record->hasAttr("ID") && njh::in(record->getAttr("ID"), alreadyAddedIDs)){

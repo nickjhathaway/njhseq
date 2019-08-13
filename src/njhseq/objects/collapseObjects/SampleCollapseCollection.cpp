@@ -1214,6 +1214,8 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 	allSubClusterInfo << delim << "c_seq";
 	allSubClusterInfo << delim << "c_ClusterCnt";
 	allSubClusterInfo << delim << "c_IncludedInFinalAnalysis";
+	allSubClusterInfo << delim << "c_bestExpected";
+
 	for(const auto & mf : allMetaFields){
 		allSubClusterInfo << delim << "c_" << mf;
 	}
@@ -1243,6 +1245,7 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 						<< delim << clus.seqBase_.seq_
 						<< delim << clus.reads_.size();
 			allSubClusterInfo << delim << "TRUE";
+			allSubClusterInfo << delim << clus.expectsString;
 			MetaDataInName seqMeta;
 			if(MetaDataInName::nameHasMetaData(clus.seqBase_.name_)){
 				seqMeta = MetaDataInName(clus.seqBase_.name_);
@@ -1304,6 +1307,7 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 						<< delim << clus.seqBase_.seq_
 						<< delim << clus.reads_.size();
 			allSubClusterInfo << delim << "FALSE";
+			allSubClusterInfo << delim << clus.expectsString;
 			MetaDataInName seqMeta;
 			if(MetaDataInName::nameHasMetaData(clus.seqBase_.name_)){
 				seqMeta = MetaDataInName(clus.seqBase_.name_);
