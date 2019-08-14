@@ -86,6 +86,7 @@ std::map<uint32_t, char> GenomicAminoAcidPositionTyper::typeAlignment(
 		TwoBit::TwoBitFile & tReader,
 		aligner & alignerObj,
 		const BamTools::RefVector & refData) {
+
 	auto results = std::make_shared<AlignmentResults>(bAln, refData, true);
 	std::map<uint32_t, char> aminoTyping;
 
@@ -94,8 +95,7 @@ std::map<uint32_t, char> GenomicAminoAcidPositionTyper::typeAlignment(
 
 	bool endsAtStopCodon = false;
 	uint32_t transStart = 0;
-	std::unordered_map<size_t, alnInfoLocal> balnAlnInfo = bamAlnToAlnInfoLocal(
-			bAln);
+	std::unordered_map<size_t, alnInfoLocal> balnAlnInfo = bamAlnToAlnInfoLocal(bAln);
 	auto genePosInfoByGDna = currentGeneInfo.getInfosByGDNAPos();
 	const auto & transcript = currentGene.mRNAs_.front();
 	seqInfo balnSeq(bAln.Name);
@@ -199,8 +199,8 @@ std::map<uint32_t, char> GenomicAminoAcidPositionTyper::typeAlignment(
 		balnSeq.reverseComplementRead(false, true);
 	}
 	auto balnSeqTrans = balnSeq.translateRet(false, false, transStart);
-	alignerObj.alignCacheGlobal(currentGeneInfo.protein_, balnSeqTrans);
 
+	alignerObj.alignCacheGlobal(currentGeneInfo.protein_, balnSeqTrans);
 	alignerObj.profilePrimerAlignment(currentGeneInfo.protein_, balnSeqTrans);
 
 	if (njh::in(currentGene.gene_->getIDAttr(), aminoPositionsForTyping_)) {

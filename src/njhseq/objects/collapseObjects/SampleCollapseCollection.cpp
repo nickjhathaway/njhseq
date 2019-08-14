@@ -1222,7 +1222,7 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 	for(const auto runNum : iter::range<uint32_t>(1, maxRunCount + 1)){
 		allSubClusterInfo << delim << "R" << runNum << "_Name";
 		allSubClusterInfo << delim << "R" << runNum << "_ReadCnt";
-		allSubClusterInfo << delim << "R" << runNum << "_ClusterCnt";
+		allSubClusterInfo << delim << "R" << runNum << "_RepTotalCnt";
 	}
 
 	allSubClusterInfo << std::endl;
@@ -1264,11 +1264,11 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 				if (search == clus.sampInfos().end() || search->second.readCnt_ == 0) {
 					allSubClusterInfo << info.first;
 					allSubClusterInfo << delim << 0;
-					allSubClusterInfo << delim << 0;
+					allSubClusterInfo << delim << info.second.runReadCnt_;
 				} else {
 					allSubClusterInfo << info.first;
 					allSubClusterInfo << delim << clus.sampInfos().at(info.first).readCnt_;
-					allSubClusterInfo << delim << clus.sampInfos().at(info.first).numberOfClusters_;
+					allSubClusterInfo << delim << info.second.runReadCnt_;
 				}
 			}
 			if(clus.sampInfos().size() < maxRunCount){
@@ -1326,11 +1326,11 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 				if (search == clus.sampInfos().end() || search->second.readCnt_ == 0) {
 					allSubClusterInfo << info.first;
 					allSubClusterInfo << delim << 0;
-					allSubClusterInfo << delim << 0;
+					allSubClusterInfo << delim << info.second.runReadCnt_;
 				} else {
 					allSubClusterInfo << info.first;
 					allSubClusterInfo << delim << clus.sampInfos().at(info.first).readCnt_;
-					allSubClusterInfo << delim << clus.sampInfos().at(info.first).numberOfClusters_;
+					allSubClusterInfo << delim << info.second.runReadCnt_;
 				}
 			}
 			if(clus.sampInfos().size() < maxRunCount){

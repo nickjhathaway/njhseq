@@ -403,11 +403,13 @@ std::string sampleCollapse::getSimpleSampInfo(const std::string &delim) const {
 }
 
 VecStr sampleCollapse::getSimpleSampInfoVec() const {
+
 	return toVecStr(sampName_,
 			collapsed_.info_.totalReadCount_,
 			100 * (collapsed_.info_.totalReadCount_/static_cast<double>(input_.info_.totalReadCount_)),
 			collapsed_.info_.numberOfClusters_,
-			collapsed_.clusters_.size(), collapsed_.clusters_.size());
+			collapsed_.clusters_.size(), collapsed_.clusters_.size(),
+			collapsed_.getRMSE());
 
 //	return toVecStr(sampName_,
 //			getPercentageString(collapsed_.info_.totalReadCount_,
@@ -417,7 +419,7 @@ VecStr sampleCollapse::getSimpleSampInfoVec() const {
 
 VecStr sampleCollapse::getSimpleSampInfoHeaderVec() {
 	return VecStr { "s_Name", "s_ReadCntTotUsed", "s_ReadCntTotUsedPercent", "s_InputClusterCnt",
-			"s_FinalClusterCnt", "s_COI" };
+			"s_FinalClusterCnt", "s_COI", "s_RMSE" };
 }
 
 
