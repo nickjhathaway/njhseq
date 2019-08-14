@@ -329,17 +329,20 @@ void table::deleteColumn(size_t columnIndex) {
     for (auto &rIter : content_) {
       rIter.erase(rIter.begin() + columnIndex);
     }
+    setColNamePositions();
   } else {
-    std::cout << "Column " << columnIndex << " doesn't exist, table left alone"
-              << "\n";
+  	std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "column " << columnIndex << " isn't in table, " << "cols range from 0 to " << columnNames_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
   }
 }
 void table::deleteRow(size_t rowIndex) {
   if (rowIndex < content_.size()) {
     content_.erase(content_.begin() + rowIndex);
   } else {
-    std::cout << "Row " << rowIndex << " is out of bounds, table left alone"
-              << "\n";
+  	std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "row inex " << rowIndex << " out of range, bottom row: " << content_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
   }
 }
 

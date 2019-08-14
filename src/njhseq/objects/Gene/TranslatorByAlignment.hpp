@@ -22,6 +22,21 @@ namespace njhseq {
 class TranslatorByAlignment{
 public:
 
+
+	struct VariantsInfo {
+		std::map<uint32_t, std::map<char, uint32_t>> allBases;
+
+		std::map<uint32_t, std::map<char, uint32_t>> snps;
+		std::map<uint32_t, std::map<std::string,uint32_t>> insertions;
+		std::map<uint32_t, std::map<std::string,uint32_t>> deletions;
+
+		std::map<uint32_t, std::map<char, uint32_t>> snpsFinal;
+		std::map<uint32_t, std::map<std::string,uint32_t>> insertionsFinal;
+		std::map<uint32_t, std::map<std::string,uint32_t>> deletionsFinal;
+
+		std::set<uint32_t> variablePositons_;
+	};
+
 	struct TranslatorByAlignmentPars{
 		TranslatorByAlignmentPars();
 		bfs::path gffFnp_ = "";
@@ -46,6 +61,18 @@ public:
 		std::unordered_map<std::string, std::unordered_map<std::string, TranslateSeqRes>> translations_;
 
 		std::unordered_map<std::string, std::vector<std::shared_ptr<AlignmentResults>>> seqAlns_;
+
+		//by transcript name
+		std::unordered_map<std::string, VariantsInfo> proteinVariants_;
+		std::unordered_map<std::string, std::string> proteinForTranscript_;
+		//by chromosome
+		std::unordered_map<std::string, VariantsInfo> seqVariants_;
+		std::unordered_map<std::string, std::unordered_map<uint32_t, char>> baseForPosition_;
+	};
+
+	struct RunPars {
+		uint32_t occurrenceCutOff = 2;
+		double lowVariantCutOff = 0.005;
 	};
 
 
@@ -62,7 +89,9 @@ public:
 
 	TranslatorByAlignment(const TranslatorByAlignmentPars & pars);
 
-	TranslatorByAlignmentResult run(const SeqIOOptions & seqOpts);
+	TranslatorByAlignmentResult run(const SeqIOOptions & seqOpts,
+			const std::unordered_map<std::string, uint32_t> & sampCountsForHaps,
+			const RunPars & rPars);
 
 };
 

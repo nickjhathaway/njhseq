@@ -175,7 +175,14 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 }
 
 
-TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(const SeqIOOptions & seqOpts){
+TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(const SeqIOOptions & seqOpts,
+		const std::unordered_map<std::string, uint32_t> & sampCountsForHaps,
+		const RunPars & rPars){
+
+	uint32_t totalPopCount = 0;
+	for(const auto & sampCount : sampCountsForHaps){
+		totalPopCount += sampCount.second;
+	}
 	TranslatorByAlignmentResult ret;
 	std::vector<bfs::path> fnpsToRemove;
 	auto seqInputFnp = njh::files::make_path(pars_.workingDirtory_, "inputSeqs.fasta");
@@ -297,6 +304,140 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(co
 			}
 		}
 	}
+
+	//index snps
+	for(const auto & seqName : ret.seqAlns_){
+		for(const auto & aln : seqName.second){
+			uint32_t queryAlnStart = aln->alnSeqAligned_->seq_.find_first_not_of("-");
+			uint32_t queryAlnEnd = aln->alnSeqAligned_->seq_.find_last_not_of("-");
+			auto popCount = sampCountsForHaps.at(seqName.first);
+			for(const auto & seqPos : iter::range(queryAlnStart, queryAlnEnd + 1)){
+				if('-' != aln->refSeqAligned_->seq_[seqPos]){
+					uint32_t seqChromPosition = getRealPosForAlnPos(aln->refSeqAligned_->seq_, seqPos) + aln->gRegion_.start_;
+					ret.baseForPosition_[aln->gRegion_.chrom_][seqChromPosition] = aln->refSeqAligned_->seq_[seqPos];
+					ret.seqVariants_[aln->gRegion_.chrom_].allBases[seqChromPosition][aln->alnSeqAligned_->seq_[seqPos]] += popCount;
+				}
+			}
+			for(const auto & m : aln->comp_.distances_.mismatches_){
+				ret.seqVariants_[aln->gRegion_.chrom_].snps[m.second.refBasePos][m.second.seqBase]+= popCount;
+			}
+			for(const auto & gap : aln->comp_.distances_.alignmentGaps_){
+				if(gap.second.ref_){
+					//insertion
+					ret.seqVariants_[aln->gRegion_.chrom_].insertions[gap.second.refPos_ - 1][gap.second.gapedSequence_]+=popCount;
+				}else{
+					//deletion
+					ret.seqVariants_[aln->gRegion_.chrom_].deletions[gap.second.refPos_ - 1][gap.second.gapedSequence_]+=popCount;
+				}
+			}
+		}
+	}
+
+	for(auto & varPerChrom : ret.seqVariants_){
+		//filter saps and indels by occurrence cut off
+		for(auto & snp : varPerChrom.second.snps){
+			for(const auto & b : snp.second){
+				if(b.second < rPars.occurrenceCutOff){
+					continue;
+				}
+				varPerChrom.second.snpsFinal[snp.first][b.first] = b.second;
+				if(b.second/static_cast<double>(totalPopCount) > rPars.lowVariantCutOff){
+					varPerChrom.second.variablePositons_.emplace(snp.first);
+				}
+			}
+		}
+		for(const auto & del : varPerChrom.second.deletions){
+			for(const auto & d : del.second){
+				if(d.second < rPars.occurrenceCutOff){
+					continue;
+				}
+				varPerChrom.second.deletionsFinal[del.first][d.first] = d.second;
+				if(d.second/static_cast<double>(totalPopCount) > rPars.lowVariantCutOff){
+					varPerChrom.second.variablePositons_.emplace(del.first);
+				}
+			}
+		}
+		for(const auto & ins : varPerChrom.second.insertions){
+			for(const auto & i : ins.second){
+				if(i.second < rPars.occurrenceCutOff){
+					continue;
+				}
+				varPerChrom.second.insertionsFinal[ins.first][i.first] = i.second;
+				if(i.second/static_cast<double>(totalPopCount) > rPars.lowVariantCutOff){
+					varPerChrom.second.variablePositons_.emplace(ins.first);
+				}
+			}
+		}
+	}
+
+
+	//index amino acid changes per transcript
+	for(const auto & seqName : ret.translations_){
+		for(const auto & transcript : seqName.second){
+			if("" == ret.proteinForTranscript_[transcript.first]){
+				ret.proteinForTranscript_[transcript.first] = njh::replaceString(transcript.second.refAlnTranslation_.seq_, "-", "");
+			}
+			uint32_t queryAlnStart = transcript.second.queryAlnTranslation_.seq_.find_first_not_of("-");
+			uint32_t queryAlnEnd = transcript.second.queryAlnTranslation_.seq_.find_last_not_of("-");
+			auto popCount = sampCountsForHaps.at(seqName.first);
+			for(const auto & refProteinPos : iter::range(queryAlnStart, queryAlnEnd + 1)){
+				if('-' != transcript.second.refAlnTranslation_.seq_[refProteinPos]){
+					ret.proteinVariants_[transcript.first].allBases[getRealPosForAlnPos(transcript.second.refAlnTranslation_.seq_, refProteinPos)][transcript.second.queryAlnTranslation_.seq_[refProteinPos]] += popCount;
+				}
+			}
+			for(const auto & m : transcript.second.comp_.distances_.mismatches_){
+				ret.proteinVariants_[transcript.first].snps[m.second.refBasePos][m.second.seqBase]+= popCount;
+			}
+			for(const auto & gap : transcript.second.comp_.distances_.alignmentGaps_){
+				if(gap.second.ref_){
+					//insertion
+					ret.proteinVariants_[transcript.first].insertions[gap.second.refPos_ - 1][gap.second.gapedSequence_]+=popCount;
+				}else{
+					//deletion
+					ret.proteinVariants_[transcript.first].deletions[gap.second.refPos_ - 1][gap.second.gapedSequence_]+=popCount;
+				}
+			}
+		}
+	}
+
+	for(auto & varPerTrans : ret.proteinVariants_){
+		//filter saps and indels by occurrence cut off
+		for(auto & snp : varPerTrans.second.snps){
+			for(const auto & b : snp.second){
+				if(b.second < rPars.occurrenceCutOff){
+					continue;
+				}
+				varPerTrans.second.snpsFinal[snp.first][b.first] = b.second;
+				if(b.second/static_cast<double>(totalPopCount) > rPars.lowVariantCutOff){
+					varPerTrans.second.variablePositons_.emplace(snp.first);
+				}
+			}
+		}
+		for(const auto & del : varPerTrans.second.deletions){
+			for(const auto & d : del.second){
+				if(d.second < rPars.occurrenceCutOff){
+					continue;
+				}
+				varPerTrans.second.deletionsFinal[del.first][d.first] = d.second;
+				if(d.second/static_cast<double>(totalPopCount) > rPars.lowVariantCutOff){
+					varPerTrans.second.variablePositons_.emplace(del.first);
+				}
+			}
+		}
+		for(const auto & ins : varPerTrans.second.insertions){
+			for(const auto & i : ins.second){
+				if(i.second < rPars.occurrenceCutOff){
+					continue;
+				}
+				varPerTrans.second.insertionsFinal[ins.first][i.first] = i.second;
+				if(i.second/static_cast<double>(totalPopCount) > rPars.lowVariantCutOff){
+					varPerTrans.second.variablePositons_.emplace(ins.first);
+				}
+			}
+		}
+	}
+
+
 	return ret;
 }
 
