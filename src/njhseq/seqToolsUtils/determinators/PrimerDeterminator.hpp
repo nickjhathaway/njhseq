@@ -27,11 +27,28 @@
 #include "njhseq/objects/dataContainers/tables/table.hpp"
 #include "njhseq/alignment/aligner.h"
 #include "njhseq/objects/seqObjects/Paired/PairedRead.hpp"
+#include "njhseq/objects/helperObjects/motif.hpp"
 
 namespace njhseq {
 
 class PrimerDeterminator {
 public:
+
+	struct PrimerPositionScore {
+		PrimerPositionScore() {
+		}
+		PrimerPositionScore(const uint32_t start, const uint32_t end,
+				const std::string & primerName, const comparison & comp) :
+				start_(start), end_(end), primerName_(primerName), comp_(comp) {
+		}
+		uint32_t start_ { std::numeric_limits<uint32_t>::max()-1 };
+		uint32_t end_ { std::numeric_limits<uint32_t>::max() };
+		std::string primerName_;
+		comparison comp_;
+		double getNormalizedScore() {
+			return comp_.alnScore_ / (end_ - start_);
+		}
+	};
 
 	struct PrimerDeterminatorPars {
 		comparison allowable_;
@@ -41,19 +58,31 @@ public:
 		uint32_t primerStart_ { 0 };
 		bool trimExtra_ { false };
 		bool checkComplement_ { false };
+		bool useMotif_ { false };
 	};
 
 	struct primerInfo {
-		primerInfo() {}
+		primerInfo();
 		primerInfo(const std::string & primerPairName,
 				const std::string & forwardPrimer, const std::string &reversePrimer );
 		std::string primerPairName_;
 		std::string forwardPrimer_;      /**< 5`-3` direction */
 		seqInfo forwardPrimerInfo_;      /**< 5`-3` direction */
 		seqInfo forwardPrimerInfoRevDir_;/**< 3`-5` direction */
+		motif forwardPrimerMotif_;       /**< 5`-3` direction */
+		motif forwardPrimerMotifRevDir_; /**< 3`-5` direction */
+
 		std::string reversePrimer_;      /**< 5`-3` direction */
 		seqInfo reversePrimerInfo_;			 /**< 3`-5` direction */
 		seqInfo reversePrimerInfoForDir_;/**< 5`-3` direction */
+		motif reversePrimerMotif_;       /**< 3`-5` direction */
+		motif reversePrimerMotifForDir_; /**< 5`-3` direction */
+
+		charCounter forwardPrimerInfoLetCounter_;
+		charCounter forwardPrimerInfoRevDirLetCounter_;
+		charCounter reversePrimerInfoLetCounter_;
+		charCounter reversePrimerInfoForDirLetCounter_;
+
 	};
 
 	explicit PrimerDeterminator(const table & primers);
@@ -69,6 +98,8 @@ public:
 	std::map<std::string, primerInfo> primers_;
 
 	size_t getMaxPrimerSize() const;
+
+
 
 	template<typename T>
 	std::string determineForwardPrimer(T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
@@ -87,7 +118,6 @@ public:
 	bool checkForReversePrimer(T & read, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj) {
 		return checkForReversePrimer(getSeqBase(read), primerName,pars, alignObj);
 	}
-
 	bool checkForReversePrimer(seqInfo & info, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj);
 
 	template<typename T>
@@ -96,6 +126,25 @@ public:
 	}
 
 	bool checkForForwardPrimerInRev(seqInfo & info, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj);
+
+
+	//just getting positions
+	template<typename T>
+	PrimerPositionScore determineBestForwardPrimerPosFront(const T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
+		return determineBestForwardPrimerPosFront(getSeqBase(read), pars, alignerObj);
+	}
+	PrimerPositionScore determineBestForwardPrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
+
+
+	template<typename T>
+	PrimerPositionScore determineBestReversePrimerPosFront(const T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
+		return determineBestReversePrimerPosFront(getSeqBase(read), pars, alignerObj);
+	}
+	PrimerPositionScore determineBestReversePrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
+
+
+
+
 };
 
 } /* namespace njhseq */

@@ -30,6 +30,14 @@
 
 namespace njhseq {
 
+
+alnParts::alnParts(uint64_t maxSize, const gapScoringParameters& gapScores)
+    : maxSize_(maxSize + 10),
+      gapScores_(gapScores),
+      ScoreMatrix_(std::vector<std::vector<scoreMatrixCell>>(
+          maxSize_, std::vector<scoreMatrixCell>(maxSize_))) {}
+
+
 alnParts::alnParts(uint64_t maxSize, const gapScoringParameters& gapScores,
          const substituteMatrix& scoring)
     : maxSize_(maxSize + 10),

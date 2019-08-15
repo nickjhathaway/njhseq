@@ -45,6 +45,7 @@ struct scoreMatrixCell {
 class alnParts {
 public:
 	alnParts();
+  alnParts(uint64_t maxSize, const gapScoringParameters& gapScores);
   alnParts(uint64_t maxSize, const gapScoringParameters& gapScores,
            const substituteMatrix& scoring);
 

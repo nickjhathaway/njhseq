@@ -165,7 +165,7 @@ private:
 #if defined( __APPLE__ ) || defined( __APPLE_CC__ ) || defined( macintosh ) || defined( __MACH__ )
 	uint32_t outOpenLimit_ = 200; /**< The maximum number of files to be kept open at one time*/
 #else
-	uint32_t outOpenLimit_ = 1000; /**< The maximum number of files to be kept open at one time */
+	uint32_t outOpenLimit_ = 944; /**< The maximum number of files to be kept open at one time */
 #endif
 
 	uint32_t outCurrentlyOpen_ = 0; /**< The number of files currently open*/

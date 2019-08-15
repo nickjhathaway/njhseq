@@ -310,7 +310,7 @@ void populationCollapse::updateInfoWithSampCollapse(const sampleCollapse & sampC
 
 VecStr populationCollapse::getPopInfoVec() const {
 	double he = getExpectedHeterozygosity();
-	return toVecStr(collapsed_.info_.totalReadCount_,
+	return toVecStr(populationName_, collapsed_.info_.totalReadCount_,
 			collapsed_.info_.numberOfClusters_, collapsed_.info_.infos_.size(),
 			collapsed_.clusters_.size(), he, collapsed_.info_.getCoiInfoVec());
 }
@@ -325,7 +325,7 @@ double populationCollapse::getExpectedHeterozygosity() const{
 }
 
 VecStr populationCollapse::getPopInfoHeaderVec() {
-	return toVecStr("p_TotalInputReadCnt", "p_TotalInputClusterCnt",
+	return toVecStr("p_Name","p_TotalInputReadCnt", "p_TotalInputClusterCnt",
 			"p_TotalPopulationSampCnt", "p_TotalHaplotypes","p_ExpectedHeterozygosity",
 			clusterSetInfo::getCoiInfoHeaderVec());
 }

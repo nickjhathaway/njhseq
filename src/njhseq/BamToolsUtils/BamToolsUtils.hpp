@@ -90,10 +90,11 @@ inline bool IsSecondMate(uint32_t flag) {
 
 bool IsBamSorted(const std::string & filename, bool verbose = false);
 
-
 void checkBamOpenThrow(BamTools::BamReader & bReader, const bfs::path & bamFnp);
+void checkBamOpenThrow(BamTools::BamReader & bReader, const bfs::path & bamFnp, const std::string & funcName);
 
 void loadBamIndexThrow(BamTools::BamReader & bReader);
+void loadBamIndexThrow(BamTools::BamReader & bReader, const std::string & funcName);
 
 table refDataVecToTab(const std::vector<BamTools::RefData> & refInfos);
 std::vector<BamTools::RefData> tabToRefDataVec(const table & refDataTab);

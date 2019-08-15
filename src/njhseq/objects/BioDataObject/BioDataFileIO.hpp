@@ -75,6 +75,18 @@ public:
 			throw std::runtime_error{ss.str()};
 		}
 		out_ = std::make_unique<OutputStream>(ioOpts_.out_);
+		{
+			//add input file header if it begins with a #
+			if(isInOpen()){
+				InputStream tempIn(ioOpts_.in_);
+				std::string line;
+				njh::files::crossPlatGetline(tempIn, line);
+				while(njh::beginsWith(line, "#")){
+					(*out_) << line << std::endl;
+					njh::files::crossPlatGetline(tempIn, line);
+				}
+			}
+		}
 	}
 
 	void closeIn(){

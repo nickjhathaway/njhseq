@@ -86,6 +86,13 @@ PrimerDeterminator::PrimerDeterminator(const std::unordered_map<std::string, pri
 bool PrimerDeterminator::containsTarget(const std::string & targetName) const{
 	return njh::in(targetName, primers_);
 }
+PrimerDeterminator::primerInfo::primerInfo():
+		forwardPrimerMotif_("NNNN"),
+		forwardPrimerMotifRevDir_ ("NNNN"),
+		reversePrimerMotif_("NNNN"),
+		reversePrimerMotifForDir_ ("NNNN"){
+
+}
 
 PrimerDeterminator::primerInfo::primerInfo(const std::string & primerPairName,
 		const std::string & forwardPrimer, const std::string &reversePrimer) :
@@ -93,41 +100,101 @@ PrimerDeterminator::primerInfo::primerInfo(const std::string & primerPairName,
 		forwardPrimer_(forwardPrimer),
 		forwardPrimerInfo_(seqInfo { primerPairName, forwardPrimer }),
 		forwardPrimerInfoRevDir_(seqInfo { primerPairName, seqUtil::reverseComplement(forwardPrimer,"DNA") }),
+		forwardPrimerMotif_(seqUtil::genMotifStrAccountDegenBase(forwardPrimer)),
+		forwardPrimerMotifRevDir_ (seqUtil::genMotifStrAccountDegenBase(forwardPrimerInfoRevDir_.seq_)),
 		reversePrimer_(reversePrimer),
 		reversePrimerInfo_(seqInfo { primerPairName, seqUtil::reverseComplement(reversePrimer,"DNA") }),
-		reversePrimerInfoForDir_(seqInfo { primerPairName,reversePrimer }) {
+		reversePrimerInfoForDir_(seqInfo { primerPairName,reversePrimer } ),
+		reversePrimerMotif_(seqUtil::genMotifStrAccountDegenBase(reversePrimer)),
+		reversePrimerMotifForDir_ (seqUtil::genMotifStrAccountDegenBase(reversePrimerInfoForDir_.seq_))
+		{
+
+
+	//create motif strings with taking into account ambiguous bases
+
+
+
+
+
+
+
+
+	forwardPrimerInfoLetCounter_.increaseCountByString(forwardPrimerInfo_.seq_);
+	forwardPrimerInfoLetCounter_.resetAlphabet(false);
+	forwardPrimerInfoLetCounter_.setFractions();
+
+	forwardPrimerInfoRevDirLetCounter_.increaseCountByString(forwardPrimerInfoRevDir_.seq_);
+	forwardPrimerInfoRevDirLetCounter_.resetAlphabet(false);
+	forwardPrimerInfoRevDirLetCounter_.setFractions();
+
+	reversePrimerInfoLetCounter_.increaseCountByString(reversePrimerInfo_.seq_);
+	reversePrimerInfoLetCounter_.resetAlphabet(false);
+	reversePrimerInfoLetCounter_.setFractions();
+
+	reversePrimerInfoForDirLetCounter_.increaseCountByString(reversePrimerInfoForDir_.seq_);
+	reversePrimerInfoForDirLetCounter_.resetAlphabet(false);
+	reversePrimerInfoForDirLetCounter_.setFractions();
 
 }
 
-struct PrimerPositionScore {
-	PrimerPositionScore() {
-	}
-	PrimerPositionScore(const uint32_t start, const uint32_t end,
-			const std::string & primerName, const comparison & comp) :
-			start_(start), end_(end), primerName_(primerName), comp_(comp) {
-	}
-	uint32_t start_ { std::numeric_limits<uint32_t>::max()-1 };
-	uint32_t end_ { std::numeric_limits<uint32_t>::max() };
-	std::string primerName_;
-	comparison comp_;
-	double getNormalizedScore() {
-		return comp_.alnScore_ / (end_ - start_);
-	}
-};
 
-std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info, const PrimerDeterminatorPars & pars,
+
+std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info,
+		const PrimerDeterminatorPars & pars,
 		aligner & alignerObj){
 	std::vector<PrimerPositionScore> determinedPrimers;
+	const uint32_t maxPSize = getMaxPrimerSize();
+	seqInfo readBegin(info.name_ + "_readBegin",
+			info.seq_.substr(pars.primerStart_, pars.primerWithin_ + maxPSize + 5));
+	charCounter letCounter;
+	letCounter.increaseCountByString(readBegin.seq_);
+
 	for (const auto& currentPrimer : primers_) {
+		uint32_t basesShared = 2;
+		for(const auto c : currentPrimer.second.reversePrimerInfoForDirLetCounter_.alphabet_){
+			basesShared += std::min(letCounter.chars_[c], currentPrimer.second.reversePrimerInfoForDirLetCounter_.chars_[c]);
+		}
+		if(static_cast<double>(basesShared)/currentPrimer.second.reversePrimerInfoForDir_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
+			continue;
+		}
+//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
+//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
+
 		// find reverse primer in forward direction or if it isn't found return unrecognized
-		auto readBegin = seqInfo(info.name_ + "_readBegin",
-				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.reversePrimerInfoForDir_.seq_.size() + 5));
+//		auto readBegin = seqInfo(info.name_ + "_readBegin",
+//				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.reversePrimerInfoForDir_.seq_.size() + 5));
 
 		/**@todo put in a check to make sure of semi-global alignment */
-		alignerObj.alignCacheGlobal(readBegin,
-				currentPrimer.second.reversePrimerInfoForDir_);
-		alignerObj.rearrangeObjs(readBegin,
-				currentPrimer.second.reversePrimerInfoForDir_, false);
+
+		if(pars.useMotif_){
+			auto positions = currentPrimer.second.reversePrimerMotif_.findPositionsSubSets(readBegin.seq_,
+					pars.allowable_.hqMismatches_ + pars.allowable_.lqMismatches_,
+					0, len(readBegin),
+					1, currentPrimer.second.reversePrimerMotif_.size());
+			if(positions.empty()){
+				continue;
+			}else{
+				auto motifPos = positions.front();
+				alignerObj.alignObjectA_ = readBegin;
+				if(0 == motifPos){
+					alignerObj.alignObjectA_.seqBase_.prepend('-');
+				}else{
+					--motifPos;
+				}
+				std::string primerSeq = "";
+				if(motifPos > 0){
+					primerSeq = std::string(motifPos, '-');
+				}
+				primerSeq.append(currentPrimer.second.reversePrimerInfoForDir_.seq_);
+				primerSeq.append(std::string(len(alignerObj.alignObjectA_) - currentPrimer.second.reversePrimerInfoForDir_.seq_.size() - motifPos, '-'));
+				alignerObj.alignObjectB_.seqBase_ = seqInfo(currentPrimer.second.reversePrimerInfoForDir_.name_, primerSeq);
+			}
+		}else{
+			alignerObj.alignCacheGlobal(readBegin, currentPrimer.second.reversePrimerInfoForDir_);
+			alignerObj.rearrangeObjs(readBegin, currentPrimer.second.reversePrimerInfoForDir_, false);
+		}
+
+		/**@todo put in a check to make sure of semi-global alignment */
 		alignerObj.profileAlignment(readBegin,
 				currentPrimer.second.reversePrimerInfoForDir_, false, true, false);
 
@@ -140,14 +207,14 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info, const
 						|| 'A' == alignerObj.alignObjectB_.seqBase_.seq_.front())) {
 			coverage =
 					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
-							/ (currentPrimer.second.forwardPrimerInfo_.seq_.size() - 1);
+							/ (currentPrimer.second.reversePrimerInfoForDir_.seq_.size() - 1);
 		} else if (0 == pars.primerStart_ &&
 				2 == alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
 				&& ("TT" == alignerObj.alignObjectB_.seqBase_.seq_.substr(0,2)
 						|| "AA" == alignerObj.alignObjectB_.seqBase_.seq_.substr(0,2))) {
 			coverage =
 					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
-							/ (currentPrimer.second.forwardPrimerInfo_.seq_.size() - 2);
+							/ (currentPrimer.second.reversePrimerInfoForDir_.seq_.size() - 2);
 		}
 
 		if (forwardPosition.first <= pars.primerWithin_
@@ -194,14 +261,116 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info, const
 	return bestPrimer.primerName_;
 }
 
-std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
-		const PrimerDeterminatorPars & pars, aligner & alignerObj) {
+
+
+PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestReversePrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj){
 	std::vector<PrimerPositionScore> determinedPrimers;
+	const uint32_t maxPSize = getMaxPrimerSize();
+	seqInfo readBegin(info.name_ + "_readBegin",
+			info.seq_.substr(pars.primerStart_, pars.primerWithin_ + maxPSize + 5));
+	charCounter letCounter;
+	letCounter.increaseCountByString(readBegin.seq_);
 
 	for (const auto& currentPrimer : primers_) {
+		uint32_t basesShared = 2;
+		for(const auto c : currentPrimer.second.reversePrimerInfoForDirLetCounter_.alphabet_){
+			basesShared += std::min(letCounter.chars_[c], currentPrimer.second.reversePrimerInfoForDirLetCounter_.chars_[c]);
+		}
+		if(static_cast<double>(basesShared)/currentPrimer.second.reversePrimerInfoForDir_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
+			continue;
+		}
+//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
+//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
+
 		// find reverse primer in forward direction or if it isn't found return unrecognized
-		auto readBegin = seqInfo(info.name_ + "_readBegin",
-				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.forwardPrimerInfo_.seq_.size() + 5));
+//		auto readBegin = seqInfo(info.name_ + "_readBegin",
+//				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.reversePrimerInfoForDir_.seq_.size() + 5));
+//		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
+//				currentPrimer.second.reversePrimerInfoForDir_.seq_);
+//		alignerObj.rearrangeObjs(readBegin,
+//				currentPrimer.second.reversePrimerInfoForDir_, true);
+//		alignerObj.profilePrimerAlignment(readBegin,
+//				currentPrimer.second.reversePrimerInfoForDir_);
+
+		/**@todo put in a check to make sure of semi-global alignment */
+		alignerObj.alignCacheGlobal(readBegin,
+				currentPrimer.second.reversePrimerInfoForDir_);
+		alignerObj.rearrangeObjs(readBegin,
+				currentPrimer.second.reversePrimerInfoForDir_, false);
+		alignerObj.profileAlignment(readBegin,
+				currentPrimer.second.reversePrimerInfoForDir_, false, true, false);
+
+		std::pair<uint32_t, uint32_t> forwardPosition = std::make_pair(
+				alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-")) + pars.primerStart_,
+				alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-")) + pars.primerStart_);
+		double coverage = alignerObj.comp_.distances_.query_.coverage_;
+		if (0 == pars.primerStart_ && 1 == alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
+				&& ('T' == alignerObj.alignObjectB_.seqBase_.seq_.front()
+						|| 'A' == alignerObj.alignObjectB_.seqBase_.seq_.front())) {
+			coverage =
+					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
+							/ (currentPrimer.second.reversePrimerInfoForDir_.seq_.size() - 1);
+		} else if (0 == pars.primerStart_ &&
+				2 == alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
+				&& ("TT" == alignerObj.alignObjectB_.seqBase_.seq_.substr(0,2)
+						|| "AA" == alignerObj.alignObjectB_.seqBase_.seq_.substr(0,2))) {
+			coverage =
+					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
+							/ (currentPrimer.second.reversePrimerInfoForDir_.seq_.size() - 2);
+		}
+
+		if (forwardPosition.first <= pars.primerWithin_
+				&& coverage >= pars.allowable_.distances_.query_.coverage_
+				&& pars.allowable_.passErrorProfile(alignerObj.comp_)) {
+			determinedPrimers.emplace_back(forwardPosition.first,
+					forwardPosition.second, currentPrimer.second.forwardPrimerInfo_.name_,
+					alignerObj.comp_);
+		}
+	}
+	PrimerPositionScore bestPrimer;
+	if (0 == determinedPrimers.size()) {
+	} else if (1 == determinedPrimers.size()) {
+		bestPrimer = determinedPrimers.front();
+	} else {
+		bestPrimer = determinedPrimers.front();
+		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
+				bestPrimer = determinedPrimers[pos];
+			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
+				if(determinedPrimers[pos].comp_.highQualityMatches_ > bestPrimer.comp_.highQualityMatches_){
+					bestPrimer = determinedPrimers[pos];
+				}else if(determinedPrimers[pos].comp_.highQualityMatches_ == bestPrimer.comp_.highQualityMatches_){
+					if(determinedPrimers[pos].start_ < bestPrimer.start_){
+						bestPrimer = determinedPrimers[pos];
+					}
+				}
+			}
+		}
+	}
+	return bestPrimer;
+}
+
+PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestForwardPrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj){
+	std::vector<PrimerPositionScore> determinedPrimers;
+	const uint32_t maxPSize = getMaxPrimerSize();
+	seqInfo readBegin(info.name_ + "_readBegin",
+			info.seq_.substr(pars.primerStart_, pars.primerWithin_ + maxPSize + 5));
+	charCounter letCounter;
+	letCounter.increaseCountByString(readBegin.seq_);
+
+	for (const auto& currentPrimer : primers_) {
+		uint32_t basesShared = 2;
+		for(const auto c : currentPrimer.second.forwardPrimerInfoLetCounter_.alphabet_){
+			basesShared += std::min(letCounter.chars_[c], currentPrimer.second.forwardPrimerInfoLetCounter_.chars_[c]);
+		}
+		if(static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
+			continue;
+		}
+//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
+//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
+		// find reverse primer in forward direction or if it isn't found return unrecognized
+//		auto readBegin = seqInfo(info.name_ + "_readBegin",
+//				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.forwardPrimerInfo_.seq_.size() + 5));
 //		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
 //				currentPrimer.second.forwardPrimerInfo_.seq_);
 //		alignerObj.rearrangeObjs(readBegin,
@@ -244,6 +413,120 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 					alignerObj.comp_);
 		}
 	}
+	PrimerPositionScore bestPrimer;
+	if (0 == determinedPrimers.size()) {
+	} else if (1 == determinedPrimers.size()) {
+		bestPrimer = determinedPrimers.front();
+	} else {
+		bestPrimer = determinedPrimers.front();
+		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
+				bestPrimer = determinedPrimers[pos];
+			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
+				if(determinedPrimers[pos].comp_.highQualityMatches_ > bestPrimer.comp_.highQualityMatches_){
+					bestPrimer = determinedPrimers[pos];
+				}else if(determinedPrimers[pos].comp_.highQualityMatches_ == bestPrimer.comp_.highQualityMatches_){
+					if(determinedPrimers[pos].start_ < bestPrimer.start_){
+						bestPrimer = determinedPrimers[pos];
+					}
+				}
+			}
+		}
+	}
+	return bestPrimer;
+}
+
+std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
+		const PrimerDeterminatorPars & pars, aligner & alignerObj) {
+	std::vector<PrimerPositionScore> determinedPrimers;
+	const uint32_t maxPSize = getMaxPrimerSize();
+	seqInfo readBegin(info.name_ + "_readBegin",
+			info.seq_.substr(pars.primerStart_, pars.primerWithin_ + maxPSize + 5));
+	charCounter letCounter;
+	letCounter.increaseCountByString(readBegin.seq_);
+
+	for (const auto& currentPrimer : primers_) {
+		uint32_t basesShared = 2;
+		for(const auto c : currentPrimer.second.forwardPrimerInfoLetCounter_.alphabet_){
+			basesShared += std::min(letCounter.chars_[c], currentPrimer.second.forwardPrimerInfoLetCounter_.chars_[c]);
+		}
+		if(static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
+			continue;
+		}
+//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
+//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
+		// find reverse primer in forward direction or if it isn't found return unrecognized
+//		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
+//				currentPrimer.second.forwardPrimerInfo_.seq_);
+//		alignerObj.rearrangeObjs(readBegin,
+//				currentPrimer.second.forwardPrimerInfo_, true);
+//		alignerObj.profilePrimerAlignment(readBegin,
+//				currentPrimer.second.forwardPrimerInfo_);
+
+		/**@todo put in a check to make sure of semi-global alignment */
+		if(pars.useMotif_){
+
+			auto positions = currentPrimer.second.forwardPrimerMotif_.findPositionsSubSets(readBegin.seq_,
+					pars.allowable_.hqMismatches_ + pars.allowable_.lqMismatches_,
+					0, len(readBegin),
+					1, currentPrimer.second.forwardPrimerMotif_.size());
+			if(positions.empty()){
+				continue;
+			}else{
+				auto motifPos = positions.front();
+				alignerObj.alignObjectA_ = readBegin;
+				if(0 == motifPos){
+					alignerObj.alignObjectA_.seqBase_.prepend('-');
+				}else{
+					--motifPos;
+				}
+				std::string primerSeq = "";
+				if(motifPos > 0){
+					primerSeq = std::string(motifPos, '-');
+				}
+				primerSeq.append(currentPrimer.second.forwardPrimerInfo_.seq_);
+				primerSeq.append(std::string(len(alignerObj.alignObjectA_) - currentPrimer.second.forwardPrimerInfo_.seq_.size() - motifPos, '-'));
+				alignerObj.alignObjectB_.seqBase_ = seqInfo(currentPrimer.second.forwardPrimerInfo_.name_, primerSeq);
+			}
+		}else{
+			alignerObj.alignCacheGlobal(readBegin, currentPrimer.second.forwardPrimerInfo_);
+			alignerObj.rearrangeObjs(readBegin, currentPrimer.second.forwardPrimerInfo_, false);
+		}
+		alignerObj.profileAlignment(readBegin, currentPrimer.second.forwardPrimerInfo_, false, true, false);
+
+		std::pair<uint32_t, uint32_t> forwardPosition = std::make_pair(
+				alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-")) + pars.primerStart_,
+				alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-")) + pars.primerStart_);
+		double coverage = alignerObj.comp_.distances_.query_.coverage_;
+		if (0 == pars.primerStart_ && 1 == alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
+				&& ('T' == alignerObj.alignObjectB_.seqBase_.seq_.front()
+						|| 'A' == alignerObj.alignObjectB_.seqBase_.seq_.front())) {
+			coverage =
+					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
+							/ (currentPrimer.second.forwardPrimerInfo_.seq_.size() - 1);
+		} else if (0 == pars.primerStart_ &&
+				2 == alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
+				&& ("TT" == alignerObj.alignObjectB_.seqBase_.seq_.substr(0,2)
+						|| "AA" == alignerObj.alignObjectB_.seqBase_.seq_.substr(0,2))) {
+			coverage =
+					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
+							/ (currentPrimer.second.forwardPrimerInfo_.seq_.size() - 2);
+		}
+		std::cout << "forwardPosition.first: " << forwardPosition.first << std::endl;
+		std::cout << "coverage: " << coverage << " pars.allowable_.distances_.query_.coverage_:" << pars.allowable_.distances_.query_.coverage_ << std::endl;
+		std::cout << "forwardPosition.first <= pars.primerWithin_: " << njh::colorBool(forwardPosition.first <= pars.primerWithin_) << std::endl;
+		std::cout << "coverage >= pars.allowable_.distances_.query_.coverage_: " << njh::colorBool(coverage >= pars.allowable_.distances_.query_.coverage_) << std::endl;
+		std::cout << "pars.allowable_.passErrorProfile(alignerObj.comp_): " << njh::colorBool(pars.allowable_.passErrorProfile(alignerObj.comp_)) << std::endl;
+
+		if (forwardPosition.first <= pars.primerWithin_
+				&& coverage >= pars.allowable_.distances_.query_.coverage_
+				&& pars.allowable_.passErrorProfile(alignerObj.comp_)) {
+			determinedPrimers.emplace_back(forwardPosition.first,
+					forwardPosition.second, currentPrimer.second.forwardPrimerInfo_.name_,
+					alignerObj.comp_);
+		}
+	}
+	std::cout <<"pars.primerWithin_: " << pars.primerWithin_ << std::endl;
 	PrimerPositionScore bestPrimer;
 	if (0 == determinedPrimers.size()) {
 		info.on_ = false;

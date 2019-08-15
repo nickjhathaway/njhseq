@@ -144,7 +144,7 @@ void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update, double l
 			++sizeOfReadVector;
 		}
 	}
-	if (sizeOfReadVector > 2) {
+	if (sizeOfReadVector > 1) {
 		std::vector<uint32_t> toBeExcluded;
 		uint32_t clusterCounter = 0;
 		size_t amountAdded = 0;
@@ -164,16 +164,18 @@ void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update, double l
 		      continue;
 		    }
 		  	const auto & clus = collapsed_.clusters_[clusPos];
-		  	if (clus.seqBase_.frac_ <= reverseRead.seqBase_.frac_ * lowFreqMultiplier) {
-		      continue;
-		    }
 		    if (clus.seqBase_.name_ == reverseRead.seqBase_.name_) {
 		      continue;
 		    }
+		  	if (clus.seqBase_.frac_ <= reverseRead.seqBase_.frac_ * lowFreqMultiplier) {
+		      continue;
+		    }
+
 		    ++count;
 		    comparison comp = clus.getComparison(reverseRead, alignerObj, false);
 		    //can only get here if clus.seqBase_.frac >  reverseRead.seqBase_.frac_ * lowFreqMultiplier so can just check if only diffs by 1 mismatch
 	//	    bool matching = ((comp.hqMismatches_ + comp.lqMismatches_ + comp.lowKmerMismatches_) <=1
+
 		    bool matching = ((comp.hqMismatches_) <=1
 		    		&& comp.largeBaseIndel_ == 0
 						&& comp.twoBaseIndel_ == 0
@@ -401,15 +403,23 @@ std::string sampleCollapse::getSimpleSampInfo(const std::string &delim) const {
 }
 
 VecStr sampleCollapse::getSimpleSampInfoVec() const {
+
 	return toVecStr(sampName_,
-			getPercentageString(collapsed_.info_.totalReadCount_,
-					input_.info_.totalReadCount_), collapsed_.info_.numberOfClusters_,
-			collapsed_.clusters_.size(), collapsed_.clusters_.size());
+			collapsed_.info_.totalReadCount_,
+			100 * (collapsed_.info_.totalReadCount_/static_cast<double>(input_.info_.totalReadCount_)),
+			collapsed_.info_.numberOfClusters_,
+			collapsed_.clusters_.size(), collapsed_.clusters_.size(),
+			collapsed_.getRMSE());
+
+//	return toVecStr(sampName_,
+//			getPercentageString(collapsed_.info_.totalReadCount_,
+//					input_.info_.totalReadCount_), collapsed_.info_.numberOfClusters_,
+//			collapsed_.clusters_.size(), collapsed_.clusters_.size());
 }
 
 VecStr sampleCollapse::getSimpleSampInfoHeaderVec() {
-	return VecStr { "s_Name", "s_ReadCntTotUsed", "s_InputClusterCnt",
-			"s_FinalClusterCnt", "s_COI" };
+	return VecStr { "s_Name", "s_ReadCntTotUsed", "s_ReadCntTotUsedPercent", "s_InputClusterCnt",
+			"s_FinalClusterCnt", "s_COI", "s_RMSE" };
 }
 
 

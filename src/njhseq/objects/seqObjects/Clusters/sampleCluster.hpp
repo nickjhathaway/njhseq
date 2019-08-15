@@ -161,6 +161,8 @@ protected:
   std::map<std::string, sampInfo> sampInfos_;
 public:
   const std::map<std::string, sampInfo> & sampInfos()const{return sampInfos_;}
+  const std::map<std::string, std::vector<uint32_t>> & sampleClusters()const{return sampleClusters_;}
+
   void setSampInfos(const std::map<std::string, sampInfo> & sampInfos){
   	sampInfos_ = sampInfos;
   }

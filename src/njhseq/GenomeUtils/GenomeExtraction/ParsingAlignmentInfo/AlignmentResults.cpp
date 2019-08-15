@@ -91,14 +91,14 @@ void AlignmentResults::setComparison(bool keepAlignedObjects){
 	}
 	alignerObj.profileAlignment(refSeq_, alnSeq_, false, true, false);
 	for(auto & m : alignerObj.comp_.distances_.mismatches_){
-		if(gRegion_.reverseSrand_){
+		if(!gRegion_.reverseSrand_){
 			m.second.refBasePos = gRegion_.start_ + m.second.refBasePos;
 		}else{
 			m.second.refBasePos = gRegion_.end_ - 1 - m.second.refBasePos;
 		}
 	}
 	for(auto & g : alignerObj.comp_.distances_.alignmentGaps_){
-		if(gRegion_.reverseSrand_){
+		if(!gRegion_.reverseSrand_){
 			g.second.refPos_ = gRegion_.start_ + g.second.refPos_;
 		}else{
 			g.second.refPos_ = gRegion_.end_ - 1 - g.second.refPos_;

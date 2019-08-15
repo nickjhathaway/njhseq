@@ -160,7 +160,9 @@ std::vector<readObject> SeqInput::getReferenceSeq(
 
 
 SeqInput::SeqInput(const SeqIOOptions & options) :
-				ioOptions_(options) {}
+				ioOptions_(options) {
+
+}
 
 SeqInput::SeqInput(const SeqInput& that){
 	ioOptions_ = that.ioOptions_;

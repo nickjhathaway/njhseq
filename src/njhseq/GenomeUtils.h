@@ -29,4 +29,5 @@
 
 #include "njhseq/GenomeUtils/GenomeExtraction.h"
 #include "njhseq/GenomeUtils/GenomeMapping.h"
-
+#include "njhseq/GenomeUtils/GenomeUtils.hpp"
+#include "njhseq/GenomeUtils/GenomeRegionsGenerator.hpp"

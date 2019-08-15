@@ -329,17 +329,20 @@ void table::deleteColumn(size_t columnIndex) {
     for (auto &rIter : content_) {
       rIter.erase(rIter.begin() + columnIndex);
     }
+    setColNamePositions();
   } else {
-    std::cout << "Column " << columnIndex << " doesn't exist, table left alone"
-              << "\n";
+  	std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "column " << columnIndex << " isn't in table, " << "cols range from 0 to " << columnNames_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
   }
 }
 void table::deleteRow(size_t rowIndex) {
   if (rowIndex < content_.size()) {
     content_.erase(content_.begin() + rowIndex);
   } else {
-    std::cout << "Row " << rowIndex << " is out of bounds, table left alone"
-              << "\n";
+  	std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "row inex " << rowIndex << " out of range, bottom row: " << content_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
   }
 }
 
@@ -598,12 +601,11 @@ void table::sortTable(const std::string &byThisColumn, bool decending) {
 	}
 	VecStr col = getColumn(byThisColumn);
 	uint32_t colPos = getColPos(byThisColumn);
-
 	if (isVecOfDoubleStr(col)) {
 		if (isVecOfIntStr(col)) {
 			std::sort(content_.begin(), content_.end(),
 					[&colPos](const VecStr & vec1, const VecStr & vec2) {
-				return std::stoi(vec1[colPos]) < std::stoi(vec2[colPos]);});
+				return std::stoll(vec1[colPos]) < std::stoll(vec2[colPos]);});
 		} else {
 			std::sort(content_.begin(), content_.end(),
 					[&colPos](const VecStr & vec1, const VecStr & vec2) {
@@ -656,74 +658,48 @@ std::map<std::string, table> table::splitTableOnColumnLoose(
 }
 
 void table::rbind(const table &otherTable, bool fill) {
-  // should add in column name checking
-	bool containsOtherColumns = std::any_of(otherTable.columnNames_.begin(),
-			otherTable.columnNames_.end(), [this](const std::string & col){
-			return !njh::in(col, columnNames_);
-		;});
-	if(containsOtherColumns){
+	VecStr missingColsFromThis;
+	VecStr missingColsFromOther;
+	for(const auto & col : otherTable.columnNames_){
+		if(!njh::in(col, columnNames_)){
+			missingColsFromThis.emplace_back(col);
+		}
+	}
+
+	for(const auto & col : columnNames_){
+		if(!njh::in(col, otherTable.columnNames_)){
+			missingColsFromOther.emplace_back(col);
+		}
+	}
+	auto otherTableCopy = otherTable;
+
+	if(!missingColsFromOther.empty() || !missingColsFromThis.empty()){
 		if(fill){
-			VecStr missingCols;
-			for(const auto & col : columnNames_){
-				if(!njh::in(col, otherTable.columnNames_)){
-					missingCols.emplace_back(col);
+			if(!missingColsFromOther.empty()){
+				for(const auto & col : missingColsFromOther){
+					otherTableCopy.addColumn({"NA"}, col);
 				}
 			}
-			for(const auto & col : missingCols){
-				auto tempCol = otherTable.getColumn(col);
-				if (isVecOfDoubleStr(tempCol)) {
-					addColumn( { "0" }, col);
-				} else {
-					addColumn( { "" }, col);
+			if(!missingColsFromThis.empty()){
+				for(const auto & col : missingColsFromThis){
+					addColumn({"NA"}, col);
 				}
 			}
 		}else{
 			std::stringstream ss;
-			ss << "Error in : " << __PRETTY_FUNCTION__
-					<< ", adding a table that has contains column names this table doesn't have "<< std::endl;
-			ss << "Other table column names: " << njh::conToStr(otherTable.columnNames_) << std::endl;
-			ss << "This table column names: " << njh::conToStr(columnNames_) << std::endl;
+			ss << __PRETTY_FUNCTION__ << ", error" << "\n";
+			if(!missingColsFromOther.empty()){
+				ss << "Missing the following columns from adding table: " << njh::conToStrEndSpecial(missingColsFromOther, ", ", " and ") << "\n";
+			}
+			if(!missingColsFromThis.empty()){
+				ss << "Missing the following columns from this table  : " << njh::conToStrEndSpecial(missingColsFromThis, ", ", " and ") << "\n";
+			}
 			throw std::runtime_error{ss.str()};
 		}
 	}
-	bool missingColumNmaes = std::any_of(columnNames_.begin(),
-			columnNames_.end(), [&otherTable](const std::string & col){
-			return !njh::in(col, otherTable.columnNames_);
-		;});
-	if(missingColumNmaes){
-		if(fill){
-			VecStr containedCols;
-			VecStr missingCols;
-			for(const auto & col : columnNames_){
-				if(njh::in(col, otherTable.columnNames_)){
-					containedCols.emplace_back(col);
-				}else{
-					missingCols.emplace_back(col);
-				}
-			}
-			auto tempTab = otherTable.getColumns(containedCols);
-			for(const auto & col : missingCols){
-				auto tempCol = getColumn(col);
-				if (isVecOfDoubleStr(tempCol)) {
-					tempTab.addColumn( { "0" }, col);
-				} else {
-					tempTab.addColumn( { "" }, col);
-				}
-			}
-			addOtherVec(content_, tempTab.getColumns(columnNames_).content_);
-			addPaddingToEndOfRows();
-		}else{
-			std::stringstream ss;
-			ss << "Error in : " << __PRETTY_FUNCTION__
-					<< ", adding a table that has doesn't contains column names this table has"<< std::endl;
-			ss << "Other table column names: " << njh::conToStr(otherTable.columnNames_) << std::endl;
-			ss << "This table column names: " << njh::conToStr(columnNames_) << std::endl;
-			ss << "Use fill=true if you want to fill these missing columns with a defualt value,"
-					" 0 for numeric columns, blank for string columns" << std::endl;
-			throw std::runtime_error{ss.str()};
-		}
-	}else{
-		addOtherVec(content_, otherTable.getColumns(columnNames_).content_);
+	otherTableCopy = otherTableCopy.getColumns(columnNames_);
+	for(const auto & row : otherTableCopy){
+		addRow(row);
 	}
 }
 void table::cbind(const table &otherTable, bool fill) {

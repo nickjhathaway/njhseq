@@ -189,6 +189,38 @@ bool GenomicRegion::overlaps(const GFFCore & gff,
 	return getOverlapLen(gff) >=overlapMin;
 }
 
+bool GenomicRegion::overlaps(const std::string & chrom, const size_t start, const size_t end,
+		const size_t overlapMin) const{
+	return getOverlapLen(chrom, start, end) >=overlapMin;
+}
+
+size_t GenomicRegion::distBetweenRegions(const GenomicRegion & otherRegion){
+	return distBetweenRegions(otherRegion.chrom_, otherRegion.start_, otherRegion.end_);
+}
+size_t GenomicRegion::distBetweenRegions(const GFFCore & otherRegion){
+	return distBetweenRegions(otherRegion.seqid_, otherRegion.start_, otherRegion.end_);
+
+}
+size_t GenomicRegion::distBetweenRegions(const Bed3RecordCore & otherRegion){
+	return distBetweenRegions(otherRegion.chrom_, otherRegion.chromStart_, otherRegion.chromEnd_);
+
+}
+
+size_t GenomicRegion::distBetweenRegions(const std::string & otherChrom, const size_t otherStart, const size_t otherend){
+	if(chrom_ != otherChrom){
+		return std::numeric_limits<uint32_t>::max();
+	}
+	if(overlaps(otherChrom, otherStart, otherend)){
+		return 0;
+	}
+	if(start_ < otherStart){
+		return otherStart - end_;
+	}else{
+		return start_ - otherend;
+	}
+}
+
+
 
 
 bool GenomicRegion::endsInThisRegion(

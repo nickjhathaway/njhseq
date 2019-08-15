@@ -43,6 +43,8 @@ class aligner {
 	 */
   aligner();
 
+	aligner(uint64_t maxSize, const gapScoringParameters& gapPars);
+
 	aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
           const substituteMatrix& scoreMatrix);
 

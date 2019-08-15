@@ -246,10 +246,17 @@ bfs::path SampleCollapseCollection::getPopInfoPath() const {
 			"populationCluster.tab.txt");
 }
 
+
+bfs::path SampleCollapseCollection::getFinalSampHapsPath(const std::string & sample) const {
+	checkForSampleThrow(sample, __PRETTY_FUNCTION__);
+	return njh::files::make_path(masterOutputDir_, "final", sample + inputOptions_.getOutExtension());
+}
+
 bfs::path SampleCollapseCollection::getSampInfoPath() const {
 	/**@todo need to make this standard, currently set by SeekDeep processClusters*/
 	return njh::files::make_path(masterOutputDir_, "selectedClustersInfo.tab.txt");
 }
+
 bfs::path SampleCollapseCollection::getHapIdTabPath() const {
 	return njh::files::make_path(masterOutputDir_,
 			"hapIdTable.tab.txt");
@@ -744,7 +751,7 @@ bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 			if(MetaDataInName::nameHasMetaData(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_)){
 				filteredMeta = MetaDataInName(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_);
 			}
-			filteredMeta.addMeta("ExcludeFailedFracCutOff", "TRUE");
+			filteredMeta.addMeta("ExcludeCommonlyLowFreq", "TRUE");
 			if (sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.isChimeric()) {
 				filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
 			}
@@ -756,6 +763,117 @@ bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
 		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
 
+		dumpSample(sampClusters.first);
+	}
+	return true;
+}
+
+
+bool SampleCollapseCollection::excludeOneSampOnlyHaps(double fracCutOff){
+	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
+	std::vector<uint32_t> lowFreqHaps;
+	std::unordered_map<std::string, VecStr> samplesWithUniqHaps;
+	for(const auto & popClus : popCollapse_->collapsed_.clusters_){
+		if(1 == popClus.sampleClusters().size()){
+			auto avgFrac = popClus.getCumulativeFrac()/popClus.sampInfos().size();
+			if(avgFrac < fracCutOff){
+				//this should just be one anyways
+				for(const auto & clus : popClus.reads_){
+					samplesWithUniqHaps[clus->getOwnSampName()].emplace_back(oututSampClusToOldNameKey_[clus->getOwnSampName()][clus->seqBase_.name_]);
+				}
+			}
+		}
+	}
+	if(samplesWithUniqHaps.empty()){
+		return false;
+	}
+
+	for(const auto & sampClusters : samplesWithUniqHaps){
+		setUpSampleFromPrevious(sampClusters.first);
+		std::vector<uint32_t> toBeExcluded;
+		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
+			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
+				toBeExcluded.push_back(clusPos);
+			}
+		}
+		std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
+		for(const auto exclude : toBeExcluded){
+			MetaDataInName filteredMeta;
+			if(MetaDataInName::nameHasMetaData(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_)){
+				filteredMeta = MetaDataInName(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_);
+			}
+			filteredMeta.addMeta("ExcludeOneSampOnly", "TRUE");
+			if (sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.isChimeric()) {
+				filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+			}
+			sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.resetMetaInName(filteredMeta);
+
+			sampleCollapses_.at(sampClusters.first)->excluded_.clusters_.emplace_back(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude]);
+			sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.erase(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.begin() + exclude);
+		}
+		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
+		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
+		dumpSample(sampClusters.first);
+	}
+	return true;
+}
+
+bool SampleCollapseCollection::excludeOneSampOnlyOneOffHaps(double fracCutOff, aligner & alignerObj){
+	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
+	std::vector<uint32_t> lowFreqHaps;
+	std::unordered_map<std::string, VecStr> samplesWithUniqHaps;
+	for(const auto & popClus : popCollapse_->collapsed_.clusters_){
+		if(1 == popClus.sampleClusters().size()){
+			auto avgFrac = popClus.getCumulativeFrac()/popClus.sampInfos().size();
+			if(avgFrac < fracCutOff){
+				//this should just be one anyways
+				for(const auto & clus : popClus.reads_){
+					samplesWithUniqHaps[clus->getOwnSampName()].emplace_back(oututSampClusToOldNameKey_[clus->getOwnSampName()][clus->seqBase_.name_]);
+				}
+			}
+		}
+	}
+	if(samplesWithUniqHaps.empty()){
+		return false;
+	}
+
+	for(const auto & sampClusters : samplesWithUniqHaps){
+		setUpSampleFromPrevious(sampClusters.first);
+		std::vector<uint32_t> toBeExcluded;
+		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
+			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
+				bool oneOffAnother = false;
+				for(const auto & clus : sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_){
+					alignerObj.alignCacheGlobal(clus, sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos]);
+					alignerObj.profileAlignment(clus, sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos],
+							false, false, false);
+					if(alignerObj.comp_.distances_.getNumOfEvents(true) <=1){
+						oneOffAnother = true;
+						break;
+					}
+				}
+				if(oneOffAnother){
+					toBeExcluded.push_back(clusPos);
+				}
+			}
+		}
+		std::sort(toBeExcluded.rbegin(), toBeExcluded.rend());
+		for(const auto exclude : toBeExcluded){
+			MetaDataInName filteredMeta;
+			if(MetaDataInName::nameHasMetaData(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_)){
+				filteredMeta = MetaDataInName(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.name_);
+			}
+			filteredMeta.addMeta("ExcludeOneSampOnlyOneOffAnother", "TRUE");
+			if (sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.isChimeric()) {
+				filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+			}
+			sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude].seqBase_.resetMetaInName(filteredMeta);
+
+			sampleCollapses_.at(sampClusters.first)->excluded_.clusters_.emplace_back(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[exclude]);
+			sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.erase(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.begin() + exclude);
+		}
+		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
+		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
 		dumpSample(sampClusters.first);
 	}
 	return true;
@@ -1096,13 +1214,15 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 	allSubClusterInfo << delim << "c_seq";
 	allSubClusterInfo << delim << "c_ClusterCnt";
 	allSubClusterInfo << delim << "c_IncludedInFinalAnalysis";
+	allSubClusterInfo << delim << "c_bestExpected";
+
 	for(const auto & mf : allMetaFields){
 		allSubClusterInfo << delim << "c_" << mf;
 	}
 	for(const auto runNum : iter::range<uint32_t>(1, maxRunCount + 1)){
 		allSubClusterInfo << delim << "R" << runNum << "_Name";
 		allSubClusterInfo << delim << "R" << runNum << "_ReadCnt";
-		allSubClusterInfo << delim << "R" << runNum << "_ClusterCnt";
+		allSubClusterInfo << delim << "R" << runNum << "_RepTotalCnt";
 	}
 
 	allSubClusterInfo << std::endl;
@@ -1125,6 +1245,7 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 						<< delim << clus.seqBase_.seq_
 						<< delim << clus.reads_.size();
 			allSubClusterInfo << delim << "TRUE";
+			allSubClusterInfo << delim << clus.expectsString;
 			MetaDataInName seqMeta;
 			if(MetaDataInName::nameHasMetaData(clus.seqBase_.name_)){
 				seqMeta = MetaDataInName(clus.seqBase_.name_);
@@ -1143,11 +1264,11 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 				if (search == clus.sampInfos().end() || search->second.readCnt_ == 0) {
 					allSubClusterInfo << info.first;
 					allSubClusterInfo << delim << 0;
-					allSubClusterInfo << delim << 0;
+					allSubClusterInfo << delim << info.second.runReadCnt_;
 				} else {
 					allSubClusterInfo << info.first;
 					allSubClusterInfo << delim << clus.sampInfos().at(info.first).readCnt_;
-					allSubClusterInfo << delim << clus.sampInfos().at(info.first).numberOfClusters_;
+					allSubClusterInfo << delim << info.second.runReadCnt_;
 				}
 			}
 			if(clus.sampInfos().size() < maxRunCount){
@@ -1181,12 +1302,12 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 
 			allSubClusterInfo
 						<< delim << clus.seqBase_.name_
-
 						<< delim << clus.seqBase_.cnt_
 						<< delim << clus.numberOfRuns()
 						<< delim << clus.seqBase_.seq_
 						<< delim << clus.reads_.size();
 			allSubClusterInfo << delim << "FALSE";
+			allSubClusterInfo << delim << clus.expectsString;
 			MetaDataInName seqMeta;
 			if(MetaDataInName::nameHasMetaData(clus.seqBase_.name_)){
 				seqMeta = MetaDataInName(clus.seqBase_.name_);
@@ -1205,11 +1326,11 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 				if (search == clus.sampInfos().end() || search->second.readCnt_ == 0) {
 					allSubClusterInfo << info.first;
 					allSubClusterInfo << delim << 0;
-					allSubClusterInfo << delim << 0;
+					allSubClusterInfo << delim << info.second.runReadCnt_;
 				} else {
 					allSubClusterInfo << info.first;
 					allSubClusterInfo << delim << clus.sampInfos().at(info.first).readCnt_;
-					allSubClusterInfo << delim << clus.sampInfos().at(info.first).numberOfClusters_;
+					allSubClusterInfo << delim << info.second.runReadCnt_;
 				}
 			}
 			if(clus.sampInfos().size() < maxRunCount){
@@ -1258,6 +1379,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 					sampleCollapses_.at(sampName)->collapsed_.clusters_[clusPos];
 			std::stringstream rowStream;
 			rowStream  << sampName
+					<< delim << popCollapse_->populationName_
 					<< delim << popCollapse_->collapsed_.clusters_[popCollapse_->collapsed_.subClustersPositions_.at(
 							clus.getStubName(true))].getPopInfo(
 							popCollapse_->collapsed_.info_.totalReadCount_,
@@ -1270,6 +1392,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 				}
 			}
 			rowStream << delim << clusPos
+							<< delim << clus.seqBase_.name_
 							<< delim << clus.getClusterInfo(delim)
 							<< delim << clus.getRepsInfo(
 							sampleCollapses_.at(sampName)->input_.info_.infos_,
@@ -1283,6 +1406,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 	}
 	std::stringstream headerStream;
 	headerStream << "s_Sample"
+			<< delim << "p_name"
 			<< delim << sampleCluster::getPopInfoHeader(delim)
 			<< delim << collapse::sampleCollapse::getSimpleSampInfoHeader(delim);
 	if(nullptr != groupMetaData_){
@@ -1291,9 +1415,11 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 		}
 	}
 	headerStream << delim << "c_clusterID"
+			<< delim << "c_name"
 			<< delim << sampleCluster::getClusterInfoHeader(delim) << delim
 			<< sampleCluster::getRepsInfoHeader(maxRunCount, checkingExpected, delim);
 	table ret(tokenizeString(headerStream.str(), delim));
+	//std::cout << headerStream.str() << std::endl;
 	ret.addRows(rows);
 	return ret;
 }
@@ -1357,7 +1483,6 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 				}
 			}
 			for(auto & popTab : popTabs){
-
 				popTab.second.addColumn({group.first + ":" + popTab.first}, "g_GroupName");
 				popTab.second.addColumn({njh::conToStr(uniquePopUids[popTab.first])}, "g_hapsFoundOnlyInThisGroup");
 				popTab.second.addColumn({estd::to_string(uniquePopUids[popTab.first].size())}, "p_TotalUniqueHaplotypes");

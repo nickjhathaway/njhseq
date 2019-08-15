@@ -108,6 +108,125 @@ table seqsToMetaTable(const std::vector<T> & seqs, const std::set<std::string> &
 
 
 
+class MetaFieldSeqFilterer {
+public:
+	struct MetaFieldSeqFiltererPars {
+		std::string filteringMetaField_;
+		std::string groupingMetaField_;
+		std::string tieBreakerPreferenceField_;
+		bool keepCommonSeqsWhenFiltering_ = false;
+	};
+
+	MetaFieldSeqFilterer(const MetaFieldSeqFiltererPars & pars) :
+			pars_(pars) {
+	}
+
+	struct MetaFieldSeqFiltererRes {
+		std::vector<uint32_t> filteredAllSeqs;
+		VecStr failedGroups;
+	};
+
+	template<typename T>
+	MetaFieldSeqFiltererRes filterSeqs(const std::vector<T> & allSeqs){
+		//key = K1: ExperimentSample, K2: sample, V2: vector of seq positions
+		// second map is ordered map to make results the same every time rather than determined by random order of unordered map
+		std::unordered_map<std::string, std::map<std::string, std::vector<uint32_t>>> seqsByFilteringField;
+		for(const auto & seqPos : iter::range(allSeqs.size())){
+			const auto & seq = getSeqBase(allSeqs[seqPos]);
+			MetaDataInName seqMeta(seq.name_);
+			seqsByFilteringField[seqMeta.getMeta(pars_.filteringMetaField_)][seqMeta.getMeta(pars_.groupingMetaField_)].emplace_back(seqPos);
+		}
+		return filterSeqs(allSeqs, seqsByFilteringField);
+	}
+
+	template<typename T>
+	MetaFieldSeqFiltererRes filterSeqs(const std::vector<T> & allSeqs, const std::vector<uint32_t> & selPositions){
+		//key = K1: ExperimentSample, K2: sample, V2: vector of seq positions
+		// second map is ordered map to make results the same every time rather than determined by random order of unordered map
+		std::unordered_map<std::string, std::map<std::string, std::vector<uint32_t>>> seqsByFilteringField;
+		for(const auto & seqPos : selPositions){
+			if(seqPos > allSeqs.size()){
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << " seqPos: " << seqPos << " out of range of allSeqs, size: " << allSeqs.size() << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+			const auto & seq = getSeqBase(allSeqs[seqPos]);
+			MetaDataInName seqMeta(seq.name_);
+			seqsByFilteringField[seqMeta.getMeta(pars_.filteringMetaField_)][seqMeta.getMeta(pars_.groupingMetaField_)].emplace_back(seqPos);
+		}
+		return filterSeqs(allSeqs, seqsByFilteringField);
+	}
+
+
+	//key = K1: ExperimentSample, K2: sample, V2: vector of seq positions
+	// second map is ordered map to make results the same every time rather than determined by random order of unordered map
+	template<typename T>
+	MetaFieldSeqFiltererRes filterSeqs(const std::vector<T> & allSeqs, const std::unordered_map<std::string, std::map<std::string, std::vector<uint32_t>>> &seqsByFilteringField){
+		MetaFieldSeqFiltererRes ret;
+		for(const auto & seqsForFilterField : seqsByFilteringField){
+			if(1 == seqsForFilterField.second.size()){
+				addOtherVec(ret.filteredAllSeqs, seqsForFilterField.second.begin()->second);
+			}else{
+				//key K: sequence, V: count
+				std::unordered_map<std::string, uint32_t> countsPerSeqs;
+				for(const auto & seqsForSample : seqsForFilterField.second){
+					for(const auto & seqPos : seqsForSample.second){
+						++countsPerSeqs[getSeqBase(allSeqs[seqPos]).seq_];
+					}
+				}
+				bool anyFailed = false;
+				for(const auto & countsPerSeq : countsPerSeqs){
+					if(countsPerSeq.second != seqsForFilterField.second.size()){
+						anyFailed = true;
+					}
+				}
+				if(anyFailed){
+					ret.failedGroups.emplace_back(seqsForFilterField.first);
+					if(pars_.keepCommonSeqsWhenFiltering_){
+						for(const auto & seqPosForExp : seqsForFilterField.second.begin()->second){
+							if(countsPerSeqs[getSeqBase(allSeqs[seqPosForExp]).seq_] == seqsForFilterField.second.size()){
+								ret.filteredAllSeqs.emplace_back(seqPosForExp);
+							}
+						}
+					} else {
+						if("" != pars_.tieBreakerPreferenceField_) {
+							for(const auto & subSample : seqsForFilterField.second) {
+								MetaDataInName frontMeta(getSeqBase(allSeqs[subSample.second.front()]).name_);
+								if(frontMeta.containsMeta(pars_.tieBreakerPreferenceField_) && frontMeta.getMeta<bool>("PreferredSample") ) {
+									addOtherVec(ret.filteredAllSeqs, subSample.second);
+									break;
+								}
+							}
+						}
+					}
+				}else{
+					bool added = false;
+					if("" != pars_.tieBreakerPreferenceField_) {
+						for(const auto & subSample : seqsForFilterField.second) {
+							MetaDataInName frontMeta(getSeqBase(allSeqs[subSample.second.front()]).name_);
+							if(frontMeta.containsMeta(pars_.tieBreakerPreferenceField_) && frontMeta.getMeta<bool>("PreferredSample") ) {
+								addOtherVec(ret.filteredAllSeqs, subSample.second);
+								added = true;
+								break;
+							}
+						}
+					}
+					if(!added){
+						addOtherVec(ret.filteredAllSeqs, seqsForFilterField.second.begin()->second);
+					}
+				}
+			}
+		}
+		return ret;
+	}
+
+
+	MetaFieldSeqFiltererPars pars_;
+};
+
+
+
+
 }  // namespace njhseq
 
 

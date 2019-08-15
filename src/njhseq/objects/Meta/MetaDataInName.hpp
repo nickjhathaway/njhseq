@@ -96,6 +96,7 @@ public:
 		return ret;
 	}
 
+	static MetaDataInName genMetaFromJson(const Json::Value & val);
 };
 
 template<>

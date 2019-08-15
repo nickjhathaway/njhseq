@@ -129,6 +129,7 @@ public:
 	bfs::path getPopInfoPath() const;
 	bfs::path getSampInfoPath() const;
 	bfs::path getHapIdTabPath() const;
+	bfs::path getFinalSampHapsPath(const std::string & sample) const;
 
 	uint32_t numOfSamples() const;
 
@@ -191,6 +192,11 @@ public:
 			bool fracExcludeOnlyInFinalAverageFrac);
 
 	bool excludeCommonlyLowFreqHaps(double lowFreqCutOff = 0.01);
+
+	bool excludeOneSampOnlyOneOffHaps(double fracCutOff, aligner & alignerObj);
+	bool excludeOneSampOnlyHaps(double fracCutOff);
+
+
 
 
 

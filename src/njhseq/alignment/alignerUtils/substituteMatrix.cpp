@@ -29,27 +29,55 @@
 namespace njhseq {
 
 
+
+substituteMatrix::substituteMatrix(){
+	setWithSimple(1,-1);
+}
+
+substituteMatrix::substituteMatrix(int32_t match, int32_t mismatch){
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	setWithSimple(match, mismatch);
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+}
+
+substituteMatrix::substituteMatrix(const std::map<char, std::map<char, int32_t>> & mapScores){
+	setWithMap(mapScores);
+}
+
+substituteMatrix::substituteMatrix(const std::unordered_map<char, std::unordered_map<char, int32_t>> & mapScores){
+	setWithUnoMap(mapScores);
+}
+
+substituteMatrix::substituteMatrix(const std::string & filename){
+	setWithFilename(filename);
+}
+
+substituteMatrix::substituteMatrix(const int matchMatrix[4][4]){
+	setWtihDNAArray(matchMatrix);
+}
+
+
 substituteMatrix::substituteMatrix(const std::array<std::array<int32_t, 127>, 127> & mat){
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 	for(const auto i : iter::range(mat.size())){
 		for(const auto & j : iter::range(mat[i].size())){
 			mat_[i][j] = mat[i][j];
 		}
 	}
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 }
 
 substituteMatrix::substituteMatrix(const substituteMatrix & other){
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 	for(const auto i : iter::range(other.mat_.size())){
 		for(const auto & j : iter::range(other.mat_[i].size())){
 			mat_[i][j] = other.mat_[i][j];
 		}
 	}
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 }
 

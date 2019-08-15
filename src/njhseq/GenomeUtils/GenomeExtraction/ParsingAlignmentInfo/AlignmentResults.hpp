@@ -58,6 +58,7 @@ public:
 	 */
 	void setComparison(bool keepAlignedObjects);
 
+
 	/**@brief set the aligned objects
 	 *
 	 */

@@ -146,8 +146,8 @@ void seqInfo::processRead(bool processed) {
 	if (processed) {
 		VecStr toks;
 		bool containsAllNumbers = true;
-		if (name_.find("_t") == std::string::npos
-				&& name_.find("_f") == std::string::npos) {
+		if (name_.rfind("_t") == std::string::npos
+				&& name_.rfind("_f") == std::string::npos) {
 			if (name_.rfind("_") == std::string::npos) {
 				std::stringstream ss;
 				ss << "Improper name format for processed read, should have a "
@@ -158,7 +158,15 @@ void seqInfo::processRead(bool processed) {
 			} else {
 				toks = tokenizeString(name_, "_");
 			}
-		} else if (name_.find("_t") != std::string::npos) {
+		}else if (name_.rfind("_t") != std::string::npos
+				&& name_.rfind("_f") != std::string::npos){
+			if(name_.rfind("_t") > name_.rfind("_f")){
+				toks = tokenizeString(name_, "_t");
+			}else{
+				toks = tokenizeString(name_, "_f");
+				setFraction = true;
+			}
+		} else if (name_.rfind("_t") != std::string::npos) {
 			toks = tokenizeString(name_, "_t");
 		} else {
 			toks = tokenizeString(name_, "_f");
@@ -179,7 +187,7 @@ void seqInfo::processRead(bool processed) {
 					"or _t# where # is the number of reads the sequence "
 					"represents" << "\n";
 			ss << "failed due to # containing a non-digit character, "
-					<< toks[toks.size() - 1] << "\n";
+					<< toks[toks.size() - 1] << " from " << name_<< "\n";
 			throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
 		}
 	} else {
