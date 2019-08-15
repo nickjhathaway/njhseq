@@ -8,7 +8,7 @@ from genFuncs import genHelper
 def main():
     name = "njhseq"
     #libs = "bamtools:develop,bibcpp:develop,armadillo:8.200.0"
-    libs = "TwoBit:develop,bamtools:develop"
+    libs = "TwoBit:release/v2.0.9,bamtools:v2.5.2"
     args = genHelper.parseNjhConfigureArgs()
     if Utils.isMac():
         macv, _, _ = platform.mac_ver()
@@ -20,6 +20,5 @@ def main():
                 libs = libs + ",sharedMutex:develop"
     cmd = genHelper.mkConfigCmd(name, libs, sys.argv)
     Utils.run(cmd)
-    
-main()
 
+main()
