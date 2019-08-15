@@ -146,17 +146,33 @@ void MetaDataInName::processNameForMeta(const std::string & name, bool replace){
 		}
 		auto toks = njh::tokenizeString(modName.substr(modName_firstBracket + 1, modName_secondBracket - modName_firstBracket - 1), ";");
 		for(const auto & tok : toks){
-			auto subToks = njh::tokenizeString(tok, "=");
-			if(2 != subToks.size()){
+//			auto subToks = njh::tokenizeString(tok, "=");
+//			if(2 != subToks.size()){
+//				std::stringstream ss;
+//				ss << "Error in : " << __PRETTY_FUNCTION__
+//						<< "values should be separated by one =, not " << subToks.size()
+//						<< " for tok: " << tok << " from modName: " << modName
+//						<< ", originalName: " << name << std::endl;
+//				throw std::runtime_error { ss.str() };
+//			}else{
+//				auto metaFieldKey = subToks[0];
+//				auto metaFieldValue = subToks[1];
+//				for(const auto & nameReplace : extractKeyToks){
+//					metaFieldKey = njh::replaceString(metaFieldKey, nameReplace.first, nameReplace.second);
+//					metaFieldValue = njh::replaceString(metaFieldValue, nameReplace.first, nameReplace.second);
+//				}
+//				addMeta(metaFieldKey, metaFieldValue, replace);
+//			}
+			auto firstEqual = tok.find("=");
+			if(std::string::npos == firstEqual){
 				std::stringstream ss;
 				ss << "Error in : " << __PRETTY_FUNCTION__
-						<< "values should be separated by one =, not " << subToks.size()
-						<< " for tok: " << tok << " from modName: " << modName
+						<< "values should be separated by one =, no equal sign found in  " << "tok: " << tok << " from modName: " << modName
 						<< ", originalName: " << name << std::endl;
 				throw std::runtime_error { ss.str() };
 			}else{
-				auto metaFieldKey = subToks[0];
-				auto metaFieldValue = subToks[1];
+				auto metaFieldKey = tok.substr(0, tok.find("="));
+				auto metaFieldValue = firstEqual == tok.size()? std::string("") : tok.substr(tok.find("=") + 1);
 				for(const auto & nameReplace : extractKeyToks){
 					metaFieldKey = njh::replaceString(metaFieldKey, nameReplace.first, nameReplace.second);
 					metaFieldValue = njh::replaceString(metaFieldValue, nameReplace.first, nameReplace.second);
@@ -167,15 +183,26 @@ void MetaDataInName::processNameForMeta(const std::string & name, bool replace){
 	}else{
 		auto toks = njh::tokenizeString(name.substr(firstBracket + 1, secondBracket - firstBracket - 1), ";");
 		for(const auto & tok : toks){
-			auto subToks = njh::tokenizeString(tok, "=");
-			if(2 != subToks.size()){
+//			auto subToks = njh::tokenizeString(tok, "=");
+//			if(2 != subToks.size()){
+//				std::stringstream ss;
+//				ss << "Error in : " << __PRETTY_FUNCTION__
+//						<< "values should be separated by one =, not " << subToks.size() << " for tok: " << tok << " from name: " << name
+//						<< std::endl;
+//				throw std::runtime_error{ss.str()};
+//			}else{
+//				addMeta(subToks[0], subToks[1], replace);
+//			}
+			auto firstEqual = tok.find("=");
+			if(std::string::npos == firstEqual){
+
 				std::stringstream ss;
 				ss << "Error in : " << __PRETTY_FUNCTION__
-						<< "values should be separated by one =, not " << subToks.size() << " for tok: " << tok << " from name: " << name
+						<< "values should be separated by one =, no = found in tok: " << tok << " from name: " << name
 						<< std::endl;
 				throw std::runtime_error{ss.str()};
 			}else{
-				addMeta(subToks[0], subToks[1], replace);
+				addMeta(tok.substr(0, tok.find("=")), firstEqual == tok.size() ? std::string("") : tok.substr(tok.find("=") + 1), replace);
 			}
 		}
 	}
