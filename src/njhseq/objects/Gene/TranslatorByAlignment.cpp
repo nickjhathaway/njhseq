@@ -240,8 +240,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(co
 
 	std::unordered_map<std::string, VecStr> idToTranscriptName;
 	std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> genes = GeneFromGffs::getGenesFromGffForIds(pars_.gffFnp_, ids);
-	std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>> geneTranscriptInfos;
-
+	//std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>> geneTranscriptInfos;
+	;
 	uint64_t proteinMaxLen = 0;
 	std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>>> genesByChrom;
 
@@ -250,8 +250,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(co
 		for(const auto & transcript : gene.second->mRNAs_){
 			idToTranscriptName[gene.second->gene_->getIDAttr()].emplace_back(transcript->getIDAttr());
 		}
-		geneTranscriptInfos[gene.first] = gene.second->generateGeneSeqInfo(tReader, false);
-		for(const auto & transcriptInfo : geneTranscriptInfos[gene.first]){
+		ret.transcriptInfosForGene_[gene.first] = gene.second->generateGeneSeqInfo(tReader, false);
+		for(const auto & transcriptInfo : ret.transcriptInfosForGene_[gene.first]){
 			readVec::getMaxLength(transcriptInfo.second->protein_, proteinMaxLen);
 		}
 		if(pars_.keepTemporaryFiles_){
@@ -289,7 +289,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(co
 			}
 			for (const auto & g : alnRegionToGeneIds.at(balnGenomicRegion.createUidFromCoords())) {
 				const auto & currentGene = genes.at(g);
-				const auto & currentGeneInfo = geneTranscriptInfos.at(g);
+				const auto & currentGeneInfo = ret.transcriptInfosForGene_.at(g);
 				auto translations = translateBasedOnAlignment(bAln, *currentGene, currentGeneInfo, tReader, alignObj, refData);
 				for(const auto & trans : translations){
 					ret.translations_[bAln.Name].emplace(trans);

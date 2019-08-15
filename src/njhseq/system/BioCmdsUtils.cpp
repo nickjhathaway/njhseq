@@ -28,6 +28,8 @@
 #include "njhseq/IO/SeqIO.h"
 #include "njhseq/IO/OutputStream.hpp"
 
+#include <TwoBit.h>
+
 namespace njhseq {
 
 BioCmdsUtils::BioCmdsUtils() {
@@ -85,12 +87,18 @@ njh::sys::RunOutput BioCmdsUtils::RunPicardFastaSeqDict(const bfs::path & genome
 
 njh::sys::RunOutput BioCmdsUtils::RunFaToTwoBit(const bfs::path & genomeFnp) const {
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
-	njh::sys::requireExternalProgramThrow("TwoBit");
+	TwoBit::faToTwoBitPars pars;
+	pars.inputFilename = genomeFnp.string();
 	auto prefix = bfs::path(genomeFnp).replace_extension("");
 	auto outFile = prefix.string() + ".2bit";
-	std::string templateCmd = "TwoBit faToTwoBit --in " + genomeFnp.string()
-			+ " --out " + outFile + " --overWrite";
-	return runCmdCheck(templateCmd, genomeFnp, outFile);
+	pars.outFilename = outFile;
+	if(!bfs::exists(pars.outFilename) || njh::files::firstFileIsOlder(pars.outFilename, genomeFnp)){
+		pars.overWrite = true;
+		TwoBit::fastasToTwoBit(pars);
+	}
+	njh::sys::RunOutput fakeOut;
+	fakeOut.success_ = true;
+	return fakeOut;
 }
 
 
@@ -122,12 +130,12 @@ std::unordered_map<std::string, njh::sys::RunOutput> BioCmdsUtils::runAllPossibl
 	}else	if(verbose_){
 		std::cerr << "Couldn't find " << "picard" << " skipping picard CreateSequenceDictionary" << std::endl;
 	}
-
-	if (njh::sys::hasSysCommand("TwoBit")) {
-		outputs.emplace("TwoBit", RunFaToTwoBit(genomeFnp));
-	}else	if(verbose_){
-		std::cerr << "Couldn't find " << "TwoBit" << " skipping 2bit file creation" << std::endl;
-	}
+	outputs.emplace("TwoBit", RunFaToTwoBit(genomeFnp));
+//	if (njh::sys::hasSysCommand("TwoBit")) {
+//		outputs.emplace("TwoBit", RunFaToTwoBit(genomeFnp));
+//	}else	if(verbose_){
+//		std::cerr << "Couldn't find " << "TwoBit" << " skipping 2bit file creation" << std::endl;
+//	}
 	return outputs;
 }
 
