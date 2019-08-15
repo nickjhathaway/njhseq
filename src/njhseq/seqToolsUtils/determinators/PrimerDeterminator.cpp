@@ -43,11 +43,6 @@ size_t PrimerDeterminator::getMaxPrimerSize() const {
 
 PrimerDeterminator::PrimerDeterminator(const table & primers) {
 
-//	std::cout << njh::colorBool(!njh::in(std::string("geneName"), primers.columnNames_)) << std::endl;
-//	std::cout << njh::colorBool(!njh::in(std::string("targetName"), primers.columnNames_)) << std::endl;
-//	std::cout << njh::colorBool((!njh::in(std::string("geneName"), primers.columnNames_) && !njh::in(std::string("targetName"), primers.columnNames_))) << std::endl;
-//	std::cout << njh::colorBool(!njh::in(std::string("forwardPrimer"), primers.columnNames_)) << std::endl;
-//	std::cout << njh::colorBool(!njh::in(std::string("reversePrimer"), primers.columnNames_)) << std::endl;
 
 	if ((!njh::in(std::string("geneName"), primers.columnNames_) && !njh::in(std::string("targetName"), primers.columnNames_))
 			|| !njh::in(std::string("forwardPrimer"), primers.columnNames_)
@@ -157,8 +152,6 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info,
 		if(static_cast<double>(basesShared)/currentPrimer.second.reversePrimerInfoForDir_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
 			continue;
 		}
-//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
-//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
 
 		// find reverse primer in forward direction or if it isn't found return unrecognized
 //		auto readBegin = seqInfo(info.name_ + "_readBegin",
@@ -279,8 +272,6 @@ PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestReverse
 		if(static_cast<double>(basesShared)/currentPrimer.second.reversePrimerInfoForDir_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
 			continue;
 		}
-//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
-//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
 
 		// find reverse primer in forward direction or if it isn't found return unrecognized
 //		auto readBegin = seqInfo(info.name_ + "_readBegin",
@@ -366,9 +357,7 @@ PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestForward
 		if(static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
 			continue;
 		}
-//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
-//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
-		// find reverse primer in forward direction or if it isn't found return unrecognized
+// find reverse primer in forward direction or if it isn't found return unrecognized
 //		auto readBegin = seqInfo(info.name_ + "_readBegin",
 //				info.seq_.substr(pars.primerStart_, pars.primerWithin_ + currentPrimer.second.forwardPrimerInfo_.seq_.size() + 5));
 //		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
@@ -453,9 +442,7 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 		if(static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
 			continue;
 		}
-//		std::cout << "basesShared: " << basesShared << " " << static_cast<double>(basesShared)/currentPrimer.second.forwardPrimerInfo_.seq_.size() << std::endl;
-//		std::cout << "pars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
-		// find reverse primer in forward direction or if it isn't found return unrecognized
+// find reverse primer in forward direction or if it isn't found return unrecognized
 //		auto forwardPosition = alignerObj.findReversePrimer(readBegin.seq_,
 //				currentPrimer.second.forwardPrimerInfo_.seq_);
 //		alignerObj.rearrangeObjs(readBegin,
@@ -512,12 +499,6 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 					static_cast<double>(alignerObj.comp_.distances_.query_.covered_)
 							/ (currentPrimer.second.forwardPrimerInfo_.seq_.size() - 2);
 		}
-		std::cout << "forwardPosition.first: " << forwardPosition.first << std::endl;
-		std::cout << "coverage: " << coverage << " pars.allowable_.distances_.query_.coverage_:" << pars.allowable_.distances_.query_.coverage_ << std::endl;
-		std::cout << "forwardPosition.first <= pars.primerWithin_: " << njh::colorBool(forwardPosition.first <= pars.primerWithin_) << std::endl;
-		std::cout << "coverage >= pars.allowable_.distances_.query_.coverage_: " << njh::colorBool(coverage >= pars.allowable_.distances_.query_.coverage_) << std::endl;
-		std::cout << "pars.allowable_.passErrorProfile(alignerObj.comp_): " << njh::colorBool(pars.allowable_.passErrorProfile(alignerObj.comp_)) << std::endl;
-
 		if (forwardPosition.first <= pars.primerWithin_
 				&& coverage >= pars.allowable_.distances_.query_.coverage_
 				&& pars.allowable_.passErrorProfile(alignerObj.comp_)) {
@@ -526,7 +507,6 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 					alignerObj.comp_);
 		}
 	}
-	std::cout <<"pars.primerWithin_: " << pars.primerWithin_ << std::endl;
 	PrimerPositionScore bestPrimer;
 	if (0 == determinedPrimers.size()) {
 		info.on_ = false;
@@ -585,13 +565,6 @@ bool PrimerDeterminator::checkForReversePrimer(seqInfo & info,
 	alignObj.profilePrimerAlignment(readEnd,
 			primers_[primerName].reversePrimerInfo_);
 	bool primerGood = true;
-	//std::cout << std::endl;
-	//std::cout << alignObj.comp_.distances_.query_.coverage_ << std::endl;
-	//std::cout << alignObj.comp_.hqMismatches_ << std::endl;
-	//alignObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
-	//alignObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
-	//primers_[primerName].reversePrimerInfo_.outPutSeqAnsi(std::cout);
-	//std::cout << std::endl;
 	if (alignObj.comp_.distances_.query_.coverage_
 			< pars.allowable_.distances_.query_.coverage_
 			|| !pars.allowable_.passErrorProfile(alignObj.comp_)) {

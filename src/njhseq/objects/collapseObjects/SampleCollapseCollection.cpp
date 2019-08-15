@@ -1454,13 +1454,27 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			std::unordered_map<std::string, table> popTabs;
 			std::unordered_map<std::string, table> sampTabs;
 			std::unordered_map<std::string, table> hapIdTabs;
+			/**@todo add in h_AATyped  */
+			std::unordered_map<std::string, std::string> h_AATyped;
+			if(nullptr != popCollapse_){
+				for(const auto & clus : popCollapse_->collapsed_.clusters_){
+					if(clus.meta_.containsMeta("h_AATyped")){
+						h_AATyped[clus.seqBase_.seq_] = clus.meta_.getMeta("h_AATyped");
+					}
+				}
+			}
+
 			for(const auto & subGroup : group.second->subGroupToSamples_){
 				loadInPreviousPop(subGroup.second);
+				for(auto & clus : popCollapse_->collapsed_.clusters_){
+					clus.meta_.addMeta("h_AATyped", h_AATyped[clus.seqBase_.seq_], true);
+				}
 				popTabs[subGroup.first] = genPopulationCollapseInfo();
 				sampTabs[subGroup.first] = genSampleCollapseInfo(subGroup.second);
 				hapIdTabs[subGroup.first] = genHapIdTable(subGroup.second);
 				popCollapse_ = nullptr;
 			}
+
 			std::unordered_map<std::string, VecStr> popUids;
 			for(const auto & pop : popTabs){
 				popUids[pop.first] = pop.second.getColumnLevels("h_popUID");
