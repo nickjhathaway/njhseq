@@ -1419,6 +1419,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 			<< delim << sampleCluster::getClusterInfoHeader(delim) << delim
 			<< sampleCluster::getRepsInfoHeader(maxRunCount, checkingExpected, delim);
 	table ret(tokenizeString(headerStream.str(), delim));
+	//std::cout << headerStream.str() << std::endl;
 	ret.addRows(rows);
 	return ret;
 }
