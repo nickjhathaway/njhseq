@@ -543,6 +543,8 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 		for (const auto & clus : samp->collapsed_.clusters_) {
 			refCompInfos[clus.seqBase_.name_] = clus.expectsString;
 		}
+
+
 		table refCompTab(refCompInfos, VecStr { "read", "bestExpected" });
 		refCompTab.outPutContents(
 				TableIOOpts(
@@ -904,6 +906,22 @@ void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dum
 									njh::files::join(popDir.string(), "refCompInfos.tab.txt")),
 							"\t", true));
 
+			MapStrStr aaTypedInfos;
+			for (const auto & clus : popCollapse_->collapsed_.clusters_) {
+				std::string h_aaTyped = "";
+				if(clus.meta_.containsMeta("h_AATyped")){
+					h_aaTyped = clus.meta_.getMeta("h_AATyped");
+				}
+				aaTypedInfos[clus.seqBase_.seq_] = h_aaTyped;
+			}
+			table aaTypedTab(aaTypedInfos, VecStr { "seq", "h_AATyped" });
+			aaTypedTab.outPutContents(
+					TableIOOpts(
+							OutOptions(
+									njh::files::join(popDir.string(), "aaTyped.tab.txt")),
+							"\t", true));
+
+
 		}
 		std::unordered_map<std::string, double> readTotals;
 		SeqIOOptions inputPopClustersOpts(
@@ -997,6 +1015,16 @@ void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & s
 				njh::lexical_cast<double>(row[readNumsTab.getColPos("readTotal")]));
 	}
 
+	MapStrStr aaTyped;
+	if (bfs::exists(njh::files::join(popDir.string(), "aaTyped.tab.txt"))) {
+		table aaTypedTab(njh::files::join(popDir.string(), "aaTyped.tab.txt"),
+				"\t", true);
+		for (const auto & row : aaTypedTab.content_) {
+			aaTyped[row[aaTypedTab.getColPos("seq")]] =
+					row[aaTypedTab.getColPos("h_AATyped")];
+		}
+	}
+
 	MapStrStr refCompInfos;
 	if (bfs::exists(njh::files::join(popDir.string(), "refCompInfos.tab.txt"))) {
 		table refCompTab(njh::files::join(popDir.string(), "refCompInfos.tab.txt"),
@@ -1006,6 +1034,7 @@ void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & s
 					row[refCompTab.getColPos("bestExpected")];
 		}
 	}
+
 
 	auto popInputClustersOpts = SeqIOOptions(
 			njh::files::make_path(popDir,
@@ -1086,6 +1115,10 @@ void SampleCollapseCollection::loadInPreviousPop(const std::set<std::string> & s
 	popCollapse_->collapsed_.info_.cois_.clear();
 	for(const auto & sampleCounts :clusterTotals){
 		popCollapse_->collapsed_.info_.updateCoi(sampleCounts.second);
+	}
+
+	for(auto & clus : popCollapse_->collapsed_.clusters_){
+		clus.addMeta("h_AATyped", aaTyped[clus.seqBase_.seq_], true);
 	}
 }
 
@@ -1454,6 +1487,8 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			std::unordered_map<std::string, table> popTabs;
 			std::unordered_map<std::string, table> sampTabs;
 			std::unordered_map<std::string, table> hapIdTabs;
+
+
 			for(const auto & subGroup : group.second->subGroupToSamples_){
 				loadInPreviousPop(subGroup.second);
 				popTabs[subGroup.first] = genPopulationCollapseInfo();
@@ -1461,6 +1496,7 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 				hapIdTabs[subGroup.first] = genHapIdTable(subGroup.second);
 				popCollapse_ = nullptr;
 			}
+
 			std::unordered_map<std::string, VecStr> popUids;
 			for(const auto & pop : popTabs){
 				popUids[pop.first] = pop.second.getColumnLevels("h_popUID");
