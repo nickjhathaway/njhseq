@@ -32,4 +32,5 @@
 #include "njhseq/objects/BioDataObject/HmmerDomainHitTab.hpp"
 #include "njhseq/objects/BioDataObject/parsers.h"
 
+#include "njhseq/objects/BioDataObject/BioRecordsUtils.h"
 

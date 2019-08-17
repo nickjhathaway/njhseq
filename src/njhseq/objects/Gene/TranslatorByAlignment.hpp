@@ -12,8 +12,8 @@
 #include "njhseq/objects/BioDataObject.h"
 #include "njhseq/GenomeUtils.h"
 #include "njhseq/objects/Gene/GeneFromGffs.hpp"
-#include "njhseq/GenomeUtils/GenomeExtraction/ParsingAlignmentInfo.h"
 #include "njhseq/BamToolsUtils.h"
+#include "njhseq/BamToolsUtils/ReAlignedSeq.hpp"
 
 
 
@@ -22,8 +22,18 @@ namespace njhseq {
 class TranslatorByAlignment{
 public:
 
+	struct RunPars {
+		uint32_t occurrenceCutOff = 2;
+		double lowVariantCutOff = 0.005;
+		ReAlignedSeq::genRealignmentPars realnPars;
+
+	};
 
 	struct VariantsInfo {
+
+		VariantsInfo(const std::string & id);
+		std::string id_;
+
 		std::map<uint32_t, std::map<char, uint32_t>> allBases;
 
 		std::map<uint32_t, std::map<char, uint32_t>> snps;
@@ -35,6 +45,16 @@ public:
 		std::map<uint32_t, std::map<std::string,uint32_t>> deletionsFinal;
 
 		std::set<uint32_t> variablePositons_;
+
+		Bed3RecordCore getVariableRegion();
+
+
+		void addVariantInfo(const std::string & alignedRefSeq,
+				const std::string & alignedQuerySeq, uint32_t querySeqCount,
+				const comparison & comp, uint32_t offSetStart = 0);
+
+		void setFinals(const RunPars & rPars, uint32_t totalPopCount);
+
 	};
 
 	struct TranslatorByAlignmentPars{
@@ -56,11 +76,13 @@ public:
 		comparison comp_;
 	};
 
+
+
 	struct TranslatorByAlignmentResult{
 		std::set<std::string> geneIds_;
 		std::unordered_map<std::string, std::unordered_map<std::string, TranslateSeqRes>> translations_;
 
-		std::unordered_map<std::string, std::vector<std::shared_ptr<AlignmentResults>>> seqAlns_;
+		std::unordered_map<std::string, std::vector<ReAlignedSeq>> seqAlns_;
 
 		//by transcript name
 		std::unordered_map<std::string, VariantsInfo> proteinVariants_;
@@ -70,12 +92,10 @@ public:
 		std::unordered_map<std::string, std::unordered_map<uint32_t, char>> baseForPosition_;
 
 		std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>>  transcriptInfosForGene_;
+
 	};
 
-	struct RunPars {
-		uint32_t occurrenceCutOff = 2;
-		double lowVariantCutOff = 0.005;
-	};
+
 
 
 	static std::unordered_map<std::string, TranslateSeqRes> translateBasedOnAlignment(
@@ -85,6 +105,12 @@ public:
 			TwoBit::TwoBitFile & tReader,
 			aligner & alignerObj,
 			const BamTools::RefVector & refData);
+
+	static std::unordered_map<std::string, TranslateSeqRes> translateBasedOnAlignment(
+			const ReAlignedSeq & realigned,
+			const GeneFromGffs & currentGene,
+			const std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> & transcriptInfosForGene,
+			aligner & alignerObj);
 
 
 	TranslatorByAlignmentPars pars_;
