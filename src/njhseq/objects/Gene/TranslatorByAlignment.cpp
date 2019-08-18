@@ -25,10 +25,13 @@ TranslatorByAlignment::VariantsInfo::VariantsInfo(const std::string & id) : id_(
 
 
 void TranslatorByAlignment::VariantsInfo::setFinals(const RunPars & rPars, uint32_t totalPopCount){
+//	std::cout << "rPars.lowVariantCutOff: " << rPars.lowVariantCutOff << std::endl;
+//	std::cout << "rPars.occurrenceCutOff: " << rPars.occurrenceCutOff << std::endl;
+//	std::cout << "totalPopCount: " << totalPopCount << std::endl;
 	//filter saps and indels by occurrence cut off
 	for(auto & snp : snps){
 		for(const auto & b : snp.second){
-			if(b.second < rPars.occurrenceCutOff){
+			if(b.second < rPars.occurrenceCutOff || b.second/static_cast<double>(totalPopCount) < rPars.lowVariantCutOff){
 				continue;
 			}
 			snpsFinal[snp.first][b.first] = b.second;
@@ -39,7 +42,7 @@ void TranslatorByAlignment::VariantsInfo::setFinals(const RunPars & rPars, uint3
 	}
 	for(const auto & del : deletions){
 		for(const auto & d : del.second){
-			if(d.second < rPars.occurrenceCutOff){
+			if(d.second < rPars.occurrenceCutOff || d.second/static_cast<double>(totalPopCount) < rPars.lowVariantCutOff){
 				continue;
 			}
 			deletionsFinal[del.first][d.first] = d.second;
@@ -50,7 +53,7 @@ void TranslatorByAlignment::VariantsInfo::setFinals(const RunPars & rPars, uint3
 	}
 	for(const auto & ins : insertions){
 		for(const auto & i : ins.second){
-			if(i.second < rPars.occurrenceCutOff){
+			if(i.second < rPars.occurrenceCutOff || i.second/static_cast<double>(totalPopCount) < rPars.lowVariantCutOff){
 				continue;
 			}
 			insertionsFinal[ins.first][i.first] = i.second;
@@ -66,7 +69,7 @@ Bed3RecordCore TranslatorByAlignment::VariantsInfo::getVariableRegion() {
 	if (!variablePositons_.empty()) {
 		return Bed3RecordCore(id_,
 				*std::min_element(variablePositons_.begin(), variablePositons_.end()),
-				*std::max_element(variablePositons_.begin(), variablePositons_.end()));
+				*std::max_element(variablePositons_.begin(), variablePositons_.end()) + 1 );
 	}
 	return Bed3RecordCore(id_, std::numeric_limits<uint32_t>::max(),
 			std::numeric_limits<uint32_t>::max());
@@ -481,6 +484,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(co
 		}
 		ret.transcriptInfosForGene_[gene.first] = gene.second->generateGeneSeqInfo(tReader, false);
 		for(const auto & transcriptInfo : ret.transcriptInfosForGene_[gene.first]){
+			ret.translationInfoForTranscirpt_[transcriptInfo.first] = transcriptInfo.second;
 			readVec::getMaxLength(transcriptInfo.second->protein_, proteinMaxLen);
 		}
 		if(pars_.keepTemporaryFiles_){
@@ -555,6 +559,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(co
 	for(auto & varPerChrom : ret.seqVariants_){
 		varPerChrom.second.setFinals(rPars, totalPopCount);
 	}
+
 	//index amino acid changes per transcript
 	for(const auto & seqName : ret.translations_){
 		for(const auto & transcript : seqName.second){
@@ -569,9 +574,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(co
 					transcript.second.queryAlnTranslation_.seq_, popCount, transcript.second.comp_);
 		}
 	}
+
 	for(auto & varPerTrans : ret.proteinVariants_){
 		varPerTrans.second.setFinals(rPars, totalPopCount);
 	}
+
 	return ret;
 }
 

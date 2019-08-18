@@ -92,6 +92,7 @@ public:
 		std::unordered_map<std::string, std::unordered_map<uint32_t, char>> baseForPosition_;
 
 		std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>>  transcriptInfosForGene_;
+		std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>  translationInfoForTranscirpt_;
 
 	};
 

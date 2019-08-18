@@ -32,7 +32,7 @@ public:
 
 	struct genRealignmentPars{
 		bool adjustForSoftClipping = true;
-		uint32_t extendAmount = 5;
+		uint32_t extendAmount = 20;
 	};
 
 
