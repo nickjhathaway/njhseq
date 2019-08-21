@@ -64,6 +64,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 	ret.querySeq_ = qSeq;
 	ret.alnRefSeq_ = referenceAln;
 	ret.alnQuerySeq_ = queryAln;
+	ret.comp_ = alignerObj.comp_;
 	return ret;
 }
 

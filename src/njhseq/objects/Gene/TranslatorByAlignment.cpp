@@ -227,6 +227,15 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 			alignerObj.profilePrimerAlignment(currentTranscriptInfo->protein_, balnSeqTrans);
 			TranslateSeqRes tRes;
 
+			uint32_t cDnaLenRaw = len(balnSeq) - transStart;
+			uint32_t cDnaLen = cDnaLenRaw - (cDnaLenRaw %3);
+			uint32_t firstAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-"));
+			uint32_t lastAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-"));
+			auto aminoInfos = currentTranscriptInfo->getInfosByAAPos();
+			tRes.firstAminoInfo_ = njh::mapAt(aminoInfos, firstAmino);
+			tRes.lastAminoInfo_ = njh::mapAt(aminoInfos, lastAmino);
+			tRes.cDna_ = balnSeq.getSubRead(transStart, cDnaLen);
+			tRes.transcriptName_ = transcript->getIDAttr();
 			tRes.translation_ = balnSeqTrans;
 			tRes.refAlnTranslation_ = alignerObj.alignObjectA_.seqBase_;
 			tRes.queryAlnTranslation_ = alignerObj.alignObjectB_.seqBase_;
@@ -365,6 +374,8 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 			}
 
 			auto balnSeqTrans = balnSeq.translateRet(false, false, transStart);
+
+
 			MetaDataInName transMeta;
 			transMeta.addMeta("transcript", transcript->getIDAttr());
 			balnSeqTrans.name_ += transMeta.createMetaName();
@@ -373,6 +384,15 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 			alignerObj.profilePrimerAlignment(currentTranscriptInfo->protein_, balnSeqTrans);
 			TranslateSeqRes tRes;
 
+			uint32_t cDnaLenRaw = len(balnSeq) - transStart;
+			uint32_t cDnaLen = cDnaLenRaw - (cDnaLenRaw %3);
+			uint32_t firstAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of("-"));
+			uint32_t lastAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of("-"));
+			auto aminoInfos = currentTranscriptInfo->getInfosByAAPos();
+			tRes.firstAminoInfo_ = njh::mapAt(aminoInfos, firstAmino);
+			tRes.lastAminoInfo_ = njh::mapAt(aminoInfos, lastAmino);
+			tRes.cDna_ = balnSeq.getSubRead(transStart, cDnaLen);
+			tRes.transcriptName_ = transcript->getIDAttr();
 			tRes.translation_ = balnSeqTrans;
 			tRes.refAlnTranslation_ = alignerObj.alignObjectA_.seqBase_;
 			tRes.queryAlnTranslation_ = alignerObj.alignObjectB_.seqBase_;
@@ -558,6 +578,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(co
 
 	for(auto & varPerChrom : ret.seqVariants_){
 		varPerChrom.second.setFinals(rPars, totalPopCount);
+
 	}
 
 	//index amino acid changes per transcript

@@ -69,11 +69,19 @@ public:
 	};
 
 	struct TranslateSeqRes {
+		std::string transcriptName_;
+
+		seqInfo cDna_;
 		seqInfo translation_;
 		seqInfo queryAlnTranslation_;
 		seqInfo refAlnTranslation_;
 
+		std::tuple<GeneSeqInfo::GenePosInfo,GeneSeqInfo::GenePosInfo,GeneSeqInfo::GenePosInfo> firstAminoInfo_;
+		std::tuple<GeneSeqInfo::GenePosInfo,GeneSeqInfo::GenePosInfo,GeneSeqInfo::GenePosInfo> lastAminoInfo_;
+
+
 		comparison comp_;
+
 	};
 
 
