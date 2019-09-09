@@ -231,6 +231,7 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 			uint32_t cDnaLen = cDnaLenRaw - (cDnaLenRaw %3);
 			uint32_t firstAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-"));
 			uint32_t lastAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-"));
+			lastAmino = std::min<uint32_t>(lastAmino,len(currentTranscriptInfo->protein_) - 1);
 			auto aminoInfos = currentTranscriptInfo->getInfosByAAPos();
 			tRes.firstAminoInfo_ = njh::mapAt(aminoInfos, firstAmino);
 			tRes.lastAminoInfo_ = njh::mapAt(aminoInfos, lastAmino);
@@ -388,6 +389,8 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 			uint32_t cDnaLen = cDnaLenRaw - (cDnaLenRaw %3);
 			uint32_t firstAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of("-"));
 			uint32_t lastAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of("-"));
+			lastAmino = std::min<uint32_t>(lastAmino,len(currentTranscriptInfo->protein_) - 1);
+
 			auto aminoInfos = currentTranscriptInfo->getInfosByAAPos();
 			tRes.firstAminoInfo_ = njh::mapAt(aminoInfos, firstAmino);
 			tRes.lastAminoInfo_ = njh::mapAt(aminoInfos, lastAmino);
