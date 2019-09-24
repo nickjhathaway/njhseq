@@ -777,7 +777,8 @@ bool SampleCollapseCollection::excludeOneSampOnlyHaps(double fracCutOff){
 	std::unordered_map<std::string, VecStr> samplesWithUniqHaps;
 	for(const auto & popClus : popCollapse_->collapsed_.clusters_){
 		if(1 == popClus.sampleClusters().size()){
-			auto avgFrac = popClus.getCumulativeFrac()/popClus.sampInfos().size();
+			//auto avgFrac = popClus.getCumulativeFrac()/popClus.sampInfos().size();
+			auto avgFrac = popClus.getCumulativeFrac();
 			if(avgFrac < fracCutOff){
 				//this should just be one anyways
 				for(const auto & clus : popClus.reads_){
@@ -826,7 +827,8 @@ bool SampleCollapseCollection::excludeOneSampOnlyOneOffHaps(double fracCutOff, a
 	std::unordered_map<std::string, VecStr> samplesWithUniqHaps;
 	for(const auto & popClus : popCollapse_->collapsed_.clusters_){
 		if(1 == popClus.sampleClusters().size()){
-			auto avgFrac = popClus.getCumulativeFrac()/popClus.sampInfos().size();
+			//auto avgFrac = popClus.getCumulativeFrac()/popClus.sampInfos().size();
+			auto avgFrac = popClus.getCumulativeFrac();
 			if(avgFrac < fracCutOff){
 				//this should just be one anyways
 				for(const auto & clus : popClus.reads_){
