@@ -39,6 +39,10 @@
 namespace njhseq {
 
 
+uint32_t getSoftClipAmount(const BamTools::BamAlignment & bAln);
+
+
+
 std::vector<GenomicRegion> genGenRegionsFromRefData(const BamTools::RefVector & rData);
 
 seqInfo bamAlnToSeqInfo(const BamTools::BamAlignment & aln, bool keepPlusStrandOrientation = false);
