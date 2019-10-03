@@ -169,8 +169,15 @@ void collapser::findMatch(CLUSTER &read,
       }
     }
 
-
+//    if(5 == runParams.iterNumber_ && getSeqBase(clus).cnt_ > 1000 && getSeqBase(read).cnt_ > 1000){
+//    	std::cout << std::endl << std::endl;
+//    	std::cout << "clus name: "<< getSeqBase(clus).name_ << std::endl;
+//    	std::cout << "read name: "<< getSeqBase(read).name_ << std::endl;
+//    }
     bool matching = clus.compare(read, alignerObj, runParams, opts_);
+//    if(5 == runParams.iterNumber_ && getSeqBase(clus).cnt_ > 1000 && getSeqBase(read).cnt_ > 1000){
+//    	std::cout << "\tmatching:  "<< njh::colorBool(matching) << std::endl;
+//    }
 		if (matching) {
 			foundMatch = true;
 			if (opts_.bestMatchOpts_.findingBestMatch_) {

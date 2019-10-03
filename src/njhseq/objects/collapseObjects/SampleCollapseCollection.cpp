@@ -661,6 +661,23 @@ void SampleCollapseCollection::investigateChimeras(double chiCutOff,
 	chiInfoTab.outPutContents(chiOutOptions);
 }
 
+
+void SampleCollapseCollection::setPassingSamples(){
+	passingSamples_.clear();
+	for (const auto & sampleName : popNames_.samples_) {
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampleName);
+		}
+		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ >= preFiltCutOffs_.sampleMinReadCount &&
+						!njh::in(sampleName, lowRepCntSamples_)){
+			passingSamples_.emplace_back(sampleName);
+		}
+		if(!keepSampleInfoInMemory_){
+			clearSample(sampleName);
+		}
+	}
+}
+
 std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 	passingSamples_.clear();
 	oututSampClusToOldNameKey_.clear();
@@ -673,12 +690,12 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 		}
 		passingSamples_.emplace_back(sampleName);
 		auto & samp = *(sampleCollapses_[sampleName]);
-		double totalReadCnt_ = 0;
+		double totalReadCnt = 0;
 		for (const auto &out : samp.collapsed_.clusters_) {
-			totalReadCnt_ += out.seqBase_.cnt_;
+			totalReadCnt += out.seqBase_.cnt_;
 		}
 		std::map<std::string, sampInfo> outSampInfos { { sampleName, sampInfo(
-				sampleName, totalReadCnt_) } };
+				sampleName, totalReadCnt) } };
 		for (const auto &out : samp.collapsed_.clusters_) {
 			output.emplace_back(sampleCluster(out.createRead(), outSampInfos));
 			std::string oldName = output.back().seqBase_.name_;

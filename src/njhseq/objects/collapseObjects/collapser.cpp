@@ -451,7 +451,15 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
       	std::cout << "Collapsed down to " << stopSizeOfReadVector << std::endl;
       }
     } else {
+//    	if(5 == iter.second.iterNumber_){
+//    		std::cout << clusters[0].seqBase_.name_ << std::endl;
+//    		std::cout << clusters[1].seqBase_.name_ << std::endl;
+//    	}
     	collapseWithParameters(clusters, iter.second, alignerObj);
+//    	if(5 == iter.second.iterNumber_){
+//    		std::cout << clusters[0].seqBase_.name_ << std::endl;
+//    		std::cout << clusters[1].seqBase_.name_ << std::endl;
+//    	}
     }
 		njh::stopWatch watch;
 		watch.setLapName("sorting vector");
@@ -461,24 +469,27 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
 		}
     //write out current iteration if taking snapshots
     if (snapShotsOpts.snapShots_) {
+
+    	std::string iterName = njh::leftPadNumStr<uint32_t>(iter.first, iteratorMap.iters_.size());
+
       bfs::path iterDir =
-          njh::files::makeDir(snapShotsDirectoryName, njh::files::MkdirPar(std::to_string(iter.first), false));
+          njh::files::makeDir(snapShotsDirectoryName, njh::files::MkdirPar(iterName, false));
       std::vector<cluster> currentClusters =
           readVecSplitter::splitVectorOnRemove(clusters).first;
       std::string seqName = bfs::basename(ioOpts.firstName_);
       renameReadNames(currentClusters, seqName, true, false);
-      SeqOutput writer(SeqIOOptions(snapShotsDirectoryName + std::to_string(iter.first),
+      SeqOutput writer(SeqIOOptions(snapShotsDirectoryName + iterName,
       		ioOpts.outFormat_,ioOpts.out_));
       writer.openWrite(currentClusters);
       clusterVec::allWriteClustersInDir(currentClusters, iterDir.string(),ioOpts );
       if (refOpts.firstName_ == "") {
         profiler::getFractionInfoCluster(currentClusters, snapShotsDirectoryName,
-                                  std::to_string(iter.first) + ".tab.txt");
+                                  iterName + ".tab.txt");
       } else {
         profiler::getFractionInfoCluster(
         		currentClusters,
 						snapShotsDirectoryName,
-						std::to_string(iter.first) + ".tab.txt",
+						iterName + ".tab.txt",
 						refOpts.firstName_.string(),
 						alignerObj, false);
       }
