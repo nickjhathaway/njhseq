@@ -995,7 +995,7 @@ std::vector<seqInfo> SampleCollapseCollection::genOutPopSeqsPerSample() const{
 			MetaDataInName subseqMeta;
 			subseqMeta.addMeta("PopUID", seq.getStubName(true));
 			subseqMeta.addMeta("sample", sample);
-			subseqMeta.addMeta("readCount", topSeqCopy.cnt_);
+			subseqMeta.addMeta("readCount", subSeq->seqBase_.cnt_);
 			if(nullptr != groupMetaData_){
 				auto sampMeta = groupMetaData_->getMetaForSample(sample, getVectorOfMapKeys(groupMetaData_->groupData_));
 				subseqMeta.addMeta(sampMeta, false);
