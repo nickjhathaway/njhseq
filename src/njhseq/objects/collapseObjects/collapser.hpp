@@ -521,8 +521,9 @@ void collapser::runClustering(std::vector<CLUSTER> &currentClusters,
 template<typename READ>
 table collapser::markChimeras(std::vector<READ> &processedReads,
 		aligner &alignerObj, const ChimeraOpts & chiOpts) const {
-	table ret(VecStr { "read", "parent1", "parent1SeqPos", "parent2",
-			"parent2SeqPos" });
+	table ret(VecStr { "read", "readCnt",
+		"parent1", "parent1Cnt", "parent1Ratio", "parent1SeqPos",
+		"parent2", "parent2Cnt", "parent2Ratio", "parent2SeqPos" });
 	//assumes clusters are coming in sorted by total count
 	if (processedReads.size() <= 2) {
 		return ret;
@@ -750,10 +751,16 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 					}
 				}
 				ret.content_.emplace_back(
-						toVecStr(getSeqBase(processedReads[subPos]).name_,
+						toVecStr(
+								getSeqBase(processedReads[subPos]).name_,
+								getSeqBase(processedReads[subPos]).cnt_,
 								getSeqBase(processedReads[frontReadMinPos]).name_,
+								getSeqBase(processedReads[frontReadMinPos]).cnt_,
+								getSeqBase(processedReads[frontReadMinPos]).cnt_/getSeqBase(processedReads[subPos]).cnt_,
 								frontChiPos.rbegin()->first,
 								getSeqBase(processedReads[endReadMinPos]).name_,
+								getSeqBase(processedReads[endReadMinPos]).cnt_,
+								getSeqBase(processedReads[endReadMinPos]).cnt_/getSeqBase(processedReads[subPos]).cnt_,
 								endChiPos.begin()->first));
 			} // is chimeric loop
 		}
@@ -764,5 +771,5 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 	return ret;
 }
 
-}  // namespace njh
+}  // namespace njhseq
 
