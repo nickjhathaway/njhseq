@@ -35,8 +35,11 @@ namespace concurrent {
 AlignerPool::AlignerPool(uint64_t startingMaxLen, const gapScoringParameters & gapInfo,
 		const substituteMatrix & scoring, const size_t size) :
 		startingMaxLen_(startingMaxLen), gapInfo_(gapInfo), scoring_(scoring), size_(size) {
+	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(uint32_t i = 0; i < size_; ++i){
+		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		aligners_.emplace_back(aligner(startingMaxLen_, gapInfo_, scoring_));
+		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	}
 }
 

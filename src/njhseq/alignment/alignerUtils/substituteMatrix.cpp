@@ -31,6 +31,7 @@ namespace njhseq {
 
 
 substituteMatrix::substituteMatrix(){
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	setWithSimple(1,-1);
 }
 
