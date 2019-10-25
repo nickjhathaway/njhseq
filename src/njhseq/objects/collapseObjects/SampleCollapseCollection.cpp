@@ -189,8 +189,12 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 			renameReadNamesNewClusters(clusters, repf.repName_, true, true, false);
 		}
 		if (chiOpts.checkChimeras_) {
+			for(auto & clus : clusters){
+				clus.seqBase_.unmarkAsChimeric();
+			}
 			collapserObj.markChimeras(clusters, alignerObj, chiOpts);
 		}
+
 		clusterVec::allSetFractionClusters(clusters);
 		if(repf.reNameInput_){
 			readVec::allUpdateName(clusters);
