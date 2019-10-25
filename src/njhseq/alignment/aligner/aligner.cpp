@@ -31,27 +31,15 @@ void aligner::resetAlnCache(){
 
 aligner::aligner() :
 		parts_(alnParts()) {
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	countEndGaps_ = false;
 	weighHomopolymers_ = false;
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	parts_.scoring_.printScores(std::cout);
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	alnHolder_.addHolder(parts_.gapScores_, parts_.scoring_);
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-
 	setDefaultQualities();
 }
 
 aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars) :
 		parts_(maxSize, gapPars) {
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	alnHolder_.addHolder(parts_.gapScores_, parts_.scoring_);
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	alnInfoMasterHolder alnHolderCopy(gapPars, parts_.scoring_);
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	alnHolder_ = alnHolderCopy;
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	countEndGaps_ = false;
 	weighHomopolymers_ = false;
 	setDefaultQualities();
@@ -60,13 +48,7 @@ aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars) :
 aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
 		const substituteMatrix& scoreMatrix) :
 		parts_(maxSize, gapPars, scoreMatrix) {
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	alnHolder_.addHolder(parts_.gapScores_, scoreMatrix);
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	//alnInfoMasterHolder alnHolderCopy(parts_.gapScores_, parts_.scoring_);
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	alnHolder_ = alnHolderCopy;
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	countEndGaps_ = false;
 	weighHomopolymers_ = false;
 	setDefaultQualities();
