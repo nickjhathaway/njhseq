@@ -135,7 +135,11 @@ void sampleCollapse::excludeChimeras(bool update) {
   }
 }
 
-void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update, double lowFreqMultiplier, aligner &alignerObj, bool skipChimeras){
+void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update,
+		double lowFreqMultiplier,
+		aligner &alignerObj,
+		bool skipChimeras,
+		double lowFreqCutOff){
 	std::vector<uint64_t> positions(collapsed_.clusters_.size());
 	njh::iota<uint64_t>(positions, 0);
 	uint32_t sizeOfReadVector = 0;
@@ -208,6 +212,9 @@ void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update, double l
 				filteredMeta.addMeta("ExcludeFailedLowFreqOneOff", "TRUE");
 				if (collapsed_.clusters_[toExcludePos].seqBase_.isChimeric()) {
 					filteredMeta.addMeta("ExcludeIsChimeric", "TRUE", true);
+				}
+				if(collapsed_.clusters_[toExcludePos].seqBase_.frac_ < lowFreqCutOff){
+					filteredMeta.addMeta("ExcludeFailedFracCutOff", "TRUE", true);
 				}
 				collapsed_.clusters_[toExcludePos].seqBase_.resetMetaInName(filteredMeta);
 				excluded_.clusters_.emplace_back(collapsed_.clusters_[toExcludePos]);
