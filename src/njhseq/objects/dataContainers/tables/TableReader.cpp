@@ -27,11 +27,13 @@
 
 namespace njhseq {
 
+
 TableReader::TableReader(const TableIOOpts & tabOpts): tabOpts_(tabOpts){
 	//inital header reader
 	njh::files::checkExistenceThrow(tabOpts_.in_.inFilename_);
 	std::string currentLine = njh::files::getFirstLine(
 			tabOpts_.in_.inFilename_);
+	//std::cout << currentLine << std::endl;
 	auto toks = tokenizeString(currentLine, tabOpts_.inDelim_, true);
 	VecStr columnNames;
 	if (!tabOpts_.hasHeader_) {
