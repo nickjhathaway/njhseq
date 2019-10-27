@@ -247,7 +247,7 @@ bfs::path SampleCollapseCollection::getPopFinalHapsPath() const {
 
 bfs::path SampleCollapseCollection::getPopInfoPath() const {
 	return njh::files::make_path(populationOutputDir_,
-			"populationCluster.tab.txt");
+			"populationCluster.tab.txt.gz");
 }
 
 
@@ -258,12 +258,12 @@ bfs::path SampleCollapseCollection::getFinalSampHapsPath(const std::string & sam
 
 bfs::path SampleCollapseCollection::getSampInfoPath() const {
 	/**@todo need to make this standard, currently set by SeekDeep processClusters*/
-	return njh::files::make_path(masterOutputDir_, "selectedClustersInfo.tab.txt");
+	return njh::files::make_path(masterOutputDir_, "selectedClustersInfo.tab.txt.gz");
 }
 
 bfs::path SampleCollapseCollection::getHapIdTabPath() const {
 	return njh::files::make_path(masterOutputDir_,
-			"hapIdTable.tab.txt");
+			"hapIdTable.tab.txt.gz");
 }
 
 
@@ -981,7 +981,7 @@ void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dum
 						OutOptions(njh::files::join(popDir.string(), "readTotals.tab.txt")),
 						"\t", true));
 		if(dumpTable){
-			printPopulationCollapseInfo(njh::files::make_path(popDir, "populationCluster.tab.txt"));
+			printPopulationCollapseInfo(njh::files::make_path(popDir, "populationCluster.tab.txt.gz"));
 		}
 		popCollapse_ = nullptr;
 	}
@@ -1178,7 +1178,8 @@ void SampleCollapseCollection::checkForPopCollapseThrow(
 void SampleCollapseCollection::printPopulationCollapseInfo(const bfs::path& fileName)const {
 	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
 	auto popTab = genPopulationCollapseInfo();
-	popTab.outPutContents(TableIOOpts(OutOptions(fileName.string(), ".txt"), "\t", true));
+	bool zip = njh::endsWith(fileName.string(), ".gz");
+	popTab.outPutContents(TableIOOpts(OutOptions(fileName.string(), zip ? ".gz" : ".txt"), "\t", true));
 }
 
 table SampleCollapseCollection::genPopulationCollapseInfo() const {
@@ -1222,7 +1223,8 @@ table SampleCollapseCollection::genPopulationCollapseInfo() const {
 
 void SampleCollapseCollection::printSampleCollapseInfo(const bfs::path& fileName){
 	auto sampTab = genSampleCollapseInfo(popNames_.samples_);
-	sampTab.outPutContents(TableIOOpts(OutOptions(fileName.string(), ".txt"), "\t", true));
+	bool zip = njh::endsWith(fileName.string(), ".gz");
+	sampTab.outPutContents(TableIOOpts(OutOptions(fileName.string(), zip ? ".gz" : ".txt"), "\t", true));
 }
 
 
@@ -1566,9 +1568,9 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			for(const auto & popTab : popTabs){
 				auto subGroupDir = njh::files::make_path(mainGroupDir, popTab.first);
 				njh::files::makeDir(njh::files::MkdirPar(subGroupDir.string()));
-				popTab.second.outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"popFile.tab.txt")), "\t", true));
-				sampTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"sampFile.tab.txt")), "\t", true));
-				hapIdTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"hapIdTable.tab.txt")), "\t", true));
+				popTab.second.outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"popFile.tab.txt.gz")), "\t", true));
+				sampTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"sampFile.tab.txt.gz")), "\t", true));
+				hapIdTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"hapIdTable.tab.txt.gz")), "\t", true));
 				std::ofstream subGroupMetaJsonFile;
 				openTextFile(subGroupMetaJsonFile,
 						njh::files::make_path(subGroupDir, "subGroupNamesData.json").string(),
@@ -1583,7 +1585,7 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			}
 			outTab = outTab.getUniqueRows();
 			outTab.sortTable("g_GroupName", false);
-			outTab.outPutContents(TableIOOpts(OutOptions(njh::files::make_path(mainGroupDir,"groupInfo.tab.txt")), "\t", true));
+			outTab.outPutContents(TableIOOpts(OutOptions(njh::files::make_path(mainGroupDir,"groupInfo.tab.txt.gz")), "\t", true));
 		}
 
 		bool verbose = false;
