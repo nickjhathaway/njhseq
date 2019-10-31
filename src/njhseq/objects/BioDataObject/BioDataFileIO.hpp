@@ -77,7 +77,7 @@ public:
 		out_ = std::make_unique<OutputStream>(ioOpts_.out_);
 		{
 			//add input file header if it begins with a #
-			if(isInOpen()){
+			if(isInOpen() && njh::strToLowerRet(ioOpts_.in_.inFilename_.string()) != "stdin"){
 				InputStream tempIn(ioOpts_.in_);
 				std::string line;
 				njh::files::crossPlatGetline(tempIn, line);
