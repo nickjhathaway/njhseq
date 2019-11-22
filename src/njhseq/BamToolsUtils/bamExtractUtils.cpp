@@ -3044,18 +3044,41 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			bReaderMateFinder.Open(inOutOpts.firstName_.string());
 			checkBamOpenThrow(bReaderMateFinder, inOutOpts.firstName_.string());
 			loadBamIndexThrow(bReaderMateFinder);
-			while (bReaderMateFinder.GetNextAlignment(bAln)) {
-				//skip secondary alignments
-				if (!bAln.IsPrimaryAlignment()) {
-					continue;
+			auto refData = bReaderMateFinder.GetReferenceData();
+			//gather all the orphans regions
+			std::unordered_map<std::string, std::set<uint32_t>> orphanPositions;
+			for (const auto & name : names) {
+				auto search = alnCache.get(name);
+				if(search->IsPaired()){
+					if (search->IsMateMapped()) {
+						orphanPositions[refData[search->MateRefID].RefName].emplace(search->MatePosition);
+					}
 				}
-				if (bAln.IsPaired()) {
-					if (alnCache.has(bAln.Name)) {
-						auto search = alnCache.get(bAln.Name);
-						if (bAln.IsFirstMate() != search->IsFirstMate()) {
-							writeTheThrownAwayMate(bAln,
-									seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
-											SangerQualOffset));
+			}
+			std::vector<GenomicRegion> orphanMateRegions;
+			for(const auto & orPos : orphanPositions){
+				for(const auto & pos  : orPos.second){
+					orphanMateRegions.emplace_back(GenomicRegion("", orPos.first, pos, pos + 1, false));
+				}
+			}
+			for(const auto & reg : orphanMateRegions){
+				setBamFileRegionThrow(bReaderMateFinder, reg);
+				while (bReaderMateFinder.GetNextAlignment(bAln)) {
+					//skip secondary alignments
+					if (!bAln.IsPrimaryAlignment()) {
+						continue;
+					}
+					if(bAln.Position < reg.start_){
+						continue;
+					}
+					if (bAln.IsPaired()) {
+						if (alnCache.has(bAln.Name)) {
+							auto search = alnCache.get(bAln.Name);
+							if (bAln.IsFirstMate() != search->IsFirstMate()) {
+								writeTheThrownAwayMate(bAln,
+										seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
+												SangerQualOffset));
+							}
 						}
 					}
 				}
