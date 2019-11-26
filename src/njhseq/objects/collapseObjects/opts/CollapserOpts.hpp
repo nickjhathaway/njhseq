@@ -37,6 +37,7 @@ struct ChimeraOpts {
 	bool checkChimeras_ = false;
 	bool keepLowQaulityMismatches_ = false;
 
+	uint32_t posSpacing_ = 3;
 };
 
 

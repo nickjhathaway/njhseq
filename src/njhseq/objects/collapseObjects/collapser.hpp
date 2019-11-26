@@ -730,8 +730,10 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 		struct ChiParLocs {
 			ChiParLocs(size_t endReadMinReadPos, size_t endPosition,
 					size_t frontReadMinReadPos, size_t frontPosition) :
-					endReadMinReadPos_(endReadMinReadPos), endPosition_(endPosition), frontReadMinReadPos_(
-							frontReadMinReadPos), frontPosition_(frontPosition) {
+					endReadMinReadPos_(endReadMinReadPos),
+					endPosition_(endPosition),
+					frontReadMinReadPos_(frontReadMinReadPos),
+					frontPosition_(frontPosition) {
 
 			}
 			size_t endReadMinReadPos_;
@@ -741,13 +743,13 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 			size_t frontPosition_;
 
 		};
+
 		if (!endChiPos.empty() && !frontChiPos.empty()) {
 			if (endChiPos.begin()->first < frontChiPos.rbegin()->first) {
 				std::vector<ChiParLocs> crossOvers;
-
 				for(const auto & endChi : endChiPos){
 					for(const auto & frontChi : iter::reversed(frontChiPos)){
-						if(endChi.first < frontChi.first){
+						if(endChi.first + chiOpts.posSpacing_ < frontChi.first){
 							for(const auto & endReadPos : endChi.second){
 								for(const auto & frontReadPos : frontChi.second){
 									if(endReadPos != frontReadPos){
