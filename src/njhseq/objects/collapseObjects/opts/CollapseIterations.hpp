@@ -61,6 +61,9 @@ public:
 	static CollapseIterations genIlluminaDefaultPars(uint32_t stopCheck);
 	static CollapseIterations genIlluminaDefaultParsCollapseHomopolymers(uint32_t stopCheck);
 
+	static CollapseIterations genIlluminaDefaultAllLowMismatchesPars(uint32_t stopCheck);
+	static CollapseIterations genIlluminaDefaultParsAllLowMismatchesCollapseHomopolymers(uint32_t stopCheck);
+
 	static CollapseIterations gen454ItDefaultParsWithHqs(uint32_t stopCheck,
 			uint32_t hqMismatches);
 	static CollapseIterations genIlluminaDefaultParsWithHqs(uint32_t stopCheck,
