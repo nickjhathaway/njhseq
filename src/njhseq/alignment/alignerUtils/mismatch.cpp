@@ -23,6 +23,7 @@ namespace njhseq {
 inline bool qualPass(const std::vector<uint32_t> & quals, uint32_t qualCutOff){
 	return quals.empty() ? true : std::all_of(quals.begin(), quals.end(),[qualCutOff](uint32_t qual){return qual >qualCutOff;});
 }
+
 bool mismatch::highQuality(const QualScorePars & qScorePars) const{
 	return seqQual > qScorePars.primaryQual_
 			&& refQual > qScorePars.primaryQual_
@@ -31,6 +32,20 @@ bool mismatch::highQuality(const QualScorePars & qScorePars) const{
 			&& qualPass(refLeadingQual, qScorePars.secondaryQual_)
 			&& qualPass(refTrailingQual, qScorePars.secondaryQual_);
 }
+
+bool mismatch::highQualityJustRef(const QualScorePars & qScorePars) const{
+	return refQual > qScorePars.primaryQual_
+			&& qualPass(refLeadingQual, qScorePars.secondaryQual_)
+			&& qualPass(refTrailingQual, qScorePars.secondaryQual_);
+}
+
+bool mismatch::highQualityJustSeq(const QualScorePars & qScorePars) const{
+	return seqQual > qScorePars.primaryQual_
+			&& qualPass(seqLeadingQual, qScorePars.secondaryQual_)
+			&& qualPass(seqTrailingQual, qScorePars.secondaryQual_);
+}
+
+
 
 
 void mismatch::setTransitionTransverstion(){

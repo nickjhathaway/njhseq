@@ -79,6 +79,9 @@ void baseCluster::calculateConsensusToCurrent(aligner& alignerObj, bool setToCon
 
 void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 		aligner& alignerObj, bool setToConsensus) {
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << njh::bashCT::boldRed(seqBase.name_) << std::endl;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 	// create the map for letter counters for each position
 	std::map<uint32_t, charCounter> counters;
@@ -398,8 +401,7 @@ void baseCluster::calculateConsensusTo(const seqInfo & seqBase,
 	}
 
 	//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
-	consensusHelper::genConsensusFromCounters(calcConsensusInfo_, counters, insertions,
-			beginningGap);
+	consensusHelper::genConsensusFromCounters(calcConsensusInfo_, counters, insertions, beginningGap);
 
 	if (setToConsensus) {
 		if (seqBase_.seq_ != calcConsensusInfo_.seq_) {

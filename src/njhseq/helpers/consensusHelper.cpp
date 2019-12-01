@@ -38,7 +38,7 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 		print = true;
 	}*/
 	// first deal with any gaps in the beginning
-	double fortyPercent = 0.40 * info.cnt_;
+	double fortyPercent = 0.30 * info.cnt_;
 	for (const auto & bCount : beginningGap) {
 		uint32_t bestQuality = 0;
 		char bestBase = ' ';
@@ -52,19 +52,27 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 
 	//read.seqBase_.outPutFastq(std::cout);
 	// the iterators to over the letter counter maps
+	uint32_t countAdjustedToBeatForInserts = fortyPercent * 2;
+	if(info.cnt_ < 10){
+		countAdjustedToBeatForInserts = info.cnt_;
+	}
 	for (const auto & count : counters) {
-
 		uint32_t bestQuality = 0;
 		char bestBase = ' ';
 		// if there is an insertion look at those if there is a majority of reads
 		// with that insertion
+//		std::cout << count.first << std::endl;
 		auto search = insertions.find(count.first);
 		if (search != insertions.end()) {
 			for (auto & counterInsert : search->second) {
 				bestQuality = 0;
 				bestBase = ' ';
-				counterInsert.second.getBest(bestBase, bestQuality,
-						std::round(info.cnt_));
+				char bestBaseTest = ' ';
+				uint32_t bestQualTest = 0;
+				counterInsert.second.getBest(bestBaseTest, bestQualTest);
+//				std::cout << "\t"<< "bestBaseTest: " << bestBaseTest << ": " << counterInsert.second.chars_[bestBaseTest]<< " total:" << std::round(info.cnt_) << std::endl;
+				counterInsert.second.getBest(bestBase, bestQuality, countAdjustedToBeatForInserts);
+
 				if (bestBase == ' ') {
 					continue;
 				} else {
@@ -87,7 +95,7 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 		if (bestBase == '-' || count.second.getTotalCount() < fortyPercent) {
 			continue;
 		}
-
+//		std::cout << count.first << " bestBase: " << bestBase << " " << count.second.chars_[bestBase] << "/"<< count.second.getTotalCount()<< std::endl;
 		info.seq_.push_back(bestBase);
 		info.qual_.emplace_back(bestQuality);
 	}
