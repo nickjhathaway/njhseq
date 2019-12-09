@@ -109,6 +109,16 @@ GFFCore::GFFCore(const std::string & line){
 			attributes_[attributeToks[0]] = value;
 		}
 	}
+
+	//debug
+//	std::stringstream ss;
+//	writeGffRecord(ss);
+//	if(ss.str() != line){
+//
+//		std::cout << ss.str() << std::endl;
+//		std::cout << line << std::endl;
+//		exit(1);
+//	}
 }
 
 bool GFFCore::hasAttr(const std::string & attr) const{
@@ -165,11 +175,13 @@ void GFFCore::writeGffRecord(std::ostream & out) const{
 			<< "\t" << encodeGFFValue(phase_);
 			out << "\t";
 			std::string attrs = "";
-			for(const auto & attr : attributes_){
+			auto attrKeys = getVectorOfMapKeys(attributes_);
+			njh::sort(attrKeys);
+			for(const auto & attrKey : attrKeys){
 				if("" != attrs){
 					attrs.push_back(';');
 				}
-				attrs+= njh::pasteAsStr(attr.first, "=", urlencode(attr.second));
+				attrs+= njh::pasteAsStr(attrKey, "=", urlencode(attributes_.at(attrKey)));
 			}
 			out << attrs;
 			out <<"\n";
