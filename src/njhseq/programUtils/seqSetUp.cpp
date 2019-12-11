@@ -75,25 +75,22 @@ void seqSetUp::processGap() {
 		pars_.gapLeft_ = pars_.gap_;
 		pars_.gapRight_ = pars_.gap_;
 	}
-	if (setOption(pars_.gap_, "--gap", "Gap Penalties for Middle Gap", false,
-			"Alignment")) {
-		pars_.gapInfo_.processGapStr(pars_.gap_, pars_.gapInfo_.gapOpen_,
-				pars_.gapInfo_.gapExtend_);
-	}
-	if (setOption(pars_.gapLeft_, "--gapLeft", "Gap Penalties for Left End Gap",
-			false, "Alignment")) {
-		pars_.gapInfo_.processGapStr(pars_.gapLeft_, pars_.gapInfo_.gapLeftQueryOpen_,
-				pars_.gapInfo_.gapLeftQueryExtend_);
-		pars_.gapInfo_.processGapStr(pars_.gapLeft_, pars_.gapInfo_.gapLeftRefOpen_,
-				pars_.gapInfo_.gapLeftRefExtend_);
-	}
-	if (setOption(pars_.gapRight_, "--gapRight",
-			"Gap Penalties for Right End Gap", false, "Alignment")) {
-		pars_.gapInfo_.processGapStr(pars_.gapRight_, pars_.gapInfo_.gapRightQueryOpen_,
-				pars_.gapInfo_.gapRightQueryExtend_);
-		pars_.gapInfo_.processGapStr(pars_.gapRight_, pars_.gapInfo_.gapRightRefOpen_,
-				pars_.gapInfo_.gapRightRefExtend_);
-	}
+	setOption(pars_.gap_, "--gap", "Gap Penalties for Middle Gap", false,
+				"Alignment");
+	setOption(pars_.gapLeft_, "--gapLeft", "Gap Penalties for Left End Gap",
+				false, "Alignment");
+	setOption(pars_.gapRight_, "--gapRight",
+				"Gap Penalties for Right End Gap", false, "Alignment");
+	pars_.gapInfo_.processGapStr(pars_.gap_, pars_.gapInfo_.gapOpen_,
+			pars_.gapInfo_.gapExtend_);
+	pars_.gapInfo_.processGapStr(pars_.gapLeft_, pars_.gapInfo_.gapLeftQueryOpen_,
+			pars_.gapInfo_.gapLeftQueryExtend_);
+	pars_.gapInfo_.processGapStr(pars_.gapLeft_, pars_.gapInfo_.gapLeftRefOpen_,
+			pars_.gapInfo_.gapLeftRefExtend_);
+	pars_.gapInfo_.processGapStr(pars_.gapRight_,
+			pars_.gapInfo_.gapRightQueryOpen_, pars_.gapInfo_.gapRightQueryExtend_);
+	pars_.gapInfo_.processGapStr(pars_.gapRight_, pars_.gapInfo_.gapRightRefOpen_,
+			pars_.gapInfo_.gapRightRefExtend_);
 
 	pars_.gapInfo_.setIdentifer();
 }
