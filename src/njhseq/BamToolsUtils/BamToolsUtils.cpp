@@ -364,6 +364,51 @@ void setBamFileRegionThrow(BamTools::BamReader & bReader, const GenomicRegion & 
 	}
 }
 
+void checkBamFilesForIndexesAndAbilityToOpen(const std::vector<bfs::path> & bamFnps, uint32_t numThreads){
+	bool fail = false;
+	std::stringstream ss;
+	std::mutex mut;
+	njh::concurrent::LockableQueue<bfs::path> bams(bamFnps);
+
+	std::function<void()> checkBam = [&fail,&ss,&mut,&bams](){
+
+		bool currentFail = false;
+		std::stringstream current_ss;
+		bfs::path bamFnp;
+		while(bams.getVal(bamFnp)){
+			if(!bfs::exists(bamFnp)){
+				current_ss << "Error " << bamFnp  << " doesn't exist"<< "\n";
+				currentFail = true;
+			}else{
+				BamTools::BamReader bReader;
+				bReader.Open(bamFnp.string());
+				if (!bReader.IsOpen()) {
+					current_ss << "Error in opening " << bamFnp << "\n";
+					currentFail = true;
+				}else if(!bReader.LocateIndex()){
+					current_ss << "Error: can't find index for " << bReader.GetFilename() << "\n";
+					current_ss << "Should be " << bReader.GetFilename() << ".bai" << "\n";
+					currentFail = true;
+				}
+			}
+		}
+		if(currentFail){
+			std::lock_guard<std::mutex> lock(mut);
+			fail = true;
+			ss << current_ss.str();
+		}
+	};
+
+	njh::concurrent::runVoidFunctionThreaded(checkBam, numThreads);
+
+	if(fail){
+		throw std::runtime_error{ss.str()};
+	}
+
+}
+
+
+
 void checkBamFilesForIndexesAndAbilityToOpen(const std::vector<bfs::path> & bamFnps){
 	bool fail = false;
 	std::stringstream ss;

@@ -591,7 +591,7 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA,
       continue;
     }
     if ( 0 > parts_.scoring_.mat_[alignObjectA_.seqBase_.seq_[i]]
-                                  [alignObjectB_.seqBase_.seq_[i]]) {
+                                 [alignObjectB_.seqBase_.seq_[i]]) {
 			auto firstK = getKmerPos(i - firstOffset, kMaps_.kLength_, objectA.seq_);
 			auto secondK = getKmerPos(i - secondOffset, kMaps_.kLength_, objectB.seq_);
       if (usingQuality) {
