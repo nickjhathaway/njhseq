@@ -66,22 +66,39 @@ public:
 		primerInfo(const std::string & primerPairName,
 				const std::string & forwardPrimer, const std::string &reversePrimer );
 		std::string primerPairName_;
-		std::string forwardPrimer_;      /**< 5`-3` direction */
-		seqInfo forwardPrimerInfo_;      /**< 5`-3` direction */
-		seqInfo forwardPrimerInfoRevDir_;/**< 3`-5` direction */
-		motif forwardPrimerMotif_;       /**< 5`-3` direction */
-		motif forwardPrimerMotifRevDir_; /**< 3`-5` direction */
 
-		std::string reversePrimer_;      /**< 5`-3` direction */
-		seqInfo reversePrimerInfo_;			 /**< 3`-5` direction */
-		seqInfo reversePrimerInfoForDir_;/**< 5`-3` direction */
-		motif reversePrimerMotif_;       /**< 3`-5` direction */
-		motif reversePrimerMotifForDir_; /**< 5`-3` direction */
+		std::string forwardPrimerRaw_;
+		std::string reversePrimerRaw_;
 
-		charCounter forwardPrimerInfoLetCounter_;
-		charCounter forwardPrimerInfoRevDirLetCounter_;
-		charCounter reversePrimerInfoLetCounter_;
-		charCounter reversePrimerInfoForDirLetCounter_;
+		struct PrimerSeq {
+			PrimerSeq(const seqInfo & primer);
+			std::string primer_;
+			seqInfo info_;  /**< input direction */
+			seqInfo infoRC_;/**< reverse complement of input */
+			motif mot_;/**< input direction */
+			motif motRC_;/**< reverse complement of input */
+			charCounter infoLetCounter_;      /**< input direction */
+			charCounter infoLetCounterRC_;/**< reverse complement of input */
+		};
+		std::vector<PrimerSeq> fwds_;
+		std::vector<PrimerSeq> revs_;
+
+
+//		std::string forwardPrimer_;      /**< 5`-3` direction */
+//		seqInfo forwardPrimerInfo_;      /**< 5`-3` direction */
+//		seqInfo forwardPrimerInfoRevDir_;/**< 3`-5` direction */
+//		motif forwardPrimerMotif_;       /**< 5`-3` direction */
+//		motif forwardPrimerMotifRevDir_; /**< 3`-5` direction */
+//		charCounter forwardPrimerInfoLetCounter_;       /**< 5`-3` direction */
+//		charCounter forwardPrimerInfoRevDirLetCounter_; /**< 3`-5` direction */
+//
+//		std::string reversePrimer_;      /**< 5`-3` direction */
+//		seqInfo reversePrimerInfo_;			 /**< 3`-5` direction */
+//		seqInfo reversePrimerInfoForDir_;/**< 5`-3` direction */
+//		motif reversePrimerMotif_;       /**< 3`-5` direction */
+//		motif reversePrimerMotifForDir_; /**< 5`-3` direction */
+//		charCounter reversePrimerInfoLetCounter_;       /**< 3`-5` direction */
+//		charCounter reversePrimerInfoForDirLetCounter_; /**< 5`-3` direction */
 
 	};
 
@@ -93,6 +110,7 @@ public:
 //			const std::string & forwardPrimer, const std::string & reversePrimer);
 
 	bool containsTarget(const std::string & targetName) const;
+	bool containsPrimerSeq(const std::string & primer) const;
 
 
 	std::map<std::string, primerInfo> primers_;
