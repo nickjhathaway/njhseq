@@ -337,9 +337,9 @@ CollapseIterations CollapseIterations::genStrictDefaultPars(uint32_t stopCheck) 
 	double stopCheckDbl = stopCheck;
 	std::vector<std::vector<double>> iters = {
 			{stopCheckDbl, 3,0,0,0,0,0,0},
-			{stopCheckDbl, 3,1,1,0,0,1,0},
+			{stopCheckDbl, 3,1,.99,0,0,1,0},
 			{stopCheckDbl, 0,0,0,0,0,0,0},
-			{stopCheckDbl, 0,1,1,0,0,1,0},
+			{stopCheckDbl, 0,1,.99,0,0,1,0},
 			{stopCheckDbl, 0,0,0,0,0,0,0}
 	};
 	CollapseIterations ret;

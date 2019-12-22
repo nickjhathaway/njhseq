@@ -38,7 +38,7 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 		print = true;
 	}*/
 	// first deal with any gaps in the beginning
-	double fortyPercent = 0.30 * info.cnt_;
+	double fortyPercent = 0.40 * info.cnt_;
 	for (const auto & bCount : beginningGap) {
 		uint32_t bestQuality = 0;
 		char bestBase = ' ';
