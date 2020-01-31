@@ -118,18 +118,17 @@ SeqIOOptions::outFormats SeqIOOptions::getOutFormat(const std::string & format){
 SeqIOOptions::inFormats SeqIOOptions::getInFormatFromFnp(const bfs::path & fnp){
 	auto fnpStr = fnp.string();
 	inFormats in = inFormats::NOFORMAT;
-	if (njh::endsWith(fnpStr, ".fastq") || njh::endsWith(fnpStr, ".fq")
-			|| njh::endsWith(fnpStr, ".fnq")) {
+	if (njh::endsWith(fnpStr, ".fastq") || njh::endsWith(fnpStr, ".fq") || njh::endsWith(fnpStr, ".fnq")) {
 		in =  inFormats::FASTQ;
 	} else if (njh::endsWith(fnpStr, "_R1.fastq") || njh::endsWith(fnpStr, "_1.fastq")) {
 		in =  inFormats::FASTQPAIRED;
 	} else if (njh::endsWith(fnpStr, "_R1.fastq.gz") || njh::endsWith(fnpStr, "_1.fastq.gz")) {
 		in =  inFormats::FASTQPAIREDGZ;
-	} else if (njh::endsWith(fnpStr, ".fastq.gz")) {
+	} else if (njh::endsWith(fnpStr, ".fastq.gz")|| njh::endsWith(fnpStr, ".fq.gz") || njh::endsWith(fnpStr, ".fnq.gz")) {
 		in =  inFormats::FASTQGZ;
-	} else if (njh::endsWith(fnpStr, ".fasta") || njh::endsWith(fnpStr, ".fa")) {
+	} else if (njh::endsWith(fnpStr, ".fasta") || njh::endsWith(fnpStr, ".fa")|| njh::endsWith(fnpStr, ".fna")) {
 		in =  inFormats::FASTA;
-	} else if (njh::endsWith(fnpStr, ".fasta.gz")) {
+	} else if (njh::endsWith(fnpStr, ".fasta.gz") || njh::endsWith(fnpStr, ".fa.gz")|| njh::endsWith(fnpStr, ".fna.gz")) {
 		in =  inFormats::FASTAGZ;
 	} else if (njh::endsWith(fnpStr, ".bam")) {
 		in =  inFormats::BAM;
@@ -155,11 +154,11 @@ SeqIOOptions::outFormats SeqIOOptions::getOutFormatFromFnp(const bfs::path & fnp
 		out =  outFormats::FASTQPAIRED;
 	} else if (njh::endsWith(fnpStr, "_R1.fastq.gz") || njh::endsWith(fnpStr, "_1.fastq.gz")) {
 		out =  outFormats::FASTQPAIREDGZ;
-	} else if (njh::endsWith(fnpStr, ".fastq.gz")) {
+	} else if (njh::endsWith(fnpStr, ".fastq.gz")|| njh::endsWith(fnpStr, ".fq.gz") || njh::endsWith(fnpStr, ".fnq.gz")) {
 		out =  outFormats::FASTQGZ;
-	} else if (njh::endsWith(fnpStr, ".fasta") || njh::endsWith(fnpStr, ".fa")) {
+	} else if (njh::endsWith(fnpStr, ".fasta") || njh::endsWith(fnpStr, ".fa")|| njh::endsWith(fnpStr, ".fna")) {
 		out =  outFormats::FASTA;
-	} else if (njh::endsWith(fnpStr, ".fasta.gz")) {
+	} else if (njh::endsWith(fnpStr, ".fasta.gz") || njh::endsWith(fnpStr, ".fa.gz")|| njh::endsWith(fnpStr, ".fna.gz")) {
 		out =  outFormats::FASTAGZ;
 	} else if (njh::endsWith(fnpStr, ".bam")) {
 		out =  outFormats::FASTQ;

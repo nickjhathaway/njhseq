@@ -89,6 +89,9 @@ public:
 	std::vector<size_t> findPositionsFull(const std::string & wholeProtein,
 			uint32_t allowableErrors, size_t start, size_t stop) const;
 
+	bool frontPassNoCheck(const std::string & wholeProtein,
+			uint32_t allowableErrors) const;
+
 	std::vector<size_t> findPositionsSubSets(
 			const std::string & wholeProtein,
 			uint32_t allowableErrors,

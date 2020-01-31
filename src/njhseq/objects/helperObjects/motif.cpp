@@ -120,11 +120,11 @@ void motif::processMotif() {
 			offSets[off] = offSets[off] - (exclud.second - exclud.first);
 		}
 	}
-	/*
-	 printVector(singles);
-	 for(const auto & offSet : offSets){
-	 std::cout << offSet.first << " : " << offSet.second << std::endl;
-	 }*/
+
+//	printVector(singles);
+//	for (const auto & offSet : offSets) {
+//		std::cout << offSet.first << " : " << offSet.second << std::endl;
+//	}
 	//add singles
 	for (const auto & sing : singles) {
 		motifUnits_[offSets[sing]] = motifSubUnit(motifOriginal_.substr(sing, 1),
@@ -140,11 +140,13 @@ void motif::processMotif() {
 		motifUnits_[offSets[exclud.first]] = processExclusion(exclud.first,
 				exclud.second);
 	}
-	/*
-	 for(const auto & unit : motifUnits_){
-	 std::cout << "pos: " << unit.first << std::endl;
-	 std::cout << "\tinclud: " << convertBoolToString(unit.second.inclusive_) <<" "; printVector(unit.second.aas_, " ");
-	 }*/
+
+//	 for (const auto & unit : motifUnits_) {
+//		std::cout << "pos: " << unit.first << std::endl;
+//		std::cout << "\tinclud: " << convertBoolToString(unit.second.inclusive_)
+//				<< " ";
+//		printVector(unit.second.aas_, " ");
+//	}
 
 	//getRange(0,2);
 }
@@ -181,6 +183,24 @@ uint32_t motif::scoreMotif(const std::string::const_iterator & targetBegin,
 				<< std::endl;
 		throw std::runtime_error { ss.str() };
 	}
+//	{
+//		std::string possibleMotif;
+//		auto strIt = targetBegin;
+//		auto mapIt = motifUnits_.begin();
+//		for(; strIt != targetEnd;++strIt,++mapIt ){
+//			possibleMotif.push_back(*strIt);
+//		}
+//		if("GTACCTCTAAGAAGCTTA" == possibleMotif){
+//			uint32_t score = 0;
+//			for (const auto & cPos : iter::range(possibleMotif.size())) {
+//				std::cout << cPos << std::endl;
+//				std::cout << "\tchar :" << possibleMotif[cPos] << std::endl;
+//				std::cout << "\tscore:" << motifUnits_.at(cPos).scoreChar(possibleMotif[cPos]) << std::endl;
+//				score += motifUnits_.at(cPos).scoreChar(possibleMotif[cPos]);
+//			}
+//			std::cout << "tscore: " << score << std::endl;
+//		}
+//	}
 	uint32_t score = 0;
 	auto strIt = targetBegin;
 	auto mapIt = motifUnits_.begin();
@@ -213,6 +233,21 @@ std::vector<size_t> motif::findPositionsFull(const std::string & wholeProtein,
 		uint32_t allowableErrors) const {
 	return findPositionsFull(wholeProtein, allowableErrors, 0,
 			wholeProtein.size());
+}
+
+
+bool motif::frontPassNoCheck(const std::string & wholeProtein,
+		uint32_t allowableErrors) const{
+	uint32_t sum = 0;
+	auto predTest =
+			[&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
+			{
+				sum += 1 - mot.second.scoreChar(a);
+				return sum <= allowableErrors;
+			};
+	return std::equal(wholeProtein.begin(),
+			wholeProtein.begin() + motifUnits_.size(), motifUnits_.begin(),
+			predTest);
 }
 
 std::vector<size_t> motif::findPositionsFull(const std::string & wholeProtein,
