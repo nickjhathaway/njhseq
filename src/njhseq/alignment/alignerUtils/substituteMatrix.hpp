@@ -71,8 +71,9 @@ public:
 	substituteMatrix(const substituteMatrix & other);
 
 	//members
-	std::array<std::array<int32_t, 127>, 127> mat_;
-
+	std::vector<std::vector<int32_t>> mat_{std::vector<std::vector<int32_t>>(
+      127, std::vector<int32_t>(127))};
+	//std::array<std::array<int32_t, 127>, 127> mat_;
 	//functions
 
 	void setWithZeros();

@@ -32,9 +32,9 @@ namespace njhseq {
 AllGroupDataPaths::GroupDataPaths::SubGroupDataPaths::SubGroupDataPaths(
 		const bfs::path & mainDir) :
 		mainDir_(mainDir), popFileFnp_(
-				njh::files::make_path(mainDir, "popFile.tab.txt")), sampFileFnp_(
-				njh::files::make_path(mainDir, "sampFile.tab.txt")),
-				hapIdTabFnp_(njh::files::make_path(mainDir, "hapIdTable.tab.txt")),
+				njh::files::make_path(mainDir, "popFile.tab.txt.gz")), sampFileFnp_(
+				njh::files::make_path(mainDir, "sampFile.tab.txt.gz")),
+				hapIdTabFnp_(njh::files::make_path(mainDir, "hapIdTable.tab.txt.gz")),
 				subGroupNamesDataFnp_(
 				njh::files::make_path(mainDir, "subGroupNamesData.json")) {
 }
@@ -67,7 +67,7 @@ VecStr AllGroupDataPaths::GroupDataPaths::SubGroupDataPaths::readInSampNames() c
 AllGroupDataPaths::GroupDataPaths::GroupDataPaths(const bfs::path & mainDir,
 		const std::set<std::string> & subGroups) :
 		mainDir_(mainDir), groupInfoFnp_(
-				njh::files::make_path(mainDir, "groupInfo.tab.txt")) {
+				njh::files::make_path(mainDir, "groupInfo.tab.txt.gz")) {
 	for (const auto & group : subGroups) {
 		groupPaths_.emplace(group, njh::files::make_path(mainDir_, group));
 	}

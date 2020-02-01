@@ -39,15 +39,27 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 		}else if(njh::in(record->type_, acceptableMrnaLikeRecords)){
 			mRNAs_.emplace_back(record);
 		}else if("CDS" == record->type_){
-			CDS_[record->getAttr("Parent")].emplace_back(record);
+			auto currentParents = tokenizeString(record->getAttr("Parent"), ",");
+			for(const auto & parent : currentParents){
+				CDS_[parent].emplace_back(record);
+			}
 		}else if("exon" == record->type_){
-			exons_[record->getAttr("Parent")].emplace_back(record);
+			auto currentParents = tokenizeString(record->getAttr("Parent"), ",");
+			for(const auto & parent : currentParents){
+				exons_[parent].emplace_back(record);
+			}
 		}else if("pseudogenic_exon" == record->type_){
-			exons_[record->getAttr("Parent")].emplace_back(record);
+			auto currentParents = tokenizeString(record->getAttr("Parent"), ",");
+			for(const auto & parent : currentParents){
+				exons_[parent].emplace_back(record);
+			}
 		}else if("polypeptide" == record->type_){
 			polypeptides_[record->getAttr("Derives_from")].emplace_back(record);
 		}else {
-			others_[record->getAttr("Parent")].emplace_back(record);
+			auto currentParents = tokenizeString(record->getAttr("Parent"), ",");
+			for(const auto & parent : currentParents){
+				others_[parent].emplace_back(record);
+			}
 		}
 	}
 
@@ -438,11 +450,13 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 			parents[currentId].insert(gRecord->getAttr("ID"));
 			gffRecs[currentId].emplace_back(std::make_shared<GFFCore>(*gRecord));
 		}else if(gRecord->hasAttr("Parent")){
-			auto currentParent = gRecord->getAttr("Parent");
-			for(auto & p : parents){
-				if(njh::in(currentParent, p.second)){
-					p.second.insert(gRecord->getAttr("ID"));
-					gffRecs[p.first].emplace_back(std::make_shared<GFFCore>(*gRecord));
+			auto currentParents = tokenizeString(gRecord->getAttr("Parent"), ",");
+			for(const auto & currentParent : currentParents){
+				for(auto & p : parents){
+					if(njh::in(currentParent, p.second)){
+						p.second.insert(gRecord->getAttr("ID"));
+						gffRecs[p.first].emplace_back(std::make_shared<GFFCore>(*gRecord));
+					}
 				}
 			}
 		} else if(njh::in(gRecord->type_, deirvedFromRecordFeatures) ){

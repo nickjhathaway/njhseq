@@ -31,5 +31,6 @@
 #include "njhseq/BamToolsUtils/BamAlnsCache.hpp"
 #include "njhseq/BamToolsUtils/BamAlnsCacheWithRegion.hpp"
 #include "njhseq/BamToolsUtils/BamCountExtractStats.hpp"
+#include "njhseq/BamToolsUtils/ReAlignedSeq.hpp"
 
 

@@ -62,7 +62,11 @@ public:
 	void excludeChimerasNoReMark(bool update);
 	void markChimeras(double fracCutOff);
 
-	void excludeLowFreqOneOffs(bool update, double lowFreqMultiplier, aligner &alignerObj, bool skipChimeras = true);
+	void excludeLowFreqOneOffs(bool update,
+			double lowFreqMultiplier,
+			aligner &alignerObj,
+			bool skipChimeras,
+			double lowFreqCutOff);
 
 	//void excludeFractionWithinRep(double fractionCutOff, bool update);
 	void excludeFraction(double fractionCutOff, bool update);

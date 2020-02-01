@@ -2930,17 +2930,28 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							size_t possibleMatePostionEnd = 0;
 							bool reverseStrand = bAln.IsReverseStrand();
 							if(bAln.IsReverseStrand()){
-								possibleMatePostionEnd = bAln.Position > static_cast<int64_t>(bAln.QueryBases.size()) ? bAln.Position - bAln.QueryBases.size() : 0;
+								//possibleMatePostionEnd = bAln.Position > static_cast<int64_t>(bAln.QueryBases.size()) ? bAln.Position - bAln.QueryBases.size() : 0;
+								possibleMatePostionEnd = bAln.Position;
 								posibleMatePosition = possibleMatePostionEnd > search->QueryBases.size() ? possibleMatePostionEnd - search->QueryBases.size() : 0;
 							}else{
 								posibleMatePosition += bAln.QueryBases.size();
 								possibleMatePostionEnd = posibleMatePosition + search->QueryBases.size();
 							}
-							GenomicRegion possibleMateReg(search->Name, refData[bAln.RefID].RefName, posibleMatePosition, possibleMatePostionEnd, reverseStrand);
-							double mateBases = search->QueryBases.size();
-							if(mateBases > 0 && possibleMateReg.getOverlapLen(region)/mateBases >= percInRegion){
-							//if(posibleMatePosition >= region.start_ && posibleMatePosition < region.end_){
+							bool matePass = false;
+							if(bAln.IsReverseStrand()){
+								//include mate if the read points off the beginning of the region
+								if(possibleMatePostionEnd < search->QueryBases.size()){
+									matePass = true;
+								}
+							} else {
+								GenomicRegion possibleMateReg(search->Name, refData[bAln.RefID].RefName, posibleMatePosition, possibleMatePostionEnd, reverseStrand);
+								double mateBases = search->QueryBases.size();
+								matePass = (mateBases > 0 && possibleMateReg.getOverlapLen(region)/mateBases >= percInRegion);
+							}
 
+							//if(mateBases > 0 && possibleMateReg.getOverlapLen(region)/mateBases >= percInRegion){
+							//if(posibleMatePosition >= region.start_ && posibleMatePosition < region.end_){
+							if (matePass) {
 								//since to make it here at least one of the mates had to align, just check which one did
 								if(!region.reverseSrand_){
 									searchSeq.reverseComplementRead(false, true);
@@ -2970,17 +2981,27 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							size_t possibleMatePostionEnd = 0;
 							bool reverseStrand = search->IsReverseStrand();
 							if(search->IsReverseStrand()){
-								possibleMatePostionEnd = search->Position > static_cast<int64_t>(search->QueryBases.size()) ? search->Position - search->QueryBases.size() : 0;
+								//possibleMatePostionEnd = search->Position > static_cast<int64_t>(search->QueryBases.size()) ? search->Position - search->QueryBases.size() : 0;
+								possibleMatePostionEnd = search->Position;
 								posibleMatePosition = possibleMatePostionEnd > bAln.QueryBases.size() ? possibleMatePostionEnd - bAln.QueryBases.size() : 0;
-							}else{
+							} else {
 								posibleMatePosition += search->QueryBases.size();
 								possibleMatePostionEnd = posibleMatePosition + bAln.QueryBases.size();
 							}
-							GenomicRegion possibleMateReg(bAln.Name, refData[search->RefID].RefName,posibleMatePosition, possibleMatePostionEnd, reverseStrand);
-							double mateBases = bAln.QueryBases.size();
 
+							bool matePass = false;
+							if(search->IsReverseStrand()){
+								//include mate if the read points off the beginning of the region
+								if(possibleMatePostionEnd < bAln.QueryBases.size()){
+									matePass = true;
+								}
+							} else {
+								GenomicRegion possibleMateReg(bAln.Name, refData[search->RefID].RefName, posibleMatePosition, possibleMatePostionEnd, reverseStrand);
+								double mateBases = bAln.QueryBases.size();
+								matePass = (mateBases > 0 && possibleMateReg.getOverlapLen(*searchRegion)/mateBases >= percInRegion);
+							}
 							//if(posibleMatePosition >= searchRegion->start_ && posibleMatePosition < searchRegion->end_){
-							if(mateBases > 0 && possibleMateReg.getOverlapLen(*searchRegion)/mateBases >= percInRegion){
+							if(matePass){
 								//since to make it here at least one of the mates had to align, just check which one did
 								if(!searchRegion->reverseSrand_){
 									bAlnSeq.reverseComplementRead(false, true);
@@ -3044,18 +3065,41 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			bReaderMateFinder.Open(inOutOpts.firstName_.string());
 			checkBamOpenThrow(bReaderMateFinder, inOutOpts.firstName_.string());
 			loadBamIndexThrow(bReaderMateFinder);
-			while (bReaderMateFinder.GetNextAlignment(bAln)) {
-				//skip secondary alignments
-				if (!bAln.IsPrimaryAlignment()) {
-					continue;
+			auto refData = bReaderMateFinder.GetReferenceData();
+			//gather all the orphans regions
+			std::unordered_map<std::string, std::set<uint32_t>> orphanPositions;
+			for (const auto & name : names) {
+				auto search = alnCache.get(name);
+				if(search->IsPaired()){
+					if (search->IsMateMapped()) {
+						orphanPositions[refData[search->MateRefID].RefName].emplace(search->MatePosition);
+					}
 				}
-				if (bAln.IsPaired()) {
-					if (alnCache.has(bAln.Name)) {
-						auto search = alnCache.get(bAln.Name);
-						if (bAln.IsFirstMate() != search->IsFirstMate()) {
-							writeTheThrownAwayMate(bAln,
-									seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
-											SangerQualOffset));
+			}
+			std::vector<GenomicRegion> orphanMateRegions;
+			for(const auto & orPos : orphanPositions){
+				for(const auto & pos  : orPos.second){
+					orphanMateRegions.emplace_back(GenomicRegion("", orPos.first, pos, pos + 1, false));
+				}
+			}
+			for(const auto & reg : orphanMateRegions){
+				setBamFileRegionThrow(bReaderMateFinder, reg);
+				while (bReaderMateFinder.GetNextAlignment(bAln)) {
+					//skip secondary alignments
+					if (!bAln.IsPrimaryAlignment()) {
+						continue;
+					}
+					if(bAln.Position < reg.start_){
+						continue;
+					}
+					if (bAln.IsPaired()) {
+						if (alnCache.has(bAln.Name)) {
+							auto search = alnCache.get(bAln.Name);
+							if (bAln.IsFirstMate() != search->IsFirstMate()) {
+								writeTheThrownAwayMate(bAln,
+										seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
+												SangerQualOffset));
+							}
 						}
 					}
 				}

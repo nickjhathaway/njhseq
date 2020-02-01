@@ -75,6 +75,8 @@ class mismatch {
   uint32_t kMerFreq;
 
   bool highQuality(const QualScorePars & qScorePars) const;
+  bool highQualityJustRef(const QualScorePars & qScorePars) const;
+  bool highQualityJustSeq(const QualScorePars & qScorePars) const;
 
   std::string outputInfoString() const ;
   Json::Value toJson()const;

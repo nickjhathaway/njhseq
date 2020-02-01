@@ -47,6 +47,7 @@ Json::Value MidDeterminator::midPos::toJson() const {
 	ret["barcodeSize_"] = njh::json::toJson(barcodeSize_);
 	ret["barcodeScore_"] = njh::json::toJson(barcodeScore_);
 	ret["inRevComp_"] = njh::json::toJson(inRevComp_);
+
 	return ret;
 }
 
@@ -777,7 +778,40 @@ MidDeterminator::MidSearchRes MidDeterminator::searchRead(
 			bestReverseBarMatches.clear();
 			bestReverseBarMatches.emplace_back(backMatch);
 		}
+	} else if (bestForwardBarMatches.size() > 1 && bestReverseBarMatches.size() > 1) {
+		std::set<std::string> forwards;
+		std::set<std::string> reverse;
+		for(const auto & bestFor : bestForwardBarMatches){
+			forwards.emplace(bestFor.midName_);
+		}
+		for(const auto & bestRev : bestReverseBarMatches){
+			reverse.emplace(bestRev.midName_);
+		}
+
+		VecStr inBoth;
+    std::set_intersection(forwards.begin(), forwards.end(),
+    		reverse.begin(), reverse.end(),
+                          std::back_inserter(inBoth));
+		if (1 == inBoth.size()) {
+			std::vector<MidDeterminator::midPos> bestForwardBarMatchesSel;
+			std::vector<MidDeterminator::midPos> bestReverseBarMatchesSel;
+			for (const auto & bestFor : bestForwardBarMatches) {
+				if (inBoth.front() == bestFor.midName_) {
+					bestForwardBarMatchesSel.emplace_back(bestFor);
+					break;
+				}
+			}
+			for (const auto & bestRev : bestReverseBarMatches) {
+				if (inBoth.front() == bestRev.midName_) {
+					bestReverseBarMatchesSel.emplace_back(bestRev);
+					break;
+				}
+			}
+			bestForwardBarMatches = bestForwardBarMatchesSel;
+			bestReverseBarMatches = bestReverseBarMatchesSel;
+		}
 	}
+
 	res.forward_ = bestForwardBarMatches;
 	res.reverse_ = bestReverseBarMatches;
 
@@ -1043,7 +1077,21 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 	MidDeterminator::MidSearchRes res;
 	std::vector<MidDeterminator::midPos> bestForwardBarMatches;
 	std::vector<MidDeterminator::midPos> bestReverseBarMatches;
+//	if("M04367:213:000000000-CKMCR:1:1102:15808:1331 1:N:0:TAGCTT" == seq.seqBase_.name_){
+//		std::cout << "first 8 bases for: " << seq.seqBase_.seq_.substr(0,8) << std::endl;
+//		std::cout << "first 8 bases rev: " << seq.mateSeqBase_.seq_.substr(0,8) << std::endl;
+//
+//		std::cout << "Forward matches: ";
+//		for(const auto & f : forwardBarMatches){
+//			std::cout << f.toJson() << std::endl << std::endl;
+//		}
+//		std::cout << "Reverse matches: ";
+//		for(const auto & f : reverseBarMatches){
+//			std::cout << f.toJson() << std::endl << std::endl;
+//		}
+//	}
 	//determine best matches;
+
 	//forward
 	if(1 == forwardBarMatches.size()){
 		bestForwardBarMatches = forwardBarMatches;
@@ -1053,6 +1101,7 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 			if(forwardMatch.barcodeScore_ > bestBarcodeScore){
 				bestForwardBarMatches.clear();
 				bestForwardBarMatches.emplace_back(forwardMatch);
+				bestBarcodeScore = forwardMatch.barcodeScore_;
 			}else if(forwardMatch.barcodeScore_ == bestBarcodeScore){
 				bestForwardBarMatches.emplace_back(forwardMatch);
 			}
@@ -1068,11 +1117,27 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 			if(reverseMath.barcodeScore_ > bestBarcodeScore){
 				bestReverseBarMatches.clear();
 				bestReverseBarMatches.emplace_back(reverseMath);
+				bestBarcodeScore = reverseMath.barcodeScore_;
 			}else if(reverseMath.barcodeScore_ == bestBarcodeScore){
 				bestReverseBarMatches.emplace_back(reverseMath);
 			}
 		}
 	}
+//
+//	if("M04367:213:000000000-CKMCR:1:1102:15808:1331 1:N:0:TAGCTT" == seq.seqBase_.name_){
+//		std::cout << "first 8 bases for: " << seq.seqBase_.seq_.substr(0,8) << std::endl;
+//		std::cout << "first 8 bases rev: " << seq.mateSeqBase_.seq_.substr(0,8) << std::endl;
+//
+//		std::cout << "Best Forward matches: ";
+//		for(const auto & f : bestForwardBarMatches){
+//			std::cout << f.toJson() << std::endl << std::endl;
+//		}
+//		std::cout << "Best Reverse matches: ";
+//		for(const auto & f : bestReverseBarMatches){
+//			std::cout << f.toJson() << std::endl << std::endl;
+//		}
+//	}
+
 
 	//utilize other size if multiple best matches
 	if(bestForwardBarMatches.size() > 1 && bestReverseBarMatches.size() == 1 ){
@@ -1103,7 +1168,54 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 			bestReverseBarMatches.clear();
 			bestReverseBarMatches.emplace_back(backMatch);
 		}
+	} else if (bestForwardBarMatches.size() > 1 && bestReverseBarMatches.size() > 1) {
+		std::set<std::string> forwards;
+		std::set<std::string> reverse;
+		for(const auto & bestFor : bestForwardBarMatches){
+			forwards.emplace(bestFor.midName_);
+		}
+		for(const auto & bestRev : bestReverseBarMatches){
+			reverse.emplace(bestRev.midName_);
+		}
+
+		VecStr inBoth;
+    std::set_intersection(forwards.begin(), forwards.end(),
+    		reverse.begin(), reverse.end(),
+                          std::back_inserter(inBoth));
+		if (1 == inBoth.size()) {
+			std::vector<MidDeterminator::midPos> bestForwardBarMatchesSel;
+			std::vector<MidDeterminator::midPos> bestReverseBarMatchesSel;
+			for (const auto & bestFor : bestForwardBarMatches) {
+				if (inBoth.front() == bestFor.midName_) {
+					bestForwardBarMatchesSel.emplace_back(bestFor);
+					break;
+				}
+			}
+			for (const auto & bestRev : bestReverseBarMatches) {
+				if (inBoth.front() == bestRev.midName_) {
+					bestReverseBarMatchesSel.emplace_back(bestRev);
+					break;
+				}
+			}
+			bestForwardBarMatches = bestForwardBarMatchesSel;
+			bestReverseBarMatches = bestReverseBarMatchesSel;
+		}
 	}
+
+
+//	if("M04367:213:000000000-CKMCR:1:1102:15808:1331 1:N:0:TAGCTT" == seq.seqBase_.name_){
+//		std::cout << "After post processing" << std::endl;
+//		std::cout << "Best Forward matches: ";
+//		for(const auto & f : bestForwardBarMatches){
+//			std::cout << f.toJson() << std::endl << std::endl;
+//		}
+//		std::cout << "Best Reverse matches: ";
+//		for(const auto & f : bestReverseBarMatches){
+//			std::cout << f.toJson() << std::endl << std::endl;
+//		}
+//		exit(1);
+//	}
+
 	res.forward_ = bestForwardBarMatches;
 	res.reverse_ = bestReverseBarMatches;
 

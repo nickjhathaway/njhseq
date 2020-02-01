@@ -41,7 +41,8 @@ void addToStr(std::string & str, const std::string & otherStr){
 
 VecStr streamToVecStr(std::istream& stream) {
   VecStr lines;
-  for (std::string line; njh::files::crossPlatGetline(stream, line);) {
+  std::string line;
+  while(njh::files::crossPlatGetline(stream, line)) {
     lines.emplace_back(line);
   }
   return lines;

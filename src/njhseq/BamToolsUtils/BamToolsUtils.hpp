@@ -39,6 +39,10 @@
 namespace njhseq {
 
 
+uint32_t getSoftClipAmount(const BamTools::BamAlignment & bAln);
+
+
+
 std::vector<GenomicRegion> genGenRegionsFromRefData(const BamTools::RefVector & rData);
 
 seqInfo bamAlnToSeqInfo(const BamTools::BamAlignment & aln, bool keepPlusStrandOrientation = false);
@@ -107,6 +111,7 @@ void logAlnInfo(std::ostream & out, BamTools::RefVector & refInfo,
 void setBamFileRegionThrow(BamTools::BamReader & bReader, const GenomicRegion & region);
 
 void checkBamFilesForIndexesAndAbilityToOpen(const std::vector<bfs::path> & bamFnps);
+void checkBamFilesForIndexesAndAbilityToOpen(const std::vector<bfs::path> & bamFnps, uint32_t numThreads);
 
 
 } /* namespace njhseq */

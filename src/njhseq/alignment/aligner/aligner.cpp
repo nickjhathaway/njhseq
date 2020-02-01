@@ -39,13 +39,7 @@ aligner::aligner() :
 
 aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars) :
 		parts_(maxSize, gapPars) {
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	alnHolder_.addHolder(parts_.gapScores_, parts_.scoring_);
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	alnInfoMasterHolder alnHolderCopy(gapPars, parts_.scoring_);
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	alnHolder_ = alnHolderCopy;
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	countEndGaps_ = false;
 	weighHomopolymers_ = false;
 	setDefaultQualities();
@@ -54,13 +48,7 @@ aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars) :
 aligner::aligner(uint64_t maxSize, const gapScoringParameters& gapPars,
 		const substituteMatrix& scoreMatrix) :
 		parts_(maxSize, gapPars, scoreMatrix) {
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	alnHolder_.addHolder(parts_.gapScores_, parts_.scoring_);
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	alnInfoMasterHolder alnHolderCopy(gapPars, parts_.scoring_);
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	alnHolder_ = alnHolderCopy;
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	alnHolder_.addHolder(parts_.gapScores_, scoreMatrix);
 	countEndGaps_ = false;
 	weighHomopolymers_ = false;
 	setDefaultQualities();
@@ -603,7 +591,7 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA,
       continue;
     }
     if ( 0 > parts_.scoring_.mat_[alignObjectA_.seqBase_.seq_[i]]
-                                  [alignObjectB_.seqBase_.seq_[i]]) {
+                                 [alignObjectB_.seqBase_.seq_[i]]) {
 			auto firstK = getKmerPos(i - firstOffset, kMaps_.kLength_, objectA.seq_);
 			auto secondK = getKmerPos(i - secondOffset, kMaps_.kLength_, objectB.seq_);
       if (usingQuality) {

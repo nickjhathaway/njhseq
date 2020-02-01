@@ -85,6 +85,7 @@ private:
 	std::mutex mut_;
 public:
 	PopNamesInfo popNames_{"", VecStr{}};
+	bool keepSampleInfoInMemory_{false};
 	VecStr passingSamples_;
 	VecStr lowRepCntSamples_;
 	PreFilteringCutOffs preFiltCutOffs_;
@@ -140,6 +141,8 @@ public:
 	void investigateChimeras(double chiCutOff, aligner & alignerObj);
 
 	std::vector<sampleCluster> createPopInput();
+
+	void setPassingSamples();
 
 	void doPopulationClustering(const std::vector<sampleCluster> & input,
 			aligner & alignerObj, const collapser & collapserObj,

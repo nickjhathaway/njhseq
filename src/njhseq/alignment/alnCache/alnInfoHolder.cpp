@@ -42,26 +42,66 @@ void alnInfoMasterHolder::clearHolders(){
 
 alnInfoMasterHolder::alnInfoMasterHolder() {}
 
+//alnInfoMasterHolder::alnInfoMasterHolder(const gapScoringParameters & gapPars,
+//		const substituteMatrix & scoringArray) :
+//		localHolder_(
+//				std::unordered_map<std::string, alnInfoHolderBase<alnInfoLocal>> { {
+//						gapPars.getIdentifer(), alnInfoHolderBase<alnInfoLocal>(gapPars,
+//								scoringArray, "LOCAL") } }),
+//		globalHolder_(
+//				std::unordered_map<std::string, alnInfoHolderBase<alnInfoGlobal>> { {
+//						gapPars.getIdentifer(), alnInfoHolderBase<alnInfoGlobal>(gapPars,
+//								scoringArray, "GLOBAL") } }) {
+//}
+
 alnInfoMasterHolder::alnInfoMasterHolder(const gapScoringParameters & gapPars,
-		const substituteMatrix & scoringArray) :
-		localHolder_(
-				std::unordered_map<std::string, alnInfoHolderBase<alnInfoLocal>> { {
-						gapPars.getIdentifer(), alnInfoHolderBase<alnInfoLocal>(gapPars,
-								scoringArray, "LOCAL") } }),
-		globalHolder_(
-				std::unordered_map<std::string, alnInfoHolderBase<alnInfoGlobal>> { {
-						gapPars.getIdentifer(), alnInfoHolderBase<alnInfoGlobal>(gapPars,
-								scoringArray, "GLOBAL") } }) {
+		const substituteMatrix & scoringArray) {
+	addHolder(gapPars, scoringArray);
 }
 
 void alnInfoMasterHolder::addHolder(const gapScoringParameters & gapPars,
   	  const substituteMatrix & scoringArray){
 	localHolder_.emplace(gapPars.getIdentifer(), alnInfoHolderBase<alnInfoLocal>(gapPars,
-								scoringArray, "LOCAL"));
+			scoringArray, "LOCAL"));
 	globalHolder_.emplace(gapPars.getIdentifer(), alnInfoHolderBase<alnInfoGlobal>(gapPars,
 								scoringArray, "GLOBAL"));
-
 }
+
+//void alnInfoMasterHolder::addHolder(const gapScoringParameters & gapPars,
+//  	  const substituteMatrix & scoringArray){
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	const auto & scoreCopy = scoringArray;
+//
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::array<std::array<int32_t, 127>, 127> matCopy = scoringArray.mat_;
+//
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::array<std::array<int32_t, 127>, 127> matCopyByHand;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	for(const auto i : iter::range(scoringArray.mat_.size())){
+//		for(const auto & j : iter::range(scoringArray.mat_[i].size())){
+//			matCopyByHand[i][j] = scoringArray.mat_[i][j];
+//		}
+//	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::shared_ptr<substituteMatrix> mat = std::make_shared<substituteMatrix>();
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::shared_ptr<substituteMatrix> mat2 = std::make_shared<substituteMatrix>(scoringArray);
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	//substituteMatrix scores(matCopy);
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+////	auto subHolder = alnInfoHolderBase<alnInfoLocal>(gapPars,
+////			scoringArray, "LOCAL");
+//	const substituteMatrix & matRef = *mat2;
+//	std::cout << matRef.mat_[89][89] << std::endl;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+////	localHolder_.emplace(gapPars.getIdentifer(), alnInfoHolderBase<alnInfoLocal>(gapPars,
+////								*mat2, "LOCAL"));
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+////	globalHolder_.emplace(gapPars.getIdentifer(), alnInfoHolderBase<alnInfoGlobal>(gapPars,
+////								scoringArray, "GLOBAL"));
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//}
 
 void alnInfoMasterHolder::read(const std::string &masterDirName, bool verbose) {
 	auto allDirectories = getFiles(masterDirName, "", "directory", false, false);

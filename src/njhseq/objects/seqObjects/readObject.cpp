@@ -163,11 +163,11 @@ void readObject::createCondensedSeq() {
   std::vector<uint32_t> currentQuals;
   currentQuals.push_back(seqBase_.qual_[0]);
   std::pair<uint32_t, uint32_t> currentQualPos {0,1};
-  bool print = false;
-  if (seqBase_.name_.find("WGHHT:02045:02871_t46.000000") !=
-      std::string::npos) {
-    print = false;
-  }
+//  bool print = false;
+//  if (seqBase_.name_.find("WGHHT:02045:02871_t46.000000") !=
+//      std::string::npos) {
+//    print = false;
+//  }
   uint32_t i = 1;
   for (; i < seqBase_.seq_.length(); i++) {
     if (seqBase_.seq_[i] == seqBase_.seq_[i - 1]) {
@@ -180,37 +180,37 @@ void readObject::createCondensedSeq() {
       condensedSeqQualPos.emplace_back(currentQualPos);
       currentQualPos.first = i;
       condensedSeqCount.push_back(currentCount);
-      if (print) {
-        std::cout << "Base: " << seqBase_.seq_[i - 1] << std::endl;
-        std::cout << "\t" << vectorToString(currentQuals) << std::endl;
-        std::cout << "\t" << currentCount << std::endl;
-      }
+//      if (print) {
+//        std::cout << "Base: " << seqBase_.seq_[i - 1] << std::endl;
+//        std::cout << "\t" << vectorToString(currentQuals) << std::endl;
+//        std::cout << "\t" << currentCount << std::endl;
+//      }
       currentCount = 1;
       currentQuals.clear();
       currentQuals.push_back(seqBase_.qual_[i]);
     }
   }
-  if (print) {
-    std::cout << "Base: " << seqBase_.seq_[i - 1] << std::endl;
-    std::cout << "\t" << vectorToString(currentQuals) << std::endl;
-    std::cout << "\t" << currentCount << std::endl;
-  }
+//  if (print) {
+//    std::cout << "Base: " << seqBase_.seq_[i - 1] << std::endl;
+//    std::cout << "\t" << vectorToString(currentQuals) << std::endl;
+//    std::cout << "\t" << currentCount << std::endl;
+//  }
   condensedSeq.push_back(seqBase_.seq_[i - 1]);
   condensedSeqQual.push_back(vectorMean(currentQuals));
   currentQualPos.second = currentQuals.size();
   condensedSeqQualPos.emplace_back(currentQualPos);
   condensedSeqCount.push_back(currentCount);
-  if (print) {
-    std::cout << condensedSeq << std::endl;
-    std::cout << vectorToString(condensedSeqQual) << std::endl;
-    std::cout << vectorToString(condensedSeqCount) << std::endl;
-    std::cout << seqBase_.seq_ << std::endl;
-    std::cout << vectorToString(seqBase_.qual_) << std::endl;
-    std::cout << seqBase_.seq_.size() << std::endl;
-    std::cout << seqBase_.qual_.size() << std::endl;
-    checkSeqQual(std::cout);
-    exit(1);
-  }
+//  if (print) {
+//    std::cout << condensedSeq << std::endl;
+//    std::cout << vectorToString(condensedSeqQual) << std::endl;
+//    std::cout << vectorToString(condensedSeqCount) << std::endl;
+//    std::cout << seqBase_.seq_ << std::endl;
+//    std::cout << vectorToString(seqBase_.qual_) << std::endl;
+//    std::cout << seqBase_.seq_.size() << std::endl;
+//    std::cout << seqBase_.qual_.size() << std::endl;
+//    checkSeqQual(std::cout);
+//    exit(1);
+//  }
 }
 
 void readObject::setClip(size_t leftPos, size_t rightPos) {

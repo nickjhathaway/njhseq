@@ -189,8 +189,12 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 			renameReadNamesNewClusters(clusters, repf.repName_, true, true, false);
 		}
 		if (chiOpts.checkChimeras_) {
+			for(auto & clus : clusters){
+				clus.seqBase_.unmarkAsChimeric();
+			}
 			collapserObj.markChimeras(clusters, alignerObj, chiOpts);
 		}
+
 		clusterVec::allSetFractionClusters(clusters);
 		if(repf.reNameInput_){
 			readVec::allUpdateName(clusters);
@@ -243,7 +247,7 @@ bfs::path SampleCollapseCollection::getPopFinalHapsPath() const {
 
 bfs::path SampleCollapseCollection::getPopInfoPath() const {
 	return njh::files::make_path(populationOutputDir_,
-			"populationCluster.tab.txt");
+			"populationCluster.tab.txt.gz");
 }
 
 
@@ -254,12 +258,12 @@ bfs::path SampleCollapseCollection::getFinalSampHapsPath(const std::string & sam
 
 bfs::path SampleCollapseCollection::getSampInfoPath() const {
 	/**@todo need to make this standard, currently set by SeekDeep processClusters*/
-	return njh::files::make_path(masterOutputDir_, "selectedClustersInfo.tab.txt");
+	return njh::files::make_path(masterOutputDir_, "selectedClustersInfo.tab.txt.gz");
 }
 
 bfs::path SampleCollapseCollection::getHapIdTabPath() const {
 	return njh::files::make_path(masterOutputDir_,
-			"hapIdTable.tab.txt");
+			"hapIdTable.tab.txt.gz");
 }
 
 
@@ -661,6 +665,23 @@ void SampleCollapseCollection::investigateChimeras(double chiCutOff,
 	chiInfoTab.outPutContents(chiOutOptions);
 }
 
+
+void SampleCollapseCollection::setPassingSamples(){
+	passingSamples_.clear();
+	for (const auto & sampleName : popNames_.samples_) {
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampleName);
+		}
+		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ >= preFiltCutOffs_.sampleMinReadCount &&
+						!njh::in(sampleName, lowRepCntSamples_)){
+			passingSamples_.emplace_back(sampleName);
+		}
+		if(!keepSampleInfoInMemory_){
+			clearSample(sampleName);
+		}
+	}
+}
+
 std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 	passingSamples_.clear();
 	oututSampClusToOldNameKey_.clear();
@@ -673,12 +694,12 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 		}
 		passingSamples_.emplace_back(sampleName);
 		auto & samp = *(sampleCollapses_[sampleName]);
-		double totalReadCnt_ = 0;
+		double totalReadCnt = 0;
 		for (const auto &out : samp.collapsed_.clusters_) {
-			totalReadCnt_ += out.seqBase_.cnt_;
+			totalReadCnt += out.seqBase_.cnt_;
 		}
 		std::map<std::string, sampInfo> outSampInfos { { sampleName, sampInfo(
-				sampleName, totalReadCnt_) } };
+				sampleName, totalReadCnt) } };
 		for (const auto &out : samp.collapsed_.clusters_) {
 			output.emplace_back(sampleCluster(out.createRead(), outSampInfos));
 			std::string oldName = output.back().seqBase_.name_;
@@ -777,7 +798,8 @@ bool SampleCollapseCollection::excludeOneSampOnlyHaps(double fracCutOff){
 	std::unordered_map<std::string, VecStr> samplesWithUniqHaps;
 	for(const auto & popClus : popCollapse_->collapsed_.clusters_){
 		if(1 == popClus.sampleClusters().size()){
-			auto avgFrac = popClus.getCumulativeFrac()/popClus.sampInfos().size();
+			//auto avgFrac = popClus.getCumulativeFrac()/popClus.sampInfos().size();
+			auto avgFrac = popClus.getCumulativeFrac();
 			if(avgFrac < fracCutOff){
 				//this should just be one anyways
 				for(const auto & clus : popClus.reads_){
@@ -826,7 +848,8 @@ bool SampleCollapseCollection::excludeOneSampOnlyOneOffHaps(double fracCutOff, a
 	std::unordered_map<std::string, VecStr> samplesWithUniqHaps;
 	for(const auto & popClus : popCollapse_->collapsed_.clusters_){
 		if(1 == popClus.sampleClusters().size()){
-			auto avgFrac = popClus.getCumulativeFrac()/popClus.sampInfos().size();
+			//auto avgFrac = popClus.getCumulativeFrac()/popClus.sampInfos().size();
+			auto avgFrac = popClus.getCumulativeFrac();
 			if(avgFrac < fracCutOff){
 				//this should just be one anyways
 				for(const auto & clus : popClus.reads_){
@@ -958,7 +981,7 @@ void SampleCollapseCollection::dumpPopulation(const bfs::path & popDir, bool dum
 						OutOptions(njh::files::join(popDir.string(), "readTotals.tab.txt")),
 						"\t", true));
 		if(dumpTable){
-			printPopulationCollapseInfo(njh::files::make_path(popDir, "populationCluster.tab.txt"));
+			printPopulationCollapseInfo(njh::files::make_path(popDir, "populationCluster.tab.txt.gz"));
 		}
 		popCollapse_ = nullptr;
 	}
@@ -969,21 +992,22 @@ std::vector<seqInfo> SampleCollapseCollection::genOutPopSeqsPerSample() const{
 	std::vector<seqInfo> outseqs;
 	for(const auto & seq : popCollapse_->collapsed_.clusters_){
 		for(const auto & subSeq : seq.reads_){
-			auto subSeqCopy = subSeq->seqBase_;
-			auto sample = subSeqCopy.getOwnSampName();
+			auto topSeqCopy = seq.seqBase_;
+			topSeqCopy.name_ = subSeq->seqBase_.name_;
+			//auto subSeqCopy = subSeq->seqBase_;
+			auto sample = topSeqCopy.getOwnSampName();
 			MetaDataInName subseqMeta;
 			subseqMeta.addMeta("PopUID", seq.getStubName(true));
 			subseqMeta.addMeta("sample", sample);
-			subseqMeta.addMeta("readCount", subSeqCopy.cnt_);
+			subseqMeta.addMeta("readCount", subSeq->seqBase_.cnt_);
 			if(nullptr != groupMetaData_){
 				auto sampMeta = groupMetaData_->getMetaForSample(sample, getVectorOfMapKeys(groupMetaData_->groupData_));
 				subseqMeta.addMeta(sampMeta, false);
 			}
-			subseqMeta.resetMetaInName(subSeqCopy.name_, subSeqCopy.name_.rfind("_f"));
-			outseqs.emplace_back(subSeqCopy);
+			subseqMeta.resetMetaInName(topSeqCopy.name_, topSeqCopy.name_.rfind("_f"));
+			outseqs.emplace_back(topSeqCopy);
 		}
 	}
-
 	return outseqs;
 }
 
@@ -1154,7 +1178,8 @@ void SampleCollapseCollection::checkForPopCollapseThrow(
 void SampleCollapseCollection::printPopulationCollapseInfo(const bfs::path& fileName)const {
 	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
 	auto popTab = genPopulationCollapseInfo();
-	popTab.outPutContents(TableIOOpts(OutOptions(fileName.string(), ".txt"), "\t", true));
+	bool zip = njh::endsWith(fileName.string(), ".gz");
+	popTab.outPutContents(TableIOOpts(OutOptions(fileName.string(), zip ? ".gz" : ".txt"), "\t", true));
 }
 
 table SampleCollapseCollection::genPopulationCollapseInfo() const {
@@ -1198,7 +1223,8 @@ table SampleCollapseCollection::genPopulationCollapseInfo() const {
 
 void SampleCollapseCollection::printSampleCollapseInfo(const bfs::path& fileName){
 	auto sampTab = genSampleCollapseInfo(popNames_.samples_);
-	sampTab.outPutContents(TableIOOpts(OutOptions(fileName.string(), ".txt"), "\t", true));
+	bool zip = njh::endsWith(fileName.string(), ".gz");
+	sampTab.outPutContents(TableIOOpts(OutOptions(fileName.string(), zip ? ".gz" : ".txt"), "\t", true));
 }
 
 
@@ -1542,9 +1568,9 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			for(const auto & popTab : popTabs){
 				auto subGroupDir = njh::files::make_path(mainGroupDir, popTab.first);
 				njh::files::makeDir(njh::files::MkdirPar(subGroupDir.string()));
-				popTab.second.outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"popFile.tab.txt")), "\t", true));
-				sampTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"sampFile.tab.txt")), "\t", true));
-				hapIdTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"hapIdTable.tab.txt")), "\t", true));
+				popTab.second.outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"popFile.tab.txt.gz")), "\t", true));
+				sampTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"sampFile.tab.txt.gz")), "\t", true));
+				hapIdTabs.at(popTab.first).outPutContents(TableIOOpts(OutOptions(njh::files::make_path(subGroupDir,"hapIdTable.tab.txt.gz")), "\t", true));
 				std::ofstream subGroupMetaJsonFile;
 				openTextFile(subGroupMetaJsonFile,
 						njh::files::make_path(subGroupDir, "subGroupNamesData.json").string(),
@@ -1559,7 +1585,7 @@ void SampleCollapseCollection::createGroupInfoFiles(){
 			}
 			outTab = outTab.getUniqueRows();
 			outTab.sortTable("g_GroupName", false);
-			outTab.outPutContents(TableIOOpts(OutOptions(njh::files::make_path(mainGroupDir,"groupInfo.tab.txt")), "\t", true));
+			outTab.outPutContents(TableIOOpts(OutOptions(njh::files::make_path(mainGroupDir,"groupInfo.tab.txt.gz")), "\t", true));
 		}
 
 		bool verbose = false;

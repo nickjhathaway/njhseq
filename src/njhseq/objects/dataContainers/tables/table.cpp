@@ -1,6 +1,7 @@
 #include "table.hpp"
 #include "njhseq/IO/fileUtils.hpp"
 #include "njhseq/IO/InputStream.hpp"
+#include "njhseq/IO/OutputStream.hpp"
 #include <njhcpp/bashUtils.h>
 
 //
@@ -389,8 +390,7 @@ void table::outPutContents(TableIOOpts options) const {
     }
   } else {
   	bool writeHeader = hasHeader_ && !( bfs::exists(options.out_.outName()) && options.out_.append_);
-    std::ofstream outFile;
-    openTextFile(outFile, options.out_);
+    OutputStream outFile(options.out_);
     if (writeHeader) {
     	outFile << vectorToString(columnNames_, options.outDelim_) << "\n";
     }

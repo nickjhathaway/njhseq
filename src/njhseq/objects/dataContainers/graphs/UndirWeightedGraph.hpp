@@ -791,7 +791,7 @@ public:
 		  	nodes[nCount]["name"] = njh::json::toJson(n->name_);
 		  	nodes[nCount]["group"] = njh::json::toJson(n->group_);
 		  	nodes[nCount]["corePoint"] = njh::json::toJson(n->corePoint_);
-		  	if(nameToColor.empty() || !njh::in(nameToColor[n->name_], nameToColor)){
+		  	if(nameToColor.empty() || !njh::in(n->name_, nameToColor)){
 		  		nodes[nCount]["color"] = njh::json::toJson(gColors[n->group_].getHexStr());
 		  	}else{
 		  		nodes[nCount]["color"] = njh::json::toJson(nameToColor[n->name_]);

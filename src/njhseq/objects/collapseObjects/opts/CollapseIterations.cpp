@@ -171,6 +171,71 @@ CollapseIterations CollapseIterations::gen454ItDefaultPars(uint32_t stopCheck) {
 	return ret;
 }
 
+
+
+CollapseIterations CollapseIterations::genIlluminaDefaultAllLowMismatchesPars(uint32_t stopCheck) {
+	double stopCheckDbl = stopCheck;
+	std::vector<std::vector<double>> iters = {
+			{stopCheckDbl,3,1,0,0,0,0,1},
+			{stopCheckDbl,3,2,0,0,0,0,1},
+			{stopCheckDbl,3,2,0,0,0,1,1},
+			{stopCheckDbl,3,2,0,0,0,2,1},
+			{stopCheckDbl,3,2,0,0,0,8,1},
+			{stopCheckDbl,3,2,0,0,0,10,2},
+			{stopCheckDbl,3,2,0,0,0,12,2},
+			{stopCheckDbl,3,2,0,0,0,14,2},
+			{stopCheckDbl,3,2,0,0,0,14,2},
+			{stopCheckDbl,3,2,0,0,0,14,2},
+			{stopCheckDbl,0,1,0,0,0,0,1},
+			{stopCheckDbl,0,2,0,0,0,0,1},
+			{stopCheckDbl,0,2,0,0,0,1,1},
+			{stopCheckDbl,0,2,0,0,0,2,1},
+			{stopCheckDbl,0,2,0,0,0,8,1},
+			{stopCheckDbl,0,2,0,0,0,10,2},
+			{stopCheckDbl,0,2,0,0,0,12,2},
+			{stopCheckDbl,0,2,0,0,0,14,2},
+			{stopCheckDbl,0,2,0,0,0,14,2},
+			{stopCheckDbl,0,2,0,0,0,14,2},
+			{stopCheckDbl,0,2,0,0,0,std::numeric_limits<uint32_t>::max(),2},
+			{stopCheckDbl,0,2,0,0,0,std::numeric_limits<uint32_t>::max(),std::numeric_limits<uint32_t>::max()},
+			{stopCheckDbl,0,0,0,0,0,0,0}
+	};
+	CollapseIterations ret;
+	ret.addIterations(iters);
+	return ret;
+}
+CollapseIterations CollapseIterations::genIlluminaDefaultParsAllLowMismatchesCollapseHomopolymers(uint32_t stopCheck) {
+	double stopCheckDbl = stopCheck;
+	std::vector<std::vector<double>> iters = {
+			{stopCheckDbl,3,1,0,0,0,0,1},
+			{stopCheckDbl,3,2,0,0,0,0,1},
+			{stopCheckDbl,3,2,.5,0.5,0,1,1},
+			{stopCheckDbl,3,2,.5,0.5,0,2,1},
+			{stopCheckDbl,3,2,.5,0.5,0,8,1},
+			{stopCheckDbl,3,2,.5,0.5,0,10,2},
+			{stopCheckDbl,3,2,.5,0.5,0,12,2},
+			{stopCheckDbl,3,2,.5,0.5,0,14,2},
+			{stopCheckDbl,3,2,.5,0.5,0,14,2},
+			{stopCheckDbl,3,2,.5,0.5,0,14,2},
+			{stopCheckDbl,0,1,.5,0.5,0,0,1},
+			{stopCheckDbl,0,2,.5,0.5,0,0,1},
+			{stopCheckDbl,0,2,.5,0.5,0,1,1},
+			{stopCheckDbl,0,2,.5,0.5,0,2,1},
+			{stopCheckDbl,0,2,.5,0.5,0,8,1},
+			{stopCheckDbl,0,2,.5,0.5,0,10,2},
+			{stopCheckDbl,0,2,.5,0.5,0,12,2},
+			{stopCheckDbl,0,2,.5,0.5,0,14,2},
+			{stopCheckDbl,0,2,.5,0.5,0,14,2},
+			{stopCheckDbl,0,2,.5,0.5,0,14,2},
+			{stopCheckDbl,0,2,.5,0.5,0,std::numeric_limits<uint32_t>::max(),2},
+			{stopCheckDbl,0,2,.5,0.5,0,std::numeric_limits<uint32_t>::max(),std::numeric_limits<uint32_t>::max()},
+			{stopCheckDbl,0,0,0,0,0,0,0}
+	};
+	CollapseIterations ret;
+	ret.addIterations(iters);
+	return ret;
+}
+
 CollapseIterations CollapseIterations::genIlluminaDefaultPars(uint32_t stopCheck) {
 	double stopCheckDbl = stopCheck;
 	std::vector<std::vector<double>> iters = {
@@ -272,9 +337,9 @@ CollapseIterations CollapseIterations::genStrictDefaultPars(uint32_t stopCheck) 
 	double stopCheckDbl = stopCheck;
 	std::vector<std::vector<double>> iters = {
 			{stopCheckDbl, 3,0,0,0,0,0,0},
-			{stopCheckDbl, 3,1,1,0,0,1,0},
+			{stopCheckDbl, 3,1,.99,0,0,1,0},
 			{stopCheckDbl, 0,0,0,0,0,0,0},
-			{stopCheckDbl, 0,1,1,0,0,1,0},
+			{stopCheckDbl, 0,1,.99,0,0,1,0},
 			{stopCheckDbl, 0,0,0,0,0,0,0}
 	};
 	CollapseIterations ret;

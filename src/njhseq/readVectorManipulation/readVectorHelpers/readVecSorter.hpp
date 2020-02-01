@@ -203,13 +203,13 @@ class readVecSorter {
 				return getSeqBase(first).cnt_ > getSeqBase(second).cnt_;
 			}*/
   		if (roundDecPlaces(getSeqBase(first).cnt_, 2) == roundDecPlaces(getSeqBase(second).cnt_, 2) ) {
-  			if (roundDecPlaces(getRef(first).averageErrorRate, 2)  < roundDecPlaces(getRef(second).averageErrorRate, 2) ) {
+  			if (roundDecPlaces(getRef(first).averageErrorRate, 4)  < roundDecPlaces(getRef(second).averageErrorRate, 4) ) {
   				return true;
   			} else {
   				return false;
   			}
   		} else {
-  			return roundDecPlaces(getSeqBase(first).cnt_, 2)  > roundDecPlaces(getSeqBase(second).cnt_, 2) ;
+  			return roundDecPlaces(getSeqBase(first).cnt_, 4)  > roundDecPlaces(getSeqBase(second).cnt_, 4) ;
   		}
     }, decending);
   }
@@ -229,7 +229,7 @@ class readVecSorter {
 				return getSeqBase(first).cnt_ > getSeqBase(second).cnt_;
 			}*/
   		if (roundDecPlaces(getSeqBase(first).cnt_, 2) == roundDecPlaces(getSeqBase(second).cnt_, 2) ) {
-  			if (roundDecPlaces(getSeqBase(first).getAverageErrorRate(), 2)  < roundDecPlaces(getSeqBase(second).getAverageErrorRate(), 2) ) {
+  			if (roundDecPlaces(getSeqBase(first).getAverageErrorRate(), 4)  < roundDecPlaces(getSeqBase(second).getAverageErrorRate(), 4) ) {
   				return true;
   			} else {
   				return false;

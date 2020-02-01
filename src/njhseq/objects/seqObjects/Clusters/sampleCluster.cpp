@@ -119,6 +119,12 @@ double sampleCluster::getAveragedFrac() const {
   	}
   	fracs.emplace_back(fracSum);
   }
+  for(const auto & sampInfo : sampInfos_){
+  	if(!njh::in(sampInfo.first, sampleClusters_)){
+  		fracs.emplace_back(0);
+  	}
+  }
+
   return vectorMean(fracs);
 }
 

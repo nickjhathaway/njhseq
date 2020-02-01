@@ -1225,6 +1225,7 @@ std::string seqUtil::genMotifStrAccountDegenBase(const std::string & primer){
 				degen.push_back(d);
 			}
 			degen.push_back(']');
+			primerMotif.append(degen);
 		}else{
 			primerMotif.push_back(base);
 		}

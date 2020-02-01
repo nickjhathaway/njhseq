@@ -169,8 +169,15 @@ void collapser::findMatch(CLUSTER &read,
       }
     }
 
-
+//    if(5 == runParams.iterNumber_ && getSeqBase(clus).cnt_ > 1000 && getSeqBase(read).cnt_ > 1000){
+//    	std::cout << std::endl << std::endl;
+//    	std::cout << "clus name: "<< getSeqBase(clus).name_ << std::endl;
+//    	std::cout << "read name: "<< getSeqBase(read).name_ << std::endl;
+//    }
     bool matching = clus.compare(read, alignerObj, runParams, opts_);
+//    if(5 == runParams.iterNumber_ && getSeqBase(clus).cnt_ > 1000 && getSeqBase(read).cnt_ > 1000){
+//    	std::cout << "\tmatching:  "<< njh::colorBool(matching) << std::endl;
+//    }
 		if (matching) {
 			foundMatch = true;
 			if (opts_.bestMatchOpts_.findingBestMatch_) {
@@ -514,8 +521,9 @@ void collapser::runClustering(std::vector<CLUSTER> &currentClusters,
 template<typename READ>
 table collapser::markChimeras(std::vector<READ> &processedReads,
 		aligner &alignerObj, const ChimeraOpts & chiOpts) const {
-	table ret(VecStr { "read", "parent1", "parent1SeqPos", "parent2",
-			"parent2SeqPos" });
+	table ret(VecStr { "read", "readCnt",
+		"parent1", "parent1Cnt", "parent1Ratio", "parent1SeqPos",
+		"parent2", "parent2Cnt", "parent2Ratio", "parent2SeqPos" });
 	//assumes clusters are coming in sorted by total count
 	if (processedReads.size() <= 2) {
 		return ret;
@@ -535,8 +543,8 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 		if (getSeqBase(processedReads[subPos]).cnt_ <= chiOpts.runCutOff_) {
 			continue;
 		}
-		std::multimap<size_t, size_t> endChiPos;
-		std::multimap<size_t, size_t> frontChiPos;
+		std::map<size_t, std::vector<size_t>> endChiPos;
+		std::map<size_t, std::vector<size_t>> frontChiPos;
 		//pos is the position of the possible parents
 		for (const auto &pos : iter::range<size_t>(0, subPos)) {
 			if (opts_.verboseOpts_.verbose_ && opts_.verboseOpts_.debug_) {
@@ -710,44 +718,76 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 				} // pass gaps size > 0
 				//check to see if we have an endPos
 				if (std::numeric_limits<size_t>::max() != endPos) {
-					endChiPos.insert( { endPos, pos });
+					endChiPos[endPos].emplace_back(pos);
 				}
 				//check to see if we have a frontPos
 				if (0 != frontPos) {
-					frontChiPos.insert( { frontPos, pos });
+					frontChiPos[frontPos].emplace_back(pos);
 				}
 			} // pass has errors
 		} // pos loop
 
+		struct ChiParLocs {
+			ChiParLocs(size_t endReadMinReadPos, size_t endPosition,
+					size_t frontReadMinReadPos, size_t frontPosition) :
+					endReadMinReadPos_(endReadMinReadPos),
+					endPosition_(endPosition),
+					frontReadMinReadPos_(frontReadMinReadPos),
+					frontPosition_(frontPosition) {
+
+			}
+			size_t endReadMinReadPos_;
+			size_t endPosition_;
+
+			size_t frontReadMinReadPos_;
+			size_t frontPosition_;
+
+		};
+
 		if (!endChiPos.empty() && !frontChiPos.empty()) {
 			if (endChiPos.begin()->first < frontChiPos.rbegin()->first) {
-				getSeqBase(processedReads[subPos]).markAsChimeric();
-				size_t endReadMinPos = endChiPos.begin()->second;
-				for (const auto & end : endChiPos) {
-					if (end.first != endChiPos.begin()->first) {
-						break;
-					} else {
-						if (end.second < endReadMinPos) {
-							endReadMinPos = end.second;
+				std::vector<ChiParLocs> crossOvers;
+				for(const auto & endChi : endChiPos){
+					for(const auto & frontChi : iter::reversed(frontChiPos)){
+						if(endChi.first + chiOpts.posSpacing_ < frontChi.first){
+							for(const auto & endReadPos : endChi.second){
+								for(const auto & frontReadPos : frontChi.second){
+									if(endReadPos != frontReadPos){
+										crossOvers.emplace_back(ChiParLocs{
+											endReadPos, endChi.first,
+											frontReadPos, frontChi.first});
+									}
+								}
+							}
 						}
 					}
-				}
-				size_t frontReadMinPos = frontChiPos.rbegin()->second;
-				for (const auto & front : iter::reversed(frontChiPos)) {
-					if (front.first != frontChiPos.rbegin()->first) {
+					if(!crossOvers.empty()){
 						break;
-					} else {
-						if (front.second < frontReadMinPos) {
-							frontReadMinPos = front.second;
-						}
 					}
 				}
-				ret.content_.emplace_back(
-						toVecStr(getSeqBase(processedReads[subPos]).name_,
-								getSeqBase(processedReads[frontReadMinPos]).name_,
-								frontChiPos.rbegin()->first,
-								getSeqBase(processedReads[endReadMinPos]).name_,
-								endChiPos.begin()->first));
+				if(!crossOvers.empty()){
+					getSeqBase(processedReads[subPos]).markAsChimeric();
+					njh::sort(crossOvers, [](const ChiParLocs & p1, const ChiParLocs & p2){
+						if(p1.endReadMinReadPos_ == p2.endReadMinReadPos_){
+							return p1.frontReadMinReadPos_ < p2.frontReadMinReadPos_;
+						}else{
+							return p1.endReadMinReadPos_ < p2.endReadMinReadPos_;
+						}
+					});
+
+					ret.content_.emplace_back(
+							toVecStr(
+									getSeqBase(processedReads[subPos]).name_,
+									getSeqBase(processedReads[subPos]).cnt_,
+									getSeqBase(processedReads[crossOvers.front().frontReadMinReadPos_]).name_,
+									getSeqBase(processedReads[crossOvers.front().frontReadMinReadPos_]).cnt_,
+									getSeqBase(processedReads[crossOvers.front().frontReadMinReadPos_]).cnt_/getSeqBase(processedReads[subPos]).cnt_,
+									crossOvers.front().frontPosition_,
+									getSeqBase(processedReads[crossOvers.front().endReadMinReadPos_]).name_,
+									getSeqBase(processedReads[crossOvers.front().endReadMinReadPos_]).cnt_,
+									getSeqBase(processedReads[crossOvers.front().endReadMinReadPos_]).cnt_/getSeqBase(processedReads[subPos]).cnt_,
+									crossOvers.front().endPosition_));
+				}
 			} // is chimeric loop
 		}
 	} // subPos loop
@@ -757,5 +797,5 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 	return ret;
 }
 
-}  // namespace njh
+}  // namespace njhseq
 
