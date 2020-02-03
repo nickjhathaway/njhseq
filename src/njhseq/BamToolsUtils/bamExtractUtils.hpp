@@ -148,12 +148,19 @@ public:
 	ExtractedFilesOpts extractReadsFromBamWriteAsSingles(const SeqIOOptions & opts, bool referenceOrientation = false);
 
 
+	struct extractReadsWtihCrossRegionMappingPars {
+		double percInRegion_ = 0.5;
+		bool originalOrientation_ = false;
+		bool throwAwayUnmappedMate_ = false;
+		bool tryToFindOrphansMate_ = false;
+		bool keepMarkedDuplicate_ = false;
+		Json::Value toJson() const;
+
+	};
 	ExtractedFilesOpts extractReadsWtihCrossRegionMapping(
 			const SeqIOOptions & inOutOpts,
-			const std::vector<GenomicRegion> & regions, double percInRegion,
-			bool originalOrientation,
-			bool throwAwayUnmappedMate,
-			bool tryToFindOrphansMate = false);
+			const std::vector<GenomicRegion> & regions,
+			const extractReadsWtihCrossRegionMappingPars & extractPars);
 
 	ExtractedFilesOpts extractReadsWtihCrossRegionMappingAsSingles(
 				const SeqIOOptions & inOutOpts,
