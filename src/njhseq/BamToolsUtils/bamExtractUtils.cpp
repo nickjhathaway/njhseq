@@ -1372,7 +1372,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWriteAsSingles
 //				if((0 != bAln.Position
 //						&& bAln.CigarData.front().Type == 'S'
 //						&& bAln.CigarData.front().Length > centerClipCutOff) ||
-//						(contigLengths[rData[bAln.RefID].RefName] != bAln.GetEndPosition()
+//						(contigLengths[rData[bAln.RefID].RefName] != getEndPosition(bAln)
 //						&& bAln.CigarData.back().Type == 'S'
 //						&& bAln.CigarData.back().Length > centerClipCutOff)) {
 //					++ret.unpairedUnMapped_;
@@ -1399,7 +1399,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWriteAsSingles
 //						((0 != bAln.Position
 //						&& bAln.CigarData.front().Type == 'S'
 //						&& bAln.CigarData.front().Length > centerClipCutOff) ||
-//						(contigLengths[rData[bAln.RefID].RefName] != bAln.GetEndPosition()
+//						(contigLengths[rData[bAln.RefID].RefName] != getEndPosition(bAln)
 //						&& bAln.CigarData.back().Type == 'S'
 //						&& bAln.CigarData.back().Length > centerClipCutOff))){
 //					balnMapped = false;
@@ -1538,7 +1538,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWriteAsSingles
 //				if((0 != search->Position
 //						&& search->CigarData.front().Type == 'S'
 //						&& search->CigarData.front().Length > centerClipCutOff) ||
-//						(contigLengths[rData[search->RefID].RefName] != search->GetEndPosition()
+//						(contigLengths[rData[search->RefID].RefName] != getEndPosition(*search)
 //						&& search->CigarData.back().Type == 'S'
 //						&& search->CigarData.back().Length > centerClipCutOff)){
 //					++ret.unpairedUnMapped_;
@@ -1930,7 +1930,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 				if((0 != bAln.Position
 						&& bAln.CigarData.front().Type == 'S'
 						&& bAln.CigarData.front().Length > centerClipCutOff) ||
-						(contigLengths[rData[bAln.RefID].RefName] != bAln.GetEndPosition()
+						(contigLengths[rData[bAln.RefID].RefName] != getEndPosition(bAln)
 						&& bAln.CigarData.back().Type == 'S'
 						&& bAln.CigarData.back().Length > centerClipCutOff)) {
 					++ret.unpairedUnMapped_;
@@ -1957,7 +1957,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 						((0 != bAln.Position
 						&& bAln.CigarData.front().Type == 'S'
 						&& bAln.CigarData.front().Length > centerClipCutOff) ||
-						(contigLengths[rData[bAln.RefID].RefName] != bAln.GetEndPosition()
+						(contigLengths[rData[bAln.RefID].RefName] != getEndPosition(bAln)
 						&& bAln.CigarData.back().Type == 'S'
 						&& bAln.CigarData.back().Length > centerClipCutOff))){
 					balnMapped = false;
@@ -1967,7 +1967,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 						((0 != search->Position
 						&& search->CigarData.front().Type == 'S'
 						&& search->CigarData.front().Length > centerClipCutOff) ||
-						(contigLengths[rData[search->RefID].RefName] != search->GetEndPosition()
+						(contigLengths[rData[search->RefID].RefName] != getEndPosition(*search)
 						&& search->CigarData.back().Type == 'S'
 						&& search->CigarData.back().Length > centerClipCutOff))){
 					searchMapped = false;
@@ -2096,7 +2096,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 				if((0 != search->Position
 						&& search->CigarData.front().Type == 'S'
 						&& search->CigarData.front().Length > centerClipCutOff) ||
-						(contigLengths[rData[search->RefID].RefName] != search->GetEndPosition()
+						(contigLengths[rData[search->RefID].RefName] != getEndPosition(*search)
 						&& search->CigarData.back().Type == 'S'
 						&& search->CigarData.back().Length > centerClipCutOff)){
 					++ret.unpairedUnMapped_;
@@ -3101,7 +3101,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					if (!bAln.IsPrimaryAlignment()) {
 						continue;
 					}
-					if(bAln.Position < reg.start_){
+					if(static_cast<uint32_t>(bAln.Position) < reg.start_){
 						continue;
 					}
 					if (bAln.IsPaired()) {

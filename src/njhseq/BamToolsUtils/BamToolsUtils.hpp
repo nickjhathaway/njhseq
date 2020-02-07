@@ -39,6 +39,9 @@
 namespace njhseq {
 
 
+
+uint64_t getEndPosition(const BamTools::BamAlignment & bAln);
+
 uint32_t getSoftClipAmount(const BamTools::BamAlignment & bAln);
 
 

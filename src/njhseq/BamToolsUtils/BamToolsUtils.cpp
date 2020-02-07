@@ -29,6 +29,12 @@
 
 namespace njhseq {
 
+uint64_t getEndPosition(const BamTools::BamAlignment & bAln){
+	return static_cast<uint64_t>(bAln.GetEndPosition());
+}
+
+
+
 uint32_t getSoftClipAmount(const BamTools::BamAlignment & bAln){
 	uint32_t ret = 0;
 	if(bAln.CigarData.size() > 0 && 'S' == bAln.CigarData.front().Type){
