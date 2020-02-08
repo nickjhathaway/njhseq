@@ -50,8 +50,14 @@ GenomicRegion::GenomicRegion(const Bed6RecordCore & bed) :
 		GenomicRegion(bed.name_, bed.chrom_, bed.chromStart_, bed.chromEnd_,
 				'-' == bed.strand_) {
 	if(bed.extraFields_.size() > 0){
-		if(MetaDataInName::nameHasMetaData(bed.extraFields_[0])){
-			meta_ = MetaDataInName(bed.extraFields_[0]);
+		uint32_t extraFieldCount = 0;
+		for(const auto & extraField : bed.extraFields_){
+			if(MetaDataInName::nameHasMetaData(extraField)){
+				meta_.addMeta(MetaDataInName(extraField), false);
+			} else {
+				meta_.addMeta(njh::pasteAsStr("extraField", leftPadNumStr<uint32_t>(extraFieldCount, bed.extraFields_.size())), extraField, false);
+			}
+			++extraFieldCount;
 		}
 	}
 }

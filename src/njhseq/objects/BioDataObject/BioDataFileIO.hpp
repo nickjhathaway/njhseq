@@ -47,6 +47,8 @@ public:
 	std::unique_ptr<OutputStream> out_;
 	std::string currentLine_{""};
 
+	std::string possibleHeader_{""};
+
 	using value_type = DATA;
 
 	void openIn(){
@@ -140,6 +142,9 @@ public:
 		}
 		std::string line = "";
 		if (njh::files::crossPlatGetline(*inFile_, line)) {
+			if(line.front() == '#' && "" == possibleHeader_){
+				possibleHeader_ = line;
+			}
 			while ((line.front() == '#' || line.empty()) && !inFile_->eof()) {
 				njh::files::crossPlatGetline(*inFile_, line);
 			}
@@ -163,6 +168,9 @@ public:
 		}
 		std::string line = "";
 		if (njh::files::crossPlatGetline(*inFile_, line)) {
+			if(line.front() == '#' && "" == possibleHeader_){
+				possibleHeader_ = line;
+			}
 			while ((line.front() == '#' || line.empty()) && !inFile_->eof()) {
 				njh::files::crossPlatGetline(*inFile_, line);
 			}

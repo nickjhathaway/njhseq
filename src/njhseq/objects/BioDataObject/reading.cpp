@@ -62,7 +62,20 @@ std::vector<std::shared_ptr<Bed6RecordCore>> getBeds(
 	reader.openIn();
 	std::vector<std::shared_ptr<Bed6RecordCore>> beds;
 	std::shared_ptr<Bed6RecordCore> bed = reader.readNextRecord();
+	VecStr posHeader;
+	if("" != reader.possibleHeader_){
+		posHeader = tokenizeString(reader.possibleHeader_, "\t");
+	}
 	while (nullptr != bed) {
+		if(posHeader.size() > 6){
+			uint32_t pos = 6;
+			for(auto & extraField : bed->extraFields_){
+				if(pos < posHeader.size() && !MetaDataInName::nameHasMetaData(extraField)){
+					extraField = njh::pasteAsStr("[", posHeader[pos], "=", extraField, ";]");
+				}
+				++pos;
+			}
+		}
 		beds.emplace_back(std::move(bed));
 		bed = reader.readNextRecord();
 	}
