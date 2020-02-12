@@ -606,7 +606,7 @@ void ReadCompGraph::addEdgesBasedOnIdOrMinDif(const ConnectedHaplotypeNetworkPar
 
 	std::mutex graphMut;
 	njh::ProgressBar pBar(pFactory.totalCompares_);
-	auto addEdges = [this,&pFactory,&kInfos,&alnPool,&netPars,&graphMut,&pBar](){
+	std::function<void()> addEdges = [this,&pFactory,&kInfos,&alnPool,&netPars,&graphMut,&pBar](){
 		auto alignerObj = alnPool.popAligner();
 		PairwisePairFactory::PairwisePairVec pairs;
 		while(pFactory.setNextPairs(pairs, netPars.matchPars.batchAmount_)){
@@ -637,11 +637,7 @@ void ReadCompGraph::addEdgesBasedOnIdOrMinDif(const ConnectedHaplotypeNetworkPar
 			}
 		}
 	};
-	std::vector<std::thread> threads;
-	for(uint32_t t = 0; t < netPars.numThreads; ++t){
-		threads.emplace_back(addEdges);
-	}
-	njh::concurrent::joinAllJoinableThreads(threads);
+	njh::concurrent::runVoidFunctionThreaded(addEdges, netPars.numThreads);
 
 	if(netPars.setJustBest){
 		//turn of same seq connections as so the best connection will not be just equal matches

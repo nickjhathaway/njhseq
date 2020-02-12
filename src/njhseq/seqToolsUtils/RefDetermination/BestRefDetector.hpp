@@ -112,7 +112,7 @@ public:
 	  std::mutex mut;
 
 
-	  auto compareInput = [&alnPool,&inputSeqs,&refSeqs,&posQueue,&pars,&mut,&ret](){
+	  std::function<void()> compareInput = [&alnPool,&inputSeqs,&refSeqs,&posQueue,&pars,&mut,&ret](){
 	  	std::vector<uint32_t> subPositions;
 	  	auto curAligner = alnPool.popAligner();
 	  	std::vector<kmerInfo> refInfos;
@@ -179,11 +179,7 @@ public:
 				}
 	  		}
 		};
-		std::vector<std::thread> threads;
-		for (uint32_t t = 0; t < pars.numThreads; ++t) {
-			threads.emplace_back(std::thread(compareInput));
-		}
-		njh::concurrent::joinAllJoinableThreads(threads);
+		njh::concurrent::runVoidFunctionThreaded(compareInput, pars.numThreads);
 		return ret;
 	}
 

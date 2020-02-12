@@ -186,7 +186,7 @@ void MultiGenomeMapper::setUpGenomes() {
 	std::lock_guard<std::mutex> lock(mut_);
 	loadGffFnps();
 	njh::concurrent::LockableQueue<std::string> queueGenome(getVectorOfMapKeys(genomes_));
-	auto setUpGenome = [&queueGenome,this](){
+	std::function<void()> setUpGenome = [&queueGenome,this](){
 		std::string genome = "";
 		BioCmdsUtils bioRunner(pars_.verbose_);
 		while(queueGenome.getVal(genome)){
@@ -195,32 +195,20 @@ void MultiGenomeMapper::setUpGenomes() {
 			//bioRunner.runAllPossibleIndexes(genomes_.at(genome)->fnp_);
 		}
 	};
-	std::vector<std::thread> threads;
-	for(uint32_t t = 0; t < pars_.numThreads_; ++t){
-		threads.emplace_back(setUpGenome);
-	}
-	for(auto & t : threads){
-		t.join();
-	}
+	njh::concurrent::runVoidFunctionThreaded(setUpGenome, pars_.numThreads_);
 }
 
 void MultiGenomeMapper::bioIndexAllGenomes() {
 	std::lock_guard<std::mutex> lock(mut_);
 	njh::concurrent::LockableQueue<std::string> queueGenome(getVectorOfMapKeys(genomes_));
-	auto setUpGenome = [&queueGenome,this](){
+	std::function<void()> setUpGenome = [&queueGenome,this](){
 		std::string genome = "";
 		BioCmdsUtils bioRunner(pars_.verbose_);
 		while(queueGenome.getVal(genome)){
 			bioRunner.runAllPossibleIndexes(genomes_.at(genome)->fnp_);
 		}
 	};
-	std::vector<std::thread> threads;
-	for(uint32_t t = 0; t < pars_.numThreads_; ++t){
-		threads.emplace_back(setUpGenome);
-	}
-	for(auto & t : threads){
-		t.join();
-	}
+	njh::concurrent::runVoidFunctionThreaded(setUpGenome, pars_.numThreads_);
 }
 
 
@@ -319,7 +307,7 @@ std::unordered_map<std::string, MultiGenomeMapper::AlignCmdOutput> MultiGenomeMa
 	njh::concurrent::LockableQueue<std::string> queue(genomeKeys);
 
 
-	auto alignGenome = [this,&queue, &retMut,&inputOpts,&outputPrefix,&ret,&pars](){
+	std::function<void()> alignGenome = [this,&queue, &retMut,&inputOpts,&outputPrefix,&ret,&pars](){
 		std::string genome = "";
 		BioCmdsUtils cmdRunner;
 		while(queue.getVal(genome)){
@@ -343,14 +331,7 @@ std::unordered_map<std::string, MultiGenomeMapper::AlignCmdOutput> MultiGenomeMa
 		}
 	};
 
-	std::vector<std::thread> threads;
-	for(uint32_t t = 0; t < pars_.numThreads_; ++t){
-		threads.emplace_back(std::thread(alignGenome));
-	}
-	for(auto & t : threads){
-		t.join();
-	}
-
+	njh::concurrent::runVoidFunctionThreaded(alignGenome, pars_.numThreads_);
 
 
 	return ret;
@@ -440,7 +421,7 @@ std::unordered_map<std::string, std::vector<seqInfo>> MultiGenomeMapper::getRefS
 	std::mutex retMut;
 	njh::concurrent::LockableQueue<std::string> genomesQueue(getVectorOfMapKeys(allRegions));
 
-	auto extractBestGenomeSeq = [this,&genomesQueue,&ret,&retMut, &allRegions,&alignmentsDir](){
+	std::function<void()> extractBestGenomeSeq = [this,&genomesQueue,&ret,&retMut, &allRegions,&alignmentsDir](){
 		std::string genome = "";
 		while(genomesQueue.getVal(genome)){
 			if (pars_.primaryGenome_  != genome) {
@@ -479,13 +460,7 @@ std::unordered_map<std::string, std::vector<seqInfo>> MultiGenomeMapper::getRefS
 		}
 	};
 
-	std::vector<std::thread> threads;
-	for(uint32_t t = 0; t < pars_.numThreads_; ++t){
-		threads.emplace_back(std::thread(extractBestGenomeSeq));
-	}
-	for(auto & t : threads){
-		t.join();
-	}
+	njh::concurrent::runVoidFunctionThreaded(extractBestGenomeSeq, pars_.numThreads_);
 	return ret;
 }
 
@@ -693,11 +668,15 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 			}
 		}
 	};
-	std::vector<std::thread> threads;
-	for(uint32_t t = 0; t < pars_.numThreads_; ++t){
-		threads.emplace_back(std::thread(extractBestGenomeSeq, t));
+	if(pars_.numThreads_ <=1){
+		extractBestGenomeSeq(0);
+	}else{
+		std::vector<std::thread> threads;
+		for(uint32_t t = 0; t < pars_.numThreads_; ++t){
+			threads.emplace_back(std::thread(extractBestGenomeSeq, t));
+		}
+		njh::concurrent::joinAllThreads(threads);
 	}
-	njh::concurrent::joinAllThreads(threads);
 	table performanceTab(VecStr{"genome", "region", "forwardStrandHits", "reverseStrandHits", "extractionCounts"});
 	auto genomeKeys = getVectorOfMapKeys(genomeExtractionsResults);
 	njh::sort(genomeKeys);
