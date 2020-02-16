@@ -188,14 +188,21 @@ void checkPositionSortedBedThrow(const bfs::path & bedFnp,
 
 
 
-intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(){}
+intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(){
+	extraAttributes_.emplace_back("description");
+	selectFeatures_.emplace_back("gene");
+}
+
 intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(const bfs::path & gffFnp) :
 		gffFnp_(gffFnp) {
+	extraAttributes_.emplace_back("description");
+	selectFeatures_.emplace_back("gene");
 }
 intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(const bfs::path & gffFnp,
 		const VecStr & extraAttributes, const VecStr & selectFeatures) :
 		gffFnp_(gffFnp), extraAttributes_(extraAttributes), selectFeatures_(
 				selectFeatures) {
+
 }
 
 
