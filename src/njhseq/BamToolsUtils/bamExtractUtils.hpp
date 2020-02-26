@@ -42,18 +42,29 @@ public:
 
 	struct ExtractCounts {
 		uint32_t pairedReads_ = 0;
-		uint32_t pairedReadsMateUnmapped_ = 0;
+		uint32_t pairedReadsMateUnmapped_ = 0;//! one mate is mapped and the other mate is unmapped
+		uint32_t pairedReadsMateFailedSoftClip_ = 0;//! one mate mapped fully but the other mater failed a soft clip filter
+		uint32_t pairedReadsBothFailedSoftClip_ = 0;//! one mate mapped fully but the other mater failed a soft clip filter
 		uint32_t unpaiedReads_ = 0;
 		uint32_t orphans_ = 0; /**< reads that are paired but their mates weren't found */
 		uint32_t orphansUnmapped_ = 0; /**< reads that are paired but their mates weren't found are unmapped */
 		uint32_t pairsUnMapped_ = 0;
 		uint32_t unpairedUnMapped_ = 0;
+		uint32_t unpairedFailedSoftClip_ = 0;//! single but failed a soft clip filter
 
-		uint32_t pairFilteredOff_ = 0;
-		uint32_t pairFilteredOffUnmapped_ = 0;
+
+//		uint32_t mateFilteredOff_ = 0; //! mate has been filtered
+//		uint32_t mateFilteredOffUnmapped_ = 0;//! mate was unmapped
+
+		uint32_t bothMatesFilteredOff_ = 0; //! both mates has been filtered
+
+
+		uint32_t mateFilteredOff_ = 0; //! mate has been filtered
+		uint32_t mateFilteredOffUnmapped_ = 0;//! mate was unmapped
 
 		uint32_t discordant_ = 0;
 		uint32_t inverse_ = 0;
+
 
 		uint32_t getTotal();
 		void log(std::ostream & out, const bfs::path & bamFnp) ;
@@ -81,6 +92,8 @@ public:
 		SeqIOOptions inUnpaired_;
 		SeqIOOptions inPairsUnMapped_;
 		SeqIOOptions inUnpairedUnMapped_;
+
+		SeqIOOptions inFilteredPairs_;
 
 		SeqIOOptions inInverse_;
 		SeqIOOptions inDiscordant_;

@@ -31,7 +31,8 @@ namespace njhseq {
 
 
 uint32_t BamExtractor::ExtractCounts::getTotal(){
-	return pairedReads_ + pairedReadsMateUnmapped_ + unpaiedReads_ + orphans_ + orphansUnmapped_ + pairFilteredOff_ + pairFilteredOffUnmapped_ + pairsUnMapped_ + unpairedUnMapped_ + discordant_ + inverse_;;
+
+	return pairedReads_ + pairedReadsMateUnmapped_ + unpaiedReads_ + orphans_ + orphansUnmapped_ + mateFilteredOff_ + mateFilteredOffUnmapped_ + pairsUnMapped_ + unpairedUnMapped_ + discordant_ + inverse_ + pairedReadsBothFailedSoftClip_ + pairedReadsMateFailedSoftClip_ + unpairedFailedSoftClip_ + bothMatesFilteredOff_;
 }
 
 
@@ -47,11 +48,15 @@ void BamExtractor::ExtractCounts::log(std::ostream & out, const bfs::path & bamF
 	};
 	logStats("paired", pairedReads_);
 	logStats("pairedMateUnmapped", pairedReadsMateUnmapped_);
+	logStats("pairedReadsMateFailedSoftClip", pairedReadsMateFailedSoftClip_);
+	logStats("pairedReadsBothFailedSoftClip", pairedReadsBothFailedSoftClip_);
 	logStats("singles", unpaiedReads_);
+	logStats("unpairedFailedSoftClip", unpairedFailedSoftClip_);
 	logStats("orphans", orphans_);
 	logStats("orphansUnmapped", orphansUnmapped_);
-	logStats("pairFilteredOff", pairFilteredOff_);
-	logStats("pairFilteredOffUnmapped", pairFilteredOffUnmapped_);
+	logStats("bothMatesFilteredOff", bothMatesFilteredOff_);
+	logStats("mateFilteredOff", mateFilteredOff_);
+	logStats("mateFilteredOffUnmapped", mateFilteredOffUnmapped_);
 	logStats("unmappedPaired", pairsUnMapped_);
 	logStats("unmappedSingles", unpairedUnMapped_);
 	logStats("discordant", discordant_);
@@ -76,6 +81,10 @@ void BamExtractor::ExtractedFilesOpts::removeAllInFiles(){
 
 	removeIfExists(inInverse_.firstName_);
 	removeIfExists(inInverse_.secondName_);
+
+	removeIfExists(inFilteredPairs_.firstName_);
+	removeIfExists(inFilteredPairs_.secondName_);
+
 
 	removeIfExists(inDiscordant_.firstName_);
 	removeIfExists(inDiscordant_.secondName_);
@@ -1914,6 +1923,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 	}
 
 	uint32_t centerClipCutOff = 20;
+	uint32_t forSoftClipFilterDistanceToEdges = 50;
 	std::unordered_map<std::string, uint32_t> contigLengths;
 	for(const auto & r : rData){
 		contigLengths[r.RefName] = r.RefLength;
@@ -1927,13 +1937,33 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 				++ret.unpairedUnMapped_;
 				unmappedSinglesWriter.openWrite(bamAlnToSeqInfo(bAln));
 			} else {
-				if((0 != bAln.Position
-						&& bAln.CigarData.front().Type == 'S'
-						&& bAln.CigarData.front().Length > centerClipCutOff) ||
-						(contigLengths[rData[bAln.RefID].RefName] != getEndPosition(bAln)
-						&& bAln.CigarData.back().Type == 'S'
-						&& bAln.CigarData.back().Length > centerClipCutOff)) {
-					++ret.unpairedUnMapped_;
+
+
+//				if((0 != bAln.Position
+//						&& bAln.CigarData.front().Type == 'S'
+//						&& bAln.CigarData.front().Length > centerClipCutOff) ||
+//						(contigLengths[rData[bAln.RefID].RefName] != getEndPosition(bAln)
+//						&& bAln.CigarData.back().Type == 'S'
+//						&& bAln.CigarData.back().Length > centerClipCutOff)) {
+				if(
+//						(bAln.Position > forSoftClipFilterDistanceToEdges &&
+//						contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > forSoftClipFilterDistanceToEdges)
+//						&& ((bAln.Position > forSoftClipFilterDistanceToEdges
+//						&& bAln.CigarData.front().Type == 'S'
+//						&& bAln.CigarData.front().Length > centerClipCutOff) ||
+//						(contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > forSoftClipFilterDistanceToEdges
+//						&& bAln.CigarData.back().Type == 'S'
+//						&& bAln.CigarData.back().Length > centerClipCutOff))
+						(bAln.Position > forSoftClipFilterDistanceToEdges &&
+												contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > forSoftClipFilterDistanceToEdges)
+												&& ((bAln.Position > forSoftClipFilterDistanceToEdges
+												&& bAln.CigarData.front().Type == 'S'
+												&& bAln.CigarData.front().Length > centerClipCutOff) ||
+												(contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > forSoftClipFilterDistanceToEdges
+												&& bAln.CigarData.back().Type == 'S'
+												&& bAln.CigarData.back().Length > centerClipCutOff))
+						) {
+					++ret.unpairedFailedSoftClip_;
 					unmappedSinglesWriter.openWrite(bamAlnToSeqInfo(bAln));
 				}else{
 					++ret.unpaiedReads_;
@@ -1951,29 +1981,43 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 				continue;
 			} else {
 				auto search = alnCache.get(bAln.Name);
-				bool balnMapped = bAln.IsMapped();
-				bool searchMapped = search->IsMapped();
-				if(balnMapped &&
-						((0 != bAln.Position
-						&& bAln.CigarData.front().Type == 'S'
-						&& bAln.CigarData.front().Length > centerClipCutOff) ||
-						(contigLengths[rData[bAln.RefID].RefName] != getEndPosition(bAln)
-						&& bAln.CigarData.back().Type == 'S'
-						&& bAln.CigarData.back().Length > centerClipCutOff))){
-					balnMapped = false;
+				bool balnIsMapped = bAln.IsMapped();
+				bool searchIsMapped = search->IsMapped();
+				bool balnPassSoftClipTest = true;
+				if(balnIsMapped &&
+						(bAln.Position > forSoftClipFilterDistanceToEdges &&
+												contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > forSoftClipFilterDistanceToEdges)
+												&& ((bAln.Position > forSoftClipFilterDistanceToEdges
+												&& bAln.CigarData.front().Type == 'S'
+												&& bAln.CigarData.front().Length > centerClipCutOff) ||
+												(contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > forSoftClipFilterDistanceToEdges
+												&& bAln.CigarData.back().Type == 'S'
+												&& bAln.CigarData.back().Length > centerClipCutOff))
+												){
+					balnPassSoftClipTest = false;
+				}
+				bool searchPassSoftClipTest = true;
+				if(searchIsMapped &&
+						(search->Position > forSoftClipFilterDistanceToEdges &&
+												contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > forSoftClipFilterDistanceToEdges)
+												&& ((search->Position > forSoftClipFilterDistanceToEdges
+												&& search->CigarData.front().Type == 'S'
+												&& search->CigarData.front().Length > centerClipCutOff) ||
+												(contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > forSoftClipFilterDistanceToEdges
+												&& search->CigarData.back().Type == 'S'
+												&& search->CigarData.back().Length > centerClipCutOff))
+//						((search->Position > forSoftClipFilterDistanceToEdges
+//						&& search->CigarData.front().Type == 'S'
+//						&& search->CigarData.front().Length > centerClipCutOff) ||
+//						(contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > forSoftClipFilterDistanceToEdges
+//						&& search->CigarData.back().Type == 'S'
+//						&& search->CigarData.back().Length > centerClipCutOff))
+
+				) {
+					searchPassSoftClipTest = false;
 				}
 
-				if(searchMapped &&
-						((0 != search->Position
-						&& search->CigarData.front().Type == 'S'
-						&& search->CigarData.front().Length > centerClipCutOff) ||
-						(contigLengths[rData[search->RefID].RefName] != getEndPosition(*search)
-						&& search->CigarData.back().Type == 'S'
-						&& search->CigarData.back().Length > centerClipCutOff))){
-					searchMapped = false;
-				}
-
-				if (!balnMapped && !searchMapped) {
+				if (!balnIsMapped && !searchIsMapped) {
 					++ret.pairsUnMapped_;
 					if (bAln.IsFirstMate()) {
 						unmappedPairWriter.openWrite(
@@ -1986,80 +2030,147 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 										false));
 					}
 				} else {
-					seqInfo bAlnSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
-							SangerQualOffset);
-					seqInfo searchSeq(search->Name, search->QueryBases,
-							search->Qualities, SangerQualOffset);
+					seqInfo bAlnSeq(bAln.Name, bAln.QueryBases, bAln.Qualities, SangerQualOffset);
+					seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
+					if (balnIsMapped && searchIsMapped) {
+						//see if they passed
+						if(!balnPassSoftClipTest || ! searchPassSoftClipTest){
 
-					if (balnMapped && searchMapped) {
-						// test for inverse
-						if(bAln.IsReverseStrand() == search->IsReverseStrand()){
-							//inverse mates will there be written in technically the wrong orientation to each other but in the reference orientation
-							++ret.inverse_;
-							if (bAln.IsFirstMate()) {
-								inversePairWriter.openWrite(
-										PairedRead(bAlnSeq, searchSeq, false));
-							} else {
-								inversePairWriter.openWrite(
-										PairedRead(searchSeq, bAlnSeq, false));
-							}
-							if(debug_){
-								(*inverseBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
-								(*inverseBedOut) << GenomicRegion(*search, rData).genBedRecordCore().toDelimStr() << std::endl;
-							}
-
-						}else{
-							//test for concordant
-							if (bAln.RefID == search->RefID
-									&& std::abs(bAln.InsertSize) < insertLengthCutOff_) {
-								++ret.pairedReads_;
+							if (!balnPassSoftClipTest && !searchPassSoftClipTest) {
+								++ret.pairedReadsBothFailedSoftClip_;
+								//treat this like both are unammped
 								if (bAln.IsFirstMate()) {
-									mappedPairWriter.openWrite(
+									unmappedPairWriter.openWrite(
+											PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(*search),
+													false));
+
+								} else {
+									unmappedPairWriter.openWrite(
+											PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
+													false));
+								}
+							} else if (!balnPassSoftClipTest && searchPassSoftClipTest) {
+								++ret.pairedReadsMateFailedSoftClip_;
+								//treat this like baln is unmapped
+								if (throwAwayUnmmpaedMates) {
+									mappedSinglesWriter.openWrite(searchSeq);
+									thrownAwayMateWriter.openWrite(bAlnSeq);
+									bWriter.SaveAlignment(*search);
+								} else {
+									//make sure pairs are oriented in the right direction
+									//if they have both been reverse complemented,
+									//then the mate that didn't pass needs to be reverse complemented again
+									if(search->IsReverseStrand() == bAln.IsReverseStrand()){
+										bAlnSeq.reverseComplementRead(false, true);
+									}
+									if (bAln.IsFirstMate()) {
+										mateUnmappedPairWriter.openWrite(
+												PairedRead(bAlnSeq, searchSeq, false));
+									} else {
+										mateUnmappedPairWriter.openWrite(
+												PairedRead(searchSeq, bAlnSeq, false));
+									}
+									bWriter.SaveAlignment(bAln);
+									bWriter.SaveAlignment(*search);
+								}
+							} else if (balnPassSoftClipTest && !searchPassSoftClipTest) {
+								++ret.pairedReadsMateFailedSoftClip_;
+								//treat this like search is unmapped
+								if (throwAwayUnmmpaedMates) {
+									mappedSinglesWriter.openWrite(bAlnSeq);
+									thrownAwayMateWriter.openWrite(searchSeq);
+									bWriter.SaveAlignment(bAln);
+								}else{
+									//make sure pairs are oriented in the right direction
+									//if they have both been reverse complemented,
+									//then the mate that didn't pass needs to be reverse complemented again
+									if(search->IsReverseStrand() == bAln.IsReverseStrand()){
+										searchSeq.reverseComplementRead(false, true);
+									}
+									if (bAln.IsFirstMate()) {
+										mateUnmappedPairWriter.openWrite(
+												PairedRead(bAlnSeq, searchSeq, false));
+									} else {
+										mateUnmappedPairWriter.openWrite(
+												PairedRead(searchSeq, bAlnSeq, false));
+									}
+									bWriter.SaveAlignment(bAln);
+									bWriter.SaveAlignment(*search);
+								}
+							} else {
+								//this shouldn't be happening...
+							}
+						} else {
+							// test for inverse
+							if(bAln.IsReverseStrand() == search->IsReverseStrand()){
+								//inverse mates will there be written in technically the wrong orientation to each other but in the reference orientation
+								/**@todo lol, why? check on this */
+								++ret.inverse_;
+								if (bAln.IsFirstMate()) {
+									inversePairWriter.openWrite(
 											PairedRead(bAlnSeq, searchSeq, false));
 								} else {
-									mappedPairWriter.openWrite(
+									inversePairWriter.openWrite(
 											PairedRead(searchSeq, bAlnSeq, false));
 								}
-								bWriter.SaveAlignment(bAln);
-								bWriter.SaveAlignment(*search);
 								if(debug_){
-									(*mappedBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
-									(*mappedBedOut) << GenomicRegion(*search, rData).genBedRecordCore().toDelimStr() << std::endl;
+									(*inverseBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
+									(*inverseBedOut) << GenomicRegion(*search, rData).genBedRecordCore().toDelimStr() << std::endl;
 								}
-							} else {
-								if(debug_){
-									(*discordantBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
-									(*discordantBedOut) << GenomicRegion(*search, rData).genBedRecordCore().toDelimStr() << std::endl;
-								}
-								//discordant if mapping to different chromosome or very far away from each other
-								++ret.discordant_;
-								if (bAln.IsFirstMate()) {
-									discordantPairWriter.openWrite(
-											PairedRead(bAlnSeq, searchSeq, false));
+							}else{
+								//test for concordant
+								if (bAln.RefID == search->RefID && std::abs(bAln.InsertSize) < insertLengthCutOff_) {
+									++ret.pairedReads_;
+									if (bAln.IsFirstMate()) {
+										mappedPairWriter.openWrite(
+												PairedRead(bAlnSeq, searchSeq, false));
+									} else {
+										mappedPairWriter.openWrite(
+												PairedRead(searchSeq, bAlnSeq, false));
+									}
+									bWriter.SaveAlignment(bAln);
+									bWriter.SaveAlignment(*search);
+									if(debug_){
+										(*mappedBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
+										(*mappedBedOut) << GenomicRegion(*search, rData).genBedRecordCore().toDelimStr() << std::endl;
+									}
 								} else {
-									discordantPairWriter.openWrite(
-											PairedRead(searchSeq, bAlnSeq, false));
+									if(debug_){
+										(*discordantBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
+										(*discordantBedOut) << GenomicRegion(*search, rData).genBedRecordCore().toDelimStr() << std::endl;
+									}
+									//discordant if mapping to different chromosome or very far away from each other
+									++ret.discordant_;
+									if (bAln.IsFirstMate()) {
+										discordantPairWriter.openWrite(
+												PairedRead(bAlnSeq, searchSeq, false));
+									} else {
+										discordantPairWriter.openWrite(
+												PairedRead(searchSeq, bAlnSeq, false));
+									}
+									bWriter.SaveAlignment(bAln);
+									bWriter.SaveAlignment(*search);
 								}
-								bWriter.SaveAlignment(bAln);
-								bWriter.SaveAlignment(*search);
 							}
 						}
 					} else {
 						++ret.pairedReadsMateUnmapped_;
 						//when mate is unmapped the same operation is done to the mate as the other mate, not sure why, so to fix orientation (or at least keep the read in the orientation of it's mate)
-						if (balnMapped && !search->IsMapped()) {
+						//while the above is true, this can always just be handled by checking sure the appropriate actions have been taken
+						//make sure pairs are oriented in the right direction
+						//if they have both been reverse complemented,
+						//then the mate that didn't pass needs to be reverse complemented again
+						if (balnIsMapped && !searchIsMapped && bAln.IsReverseStrand() == search->IsReverseStrand()) {
 							searchSeq.reverseComplementRead(false, true);
-						} else if (!balnMapped && search->IsMapped()) {
+						} else if (!balnIsMapped && searchIsMapped && bAln.IsReverseStrand() == search->IsReverseStrand()) {
 							bAlnSeq.reverseComplementRead(false, true);
-						} else {
-							//this shouldn't be happening....
 						}
 						if (throwAwayUnmmpaedMates) {
-							if (balnMapped && !searchMapped) {
+							if (balnIsMapped && !searchIsMapped) {
 								mappedSinglesWriter.openWrite(bAlnSeq);
 								thrownAwayMateWriter.openWrite(searchSeq);
 								bWriter.SaveAlignment(bAln);
-							} else if (!balnMapped && searchMapped) {
+							} else if (!balnIsMapped && searchIsMapped) {
 								mappedSinglesWriter.openWrite(searchSeq);
 								thrownAwayMateWriter.openWrite(bAlnSeq);
 								bWriter.SaveAlignment(*search);
@@ -2093,13 +2204,25 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 				++ret.unpairedUnMapped_;
 				unmappedSinglesWriter.openWrite(bamAlnToSeqInfo(*search));
 			} else {
-				if((0 != search->Position
-						&& search->CigarData.front().Type == 'S'
-						&& search->CigarData.front().Length > centerClipCutOff) ||
-						(contigLengths[rData[search->RefID].RefName] != getEndPosition(*search)
-						&& search->CigarData.back().Type == 'S'
-						&& search->CigarData.back().Length > centerClipCutOff)){
-					++ret.unpairedUnMapped_;
+
+				if(
+
+//						(search->Position > forSoftClipFilterDistanceToEdges
+//						&& search->CigarData.front().Type == 'S'
+//						&& search->CigarData.front().Length > centerClipCutOff) ||
+//						(contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > forSoftClipFilterDistanceToEdges
+//						&& search->CigarData.back().Type == 'S'
+//						&& search->CigarData.back().Length > centerClipCutOff)
+						(search->Position > forSoftClipFilterDistanceToEdges &&
+												contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > forSoftClipFilterDistanceToEdges)
+												&& ((search->Position > forSoftClipFilterDistanceToEdges
+												&& search->CigarData.front().Type == 'S'
+												&& search->CigarData.front().Length > centerClipCutOff) ||
+												(contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > forSoftClipFilterDistanceToEdges
+												&& search->CigarData.back().Type == 'S'
+												&& search->CigarData.back().Length > centerClipCutOff))
+				){
+					++ret.unpairedFailedSoftClip_;
 					unmappedSinglesWriter.openWrite(bamAlnToSeqInfo(*search));
 				}else{
 					++ret.unpaiedReads_;
@@ -2583,6 +2706,8 @@ Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const
 	return ret;
 }
 
+
+
 BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMapping(
 		const SeqIOOptions & inOutOpts,
 		const std::vector<GenomicRegion> & regions,
@@ -2644,10 +2769,18 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	auto outPairsInverse = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "inverse_"));
 	outPairsInverse.out_.transferOverwriteOpts(inOutOpts.out_);
 
+	//filtered off seqs, the inverse and not completely in the region sequences
+	auto outPairsFiltered = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "filteredPairs_"));
+	outPairsFiltered.out_.transferOverwriteOpts(inOutOpts.out_);
+
+
+
 	auto outUnpaired = SeqIOOptions::genFastqOut(inOutOpts.out_.outFilename_);
 	outUnpaired.out_.transferOverwriteOpts(inOutOpts.out_);
 	//pair writers
 	SeqOutput pairWriter(outPairs);
+	SeqOutput filteredPairWriter(outPairsFiltered);
+
 	SeqOutput mateUnmappedPairWriter(outPairsUnmappedMate);
 
 	SeqOutput thrownAwayUnammpedMateWriter(thrownAwayUnammpedMateOpts);
@@ -2661,12 +2794,14 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	ret.inPairsMateUnmapped_ =      SeqIOOptions::genPairedIn(outPairsUnmappedMate.getPriamryOutName(), outPairsUnmappedMate.getSecondaryOutName());
 	ret.inThrownAwayUnmappedMate_ = SeqIOOptions::genFastqIn (thrownAwayUnammpedMateOpts.getPriamryOutName());
 	ret.inInverse_ =                SeqIOOptions::genPairedIn(outPairsInverse.getPriamryOutName(), outPairsInverse.getSecondaryOutName());
+	ret.inFilteredPairs_ =          SeqIOOptions::genPairedIn(outPairsFiltered.getPriamryOutName(), outPairsFiltered.getSecondaryOutName());
 	//no disconcordant reads as this is aiming to grab those reads
 	ret.inUnpaired_ =               SeqIOOptions::genFastqIn (outUnpaired.getPriamryOutName());
 
+
 	auto writeMateFilteredOff = [&ret,extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
 		//unpaired read
-		++ret.pairFilteredOff_;
+		++ret.mateFilteredOff_;
 		if (extractPars.originalOrientation_) {
 			writer.openWrite(bamAlnToSeqInfo(bAln));
 		} else {
@@ -2690,25 +2825,50 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		bWriter.SaveAlignment(bAln);
 	};
 
-	auto writeInversePair = [&ret,&extractPars,&inversePairWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq,
-			const BamTools::BamAlignment & searchAln, const seqInfo & searchSeq){
+//	auto writeInversePair = [&ret,&extractPars,&inversePairWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq,
+//			const BamTools::BamAlignment & searchAln, const seqInfo & searchSeq){
+//		++ret.inverse_;
+//		if(extractPars.originalOrientation_){
+//			if (bAln.IsFirstMate()) {
+//				inversePairWriter.openWrite(PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(searchAln)));
+//			} else {
+//				inversePairWriter.openWrite(PairedRead(bamAlnToSeqInfo(searchAln), bamAlnToSeqInfo(bAln)));
+//			}
+//		}else{
+//			if (bAln.IsFirstMate()) {
+//				inversePairWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
+//			} else {
+//				inversePairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
+//			}
+//		}
+//		bWriter.SaveAlignment(bAln);
+//		bWriter.SaveAlignment(searchAln);
+//	};
+
+	auto writeInverseFilteredPair = [&ret,&filteredPairWriter,&bWriter](const BamTools::BamAlignment & bAln,
+			const BamTools::BamAlignment & searchAln){
 		++ret.inverse_;
-		if(extractPars.originalOrientation_){
-			if (bAln.IsFirstMate()) {
-				inversePairWriter.openWrite(PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(searchAln)));
-			} else {
-				inversePairWriter.openWrite(PairedRead(bamAlnToSeqInfo(searchAln), bamAlnToSeqInfo(bAln)));
-			}
-		}else{
-			if (bAln.IsFirstMate()) {
-				inversePairWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
-			} else {
-				inversePairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
-			}
+		if (bAln.IsFirstMate()) {
+			filteredPairWriter.openWrite(PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(searchAln)));
+		} else {
+			filteredPairWriter.openWrite(PairedRead(bamAlnToSeqInfo(searchAln), bamAlnToSeqInfo(bAln)));
 		}
 		bWriter.SaveAlignment(bAln);
 		bWriter.SaveAlignment(searchAln);
 	};
+//
+	auto writeBothPairsFiltered = [&ret,&filteredPairWriter,&bWriter](const BamTools::BamAlignment & bAln,
+			const BamTools::BamAlignment & searchAln){
+		++ret.bothMatesFilteredOff_;
+		if (bAln.IsFirstMate()) {
+			filteredPairWriter.openWrite(PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(searchAln)));
+		} else {
+			filteredPairWriter.openWrite(PairedRead(bamAlnToSeqInfo(searchAln), bamAlnToSeqInfo(bAln)));
+		}
+		bWriter.SaveAlignment(bAln);
+		bWriter.SaveAlignment(searchAln);
+	};
+
 	auto writeDiscordantPair = [&ret,&extractPars,&pairWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq,
 			const BamTools::BamAlignment & searchAln, const seqInfo & searchSeq){
 		++ret.discordant_;
@@ -2728,6 +2888,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		bWriter.SaveAlignment(bAln);
 		bWriter.SaveAlignment(searchAln);
 	};
+
 	auto writeRegPair = [&ret,&extractPars,&pairWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq,
 			const BamTools::BamAlignment & searchAln, const seqInfo & searchSeq){
 		++ret.pairedReads_;
@@ -2737,8 +2898,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			} else {
 				pairWriter.openWrite(PairedRead(bamAlnToSeqInfo(searchAln), bamAlnToSeqInfo(bAln)));
 			}
-		}else{
-
+		} else {
 			if (bAln.IsFirstMate()) {
 				pairWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
 			} else {
@@ -2796,7 +2956,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	};
 
 	auto writeUnmappedMateFilteredPair= [&ret,&extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
-		++ret.pairFilteredOffUnmapped_;
+		++ret.mateFilteredOffUnmapped_;
 		if(extractPars.originalOrientation_){
 			writer.openWrite(bamAlnToSeqInfo(bAln));
 		}else{
@@ -2894,11 +3054,12 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 
 					if(bAln.IsMapped() && search->IsMapped()){
 						if(bAln.RefID == search->RefID && std::abs(bAln.InsertSize) < insertLengthCutOff_){
-							//concordant mapping to the current region, reorient
+							//concordant mapping to the current region, re-orient
 							if (searchIn && bAlnIn) {
 								//check for inverse mapping
 								if (bAln.IsReverseStrand() == search->IsReverseStrand()) {
-									writeInversePair(bAln, bAlnSeq, *search, searchSeq);
+									//writeInversePair(bAln, bAlnSeq, *search, searchSeq);
+									writeInverseFilteredPair(bAln, *search);
 								} else {
 									writeRegPair(bAln, bAlnSeq, *search, searchSeq);
 								}
@@ -2908,6 +3069,12 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							}else if(bAlnIn){
 								writeMateFilteredOff(bAln, region);
 								writeTheThrownAwayMate(*search, searchSeq);
+							}else{
+								//both searchIn and balnIn are false, which means they both partially map to this region but don't pass the criteria
+								//for inclusion, would be good to count how often this happens
+								//since we are keeping the thrown away mate why don't we keep both of these to try to map during recruitment
+								/**@todo */
+								writeBothPairsFiltered(bAln, *search);
 							}
 						} else {
 							if (searchIn && bAlnIn) {
@@ -2916,9 +3083,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 								bool bAlnCheck = region.reverseSrand_ == bAln.IsReverseStrand();
 								bool searchCheck = searchRegion->reverseSrand_ == search->IsReverseStrand();
 								//if the checks equal each other that means the mates are now in the opposite orientation from each other and therefore are inverse mapping
-								if(bAlnCheck == searchCheck){
-									writeInversePair(bAln, bAlnSeq, *search, searchSeq);
-								}else{
+								if (bAlnCheck == searchCheck) {
+									//writeInversePair(bAln, bAlnSeq, *search, searchSeq);
+									writeInverseFilteredPair(bAln, *search);
+								} else {
 									writeDiscordantPair(bAln, bAlnSeq, *search, searchSeq);
 								}
 							}else if(searchIn){
@@ -2927,6 +3095,12 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							}else if(bAlnIn){
 								writeMateFilteredOff(bAln, region);
 								writeTheThrownAwayMate(*search, searchSeq);
+							}else{
+								//both searchIn and balnIn are false, which means they both partially map to this region but don't pass the criteria
+								//for inclusion, would be good to count how often this happens
+								//since we are keeping the thrown away mate why don't we keep both of these to try to map during recruitment
+								/**@todo */
+								writeBothPairsFiltered(bAln, *search);
 							}
 						}
 					}else if(bAln.IsMapped()){
