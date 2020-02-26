@@ -2106,12 +2106,24 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 								//inverse mates will there be written in technically the wrong orientation to each other but in the reference orientation
 								/**@todo lol, why? check on this */
 								++ret.inverse_;
+//								if (bAln.IsFirstMate()) {
+//									inversePairWriter.openWrite(
+//											PairedRead(bAlnSeq, searchSeq, false));
+//								} else {
+//									inversePairWriter.openWrite(
+//											PairedRead(searchSeq, bAlnSeq, false));
+//								}
+
+								//treat this like both are unammped, this will give them another chance to map correctly if things get extended
 								if (bAln.IsFirstMate()) {
-									inversePairWriter.openWrite(
-											PairedRead(bAlnSeq, searchSeq, false));
+									unmappedPairWriter.openWrite(
+											PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(*search),
+													false));
+
 								} else {
-									inversePairWriter.openWrite(
-											PairedRead(searchSeq, bAlnSeq, false));
+									unmappedPairWriter.openWrite(
+											PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
+													false));
 								}
 								if(debug_){
 									(*inverseBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
