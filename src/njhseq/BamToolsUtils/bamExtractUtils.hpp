@@ -47,6 +47,8 @@ public:
 		uint32_t pairedReadsBothFailedSoftClip_ = 0;//! one mate mapped fully but the other mater failed a soft clip filter
 		uint32_t unpaiedReads_ = 0;
 		uint32_t orphans_ = 0; /**< reads that are paired but their mates weren't found */
+		uint32_t orphansFiltered_ = 0; /**< reads that are paired but their mates weren't found and eventually are filterd off */
+
 		uint32_t orphansUnmapped_ = 0; /**< reads that are paired but their mates weren't found are unmapped */
 		uint32_t pairsUnMapped_ = 0;
 		uint32_t unpairedUnMapped_ = 0;
@@ -57,6 +59,7 @@ public:
 //		uint32_t mateFilteredOffUnmapped_ = 0;//! mate was unmapped
 
 		uint32_t bothMatesFilteredOff_ = 0; //! both mates has been filtered
+		uint32_t singlesFilteredOff_ = 0; //! single has been filtered
 
 
 		uint32_t mateFilteredOff_ = 0; //! mate has been filtered
@@ -94,6 +97,7 @@ public:
 		SeqIOOptions inUnpairedUnMapped_;
 
 		SeqIOOptions inFilteredPairs_;
+		SeqIOOptions inFilteredSingles_;
 
 		SeqIOOptions inInverse_;
 		SeqIOOptions inDiscordant_;
@@ -167,6 +171,7 @@ public:
 		bool throwAwayUnmappedMate_ = false;
 		bool tryToFindOrphansMate_ = false;
 		bool keepMarkedDuplicate_ = false;
+		uint32_t minAlnMapSize_ = 35;
 		Json::Value toJson() const;
 
 	};
