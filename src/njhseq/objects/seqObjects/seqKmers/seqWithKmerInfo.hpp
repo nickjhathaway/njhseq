@@ -113,6 +113,7 @@ public:
 			const seqWithKmerInfo & read, uint32_t windowSize,
 			uint32_t windowStepSize) const;
 
+
 };
 
 

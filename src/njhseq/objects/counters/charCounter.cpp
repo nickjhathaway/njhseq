@@ -59,7 +59,7 @@ Json::Value charCounter::toJson() const {
 
 charCounter::charCounter() :
 		charCounter(std::vector<char> { 'A', 'C', 'G', 'T', '-' }) {
-
+	reset();
 }
 
 charCounter::charCounter(const std::vector<char>& alphabet) :
@@ -68,6 +68,7 @@ charCounter::charCounter(const std::vector<char>& alphabet) :
 }
 
 charCounter::charCounter(const std::string & str) {
+	reset();
 	increaseCountByString(str);
 	resetAlphabet(false);
 	setFractions();
@@ -76,6 +77,7 @@ charCounter::charCounter(const std::string & str) {
 charCounter::charCounter(const std::string & str,
 		const std::vector<char>& alphabet) :
 		alphabet_(alphabet), originalAlphabet_(alphabet) {
+	reset();
 	increaseCountByString(str);
 	resetAlphabet(true);
 	setFractions();

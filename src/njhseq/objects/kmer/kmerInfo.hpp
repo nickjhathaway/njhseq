@@ -163,7 +163,18 @@ public:
 			uint32_t windowStepSize) const;
 
 
+	/**@biref Get the smallest k-mer length so there are no repeated kmers
+	 *
+	 * @param seq the sequence to search
+	 * @return the length
+	 */
 	static uint32_t getMinimumNonRedundant(const std::string & seq);
+
+	/**@brief compute kmer entropy
+	 *
+	 * @return value ranging from 0 (all one kmer) to 2 (even amount of all kmers possible for given length)
+	 */
+	double computeKmerEntropy() const;
 
 
 

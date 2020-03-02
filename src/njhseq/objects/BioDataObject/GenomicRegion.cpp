@@ -227,22 +227,63 @@ size_t GenomicRegion::distBetweenRegions(const std::string & otherChrom, const s
 }
 
 
+bool GenomicRegion::startsInThisRegion(const BamTools::BamAlignment & bAln,
+		const BamTools::RefVector & refData) const {
+	return startsInThisRegion(refData[bAln.RefID].RefName, bAln.Position);
+}
+
+bool GenomicRegion::endsInThisRegion(const BamTools::BamAlignment & bAln,
+		const BamTools::RefVector & refData) const {
+	return endsInThisRegion(refData[bAln.RefID].RefName, bAln.GetEndPosition());
+
+}
+
+bool GenomicRegion::fallsInThisRegion(const BamTools::BamAlignment & bAln,
+		const BamTools::RefVector & refData) const {
+
+	return fallsInThisRegion(refData[bAln.RefID].RefName, bAln.Position, bAln.GetEndPosition());
+}
+
+bool GenomicRegion::startsInThisRegion(const std::string & chrom,
+		uint32_t start) const { //no check for if start is less than end
+	if (chrom != chrom_) {
+		return false;
+	}
+	return start >= start_ && start < end_;
+}
+
+bool GenomicRegion::endsInThisRegion(const std::string & chrom,
+		uint32_t end) const { //no check for if start is less than end
+	if (chrom != chrom_) {
+		return false;
+	}
+	return end > start_ && end <= end_;
+}
+
+bool GenomicRegion::fallsInThisRegion(const std::string & chrom, uint32_t start,
+		uint32_t end) const { //no check for if start is less than end
+	if (chrom != chrom_) {
+		return false;
+	}
+	return overlaps(chrom, start, end);
+}
+
+
 
 
 bool GenomicRegion::endsInThisRegion(
 		const GenomicRegion & otherRegion) const {
-	if(otherRegion.chrom_ != chrom_){
-		return false;
-	}
-	return otherRegion.end_ > start_ && otherRegion.end_ <= end_;
+	return endsInThisRegion(otherRegion.chrom_, otherRegion.end_);
 }
 
 bool GenomicRegion::startsInThisRegion(
 		const GenomicRegion & otherRegion) const {
-	if(otherRegion.chrom_ != chrom_){
-		return false;
-	}
-	return otherRegion.start_ >= start_ && otherRegion.start_ < end_;
+	return startsInThisRegion(otherRegion.chrom_, otherRegion.start_);
+}
+
+bool GenomicRegion::fallsInThisRegion(
+		const GenomicRegion & otherRegion) const {
+	return fallsInThisRegion(otherRegion.chrom_, otherRegion.start_, otherRegion.end_);
 }
 
 

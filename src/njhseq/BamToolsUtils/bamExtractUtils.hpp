@@ -26,6 +26,8 @@
 #include "njhseq/BamToolsUtils/BamToolsUtils.hpp"
 #include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 #include "njhseq/objects/seqObjects/Paired/PairedRead.hpp"
+#include "njhseq/readVectorManipulation/readVectorHelpers/readChecker.hpp"
+
 
 namespace njhseq {
 
@@ -43,11 +45,12 @@ public:
 	struct ExtractCounts {
 		uint32_t pairedReads_ = 0;
 		uint32_t pairedReadsMateUnmapped_ = 0;//! one mate is mapped and the other mate is unmapped
-		uint32_t pairedReadsMateFailedSoftClip_ = 0;//! one mate mapped fully but the other mater failed a soft clip filter
-		uint32_t pairedReadsBothFailedSoftClip_ = 0;//! one mate mapped fully but the other mater failed a soft clip filter
+		uint32_t pairedReadsMateUnmappedFailedSoftClip_ = 0;//! one mate is mapped and the other mate is unmapped but the mapped mate failed soft-clip filter
+		uint32_t pairedReadsMateFailedSoftClip_ = 0;//! one mate mapped fully but the other mate failed a soft clip filter
+		uint32_t pairedReadsBothFailedSoftClip_ = 0;//! one mate mapped fully but the other mate failed a soft clip filter
 		uint32_t unpaiedReads_ = 0;
 		uint32_t orphans_ = 0; /**< reads that are paired but their mates weren't found */
-		uint32_t orphansFiltered_ = 0; /**< reads that are paired but their mates weren't found and eventually are filterd off */
+		uint32_t orphansFiltered_ = 0; /**< reads that are paired but their mates weren't found and eventually are filtered off */
 
 		uint32_t orphansUnmapped_ = 0; /**< reads that are paired but their mates weren't found are unmapped */
 		uint32_t pairsUnMapped_ = 0;
@@ -187,6 +190,24 @@ public:
 
 
 	ExtractedFilesOpts writeUnMappedSeqs(const SeqIOOptions & opts);
+	struct writeUnMappedSeqsAndSmallAlnsWithFiltersPars {
+		uint32_t maxAlnSize_ { 35 };
+		uint32_t minSotClip_ { 40 };
+		uint32_t minQuerySize_ { 36 };
+		bool tryToFindOrphanMate_ { false };
+
+		bool filterOffLowEntropyShortAlnsRecruits_{true};
+		double filterOffLowEntropyShortAlnsRecruitsCutOff_{1.5};
+		uint32_t entropyKlen_{2};
+
+		Json::Value toJson() const;
+	};
+
+	ExtractedFilesOpts writeUnMappedSeqsAndSmallAlnsWithFilters(const SeqIOOptions & opts,
+			const ReadCheckerQualCheck & qualChecker,
+			const writeUnMappedSeqsAndSmallAlnsWithFiltersPars & alnSizeFilt,
+			const std::vector<GenomicRegion> & skipRegions);
+
 
 	bool verbose_ = false;
 	bool debug_ = false;

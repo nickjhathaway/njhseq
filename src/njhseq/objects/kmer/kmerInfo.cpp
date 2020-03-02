@@ -319,4 +319,22 @@ uint32_t kmerInfo::getMinimumNonRedundant(const std::string & seq){
   return klen;
 }
 
+
+double kmerInfo::computeKmerEntropy() const{
+	uint32_t totalCount = 0;
+	uint32_t totalKmers = std::pow(4, kLen_);
+	double div = std::sqrt(totalKmers);
+	for(const auto & k : kmers_){
+		totalCount += k.second.count_;
+	}
+	double sum = 0;
+	for(const auto & k : kmers_){
+		if(k.second.count_ != totalCount){
+			double frac = k.second.count_/static_cast<double>(totalCount);
+			sum += frac * std::log(frac)/std::log(div);
+		}
+	}
+	return -1 * sum;
+}
+
 }  // namespace njh
