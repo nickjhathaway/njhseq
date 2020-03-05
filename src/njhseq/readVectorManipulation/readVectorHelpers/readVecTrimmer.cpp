@@ -24,6 +24,45 @@
 
 namespace njhseq {
 
+
+readVecTrimmer::TrimEdgesByLowEntropyRes::TrimEdgesByLowEntropyRes(uint32_t start, uint32_t end): start_(start), end_(end){
+
+}
+
+
+readVecTrimmer::TrimEdgesByLowEntropyRes readVecTrimmer::determineTrimPostionsByLowEntropy(const std::string & seq, const readVecTrimmer::TrimEdgesByLowEntropyPars & pars){
+	readVecTrimmer::TrimEdgesByLowEntropyRes ret(0, seq.size());
+
+	if (len(seq) >= pars.windowSize) {
+		for (auto pos : iter::range<uint32_t>(0, len(seq) - pars.windowSize + 1,
+				pars.windowStep)) {
+			kmerInfo kInfo(seq.substr(pos, pars.windowSize), pars.kLen, false);
+			if (kInfo.computeKmerEntropy() < pars.entropyCutOff) {
+				ret.start_ = pos + pars.windowSize;
+			} else {
+				break;
+			}
+		}
+		for (auto pos : iter::range<uint32_t>(0, len(seq) - pars.windowSize + 1,
+				pars.windowStep)) {
+			kmerInfo kInfo(
+					seq.substr(seq.size() - pos - pars.windowSize, pars.windowSize),
+					pars.kLen, false);
+			if (kInfo.computeKmerEntropy() < pars.entropyCutOff) {
+				ret.end_ = seq.size() - pos - pars.windowSize;
+			} else {
+				break;
+			}
+		}
+	} else {
+		kmerInfo kInfo(seq, pars.kLen, false);
+		if (kInfo.computeKmerEntropy() < pars.entropyCutOff) {
+			ret.end_ = 0;
+		}
+	}
+	return ret;
+}
+
 readVecTrimmer::BreakUpRes::BreakUpRes(const seqInfo & seqBase, uint32_t start,
 		uint32_t end, const std::string & pat) :
 		seqBase_(seqBase), start_(start), end_(end), pat_(pat) {
@@ -129,6 +168,25 @@ void readVecTrimmer::trimAtFirstBase(seqInfo &seq, const char base){
 	}
 }
 
+void readVecTrimmer::trimEdgesForLowEntropy(seqInfo &seq,
+		const TrimEdgesByLowEntropyPars& pars) {
+	auto positions = determineTrimPostionsByLowEntropy(seq.seq_, pars);
+	if (positions.start_ < positions.end_) {
+		seq = seq.getSubRead(positions.start_, positions.end_ - positions.start_);
+		if (pars.mark) {
+			MetaDataInName seqMeta;
+			if (MetaDataInName::nameHasMetaData(seq.name_)) {
+				seqMeta = MetaDataInName(seq.name_);
+			}
+			seqMeta.addMeta("trimStart", positions.start_, true);
+			seqMeta.addMeta("trimEnd", positions.end_, true);
+			seqMeta.resetMetaInName(seq.name_);
+		}
+		seq.on_ = true;
+	} else {
+		seq.on_ = false;
+	}
+}
 
 void readVecTrimmer::trimToMaxLength(seqInfo &seq, size_t maxLength) {
 	if (maxLength != 0 && len(seq) > maxLength - 1) {

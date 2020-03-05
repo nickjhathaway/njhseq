@@ -1845,7 +1845,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamWriteAsSingles
 
 BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientationContigs(
 		const SeqIOOptions & opts,
-		bool throwAwayUnmmpaedMates) {
+		const extractReadsFromBamToSameOrientationContigsPars & pars) {
 
 	auto outPairsUnMapped = SeqIOOptions::genPairedOut(
 			njh::files::prependFileBasename(opts.out_.outFilename_, "unmapped_"));
@@ -1943,8 +1943,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 		mappedBedOut = std::make_unique<OutputStream>(mappedBedOpts);
 	}
 
-	uint32_t centerClipCutOff = 20;
-	uint32_t forSoftClipFilterDistanceToEdges = 0;
+
 	std::unordered_map<std::string, uint32_t> contigLengths;
 	for(const auto & r : rData){
 		contigLengths[r.RefName] = r.RefLength;
@@ -1965,12 +1964,12 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 //						&& bAln.CigarData.back().Type == 'S'
 //						&& bAln.CigarData.back().Length > centerClipCutOff)) {
 				if(
-						((bAln.Position > forSoftClipFilterDistanceToEdges
+						((bAln.Position > pars.forSoftClipFilterDistanceToEdges
 						&& bAln.CigarData.front().Type == 'S'
-						&& bAln.CigarData.front().Length > centerClipCutOff) ||
-						(contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > forSoftClipFilterDistanceToEdges
+						&& bAln.CigarData.front().Length > pars.centerClipCutOff) ||
+						(contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > pars.forSoftClipFilterDistanceToEdges
 						&& bAln.CigarData.back().Type == 'S'
-						&& bAln.CigarData.back().Length > centerClipCutOff))
+						&& bAln.CigarData.back().Length > pars.centerClipCutOff))
 //						(bAln.Position > forSoftClipFilterDistanceToEdges &&
 //												contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > forSoftClipFilterDistanceToEdges)
 //												&& ((bAln.Position > forSoftClipFilterDistanceToEdges
@@ -2013,12 +2012,12 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 //												(contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > forSoftClipFilterDistanceToEdges
 //												&& bAln.CigarData.back().Type == 'S'
 //												&& bAln.CigarData.back().Length > centerClipCutOff))
-							((bAln.Position > forSoftClipFilterDistanceToEdges
+							((bAln.Position > pars.forSoftClipFilterDistanceToEdges
 													&& bAln.CigarData.front().Type == 'S'
-													&& bAln.CigarData.front().Length > centerClipCutOff) ||
-													(contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > forSoftClipFilterDistanceToEdges
+													&& bAln.CigarData.front().Length > pars.centerClipCutOff) ||
+													(contigLengths[rData[bAln.RefID].RefName] - getEndPosition(bAln) > pars.forSoftClipFilterDistanceToEdges
 													&& bAln.CigarData.back().Type == 'S'
-													&& bAln.CigarData.back().Length > centerClipCutOff))
+													&& bAln.CigarData.back().Length > pars.centerClipCutOff))
 												){
 					balnPassSoftClipTest = false;
 				}
@@ -2032,12 +2031,12 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 //												(contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > forSoftClipFilterDistanceToEdges
 //												&& search->CigarData.back().Type == 'S'
 //												&& search->CigarData.back().Length > centerClipCutOff))
-						((search->Position > forSoftClipFilterDistanceToEdges
+						((search->Position > pars.forSoftClipFilterDistanceToEdges
 						&& search->CigarData.front().Type == 'S'
-						&& search->CigarData.front().Length > centerClipCutOff) ||
-						(contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > forSoftClipFilterDistanceToEdges
+						&& search->CigarData.front().Length > pars.centerClipCutOff) ||
+						(contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > pars.forSoftClipFilterDistanceToEdges
 						&& search->CigarData.back().Type == 'S'
-						&& search->CigarData.back().Length > centerClipCutOff))
+						&& search->CigarData.back().Length > pars.centerClipCutOff))
 
 				) {
 					searchPassSoftClipTest = false;
@@ -2083,7 +2082,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 							} else if (!balnPassSoftClipTest && searchPassSoftClipTest) {
 								++ret.pairedReadsMateFailedSoftClip_;
 								//treat this like baln is unmapped
-								if (throwAwayUnmmpaedMates) {
+								if (pars.throwAwayUnmmpaedMates) {
 									mappedSinglesWriter.openWrite(searchSeq);
 									thrownAwayMateWriter.openWrite(bAlnSeq);
 									bWriter.SaveAlignment(*search);
@@ -2107,7 +2106,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 							} else if (balnPassSoftClipTest && !searchPassSoftClipTest) {
 								++ret.pairedReadsMateFailedSoftClip_;
 								//treat this like search is unmapped
-								if (throwAwayUnmmpaedMates) {
+								if (pars.throwAwayUnmmpaedMates) {
 									mappedSinglesWriter.openWrite(bAlnSeq);
 									thrownAwayMateWriter.openWrite(searchSeq);
 									bWriter.SaveAlignment(bAln);
@@ -2217,7 +2216,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 							} else if (!balnIsMapped && searchIsMapped && bAln.IsReverseStrand() == search->IsReverseStrand()) {
 								bAlnSeq.reverseComplementRead(false, true);
 							}
-							if (throwAwayUnmmpaedMates) {
+							if (pars.throwAwayUnmmpaedMates) {
 								if (balnIsMapped && !searchIsMapped) {
 									mappedSinglesWriter.openWrite(bAlnSeq);
 									thrownAwayMateWriter.openWrite(searchSeq);
@@ -2257,12 +2256,12 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 			} else {
 
 				if(
-						(search->Position > forSoftClipFilterDistanceToEdges
+						(search->Position > pars.forSoftClipFilterDistanceToEdges
 						&& search->CigarData.front().Type == 'S'
-						&& search->CigarData.front().Length > centerClipCutOff) ||
-						(contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > forSoftClipFilterDistanceToEdges
+						&& search->CigarData.front().Length > pars.centerClipCutOff) ||
+						(contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > pars.forSoftClipFilterDistanceToEdges
 						&& search->CigarData.back().Type == 'S'
-						&& search->CigarData.back().Length > centerClipCutOff)
+						&& search->CigarData.back().Length > pars.centerClipCutOff)
 //						(search->Position > forSoftClipFilterDistanceToEdges &&
 //												contigLengths[rData[search->RefID].RefName] - getEndPosition(*search) > forSoftClipFilterDistanceToEdges)
 //												&& ((search->Position > forSoftClipFilterDistanceToEdges
@@ -3185,6 +3184,9 @@ Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const
 	ret["tryToFindOrphansMate_"] = njh::json::toJson(tryToFindOrphansMate_);
 	ret["keepMarkedDuplicate_"] = njh::json::toJson(keepMarkedDuplicate_);
 	ret["minAlnMapSize_"] = njh::json::toJson(minAlnMapSize_);
+	ret["filterOffLowEntropyOrphansRecruitsCutOff_"] = njh::json::toJson(filterOffLowEntropyOrphansRecruitsCutOff_);
+	ret["filterOffLowEntropyOrphansRecruits_"] = njh::json::toJson(filterOffLowEntropyOrphansRecruits_);
+	ret["entropyKlen_"] = njh::json::toJson(entropyKlen_);
 	return ret;
 }
 
@@ -3355,33 +3357,96 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //		bWriter.SaveAlignment(searchAln);
 //	};
 
-	auto writeInverseFilteredPair = [&ret,&filteredPairWriter,&bWriter](const BamTools::BamAlignment & bAln,
+	auto writeInverseFilteredPair = [&ret,&filteredPairWriter,&bWriter,&singleFilteredWriter,&extractPars](const BamTools::BamAlignment & bAln,
 			const BamTools::BamAlignment & searchAln){
 		++ret.inverse_;
-		if (bAln.IsFirstMate()) {
-			filteredPairWriter.openWrite(PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(searchAln)));
-		} else {
-			filteredPairWriter.openWrite(PairedRead(bamAlnToSeqInfo(searchAln), bamAlnToSeqInfo(bAln)));
+		auto bAlnSeq = bamAlnToSeqInfo(bAln);
+		auto searchSeq = bamAlnToSeqInfo(searchAln);
+
+		bool bAlnSeqPass = true;
+		bool searchSeqPass = true;
+		if(extractPars.filterOffLowEntropyOrphansRecruits_){
+			{
+				kmerInfo kInfo(bAlnSeq.seq_, extractPars.entropyKlen_, false);
+				if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+					bAlnSeqPass = false;
+				}
+			}
+			{
+				kmerInfo kInfo(searchSeq.seq_, extractPars.entropyKlen_, false);
+				if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+					searchSeqPass= false;
+				}
+			}
+		}
+		if(bAlnSeqPass && searchSeqPass) {
+			if (bAln.IsFirstMate()) {
+				filteredPairWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
+			} else {
+				filteredPairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
+			}
+		} else if(bAlnSeqPass) {
+			singleFilteredWriter.openWrite(bAlnSeq);
+		} else if(searchSeqPass) {
+			singleFilteredWriter.openWrite(searchSeq);
 		}
 		bWriter.SaveAlignment(bAln);
 		bWriter.SaveAlignment(searchAln);
 	};
 //
-	auto writeBothPairsFiltered = [&ret,&filteredPairWriter,&bWriter](const BamTools::BamAlignment & bAln,
+	auto writeBothPairsFiltered = [&ret,&extractPars,&filteredPairWriter,&bWriter,&singleFilteredWriter](const BamTools::BamAlignment & bAln,
 			const BamTools::BamAlignment & searchAln){
 		++ret.bothMatesFilteredOff_;
-		if (bAln.IsFirstMate()) {
-			filteredPairWriter.openWrite(PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(searchAln)));
-		} else {
-			filteredPairWriter.openWrite(PairedRead(bamAlnToSeqInfo(searchAln), bamAlnToSeqInfo(bAln)));
+		auto bAlnSeq = bamAlnToSeqInfo(bAln);
+		auto searchSeq = bamAlnToSeqInfo(searchAln);
+
+		bool bAlnSeqPass = true;
+		bool searchSeqPass = true;
+		if(extractPars.filterOffLowEntropyOrphansRecruits_){
+			{
+				kmerInfo kInfo(bAlnSeq.seq_, extractPars.entropyKlen_, false);
+				if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+					bAlnSeqPass = false;
+				}
+			}
+			{
+				kmerInfo kInfo(searchSeq.seq_, extractPars.entropyKlen_, false);
+				if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+					searchSeqPass= false;
+				}
+			}
 		}
+		if(bAlnSeqPass && searchSeqPass) {
+			if (bAln.IsFirstMate()) {
+				filteredPairWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
+			} else {
+				filteredPairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
+			}
+		} else if(bAlnSeqPass) {
+			singleFilteredWriter.openWrite(bAlnSeq);
+		} else if(searchSeqPass) {
+			singleFilteredWriter.openWrite(searchSeq);
+		}
+
+
 		bWriter.SaveAlignment(bAln);
 		bWriter.SaveAlignment(searchAln);
 	};
 
-	auto writeSingleFiltered = [&ret,&singleFilteredWriter,&bWriter](const BamTools::BamAlignment & bAln){
+	auto writeSingleFiltered = [&ret,&extractPars,&singleFilteredWriter,&bWriter](const BamTools::BamAlignment & bAln){
 		++ret.singlesFilteredOff_;
-		singleFilteredWriter.openWrite(bamAlnToSeqInfo(bAln));
+		auto bAlnSeq = bamAlnToSeqInfo(bAln);
+
+		bool pass = true;
+		if(extractPars.filterOffLowEntropyOrphansRecruits_){
+			kmerInfo kInfo(bAlnSeq.seq_, extractPars.entropyKlen_, false);
+			if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+				pass = false;
+			}
+		}
+		if(pass){
+			singleFilteredWriter.openWrite(bAlnSeq);
+		}
 		bWriter.SaveAlignment(bAln);
 	};
 
@@ -3455,19 +3520,37 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	};
 
 	auto writeTheThrownAwayUnmappedMate = [&extractPars,&thrownAwayUnammpedMateWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
-		if(extractPars.originalOrientation_){
-			thrownAwayUnammpedMateWriter.openWrite(bamAlnToSeqInfo(bAln));
-		}else{
-			thrownAwayUnammpedMateWriter.openWrite(bAlnSeq);
+		bool pass = true;
+		if(extractPars.filterOffLowEntropyOrphansRecruits_){
+			kmerInfo kInfo(bAlnSeq.seq_, extractPars.entropyKlen_, false);
+			if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+				pass = false;
+			}
+		}
+		if(pass){
+			if(extractPars.originalOrientation_){
+				thrownAwayUnammpedMateWriter.openWrite(bamAlnToSeqInfo(bAln));
+			}else{
+				thrownAwayUnammpedMateWriter.openWrite(bAlnSeq);
+			}
 		}
 		bWriter.SaveAlignment(bAln);
 	};
 
 	auto writeTheThrownAwayMate = [&extractPars,&thrownAwayUnammpedMateWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
-		if(extractPars.originalOrientation_){
-			thrownAwayUnammpedMateWriter.openWrite(bamAlnToSeqInfo(bAln));
-		}else{
-			thrownAwayUnammpedMateWriter.openWrite(bAlnSeq);
+		bool pass = true;
+		if(extractPars.filterOffLowEntropyOrphansRecruits_){
+			kmerInfo kInfo(bAlnSeq.seq_, extractPars.entropyKlen_, false);
+			if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+				pass = false;
+			}
+		}
+		if(pass){
+			if(extractPars.originalOrientation_){
+				thrownAwayUnammpedMateWriter.openWrite(bamAlnToSeqInfo(bAln));
+			}else{
+				thrownAwayUnammpedMateWriter.openWrite(bAlnSeq);
+			}
 		}
 		bWriter.SaveAlignment(bAln);
 	};
@@ -3781,7 +3864,17 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				auto search = alnCache.get(name);
 				if(search->IsPaired()){
 					if (search->IsMateMapped()) {
-						orphanPositions[refData[search->MateRefID].RefName].emplace(search->MatePosition);
+						bool pass = true;
+						if (extractPars.filterOffLowEntropyOrphansRecruits_) {
+							seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
+							kmerInfo kInfo(searchSeq.seq_, extractPars.entropyKlen_, false);
+							if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+								pass = false;
+							}
+						}
+						if(pass){
+							orphanPositions[refData[search->MateRefID].RefName].emplace(search->MatePosition);
+						}
 					}
 				}
 			}
@@ -3805,9 +3898,17 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 						if (alnCache.has(bAln.Name)) {
 							auto search = alnCache.get(bAln.Name);
 							if (bAln.IsFirstMate() != search->IsFirstMate()) {
-								writeTheThrownAwayMate(bAln,
-										seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
-												SangerQualOffset));
+								bool pass = true;
+								auto balnSeq = seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities, SangerQualOffset);
+								if (extractPars.filterOffLowEntropyOrphansRecruits_) {
+									kmerInfo kInfo(balnSeq.seq_, extractPars.entropyKlen_, false);
+									if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+										pass = false;
+									}
+								}
+								if(pass){
+									writeTheThrownAwayMate(bAln, balnSeq);
+								}
 							}
 						}
 					}
@@ -3903,16 +4004,28 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				} else {
 					++ret.unpaiedReads_;
 				}
-				if (extractPars.originalOrientation_) {
-					writer.openWrite(bamAlnToSeqInfo(*search));
-				} else {
-					seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
-					if (searchRegion->reverseSrand_) {
-						searchSeq.reverseComplementRead(false, true);
+				bool pass = true;
+				auto searchSeq = seqInfo(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
+				if (extractPars.filterOffLowEntropyOrphansRecruits_) {
+					kmerInfo kInfo(searchSeq.seq_, extractPars.entropyKlen_, false);
+					if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+						pass = false;
 					}
-					writer.openWrite(searchSeq);
 				}
-				bWriter.SaveAlignment(*search);
+				if(pass){
+					if (extractPars.originalOrientation_) {
+						writer.openWrite(bamAlnToSeqInfo(*search));
+					} else {
+						seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
+						if (searchRegion->reverseSrand_) {
+							searchSeq.reverseComplementRead(false, true);
+						}
+						writer.openWrite(searchSeq);
+					}
+					bWriter.SaveAlignment(*search);
+				}else{
+					++ret.orphansFiltered_;
+				}
 			}else{
 				//write filterd orphan
 				++ret.orphansFiltered_;

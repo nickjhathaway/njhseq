@@ -160,9 +160,14 @@ public:
 	 */
 	//BamExtractSeqsResultsAlns extractReadsFromBamAlns(const bfs::path & bamFnp);
 
+	struct extractReadsFromBamToSameOrientationContigsPars{
+		bool throwAwayUnmmpaedMates{true};
+		uint32_t centerClipCutOff = 20;
+		uint32_t forSoftClipFilterDistanceToEdges = 20;
+	};
 	ExtractedFilesOpts extractReadsFromBamToSameOrientationContigs(
 			const SeqIOOptions & opts,
-			bool throwAwayUnmmpaedMates);
+			const extractReadsFromBamToSameOrientationContigsPars & pars);
 
 	ExtractedFilesOpts extractReadsFromBamWrite(const SeqIOOptions & opts, bool referenceOrientation, bool throwAwayUnmmpaedMates);
 	ExtractedFilesOpts extractReadsFromBamWriteAsSingles(const SeqIOOptions & opts, bool referenceOrientation = false);
@@ -175,6 +180,9 @@ public:
 		bool tryToFindOrphansMate_ = false;
 		bool keepMarkedDuplicate_ = false;
 		uint32_t minAlnMapSize_ = 35;
+		bool filterOffLowEntropyOrphansRecruits_{true};
+		double filterOffLowEntropyOrphansRecruitsCutOff_{1.5};
+		uint32_t entropyKlen_{2};
 		Json::Value toJson() const;
 
 	};

@@ -42,6 +42,32 @@ class readVecTrimmer {
 public:
 
 
+	struct TrimEdgesByLowEntropyPars {
+		uint32_t windowStep = 5;
+		uint32_t windowSize = 50;
+		uint32_t kLen = 1;
+		double entropyCutOff = 1.5;
+		bool mark = false;
+
+	};
+
+	struct TrimEdgesByLowEntropyRes {
+		TrimEdgesByLowEntropyRes(uint32_t start, uint32_t end);
+		uint32_t start_ { std::numeric_limits<uint32_t>::max() };
+		uint32_t end_ { std::numeric_limits<uint32_t>::max() };
+	};
+
+	static TrimEdgesByLowEntropyRes determineTrimPostionsByLowEntropy(
+			const std::string & seq, const TrimEdgesByLowEntropyPars & pars);
+
+
+  template <class T>
+  static void trimEdgesForLowEntropy(std::vector<T> &seqs, const TrimEdgesByLowEntropyPars&  pars);
+  template <class T>
+  static void trimEdgesForLowEntropy(T &seq, const TrimEdgesByLowEntropyPars&  pars);
+  static void trimEdgesForLowEntropy(seqInfo &seq, const TrimEdgesByLowEntropyPars&  pars);
+
+
 
 
   template <class T>
@@ -419,6 +445,19 @@ void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
 	} else if (std::numeric_limits<uint32_t>::max() != trimBack) {
 		getSeqBase(seq).trimBack(trimBack + 1);
 	}
+}
+
+
+
+template <class T>
+void readVecTrimmer::trimEdgesForLowEntropy(std::vector<T> &seqs, const TrimEdgesByLowEntropyPars&  pars){
+  njh::for_each(seqs, [&](T & seq){ trimEdgesForLowEntropy(seq, pars);} );
+  return;
+}
+
+template <class T>
+void readVecTrimmer::trimEdgesForLowEntropy(T &seq, const TrimEdgesByLowEntropyPars&  pars){
+	trimEdgesForLowEntropy(getSeqBase(read), pars);
 }
 
 
