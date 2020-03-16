@@ -41,9 +41,13 @@ namespace collapse {
 
 
 class SampleCollapseCollection {
-
-
 public:
+	static std::unordered_map<std::string, double> processCustomCutOffs(
+			const bfs::path &customCutOffsFnp, const VecStr &allSamples,
+			double defaultFracCutOff);
+
+
+
 
 	class RepFile {
 	public:
@@ -52,6 +56,15 @@ public:
 		}
 		std::string repName_;
 		bfs::path repFnp_;
+		bool reNameInput_ = true;
+	};
+	class RepSeqs {
+	public:
+		RepSeqs(const std::string & repName, const std::vector<seqInfo> & repSeqs) :
+				repName_(repName), repSeqs_(repSeqs) {
+		}
+		std::string repName_;
+		std::vector<seqInfo> repSeqs_;
 		bool reNameInput_ = true;
 	};
 
@@ -84,7 +97,7 @@ private:
 	bfs::path populationOutputDir_;
 	std::mutex mut_;
 public:
-	PopNamesInfo popNames_{"", VecStr{}};
+	PopNamesInfo popNames_{"", VecStr{}, VecStr{}};
 	bool keepSampleInfoInMemory_{false};
 	VecStr passingSamples_;
 	VecStr lowRepCntSamples_;
@@ -105,6 +118,12 @@ public:
 			const std::vector<RepFile> & analysisFiles,
 			aligner & alignerObj,
 			const collapser & collapserObj, const ChimeraOpts & chiOpts);
+
+	void setUpSample(const std::string & sampleName,
+			const std::unordered_map<std::string, RepSeqs> & analysisFiles,
+			aligner & alignerObj,
+			const collapser & collapserObj, const ChimeraOpts & chiOpts);
+
 
 	void setUpSample(const std::string & sampleName,
 			aligner & alignerObj,
@@ -199,8 +218,126 @@ public:
 	bool excludeOneSampOnlyOneOffHaps(double fracCutOff, aligner & alignerObj);
 	bool excludeOneSampOnlyHaps(double fracCutOff);
 
+	struct conductResuceOperationsPars {
+
+		bool rescueExcludedChimericHaplotypes { false };
+		bool rescueExcludedOneOffLowFreqHaplotypes { false };
+		bool rescueExcludedLowFreqHaplotypes { false };
+		bool performResuce() const {
+			return rescueExcludedChimericHaplotypes || rescueExcludedLowFreqHaplotypes
+					|| rescueExcludedOneOffLowFreqHaplotypes;
+		}
+		double majorHaplotypeFracForRescue_ { 0.10 };
+		bool debug_ { false };
+	};
+	bool conductResuceOperations(const conductResuceOperationsPars & pars, aligner & alignerObj,
+			const collapser & collapserObj, const CollapseIterations & popColIters);
 
 
+	struct performLowLevelFiltersPars{
+		bool removeCommonlyLowFreqHaplotypes_{false};
+		double lowFreqHaplotypeFracCutOff_ = 0.01; //remove haplotypes that on average appear below this fraction (0.01 == 1%)
+
+		bool removeOneSampOnlyOneOffHaps_{false};
+	  double oneSampOnlyOneOffHapsFrac_ = 0.25;
+
+		bool removeOneSampOnlyHaps_{false};
+	  double oneSampOnlyHapsFrac_ = 0.25;
+
+	};
+	bool performLowLevelFilters(const performLowLevelFiltersPars & filtPars, aligner & alignerObj,
+			const collapser & collapserObj, const CollapseIterations & popColIters);
+
+	template<typename T>
+	bool rescueMatchingSeqs(const std::vector<T> & expectedSeqs, aligner & alignerObj,
+			const collapser & collapserObj, const CollapseIterations & popColIters){
+		bool rescuedHaplotypes = false;
+		for(const auto & sampleName : passingSamples_){
+			if(!keepSampleInfoInMemory_){
+				setUpSampleFromPrevious(sampleName);
+			}
+			auto sampPtr = sampleCollapses_.at(sampleName);
+			std::vector<uint32_t> toBeRescued;
+			//iterator over haplotypes, determine if they should be considered for rescue, if they should be then check to see if they match a major haplotype
+			for(const auto excludedPos : iter::range(sampPtr->excluded_.clusters_.size())){
+				const auto & excluded = sampPtr->excluded_.clusters_[excludedPos];
+				if(excluded.nameHasMetaData()){
+					MetaDataInName excludedMeta(excluded.seqBase_.name_);
+					std::set<std::string> otherExcludedCriteria;
+					bool chimeriaExcludedRescue = false;
+					bool oneOffExcludedRescue = false;
+					bool commonlyLowExcludedRescue = false;
+					bool lowFreqExcludedRescue = false;
+
+					for(const auto & excMeta : excludedMeta.meta_){
+						if(njh::beginsWith(excMeta.first, "Exclude") ){
+							bool other = true;
+							if("ExcludeIsChimeric" == excMeta.first){
+								chimeriaExcludedRescue = true;
+								other = false;
+							}
+							if("ExcludeFailedLowFreqOneOff" == excMeta.first){
+								oneOffExcludedRescue = true;
+								other = false;
+							}
+							if("ExcludeCommonlyLowFreq" == excMeta.first){
+								commonlyLowExcludedRescue = true;
+								other = false;
+							}
+							if("ExcludeFailedFracCutOff" == excMeta.first){
+								lowFreqExcludedRescue = true;
+								other = false;
+							}
+							if(other){
+								otherExcludedCriteria.emplace(excMeta.first);
+							}
+						}
+					}
+					//check if it should be considered for resuce
+					if((chimeriaExcludedRescue || oneOffExcludedRescue || commonlyLowExcludedRescue || lowFreqExcludedRescue) && otherExcludedCriteria.empty()){
+						//see if it matches a major haplotype
+						bool rescue = false;
+						for(const auto & expectedHap : expectedSeqs){
+							if(getSeqBase(expectedHap).seq_ == excluded.seqBase_.seq_){
+								rescue = true;
+								break;
+							}
+						}
+						if(rescue){
+							toBeRescued.emplace_back(excludedPos);
+						}
+					}
+				}
+			}
+			if(!toBeRescued.empty()){
+				rescuedHaplotypes = true;
+				std::sort(toBeRescued.rbegin(), toBeRescued.rend());
+				for(const auto toRescue : toBeRescued){
+					MetaDataInName excludedMeta(sampPtr->excluded_.clusters_[toRescue].seqBase_.name_);
+					excludedMeta.addMeta("rescue", "TRUE");
+					excludedMeta.resetMetaInName(sampPtr->excluded_.clusters_[toRescue].seqBase_.name_);
+					//unmarking so as not to mess up chimera numbers
+					sampPtr->excluded_.clusters_[toRescue].seqBase_.unmarkAsChimeric();
+					for (auto & subRead : sampPtr->excluded_.clusters_[toRescue].reads_) {
+						subRead->seqBase_.unmarkAsChimeric();
+					}
+					sampPtr->collapsed_.clusters_.emplace_back(sampPtr->excluded_.clusters_[toRescue]);
+					sampPtr->excluded_.clusters_.erase(sampPtr->excluded_.clusters_.begin() + toRescue);
+				}
+				sampPtr->updateAfterExclustion();
+				sampPtr->renameClusters("fraction");
+			}
+			if(!keepSampleInfoInMemory_){
+				dumpSample(sampleName);
+			}
+		}
+		if(rescuedHaplotypes){
+			//if excluded run pop clustering again
+			doPopulationClustering(createPopInput(),
+					alignerObj, collapserObj, popColIters);
+		}
+		return rescuedHaplotypes;
+	}
 
 
 };

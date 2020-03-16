@@ -38,17 +38,17 @@ public:
 	 * @param populationName population name
 	 * @param samples the samples
 	 */
-	PopNamesInfo(std::string populationName, std::set<std::string> samples);
+	PopNamesInfo(std::string populationName, std::set<std::string> samples, std::set<std::string> controlSamples);
 	/**@brief construct with population name and samples
 	 *
 	 * @param populationName the population name
 	 * @param samples samples in vector that will be converted into set to get rid of duplicate names
 	 */
-	PopNamesInfo(std::string populationName, VecStr samples);
+	PopNamesInfo(std::string populationName, VecStr samples, VecStr controlSamples);
 
 	std::string populationName_; /**< population name*/
 	std::set<std::string> samples_; /**< samples in set so no duplicates*/
-
+	std::set<std::string> controlSamples_; /**< a sub set of the samples_ that are control samples and are to be excluded from certain operations and calcs*/
 	/**@brief check to see if sample is samples_
 	 *
 	 * @param sample the sample to check for
@@ -66,8 +66,6 @@ private:
 	 *
 	 */
 	void checkPopNameThrow() const;
-
-
 
 };
 

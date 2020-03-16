@@ -45,6 +45,31 @@ Json::Value SampleCollapseCollection::PreFilteringCutOffs::toJson() const{
 }
 
 
+std::unordered_map<std::string, double> SampleCollapseCollection::processCustomCutOffs(
+		const bfs::path &customCutOffsFnp, const VecStr &allSamples,
+		double defaultFracCutOff) {
+	std::unordered_map<std::string, double> ret;
+	if ("" != customCutOffsFnp.string()) {
+		table customCutOffsTab(customCutOffsFnp.string(), "\t", true);
+		customCutOffsTab.checkForColumnsThrow(VecStr { "sample", "cutOff" },
+				__PRETTY_FUNCTION__);
+		for (const auto &rowPos : iter::range(customCutOffsTab.content_.size())) {
+			ret[customCutOffsTab.content_[rowPos][customCutOffsTab.getColPos("sample")]] =
+					njh::lexical_cast<double>(
+							customCutOffsTab.content_[rowPos][customCutOffsTab.getColPos(
+									"cutOff")]);
+		}
+	}
+	for (const auto &samp : allSamples) {
+		if (!njh::in(samp, ret)) {
+			ret[samp] = defaultFracCutOff;
+		}
+	}
+	return ret;
+}
+
+
+
 SampleCollapseCollection::PreFilteringCutOffs::PreFilteringCutOffs() {
 }
 SampleCollapseCollection::PreFilteringCutOffs::PreFilteringCutOffs(
@@ -88,7 +113,14 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 	masterOutputDir_ = coreJson["masterOutputDir_"].asString();
 	popNames_ = PopNamesInfo(coreJson["popNames_"]["populationName_"].asString(),
 			njh::json::jsonArrayToSet<std::string>(coreJson["popNames_"]["samples_"],
-					[](const Json::Value & val){ return val.asString();}));
+					[](const Json::Value &val) {
+						return val.asString();
+					})
+			,
+			njh::json::jsonArrayToSet<std::string>(
+					coreJson["popNames_"]["controlSamples_"], [](const Json::Value &val) {
+						return val.asString();
+					}) );
 	preFiltCutOffs_ = PreFilteringCutOffs(coreJson["preFiltCutOffs_"]);
 
 	populationOutputDir_ = coreJson["populationOutputDir_"].asString();
@@ -166,27 +198,23 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 	return setUpSample(sampleName, repFiles, alignerObj, collapserObj, chiOpts);
 }
 
+
 void SampleCollapseCollection::setUpSample(const std::string & sampleName,
-		const std::vector<RepFile> & analysisFiles,
+		const std::unordered_map<std::string, RepSeqs> & seqsByRep,
 		aligner & alignerObj,
-		const collapser & collapserObj,
-		const ChimeraOpts & chiOpts){
+		const collapser & collapserObj, const ChimeraOpts & chiOpts){
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
 
 	std::vector<std::vector<cluster>> inputClusters;
 	std::vector<std::vector<cluster>> lowCntInputClusters;
 
-	for (const auto & repf : analysisFiles) {
-		auto sampleOpts = inputOptions_;
-		sampleOpts.firstName_ = repf.repFnp_.string();
-		SeqInput reader(sampleOpts);
+	for (const auto & rep : seqsByRep) {
 
-		std::vector<cluster> clusters = baseCluster::convertVectorToClusterVector<
-				cluster>(reader.readAllReads<seqInfo>());
+		std::vector<cluster> clusters = baseCluster::convertVectorToClusterVector<cluster>(rep.second.repSeqs_);
 		readVecSorter::sortReadVector(clusters, "totalCount");
 		// consider adding the sample name in the name as well
-		if(repf.reNameInput_){
-			renameReadNamesNewClusters(clusters, repf.repName_, true, true, false);
+		if(rep.second.reNameInput_){
+			renameReadNamesNewClusters(clusters, rep.second.repName_, true, true, false);
 		}
 		if (chiOpts.checkChimeras_) {
 			for(auto & clus : clusters){
@@ -196,7 +224,7 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 		}
 
 		clusterVec::allSetFractionClusters(clusters);
-		if(repf.reNameInput_){
+		if(rep.second.reNameInput_){
 			readVec::allUpdateName(clusters);
 		}
 		double totalCount = readVec::getTotalReadCount(clusters);
@@ -229,6 +257,28 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 		}
 		lowRepCntSamples_.emplace_back(sampleName);
 	}
+}
+
+void SampleCollapseCollection::setUpSample(const std::string & sampleName,
+		const std::vector<RepFile> & analysisFiles,
+		aligner & alignerObj,
+		const collapser & collapserObj,
+		const ChimeraOpts & chiOpts){
+	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
+	std::unordered_map<std::string, RepSeqs> allRepSeqs;
+	for (const auto & repf : analysisFiles) {
+		auto sampleOpts = inputOptions_;
+		sampleOpts.firstName_ = repf.repFnp_.string();
+		SeqInput reader(sampleOpts);
+
+		if(njh::in(repf.repName_, allRepSeqs)){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "already have replicate name: " << repf.repName_ << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		allRepSeqs.emplace(repf.repName_,RepSeqs(repf.repName_, reader.readAllReads<seqInfo>()));
+	}
+	return setUpSample(sampleName, allRepSeqs, alignerObj, collapserObj, chiOpts);
 }
 
 bfs::path SampleCollapseCollection::getSampleFinalHapsPath(
@@ -687,7 +737,11 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 	oututSampClusToOldNameKey_.clear();
 	std::vector<sampleCluster> output;
 	for (const auto & sampleName : popNames_.samples_) {
-		setUpSampleFromPrevious(sampleName);
+		bool clearSampleAfter = false;
+		if(nullptr == sampleCollapses_[sampleName]){
+			setUpSampleFromPrevious(sampleName);
+			clearSampleAfter = true;
+		}
 		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount ||
 				njh::in(sampleName, lowRepCntSamples_)){
 			continue;
@@ -708,7 +762,9 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 			output.back().reads_.front()->seqBase_.name_ =
 					output.back().seqBase_.name_;
 		}
-		clearSample(sampleName);
+		if(clearSampleAfter){
+			clearSample(sampleName);
+		}
 	}
 	return output;
 }
@@ -1684,10 +1740,10 @@ void SampleCollapseCollection::createCoreJsonFile() const{
 Json::Value SampleCollapseCollection::toJsonCore() const{
 	Json::Value ret;
 	ret["inputOptions_"] = njh::json::toJson(inputOptions_);
-	ret["masterInputDir_"] = njh::json::toJson(bfs::absolute(masterInputDir_));
-	ret["masterOutputDir_"] = njh::json::toJson(bfs::absolute(masterOutputDir_));
-	ret["samplesOutputDir_"] = njh::json::toJson(bfs::absolute(samplesOutputDir_));
-	ret["populationOutputDir_"] = njh::json::toJson(bfs::absolute(populationOutputDir_));
+	ret["masterInputDir_"] = njh::json::toJson(njh::files::normalize(masterInputDir_));
+	ret["masterOutputDir_"] = njh::json::toJson(njh::files::normalize(masterOutputDir_));
+	ret["samplesOutputDir_"] = njh::json::toJson(njh::files::normalize(samplesOutputDir_));
+	ret["populationOutputDir_"] = njh::json::toJson(njh::files::normalize(populationOutputDir_));
 	ret["popNames_"] = njh::json::toJson(popNames_);
 	ret["passingSamples_"] = njh::json::toJson(passingSamples_);
 	ret["lowRepCntSamples_"] = njh::json::toJson(lowRepCntSamples_);
