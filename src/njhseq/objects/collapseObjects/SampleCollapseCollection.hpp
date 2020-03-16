@@ -157,7 +157,6 @@ public:
 
 	void checkForSampleThrow(const std::string & funcName, const std::string & sampleName) const;
 
-	void investigateChimeras(double chiCutOff, aligner & alignerObj);
 
 	std::vector<sampleCluster> createPopInput();
 

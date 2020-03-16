@@ -523,9 +523,7 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 			"samplesOutput", sampleName, "excluded", "clusters");
 
 	njh::files::makeDir(njh::files::MkdirPar(sampDir.string(), true));
-
 	njh::files::makeDirP(njh::files::MkdirPar(finalClustersDir.string()));
-
 	njh::files::makeDirP(njh::files::MkdirPar(excludedClusteredDir.string()));
 	//final
 	if(!samp->collapsed_.clusters_.empty()){
@@ -631,90 +629,6 @@ void SampleCollapseCollection::clearSamples(const VecStr & sampleNames) {
 	}
 }
 
-void SampleCollapseCollection::investigateChimeras(double chiCutOff,
-		aligner & alignerObj) {
-	comparison onlyHpErrors;
-	onlyHpErrors.oneBaseIndel_ = 1;
-	onlyHpErrors.twoBaseIndel_ = 0;
-	onlyHpErrors.largeBaseIndel_ = .99;
-
-	table chiInfoTab(VecStr { "sample", "numClustersSaved",
-			"totalClustersChecked", "clusterSavedNames" });
-	for (const auto & sampleName : popNames_.samples_) {
-		VecStr clustersSavedFromChi;
-		setUpSampleFromPrevious(sampleName);
-		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(sampleName, lowRepCntSamples_)){
-			continue;
-		}
-
-		uint32_t clustersNotSaved = 0;
-		//first mark the suspicious clusters as being chimeric
-		for (auto &clus : sampleCollapses_[sampleName]->collapsed_.clusters_) {
-			if (clus.isClusterAtLeastChimericCutOff(chiCutOff)) {
-				clus.seqBase_.markAsChimeric();
-			}
-		}
-		//now check to see if it is ever the top two variants of a sample and if it is unmark it
-		for (auto & clus : sampleCollapses_[sampleName]->collapsed_.clusters_) {
-			if (clus.seqBase_.isChimeric()) {
-				bool saved = false;
-				for (const auto & otherSampleName : popNames_.samples_) {
-					if (otherSampleName != sampleName
-							&& !njh::containsSubString(stringToLowerReturn(otherSampleName),
-									"control")
-							&& !njh::containsSubString(stringToLowerReturn(sampleName),
-									"control")) {
-						auto otherSampOpts = SeqIOOptions(
-								njh::files::make_path(masterOutputDir_, "samplesOutput",
-										otherSampleName, "final",
-										otherSampleName + inputOptions_.getOutExtension()).string(),
-								inputOptions_.inFormat_, true);
-						SeqInput otherReader(otherSampOpts);
-						otherReader.openIn();
-						uint32_t seqCount = 0;
-						seqInfo otherSeq;
-						while (otherReader.readNextRead(otherSeq) && seqCount < 2) {
-							++seqCount;
-							if (otherSeq.frac_ < 0.01) {
-								continue;
-							}
-							alignerObj.alignCacheGlobal(otherSeq, clus.seqBase_);
-							alignerObj.profilePrimerAlignment(otherSeq, clus.seqBase_);
-
-							if (onlyHpErrors.passErrorProfile(alignerObj.comp_)) {
-								clus.seqBase_.unmarkAsChimeric();
-								for (auto & subRead : clus.reads_) {
-									subRead->seqBase_.unmarkAsChimeric();
-								}
-								clus.resetInfos();
-								clustersSavedFromChi.emplace_back(clus.seqBase_.name_);
-								saved = true;
-								break;
-							}
-						}
-					}
-				}
-				if (!saved) {
-					++clustersNotSaved;
-				}
-			}
-			sampleCollapses_[sampleName]->collapsed_.setSetInfo();
-		}
-		chiInfoTab.content_.emplace_back(
-				toVecStr(sampleName,
-						getPercentageString(clustersSavedFromChi.size(),
-								clustersSavedFromChi.size() + clustersNotSaved),
-						clustersSavedFromChi.size() + clustersNotSaved,
-						vectorToString(clustersSavedFromChi, ",")));
-		dumpSample(sampleName);
-	}
-	TableIOOpts chiOutOptions(
-			OutOptions(masterOutputDir_.string() + "chiInfo", ".tab.txt"), "\t",
-			chiInfoTab.hasHeader_);
-	chiInfoTab.outPutContents(chiOutOptions);
-}
-
 
 void SampleCollapseCollection::setPassingSamples(){
 	passingSamples_.clear();
@@ -817,7 +731,9 @@ bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 		}
 	}
 	for(const auto & sampClusters : hapsToBeRemovePerSample){
-		setUpSampleFromPrevious(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampClusters.first);
+		}
 		std::vector<uint32_t> toBeExcluded;
 		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
 			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
@@ -842,7 +758,9 @@ bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
 		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
 
-		dumpSample(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			dumpSample(sampClusters.first);
+		}
 	}
 	return true;
 }
@@ -869,7 +787,9 @@ bool SampleCollapseCollection::excludeOneSampOnlyHaps(double fracCutOff){
 	}
 
 	for(const auto & sampClusters : samplesWithUniqHaps){
-		setUpSampleFromPrevious(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampClusters.first);
+		}
 		std::vector<uint32_t> toBeExcluded;
 		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
 			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
@@ -893,7 +813,9 @@ bool SampleCollapseCollection::excludeOneSampOnlyHaps(double fracCutOff){
 		}
 		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
 		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
-		dumpSample(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			dumpSample(sampClusters.first);
+		}
 	}
 	return true;
 }
@@ -919,7 +841,9 @@ bool SampleCollapseCollection::excludeOneSampOnlyOneOffHaps(double fracCutOff, a
 	}
 
 	for(const auto & sampClusters : samplesWithUniqHaps){
-		setUpSampleFromPrevious(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampClusters.first);
+		}
 		std::vector<uint32_t> toBeExcluded;
 		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
 			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
@@ -955,7 +879,9 @@ bool SampleCollapseCollection::excludeOneSampOnlyOneOffHaps(double fracCutOff, a
 		}
 		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
 		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
-		dumpSample(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			dumpSample(sampClusters.first);
+		}
 	}
 	return true;
 }
