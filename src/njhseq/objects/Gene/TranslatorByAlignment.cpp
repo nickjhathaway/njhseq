@@ -19,6 +19,45 @@ TranslatorByAlignment::TranslatorByAlignmentPars::TranslatorByAlignmentPars(){
 }
 
 
+void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & setUp){
+	setUp.setOption(knownAminoAcidMutationsFnp_, "--knownAminoAcidChangesFnp",
+			"Known Amino Acid Changes, must have at least 2 columns, positions are 1-postion-based (first position is 1), 1)TranscriptID, 2)AAPosition ", false, "Additional Output");
+	setUp.setOption(lzPars_.genomeFnp, "--genomeFnp",
+			"Genome file so final haplotypes can be mapped to a genome", "" != knownAminoAcidMutationsFnp_, "Additional Output");
+	setUp.setOption(gffFnp_, "--gffFnp",
+			"Gff file to intersect the final haplotypes with genes to get translations", "" != knownAminoAcidMutationsFnp_, "Additional Output");
+}
+
+
+
+
+std::tuple<char, char, char> TranslatorByAlignment::TranslateSeqRes::getCodonForAARefPos(
+		uint32_t aaRefPos) const {
+	if (aaRefPos < std::get<0>(firstAminoInfo_).aaPos_
+			|| aaRefPos > std::get<0>(lastAminoInfo_).aaPos_) {
+		return std::make_tuple('-', '-', '-');
+	}
+
+	uint32_t alnPosForLoc = getAlnPosForRealPos(refAlnTranslation_.seq_,
+			aaRefPos);
+	uint32_t queryCDNAPos = getRealPosForAlnPos(queryAlnTranslation_.seq_,
+			alnPosForLoc) * 3;
+
+	if (queryCDNAPos + 2 >= cDna_.seq_.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "" << queryCDNAPos + 2
+				<< " is greater than cDna_.seq_.size(): "
+				<< cDna_.seq_.size() << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	return std::make_tuple(cDna_.seq_[queryCDNAPos + 0], cDna_.seq_[queryCDNAPos + 1],
+			cDna_.seq_[queryCDNAPos + 2]);
+
+}
+
+
+
+
 TranslatorByAlignment::VariantsInfo::VariantsInfo(const std::string & id) : id_(id){
 
 }
@@ -414,6 +453,48 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 		njh::sys::requireExternalProgramThrow("bowtie2");
 	}else{
 		njh::sys::requireExternalProgramThrow("lastz");
+	}
+
+	if("" != pars_.knownAminoAcidMutationsFnp_){
+		table knownAminoAcidChanges(pars_.knownAminoAcidMutationsFnp_, "\t", true);
+		VecStr originalColNames = knownAminoAcidChanges.columnNames_;
+		njh::for_each(knownAminoAcidChanges.columnNames_, [](std::string & col){
+			njh::strToLower(col);
+		});
+		knownAminoAcidChanges.setColNamePositions();
+		knownAminoAcidChanges.checkForColumnsThrow(VecStr{"transcriptid", "aaposition"}, __PRETTY_FUNCTION__);
+		if(knownAminoAcidChanges.nRow() > 0){
+			VecStr warnings;
+			for(const auto & row : knownAminoAcidChanges){
+				if(std::all_of(row.begin(), row.end(), [](const std::string & element){
+					return "" == element;
+				})){
+					continue;
+				}
+				auto transciprtId = row[knownAminoAcidChanges.getColPos("transcriptid")];
+				auto aaPosition = njh::StrToNumConverter::stoToNum<uint32_t>(row[knownAminoAcidChanges.getColPos("aaposition")]);
+
+				if(njh::in(aaPosition, knownAminoAcidPositions_[transciprtId])){
+					warnings.emplace_back(njh::pasteAsStr("already have aaposition ", aaPosition, " for transcriptID: ", transciprtId));
+				}
+				knownAminoAcidPositions_[transciprtId].emplace_back(aaPosition);
+				if(originalColNames.size() > 2){
+					for(const auto & colPos : iter::range(knownAminoAcidChanges.columnNames_.size())){
+						if(!njh::in(knownAminoAcidChanges.columnNames_[colPos], VecStr{"transcriptid", "aaposition"})){
+							metaDataAssociatedWithAminoacidPosition_[transciprtId][aaPosition].addMeta(originalColNames[colPos], row[colPos]);
+						}
+					}
+				}
+			}
+			if(!warnings.empty()){
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "found repeat amino acid positions "<< "\n";
+				for(const auto & warn : warnings){
+					ss << warn << std::endl;
+				}
+				throw std::runtime_error{ss.str()};
+			}
+		}
 	}
 }
 

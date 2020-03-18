@@ -14,6 +14,7 @@
 #include "njhseq/objects/Gene/GeneFromGffs.hpp"
 #include "njhseq/BamToolsUtils.h"
 #include "njhseq/BamToolsUtils/ReAlignedSeq.hpp"
+#include "njhseq/programUtils/seqSetUp.hpp"
 
 
 
@@ -21,6 +22,19 @@ namespace njhseq {
 
 class TranslatorByAlignment{
 public:
+
+	struct AAInfo {
+		AAInfo(std::string transcriptName, char aa, uint32_t zeroBasedPos, std::tuple<char, char, char> codon,
+				bool knownMut) : transcriptName_(transcriptName),
+				aa_(aa), zeroBasedPos_(zeroBasedPos), codon_(codon), knownMut_(
+						knownMut) {
+		}
+		std::string transcriptName_;
+		char aa_;
+		uint32_t zeroBasedPos_;
+		std::tuple<char, char, char> codon_;
+		bool knownMut_;
+	};
 
 	struct RunPars {
 		uint32_t occurrenceCutOff = 2;
@@ -66,6 +80,10 @@ public:
 		bfs::path workingDirtory_;
 
 		bool keepTemporaryFiles_ = false;
+
+		bfs::path knownAminoAcidMutationsFnp_; //! at least 2 columns, transcriptid, aaposition/
+
+		void setOptions(seqSetUp & setUp);
 	};
 
 	struct TranslateSeqRes {
@@ -81,7 +99,7 @@ public:
 
 
 		comparison comp_;
-
+		std::tuple<char, char, char> getCodonForAARefPos(uint32_t aaRefPos) const;
 	};
 
 
@@ -123,6 +141,9 @@ public:
 
 
 	TranslatorByAlignmentPars pars_;
+
+	std::unordered_map<std::string, std::vector<uint32_t>> knownAminoAcidPositions_;
+	std::unordered_map<std::string, std::unordered_map<uint32_t, MetaDataInName>> metaDataAssociatedWithAminoacidPosition_;
 
 	TranslatorByAlignment(const TranslatorByAlignmentPars & pars);
 

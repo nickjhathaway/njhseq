@@ -34,8 +34,10 @@ public:
 	void setCDnaAln(const seqInfo & cDnaAln);
 	void setCDnaAlnByAligning(aligner & alignerObj);
 
-	Bed6RecordCore genBedFromAAPositions(uint32_t aaStart, uint32_t aaStop);
-	Bed6RecordCore genBedFromCDNAPositions(uint32_t start, uint32_t stop);
+	Bed6RecordCore genBedFromAAPositions(const uint32_t aaStart, const uint32_t aaStop) const;
+	std::unordered_map<std::string, std::set<uint32_t>> genGenomicPositionsFromAAPositions(const std::vector<uint32_t> & asPositions) const;
+
+	Bed6RecordCore genBedFromCDNAPositions(const uint32_t start, const uint32_t stop) const;
 
 	seqInfo cDna_;
 	seqInfo gDna_;
