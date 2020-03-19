@@ -638,8 +638,7 @@ void SampleCollapseCollection::setPassingSamples(){
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampleName);
 		}
-		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ >= preFiltCutOffs_.sampleMinReadCount &&
-						!njh::in(sampleName, lowRepCntSamples_)){
+		if(!njh::in(sampleName, lowRepCntSamples_) && sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ >= preFiltCutOffs_.sampleMinReadCount){
 			passingSamples_.emplace_back(sampleName);
 		}
 		if(!keepSampleInfoInMemory_){
@@ -652,14 +651,23 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 	passingSamples_.clear();
 	oututSampClusToOldNameKey_.clear();
 	std::vector<sampleCluster> output;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for (const auto & sampleName : popNames_.samples_) {
 		if(!keepSampleInfoInMemory_){
+//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			setUpSampleFromPrevious(sampleName);
 		}
-		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount ||
-				njh::in(sampleName, lowRepCntSamples_)){
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << "sampleName: " <<  sampleName << std::endl;
+//		std::cout << "njh::in(sampleName, lowRepCntSamples_): " << njh::colorBool(njh::in(sampleName, lowRepCntSamples_))<< std::endl;
+//		std::cout << "njh::in(sampleName, sampleCollapses_): " << njh::colorBool(njh::in(sampleName, sampleCollapses_))<< std::endl;
+
+		if (njh::in(sampleName, lowRepCntSamples_)
+				|| sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		passingSamples_.emplace_back(sampleName);
 		auto & samp = *(sampleCollapses_[sampleName]);
 		double totalReadCnt = 0;
@@ -677,9 +685,11 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 					output.back().seqBase_.name_;
 		}
 		if(!keepSampleInfoInMemory_){
+//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			clearSample(sampleName);
 		}
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return output;
 }
 
@@ -1221,8 +1231,9 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampName);
 		}
-		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(sampName, lowRepCntSamples_)){
+		if (njh::in(sampName, lowRepCntSamples_)
+				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
 		for(const auto & excluded : sampleCollapses_.at(sampName)->excluded_.clusters_){
@@ -1275,8 +1286,9 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampName);
 		}
-		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(sampName, lowRepCntSamples_)){
+		if (njh::in(sampName, lowRepCntSamples_)
+				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
 		auto sampPtr = sampleCollapses_.at(sampName);
@@ -1407,8 +1419,9 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampName);
 		}
-		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(sampName, lowRepCntSamples_)){
+		if (njh::in(sampName, lowRepCntSamples_)
+				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
 		if (maxRunCount
@@ -1424,8 +1437,9 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampName);
 		}
-		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(sampName, lowRepCntSamples_)){
+		if (njh::in(sampName, lowRepCntSamples_)
+				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
 		for (const auto clusPos : iter::range(
@@ -1606,8 +1620,9 @@ void SampleCollapseCollection::outputRepAgreementInfo() {
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampleName);
 		}
-		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount ||
-				njh::in(sampleName, lowRepCntSamples_) ){
+		if (njh::in(sampleName, lowRepCntSamples_)
+				|| sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
 		auto & samp = *(sampleCollapses_[sampleName]);
@@ -1721,8 +1736,8 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(samp);
 		}
-		if(sampleCollapses_[samp]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(samp, lowRepCntSamples_)){
+		if(njh::in(samp, lowRepCntSamples_) || sampleCollapses_[samp]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount
+				){
 			continue;
 		}
 		std::unordered_map<std::string, double> popUidToFrac;

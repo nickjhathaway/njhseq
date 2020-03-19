@@ -21,11 +21,11 @@ TranslatorByAlignment::TranslatorByAlignmentPars::TranslatorByAlignmentPars(){
 
 void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & setUp){
 	setUp.setOption(knownAminoAcidMutationsFnp_, "--knownAminoAcidChangesFnp",
-			"Known Amino Acid Changes, must have at least 2 columns, positions are 1-postion-based (first position is 1), 1)TranscriptID, 2)AAPosition ", false, "Additional Output");
-	setUp.setOption(lzPars_.genomeFnp, "--genomeFnp",
-			"Genome file so final haplotypes can be mapped to a genome", "" != knownAminoAcidMutationsFnp_, "Additional Output");
+			"Known Amino Acid Changes, must have at least 2 columns, positions are 1-postion-based (first position is 1), 1)TranscriptID, 2)AAPosition ", false, "Translation Output");
 	setUp.setOption(gffFnp_, "--gffFnp",
-			"Gff file to intersect the final haplotypes with genes to get translations", "" != knownAminoAcidMutationsFnp_, "Additional Output");
+			"Gff file to intersect the final haplotypes with genes to get translations", "" != knownAminoAcidMutationsFnp_, "Translation Output");
+	setUp.setOption(lzPars_.genomeFnp, "--genomeFnp",
+			"Genome file so final haplotypes can be mapped to a genome", "" != gffFnp_ || "" != knownAminoAcidMutationsFnp_, "Translation Output");
 }
 
 
@@ -499,7 +499,8 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 }
 
 
-TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(const SeqIOOptions & seqOpts,
+TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
+		const SeqIOOptions & seqOpts,
 		const std::unordered_map<std::string, uint32_t> & sampCountsForHaps,
 		const RunPars & rPars){
 
