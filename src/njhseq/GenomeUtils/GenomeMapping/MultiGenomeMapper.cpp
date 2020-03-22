@@ -464,23 +464,11 @@ std::unordered_map<std::string, std::vector<seqInfo>> MultiGenomeMapper::getRefS
 	return ret;
 }
 
-std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(const GenomicRegion & region,
-		const bfs::path & alignmentsDir,
-		const BioCmdsUtils::LastZPars & lzPars,
-		bool keepBestOnly) const{
-	bool extendAndTrim = false;
-	uint32_t extendAndTrimLen = 10;
-	aligner alignerObj;
-	return getRefSeqsWithPrimaryGenome(region, alignmentsDir, lzPars, keepBestOnly,extendAndTrim, extendAndTrimLen, alignerObj );
-}
 
 
 std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 		const GenomicRegion & region, const bfs::path & refAlignsDir,
-		const BioCmdsUtils::LastZPars & lzPars,
-		bool keepBestOnly,
-		bool extendAndTrim,
-		uint32_t extendAndTrimLen,
+		const getRefSeqsWithPrimaryGenomePars & pars,
 		aligner & orgAlignerObj) const {
 	std::unordered_map<std::string, GenomicRegion> primaryRegion { {
 		pars_.primaryGenome_, region } };
@@ -494,7 +482,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 	 */
 	auto alignOutputs = alignToGenomesLastz(SeqIOOptions::genFastaIn(refFnp),
 			njh::appendAsNeededRet(refAlignsDir.string(), "/"),
-			lzPars);
+			pars.lzPars);
 	auto bamFnps = MultiGenomeMapper::getBamFnps(alignOutputs);
 	auto allRegions = getRegionsFromBams(bamFnps);
 	std::vector<seqInfo> refSeqs;
@@ -524,9 +512,9 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 		genomeExtractionsResults[genome.first] = GenExtracRes{};
 	}
 	auto extractBestGenomeSeq = [this,&genomesQueue,&refSeqs,&refSeqsMut,&primaryRefInfo,
-															 &allRegions, &refAlignsDir,&keepBestOnly,&genomeExtractionsResults,
-															 &aligners, &orgAlignerObj,
-															 &extendAndTrim, &extendAndTrimLen](uint32_t threadNumber){
+															 &allRegions, &refAlignsDir,&pars,&genomeExtractionsResults,
+															 &aligners, &orgAlignerObj
+															 ](uint32_t threadNumber){
 
 		std::string genome = "";
 		while(genomesQueue.getVal(genome)){
@@ -534,11 +522,11 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 			if(regions.size() == 0){
 				continue;
 			}
-			if(extendAndTrim){
+			if(pars.extendAndTrim){
 				for(auto & reg : regions){
 					auto extenedRegion = reg;
-					extenedRegion.start_ = reg.start_ <= extendAndTrimLen ? 0 : reg.start_ - extendAndTrimLen;
-					extenedRegion.end_ = reg.end_ + extendAndTrimLen < genomes_.at(genome)->chromosomeLengths_.at(reg.chrom_) ? reg.end_ + extendAndTrimLen : genomes_.at(genome)->chromosomeLengths_.at(reg.chrom_);
+					extenedRegion.start_ = reg.start_ <= pars.extendAndTrimLen ? 0 : reg.start_ - pars.extendAndTrimLen;
+					extenedRegion.end_ = reg.end_ + pars.extendAndTrimLen < genomes_.at(genome)->chromosomeLengths_.at(reg.chrom_) ? reg.end_ + pars.extendAndTrimLen : genomes_.at(genome)->chromosomeLengths_.at(reg.chrom_);
 					TwoBit::TwoBitFile tReader(genomes_.at(genome)->fnpTwoBit_);
 					auto extractedSeq = extenedRegion.extractSeq(tReader);
 					auto trimmedExtractedSeq = extractedSeq;
@@ -611,7 +599,11 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 				refMeta.addMeta("strand", (regions.front().reverseSrand_ ? '-' : '+'));
 				{
 					std::lock_guard<std::mutex> lock(refSeqsMut);
-					refSeqs.emplace_back(seqInfo(genome + " " + refMeta.createMetaName(), refSeq));
+					if(!pars.shortNames){
+						refSeqs.emplace_back(seqInfo(genome + " " + refMeta.createMetaName(), refSeq));
+					}else{
+						refSeqs.emplace_back(seqInfo(genome, refSeq));
+					}
 				}
 			}else{
 				uint64_t maxlen = 0;
@@ -644,13 +636,15 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 					refMeta.addMeta("start",   regions[scores.front().second].start_);
 					refMeta.addMeta("end",     regions[scores.front().second].end_);
 					refMeta.addMeta("strand", (regions[scores.front().second].reverseSrand_ ? '-' : '+'));
-					genomeSeqs[scores.front().second].name_ += " " + refMeta.createMetaName();
+					if(!pars.shortNames){
+						genomeSeqs[scores.front().second].name_ += " " + refMeta.createMetaName();
+					}
 					{
 						std::lock_guard<std::mutex> lock(refSeqsMut);
 						refSeqs.emplace_back(genomeSeqs[scores.front().second]);
 					}
 				}
-				if(!keepBestOnly){
+				if(!pars.keepBestOnly){
 					for(const auto & scorePos : iter::range<uint32_t>(1, scores.size())){
 						MetaDataInName refMeta;
 						refMeta.addMeta("genome", genome);
@@ -658,7 +652,10 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 						refMeta.addMeta("start",  regions[scores[scorePos].second].start_);
 						refMeta.addMeta("end",    regions[scores[scorePos].second].end_);
 						refMeta.addMeta("strand", (regions[scores[scorePos].second].reverseSrand_ ? '-' : '+'));
-						genomeSeqs[scores[scorePos].second].name_ += "." + estd::to_string(scorePos) +  " " + refMeta.createMetaName();
+						genomeSeqs[scores[scorePos].second].name_ += "." + estd::to_string(scorePos);
+						if(!pars.shortNames){
+							genomeSeqs[scores[scorePos].second].name_ += " " + refMeta.createMetaName();
+						}
 						{
 							std::lock_guard<std::mutex> lock(refSeqsMut);
 							refSeqs.emplace_back(genomeSeqs[scores[scorePos].second]);
