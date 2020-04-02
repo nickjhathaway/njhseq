@@ -3187,6 +3187,7 @@ Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const
 	ret["filterOffLowEntropyOrphansRecruitsCutOff_"] = njh::json::toJson(filterOffLowEntropyOrphansRecruitsCutOff_);
 	ret["filterOffLowEntropyOrphansRecruits_"] = njh::json::toJson(filterOffLowEntropyOrphansRecruits_);
 	ret["entropyKlen_"] = njh::json::toJson(entropyKlen_);
+	ret["softClipPercentageCutOff_"] = njh::json::toJson(softClipPercentageCutOff_);
 	return ret;
 }
 
@@ -3634,6 +3635,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					bool bAlnPassAlnSize = getAlnLen(bAln) >= extractPars.minAlnMapSize_;
 					bool searchPassAlnSize  = getAlnLen(*search) >= extractPars.minAlnMapSize_;
 
+					bool bAlnPassSoftClipAmount = getSoftClipAmount(bAln)/static_cast<double>(bAln.AlignedBases.size()) < extractPars.softClipPercentageCutOff_;
+					bool searchPassSoftClipAmount = getSoftClipAmount(*search)/static_cast<double>(search->AlignedBases.size()) < extractPars.softClipPercentageCutOff_;
+
 					seqInfo bAlnSeq(bAln.Name, bAln.QueryBases, bAln.Qualities, SangerQualOffset);
 					seqInfo searchSeq(search->Name, search->QueryBases,search->Qualities, SangerQualOffset);
 
@@ -3651,8 +3655,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 						}
 					}
 
-					bool balnAllFilters   = bAlnIn   && bAlnPassAlnSize;
-					bool searchAllFilters = searchIn && searchPassAlnSize;
+					bool balnAllFilters   = bAlnIn   && bAlnPassAlnSize && bAlnPassSoftClipAmount;
+					bool searchAllFilters = searchIn && searchPassAlnSize && searchPassSoftClipAmount;
 
 
 					if(bAln.IsMapped() && search->IsMapped()){
@@ -3818,7 +3822,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					alnCache.remove(search->Name);
 				}
 			} else {
-				if(region.getPercInRegion(bAln, refData) >= extractPars.percInRegion_ && getAlnLen(bAln) >= extractPars.minAlnMapSize_){
+
+				if(region.getPercInRegion(bAln, refData) >= extractPars.percInRegion_ &&
+						getAlnLen(bAln) >= extractPars.minAlnMapSize_ &&
+						getSoftClipAmount(bAln)/static_cast<double>(bAln.AlignedBases.size()) < extractPars.softClipPercentageCutOff_){
 					//unpaired read
 					++ret.unpaiedReads_;
 					if (extractPars.originalOrientation_) {
@@ -3930,6 +3937,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 						if (alnCache.has(bAln.Name)) {
 							auto search = alnCache.get(bAln.Name);
 							if (bAln.IsFirstMate() != search->IsFirstMate()) {
+								/**@todo look into this...*/
 								writeTheThrownAwayMate(bAln,
 										seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
 												SangerQualOffset));
@@ -3998,7 +4006,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 
 			auto searchRegion = alnCache.getRegion(name);
 			bool searchIn = searchRegion->getPercInRegion(*search, refData)>= extractPars.percInRegion_;
-			if (searchIn && getAlnLen(*search) >= extractPars.minAlnMapSize_) {
+			if (searchIn && getAlnLen(*search) >= extractPars.minAlnMapSize_ &&
+					getSoftClipAmount(*search)/static_cast<double>(search->AlignedBases.size()) < extractPars.softClipPercentageCutOff_) {
 				if (search->IsPaired()) {
 					++ret.orphans_;
 				} else {

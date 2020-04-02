@@ -183,6 +183,8 @@ public:
 		bool filterOffLowEntropyOrphansRecruits_{true};
 		double filterOffLowEntropyOrphansRecruitsCutOff_{1.5};
 		uint32_t entropyKlen_{2};
+
+		double softClipPercentageCutOff_{1};//! by default can soft clip all
 		Json::Value toJson() const;
 
 	};
