@@ -111,16 +111,20 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 	inputOptions_ = SeqIOOptions(coreJson["inputOptions_"].toStyledString());
 	masterInputDir_ = coreJson["masterInputDir_"].asString();
 	masterOutputDir_ = coreJson["masterOutputDir_"].asString();
+	std::set<std::string> controlSamples;//this is for an update so older directories don't error out
+	if(coreJson["popNames_"].isMember("controlSamples_")){
+		controlSamples = njh::json::jsonArrayToSet<std::string>(
+				coreJson["popNames_"]["controlSamples_"], [](const Json::Value &val) {
+					return val.asString();
+				});
+	}
 	popNames_ = PopNamesInfo(coreJson["popNames_"]["populationName_"].asString(),
 			njh::json::jsonArrayToSet<std::string>(coreJson["popNames_"]["samples_"],
 					[](const Json::Value &val) {
 						return val.asString();
 					})
 			,
-			njh::json::jsonArrayToSet<std::string>(
-					coreJson["popNames_"]["controlSamples_"], [](const Json::Value &val) {
-						return val.asString();
-					}) );
+			controlSamples);
 	preFiltCutOffs_ = PreFilteringCutOffs(coreJson["preFiltCutOffs_"]);
 
 	populationOutputDir_ = coreJson["populationOutputDir_"].asString();
