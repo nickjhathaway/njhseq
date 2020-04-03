@@ -18,7 +18,11 @@
 // You should have received a copy of the GNU General Public License
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 namespace njhseq {
+
+
+
 variant::variant(const seqInfo & seqBase) :
 		seqBase_(seqBase) {
 }
@@ -95,6 +99,28 @@ std::map<uint32_t, std::vector<char>> refVariants::getVariantSnpLociMap()const{
 	return ret;
 }
 
+
+std::vector<uint32_t> refVariants::getUniqueToRefPositions() const {
+	std::unordered_map<uint32_t, uint32_t> positions;
+	for (const auto &v : variants_) {
+		for (const auto &m : v.mismatches_) {
+			++positions[m.first];
+		}
+		for (const auto &d : v.deletions_) {
+			for (uint32_t pos = 0; pos < d.second.gapedSequence_.size(); ++pos) {
+				++positions[d.first + pos];
+			}
+		}
+	}
+	std::vector<uint32_t> positionsOuts;
+	for(const auto & pos : positions){
+		if(pos.second >= variants_.size()){
+			positionsOuts.emplace_back(pos.first);
+		}
+	}
+	return positionsOuts;
+}
+
 std::vector<uint32_t> refVariants::getVariantSnpLoci(VecStr names, uint32_t expand )const{
 	std::set<uint32_t> loci;
 	for(const auto & v : variants_){
@@ -150,3 +176,7 @@ void refVariants::outPut(std::ofstream & out)const {
 }
 
 }  // namespace njhseq
+
+
+
+

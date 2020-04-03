@@ -29,6 +29,7 @@
 #include "njhseq/seqToolsUtils/seqToolsUtils.hpp"
 
 
+
 namespace njhseq {
 class variant {
 public:
@@ -82,10 +83,14 @@ public:
 	std::map<uint32_t, std::vector<char>> getVariantSnpLociMap(VecStr names,
 			uint32_t expand = 0) const;
 
+
+	std::vector<uint32_t> getUniqueToRefPositions() const;
+
 	void outPut(std::ofstream & out) const;
 
 };
 
 }  // namespace njh
+
 
 
