@@ -41,7 +41,7 @@ uint32_t getAlnLen(const BamTools::BamAlignment bAln){
 
 uint32_t BamExtractor::ExtractCounts::getTotal(){
 
-	return pairedReads_ + pairedReadsMateUnmapped_ + unpaiedReads_ + orphans_ + orphansUnmapped_ + mateFilteredOff_ + mateFilteredOffUnmapped_ + pairsUnMapped_ + unpairedUnMapped_ + discordant_ + inverse_ + pairedReadsBothFailedSoftClip_ + pairedReadsMateFailedSoftClip_ + unpairedFailedSoftClip_ + bothMatesFilteredOff_ + singlesFilteredOff_ + orphansFiltered_ + pairedReadsMateUnmappedFailedSoftClip_;
+	return pairedReads_ + pairedReadsMateUnmapped_ + unpaiedReads_ + orphans_ + orphansUnmapped_ + mateFilteredOff_ + mateFilteredOffUnmapped_ + pairsUnMapped_ + unpairedUnMapped_ + discordant_ + inverse_ + pairedReadsBothFailedSoftClip_ + pairedReadsMateFailedSoftClip_ + unpairedFailedSoftClip_ + bothMatesFilteredOff_ + singlesFilteredOff_ + orphansFiltered_ + pairedReadsMateUnmappedFailedSoftClip_ + orphansFilteredSoftCip_;
 }
 
 
@@ -65,6 +65,7 @@ void BamExtractor::ExtractCounts::log(std::ostream & out, const bfs::path & bamF
 	logStats("singlesFilteredOff", singlesFilteredOff_);
 	logStats("orphans", orphans_);
 	logStats("orphansFiltered", orphansFiltered_);
+	logStats("orphansFilteredSoftCip", orphansFilteredSoftCip_);
 	logStats("orphansUnmapped", orphansUnmapped_);
 	logStats("bothMatesFilteredOff", bothMatesFilteredOff_);
 	logStats("mateFilteredOff", mateFilteredOff_);
@@ -86,6 +87,7 @@ void BamExtractor::ExtractedFilesOpts::removeAllInFiles(){
 
 	removeIfExists(inUnpaired_.firstName_);
 	removeIfExists(inFilteredSingles_.firstName_);
+	removeIfExists(inSoftClipFilteredSingles_.firstName_);
 
 	removeIfExists(inPairsUnMapped_.firstName_);
 	removeIfExists(inPairsUnMapped_.secondName_);
@@ -98,9 +100,15 @@ void BamExtractor::ExtractedFilesOpts::removeAllInFiles(){
 	removeIfExists(inFilteredPairs_.firstName_);
 	removeIfExists(inFilteredPairs_.secondName_);
 
+	removeIfExists(inSoftClipFilteredPairs_.firstName_);
+	removeIfExists(inSoftClipFilteredPairs_.secondName_);
 
 	removeIfExists(inDiscordant_.firstName_);
 	removeIfExists(inDiscordant_.secondName_);
+
+
+
+
 }
 
 BamExtractor::BamExtractor(bool verbose ):verbose_(verbose) {
@@ -3270,9 +3278,16 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	auto outPairsFiltered = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "filteredPairs_"));
 	outPairsFiltered.out_.transferOverwriteOpts(inOutOpts.out_);
 
+	auto outPairsFilteredSoftClip = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "filteredSoftClipPairs_"));
+	outPairsFilteredSoftClip.out_.transferOverwriteOpts(inOutOpts.out_);
+
 	//filtered off single seqs
 	auto filteredSinglesOpts = SeqIOOptions::genFastqOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "filteredSingles_"));
 	filteredSinglesOpts.out_.transferOverwriteOpts(inOutOpts.out_);
+
+	//filtered off single seqs due to soft clipping
+	auto filteredSoftClipSinglesOpts = SeqIOOptions::genFastqOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "filteredSoftClipSingles_"));
+	filteredSoftClipSinglesOpts.out_.transferOverwriteOpts(inOutOpts.out_);
 
 
 	auto outUnpaired = SeqIOOptions::genFastqOut(inOutOpts.out_.outFilename_);
@@ -3280,6 +3295,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	//pair writers
 	SeqOutput pairWriter(outPairs);
 	SeqOutput filteredPairWriter(outPairsFiltered);
+	SeqOutput filteredPairSoftClipWriter(outPairsFilteredSoftClip);
 
 	SeqOutput mateUnmappedPairWriter(outPairsUnmappedMate);
 
@@ -3288,6 +3304,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	//non paired writer
 	SeqOutput writer(outUnpaired);
 	SeqOutput singleFilteredWriter(filteredSinglesOpts);
+	SeqOutput singleFilteredSoftClipWriter(filteredSoftClipSinglesOpts);
 
 	BamExtractor::ExtractedFilesOpts ret;
 
@@ -3296,10 +3313,11 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	ret.inThrownAwayUnmappedMate_ = SeqIOOptions::genFastqIn (thrownAwayUnammpedMateOpts.getPriamryOutName());
 	ret.inInverse_ =                SeqIOOptions::genPairedIn(outPairsInverse.getPriamryOutName(), outPairsInverse.getSecondaryOutName());
 	ret.inFilteredPairs_ =          SeqIOOptions::genPairedIn(outPairsFiltered.getPriamryOutName(), outPairsFiltered.getSecondaryOutName());
+	ret.inSoftClipFilteredPairs_ =  SeqIOOptions::genPairedIn(outPairsFilteredSoftClip.getPriamryOutName(), outPairsFilteredSoftClip.getSecondaryOutName());
 	//no disconcordant reads as this is aiming to grab those reads
 	ret.inUnpaired_ =               SeqIOOptions::genFastqIn (outUnpaired.getPriamryOutName());
 	ret.inFilteredSingles_ =        SeqIOOptions::genFastqIn (filteredSinglesOpts.getPriamryOutName());
-
+	ret.inSoftClipFilteredSingles_ =SeqIOOptions::genFastqIn (filteredSoftClipSinglesOpts.getPriamryOutName());
 
 
 	//debuging
@@ -3337,6 +3355,23 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		}
 		bWriter.SaveAlignment(bAln);
 	};
+	auto writeMateFilteredOffSoftClip = [&ret,extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
+		//unpaired read
+		++ret.pairedReadsMateFailedSoftClip_;
+		if (extractPars.originalOrientation_) {
+			writer.openWrite(bamAlnToSeqInfo(bAln));
+		} else {
+			seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities, SangerQualOffset);
+			//put in the orientation of the output region
+			if(region.reverseSrand_){
+				outSeq.reverseComplementRead(false, true);
+			}
+			writer.openWrite(outSeq);
+		}
+		bWriter.SaveAlignment(bAln);
+	};
+
+
 
 //	auto writeInversePair = [&ret,&extractPars,&inversePairWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq,
 //			const BamTools::BamAlignment & searchAln, const seqInfo & searchSeq){
@@ -3434,6 +3469,45 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		bWriter.SaveAlignment(searchAln);
 	};
 
+	auto writeBothPairsFilteredSoftClip = [&ret,&extractPars,&filteredPairSoftClipWriter,&bWriter,&singleFilteredSoftClipWriter](const BamTools::BamAlignment & bAln,
+			const BamTools::BamAlignment & searchAln){
+		++ret.pairedReadsBothFailedSoftClip_;
+		auto bAlnSeq = bamAlnToSeqInfo(bAln);
+		auto searchSeq = bamAlnToSeqInfo(searchAln);
+
+		bool bAlnSeqPass = true;
+		bool searchSeqPass = true;
+		if(extractPars.filterOffLowEntropyOrphansRecruits_){
+			{
+				kmerInfo kInfo(bAlnSeq.seq_, extractPars.entropyKlen_, false);
+				if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+					bAlnSeqPass = false;
+				}
+			}
+			{
+				kmerInfo kInfo(searchSeq.seq_, extractPars.entropyKlen_, false);
+				if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+					searchSeqPass= false;
+				}
+			}
+		}
+		if(bAlnSeqPass && searchSeqPass) {
+			if (bAln.IsFirstMate()) {
+				filteredPairSoftClipWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
+			} else {
+				filteredPairSoftClipWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
+			}
+		} else if(bAlnSeqPass) {
+			singleFilteredSoftClipWriter.openWrite(bAlnSeq);
+		} else if(searchSeqPass) {
+			singleFilteredSoftClipWriter.openWrite(searchSeq);
+		}
+
+
+		bWriter.SaveAlignment(bAln);
+		bWriter.SaveAlignment(searchAln);
+	};
+
 	auto writeSingleFiltered = [&ret,&extractPars,&singleFilteredWriter,&bWriter](const BamTools::BamAlignment & bAln){
 		++ret.singlesFilteredOff_;
 		auto bAlnSeq = bamAlnToSeqInfo(bAln);
@@ -3447,6 +3521,23 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		}
 		if(pass){
 			singleFilteredWriter.openWrite(bAlnSeq);
+		}
+		bWriter.SaveAlignment(bAln);
+	};
+
+	auto writeSingleFilteredSoftClip = [&ret,&extractPars,&singleFilteredSoftClipWriter,&bWriter](const BamTools::BamAlignment & bAln){
+		++ret.unpairedFailedSoftClip_;
+		auto bAlnSeq = bamAlnToSeqInfo(bAln);
+
+		bool pass = true;
+		if(extractPars.filterOffLowEntropyOrphansRecruits_){
+			kmerInfo kInfo(bAlnSeq.seq_, extractPars.entropyKlen_, false);
+			if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+				pass = false;
+			}
+		}
+		if(pass){
+			singleFilteredSoftClipWriter.openWrite(bAlnSeq);
 		}
 		bWriter.SaveAlignment(bAln);
 	};
@@ -3556,12 +3647,41 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		bWriter.SaveAlignment(bAln);
 	};
 
+	auto writeTheMateFailedSoftClip= [&extractPars,&singleFilteredSoftClipWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
+		bool pass = true;
+		if(extractPars.filterOffLowEntropyOrphansRecruits_){
+			kmerInfo kInfo(bAlnSeq.seq_, extractPars.entropyKlen_, false);
+			if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+				pass = false;
+			}
+		}
+		if(pass){
+			if(extractPars.originalOrientation_){
+				singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(bAln));
+			}else{
+				singleFilteredSoftClipWriter.openWrite(bAlnSeq);
+			}
+		}
+		bWriter.SaveAlignment(bAln);
+	};
+
 	auto writeUnmappedMateFilteredPair= [&ret,&extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
 		++ret.mateFilteredOffUnmapped_;
 		if(extractPars.originalOrientation_){
 			writer.openWrite(bamAlnToSeqInfo(bAln));
 		}else{
 			writer.openWrite(bAlnSeq);
+		}
+		bWriter.SaveAlignment(bAln);
+	};
+
+
+	auto writeUnmappedMateFilteredSoftClipPair= [&ret,&extractPars,&singleFilteredSoftClipWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
+		++ret.pairedReadsMateUnmappedFailedSoftClip_;
+		if(extractPars.originalOrientation_){
+			singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(bAln));
+		}else{
+			singleFilteredSoftClipWriter.openWrite(bAlnSeq);
 		}
 		bWriter.SaveAlignment(bAln);
 	};
@@ -3635,8 +3755,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					bool bAlnPassAlnSize = getAlnLen(bAln) >= extractPars.minAlnMapSize_;
 					bool searchPassAlnSize  = getAlnLen(*search) >= extractPars.minAlnMapSize_;
 
-					bool bAlnPassSoftClipAmount = getSoftClipAmount(bAln)/static_cast<double>(bAln.AlignedBases.size()) < extractPars.softClipPercentageCutOff_;
-					bool searchPassSoftClipAmount = getSoftClipAmount(*search)/static_cast<double>(search->AlignedBases.size()) < extractPars.softClipPercentageCutOff_;
+					bool bAlnPassSoftClipAmount = getSoftClipAmount(bAln)/static_cast<double>(bAln.QueryBases.size()) < extractPars.softClipPercentageCutOff_;
+					bool searchPassSoftClipAmount = getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_;
 
 					seqInfo bAlnSeq(bAln.Name, bAln.QueryBases, bAln.Qualities, SangerQualOffset);
 					seqInfo searchSeq(search->Name, search->QueryBases,search->Qualities, SangerQualOffset);
@@ -3655,26 +3775,59 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 						}
 					}
 
-					bool balnAllFilters   = bAlnIn   && bAlnPassAlnSize && bAlnPassSoftClipAmount;
-					bool searchAllFilters = searchIn && searchPassAlnSize && searchPassSoftClipAmount;
+					bool balnAllFilters   = bAlnIn   && bAlnPassAlnSize;
+					bool searchAllFilters = searchIn && searchPassAlnSize;
+
+//					bool balnAllFilters   = bAlnIn   && bAlnPassAlnSize && bAlnPassSoftClipAmount;
+//					bool searchAllFilters = searchIn && searchPassAlnSize && searchPassSoftClipAmount;
 
 
 					if(bAln.IsMapped() && search->IsMapped()){
 						if(bAln.RefID == search->RefID && std::abs(bAln.InsertSize) < insertLengthCutOff_){
 							//concordant mapping to the current region, re-orient
 							if (searchAllFilters && balnAllFilters) {
-								//check for inverse mapping
-								if (bAln.IsReverseStrand() == search->IsReverseStrand()) {
-									//writeInversePair(bAln, bAlnSeq, *search, searchSeq);
-									writeInverseFilteredPair(bAln, *search);
+								if(bAlnPassSoftClipAmount && searchPassSoftClipAmount){
+									//check for inverse mapping
+									if (bAln.IsReverseStrand() == search->IsReverseStrand()) {
+										//writeInversePair(bAln, bAlnSeq, *search, searchSeq);
+										writeInverseFilteredPair(bAln, *search);
+									} else {
+										writeRegPair(bAln, bAlnSeq, *search, searchSeq);
+									}
 								} else {
-									writeRegPair(bAln, bAlnSeq, *search, searchSeq);
+									if(!searchPassSoftClipAmount && !bAlnPassSoftClipAmount){
+//										std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//										std::cout << "extractPars.softClipPercentageCutOff_: " << extractPars.softClipPercentageCutOff_ << std::endl;
+//										std::cout << "getSoftClipAmount(bAln): " << getSoftClipAmount(bAln) << std::endl;
+//										std::cout << "static_cast<double>(bAln.QueryBases.size(): " << static_cast<double>(bAln.QueryBases.size()) << std::endl;
+//										std::cout << "getSoftClipAmount(bAln)/static_cast<double>(bAln.QueryBases.size()): " << getSoftClipAmount(bAln)/static_cast<double>(bAln.QueryBases.size()) << std::endl;
+//										std::cout << "getSoftClipAmount(bAln)/static_cast<double>(bAln.QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(bAln)/static_cast<double>(bAln.QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
+//										std::cout << "getSoftClipAmount(search): " << getSoftClipAmount(*search) << std::endl;
+//										std::cout << "static_cast<double>(search.QueryBases.size(): " << static_cast<double>(search->QueryBases.size()) << std::endl;
+//										std::cout << "getSoftClipAmount(search)/static_cast<double>(search.QueryBases.size()): " << getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) << std::endl;
+//										std::cout << "getSoftClipAmount(search)/static_cast<double>(search.QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
+										writeBothPairsFilteredSoftClip(bAln, *search);
+									}else if(searchPassSoftClipAmount){
+										writeMateFilteredOffSoftClip(*search, *searchRegion);
+										writeTheMateFailedSoftClip(bAln, bAlnSeq);
+									}else if(bAlnPassSoftClipAmount){
+										writeMateFilteredOffSoftClip(bAln, region);
+										writeTheMateFailedSoftClip(*search, searchSeq);
+									}
 								}
 							}else if(searchAllFilters){
-								writeMateFilteredOff(*search, *searchRegion);
+								if(searchPassSoftClipAmount){
+									writeMateFilteredOff(*search, *searchRegion);
+								}else{
+									writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+								}
 								writeTheThrownAwayMate(bAln, bAlnSeq);
 							}else if(balnAllFilters){
-								writeMateFilteredOff(bAln, region);
+								if(bAlnPassSoftClipAmount){
+									writeMateFilteredOff(bAln, region);
+								}else{
+									writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+								}
 								writeTheThrownAwayMate(*search, searchSeq);
 							}else{
 								//both searchAllFilters and balnAllFilters are false, which means they both partially map to this region but don't pass the criteria
@@ -3685,22 +3838,43 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							}
 						} else {
 							if (searchAllFilters && balnAllFilters) {
-								//if these checks end up being the same it means the seq is now in the original orientation
-								//if false then they are now in the reverse complement of what they use to be
-								bool bAlnCheck = region.reverseSrand_ == bAln.IsReverseStrand();
-								bool searchCheck = searchRegion->reverseSrand_ == search->IsReverseStrand();
-								//if the checks equal each other that means the mates are now in the opposite orientation from each other and therefore are inverse mapping
-								if (bAlnCheck == searchCheck) {
-									//writeInversePair(bAln, bAlnSeq, *search, searchSeq);
-									writeInverseFilteredPair(bAln, *search);
-								} else {
-									writeDiscordantPair(bAln, bAlnSeq, *search, searchSeq);
+								if(searchPassSoftClipAmount && bAlnPassSoftClipAmount){
+									//if these checks end up being the same it means the seq is now in the original orientation
+									//if false then they are now in the reverse complement of what they use to be
+									bool bAlnCheck = region.reverseSrand_ == bAln.IsReverseStrand();
+									bool searchCheck = searchRegion->reverseSrand_ == search->IsReverseStrand();
+									//if the checks equal each other that means the mates are now in the opposite orientation from each other and therefore are inverse mapping
+									if (bAlnCheck == searchCheck) {
+										//writeInversePair(bAln, bAlnSeq, *search, searchSeq);
+										writeInverseFilteredPair(bAln, *search);
+									} else {
+										writeDiscordantPair(bAln, bAlnSeq, *search, searchSeq);
+									}
+								}else{
+									if(!searchPassSoftClipAmount && !bAlnPassSoftClipAmount){
+										std::cout << __FILE__ << " " << __LINE__ << std::endl;
+										writeBothPairsFilteredSoftClip(bAln, *search);
+									}else if(searchPassSoftClipAmount){
+										writeMateFilteredOffSoftClip(*search, *searchRegion);
+										writeTheMateFailedSoftClip(bAln, bAlnSeq);
+									}else if(bAlnPassSoftClipAmount){
+										writeMateFilteredOffSoftClip(bAln, region);
+										writeTheMateFailedSoftClip(*search, searchSeq);
+									}
 								}
 							}else if(searchAllFilters){
-								writeMateFilteredOff(*search, *searchRegion);
+								if(searchPassSoftClipAmount){
+									writeMateFilteredOff(*search, *searchRegion);
+								}else{
+									writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+								}
 								writeTheThrownAwayMate(bAln, bAlnSeq);
 							}else if(balnAllFilters){
-								writeMateFilteredOff(bAln, region);
+								if(bAlnPassSoftClipAmount){
+									writeMateFilteredOff(bAln, region);
+								}else{
+									writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+								}
 								writeTheThrownAwayMate(*search, searchSeq);
 							}else{
 								//both searchAllFilters and balnAllFilters are false, which means they both partially map to this region but don't pass the criteria
@@ -3713,7 +3887,11 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					}else if(bAln.IsMapped()){
 						if (extractPars.throwAwayUnmappedMate_) {
 							if(balnAllFilters){
-								writeThrowAwayUnmappedMate(bAln, bAlnSeq);
+								if(bAlnPassSoftClipAmount){
+									writeThrowAwayUnmappedMate(bAln, bAlnSeq);
+								}else{
+									writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+								}
 								writeTheThrownAwayUnmappedMate(*search, searchSeq);
 							}
 						} else {
@@ -3745,18 +3923,26 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							//if(mateBases > 0 && possibleMateReg.getOverlapLen(region)/mateBases >= percInRegion){
 							//if(posibleMatePosition >= region.start_ && posibleMatePosition < region.end_){
 							if (matePass) {
-								//since to make it here at least one of the mates had to align, just check which one did
 								if(!region.reverseSrand_){
 									searchSeq.reverseComplementRead(false, true);
 								}
 								if(balnAllFilters){
-									writeMateUnmappedPair(bAln, bAlnSeq, *search, searchSeq);
+									if(bAlnPassSoftClipAmount){
+										writeMateUnmappedPair(bAln, bAlnSeq, *search, searchSeq);
+									}else{
+										writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+										writeUnmappedMateFilteredPair(*search, searchSeq);
+									}
 								}else{
 									writeUnmappedMateFilteredPair(*search, searchSeq);
 								}
 							}else{
 								if(balnAllFilters){
-									writeThrowAwayUnmappedMate(bAln, bAlnSeq);
+									if(bAlnPassSoftClipAmount){
+										writeThrowAwayUnmappedMate(bAln, bAlnSeq);
+									}else{
+										writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+									}
 									writeTheThrownAwayUnmappedMate(*search, searchSeq);
 								}
 							}
@@ -3764,7 +3950,11 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					}else if(search->IsMapped()){
 						if (extractPars.throwAwayUnmappedMate_) {
 							if(searchAllFilters){
-								writeThrowAwayUnmappedMate(*search, searchSeq);
+								if(searchPassSoftClipAmount){
+									writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+								}else{
+									writeThrowAwayUnmappedMate(*search, searchSeq);
+								}
 								writeTheThrownAwayUnmappedMate(bAln, bAlnSeq);
 							}
 						} else {
@@ -3800,13 +3990,22 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 									bAlnSeq.reverseComplementRead(false, true);
 								}
 								if(searchAllFilters){
-									writeMateUnmappedPair(bAln, bAlnSeq, *search, searchSeq);
+									if(searchPassSoftClipAmount){
+										writeMateUnmappedPair(bAln, bAlnSeq, *search, searchSeq);
+									}else{
+										writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+										writeUnmappedMateFilteredPair(bAln, bAlnSeq);
+									}
 								}else{
 									writeUnmappedMateFilteredPair(bAln, bAlnSeq);
 								}
 							} else {
 								if (searchAllFilters) {
-									writeThrowAwayUnmappedMate(*search, searchSeq);
+									if(searchPassSoftClipAmount){
+										writeThrowAwayUnmappedMate(*search, searchSeq);
+									}else{
+										writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+									}
 									writeTheThrownAwayUnmappedMate(bAln, bAlnSeq);
 								}
 							}
@@ -3824,20 +4023,23 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			} else {
 
 				if(region.getPercInRegion(bAln, refData) >= extractPars.percInRegion_ &&
-						getAlnLen(bAln) >= extractPars.minAlnMapSize_ &&
-						getSoftClipAmount(bAln)/static_cast<double>(bAln.AlignedBases.size()) < extractPars.softClipPercentageCutOff_){
-					//unpaired read
-					++ret.unpaiedReads_;
-					if (extractPars.originalOrientation_) {
-						writer.openWrite(bamAlnToSeqInfo(bAln));
-					} else {
-						seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
-								SangerQualOffset);
-						//put in the orientation of the output region
-						if(region.reverseSrand_){
-							outSeq.reverseComplementRead(false, true);
+						getAlnLen(bAln) >= extractPars.minAlnMapSize_){
+					if(getSoftClipAmount(bAln)/static_cast<double>(bAln.QueryBases.size()) < extractPars.softClipPercentageCutOff_){
+						writeSingleFilteredSoftClip(bAln);
+					}else{
+						//unpaired read
+						++ret.unpaiedReads_;
+						if (extractPars.originalOrientation_) {
+							writer.openWrite(bamAlnToSeqInfo(bAln));
+						} else {
+							seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
+									SangerQualOffset);
+							//put in the orientation of the output region
+							if(region.reverseSrand_){
+								outSeq.reverseComplementRead(false, true);
+							}
+							writer.openWrite(outSeq);
 						}
-						writer.openWrite(outSeq);
 					}
 				}else{
 					//single filtered off
@@ -4006,34 +4208,41 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 
 			auto searchRegion = alnCache.getRegion(name);
 			bool searchIn = searchRegion->getPercInRegion(*search, refData)>= extractPars.percInRegion_;
-			if (searchIn && getAlnLen(*search) >= extractPars.minAlnMapSize_ &&
-					getSoftClipAmount(*search)/static_cast<double>(search->AlignedBases.size()) < extractPars.softClipPercentageCutOff_) {
-				if (search->IsPaired()) {
-					++ret.orphans_;
-				} else {
-					++ret.unpaiedReads_;
-				}
-				bool pass = true;
-				auto searchSeq = seqInfo(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
-				if (extractPars.filterOffLowEntropyOrphansRecruits_) {
-					kmerInfo kInfo(searchSeq.seq_, extractPars.entropyKlen_, false);
-					if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
-						pass = false;
-					}
-				}
-				if(pass){
-					if (extractPars.originalOrientation_) {
-						writer.openWrite(bamAlnToSeqInfo(*search));
+			if (searchIn &&
+					getAlnLen(*search) >= extractPars.minAlnMapSize_) {
+				if(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_){
+					if (search->IsPaired()) {
+						++ret.orphans_;
 					} else {
-						seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
-						if (searchRegion->reverseSrand_) {
-							searchSeq.reverseComplementRead(false, true);
-						}
-						writer.openWrite(searchSeq);
+						++ret.unpaiedReads_;
 					}
-					bWriter.SaveAlignment(*search);
+					bool pass = true;
+					auto searchSeq = seqInfo(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
+					if (extractPars.filterOffLowEntropyOrphansRecruits_) {
+						kmerInfo kInfo(searchSeq.seq_, extractPars.entropyKlen_, false);
+						if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+							pass = false;
+						}
+					}
+					if(pass){
+						if (extractPars.originalOrientation_) {
+							writer.openWrite(bamAlnToSeqInfo(*search));
+						} else {
+							seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
+							if (searchRegion->reverseSrand_) {
+								searchSeq.reverseComplementRead(false, true);
+							}
+							writer.openWrite(searchSeq);
+						}
+						bWriter.SaveAlignment(*search);
+					}else{
+						++ret.orphansFiltered_;
+					}
 				}else{
-					++ret.orphansFiltered_;
+					//write filterd orphan
+					++ret.orphansFilteredSoftCip_;
+					singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(*search));
+					bWriter.SaveAlignment(*search);
 				}
 			}else{
 				//write filterd orphan
@@ -4044,8 +4253,6 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			alnCache.remove(name);
 		}
 	}
-
-
 	return ret;
 }
 

@@ -51,6 +51,7 @@ public:
 		uint32_t unpaiedReads_ = 0;
 		uint32_t orphans_ = 0; /**< reads that are paired but their mates weren't found */
 		uint32_t orphansFiltered_ = 0; /**< reads that are paired but their mates weren't found and eventually are filtered off */
+		uint32_t orphansFilteredSoftCip_ = 0; /**< reads that are paired but their mates weren't found and eventually are filtered off due to soft clip filter */
 
 		uint32_t orphansUnmapped_ = 0; /**< reads that are paired but their mates weren't found are unmapped */
 		uint32_t pairsUnMapped_ = 0;
@@ -101,6 +102,8 @@ public:
 
 		SeqIOOptions inFilteredPairs_;
 		SeqIOOptions inFilteredSingles_;
+		SeqIOOptions inSoftClipFilteredPairs_;
+		SeqIOOptions inSoftClipFilteredSingles_;
 
 		SeqIOOptions inInverse_;
 		SeqIOOptions inDiscordant_;
