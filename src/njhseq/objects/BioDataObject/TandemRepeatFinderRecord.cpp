@@ -37,7 +37,7 @@ TandemRepeatFinderRecord::TandemRepeatFinderRecord(const std::string & line){
 	if(15 != toks.size()){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error in processing line: " << line << "\n";
-		ss << "There should be 15 values sepearted by whitespace, found " << toks.size() << " instead " << std::endl;
+		ss << "There should be 15 values separated by whitespace, found " << toks.size() << " instead " << std::endl;
 	}
 
 	//0 start

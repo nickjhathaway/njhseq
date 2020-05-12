@@ -74,8 +74,12 @@ GenomicRegion::GenomicRegion(const Bed3RecordCore & bed) :
 
 
 GenomicRegion::GenomicRegion(const TandemRepeatFinderRecord & trfRecord):GenomicRegion(
-		njh::pasteAsStr(trfRecord.repeatPatSeq_, "_x", trfRecord.numberOfAlignedRepeats_),
-		trfRecord.seqName_, trfRecord.start_ - 1, trfRecord.end_, false) {
+		njh::pasteAsStr(trfRecord.seqName_, "-",trfRecord.start_ - 1, "-",trfRecord.end_,
+				"__",trfRecord.repeatPatSeq_, "_x", (trfRecord.end_ + 1 - trfRecord.start_)/static_cast<double>(trfRecord.periodSize_)),
+		trfRecord.seqName_,
+		trfRecord.start_ - 1,
+		trfRecord.end_,
+		false) {
 
 }
 
