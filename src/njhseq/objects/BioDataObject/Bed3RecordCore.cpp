@@ -105,6 +105,11 @@ bool Bed3RecordCore::overlaps(const Bed3RecordCore & otherRegion,
 }
 
 
+std::string Bed3RecordCore::genUIDFromCoords() const {
+	return njh::pasteAsStr(chrom_, "-", chromStart_, "-", chromEnd_);
+}
+
+
 bool Bed3RecordCore::sameRegion(const Bed3RecordCore & otherRegion)const{
 	return otherRegion.chrom_ == chrom_ &&
 			otherRegion.chromStart_  == chromStart_ &&

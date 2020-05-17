@@ -56,6 +56,10 @@ public:
 	bool overlaps(const Bed3RecordCore & otherRegion,
 			const uint32_t overlapMin) const;
 
+
+	std::string genUIDFromCoords() const;
+
+
 };
 
 

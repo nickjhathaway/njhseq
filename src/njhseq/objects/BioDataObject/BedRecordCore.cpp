@@ -93,7 +93,9 @@ std::string Bed6RecordCore::toDelimStrWithExtra() const {
 					toVecStr(super::toDelimStr(), name_, score_, strand_, extraFields_), "\t");
 }
 
-
+std::string Bed6RecordCore::genUIDFromCoordsWithStrand() const{
+	return njh::pasteAsStr(chrom_, "-", chromStart_, "-", chromEnd_, "-", strand_ == '+' ? "for" : "rev");
+}
 
 Json::Value Bed6RecordCore::toJson() const{
 	Json::Value ret;

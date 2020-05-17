@@ -52,6 +52,8 @@ public:
 
 	virtual Json::Value toJson() const;
 
+	std::string genUIDFromCoordsWithStrand() const;
+
 
 
 };
