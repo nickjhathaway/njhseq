@@ -61,6 +61,7 @@ public:
 		std::string extraLastzArgs = "";
 	};
 	njh::sys::RunOutput lastzAlign(const SeqIOOptions & opts, const LastZPars & pars) const ;
+	njh::sys::RunOutput lastzAlignNoSort(const SeqIOOptions & opts, const LastZPars & pars) const ;
 
 
 	bool isSRAPairedEnd(const bfs::path & sraFnp) const;

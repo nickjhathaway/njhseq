@@ -308,6 +308,34 @@ njh::sys::RunOutput BioCmdsUtils::lastzAlign(const SeqIOOptions & opts, const La
 	return ret;
 }
 
+njh::sys::RunOutput BioCmdsUtils::lastzAlignNoSort(const SeqIOOptions & opts, const LastZPars & pars) const {
+	checkGenomeFnpExistsThrow(pars.genomeFnp, __PRETTY_FUNCTION__);
+	bfs::path outputFnp = njh::appendAsNeededRet(opts.out_.outFilename_.string(),
+			".bam");
+	if (bfs::exists(outputFnp) && !opts.out_.overWriteFile_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": error, " << outputFnp
+				<< " already exists, use --overWrite to over write it" << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	std::stringstream lastzCmd;
+	lastzCmd << "lastz " << pars.genomeFnp << "[multiple] "
+			<< opts.firstName_ << " --format=" << pars.outFormat
+			<< " --coverage=" << pars.coverage << " --identity=" << pars.identity << " --ambiguous=iupac "
+			<< pars.extraLastzArgs << " | samtools view - -b -o " << outputFnp;
+	if (verbose_) {
+		std::cout << "Running: " << njh::bashCT::green << lastzCmd.str() << njh::bashCT::reset << std::endl;
+	}
+	auto ret = njh::sys::run( { lastzCmd.str() });
+	BioCmdsUtils::checkRunOutThrow(ret, __PRETTY_FUNCTION__);
+	return ret;
+}
+
+
+
+
+
+
 Json::Value BioCmdsUtils::FastqDumpResults::toJson() const{
 	Json::Value ret;
 
