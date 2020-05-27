@@ -46,6 +46,8 @@ public:
 	};
 
 	KmersSharedBlocks(const std::string & name, const std::string & seq, uint32_t kLen);
+	KmersSharedBlocks(const seqInfo & seq, const kmerInfo & kInfo);
+
 	std::shared_ptr<seqInfo> seqBase_;
 	std::shared_ptr<kmerInfo> kInfo_;
 	//key = ref position, value = size of kmers shared

@@ -905,7 +905,7 @@ int ManipulateTableRunner::printCol(
 	OutOptions outOpts(bfs::path(""));
 	outOpts.outExtention_ = ".txt";
 	seqSetUp setUp(inputCommands);
-	setUp.setOption(fnp, "--fnp", "Filename path", true);
+	setUp.setOption(fnp, "--file,--fnp", "Filename path", true);
 	setUp.setOption(columnName, "--columnName", "columnName", true);
 	setUp.setOption(delim, "--delim", "delim");
 	setUp.setOption(sort, "--sort", "sort output");
