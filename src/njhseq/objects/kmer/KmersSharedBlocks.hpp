@@ -53,6 +53,7 @@ public:
 	//key = ref position, value = size of kmers shared
 	std::unordered_map<uint32_t, KmersSharedBlock> kComps_;
 	uint32_t maxRefPos_ = 0;
+	uint32_t minBlockSize = 2;
 	KmersSharedBlock currentComp_ { std::numeric_limits<uint32_t>::max(),
 			std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max() };
 

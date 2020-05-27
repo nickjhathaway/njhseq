@@ -73,7 +73,9 @@ void KmersSharedBlocks::addComp(uint32_t refPos, uint32_t seqPos){
 	if(currentComp_){
 		if(currentComp_.size_ + currentComp_.refStart_ != refPos
 				||currentComp_.size_ + currentComp_.start_ != seqPos ){
-			kComps_[currentComp_.refStart_] = currentComp_;
+			if(currentComp_.size_ >=minBlockSize){
+				kComps_[currentComp_.refStart_] = currentComp_;
+			}
 			currentComp_ = {refPos, seqPos, 1};
 		}else{
 			++currentComp_.size_;
@@ -85,7 +87,9 @@ void KmersSharedBlocks::addComp(uint32_t refPos, uint32_t seqPos){
 
 void KmersSharedBlocks::finish() {
 	if (currentComp_) {
-		kComps_[currentComp_.refStart_] = currentComp_;
+		if(currentComp_.size_ >=minBlockSize){
+			kComps_[currentComp_.refStart_] = currentComp_;
+		}
 		currentComp_ = KmersSharedBlock();
 	}
 }
