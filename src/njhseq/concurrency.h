@@ -29,3 +29,4 @@
 #include "njhseq/concurrency/ConcurrentQueue.hpp"
 #include "njhseq/concurrency/pools.h"
 #include "njhseq/concurrency/PairwisePairFactory.hpp"
+#include "njhseq/concurrency/AllByAllPairFactory.hpp"
