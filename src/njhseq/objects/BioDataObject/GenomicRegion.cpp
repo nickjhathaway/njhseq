@@ -346,6 +346,9 @@ void GenomicRegion::addAltUid(const std::string & altUid) {
 Bed6RecordCore GenomicRegion::genBedRecordCore() const {
 	Bed6RecordCore ret (chrom_, start_, end_, uid_, getLen(),
 			reverseSrand_ ? '-' : '+');
+	if("" == uid_){
+		ret.name_ = createUidFromCoordsStrand();
+	}
 	if(!meta_.meta_.empty()){
 		ret.extraFields_.emplace_back(meta_.createMetaName());
 	}

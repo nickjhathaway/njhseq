@@ -788,6 +788,12 @@ int ManipulateTableRunner::rBind(
 			}
 			continue;
 		}
+		if (0 == njh::files::bfs::file_size(file.first)) {
+			if (verbose) {
+				std::cout << "Skipping empty file: " << file.first.string() << std::endl;
+			}
+			continue;
+		}
 		if (count == 0) {
 			table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
 			mainTable = inTab;
