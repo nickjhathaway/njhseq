@@ -58,6 +58,8 @@ public:
 		uint32_t unpairedUnMapped_ = 0;
 		uint32_t unpairedFailedSoftClip_ = 0;//! single but failed a soft clip filter
 
+		uint32_t improperPairFiltered_ = 0; //! number of reads removed for being a improper pair, doesn't count towards final counts
+		uint32_t markedDuplicateFiltered_ = 0; //! number of reads removed for being a marked duplicate, doesn't count towards final counts
 
 //		uint32_t mateFilteredOff_ = 0; //! mate has been filtered
 //		uint32_t mateFilteredOffUnmapped_ = 0;//! mate was unmapped
@@ -188,6 +190,10 @@ public:
 		uint32_t entropyKlen_{2};
 
 		double softClipPercentageCutOff_{1};//! by default can soft clip all
+
+
+		bool removeImproperPairs_{false};
+
 		Json::Value toJson() const;
 
 	};

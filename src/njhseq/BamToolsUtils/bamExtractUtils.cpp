@@ -74,6 +74,16 @@ void BamExtractor::ExtractCounts::log(std::ostream & out, const bfs::path & bamF
 	logStats("unmappedSingles", unpairedUnMapped_);
 	logStats("discordant", discordant_);
 	logStats("inverse", inverse_);
+	out << bamFnp.string()
+			<< "\t" << "improperPairFiltered"
+			<< "\t" << improperPairFiltered_
+			<< "\t" << ""
+			<< std::endl;
+	out << bamFnp.string()
+			<< "\t" << "markedDuplicateFiltered"
+			<< "\t" << markedDuplicateFiltered_
+			<< "\t" << ""
+			<< std::endl;
 }
 
 void BamExtractor::ExtractedFilesOpts::removeAllInFiles(){
@@ -3196,6 +3206,8 @@ Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const
 	ret["filterOffLowEntropyOrphansRecruits_"] = njh::json::toJson(filterOffLowEntropyOrphansRecruits_);
 	ret["entropyKlen_"] = njh::json::toJson(entropyKlen_);
 	ret["softClipPercentageCutOff_"] = njh::json::toJson(softClipPercentageCutOff_);
+	ret["removeImproperPairs_"] = njh::json::toJson(removeImproperPairs_);
+
 	return ret;
 }
 
@@ -3699,6 +3711,11 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				continue;
 			}
 			if(!extractPars.keepMarkedDuplicate_ && bAln.IsDuplicate()){
+				++ret.markedDuplicateFiltered_;
+				continue;
+			}
+			if(extractPars.removeImproperPairs_ && bAln.IsPaired() && !bAln.IsProperPair()){
+				++ret.improperPairFiltered_;
 				continue;
 			}
 			//handle non-mapping sequences
@@ -4064,6 +4081,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		orphansSiblingsLocationFileOpt.openFile(orphansSiblingsLocationFile);
 		orphansSiblingsLocationFile << "OrphanName\tdistance\tclosetRegions\tRefId\tPosition\tIsMapped\tMateRefId\tMatePosition\tIsMateMapped" << "\n";
 	}
+
 	if (len(alnCache) > 0) {
 		auto names = alnCache.getNames();
 		if (extractPars.tryToFindOrphansMate_) {
