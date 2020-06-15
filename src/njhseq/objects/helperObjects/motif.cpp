@@ -306,6 +306,48 @@ std::vector<size_t> motif::findPositionsSubSets(
 	return positions;
 }
 
+std::vector<size_t> motif::findPositionsSubSetsBest(
+		const std::string & wholeProtein,
+		uint32_t allowableErrors,
+		size_t start, size_t stop,
+		uint32_t motifStart, uint32_t motifEnd) const{
+	uint32_t sum = 0;
+	auto predTest =
+			[&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
+			{
+				sum += 1 - mot.second.scoreChar(a);
+				return sum <= allowableErrors;
+			};
+	size_t pos = start;
+	std::vector<size_t> positions;
+	uint32_t motifSearchSize = motifEnd - motifStart;
+	uint32_t best = 0;
+	while (pos + motifSearchSize <= stop && pos + motifSearchSize <= wholeProtein.size()) {
+		sum = 0;
+		auto motifIterator = motifUnits_.begin();
+		for(uint32_t i = 0; i < motifStart; ++i){
+			++motifIterator;
+		}
+		if (std::equal(wholeProtein.begin() + pos,
+				wholeProtein.begin() + motifSearchSize + pos,
+				motifIterator,
+				predTest)) {
+			auto score = size() - sum;
+			if(score > best){
+				best = score;
+				positions.clear();
+				positions.emplace_back(pos);
+			}else if(best == score){
+				positions.emplace_back(pos);
+			}
+		}
+		++pos;
+	}
+	return positions;
+}
+
+
+
 size_t motif::size() const {
 	return motifUnits_.size();
 }

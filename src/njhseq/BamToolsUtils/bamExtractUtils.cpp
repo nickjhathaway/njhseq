@@ -3207,6 +3207,7 @@ Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const
 	ret["entropyKlen_"] = njh::json::toJson(entropyKlen_);
 	ret["softClipPercentageCutOff_"] = njh::json::toJson(softClipPercentageCutOff_);
 	ret["removeImproperPairs_"] = njh::json::toJson(removeImproperPairs_);
+	ret["keepImproperMateUnmapped_"] = njh::json::toJson(keepImproperMateUnmapped_);
 
 	return ret;
 }
@@ -3715,8 +3716,12 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				continue;
 			}
 			if(extractPars.removeImproperPairs_ && bAln.IsPaired() && !bAln.IsProperPair()){
-				++ret.improperPairFiltered_;
-				continue;
+				bool bothMapped = bAln.IsMapped() && bAln.IsMateMapped();
+				//if keeping improper pairs due to one mate not being mapped
+				if(!extractPars.keepImproperMateUnmapped_ || bothMapped) {
+					++ret.improperPairFiltered_;
+					continue;
+				}
 			}
 			//handle non-mapping sequences
 			if (bAln.IsPaired() && !bAln.IsMapped() && !bAln.IsMateMapped()) {

@@ -193,6 +193,7 @@ public:
 
 
 		bool removeImproperPairs_{false};
+		bool keepImproperMateUnmapped_{false};
 
 		Json::Value toJson() const;
 

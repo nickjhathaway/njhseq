@@ -247,7 +247,7 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info,
 			/**@todo put in a check to make sure of semi-global alignment */
 
 			if(pars.useMotif_){
-				auto positions = rev.mot_.findPositionsSubSets(readBegin.seq_,
+				auto positions = rev.mot_.findPositionsSubSetsBest(readBegin.seq_,
 						pars.allowable_.hqMismatches_ + pars.allowable_.lqMismatches_,
 						0, len(readBegin),
 						1, rev.mot_.size());
@@ -272,8 +272,8 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info,
 			}else{
 				alignerObj.alignCacheGlobal(readBegin, rev.info_);
 				alignerObj.rearrangeObjs(readBegin, rev.info_, false);
-			}
 
+			}
 			/**@todo put in a check to make sure of semi-global alignment */
 			alignerObj.profileAlignment(readBegin,
 					rev.info_, false, true, false);
@@ -549,7 +549,7 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 
 			/**@todo put in a check to make sure of semi-global alignment */
 			if(pars.useMotif_){
-				auto positions = fwd.mot_.findPositionsSubSets(readBegin.seq_,
+				auto positions = fwd.mot_.findPositionsSubSetsBest(readBegin.seq_,
 						pars.allowable_.hqMismatches_ + pars.allowable_.lqMismatches_,
 						0, len(readBegin),
 						1, fwd.mot_.size());
