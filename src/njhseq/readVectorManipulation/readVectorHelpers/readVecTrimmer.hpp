@@ -42,6 +42,29 @@ class readVecTrimmer {
 public:
 
 
+
+	struct trimCircularGenomeToRefPars{
+
+		seqInfo refSeq_;
+		bool doNotReOrientDirection_ = false;
+		bool preferHeader_ = false;
+		uint32_t kmerLength_= 7;
+		uint32_t padding_ = 150;
+		bool mark_ = false;
+	};
+
+	static std::vector<seqInfo> trimCircularGenomeToRef(seqInfo seq,
+			const trimCircularGenomeToRefPars & pars,
+			aligner & alignerObj);
+  template <class T>
+  static std::vector<seqInfo> trimCircularGenomeToRef(std::vector<T> &seqs, const trimCircularGenomeToRefPars & pars,
+			aligner & alignerObj);
+  template <class T>
+  static std::vector<seqInfo> trimCircularGenomeToRef(T &seq, const trimCircularGenomeToRefPars & pars,
+			aligner & alignerObj);
+
+
+
 	struct TrimEdgesByLowEntropyPars {
 		uint32_t windowStep = 5;
 		uint32_t windowSize = 50;
@@ -273,6 +296,26 @@ public:
 	static std::vector<BreakUpRes> breakUpSeqOnPat(const seqInfo & seq, const njh::PatPosFinder & pFinder);
 
 };
+
+
+template <class T>
+std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(std::vector<T> &seqs, const trimCircularGenomeToRefPars & pars,
+		aligner & alignerObj){
+	std::vector<seqInfo> ret;
+	for(const auto & seq : seqs){
+		auto res = trimCircularGenomeToRef(getSeqBase(seq), pars, alignerObj);
+		addOtherVec(ret, res);
+	}
+	return ret;
+}
+
+template <class T>
+std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(T &seq, const trimCircularGenomeToRefPars & pars,
+		aligner & alignerObj){
+	return trimCircularGenomeToRef(getSeqBase(seq));
+}
+
+
 
 template<typename SEQYPTE, typename REFSEQ>
 void readVecTrimmer::trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seqs,

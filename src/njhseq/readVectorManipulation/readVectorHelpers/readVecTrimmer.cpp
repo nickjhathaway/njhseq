@@ -18,11 +18,378 @@
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "readVecTrimmer.hpp"
-
+#include "njhseq/IO/SeqIO/SeqOutput.hpp"
 
 
 
 namespace njhseq {
+
+
+std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
+		const trimCircularGenomeToRefPars & pars,
+		aligner & alignerObj){
+	std::vector<seqInfo> outSeqs;
+
+	if(!pars.doNotReOrientDirection_){
+		kmerInfo refKInfo(pars.refSeq_.seq_, pars.kmerLength_, false);
+		kmerInfo seqKInfo(seq.seq_, pars.kmerLength_, true);
+		auto compForward = refKInfo.compareKmers(seqKInfo);
+		auto compReverse = refKInfo.compareKmersRevComp(seqKInfo);
+		if(compReverse.second > compForward.second){
+			seq.reverseComplementRead(false, true);
+		}
+	}
+
+	alignerObj.alignCacheGlobal(pars.refSeq_, seq);
+	alignerObj.rearrangeObjsGlobal(pars.refSeq_, seq);
+//	auto debugOutOpts = SeqIOOptions::genFastaOut("test.fasta");
+//	debugOutOpts.out_.overWriteFile_ =true;
+//	SeqOutput debugWriter(debugOutOpts);
+//	debugWriter.openOut();
+//	debugWriter.write(alignerObj.alignObjectA_);
+//	debugWriter.write(alignerObj.alignObjectB_);
+	if(
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() &&
+	 	   '-' == alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			 '-' == alignerObj.alignObjectA_.seqBase_.seq_.back()  &&
+			 '-' != alignerObj.alignObjectB_.seqBase_.seq_.back()      ){
+		//1
+		//b starts in a with back overhang
+		auto lastRefAlnPos =    alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
+		auto firstAlnInputPos = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
+
+		auto refStartPosition = alignerObj.getSeqPosForAlnAPos(firstAlnInputPos);
+
+		auto originalAlign1 = alignerObj.alignObjectA_;
+		auto originalAlign2 = alignerObj.alignObjectB_;
+
+		auto inputPos = alignerObj.getSeqPosForAlnBPos(lastRefAlnPos) + 1;
+		auto backSeq = seq.getSubRead(inputPos);
+		auto forwardSeqRef = pars.refSeq_.getSubRead(0, len(backSeq)+ pars.padding_);
+
+		alignerObj.alignCacheGlobal(forwardSeqRef, backSeq);
+		alignerObj.rearrangeObjsGlobal(forwardSeqRef, backSeq);
+//		debugWriter.write(alignerObj.alignObjectA_);
+//		debugWriter.write(alignerObj.alignObjectB_);
+
+		auto lastRealignedPos = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
+		auto lastRefPositionForBackSeqInclusive = alignerObj.getSeqPosForAlnAPos(lastRealignedPos);
+		auto lastRefPositionForBackSeqEnd = lastRefPositionForBackSeqInclusive + 1;
+
+		uint32_t endPositionForBackSeqForOutput = std::numeric_limits<uint32_t>::max();
+		uint32_t originalInputSeqStartForOutput = std::numeric_limits<uint32_t>::max();
+
+		if(pars.preferHeader_){
+			if(lastRefPositionForBackSeqEnd > refStartPosition){
+				endPositionForBackSeqForOutput = alignerObj.getSeqPosForAlnBPos(alignerObj.getAlignPosForSeqAPos(refStartPosition));
+			}
+			originalInputSeqStartForOutput = 0;
+		} else {
+			if('-' == alignerObj.alignObjectA_.seqBase_.seq_.back()){
+				//back seq went further than front of ref seq
+				auto lastRefAlnPositionInRealalignment = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
+				endPositionForBackSeqForOutput = alignerObj.getSeqPosForAlnBPos(lastRefAlnPositionInRealalignment) + 1;
+			}else{
+				endPositionForBackSeqForOutput = len(backSeq);
+				if(firstAlnInputPos <= lastRefPositionForBackSeqInclusive){
+					originalInputSeqStartForOutput = getRealPosForAlnPos(originalAlign2.seqBase_.seq_, getAlnPosForRealPos(originalAlign1.seqBase_.seq_, lastRefPositionForBackSeqInclusive)) + 1;
+				}else{
+					originalInputSeqStartForOutput = 0;
+				}
+			}
+		}
+		auto startPositionForBackSeqForOutput = 0;
+		if('-' != alignerObj.alignObjectA_.seqBase_.seq_.front() ){
+			startPositionForBackSeqForOutput = alignerObj.getSeqPosForAlnBPos(alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-'));
+		}
+		auto outSeq = backSeq.getSubRead(startPositionForBackSeqForOutput, endPositionForBackSeqForOutput - startPositionForBackSeqForOutput);
+		if(lastRefPositionForBackSeqEnd >= refStartPosition){
+			if(std::numeric_limits<uint32_t>::max() != originalInputSeqStartForOutput ){
+				outSeq.append(seq.getSubRead(originalInputSeqStartForOutput, inputPos - originalInputSeqStartForOutput));
+				if(pars.mark_){
+					MetaDataInName seqMeta;
+					if(MetaDataInName::nameHasMetaData(outSeq.name_)){
+						seqMeta= MetaDataInName(outSeq.name_);
+					}
+					seqMeta.addMeta("length", len(outSeq), true);
+					seqMeta.addMeta("inputLength", len(seq), true);
+					seqMeta.addMeta("refTransitionPoint", refStartPosition);
+					seqMeta.addMeta("inputPosition", njh::pasteAsStr(
+							inputPos + startPositionForBackSeqForOutput, "-", inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput,
+							",",
+							originalInputSeqStartForOutput, "-", inputPos - originalInputSeqStartForOutput));
+					seqMeta.resetMetaInName(outSeq.name_);
+				}
+			}else{
+				if(pars.mark_){
+					MetaDataInName seqMeta;
+					if(MetaDataInName::nameHasMetaData(outSeq.name_)){
+						seqMeta= MetaDataInName(outSeq.name_);
+					}
+					seqMeta.addMeta("length", len(outSeq), true);
+					seqMeta.addMeta("inputLength", len(seq), true);
+					seqMeta.addMeta("refTransitionPoint", refStartPosition);
+					seqMeta.addMeta("inputPosition", njh::pasteAsStr(
+							inputPos + startPositionForBackSeqForOutput, "-", inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput));
+					seqMeta.resetMetaInName(outSeq.name_);
+				}
+			}
+			outSeqs.emplace_back(outSeq);
+		} else {
+			auto backSeqTrimmed = seq.getSubRead(originalInputSeqStartForOutput, inputPos - originalInputSeqStartForOutput);
+			outSeq.on_ = false;
+			backSeqTrimmed.on_ = false;
+			if(pars.mark_){
+				{
+					MetaDataInName seqMeta;
+					if(MetaDataInName::nameHasMetaData(outSeq.name_)){
+						seqMeta= MetaDataInName(outSeq.name_);
+					}
+					seqMeta.addMeta("length", len(outSeq), true);
+					seqMeta.addMeta("inputLength", len(seq), true);
+					seqMeta.addMeta("refTransitionPoint", refStartPosition);
+					seqMeta.addMeta("inputPosition", njh::pasteAsStr(
+							inputPos + startPositionForBackSeqForOutput, "-", inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput));
+					seqMeta.resetMetaInName(outSeq.name_);
+				}
+				{
+					MetaDataInName seqMeta;
+					if(MetaDataInName::nameHasMetaData(backSeqTrimmed.name_)){
+						seqMeta= MetaDataInName(backSeqTrimmed.name_);
+					}
+					seqMeta.addMeta("length", len(backSeqTrimmed), true);
+					seqMeta.addMeta("inputLength", len(seq), true);
+					seqMeta.addMeta("refTransitionPoint", refStartPosition);
+					seqMeta.addMeta("inputPosition", njh::pasteAsStr(originalInputSeqStartForOutput, "-", inputPos - originalInputSeqStartForOutput));
+					seqMeta.resetMetaInName(backSeqTrimmed.name_);
+				}
+			}
+			outSeqs.emplace_back(outSeq);
+			outSeqs.emplace_back(backSeqTrimmed);
+		}
+	} else if (
+			 '-' == alignerObj.alignObjectA_.seqBase_.seq_.front() &&
+	 	   '-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back()  &&
+			 '-' == alignerObj.alignObjectB_.seqBase_.seq_.back()     ) {
+		//2
+		//b ends in a with front overhang
+		auto originalAlign1 = alignerObj.alignObjectA_;
+		auto originalAlign2 = alignerObj.alignObjectB_;
+
+		auto inputFrontEndPos = alignerObj.getSeqPosForAlnBPos(alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-'));
+		auto backRefPosRaw =    alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-')) + 1;
+		auto backRefPosAdjusted = backRefPosRaw;
+
+		if(backRefPosAdjusted > pars.padding_){
+			backRefPosAdjusted -= pars.padding_;
+		}else{
+			backRefPosAdjusted = 0;
+		}
+
+		auto backRefPosRawInBack = backRefPosRaw - backRefPosAdjusted;
+
+		auto refBackSeq = pars.refSeq_.getSubRead(backRefPosAdjusted);
+		auto frontInputSeq = seq.getSubRead(0, inputFrontEndPos);
+
+		alignerObj.alignCacheGlobal(refBackSeq, frontInputSeq);
+		alignerObj.rearrangeObjsGlobal(refBackSeq, frontInputSeq);
+
+		auto remainderInputSeq = seq.getSubRead(inputFrontEndPos);
+
+		uint32_t positionOfFrontInputSeqInBackRef = 0;
+		if('-' == alignerObj.alignObjectB_.seqBase_.seq_.front()){
+			positionOfFrontInputSeqInBackRef = alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-'));
+		}else{
+			positionOfFrontInputSeqInBackRef = 0;
+		}
+		uint32_t positionOfFrontSeqInOriginalRef = positionOfFrontInputSeqInBackRef + backRefPosAdjusted;
+
+		uint32_t remainderEndPosForOutput = std::numeric_limits<uint32_t>::max();
+		uint32_t frontSeqStartPosForOutput = std::numeric_limits<uint32_t>::max();
+
+		if(pars.preferHeader_){
+			//front seq has overhang at the beginning
+			if('-' != alignerObj.alignObjectB_.seqBase_.seq_.front()){
+				frontSeqStartPosForOutput = alignerObj.getSeqPosForAlnBPos(alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-'));
+			}else{
+				frontSeqStartPosForOutput = 0;
+			}
+			if(positionOfFrontSeqInOriginalRef < backRefPosRaw){
+				remainderEndPosForOutput = getRealPosForAlnPos(originalAlign2.seqBase_.seq_, getAlnPosForRealPos(originalAlign1.seqBase_.seq_, positionOfFrontSeqInOriginalRef)) - inputFrontEndPos;
+			}else{
+				remainderEndPosForOutput = len(remainderInputSeq);
+			}
+		} else {
+			if(backRefPosRawInBack > positionOfFrontInputSeqInBackRef){
+				frontSeqStartPosForOutput = alignerObj.getSeqPosForAlnBPos(alignerObj.getAlignPosForSeqAPos(backRefPosRawInBack));
+			}else{
+				frontSeqStartPosForOutput = 0;
+			}
+			remainderEndPosForOutput = len(remainderInputSeq);
+		}
+		uint32_t frontSeqEndPosForOutput = len(frontInputSeq);
+		if('-' == alignerObj.alignObjectA_.seqBase_.seq_.back()){
+			frontSeqEndPosForOutput = alignerObj.getSeqPosForAlnBPos(alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-'));
+		}
+
+		auto outSeq = remainderInputSeq.getSubRead(0, remainderEndPosForOutput);
+		if (positionOfFrontSeqInOriginalRef <= backRefPosRaw) {
+			outSeq.append(frontInputSeq.getSubRead(frontSeqStartPosForOutput, frontSeqEndPosForOutput - frontSeqStartPosForOutput));
+			if(pars.mark_){
+				MetaDataInName seqMeta;
+				if(MetaDataInName::nameHasMetaData(outSeq.name_)){
+					seqMeta= MetaDataInName(outSeq.name_);
+				}
+				seqMeta.addMeta("length", len(outSeq), true);
+				seqMeta.addMeta("inputLength", len(seq), true);
+				seqMeta.addMeta("refTransitionPoint", backRefPosRaw);
+				seqMeta.addMeta("inputPosition", njh::pasteAsStr(
+						inputFrontEndPos, "-", inputFrontEndPos + remainderEndPosForOutput,
+						",",
+						frontSeqStartPosForOutput, "-", frontSeqEndPosForOutput));
+				seqMeta.resetMetaInName(outSeq.name_);
+			}
+			outSeqs.emplace_back(outSeq);
+		} else {
+			auto trimmedFrontSeq = frontInputSeq.getSubRead(frontSeqStartPosForOutput, frontSeqEndPosForOutput - frontSeqStartPosForOutput);
+			outSeq.on_ = false;
+			trimmedFrontSeq.on_ = false;
+			if(pars.mark_){
+				{
+					MetaDataInName seqMeta;
+					if(MetaDataInName::nameHasMetaData(outSeq.name_)){
+						seqMeta= MetaDataInName(outSeq.name_);
+					}
+					seqMeta.addMeta("length", len(outSeq), true);
+					seqMeta.addMeta("inputLength", len(seq), true);
+					seqMeta.addMeta("refTransitionPoint", backRefPosRaw);
+					seqMeta.addMeta("inputPosition", njh::pasteAsStr(
+							inputFrontEndPos, "-", inputFrontEndPos + remainderEndPosForOutput));
+					seqMeta.resetMetaInName(outSeq.name_);
+				}
+				{
+					MetaDataInName seqMeta;
+					if(MetaDataInName::nameHasMetaData(trimmedFrontSeq.name_)){
+						seqMeta= MetaDataInName(trimmedFrontSeq.name_);
+					}
+					seqMeta.addMeta("length", len(trimmedFrontSeq), true);
+					seqMeta.addMeta("inputLength", len(seq), true);
+					seqMeta.addMeta("refTransitionPoint", backRefPosRaw);
+					seqMeta.addMeta("inputPosition", njh::pasteAsStr(frontSeqStartPosForOutput, "-", frontSeqEndPosForOutput));
+					seqMeta.resetMetaInName(trimmedFrontSeq.name_);
+				}
+			}
+			outSeqs.emplace_back(outSeq);
+			outSeqs.emplace_back(trimmedFrontSeq);
+		}
+	} else if (
+						 '-' == alignerObj.alignObjectA_.seqBase_.seq_.front() &&
+				 	   '-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+						 '-' == alignerObj.alignObjectA_.seqBase_.seq_.back()  &&
+						 '-' != alignerObj.alignObjectB_.seqBase_.seq_.back()     ) {
+		//3
+		//b has overlap on front and back
+		auto inputStart = alignerObj.getSeqPosForAlnBPos(alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-'));
+		auto inputEnd = alignerObj.getSeqPosForAlnBPos(alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-')) + 1;
+		auto outSeq  = seq.getSubRead(inputStart, inputEnd - inputStart);
+		if(pars.mark_){
+			MetaDataInName seqMeta;
+			if(MetaDataInName::nameHasMetaData(outSeq.name_)){
+				seqMeta = MetaDataInName(outSeq.name_);
+			}
+			seqMeta.addMeta("length", len(outSeq), true);
+			seqMeta.addMeta("inputLength", len(seq), true);
+			seqMeta.addMeta("inputPosition", njh::pasteAsStr(inputStart, "-", inputEnd - inputStart));
+			seqMeta.resetMetaInName(outSeq.name_);
+		}
+		outSeqs.emplace_back(outSeq);
+	}   else if (
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() &&
+	 	   '-' == alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back()  &&
+			 '-' == alignerObj.alignObjectB_.seqBase_.seq_.back()     ) {
+		//4
+		//b found completely within a
+		auto outSeq = seq;
+		outSeq.on_ = false;
+		outSeqs.emplace_back(outSeq);
+	}   else if (
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() &&
+	 	   '-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back()  &&
+			 '-' == alignerObj.alignObjectB_.seqBase_.seq_.back()     ) {
+		//5
+		//starts together but a has overhang at end
+		auto outSeq = seq;
+		outSeq.on_ = false;
+		outSeqs.emplace_back(outSeq);
+	}   else if (
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() &&
+	 	   '-' == alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back()  &&
+			 '-' != alignerObj.alignObjectB_.seqBase_.seq_.back()     ) {
+		//6
+		//a has overhang at front but both end together
+		auto outSeq = seq;
+		outSeq.on_ = false;
+		outSeqs.emplace_back(outSeq);
+	}   else if (
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() &&
+	 	   '-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back()  &&
+			 '-' != alignerObj.alignObjectB_.seqBase_.seq_.back()     ) {
+		//7
+		//perfect alignment nothing to do
+		auto outSeq = seq;
+		outSeq.on_ = false;
+		outSeqs.emplace_back(outSeq);
+	}   else if (
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() &&
+	 	   '-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			 '-' == alignerObj.alignObjectA_.seqBase_.seq_.back()  &&
+			 '-' != alignerObj.alignObjectB_.seqBase_.seq_.back()     ) {
+		//8
+		//start together b has overhang at end
+		auto inputStart = 0;
+		auto inputEnd = alignerObj.getSeqPosForAlnBPos(alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-')) + 1;
+		auto outSeq = seq.getSubRead(inputStart, inputEnd - inputStart);
+		if(pars.mark_){
+			MetaDataInName seqMeta;
+			if(MetaDataInName::nameHasMetaData(outSeq.name_)){
+				seqMeta = MetaDataInName(outSeq.name_);
+			}
+			seqMeta.addMeta("length", len(outSeq), true);
+			seqMeta.addMeta("inputLength", len(seq), true);
+			seqMeta.addMeta("inputPosition", njh::pasteAsStr(inputStart, "-", inputEnd - inputStart));
+			seqMeta.resetMetaInName(outSeq.name_);
+		}
+		outSeqs.emplace_back(outSeq);
+	}     else if (
+			 '-' == alignerObj.alignObjectA_.seqBase_.seq_.front() &&
+	 	   '-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back()  &&
+			 '-' != alignerObj.alignObjectB_.seqBase_.seq_.back()     ) {
+		//9
+		//end together b has overhang at front
+		auto inputStart = alignerObj.getSeqPosForAlnBPos(alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-'));
+		auto inputEnd = len(seq);
+		auto outSeq = seq.getSubRead(inputStart, inputEnd - inputStart);
+		if(pars.mark_){
+			MetaDataInName seqMeta;
+			if(MetaDataInName::nameHasMetaData(outSeq.name_)){
+				seqMeta = MetaDataInName(outSeq.name_);
+			}
+			seqMeta.addMeta("length", len(outSeq), true);
+			seqMeta.addMeta("inputLength", len(seq), true);
+			seqMeta.addMeta("inputPosition", njh::pasteAsStr(inputStart, "-", inputEnd - inputStart));
+			seqMeta.resetMetaInName(outSeq.name_);
+		}
+		outSeqs.emplace_back(outSeq);
+	}
+
+	return outSeqs;
+}
 
 
 readVecTrimmer::TrimEdgesByLowEntropyRes::TrimEdgesByLowEntropyRes(uint32_t start, uint32_t end): start_(start), end_(end){
