@@ -728,6 +728,8 @@ inline std::map<njh::files::bfs::path, bool> listAllFiles(
 	return files;
 }
 
+
+
 int ManipulateTableRunner::rBind(
 		const njh::progutils::CmdArgs & inputCommands) {
 	std::string contains = "";
@@ -776,41 +778,101 @@ int ManipulateTableRunner::rBind(
 	}
 
 
-	table mainTable;
-	uint32_t count = 0;
-	for (const auto &file : allFiles) {
-		if (verbose) {
-			std::cout << file.first.string() << std::endl;
+
+
+
+	if(!fill){
+		njh::files::bfs::path firstFileFnp;
+		for (const auto &file : allFiles) {
+			if (njh::files::bfs::is_directory(file.first)) {
+				continue;
+			}
+			if (0 == njh::files::bfs::file_size(file.first)) {
+				continue;
+			}
+			firstFileFnp = file.first;
+			break;
 		}
-		if (njh::files::bfs::is_directory(file.first)) {
+
+		TableReader firstTable(TableIOOpts(InOptions(firstFileFnp), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_));
+		OutputStream out(setUp.ioOptions_.out_);
+		VecStr row;
+		if(setUp.ioOptions_.hasHeader_){
+			out << njh::conToStr(firstTable.header_.columnNames_, setUp.ioOptions_.outDelim_) << '\n';
+		}
+		while(firstTable.getNextRow(row)){
+			out << njh::conToStr(row, setUp.ioOptions_.outDelim_) << '\n';
+		}
+		for (const auto &file : allFiles) {
 			if (verbose) {
-				std::cout << "Skipping directory: " << file.first.string() << std::endl;
+				std::cout << file.first.string() << std::endl;
 			}
-			continue;
+			if (njh::files::bfs::is_directory(file.first)) {
+				if (verbose) {
+					std::cout << "Skipping directory: " << file.first.string() << std::endl;
+				}
+				continue;
+			}
+			if (0 == njh::files::bfs::file_size(file.first)) {
+				if (verbose) {
+					std::cout << "Skipping empty file: " << file.first.string() << std::endl;
+				}
+				continue;
+			}
+			if(file.first != firstFileFnp){
+				TableReader currentTable(TableIOOpts(InOptions(file.first), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_));
+				VecStr row;
+				if(!std::equal(firstTable.header_.columnNames_.begin(), firstTable.header_.columnNames_.end(),
+						currentTable.header_.columnNames_.begin(), currentTable.header_.columnNames_.end())){
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << "header for " << file.first << " doesn't match other columns"<< "\n";
+					ss << "expected header: " << njh::conToStr(firstTable.header_.columnNames_) << "\n";
+					ss << "found    header: " << njh::conToStr(currentTable.header_.columnNames_) << '\n';
+					throw std::runtime_error{ss.str()};
+				}
+				while(currentTable.getNextRow(row)){
+					out << njh::conToStr(row, setUp.ioOptions_.outDelim_) << '\n';
+				}
+			}
 		}
-		if (0 == njh::files::bfs::file_size(file.first)) {
+	}else{
+		table mainTable;
+		uint32_t count = 0;
+		for (const auto &file : allFiles) {
 			if (verbose) {
-				std::cout << "Skipping empty file: " << file.first.string() << std::endl;
+				std::cout << file.first.string() << std::endl;
 			}
-			continue;
-		}
-		if (count == 0) {
-			table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
-			mainTable = inTab;
-		} else {
-			table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
-			try {
-				mainTable.rbind(inTab, fill);
-			}catch (std::exception & e) {
-				std::stringstream ss;
-				ss << __PRETTY_FUNCTION__ << ", failed to add table from " << file.first << "\n";
-				ss << e.what();
-				throw std::runtime_error{ss.str()};
+			if (njh::files::bfs::is_directory(file.first)) {
+				if (verbose) {
+					std::cout << "Skipping directory: " << file.first.string() << std::endl;
+				}
+				continue;
 			}
+			if (0 == njh::files::bfs::file_size(file.first)) {
+				if (verbose) {
+					std::cout << "Skipping empty file: " << file.first.string() << std::endl;
+				}
+				continue;
+			}
+			if (count == 0) {
+				table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
+				mainTable = inTab;
+			} else {
+				table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
+				try {
+					mainTable.rbind(inTab, fill);
+				}catch (std::exception & e) {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", failed to add table from " << file.first << "\n";
+					ss << e.what();
+					throw std::runtime_error{ss.str()};
+				}
+			}
+			++count;
 		}
-		++count;
+		mainTable.outPutContents(setUp.ioOptions_);
 	}
-	mainTable.outPutContents(setUp.ioOptions_);
+
 	return 0;
 }
 
