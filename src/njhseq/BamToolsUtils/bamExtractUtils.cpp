@@ -4050,9 +4050,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				}
 			} else {
 
-				if(region.getPercInRegion(bAln, refData) >= extractPars.percInRegion_ &&
-						getAlnLen(bAln) >= extractPars.minAlnMapSize_){
-					if(getSoftClipAmount(bAln)/static_cast<double>(bAln.QueryBases.size()) < extractPars.softClipPercentageCutOff_){
+				if(region.getPercInRegion(bAln, refData) >= extractPars.percInRegion_ && getAlnLen(bAln) >= extractPars.minAlnMapSize_){
+					if(getSoftClipAmount(bAln)/static_cast<double>(bAln.QueryBases.size()) > extractPars.softClipPercentageCutOff_){
 						writeSingleFilteredSoftClip(bAln);
 					}else{
 						//unpaired read
