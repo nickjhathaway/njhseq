@@ -359,7 +359,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 	}
 	njh::sys::requireExternalProgramThrow(fastqDumpCmd_);
 	std::stringstream cmd;
-	cmd << fastqDumpCmd_ << " --log-level 0 -X 1 -Z --split-spot " << pars.sraFnp_;
+	cmd  << "fastq-dump --log-level 0 -X 1 -Z --split-spot " << pars.sraFnp_;
 	auto cmdOutput = njh::sys::run({cmd.str()});
 	BioCmdsUtils::checkRunOutThrow(cmdOutput, __PRETTY_FUNCTION__);
 	//njh::sys::run trim end white space so have to add one;
@@ -372,6 +372,9 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			"--skip-technical")) {
 		extraSraArgs += " --skip-technical ";
 		//
+	}
+	if(njh::containsSubString(fastqDumpCmd_, "fasterq-dump")){
+		extraSraArgs += " --threads " << pars.numThreads_ << " ";
 	}
 	if(pars.gzip_){
 		extraSraArgs = njh::replaceString(extraSraArgs, "--gzip", "");

@@ -74,6 +74,8 @@ public:
 		bool exportBarCode_ = false;
 		bool gzip_ = false;
 		bool force_ = false;
+
+		uint32_t numThreads_ = 1;
 	};
 
 	struct FastqDumpResults{
