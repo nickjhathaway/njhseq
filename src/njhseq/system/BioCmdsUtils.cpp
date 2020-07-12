@@ -374,7 +374,7 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 		//
 	}
 	if(njh::containsSubString(fastqDumpCmd_, "fasterq-dump")){
-		extraSraArgs += " --threads " << pars.numThreads_ << " ";
+		extraSraArgs += njh::pasteAsStr(" --threads ", pars.numThreads_ ,  " ");
 	}
 	if(pars.gzip_){
 		extraSraArgs = njh::replaceString(extraSraArgs, "--gzip", "");
