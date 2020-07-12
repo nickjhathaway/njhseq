@@ -587,7 +587,7 @@ bool seqSetUp::processSeq(std::string& inputSeq, const std::string& flag,
 bool seqSetUp::processSeq(seqInfo& inputSeq, const std::string& flag,
 		const std::string& parName, bool required,const std::string & flagGrouping) {
 	bool passed = setOption(inputSeq.seq_, flag, parName, required,flagGrouping);
-	//std::cout <<"1 "<< inputSeq << std::endl;
+	//std::cout <<"1 "<< inputSeq.seq_ << std::endl;
 	std::string originalSeq = inputSeq.seq_;
 	std::string originalName = inputSeq.name_;
 	if (bfs::path(inputSeq.seq_).filename().string().length() <= 255 && bfs::exists(inputSeq.seq_)) {
@@ -596,21 +596,26 @@ bool seqSetUp::processSeq(seqInfo& inputSeq, const std::string& flag,
 		if("" != originalName){
 			inputSeq.name_ = originalName;
 		}
-		//std::cout << "2 "<< inputSeq << std::endl;
+		//std::cout << "2 "<< inputSeq.seq_ << std::endl;
 		if (firstLine[0] == '>') {
-			//std::cout <<"3 "<< inputSeq << std::endl;
+			//std::cout <<"3.1 "<< inputSeq.seq_ << std::endl;
 			SeqIOOptions opts = SeqIOOptions::genFastaIn(originalSeq);
 			SeqInput reader(opts);
 			reader.openIn();
 			seqInfo seq;
 			reader.readNextRead(seq);
 			inputSeq = seq;
+			//std::cout <<"3.1.2 "<< inputSeq.seq_ << std::endl;
+
 		} else if (firstLine[0] == '@') {
-			std::ifstream inFile(inputSeq.seq_);
-			std::string nextLine = "";
-			njh::files::crossPlatGetline(inFile, nextLine);	//name line again
-			njh::files::crossPlatGetline(inFile, nextLine);	//seq line
-			inputSeq = seqInfo(firstLine.substr(1), nextLine);
+			//std::cout <<"3.2.1 "<< inputSeq.seq_ << std::endl;
+			SeqIOOptions opts = SeqIOOptions::genFastqIn(originalSeq);
+			SeqInput reader(opts);
+			reader.openIn();
+			seqInfo seq;
+			reader.readNextRead(seq);
+			inputSeq = seq;
+			//std::cout <<"3.2.2 "<< inputSeq.seq_ << std::endl;
 		}
 	} else {
 		inputSeq = seqInfo("seq", inputSeq.seq_);
@@ -618,7 +623,7 @@ bool seqSetUp::processSeq(seqInfo& inputSeq, const std::string& flag,
 			inputSeq.name_ = originalName;
 		}
 	}
-	//std::cout <<"4 "<< inputSeq << std::endl;
+	//std::cout <<"4 "<< inputSeq.seq_ << std::endl;
 	return passed;
 }
 
