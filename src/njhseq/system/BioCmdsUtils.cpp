@@ -350,6 +350,372 @@ Json::Value BioCmdsUtils::FastqDumpResults::toJson() const{
 
 	return ret;
 }
+
+Json::Value BioCmdsUtils::FasterqDumpResults::toJson() const{
+	Json::Value ret;
+
+	ret["class"] = njh::typeStr(*this);
+	ret["firstMateFnp_"] = njh::json::toJson(firstMateFnp_);
+	ret["secondMateFnp_"] = njh::json::toJson(secondMateFnp_);
+	ret["isPairedEnd_"] = njh::json::toJson(isPairedEnd_);
+	ret["output_"] = njh::json::toJson(output_);
+
+
+	return ret;
+}
+
+
+
+
+BioCmdsUtils::FasterqDumpResults BioCmdsUtils::runFasterqDump(const FasterqDumpPars & inPars) const{
+	auto pars = inPars;
+
+	BioCmdsUtils::FasterqDumpResults ret;
+	if(!bfs::exists(pars.sraFnp_)){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error SRA file " << pars.sraFnp_ << " doesn't exist" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	if(!njh::endsWith(pars.sraFnp_.string(), ".sra")){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error SRA file " << pars.sraFnp_ << " doesn't end in .sra" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	if(!bfs::exists(pars.outputDir_)){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error output directory: " << pars.outputDir_ << " doesn't exist" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	if(!bfs::exists(pars.tempDir_)){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error temp directory: " << pars.tempDir_ << " doesn't exist" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	pars.outputDir_ = njh::files::normalize(inPars.outputDir_);
+	pars.sraFnp_ = njh::files::normalize(inPars.sraFnp_);
+	pars.tempDir_ = njh::files::normalize(inPars.tempDir_);
+	njh::sys::requireExternalProgramThrow(fasterqDumpCmd_);
+	std::stringstream cmd;
+	//apparently fastq-dump might go away in the future which in that case this below won't work anymore
+	cmd  << fastqDumpCmd_ << " --log-level 0 -X 1 -Z --split-spot " << pars.sraFnp_;
+	auto cmdOutput = njh::sys::run({cmd.str()});
+	BioCmdsUtils::checkRunOutThrow(cmdOutput, __PRETTY_FUNCTION__);
+	//njh::sys::run trim end white space so have to add 1;
+	uint32_t newLines = countOccurences(cmdOutput.stdOut_, "\n") + 1;
+	std::string extraSraArgs = pars.extraSraOptions_;
+	if (!njh::containsSubString(pars.extraSraOptions_, "--skip-technical")) {
+		extraSraArgs += " --skip-technical ";
+	}
+	if (!njh::containsSubString(pars.extraSraOptions_, "--force")) {
+		extraSraArgs += " --force ";
+	}
+
+
+	auto outputStub = njh::files::make_path(pars.outputDir_, pars.sraFnp_.filename());
+
+	bfs::path checkFile1        = njh::files::replaceExtension(outputStub, "_1.fastq.gz");
+	bfs::path checkFile2        = njh::files::replaceExtension(outputStub, "_2.fastq.gz");
+
+	bfs::path orgFirstMateFnp   = njh::files::replaceExtension(outputStub, "_1.fastq");
+	bfs::path orgSecondMateFnp  = "";
+
+	bool needToRun = true;
+	ret.firstMateFnp_ = checkFile1;
+	//std::cout << "newLines: " << newLines << std::endl;
+	if (4 == newLines) {
+		checkFile1        = njh::files::replaceExtension(outputStub, ".fastq.gz");
+		orgFirstMateFnp   = njh::files::replaceExtension(outputStub, ".fastq");
+
+		ret.isPairedEnd_ = false;
+		if(bfs::exists(checkFile1) &&
+				njh::files::firstFileIsOlder(pars.sraFnp_, checkFile1)){
+			needToRun = false;
+		}
+	} else if (8 == newLines || 12 == newLines) {
+		ret.secondMateFnp_ = checkFile2;
+		ret.isPairedEnd_ = true;
+		if(bfs::exists(checkFile1) &&
+				bfs::exists(checkFile2) &&
+				njh::files::firstFileIsOlder(pars.sraFnp_, checkFile1)&&
+				njh::files::firstFileIsOlder(pars.sraFnp_, checkFile2)){
+			needToRun = false;
+		}
+		orgSecondMateFnp = njh::files::replaceExtension(outputStub, "_2.fastq");
+	} else {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error with " << cmd.str()
+				<< " was expecting 4, 8, or 12 lines but got " << newLines << " instead "
+				<< "\n";
+		throw std::runtime_error { ss.str() };
+	}
+	if(pars.force_){
+		needToRun = true;
+	}
+	if(needToRun){
+
+		std::stringstream ss;
+		//fasterq-dump  --outfile ERR012220  --temp ./
+		ss << fasterqDumpCmd_ << " --temp " << pars.tempDir_ << " ";
+		if(ret.isPairedEnd_){
+			ss << " --outfile " << njh::files::replaceExtension(outputStub, "") << " ";
+		}else{
+			ss << " --outfile " << njh::files::replaceExtension(outputStub, ".fastq") << " ";
+		}
+		ss << " --threads " << pars.numThreads_ << " ";
+		ss << extraSraArgs << " " << bfs::absolute(pars.sraFnp_);
+		std::string fasterDumpCmd = ss.str();
+		//std::cout << fasterDumpCmd << std::endl;
+		auto runOutput = njh::sys::run({fasterDumpCmd});
+
+		checkRunOutThrow(runOutput, __PRETTY_FUNCTION__);
+		std::function<void()> readInSeqs;
+		struct SeqCache{
+			std::vector<seqInfo> seqs_;
+
+			std::atomic<uint32_t> count_{0};
+
+			std::mutex mut_;
+			void addSeq(const seqInfo & seq){
+				std::lock_guard<std::mutex> lock(mut_);
+				seqs_.emplace_back(seq);
+				count_++;
+			}
+			void addSeqs(const std::vector<seqInfo> & seqs){
+				std::lock_guard<std::mutex> lock(mut_);
+				std::move(seqs.begin(), seqs.end(), std::back_inserter(seqs_));
+				count_+= seqs.size();
+			}
+			std::atomic<bool> done_{false};
+
+			uint32_t writeCacheSize_{50};
+			uint32_t subCacheReadSize_{100};
+			std::chrono::microseconds writeCheckWaitTime{std::chrono::milliseconds(1)};
+
+		};
+
+		if(ret.isPairedEnd_){
+			auto r1_inputSeqOpts = SeqIOOptions::genFastqIn(orgFirstMateFnp);
+			r1_inputSeqOpts.includeWhiteSpaceInName_ = false;
+			auto r1_outputSeqOpts = SeqIOOptions::genFastqOutGz(checkFile1);
+			r1_outputSeqOpts.out_.overWriteFile_ = true;
+
+			auto r2_inputSeqOpts = SeqIOOptions::genFastqIn(orgSecondMateFnp);
+			r2_inputSeqOpts.includeWhiteSpaceInName_ = false;
+			auto r2_outputSeqOpts = SeqIOOptions::genFastqOutGz(checkFile2);
+			r2_outputSeqOpts.out_.overWriteFile_ = true;
+
+			if (pars.numThreads_ > 1) {
+				SeqCache r1_cache;
+				r1_cache.writeCacheSize_ = pars.writeCacheSize;
+				r1_cache.writeCheckWaitTime = pars.writeWaitTime;
+				r1_cache.subCacheReadSize_ = pars.readSubCacheSize_;
+
+				SeqCache r2_cache;
+				r2_cache.writeCacheSize_ = pars.writeCacheSize;
+				r2_cache.writeCheckWaitTime = pars.writeWaitTime;
+				r2_cache.subCacheReadSize_ = pars.readSubCacheSize_;
+
+				auto r1_readInSeqsTest= [&r1_inputSeqOpts,&r1_cache](){
+					SeqInput reader(r1_inputSeqOpts);
+					reader.openIn();
+					seqInfo seq;
+					std::vector<seqInfo> subCache;
+					while(reader.readNextRead(seq)){
+						subCache.emplace_back(seq);
+						if(subCache.size() > r1_cache.subCacheReadSize_){
+							r1_cache.addSeqs(subCache);
+							subCache.clear();
+						}
+					}
+					if(!subCache.empty()){
+						r1_cache.addSeqs(subCache);
+						subCache.clear();
+					}
+					r1_cache.done_ = true;
+				};
+
+				auto r1_writeSeqsTest= [&r1_outputSeqOpts,&r1_cache](){
+					SeqOutput writer(r1_outputSeqOpts);
+					writer.openOut();
+					//keep attempting to write if the cache is either not done being filled or it has left over sequence
+					while(!r1_cache.done_.load() || r1_cache.count_.load() > 0){
+						std::this_thread::sleep_for(r1_cache.writeCheckWaitTime);
+						//write up cache reaches write limit or it's done being filled
+						if(r1_cache.count_.load() > r1_cache.writeCacheSize_ || r1_cache.done_.load()){
+							std::vector<seqInfo> writeSeqs;
+							{
+								//lock the seqs_ vector and move it to the writeSews
+								std::lock_guard<std::mutex> lock(r1_cache.mut_);
+								writeSeqs = std::move(r1_cache.seqs_);
+								r1_cache.seqs_.clear();
+								r1_cache.count_ = 0;
+							}
+							writer.write(writeSeqs);
+						}
+					}
+				};
+
+				auto r2_readInSeqsTest= [&r2_inputSeqOpts,&r2_cache](){
+					SeqInput reader(r2_inputSeqOpts);
+					reader.openIn();
+					seqInfo seq;
+					std::vector<seqInfo> subCache;
+					while(reader.readNextRead(seq)){
+						subCache.emplace_back(seq);
+						if(subCache.size() > r2_cache.subCacheReadSize_){
+							r2_cache.addSeqs(subCache);
+							subCache.clear();
+						}
+					}
+					if(!subCache.empty()){
+						r2_cache.addSeqs(subCache);
+						subCache.clear();
+					}
+					r2_cache.done_ = true;
+				};
+
+				auto r2_writeSeqsTest= [&r2_outputSeqOpts,&r2_cache](){
+					SeqOutput writer(r2_outputSeqOpts);
+					writer.openOut();
+					//keep attempting to write if the cache is either not done being filled or it has left over sequence
+					while(!r2_cache.done_.load() || r2_cache.count_.load() > 0){
+						std::this_thread::sleep_for(r2_cache.writeCheckWaitTime);
+						//write up cache reaches write limit or it's done being filled
+						if(r2_cache.count_.load() > r2_cache.writeCacheSize_ || r2_cache.done_.load()){
+							std::vector<seqInfo> writeSeqs;
+							{
+								//lock the seqs_ vector and move it to the writeSews
+								std::lock_guard<std::mutex> lock(r2_cache.mut_);
+								writeSeqs = std::move(r2_cache.seqs_);
+								r2_cache.seqs_.clear();
+								r2_cache.count_ = 0;
+							}
+							writer.write(writeSeqs);
+						}
+					}
+				};
+				if (pars.numThreads_ > 3) {
+					std::thread r1_readingThread(r1_readInSeqsTest);
+					std::thread r1_writingThread(r1_writeSeqsTest);
+					std::thread r2_readingThread(r2_readInSeqsTest);
+					std::thread r2_writingThread(r2_writeSeqsTest);
+					r1_readingThread.join();
+					r1_writingThread.join();
+					r2_readingThread.join();
+					r2_writingThread.join();
+				} else {
+					std::thread r1_readingThread(r1_readInSeqsTest);
+					std::thread r1_writingThread(r1_writeSeqsTest);
+					r1_readingThread.join();
+					r1_writingThread.join();
+					std::thread r2_readingThread(r2_readInSeqsTest);
+					std::thread r2_writingThread(r2_writeSeqsTest);
+					r2_readingThread.join();
+					r2_writingThread.join();
+				}
+			} else {
+				{
+					SeqInput reader(r1_inputSeqOpts);
+					SeqOutput writer(r1_outputSeqOpts);
+					reader.openIn();
+					writer.openOut();
+					seqInfo seq;
+					while(reader.readNextRead(seq)){
+						writer.write(seq);
+					}
+				}
+				{
+					SeqInput reader(r2_inputSeqOpts);
+					SeqOutput writer(r2_outputSeqOpts);
+					reader.openIn();
+					writer.openOut();
+					seqInfo seq;
+					while(reader.readNextRead(seq)){
+						writer.write(seq);
+					}
+				}
+			}
+			bfs::remove(orgFirstMateFnp);
+			bfs::remove(orgSecondMateFnp);
+
+
+
+		} else {
+			auto inputSeqOpts = SeqIOOptions::genFastqIn(orgFirstMateFnp);
+			inputSeqOpts.includeWhiteSpaceInName_ = false;
+			auto outputSeqOpts = SeqIOOptions::genFastqOutGz(checkFile1);
+			outputSeqOpts.out_.overWriteFile_ = true;
+			if(pars.numThreads_ > 1){
+
+
+				SeqCache cache;
+				cache.writeCacheSize_ = pars.writeCacheSize;
+				cache.writeCheckWaitTime = pars.writeWaitTime;
+				cache.subCacheReadSize_ = pars.readSubCacheSize_;
+
+				auto readInSeqsTest= [&inputSeqOpts,&cache](){
+					SeqInput reader(inputSeqOpts);
+					reader.openIn();
+					seqInfo seq;
+					std::vector<seqInfo> subCache;
+					while(reader.readNextRead(seq)){
+						subCache.emplace_back(seq);
+						if(subCache.size() > cache.subCacheReadSize_){
+							cache.addSeqs(subCache);
+							subCache.clear();
+						}
+					}
+					if(!subCache.empty()){
+						cache.addSeqs(subCache);
+						subCache.clear();
+					}
+					cache.done_ = true;
+				};
+
+				auto writeSeqsTest= [&outputSeqOpts,&cache](){
+					SeqOutput writer(outputSeqOpts);
+					writer.openOut();
+					//keep attempting to write if the cache is either not done being filled or it has left over sequence
+					while(!cache.done_.load() || cache.count_.load() > 0){
+						std::this_thread::sleep_for(cache.writeCheckWaitTime);
+						//write up cache reaches write limit or it's done being filled
+						//std::cout << cache.count_.load() << std::endl;
+						if(cache.count_.load() > cache.writeCacheSize_ || cache.done_.load()){
+							std::vector<seqInfo> writeSeqs;
+							{
+								//lock the seqs_ vector and move it to the writeSews
+								std::lock_guard<std::mutex> lock(cache.mut_);
+								writeSeqs = std::move(cache.seqs_);
+
+								cache.seqs_.clear();
+								cache.count_ = 0;
+							}
+							writer.write(writeSeqs);
+						}
+					}
+				};
+				std::thread readingThread(readInSeqsTest);
+				std::thread writingThread(writeSeqsTest);
+				readingThread.join();
+				writingThread.join();
+
+			} else {
+				SeqInput reader(inputSeqOpts);
+				SeqOutput writer(outputSeqOpts);
+				reader.openIn();
+				writer.openOut();
+				seqInfo seq;
+				while(reader.readNextRead(seq)){
+					writer.write(seq);
+				}
+			}
+			bfs::remove(orgFirstMateFnp);
+		}
+	}
+	return ret;
+}
+
+
 BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & pars) const{
 	BioCmdsUtils::FastqDumpResults ret;
 	if(!bfs::exists(pars.sraFnp_)){
@@ -372,9 +738,6 @@ BioCmdsUtils::FastqDumpResults BioCmdsUtils::runFastqDump(const FastqDumpPars & 
 			"--skip-technical")) {
 		extraSraArgs += " --skip-technical ";
 		//
-	}
-	if(njh::containsSubString(fastqDumpCmd_, "fasterq-dump")){
-		extraSraArgs += njh::pasteAsStr(" --threads ", pars.numThreads_ ,  " ");
 	}
 	if(pars.gzip_){
 		extraSraArgs = njh::replaceString(extraSraArgs, "--gzip", "");

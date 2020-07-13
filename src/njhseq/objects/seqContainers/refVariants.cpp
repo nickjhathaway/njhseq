@@ -169,6 +169,80 @@ std::map<uint32_t, std::vector<char>> refVariants::getVariantSnpLociMap(VecStr n
 	return ret;
 }
 
+
+std::map<uint32_t, std::vector<gap>> refVariants::getVariantIndelLociMap(VecStr names, uint32_t gapSizeCutOff, bool excludeHomopolymers) const{
+	std::map<uint32_t, std::vector<gap>> ret;
+	ret = getVariantInsertionLociMap(names, gapSizeCutOff, excludeHomopolymers);
+	auto dels = getVariantDeletionLociMap(names, gapSizeCutOff, excludeHomopolymers);
+	for(const auto & loc : dels){
+		for(const auto & del : loc.second){
+			ret[loc.first].emplace_back(del);
+		}
+	}
+	return ret;
+}
+
+std::map<uint32_t, std::vector<gap>> refVariants::getVariantDeletionLociMap(VecStr names, uint32_t gapSizeCutOff, bool excludeHomopolymers) const{
+	std::map<uint32_t, std::vector<gap>> ret;
+	for(const auto & v : variants_){
+		if(njh::in(v.seqBase_.name_, names)){
+			for(const auto & d : v.deletions_){
+				if(d.second.gapedSequence_.size() <gapSizeCutOff){
+					continue;
+				}
+				if(excludeHomopolymers && std::all_of(d.second.gapedSequence_.begin(), d.second.gapedSequence_.end(), [&d](char c){return c == *d.second.gapedSequence_.begin();})){
+					continue;
+				}
+				bool found = false;
+				if(njh::in(d.second.refPos_, ret)){
+					for(const auto & otherGap : ret[d.second.refPos_]){
+						if(otherGap.gapedSequence_ == d.second.gapedSequence_){
+							found = true;
+							break;
+						}
+					}
+				}
+				if(!found){
+					ret[d.second.refPos_].emplace_back(d.second);
+				}
+			}
+		}
+	}
+	return ret;
+}
+
+std::map<uint32_t, std::vector<gap>> refVariants::getVariantInsertionLociMap(VecStr names, uint32_t gapSizeCutOff, bool excludeHomopolymers) const{
+	std::map<uint32_t, std::vector<gap>> ret;
+	for(const auto & v : variants_){
+		if(njh::in(v.seqBase_.name_, names)){
+			for(const auto & i : v.insertions_){
+				if(i.second.gapedSequence_.size() <gapSizeCutOff){
+					continue;
+				}
+				if(excludeHomopolymers && std::all_of(i.second.gapedSequence_.begin(), i.second.gapedSequence_.end(), [&i](char c){return c == *i.second.gapedSequence_.begin();})){
+					continue;
+				}
+				bool found = false;
+				if(njh::in(i.second.refPos_, ret)){
+					for(const auto & otherGap : ret[i.second.refPos_]){
+						if(otherGap.gapedSequence_ == i.second.gapedSequence_){
+							found = true;
+							break;
+						}
+					}
+				}
+				if(!found){
+					ret[i.second.refPos_].emplace_back(i.second);
+				}
+			}
+		}
+	}
+	return ret;
+}
+
+
+
+
 void refVariants::outPut(std::ofstream & out)const {
 	for(const auto & v : variants_){
 		v.outputInfo(out, seqBase_);

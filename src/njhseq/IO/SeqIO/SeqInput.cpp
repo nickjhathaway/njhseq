@@ -600,7 +600,7 @@ bool SeqInput::readNextFastaQualStream(std::istream& fastaReader,
 }
 
 
-bool SeqInput::readNextFastqStream(const VecStr & data, const uint32_t lCount, uint32_t offSet, seqInfo& read,
+bool SeqInput::readNextFastqStream(const VecStr & data, const uint32_t lCount, uint32_t offSet, seqInfo& seq,
 		bool processed){
 	if (lCount == 4) {
 		if (data[0].size() < 1 || data[0][0] != '@' || data[2].size() < 1
@@ -620,8 +620,11 @@ bool SeqInput::readNextFastqStream(const VecStr & data, const uint32_t lCount, u
 			}
 			throw std::runtime_error { ss.str() };
 		}
-		read = seqInfo(data[0].substr(1), data[1], data[3], offSet);
-		read.processRead(processed);
+		seq = seqInfo(data[0].substr(1), data[1], data[3], offSet);
+		if (!ioOptions_.includeWhiteSpaceInName_ && seq.name_.find(" ") != std::string::npos) {
+			seq.name_ = seq.name_.substr(0, seq.name_.find_first_of(" "));
+		}
+		seq.processRead(processed);
 		return true;
 	} else if (lCount > 0 && lCount < 4) {
 		bool allBlanks = true;
@@ -649,7 +652,7 @@ bool SeqInput::readNextFastqStream(const VecStr & data, const uint32_t lCount, u
 }
 
 bool SeqInput::readNextFastqStream(std::istream& is, uint32_t offSet,
-		seqInfo& read, bool processed) {
+		seqInfo& seq, bool processed) {
 	// assumes that there is no wrapping of lines, lines go name, seq, comments,
 	// qual
 	VecStr data(4, "");
@@ -662,7 +665,7 @@ bool SeqInput::readNextFastqStream(std::istream& is, uint32_t offSet,
 		}
 		++count;
 	}
-	return readNextFastqStream(data, count, offSet, read, processed);
+	return readNextFastqStream(data, count, offSet, seq, processed);
 }
 
 
