@@ -488,6 +488,7 @@ BioCmdsUtils::FasterqDumpResults BioCmdsUtils::runFasterqDump(const FasterqDumpP
 			}
 			std::atomic<bool> done_{false};
 
+			uint32_t maxCacheSize_{1000000}; //! maxCacheSize_ needs to be greater than writeCacheSize_ will there will be a forever loop
 			uint32_t writeCacheSize_{50};
 			uint32_t subCacheReadSize_{100};
 			std::chrono::microseconds writeCheckWaitTime{std::chrono::milliseconds(1)};
@@ -522,6 +523,9 @@ BioCmdsUtils::FasterqDumpResults BioCmdsUtils::runFasterqDump(const FasterqDumpP
 					seqInfo seq;
 					std::vector<seqInfo> subCache;
 					while(reader.readNextRead(seq)){
+						while(r1_cache.count_.load() > r1_cache.maxCacheSize_){
+							std::this_thread::sleep_for(r1_cache.writeCheckWaitTime);
+						}
 						subCache.emplace_back(seq);
 						if(subCache.size() > r1_cache.subCacheReadSize_){
 							r1_cache.addSeqs(subCache);
@@ -547,6 +551,7 @@ BioCmdsUtils::FasterqDumpResults BioCmdsUtils::runFasterqDump(const FasterqDumpP
 							{
 								//lock the seqs_ vector and move it to the writeSews
 								std::lock_guard<std::mutex> lock(r1_cache.mut_);
+								//std::cout << "r1_cache.seqs_: " << r1_cache.seqs_.size() << std::endl;
 								writeSeqs = std::move(r1_cache.seqs_);
 								r1_cache.seqs_.clear();
 								r1_cache.count_ = 0;
@@ -562,6 +567,9 @@ BioCmdsUtils::FasterqDumpResults BioCmdsUtils::runFasterqDump(const FasterqDumpP
 					seqInfo seq;
 					std::vector<seqInfo> subCache;
 					while(reader.readNextRead(seq)){
+						while(r2_cache.count_.load() > r2_cache.maxCacheSize_){
+							std::this_thread::sleep_for(r2_cache.writeCheckWaitTime);
+						}
 						subCache.emplace_back(seq);
 						if(subCache.size() > r2_cache.subCacheReadSize_){
 							r2_cache.addSeqs(subCache);
@@ -660,6 +668,9 @@ BioCmdsUtils::FasterqDumpResults BioCmdsUtils::runFasterqDump(const FasterqDumpP
 					seqInfo seq;
 					std::vector<seqInfo> subCache;
 					while(reader.readNextRead(seq)){
+						while(cache.count_.load() > cache.maxCacheSize_){
+							std::this_thread::sleep_for(cache.writeCheckWaitTime);
+						}
 						subCache.emplace_back(seq);
 						if(subCache.size() > cache.subCacheReadSize_){
 							cache.addSeqs(subCache);
