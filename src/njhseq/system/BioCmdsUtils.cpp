@@ -456,7 +456,7 @@ BioCmdsUtils::FasterqDumpResults BioCmdsUtils::runFasterqDump(const FasterqDumpP
 
 		std::stringstream ss;
 		//fasterq-dump  --outfile ERR012220  --temp ./
-		ss << fasterqDumpCmd_ << " --temp " << pars.tempDir_ << " ";
+		ss  << "cd " << pars.sraFnp_.parent_path() << " && " << fasterqDumpCmd_ << " --temp " << pars.tempDir_ << " ";
 		if(ret.isPairedEnd_){
 			ss << " --outfile " << njh::files::replaceExtension(outputStub, "") << " ";
 		}else{
