@@ -394,10 +394,11 @@ BioCmdsUtils::FasterqDumpResults BioCmdsUtils::runFasterqDump(const FasterqDumpP
 	pars.outputDir_ = njh::files::normalize(inPars.outputDir_);
 	pars.sraFnp_ = njh::files::normalize(inPars.sraFnp_);
 	pars.tempDir_ = njh::files::normalize(inPars.tempDir_);
+
 	njh::sys::requireExternalProgramThrow(fasterqDumpCmd_);
 	std::stringstream cmd;
 	//apparently fastq-dump might go away in the future which in that case this below won't work anymore
-	cmd  << fastqDumpCmd_ << " --log-level 0 -X 1 -Z --split-spot " << pars.sraFnp_;
+	cmd  << "cd " << pars.sraFnp_.parent_path() << " && " << fastqDumpCmd_ << " --log-level 0 -X 1 -Z --split-spot " << pars.sraFnp_;
 	auto cmdOutput = njh::sys::run({cmd.str()});
 	BioCmdsUtils::checkRunOutThrow(cmdOutput, __PRETTY_FUNCTION__);
 	//njh::sys::run trim end white space so have to add 1;

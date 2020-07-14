@@ -116,23 +116,58 @@ bool Bed3RecordCore::sameRegion(const Bed3RecordCore & otherRegion)const{
 			otherRegion.chromEnd_ == chromEnd_;
 }
 uint32_t Bed3RecordCore::getOverlapLen(const Bed3RecordCore & otherRegion) const {
+	return getOverlapLen(chrom_, chromStart_, chromEnd_, otherRegion.chrom_, otherRegion.chromStart_, otherRegion.chromEnd_);
+}
 
-	if(otherRegion.chrom_ != chrom_){
+
+uint32_t Bed3RecordCore::getDistanceBetween(const Bed3RecordCore & otherRegion) const{
+	return getDistanceBetween(chrom_, chromStart_, chromEnd_, otherRegion.chrom_, otherRegion.chromStart_, otherRegion.chromEnd_);
+}
+
+
+
+uint32_t Bed3RecordCore::getOverlapLen(const std::string & chrom1, uint32_t chromStart1, uint32_t chromEnd1,
+		const std::string & chrom2, uint32_t chromStart2, uint32_t chromEnd2){
+	if(chrom2 != chrom1){
 		return 0;
 	}
 
 
-	if( (otherRegion.chromStart_ >= chromStart_ && otherRegion.chromStart_ < chromEnd_) ||
-			(otherRegion.chromEnd_ > chromStart_ && otherRegion.chromEnd_ <= chromEnd_) ||
-			(chromStart_ >= otherRegion.chromStart_ &&  chromStart_ <  otherRegion.chromEnd_) ||
-			(chromEnd_ > otherRegion.chromStart_ && chromEnd_ <= otherRegion.chromEnd_)  ) {
+	if( (chromStart2 >= chromStart1 && chromStart2 < chromEnd1) ||
+			(chromEnd2 > chromStart1 && chromEnd2 <= chromEnd1) ||
+			(chromStart1 >= chromStart2 &&  chromStart1 <  chromEnd2) ||
+			(chromEnd1 > chromStart2 && chromEnd1 <= chromEnd2)  ) {
 
-		auto overlapStart = std::max(otherRegion.chromStart_, chromStart_);
-		auto overlapEnd = std::min(otherRegion.chromEnd_, chromEnd_);
+
+		auto overlapStart = std::max(chromStart2, chromStart1);
+		auto overlapEnd = std::min(chromEnd2, chromEnd1);
+
 		return overlapEnd - overlapStart;
 	}
 	return 0;
 }
+
+uint32_t Bed3RecordCore::getDistanceBetween(
+		const std::string & chrom1, uint32_t chromStart1, uint32_t chromEnd1,
+		const std::string & chrom2, uint32_t chromStart2, uint32_t chromEnd2){
+	if(chrom1 != chrom2){
+		return std::numeric_limits<uint32_t>::max();
+	}
+
+	if(getOverlapLen(chrom1, chromStart1, chromEnd1,
+			chrom2, chromStart2, chromEnd2) > 0 ){
+		return 0;
+	}
+
+	if(chromStart1 < chromStart2){
+		return chromStart2 + 1 - chromEnd1;
+	}else{
+		return chromStart1 + 1 - chromEnd2;
+	}
+
+}
+
+
 
 Bed3RecordCore::~Bed3RecordCore(){
 

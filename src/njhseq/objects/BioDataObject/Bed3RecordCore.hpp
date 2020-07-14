@@ -49,6 +49,7 @@ public:
 
 	virtual ~Bed3RecordCore();
 
+	uint32_t getDistanceBetween(const Bed3RecordCore & otherRegion) const;
 
 	uint32_t getOverlapLen(const Bed3RecordCore & otherRegion) const;
 	bool sameRegion(const Bed3RecordCore & otherRegion)const;
@@ -60,6 +61,14 @@ public:
 	std::string genUIDFromCoords() const;
 
 
+
+	static uint32_t getOverlapLen(
+			const std::string & chrom1, uint32_t chromStart1, uint32_t chromEnd1,
+			const std::string & chrom2, uint32_t chromStart2, uint32_t chromEnd2);
+
+	static uint32_t getDistanceBetween(
+			const std::string & chrom1, uint32_t chromStart1, uint32_t chromEnd1,
+			const std::string & chrom2, uint32_t chromStart2, uint32_t chromEnd2);
 };
 
 

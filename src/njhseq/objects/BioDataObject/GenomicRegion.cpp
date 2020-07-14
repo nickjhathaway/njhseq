@@ -218,7 +218,7 @@ size_t GenomicRegion::distBetweenRegions(const Bed3RecordCore & otherRegion){
 
 size_t GenomicRegion::distBetweenRegions(const std::string & otherChrom, const size_t otherStart, const size_t otherend){
 	if(chrom_ != otherChrom){
-		return std::numeric_limits<uint32_t>::max();
+		return std::numeric_limits<size_t>::max();
 	}
 	if(overlaps(otherChrom, otherStart, otherend)){
 		return 0;
