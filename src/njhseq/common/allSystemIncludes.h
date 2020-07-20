@@ -89,9 +89,8 @@
 
 
 //non standard libraries
-#include <cppitertools/range.hpp>
-#include <cppitertools/reversed.hpp>
-#include <cppitertools/enumerate.hpp>
+#include <cppitertools/itertools.hpp>
+
 
 //own files
 #include "ediannessmacros.h"

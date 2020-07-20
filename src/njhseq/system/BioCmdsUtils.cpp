@@ -23,7 +23,7 @@
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "BioCmdsUtils.hpp"
-#include <unordered_map>
+#include <atomic>
 
 #include "njhseq/IO/SeqIO.h"
 #include "njhseq/IO/OutputStream.hpp"
@@ -485,6 +485,17 @@ BioCmdsUtils::FasterqDumpResults BioCmdsUtils::runFasterqDump(const FasterqDumpP
 				std::lock_guard<std::mutex> lock(mut_);
 				std::move(seqs.begin(), seqs.end(), std::back_inserter(seqs_));
 				count_+= seqs.size();
+			}
+
+			std::vector<seqInfo> getSeqs(){
+				std::vector<seqInfo> writeSeqs;
+				//lock the seqs_ vector and move it to the writeSews
+				std::lock_guard<std::mutex> lock(mut_);
+				//std::cout << "r1_cache.seqs_: " << r1_cache.seqs_.size() << std::endl;
+				writeSeqs = std::move(seqs_);
+				seqs_.clear();
+				count_ = 0;
+				return writeSeqs;
 			}
 			std::atomic<bool> done_{false};
 
