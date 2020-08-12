@@ -2972,12 +2972,16 @@ BamExtractor::ExtractedFilesOpts BamExtractor::writeUnMappedSeqsAndSmallAlnsWith
 				}
 				if(!matePossiblyInSkipRegion){
 					auto searchSeq = bamAlnToSeqInfo(*search);
+
 					qualChecker.checkRead(searchSeq);
 					bool pass = searchSeq.on_ && len(searchSeq) > alnSizeFilt.minQuerySize_;
+
 					if(alnSizeFilt.filterOffLowEntropyShortAlnsRecruits_){
 						kmerInfo kInfo(searchSeq.seq_, alnSizeFilt.entropyKlen_, false);
+
+
 						if(kInfo.computeKmerEntropy() < alnSizeFilt.filterOffLowEntropyShortAlnsRecruitsCutOff_){
-							pass=false;
+							pass = false;
 						}
 					}
 					if (pass) {
@@ -4236,8 +4240,14 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 
 			auto searchRegion = alnCache.getRegion(name);
 			bool searchIn = searchRegion->getPercInRegion(*search, refData)>= extractPars.percInRegion_;
+//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//			std::cout << search->Name << std::endl;
+//			std::cout << "\tgetAlnLen(*search): " << getAlnLen(*search) << std::endl;
+//			std::cout << "\tnjh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_): " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
+//			std::cout << "\tsearchIn: " << njh::colorBool(searchIn) << std::endl;
 			if (searchIn &&
 					getAlnLen(*search) >= extractPars.minAlnMapSize_) {
+//				std::cout << "\tgetSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
 				if(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_){
 					if (search->IsPaired()) {
 						++ret.orphans_;
@@ -4246,12 +4256,22 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					}
 					bool pass = true;
 					auto searchSeq = seqInfo(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
+//					std::cout << searchSeq.name_ << std::endl;
+
 					if (extractPars.filterOffLowEntropyOrphansRecruits_) {
 						kmerInfo kInfo(searchSeq.seq_, extractPars.entropyKlen_, false);
+//						std::cout << "\t" << kInfo.computeKmerEntropy() << std::endl;
+//						std::cout << "\t" << extractPars.filterOffLowEntropyOrphansRecruitsCutOff_ << std::endl;
+//						std::cout << "\t" << njh::colorBool(kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) << std::endl;
 						if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
 							pass = false;
 						}
 					}
+
+
+
+
+
 					if(pass){
 						if (extractPars.originalOrientation_) {
 							writer.openWrite(bamAlnToSeqInfo(*search));

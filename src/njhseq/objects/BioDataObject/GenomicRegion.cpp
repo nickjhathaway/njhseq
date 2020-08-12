@@ -414,16 +414,31 @@ double GenomicRegion::getPercInRegion(const BamTools::BamAlignment & bAln,
 	//1) bAln.Position falls within the region
 	//2) baln.GetEndPosition() falls within the region
 	//3) if the bAln covers the whole region and beyond
-
+//	std::cout << njh::bashCT::red;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if((     bAln.Position >= static_cast<int64_t>(start_)        && bAln.Position < static_cast<int64_t>(end_)) ||
 			(bAln.GetEndPosition() > static_cast<int64_t>(start_) && bAln.GetEndPosition() <= static_cast<int64_t>(end_)) ||
 			(bAln.Position <= static_cast<int64_t>(start_)        && bAln.GetEndPosition() >= static_cast<int64_t>(end_))){
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << "bAln.Position: " << bAln.Position << std::endl;
+//		std::cout << "bAln.GetEndPosition(): " << bAln.GetEndPosition() << std::endl;
+//		std::cout << "start_: " << start_ << std::endl;
+//		std::cout << "end_: " << end_ << std::endl;
 
 		auto start = std::max<size_t>(bAln.Position, start_);
 		auto end = std::min<size_t>(bAln.GetEndPosition(), end_);
+//		std::cout << "start: " << start << std::endl;
+//		std::cout << "end: " << end << std::endl;
+
 		double basesInRegion = end - start;
+//		std::cout << "basesInRegion: " << basesInRegion << std::endl;
+//		std::cout << "std::min<uint64_t>(bAln.AlignedBases.size(), getLen()): " << std::min<uint64_t>(bAln.AlignedBases.size(), getLen()) << std::endl;
+//		std::cout << njh::bashCT::reset;
+
 		return basesInRegion / std::min<uint64_t>(bAln.AlignedBases.size(), getLen());
 	}else{
+//		std::cout << njh::bashCT::reset;
+
 		return 0;
 	}
 
