@@ -454,7 +454,6 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 	}else{
 		njh::sys::requireExternalProgramThrow("lastz");
 	}
-
 	if("" != pars_.knownAminoAcidMutationsFnp_){
 		table knownAminoAcidChanges(pars_.knownAminoAcidMutationsFnp_, "\t", true);
 		VecStr originalColNames = knownAminoAcidChanges.columnNames_;
@@ -473,13 +472,12 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 				}
 				auto transciprtId = row[knownAminoAcidChanges.getColPos("transcriptid")];
 				auto aaPosition = njh::StrToNumConverter::stoToNum<uint32_t>(row[knownAminoAcidChanges.getColPos("aaposition")]);
-
 				if(njh::in(aaPosition, knownAminoAcidPositions_[transciprtId])){
 					warnings.emplace_back(njh::pasteAsStr("already have aaposition ", aaPosition, " for transcriptID: ", transciprtId));
 				}
 				knownAminoAcidPositions_[transciprtId].emplace_back(aaPosition);
 				if(originalColNames.size() > 2){
-					for(const auto & colPos : iter::range(knownAminoAcidChanges.columnNames_.size())){
+					for(const auto && colPos : iter::range(knownAminoAcidChanges.columnNames_.size())){
 						if(!njh::in(knownAminoAcidChanges.columnNames_[colPos], VecStr{"transcriptid", "aaposition"})){
 							metaDataAssociatedWithAminoacidPosition_[transciprtId][aaPosition].addMeta(originalColNames[colPos], row[colPos]);
 						}
