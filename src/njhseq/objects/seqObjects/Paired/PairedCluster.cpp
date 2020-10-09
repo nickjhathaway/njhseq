@@ -164,7 +164,7 @@ void collapseIdenticalPairedClusters(std::vector<PairedRead> & clusters,
 		std::string qualRep){
 	readVecSorter::sortReadVector(clusters, "seq", true);
 	std::unordered_map<std::string, std::unordered_map<std::string, std::vector<uint64_t>>> identicalPos;
-	for(const auto & clusPos : iter::range(clusters.size())){
+	for(const auto clusPos : iter::range(clusters.size())){
 		const auto & clus = clusters[clusPos];
 		identicalPos[clus.seqBase_.seq_][clus.mateSeqBase_.seq_].emplace_back(clusPos);
 	}
@@ -172,7 +172,7 @@ void collapseIdenticalPairedClusters(std::vector<PairedRead> & clusters,
 	for(const auto & iden : identicalPos){
 		for(const auto & sub : iden.second){
 			if(sub.second.size() > 1){
-				for(const auto & posItem : iter::enumerate(sub.second)){
+				for(const auto posItem : iter::enumerate(sub.second)){
 					if(posItem.index == 0){
 						continue;
 					}
@@ -183,7 +183,7 @@ void collapseIdenticalPairedClusters(std::vector<PairedRead> & clusters,
 					removeThese.emplace_back(posItem.element);
 				}
 				if(qualRep == "max"){
-					for(const auto & qualPos : iter::range(clusters[sub.second.front()].seqBase_.qual_.size())){
+					for(const auto qualPos : iter::range(clusters[sub.second.front()].seqBase_.qual_.size())){
 						std::vector<uint32_t> quals;
 						quals.reserve(sub.second.size());
 						for(const auto & pos : sub.second){
@@ -192,7 +192,7 @@ void collapseIdenticalPairedClusters(std::vector<PairedRead> & clusters,
 						clusters[sub.second.front()].seqBase_.qual_[qualPos] = vectorMaximum(quals);
 					}
 				}else if (qualRep == "mean"){
-					for(const auto & qualPos : iter::range(clusters[sub.second.front()].seqBase_.qual_.size())){
+					for(const auto qualPos : iter::range(clusters[sub.second.front()].seqBase_.qual_.size())){
 						std::vector<uint32_t> quals;
 						quals.reserve(sub.second.size());
 						for(const auto & pos : sub.second){
@@ -201,7 +201,7 @@ void collapseIdenticalPairedClusters(std::vector<PairedRead> & clusters,
 						clusters[sub.second.front()].seqBase_.qual_[qualPos] = std::round(vectorMean(quals));
 					}
 				}else if (qualRep == "median"){
-					for(const auto & qualPos : iter::range(clusters[sub.second.front()].seqBase_.qual_.size())){
+					for(const auto qualPos : iter::range(clusters[sub.second.front()].seqBase_.qual_.size())){
 						std::vector<uint32_t> quals;
 						quals.reserve(sub.second.size());
 						for(const auto & pos : sub.second){

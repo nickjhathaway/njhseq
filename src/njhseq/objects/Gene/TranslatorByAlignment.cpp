@@ -124,7 +124,7 @@ void TranslatorByAlignment::VariantsInfo::addVariantInfo(
 		){
 	uint32_t queryAlnStart = alignedQuerySeq.find_first_not_of("-");
 	uint32_t queryAlnEnd = alignedQuerySeq.find_last_not_of("-");
-	for(const auto & seqPos : iter::range(queryAlnStart, queryAlnEnd + 1)){
+	for(const auto seqPos : iter::range(queryAlnStart, queryAlnEnd + 1)){
 		if('-' != alignedRefSeq[seqPos]){
 			uint32_t seqChromPosition = getRealPosForAlnPos(alignedRefSeq, seqPos) + offSetStart;
 			allBases[seqChromPosition][alignedQuerySeq[seqPos]] += querySeqCount;

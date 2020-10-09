@@ -53,7 +53,7 @@ std::unordered_map<std::string, double> SampleCollapseCollection::processCustomC
 		table customCutOffsTab(customCutOffsFnp.string(), "\t", true);
 		customCutOffsTab.checkForColumnsThrow(VecStr { "sample", "cutOff" },
 				__PRETTY_FUNCTION__);
-		for (const auto &rowPos : iter::range(customCutOffsTab.content_.size())) {
+		for (const auto rowPos : iter::range(customCutOffsTab.content_.size())) {
 			ret[customCutOffsTab.content_[rowPos][customCutOffsTab.getColPos("sample")]] =
 					njh::lexical_cast<double>(
 							customCutOffsTab.content_[rowPos][customCutOffsTab.getColPos(
@@ -719,7 +719,7 @@ void SampleCollapseCollection::doPopulationClustering(
 bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
 	std::vector<uint32_t> lowFreqHaps;
-	for(const auto & clusPos : iter::range(popCollapse_->collapsed_.clusters_.size())){
+	for(const auto clusPos : iter::range(popCollapse_->collapsed_.clusters_.size())){
 		const auto & clus = popCollapse_->collapsed_.clusters_[clusPos];
 		auto avgFrac = clus.getCumulativeFrac()/clus.sampInfos().size();
 		//std::cout << clus.seqBase_.name_ << " avgFrac: " << avgFrac << std::endl;
@@ -749,7 +749,7 @@ bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 			setUpSampleFromPrevious(sampClusters.first);
 		}
 		std::vector<uint32_t> toBeExcluded;
-		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
+		for(const auto clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
 			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
 				toBeExcluded.push_back(clusPos);
 			}
@@ -805,7 +805,7 @@ bool SampleCollapseCollection::excludeOneSampOnlyHaps(double fracCutOff){
 			setUpSampleFromPrevious(sampClusters.first);
 		}
 		std::vector<uint32_t> toBeExcluded;
-		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
+		for(const auto clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
 			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
 				toBeExcluded.push_back(clusPos);
 			}
@@ -859,7 +859,7 @@ bool SampleCollapseCollection::excludeOneSampOnlyOneOffHaps(double fracCutOff, a
 			setUpSampleFromPrevious(sampClusters.first);
 		}
 		std::vector<uint32_t> toBeExcluded;
-		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
+		for(const auto clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
 			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
 				bool oneOffAnother = false;
 				for(const auto & clus : sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_){
@@ -1732,7 +1732,7 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 	}
 	njh::sort(popUidNames);
 	std::vector<std::vector<std::string>> inputContent = std::vector<std::vector<std::string>>{popUidNames.size(), std::vector<std::string>{}};
-	for(const auto & popPos : iter::range(popUidNames.size())){
+	for(const auto popPos : iter::range(popUidNames.size())){
 		inputContent[popPos].emplace_back(popUidNames[popPos]);
 	}
 	table ret(inputContent, VecStr{"#PopUID"});

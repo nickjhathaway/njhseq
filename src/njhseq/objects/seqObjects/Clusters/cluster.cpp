@@ -100,7 +100,7 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 	std::vector<cluster>  ret;
 	//log snp information
 	std::unordered_map<uint32_t, std::unordered_map<char, uint32_t>> mismatches;
-	for (const auto & subReadPos : iter::range(reads_.size())) {
+	for (const auto subReadPos : iter::range(reads_.size())) {
 		const auto & subRead = reads_[subReadPos];
 		alignerObj.alignCache(*this, subRead, false);
 		//count gaps and mismatches and get identity
@@ -125,7 +125,7 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 //	std::cout << "mismatchesAboveCutOff.size(): " << mismatchesAboveCutOff.size() << std::endl;
 	if (!mismatchesAboveCutOff.empty()) {
 		std::unordered_map<std::string, std::vector<uint32_t>> readsSnpUids;
-		for (const auto & subReadPos : iter::range(
+		for (const auto subReadPos : iter::range(
 				reads_.size())) {
 			const auto & subRead = reads_[subReadPos];
 			alignerObj.alignCache(*this, subRead, false);

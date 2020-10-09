@@ -175,7 +175,7 @@ void populationCollapse::renameToOtherPopNames(const std::vector<readObject> &pr
   	bool chimeric = clus.seqBase_.name_.find("CHI") != std::string::npos;
     double bestScore = 0;
     uint32_t bestRefPos = std::numeric_limits<uint32_t>::max();
-    for (const auto &refPos : iter::range(previousPop.size())) {
+    for (const auto refPos : iter::range(previousPop.size())) {
       alignerObj.alignCache(previousPop[refPos], clus, false);
       alignerObj.profilePrimerAlignment(previousPop[refPos], clus);
       if(allowableErrors.passErrorProfile(alignerObj.comp_) && alignerObj.parts_.score_ > bestScore) {
@@ -269,7 +269,7 @@ void populationCollapse::addRefMetaToName(
 	for (auto &clus : collapsed_.clusters_) {
 		double bestScore = 0;
 		uint32_t bestRefPos = std::numeric_limits<uint32_t>::max();
-		for (const auto &refPos : iter::range(previousPop.size())) {
+		for (const auto refPos : iter::range(previousPop.size())) {
 			alignerObj.alignCache(previousPop[refPos], clus, false);
 			alignerObj.profilePrimerAlignment(previousPop[refPos], clus);
 			if (allowableErrors.passErrorProfile(alignerObj.comp_)

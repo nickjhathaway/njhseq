@@ -358,7 +358,7 @@ class readVecSplitter {
     for (const auto& read : reads) {
     	charCounter counter;
     	counter.increaseCountByString(getSeqBase(read).seq_);
-      for (const auto& letPos : iter::range(counter.fractions_.size())) {
+      for (const auto letPos : iter::range(counter.fractions_.size())) {
         mainCounter.fractions_[letPos] += counter.fractions_[letPos];
       }
     }
@@ -370,7 +370,7 @@ class readVecSplitter {
     	charCounter counter;
     	counter.increaseCountByString(getSeqBase(read).seq_);
       double difference = 0.00;
-      for (const auto& letPos : iter::range(counter.fractions_.size())) {
+      for (const auto letPos : iter::range(counter.fractions_.size())) {
         difference += fabs(mainCounter.fractions_[letPos] - counter.fractions_[letPos]);
         // std::cout<<difference<<std::endl;
       }
@@ -384,7 +384,7 @@ class readVecSplitter {
     	charCounter counter;
     	counter.increaseCountByString(rIter.seqBase_.seq_);
       double difference = 0.00;
-      for (const auto& letPos : iter::range(counter.fractions_.size())){
+      for (const auto letPos : iter::range(counter.fractions_.size())){
 
       	difference += fabs(mainCounter.fractions_[letPos] - counter.fractions_[letPos]);
         // std::cout<<difference<<std::endl;
@@ -421,7 +421,7 @@ class readVecSplitter {
     	charCounter counter;
     	counter.increaseCountByString(getSeqBase(read).seq_);
       double difference = 0.00;
-      for (const auto& letPos : iter::range(counter.fractions_.size())) {
+      for (const auto letPos : iter::range(counter.fractions_.size())) {
         difference += fabs(mainCounter.fractions_[letPos] - counter.fractions_[letPos]);
         // std::cout<<difference<<std::endl;
       }
@@ -435,7 +435,7 @@ class readVecSplitter {
     	charCounter counter;
     	counter.increaseCountByString(getSeqBase(read).seq_);
       double difference = 0.00;
-      for (const auto& letPos : iter::range(counter.fractions_.size())){
+      for (const auto letPos : iter::range(counter.fractions_.size())){
 
       	difference += fabs(mainCounter.fractions_[letPos] - counter.fractions_[letPos]);
         // std::cout<<difference<<std::endl;

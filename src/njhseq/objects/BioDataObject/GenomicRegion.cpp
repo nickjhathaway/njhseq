@@ -126,7 +126,7 @@ void GenomicRegion::checkRegion(const BamTools::BamReader & bReader,
 		std::stringstream ss;
 		ss << "Error, ref name: " << chrom_
 				<< " not in Bam file, options are: " << std::endl;
-		for(const auto & refD : iter::enumerate(refs)){
+		for(const auto refD : iter::enumerate(refs)){
 			if(0 != refD.index){
 				ss << ",";
 			}

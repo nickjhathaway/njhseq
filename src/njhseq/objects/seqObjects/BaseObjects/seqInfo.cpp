@@ -872,7 +872,7 @@ void seqInfo::adjustHomopolymerRunQualities() {
   condensedSeqQualPos.emplace_back(currentQualPos);
   condensedSeqCount.push_back(currentCount);
   qual_.clear();
-  for (const auto& i : iter::range<uint64_t>(0, condensedSeq.length())) {
+  for (const auto i : iter::range<uint64_t>(0, condensedSeq.length())) {
     addOtherVec(qual_, std::vector<uint32_t>(condensedSeqCount[i],
                                                       condensedSeqQual[i]));
   }

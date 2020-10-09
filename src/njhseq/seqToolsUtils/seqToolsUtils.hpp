@@ -322,7 +322,7 @@ std::unordered_map<std::string, njh::color> getColorsForNames(
 template<typename READ>
 std::vector<READ> vecStrToReadObjs(const VecStr & strs, const std::string & stubName){
 	std::vector<READ> ans;
-	for(const auto & strPos : iter::range(strs.size())){
+	for(const auto strPos : iter::range(strs.size())){
 		ans.emplace_back(READ(seqInfo(stubName + "." + leftPadNumStr(strPos, strs.size()), strs[strPos])));
 	}
 	return ans;

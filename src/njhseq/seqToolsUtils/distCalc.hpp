@@ -46,9 +46,9 @@ std::vector<std::vector<RET>> getDistance(const std::vector<T> & vec,
 		const Args&... args){
 	std::vector<std::vector<RET>> ret;
 	std::vector<std::pair<uint32_t, uint32_t>> indices;
-  for(const auto & pos : iter::range(vec.size())){
+  for(const auto pos : iter::range(vec.size())){
   	ret.emplace_back(std::vector<RET>(pos));
-  	for(const auto & secondPos : iter::range(pos)){
+  	for(const auto secondPos : iter::range(pos)){
   		indices.emplace_back(pos, secondPos);
   	}
   }
@@ -58,7 +58,7 @@ std::vector<std::vector<RET>> getDistance(const std::vector<T> & vec,
   	std::vector<std::thread> threads;
   	uint32_t step = std::round(indices.size()/static_cast<double>(numThreads));
   	std::vector<std::vector<std::pair<uint32_t, uint32_t>>> indsSplit;
-  	for(const auto & tNum : iter::range(numThreads - 1)){
+  	for(const auto tNum : iter::range(numThreads - 1)){
   		std::vector<std::pair<uint32_t, uint32_t>> temp {indices.begin() + tNum * step,
   			indices.begin() + (tNum + 1)*step};
   		indsSplit.emplace_back(temp);
@@ -66,7 +66,7 @@ std::vector<std::vector<RET>> getDistance(const std::vector<T> & vec,
   	std::vector<std::pair<uint32_t, uint32_t>> temp {indices.begin() + (numThreads - 1) * step,
   	  			indices.end()};
   	indsSplit.emplace_back(temp);
-  	for(const auto & tNum : iter::range(numThreads)){
+  	for(const auto tNum : iter::range(numThreads)){
   		threads.push_back(std::thread(paritialDis<T,RET, Args...>, std::cref(vec),
     			indsSplit[tNum], std::ref(ret), func,
     			std::cref(args)...));
@@ -95,9 +95,9 @@ std::vector<std::vector<RET>> getDistanceNonConst(const std::vector<T> & vec,
 		Args&... args){
 	std::vector<std::vector<RET>> ret;
 	std::vector<std::pair<uint32_t, uint32_t>> indices;
-  for(const auto & pos : iter::range(vec.size())){
+  for(const auto pos : iter::range(vec.size())){
   	ret.emplace_back(std::vector<RET>(pos));
-  	for(const auto & secondPos : iter::range(pos)){
+  	for(const auto secondPos : iter::range(pos)){
   		indices.emplace_back(pos, secondPos);
   	}
   }
@@ -107,7 +107,7 @@ std::vector<std::vector<RET>> getDistanceNonConst(const std::vector<T> & vec,
   	std::vector<std::thread> ts;
   	uint32_t step = std::round(indices.size()/static_cast<double>(numThreads));
   	std::vector<std::vector<std::pair<uint32_t, uint32_t>>> indsSplit;
-  	for(const auto & tNum : iter::range(numThreads - 1)){
+  	for(const auto tNum : iter::range(numThreads - 1)){
   		std::vector<std::pair<uint32_t, uint32_t>> temp {indices.begin() + tNum * step,
   			indices.begin() + (tNum + 1)*step};
   		indsSplit.emplace_back(temp);
@@ -115,7 +115,7 @@ std::vector<std::vector<RET>> getDistanceNonConst(const std::vector<T> & vec,
   	std::vector<std::pair<uint32_t, uint32_t>> temp {indices.begin() + (numThreads - 1) * step,
   	  			indices.end()};
   	indsSplit.emplace_back(temp);
-  	for(const auto & tNum : iter::range(numThreads)){
+  	for(const auto tNum : iter::range(numThreads)){
     	ts.push_back(std::thread(paritialDisNonConst<T,RET, Args...>, std::cref(vec),
     			indsSplit[tNum], std::ref(ret), func,
     			std::ref(args)...));
@@ -144,9 +144,9 @@ std::vector<std::vector<RET>> getDistanceCopy(const std::vector<T> & vec,
 		Args... args){
 	std::vector<std::vector<RET>> ret;
 	std::vector<std::pair<uint32_t, uint32_t>> indices;
-  for(const auto & pos : iter::range(vec.size())){
+  for(const auto pos : iter::range(vec.size())){
   	ret.emplace_back(std::vector<RET>(pos));
-  	for(const auto & secondPos : iter::range(pos)){
+  	for(const auto secondPos : iter::range(pos)){
   		indices.emplace_back(pos, secondPos);
   	}
   }
@@ -156,7 +156,7 @@ std::vector<std::vector<RET>> getDistanceCopy(const std::vector<T> & vec,
   	std::vector<std::thread> ts;
   	uint32_t step = std::round(indices.size()/static_cast<double>(numThreads));
   	std::vector<std::vector<std::pair<uint32_t, uint32_t>>> indsSplit;
-  	for(const auto & tNum : iter::range(numThreads - 1)){
+  	for(const auto tNum : iter::range(numThreads - 1)){
   		std::vector<std::pair<uint32_t, uint32_t>> temp {indices.begin() + tNum * step,
   			indices.begin() + (tNum + 1)*step};
   		indsSplit.emplace_back(temp);
@@ -164,7 +164,7 @@ std::vector<std::vector<RET>> getDistanceCopy(const std::vector<T> & vec,
   	std::vector<std::pair<uint32_t, uint32_t>> temp {indices.begin() + (numThreads - 1) * step,
   	  			indices.end()};
   	indsSplit.emplace_back(temp);
-  	for(const auto & tNum : iter::range(numThreads)){
+  	for(const auto tNum : iter::range(numThreads)){
     	ts.push_back(std::thread(paritialDisCopy<T,RET, Args...>, std::cref(vec),
     			indsSplit[tNum], std::ref(ret), func,
     			args...));

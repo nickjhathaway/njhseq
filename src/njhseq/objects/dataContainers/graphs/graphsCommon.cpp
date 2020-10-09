@@ -48,7 +48,7 @@ std::unordered_map<std::string,njh::color> getColorsForNames(const VecStr & popN
 	njhseq::VecStr popColorsStrs(popColors.size(), "");
 	uint32_t count = 0;
 	uint32_t halfCount = 0;
-	for(const auto & cPos : iter::range(popColors.size())) {
+	for(const auto cPos : iter::range(popColors.size())) {
 		uint32_t pos = 0;
 		if(cPos %2 == 0) {
 			pos = popColors.size()/2 + halfCount;

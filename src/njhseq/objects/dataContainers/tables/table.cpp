@@ -115,7 +115,7 @@ void table::setRowSize(uint32_t rowSize){
 
 void table::setColNamePositions(){
 	colNameToPos_.clear();
-	for(const auto & pos : iter::range(columnNames_.size())){
+	for(const auto pos : iter::range(columnNames_.size())){
 		colNameToPos_[columnNames_[pos]] = pos;
 	}
 }
@@ -196,7 +196,7 @@ void table::addPaddingToEndOfRows(const std::string & padding) {
 }
 
 void table::fillWithZeros() {
-  for (const auto &colPos : iter::range(columnNames_.size())) {
+  for (const auto colPos : iter::range(columnNames_.size())) {
     std::vector<size_t> blankPositions;
     VecStr nonBlanks;
     size_t pos = 0;
@@ -227,11 +227,11 @@ void table::addColumn(const VecStr & columnNew, const std::string & name){
 	}else{
 		columnNames_.emplace_back(name);
 		if(columnNew.size() == 1){
-			for(const auto & rowPos : iter::range(content_.size())){
+			for(const auto rowPos : iter::range(content_.size())){
 				content_[rowPos].emplace_back(columnNew[0]);
 			}
 		}else{
-			for(const auto & rowPos : iter::range(content_.size())){
+			for(const auto rowPos : iter::range(content_.size())){
 				content_[rowPos].emplace_back(columnNew[rowPos]);
 			}
 		}
@@ -1011,7 +1011,7 @@ table table::aggregateAdvance(const std::string &columnName,
   table numericColumns = getAllNumericColumns();
   table nonNumericColumns = getAllNonNumericColumns();
   std::vector<VecStr> collapsedColumns;
-  for (const auto row : nonNumericColumns.content_) {
+  for (const auto & row : nonNumericColumns.content_) {
     collapsedColumns.emplace_back(VecStr{vectorToString(row, sep)});
   }
 
@@ -1103,12 +1103,12 @@ table table::cbind(const std::map<std::string, table> &tables,
 }
 void table::removeEmpty(bool addPadding) {
 	std::vector<uint32_t> emptyPositions;
-	for(const auto & rowPos : iter::range(content_.size())){
+	for(const auto rowPos : iter::range(content_.size())){
 		if(content_.empty()){
 			emptyPositions.emplace_back(rowPos);
 		}else {
 			bool empty =true;
-			for(const auto & colPos : iter::range(content_[rowPos].size())){
+			for(const auto colPos : iter::range(content_[rowPos].size())){
 				if(!allWhiteSpaceStr(content_[rowPos][colPos])){
 					empty = false;
 					break;

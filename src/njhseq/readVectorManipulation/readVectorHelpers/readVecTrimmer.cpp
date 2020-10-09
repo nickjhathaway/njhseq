@@ -454,7 +454,7 @@ std::vector<readVecTrimmer::BreakUpRes> readVecTrimmer::breakUpSeqOnPat(const se
 			ret.emplace_back(subSeq, start, end, pats.front().pat_);
 		}
 		if (pats.size() > 1) {
-			for (const auto & patPos : iter::range(pats.size() - 1)) {
+			for (const auto patPos : iter::range(pats.size() - 1)) {
 				const auto & p = pats[patPos];
 				size_t start = p.pos_ + p.pat_.size();
 				size_t end = pats[patPos + 1].pos_;

@@ -280,7 +280,7 @@ public:
 			if(!edges_.empty() && numConnections()> 0){
 				DIST best = edges_.front()->dist_;
 				std::vector<uint64_t> bestIndex = {0};
-				for(const auto & ePos : iter::range(edges_.size())){
+				for(const auto ePos : iter::range(edges_.size())){
 					const auto & e = edges_[ePos];
 					if(e->on_){
 						best = e->dist_;
@@ -289,7 +289,7 @@ public:
 						break;
 					}
 				}
-				for(const auto & e : iter::enumerate(edges_)){
+				for(const auto e : iter::enumerate(edges_)){
 					if(e.element->on_){
 						if(e.element->dist_ > best){
 							best = e.element->dist_;
@@ -314,7 +314,7 @@ public:
 			if(!edges_.empty() && numConnections()> 0){
 				DIST best = edges_.front()->dist_;
 				std::vector<uint64_t> bestIndex = {0};
-				for(const auto & ePos : iter::range(edges_.size())){
+				for(const auto ePos : iter::range(edges_.size())){
 					const auto & e = edges_[ePos];
 					if(e->on_){
 						best = e->dist_;
@@ -323,7 +323,7 @@ public:
 						break;
 					}
 				}
-				for(const auto & e : iter::enumerate(edges_)){
+				for(const auto e : iter::enumerate(edges_)){
 					if(e.element->on_){
 						if(e.element->dist_ < best){
 							best = e.element->dist_;
@@ -350,7 +350,7 @@ public:
 			if(!edges_.empty() && numConnections()> 0){
 				DIST best = edges_.front()->dist_;
 				std::vector<uint64_t> bestIndex = {0};
-				for(const auto & ePos : iter::range(edges_.size())){
+				for(const auto ePos : iter::range(edges_.size())){
 					const auto & e = edges_[ePos];
 					if(e->on_){
 						best = e->dist_;
@@ -359,7 +359,7 @@ public:
 						break;
 					}
 				}
-				for(const auto & e : iter::enumerate(edges_)){
+				for(const auto e : iter::enumerate(edges_)){
 					if(e.element->on_){
 						if(distCompFunc(e.element->dist_,best)){
 							best = e.element->dist_;
@@ -421,7 +421,7 @@ public:
 
 	void removeOffNodes(){
 		std::vector<uint32_t> toRemove;
-		for(const auto & nodePos : iter::range(nodes_.size())){
+		for(const auto nodePos : iter::range(nodes_.size())){
 			const auto & n = nodes_[nodePos];
 			if(!n->on_){
 				for(const auto & edge : n->edges_){
@@ -779,7 +779,7 @@ public:
 	  }else{
 	  	groupColors = {njh::color{"#FF0000"}};
 	  }
-	  for(auto e : iter::enumerate(largeGroups)){
+	  for(const auto e : iter::enumerate(largeGroups)){
 	  	gColors[e.element] = groupColors[e.index];
 	  }
 	  uint64_t pos = 0;

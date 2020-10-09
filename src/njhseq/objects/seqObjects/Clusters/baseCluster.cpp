@@ -715,7 +715,7 @@ void baseCluster::removeRead(uint32_t readPos) {
 
 void baseCluster::removeRead(const std::string & stubName){
 	uint32_t readPos = std::numeric_limits<uint32_t>::max();
-	for(const auto & pos : iter::range(reads_.size())){
+	for(const auto pos : iter::range(reads_.size())){
 		if(reads_[pos]->getStubName(true) == stubName){
 			readPos = pos;
 			break;

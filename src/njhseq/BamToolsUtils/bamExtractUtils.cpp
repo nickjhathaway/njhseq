@@ -3131,8 +3131,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	bool overlapsFound = false;
 	std::stringstream overalMessage;
 	overalMessage << __PRETTY_FUNCTION__ << " error, found overlaps, overlap regions should be merged" << "\n";
-	for(const auto & regPos : iter::range(regions.size())){
-		for(const auto & secondPos : iter::range<size_t>(0, regPos)){
+	for(const auto regPos : iter::range(regions.size())){
+		for(const auto secondPos : iter::range<size_t>(0, regPos)){
 			if(regions[regPos].overlaps(regions[secondPos])){
 				overlapsFound = true;
 				overalMessage << regions[regPos].genBedRecordCore().toDelimStr() << " over laps " << regions[secondPos].genBedRecordCore().toDelimStr() << "\n";
@@ -3239,8 +3239,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	bool overlapsFound = false;
 	std::stringstream overalMessage;
 	overalMessage << __PRETTY_FUNCTION__ << " error, found overlaps, overlap regions should be merged" << "\n";
-	for(const auto & regPos : iter::range(regions.size())){
-		for(const auto & secondPos : iter::range<size_t>(0, regPos)){
+	for(const auto regPos : iter::range(regions.size())){
+		for(const auto secondPos : iter::range<size_t>(0, regPos)){
 			if(regions[regPos].overlaps(regions[secondPos])){
 				overlapsFound = true;
 				overalMessage << regions[regPos].genBedRecordCore().toDelimStr() << " over laps " << regions[secondPos].genBedRecordCore().toDelimStr() << "\n";

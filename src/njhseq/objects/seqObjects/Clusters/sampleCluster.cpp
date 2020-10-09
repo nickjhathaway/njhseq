@@ -473,7 +473,7 @@ std::string sampleCluster::getPopInfo(double popReadCnt, uint32_t popClusNum,
 
 std::vector<uint32_t> sampleCluster::getReadPositions(const VecStr & forClusters)const{
 	std::vector<uint32_t> ret;
-	for(const auto & readPos : iter::range(reads_.size())){
+	for(const auto readPos : iter::range(reads_.size())){
 		if(njh::in(reads_[readPos]->seqBase_.name_, forClusters)){
 			ret.emplace_back(readPos);
 		}

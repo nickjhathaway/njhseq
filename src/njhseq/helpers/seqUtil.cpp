@@ -981,7 +981,7 @@ bool seqUtil::checkQualityWindow(int windowSize, int minimumAverageQaul,
   uint32_t currentPos = 0;
   while ((windowSize + currentPos) < quality.size() && pass) {
     uint32_t sum = 0;
-    for (const auto & qPos : iter::range(currentPos, currentPos + windowSize)) {
+    for (const auto qPos : iter::range(currentPos, currentPos + windowSize)) {
       sum += quality[qPos];
     }
     if ((static_cast<double>(sum) / windowSize) < minimumAverageQaul) {
@@ -1000,7 +1000,7 @@ size_t seqUtil::checkQualityWindowPos(int windowSize, int minimumAverageQaul,
   uint32_t currentPos = 0;
   while ((windowSize + currentPos) < quality.size() && pass) {
     uint32_t sum = 0;
-    for (const auto & qPos : iter::range(currentPos, currentPos + windowSize)) {
+    for (const auto qPos : iter::range(currentPos, currentPos + windowSize)) {
       sum += quality[qPos];
     }
     if ((static_cast<double>(sum) / windowSize) < minimumAverageQaul) {
@@ -1257,7 +1257,7 @@ std::vector<uint32_t> seqUtil::rearrangeQuals(
     const std::vector<uint32_t> &qual, const std::vector<uint32_t> &positions) {
   std::vector<uint32_t> ans;
   ans.reserve(positions.size());
-  for (const auto &pos : iter::range(positions.size() - 1)) {
+  for (const auto pos : iter::range(positions.size() - 1)) {
     if (positions[pos] != positions[pos + 1]) {
       ans.push_back(qual[positions[pos]]);
     } else {

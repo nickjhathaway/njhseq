@@ -128,7 +128,7 @@ std::vector<uint32_t> refVariants::getVariantSnpLoci(VecStr names, uint32_t expa
 			for(const auto & m : v.mismatches_){
 				loci.emplace(m.second.refBasePos);
 				if(expand > 0){
-					for(const auto & e : iter::range<uint32_t>(1,expand + 1)){
+					for(const auto e : iter::range<uint32_t>(1,expand + 1)){
 						if(e <=m.second.refBasePos){
 							loci.emplace(m.second.refBasePos - e);
 						}
@@ -150,7 +150,7 @@ std::map<uint32_t, std::vector<char>> refVariants::getVariantSnpLociMap(VecStr n
 			for(const auto & m : v.mismatches_){
 				lociChars[m.second.refBasePos].emplace(m.second.seqBase);
 				if(expand > 0){
-					for(const auto & e : iter::range<uint32_t>(1,expand + 1)){
+					for(const auto e : iter::range<uint32_t>(1,expand + 1)){
 						if(e <=m.second.refBasePos){
 							lociChars[m.second.refBasePos - e].emplace(m.second.seqBase);
 						}

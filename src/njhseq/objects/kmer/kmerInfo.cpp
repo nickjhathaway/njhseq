@@ -75,7 +75,7 @@ void kmerInfo::setKmersFromPortion(const std::string & seq, uint32_t kLength,
 	kmersRevComp_.clear();
 	//set kmer information in the current direction
 	/**@todo check if this needs a plus 1 */
-	for (const auto & seqPos : iter::range(pos, pos + len - kLen_)) {
+	for (const auto seqPos : iter::range(pos, pos + len - kLen_)) {
 		auto currentK = seq.substr(seqPos, kLen_);
 		auto k = kmers_.find(currentK);
 		if (k != kmers_.end()) {
@@ -88,7 +88,7 @@ void kmerInfo::setKmersFromPortion(const std::string & seq, uint32_t kLength,
 	//if needed set kmer information for the reverse direction
 	if (setReverse) {
 		std::string reverseComplement = seqUtil::reverseComplement(seq.substr(pos, len), "DNA");
-		for (const auto & seqPos : iter::range(reverseComplement.size() + 1 - kLen_)) {
+		for (const auto seqPos : iter::range(reverseComplement.size() + 1 - kLen_)) {
 			auto currentK = reverseComplement.substr(seqPos, kLen_);
 			auto k = kmersRevComp_.find(currentK);
 			if (k != kmersRevComp_.end()) {
@@ -109,7 +109,7 @@ void kmerInfo::setKmers(const std::string & seq, uint32_t kLength,
 	kmers_.clear();
 	kmersRevComp_.clear();
 	//set kmer information in the current direction
-	for (const auto & pos : iter::range(seq.size() + 1 - kLen_)) {
+	for (const auto pos : iter::range(seq.size() + 1 - kLen_)) {
 		auto currentK = seq.substr(pos, kLen_);
 		auto k = kmers_.find(currentK);
 		if (k != kmers_.end()) {
@@ -121,7 +121,7 @@ void kmerInfo::setKmers(const std::string & seq, uint32_t kLength,
 	//if needed set kmer information for the reverse direction
 	if (setReverse) {
 		std::string reverseComplement = seqUtil::reverseComplement(seq, "DNA");
-		for (const auto & pos : iter::range(reverseComplement.size() + 1 - kLen_)) {
+		for (const auto pos : iter::range(reverseComplement.size() + 1 - kLen_)) {
 			auto currentK = reverseComplement.substr(pos, kLen_);
 			auto k = kmersRevComp_.find(currentK);
 			if (k != kmersRevComp_.end()) {
@@ -264,7 +264,7 @@ std::unordered_map<size_t, std::pair<uint32_t, double>> kmerInfo::slideCompareKm
 		const kmerInfo & info, uint32_t windowSize, uint32_t windowStepSize) const {
 	std::unordered_map<size_t, std::pair<uint32_t, double>> ret;
 	uint64_t minLen = std::min(seqLen_, info.seqLen_);
-	for (const auto & pos : iter::range<uint32_t>(0, minLen - windowSize + 1,
+	for (const auto pos : iter::range<uint32_t>(0, minLen - windowSize + 1,
 			windowStepSize)) {
 		ret.emplace(pos,compareKmers(info, pos, windowSize));
 	}
@@ -274,7 +274,7 @@ std::unordered_map<size_t, std::pair<uint32_t, double>> kmerInfo::slideCompareKm
 std::unordered_map<size_t, std::pair<uint32_t, double>> kmerInfo::slideCompareSubKmersToFull(
 		const kmerInfo & info, uint32_t windowSize, uint32_t windowStepSize) const {
 	std::unordered_map<size_t, std::pair<uint32_t, double>> ret;
-	for (const auto & pos : iter::range<uint32_t>(0, seqLen_ - windowSize + 1,
+	for (const auto pos : iter::range<uint32_t>(0, seqLen_ - windowSize + 1,
 			windowStepSize)) {
 		ret.emplace(pos,compareSubKmersToFull(info, pos, windowSize));
 	}
@@ -285,9 +285,9 @@ std::unordered_map<size_t,std::unordered_map<size_t,std::pair<uint32_t, double>>
 		const kmerInfo & info, uint32_t windowSize,
 		uint32_t windowStepSize) const{
 	std::unordered_map<size_t,std::unordered_map<size_t,std::pair<uint32_t, double>>> ret;
-	for (const auto & pos : iter::range<uint32_t>(0, seqLen_ - windowSize + 1,
+	for (const auto pos : iter::range<uint32_t>(0, seqLen_ - windowSize + 1,
 			windowStepSize)) {
-		for (const auto & otherPos : iter::range<uint32_t>(0, info.seqLen_ - windowSize + 1,
+		for (const auto otherPos : iter::range<uint32_t>(0, info.seqLen_ - windowSize + 1,
 				windowStepSize)) {
 			ret[pos][otherPos] = compareKmers(info, pos, otherPos, windowSize);
 		}

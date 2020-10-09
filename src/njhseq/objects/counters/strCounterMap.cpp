@@ -60,7 +60,7 @@ void strCounter::increaseCountByVecStr(const VecStr &seqs,
 			increaseCountByString(str, counts.front());
 		}
 	} else if (counts.size() == seqs.size()) {
-		for (const auto & strPos : iter::range(seqs.size())) {
+		for (const auto strPos : iter::range(seqs.size())) {
 			increaseCountByString(seqs[strPos], counts[strPos]);
 		}
 	} else {

@@ -202,7 +202,7 @@ std::vector<std::shared_ptr<AlignmentResults>> getUniqueLocationResults(
 			});
 	std::vector<std::shared_ptr<AlignmentResults>>  ret;
 	ret.emplace_back(alnResults.front());
-	for(const auto & pos : iter::range<uint32_t>(1, alnResults.size())){
+	for(const auto pos : iter::range<uint32_t>(1, alnResults.size())){
 		if(ret.back()->gRegion_.createUidFromCoords() != alnResults[pos]->gRegion_.createUidFromCoords()){
 			ret.emplace_back(alnResults[pos]);
 		}

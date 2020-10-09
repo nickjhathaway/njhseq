@@ -47,7 +47,7 @@ void collapseSimilarNucCompClusters(std::vector<nucCompCluster>& comps,
     for(const auto & compPos : clusterPositions){
   		double smallestDiff = std::numeric_limits<double>::max();
   		uint32_t closestPos = std::numeric_limits<uint32_t>::max();
-    	for(const auto & compPosSecond : iter::range<uint32_t>(0, compPos)){
+    	for(const auto compPosSecond : iter::range<uint32_t>(0, compPos)){
     		if(compPos == compPosSecond){
     			continue;
     		}
@@ -92,10 +92,10 @@ void sortNucCompVec(std::vector<nucCompCluster>& comps){
 table getInfoNucCompVec(std::vector<nucCompCluster>& comps){
   table outInfo(VecStr{"compPos","readNum","readFrac","Afrac","Cfrac","Gfrac","Tfrac"});
   double totalCount = 0;
-  for(const auto & compPos : iter::range(comps.size())){
+  for(const auto compPos : iter::range(comps.size())){
   	totalCount += comps[compPos].readCnt_;
   }
-  for(const auto & compPos : iter::range(comps.size())){
+  for(const auto compPos : iter::range(comps.size())){
   	comps[compPos].counter_.setFractions();
   	comps[compPos].readBuffer_ = 0;
   	std::stringstream tempStream;

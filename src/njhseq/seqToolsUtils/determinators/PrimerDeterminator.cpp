@@ -316,7 +316,7 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info,
 		bestPrimer = determinedPrimers.front();
 	} else {
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
@@ -415,7 +415,7 @@ PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestReverse
 		bestPrimer = determinedPrimers.front();
 	} else {
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
@@ -503,7 +503,7 @@ PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestForward
 		bestPrimer = determinedPrimers.front();
 	} else {
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
@@ -612,7 +612,7 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 		bestPrimer = determinedPrimers.front();
 	} else {
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
@@ -702,7 +702,7 @@ bool PrimerDeterminator::checkForReversePrimer(seqInfo & info,
 	} else {
 		primerGood =true;
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
@@ -796,7 +796,7 @@ bool PrimerDeterminator::checkForForwardPrimerInRev(seqInfo & info, const std::s
 	} else {
 		primerGood =true;
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){

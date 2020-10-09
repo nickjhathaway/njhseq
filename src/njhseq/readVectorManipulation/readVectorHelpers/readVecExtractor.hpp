@@ -307,12 +307,12 @@ class readVecExtractor {
     // untested nick, 8/7/13
     std::vector<T> ans;
     MapStrStr names;
-    for (const auto& compIter : compareReads) {
+    for (const auto & compIter : compareReads) {
       names.insert({compIter.seqBase_.name_, compIter.seqBase_.name_});
     }
-    for (const auto inputIter : inputReads) {
+    for (const auto & inputIter : inputReads) {
       if (names.find(inputIter.seqBase_.name_) != names.end()) {
-        ans.push_back(inputIter);
+        ans.emplace_back(inputIter);
       }
     }
     return ans;
@@ -405,7 +405,7 @@ class readVecExtractor {
   		aligner alignerObj(maxReadLen, gapScoringParameters(7,1,7,1,7,1), scoring);
   		std::vector<uint64_t> eraseThese;
   		//std::cout << "in the errors" << std::endl;
-  		for(auto readPos : iter::range(unmatched.size())){
+  		for(const auto readPos : iter::range(unmatched.size())){
   			if(unmatched[readPos].seqBase_.seq_.size() < stop + barcodeSize){
   				continue;
   			}
@@ -460,7 +460,7 @@ class readVecExtractor {
   				std::cout << forStopComp << std::endl;
   				std::cout << forwardPosComp.first << std::endl;
   			}
-  			for(auto err : iter::range<uint32_t>(1,maxErrors)){
+  			for(const auto err : iter::range<uint32_t>(1,maxErrors)){
   				for(const auto & bar : barcodeMotifs){
   					auto positions = bar.second.findPositionsFull(read.seqBase_.seq_, err, forStop, forwardPosition.first);
   					if(!positions.empty()){

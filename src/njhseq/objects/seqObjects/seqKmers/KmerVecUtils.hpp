@@ -65,7 +65,7 @@ std::vector<kmerCluster> greedyKmerSimCluster(const std::vector<READ> & inReads,
 		bool verbose) {
 	auto reads = createKmerReadVec(inReads, kLength, checkComplement);
 	std::vector<kmerCluster> kClusters;
-	for (const auto & readPos : iter::range(reads.size())) {
+	for (const auto readPos : iter::range(reads.size())) {
 		if (verbose) {
 			std::cout << "currently on " << readPos << " of " << reads.size() << "\r";
 		}

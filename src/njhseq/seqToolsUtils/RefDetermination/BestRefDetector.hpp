@@ -54,7 +54,7 @@ public:
     double currentKmerCutOff = pars.kmerCutOff_;
     bool run = true;
     while(run){
-	    for (const auto& refPos : iter::range(refSeqs.size())) {
+	    for (const auto refPos : iter::range(refSeqs.size())) {
 	      const auto & ref = refSeqs[refPos];
 	      if (getSeqBase(ref).name_ == getSeqBase(inputSeq).name_) {
 	        continue;
@@ -116,7 +116,7 @@ public:
 	  	std::vector<uint32_t> subPositions;
 	  	auto curAligner = alnPool.popAligner();
 	  	std::vector<kmerInfo> refInfos;
-	  	for (const auto& refPos : iter::range(refSeqs.size())){
+	  	for (const auto refPos : iter::range(refSeqs.size())){
 	  		refInfos.emplace_back(getSeqBase(refSeqs[refPos]).seq_, pars.kmerLen_, false);
 	  	}
 	  	while(posQueue.getVals(subPositions, pars.batchAmount_)){
@@ -129,7 +129,7 @@ public:
 			    double currentKmerCutOff = pars.kmerCutOff_;
 			    bool run = true;
 			    while(run){
-				    for (const auto& refPos : iter::range(refSeqs.size())) {
+				    for (const auto refPos : iter::range(refSeqs.size())) {
 				      const auto & ref = refSeqs[refPos];
 				      if (getSeqBase(ref).name_ == getSeqBase(input).name_) {
 				        continue;

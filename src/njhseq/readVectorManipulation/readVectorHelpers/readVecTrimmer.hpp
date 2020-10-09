@@ -426,7 +426,7 @@ void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
 	  double bestScore = std::numeric_limits<double>::lowest();
 	  std::vector<uint32_t> bestRefs;
 	  while(bestRefs.empty()){
-	    for (const auto& refPos : iter::range(refSeqs.size())) {
+	    for (const auto refPos : iter::range(refSeqs.size())) {
 	      const auto & ref = refSeqs[refPos];
 	      if(refSeqsKInfos[refPos].compareKmers(seqKInfo).second < kmerCutOff){
 	       	continue;
@@ -743,7 +743,7 @@ void readVecTrimmer::trimToMostCommonKmer(std::vector<T> & seqs,
 	std::vector<kmerInfo> kInfos;
 	probabilityProfile profile(pars.kmerLength);
 
-  for(const auto & readPos : iter::range(len(seqs))){
+  for(const auto readPos : iter::range(len(seqs))){
   	auto & seq = seqs[readPos];
   	//first turn off short sequences if they are too short and then continue on
   	if(len(seq) < pars.windowLength ){
@@ -753,7 +753,7 @@ void readVecTrimmer::trimToMostCommonKmer(std::vector<T> & seqs,
   	uint32_t startPos = len(seq) - pars.windowLength;
   	uint32_t stopPos = len(seq) - pars.kmerLength + 1;
   	kInfos.emplace_back(kmerInfo(getSeqBase(seq).seq_.substr(startPos), pars.kmerLength, false));
-  	for(const auto & pos : iter::range(startPos, stopPos)){
+  	for(const auto pos : iter::range(startPos, stopPos)){
   		profile.add(getSeqBase(seq).seq_.substr(pos, pars.kmerLength), false);
   	}
   }
@@ -803,7 +803,7 @@ void readVecTrimmer::trimFromMostCommonKmer(std::vector<T> & seqs,
 	std::vector<kmerInfo> kInfos;
 	probabilityProfile profile(pars.kmerLength);
 
-  for(const auto & readPos : iter::range(len(seqs))){
+  for(const auto readPos : iter::range(len(seqs))){
   	auto & seq = seqs[readPos];
   	//first turn off short sequences if they are too short and then continue on
   	if(len(seq) < pars.windowLength ){
@@ -813,7 +813,7 @@ void readVecTrimmer::trimFromMostCommonKmer(std::vector<T> & seqs,
   	uint32_t startPos = 0;
   	uint32_t stopPos = pars.windowLength - pars.kmerLength + 1;
   	kInfos.emplace_back(kmerInfo(getSeqBase(seq).seq_.substr(0, stopPos), pars.kmerLength, false));
-  	for(const auto & pos : iter::range(startPos, stopPos)){
+  	for(const auto pos : iter::range(startPos, stopPos)){
   		profile.add(getSeqBase(seq).seq_.substr(pos, pars.kmerLength), false);
   	}
   }

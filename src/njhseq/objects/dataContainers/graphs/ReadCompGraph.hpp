@@ -51,12 +51,12 @@ public:
 	template<typename T>
 	ReadCompGraph(const std::vector<std::vector<comparison>> & distances,
 			const std::vector<T> & reads) {
-		for (const auto & pos : iter::range(reads.size())) {
+		for (const auto pos : iter::range(reads.size())) {
 			this->addNode(getSeqBase(reads[pos]).name_,
 					std::make_shared<seqInfo>(getSeqBase(reads[pos])));
 		}
-		for (const auto & pos : iter::range(distances.size())) {
-			for (const auto & subPos : iter::range<uint64_t>(distances[pos].size())) {
+		for (const auto pos : iter::range(distances.size())) {
+			for (const auto subPos : iter::range<uint64_t>(distances[pos].size())) {
 				this->addEdge(getSeqBase(reads[pos]).name_,
 						getSeqBase(reads[subPos]).name_, distances[pos][subPos]);
 			}
@@ -69,7 +69,7 @@ public:
 	 */
 	template<typename T>
 	ReadCompGraph(const std::vector<T> & reads) {
-		for (const auto & pos : iter::range(reads.size())) {
+		for (const auto pos : iter::range(reads.size())) {
 			this->addNode(getSeqBase(reads[pos]).name_,
 					std::make_shared<seqInfo>(getSeqBase(reads[pos])));
 		}

@@ -76,7 +76,7 @@ class cluster : public baseCluster {
 
     double totalAmountOfReads = 0;
     //std::vector<T> clusteredReads;
-    for (const auto & readPos : iter::range(len(inReads))) {
+    for (const auto readPos : iter::range(len(inReads))) {
       //clusteredReads.push_back(r);
       totalAmountOfReads += inReads[readPos].seqBase_.cnt_;
       readsBySize[inReads[readPos].seqBase_.cnt_].emplace_back(readPos);
@@ -169,7 +169,7 @@ cluster getConsensus(const std::vector<T> & reads, aligner & alignerObj,
 	cluster mainCluster(getSeqBase(*reads.begin()));
 	if(reads.size() > 1){
 		std::vector<cluster> inClusters;
-		for(const auto & readPos : iter::range<uint64_t>(1,reads.size())){
+		for(const auto readPos : iter::range<uint64_t>(1,reads.size())){
 			inClusters.emplace_back(cluster(getSeqBase(reads[readPos])));
 		}
 		for(const auto & clus : inClusters){

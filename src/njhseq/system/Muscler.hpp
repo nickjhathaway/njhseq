@@ -757,7 +757,7 @@ public:
 				}
 			}
 
-			for (const auto & alnSeqPos : iter::range(refSeqs.size(), allSeqs.size())) {
+			for (const auto alnSeqPos : iter::range(refSeqs.size(), allSeqs.size())) {
 				uint32_t spanningSpots = 0;
 				uint32_t nonZeroSpanningSpots = 0;
 				double score = 0;

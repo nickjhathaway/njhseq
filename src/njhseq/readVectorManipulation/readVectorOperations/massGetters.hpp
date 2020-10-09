@@ -268,7 +268,7 @@ bool checkIfReadVecsAreSame(const std::vector<T> & reads1,
 		std::cout << "size of 2: " << reads2.size() << std::endl;
 		return false;
 	}
-	for(const auto & readPos : iter::range(len(reads1))){
+	for(const auto readPos : iter::range(len(reads1))){
 		if(reads1[readPos].seqBase_.seq_ != reads2[readPos].seqBase_.seq_){
 			std::cout << "failed seq_ on read " << readPos << std::endl;
 			std::cout << "seq_ of 1: " << reads1[readPos].seqBase_.seq_ << std::endl;

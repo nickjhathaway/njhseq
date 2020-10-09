@@ -87,8 +87,8 @@ double clusterSet::getRMSE() const {
 	for (const auto & clus : clusters_) {
 		auto sampInfosNames = getVectorOfMapKeys(clus.sampInfos());
 		std::vector<double> differences;
-		for (const auto & pos : iter::range(sampInfosNames.size())) {
-			for (const auto & subPos : iter::range(pos)) {
+		for (const auto pos : iter::range(sampInfosNames.size())) {
+			for (const auto subPos : iter::range(pos)) {
 				if (pos == subPos) {
 					continue;
 				}

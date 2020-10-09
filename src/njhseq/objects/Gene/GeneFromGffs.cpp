@@ -291,7 +291,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> GeneFromGffs::gene
 			if(mRnaRegion.reverseSrand_){
 				cDna = cdsRegions.back().extractSeq(tReader);
 				cDnaAln = cDna;
-				for(const auto & pos : iter::range<uint32_t>(1, cdsRegions.size())){
+				for(const auto pos : iter::range<uint32_t>(1, cdsRegions.size())){
 					//add in gaps
 					uint32_t gapSize = cdsRegions[cdsRegions.size() - pos].start_ - cdsRegions[cdsRegions.size() - 1 - pos].start_ - cdsRegions[cdsRegions.size() - 1 - pos].getLen();
 					cDnaAln.append(std::string(gapSize, '-'));
@@ -301,7 +301,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> GeneFromGffs::gene
 			}else{
 				cDna = cdsRegions.front().extractSeq(tReader);
 				cDnaAln = cDna;
-				for(const auto & pos : iter::range<uint32_t>(1, cdsRegions.size())){
+				for(const auto pos : iter::range<uint32_t>(1, cdsRegions.size())){
 					//add in gaps
 					uint32_t gapSize = cdsRegions[pos].start_ - cdsRegions[pos - 1].start_ - cdsRegions[pos - 1].getLen();
 					cDnaAln.append(std::string(gapSize, '-'));

@@ -429,7 +429,7 @@ std::unordered_map<std::string, std::vector<seqInfo>> MultiGenomeMapper::getRefS
 				std::vector<seqInfo> genomeSeqs;
 				std::string refSeq = "";
 				uint32_t extractionCount = 0;
-				for(const auto reg : allRegions.at(genome)){
+				for(const auto & reg : allRegions.at(genome)){
 					refReader[reg.chrom_]->getSequence(refSeq, reg.start_,
 							reg.end_, reg.reverseSrand_);
 					genomeSeqs.emplace_back(genome, refSeq);
@@ -445,7 +445,7 @@ std::unordered_map<std::string, std::vector<seqInfo>> MultiGenomeMapper::getRefS
 				}
 				{
 					std::lock_guard<std::mutex> lock(retMut);
-					for(const auto & genomeSeqPos : iter::range(genomeSeqs.size())){
+					for(const auto genomeSeqPos : iter::range(genomeSeqs.size())){
 						ret[genome].emplace_back(genomeSeqs[genomeSeqPos] );
 					}
 				}
@@ -645,7 +645,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 					}
 				}
 				if(!pars.keepBestOnly){
-					for(const auto & scorePos : iter::range<uint32_t>(1, scores.size())){
+					for(const auto scorePos : iter::range<uint32_t>(1, scores.size())){
 						MetaDataInName refMeta;
 						refMeta.addMeta("genome", genome);
 						refMeta.addMeta("chrom",  regions[scores[scorePos].second].chrom_);

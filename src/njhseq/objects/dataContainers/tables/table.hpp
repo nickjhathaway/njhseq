@@ -309,7 +309,7 @@ public:
 	table extractByComp(uint32_t colPos, UnaryPredicate p) const {
 		table out(columnNames_);
 		if (colPos < columnNames_.size()) {
-			for (const auto & rowPos : iter::range(content_.size())) {
+			for (const auto rowPos : iter::range(content_.size())) {
 				if (p(content_[rowPos][colPos])) {
 					out.content_.emplace_back(content_[rowPos]);
 				}

@@ -22,7 +22,7 @@ HmmerDomainHitTab::HmmerDomainHitTab(const std::string & line) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error there should be 22 items not "
 				<< toks.size() << "\n";
-		for(const auto & pos : iter::range(toks.size())){
+		for(const auto pos : iter::range(toks.size())){
 			ss << pos << ": " << toks[pos] << "\n";
 		}
 		throw std::runtime_error { ss.str() };
