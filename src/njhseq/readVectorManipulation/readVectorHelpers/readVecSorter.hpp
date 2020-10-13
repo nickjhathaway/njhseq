@@ -192,24 +192,14 @@ class readVecSorter {
   template <typename T>
   static void sortByTotalCountAE(std::vector<T>& vec, bool decending) {
   	sortReadVectorFunc<T>(vec, [](const T& first, const T& second) -> bool{
-  		/*
-			if (getSeqBase(first).cnt_ == getSeqBase(second).cnt_) {
-				if (getRef(first).averageErrorRate < getRef(second).averageErrorRate) {
-					return true;
-				} else {
-					return false;
-				}
-			} else {
-				return getSeqBase(first).cnt_ > getSeqBase(second).cnt_;
-			}*/
   		if (roundDecPlaces(getSeqBase(first).cnt_, 2) == roundDecPlaces(getSeqBase(second).cnt_, 2) ) {
-  			if (roundDecPlaces(getRef(first).averageErrorRate, 4)  < roundDecPlaces(getRef(second).averageErrorRate, 4) ) {
+  			if (roundDecPlaces(getSeqBase(first).getAverageErrorRate(), 4)  < roundDecPlaces(getSeqBase(second).getAverageErrorRate(), 4) ) {
   				return true;
   			} else {
   				return false;
   			}
   		} else {
-  			return roundDecPlaces(getSeqBase(first).cnt_, 4)  > roundDecPlaces(getSeqBase(second).cnt_, 4) ;
+  			return roundDecPlaces(getSeqBase(first).cnt_, 2)  > roundDecPlaces(getSeqBase(second).cnt_, 2) ;
   		}
     }, decending);
   }
@@ -218,16 +208,6 @@ class readVecSorter {
   static void sortByTotalCountAE(std::vector<T>& vec,
   		const std::vector<uint32_t>& positions, bool decending) {
   	sortReadVectorFunc<T>(vec, positions, [](const T& first, const T& second) -> bool{
-  		/*
-			if (getSeqBase(first).cnt_ == getSeqBase(second).cnt_) {
-				if (getRef(first).averageErrorRate < getRef(second).averageErrorRate) {
-					return true;
-				} else {
-					return false;
-				}
-			} else {
-				return getSeqBase(first).cnt_ > getSeqBase(second).cnt_;
-			}*/
   		if (roundDecPlaces(getSeqBase(first).cnt_, 2) == roundDecPlaces(getSeqBase(second).cnt_, 2) ) {
   			if (roundDecPlaces(getSeqBase(first).getAverageErrorRate(), 4)  < roundDecPlaces(getSeqBase(second).getAverageErrorRate(), 4) ) {
   				return true;

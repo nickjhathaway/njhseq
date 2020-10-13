@@ -146,7 +146,8 @@ class cluster : public baseCluster {
 	struct snpBreakoutPars {
 		uint32_t minSnps = 1;
 		double snpFreqCutOff = 0.01;
-		uint32_t hardCutOff = 3;
+		uint32_t hardCutOff = 3; //! there needs to be at least this many reads with the snp to count
+		double hardSnpFreqCutOff = 0; //! range 0-1, only use snps with frequencies above this number
 		QualScorePars qScorePars;
 	};
   std::vector<cluster> breakoutClustersBasedOnSnps(aligner & alignerObj, const snpBreakoutPars& pars );

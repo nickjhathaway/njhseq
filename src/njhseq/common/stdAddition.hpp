@@ -29,6 +29,8 @@
 
 namespace njhseq {
 
+namespace bfs = boost::filesystem;
+
 template<typename T>
 typename T::size_type len(const T & con){
 	return con.size();
