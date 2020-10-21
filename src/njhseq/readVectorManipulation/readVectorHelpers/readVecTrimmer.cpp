@@ -85,6 +85,7 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 			}
 			originalInputSeqStartForOutput = 0;
 		} else {
+
 			if('-' == alignerObj.alignObjectA_.seqBase_.seq_.back()){
 				//back seq went further than front of ref seq
 				auto lastRefAlnPositionInRealalignment = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
@@ -99,7 +100,7 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 			}
 		}
 		auto startPositionForBackSeqForOutput = 0;
-		if('-' != alignerObj.alignObjectA_.seqBase_.seq_.front() ){
+		if('-' == alignerObj.alignObjectA_.seqBase_.seq_.front() ){
 			startPositionForBackSeqForOutput = alignerObj.getSeqPosForAlnBPos(alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-'));
 		}
 		auto outSeq = backSeq.getSubRead(startPositionForBackSeqForOutput, endPositionForBackSeqForOutput - startPositionForBackSeqForOutput);
@@ -181,9 +182,9 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 		auto backRefPosRaw =    alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-')) + 1;
 		auto backRefPosAdjusted = backRefPosRaw;
 
-		if(backRefPosAdjusted > pars.padding_){
+		if (backRefPosAdjusted > pars.padding_) {
 			backRefPosAdjusted -= pars.padding_;
-		}else{
+		} else {
 			backRefPosAdjusted = 0;
 		}
 
@@ -194,7 +195,8 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 
 		alignerObj.alignCacheGlobal(refBackSeq, frontInputSeq);
 		alignerObj.rearrangeObjsGlobal(refBackSeq, frontInputSeq);
-
+//		debugWriter.write(alignerObj.alignObjectA_);
+//		debugWriter.write(alignerObj.alignObjectB_);
 		auto remainderInputSeq = seq.getSubRead(inputFrontEndPos);
 
 		uint32_t positionOfFrontInputSeqInBackRef = 0;
@@ -234,6 +236,8 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 		}
 
 		auto outSeq = remainderInputSeq.getSubRead(0, remainderEndPosForOutput);
+//		std::cout << "positionOfFrontSeqInOriginalRef: " << positionOfFrontSeqInOriginalRef  << std::endl;
+//		std::cout << "backRefPosRaw: " << backRefPosRaw  << std::endl;
 		if (positionOfFrontSeqInOriginalRef <= backRefPosRaw) {
 			outSeq.append(frontInputSeq.getSubRead(frontSeqStartPosForOutput, frontSeqEndPosForOutput - frontSeqStartPosForOutput));
 			if(pars.mark_){

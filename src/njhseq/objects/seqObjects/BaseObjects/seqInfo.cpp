@@ -320,12 +320,13 @@ void seqInfo::prepend(const std::string& seq,
 		seq_.insert(seq_.begin(), seq.begin(), seq.end());
 		prependVec(qual_, std::vector<uint32_t>(seq.size(), qual.front()));
 	} else if (qual.size() == seq.size()) {
+
 		seq_.insert(seq_.begin(), seq.begin(), seq.end());
 		prependVec(qual_, qual);
 	} else {
 		std::stringstream ss;
 		ss << "Need to supply either single a quality or same amount of "
-				"quality score for seq length" << "\n";
+				  "quality score for seq length" << "\n";
 		ss << "trying to add " << qual.size() << " qualities and a seq of length "
 				<< seq.length() << "\n";
 		throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };

@@ -113,7 +113,7 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 		}
 	}
 //	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	std::cout << "pars.hardCutOff: " << pars.hardCutOff << std::endl;
+//	std::cout << "pars.hardCutOff: " << pars.hardCutOff << std::endl; seqObjects/clusters/
 //	std::cout << "mismatches.size(): " << mismatches.size() << std::endl;
 	std::unordered_map<uint32_t, std::unordered_map<char, uint32_t>> mismatchesAboveCutOff;
 	for (const auto & position : mismatches) {

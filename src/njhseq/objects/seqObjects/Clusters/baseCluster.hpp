@@ -55,9 +55,18 @@ class baseCluster : public readObject {
 
   void addRead(const baseCluster& newRead);
 
-  void calculateConsensus(aligner& alignerObj, bool setToConsensus);
-  void calculateConsensusTo(const seqInfo & seqBase, aligner& alignerObj, bool setToConsensus);
-  void calculateConsensusToCurrent(aligner& alignerObj, bool setToConsensus);
+	struct calculateConsensusPars {
+		calculateConsensusPars(bool setToCon) :
+				setToConsensus(setToCon) {
+
+		}
+		bool setToConsensus { true };
+		bool convergeConsensus { false };
+		uint32_t convergeAttempts = 5;
+	};
+  void calculateConsensus(aligner& alignerObj,                            calculateConsensusPars conPars);
+  bool calculateConsensusTo(const seqInfo seqBase, aligner& alignerObj, calculateConsensusPars conPars);
+  void calculateConsensusToCurrent(aligner& alignerObj,                   calculateConsensusPars conPars);
   // consensus comparison
   // get info about the reads in the reads vectors
   VecStr getReadNames() const;
