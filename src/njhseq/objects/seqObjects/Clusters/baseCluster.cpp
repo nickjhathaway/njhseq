@@ -463,12 +463,12 @@ bool baseCluster::calculateConsensusTo(
 		}
 		{
 //			std::cout << __FILE__ << " " << __LINE__ << std::endl;
-			auto debugOpts = SeqIOOptions::genFastqOut("test.fastq");
-			debugOpts.out_.append_ = true;
-			SeqOutput writter(debugOpts);
-			auto outDebug = calcConsensusInfo_;
-			outDebug.name_ = njh::pasteAsStr(convergeCount);
-			writter.openWrite(outDebug);
+//			auto debugOpts = SeqIOOptions::genFastqOut("test.fastq");
+//			debugOpts.out_.append_ = true;
+//			SeqOutput writter(debugOpts);
+//			auto outDebug = calcConsensusInfo_;
+//			outDebug.name_ = njh::pasteAsStr(convergeCount);
+//			writter.openWrite(outDebug);
 //			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}
 
