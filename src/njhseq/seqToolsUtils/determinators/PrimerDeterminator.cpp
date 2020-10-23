@@ -45,6 +45,25 @@ size_t PrimerDeterminator::getMaxPrimerSize() const {
 	return ret;
 }
 
+size_t PrimerDeterminator::getMinPrimerSize() const {
+	size_t ret = std::numeric_limits<size_t>::max();
+	for (const auto & p : primers_) {
+		for(const auto & fwd : p.second.fwds_){
+			if (len(fwd.info_) < ret) {
+				ret = len(fwd.info_);
+			}
+		}
+		for(const auto & rev : p.second.revs_){
+			if (len(rev.info_) < ret) {
+				ret = len(rev.info_);
+			}
+		}
+	}
+	return ret;
+}
+
+
+
 PrimerDeterminator::PrimerDeterminator(const table & primers) {
 
 
