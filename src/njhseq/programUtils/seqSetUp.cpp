@@ -442,9 +442,9 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 				addWarning("If supplying -fastq1 need to also have -fastq2");
 				failed_ = true;
 			}
-			/*
-			setOption(pars_.ioOptions_.revComplMate_, "--complementMate",
-					"Whether to complement the sequence in the mate file");*/
+
+			setOption(pars_.ioOptions_.revComplMate_, "--rCompMate",
+					"Whether to reverse complement the sequence in the mate file");
 		}
 		if (readInFormatsFound.front() == "--fastq1gz") {
 			if (!setOption(pars_.ioOptions_.secondName_, "--fastq2gz",
@@ -452,9 +452,8 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 				addWarning("If supplying -fastq1gz need to also have -fastq2gz");
 				failed_ = true;
 			}
-			/*
-			setOption(pars_.ioOptions_.revComplMate_, "--complementMate",
-					"Whether to complement the sequence in the mate file");*/
+			setOption(pars_.ioOptions_.revComplMate_, "--rCompMate",
+					"Whether to reverse complement the sequence in the mate file");
 		}
 		//setOption(pars_.ioOptions_.out_.outFilename_, "--out", "Name of the out sequence file");
 		return true;

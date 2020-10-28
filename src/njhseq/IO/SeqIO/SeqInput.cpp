@@ -20,7 +20,7 @@
 
 #include "SeqInput.hpp"
 #include "njhseq/seqToolsUtils/seqToolsUtils.hpp"
-
+#include <TwoBit.h>
 
 namespace njhseq {
 

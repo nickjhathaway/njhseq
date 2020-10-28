@@ -633,6 +633,8 @@ SeqIOOptions::SeqIOOptions(const std::string & jsonStr) {
 	removeGaps_ = root.get("removeGaps_", false).asBool();
 	includeWhiteSpaceInName_ = root.get("includeWhiteSpaceInName_", true).asBool();
 	extra_ = root.get("extra_", true).asInt();
+
+
 }
 
 Json::Value SeqIOOptions::toJson() const {

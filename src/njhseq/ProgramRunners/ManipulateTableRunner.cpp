@@ -402,26 +402,57 @@ int ManipulateTableRunner::countColumn(
 		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.processDefaultProgram(true);
-	std::string columnName = "";
+	VecStr columnName;
 	setUp.setOption(columnName, "--columnName", "columnName", true);
 	setUp.finishSetUp(std::cout);
-	auto toks = tokenizeString(columnName, ",");
-	table inTab(setUp.ioOptions_);
-	if (toks.size() == 1) {
-		auto counts = inTab.countColumn(columnName);
-		table ret(counts, { "element", "count" });
-		if (setUp.sortByColumn_ != "") {
-			ret.sortTable(setUp.sortByColumn_, setUp.decending_);
-		}
-		ret.outPutContents(setUp.ioOptions_);
-	} else {
-		auto ret = inTab.countColumn(toks);
-		if (setUp.sortByColumn_ != "") {
-			ret.sortTable(setUp.sortByColumn_, setUp.decending_);
-		}
-		ret.outPutContents(setUp.ioOptions_);
-	}
+	TableReader inTabReader(setUp.ioOptions_);
 
+	inTabReader.header_.checkForColumnsThrow(columnName, __PRETTY_FUNCTION__);
+
+	table ret;
+	VecStr row;
+	if (columnName.size() == 1) {
+
+		auto colPos = inTabReader.header_.getColPos(columnName.front());
+
+		std::unordered_map<std::string, uint64_t> counts;
+		while(inTabReader.getNextRow(row)){
+			++counts[row[colPos]];
+		}
+		ret = table(counts, VecStr{columnName.front(), "count"});
+	} else {
+		std::map<std::string, uint32_t> counts;
+		std::vector<uint32_t> colPositions(columnName.size());
+		for(const auto pos : iter::range(columnName.size())){
+			colPositions[pos] = inTabReader.header_.getColPos(columnName[pos]);
+		}
+		while(inTabReader.getNextRow(row)){
+			std::string codedName = "";
+			for(const auto & pos : colPositions){
+				if(pos == colPositions.back()){
+					codedName+= row[pos];
+				}else{
+					codedName+= row[pos] + "SPLITONTHIS";
+				}
+			}
+			++counts[codedName];
+		}
+		VecStr outColumnNames;
+		for(const auto & pos : colPositions){
+			outColumnNames.emplace_back(columnName[pos]);
+		}
+		outColumnNames.emplace_back("count");
+		table ret(outColumnNames);
+		for(const auto & c : counts){
+			auto toks = tokenizeString(c.first,"SPLITONTHIS");
+			toks.emplace_back(estd::to_string(c.second));
+			ret.content_.emplace_back(toks);
+		}
+	}
+	if (setUp.sortByColumn_ != "") {
+		ret.sortTable(setUp.sortByColumn_, setUp.decending_);
+	}
+	ret.outPutContents(setUp.ioOptions_);
 	return 0;
 }
 
