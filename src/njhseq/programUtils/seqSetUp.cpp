@@ -559,6 +559,8 @@ void seqSetUp::processWritingOptions(OutOptions & opts) {
 bool seqSetUp::processRefFilename(bool required) {
 	setOption(pars_.refIoOptions_.processed_, "--refProcessed",
 			"Reference Name Has Abundance Info");
+	setOption(pars_.refIoOptions_.lowerCaseBases_, "--refLower",
+			"What to do about lower case bases in ref seqs");
 	if (commands_.hasFlagCaseInsenNoDash("--refFastq")) {
 		pars_.refIoOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQ;
 		pars_.refIoOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;

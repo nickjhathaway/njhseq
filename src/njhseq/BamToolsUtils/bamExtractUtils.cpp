@@ -4245,6 +4245,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //			std::cout << "\tgetAlnLen(*search): " << getAlnLen(*search) << std::endl;
 //			std::cout << "\tnjh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_): " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
 //			std::cout << "\tsearchIn: " << njh::colorBool(searchIn) << std::endl;
+
 			if (searchIn &&
 					getAlnLen(*search) >= extractPars.minAlnMapSize_) {
 //				std::cout << "\tgetSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
@@ -4285,6 +4286,11 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 						bWriter.SaveAlignment(*search);
 					}else{
 						++ret.orphansFiltered_;
+//						std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//						std::cout << "getAlnLen(*search) >= extractPars.minAlnMapSize_: " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
+//						std::cout << "getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
+//						std::cout << "pass: " << njh::colorBool(pass) << std::endl;
+//						std::cout <<  "searchIn: " <<njh::colorBool(searchIn) << std::endl;
 					}
 				}else{
 					//write filterd orphan
@@ -4295,6 +4301,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			}else{
 				//write filterd orphan
 				++ret.orphansFiltered_;
+//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				std::cout << "getAlnLen(*search) >= extractPars.minAlnMapSize_: " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
+//				std::cout << "getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
+//				std::cout <<  "searchIn: " <<njh::colorBool(searchIn) << std::endl;
 				singleFilteredWriter.openWrite(bamAlnToSeqInfo(*search));
 				bWriter.SaveAlignment(*search);
 			}

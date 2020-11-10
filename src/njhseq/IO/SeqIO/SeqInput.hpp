@@ -155,7 +155,12 @@ public:
 		T seq;
 		while(reader.readNextRead(seq)){
 			readVec::getMaxLength(seq, maxLength);
+		  readVec::handelLowerCaseBases(seq, seqOptions.lowerCaseBases_);
+		  if (seqOptions.removeGaps_) {
+		    readVec::removeGapsFromReads(seq);
+		  }
 			ret.emplace_back(seq);
+
 		}
 		return ret;
 	}

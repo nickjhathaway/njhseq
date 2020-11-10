@@ -61,6 +61,10 @@ template <typename T>
 void removeGapsFromReads(std::vector<T>& reads) {
   njh::for_each(reads, [](T& read) { getSeqBase(read).removeGaps(); });
 }
+template <typename T>
+void removeGapsFromReads(T& seq) {
+	getSeqBase(seq).removeGaps();
+}
 // options to handle lower case letters
 template <typename T>
 void removeLowerCaseBases(std::vector<T>& reads) {
