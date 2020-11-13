@@ -442,12 +442,13 @@ int ManipulateTableRunner::countColumn(
 			outColumnNames.emplace_back(columnName[pos]);
 		}
 		outColumnNames.emplace_back("count");
-		table ret(outColumnNames);
+		ret = table(outColumnNames);
 		for(const auto & c : counts){
 			auto toks = tokenizeString(c.first,"SPLITONTHIS");
 			toks.emplace_back(estd::to_string(c.second));
 			ret.content_.emplace_back(toks);
 		}
+
 	}
 	if (setUp.sortByColumn_ != "") {
 		ret.sortTable(setUp.sortByColumn_, setUp.decending_);
