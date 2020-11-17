@@ -260,7 +260,7 @@ VecStr sampleCluster::getClusterInfoVec() const{
   		, getReadWeightedAveragedFrac()
 			, seqBase_.cnt_
 			, numberOfRuns()
-			, seqBase_.seq_
+//			, seqBase_.seq_
 			, reads_.size()
 			, getChimeraInfoVec()
 			, vectorToString(readVec::getNames(reads_), ","));
@@ -268,7 +268,8 @@ VecStr sampleCluster::getClusterInfoVec() const{
 
 VecStr sampleCluster::getClusterInfoHeaderVec() {
 	return VecStr { "c_AveragedFrac", "c_ReadFrac", "c_ReadCnt", "c_RepCnt",
-			"c_Consensus", "c_InputCnt", "c_ChiReadCnt", "c_ChiClusCnt",
+		//"c_Consensus",
+			"c_InputCnt", "c_ChiReadCnt", "c_ChiClusCnt",
 			"c_ChiRepCnt", "c_InputNames" };
 }
 
@@ -441,9 +442,10 @@ std::string sampleCluster::getPopInfoHeader(const std::string & delim){
 
 VecStr sampleCluster::getPopInfoHeaderVec() {
 
-	return VecStr { "h_popUID", "p_TotalPopulationSampCnt", "h_AATyped", "h_PopFrac",
+	return VecStr {
+		  "h_popUID", "p_TotalPopulationSampCnt", "h_AATyped", "h_PopFrac",
 			"h_SumOfAllFracs", "h_AvgFracFoundAt", "h_ReadFrac", "h_SampCnt",
-			"h_SampFrac", "h_ReadCnt", "h_ClusterCnt", "h_clusterNames" };
+			"h_SampFrac", "h_ReadCnt", "h_ClusterCnt", "h_Consesus" };
 }
 
 VecStr sampleCluster::getPopInfoVec(double popReadCnt, uint32_t popClusNum,
@@ -463,7 +465,7 @@ VecStr sampleCluster::getPopInfoVec(double popReadCnt, uint32_t popClusNum,
 			, sampleClusters_.size() / static_cast<double>(sampNum)
 			, seqBase_.cnt_
 			, reads_.size()
-			, vectorToString(readVec::getNames(reads_), ","));
+			, seqBase_.seq_);
 }
 
 std::string sampleCluster::getPopInfo(double popReadCnt, uint32_t popClusNum,
