@@ -283,7 +283,7 @@ std::string sampleCluster::getClusterInfo(const std::string& delim ) const{
   		<< delim << getReadWeightedAveragedFrac()
 			<< delim << seqBase_.cnt_
 			<< delim << numberOfRuns()
-			<< delim << seqBase_.seq_
+			//<< delim << seqBase_.seq_
 			<< delim << reads_.size()
 			<< delim << getChimeraInfo(delim)
 			<< delim << vectorToString(readVec::getNames(reads_), ",");
