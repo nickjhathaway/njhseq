@@ -217,33 +217,42 @@ int ManipulateTableRunner::countRowLengths(
 int ManipulateTableRunner::tableExtractCriteria(
 		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
+	setUp.description_ = "Extract table contents by filtering on a column, by default will take values higher than cut off, --lessThan to take values less than cut off";
 	std::string columnName = "";
 	double cutOff = 1;
 	bool lessThan = false;
 	setUp.processDefaultProgram(true);
-	setUp.setOption(columnName, "--columnName",
-			"Name of the column to extract on using cutOff", true);
-	setUp.setOption(cutOff, "--cutOff",
-			"Cut off of column to be extract, not inclusive, can be negative");
-	setUp.setOption(lessThan, "--lessThan",
-			"Take numbers less than value in cutOff flag");
+	setUp.setOption(columnName, "--columnName", "Name of the column to extract on using cutOff", true);
+	setUp.setOption(cutOff, "--cutOff", "Cut off of column to be extract, not inclusive");
+	setUp.setOption(lessThan, "--lessThan", "Take numbers less than value in cutOff flag");
 	setUp.finishSetUp(std::cout);
-	table inTab(setUp.ioOptions_);
-	table outTab;
+
+	TableReader inTable(setUp.ioOptions_);
+	inTable.header_.containsColumn(columnName);
+	OutputStream out(setUp.ioOptions_.out_);
+	if(setUp.ioOptions_.hasHeader_){
+		inTable.header_.outPutContents(out, setUp.ioOptions_.outDelim_);
+	}
+	std::function<bool(const std::string & str)> comp;
 	if (lessThan) {
-		auto compLess = [cutOff](const std::string & str) {
+		comp = [cutOff](const std::string & str) {
 			double numValue = std::stod(str);
 			return numValue < cutOff;
 		};
-		outTab = inTab.extractByComp(columnName, compLess);
 	} else {
-		auto compGreater = [cutOff](const std::string & str) {
+		comp = [cutOff](const std::string & str) {
 			double numValue = std::stod(str);
 			return numValue > cutOff;};
-		outTab = inTab.extractByComp(columnName, compGreater);
 	}
-	outTab.hasHeader_ = setUp.ioOptions_.hasHeader_;
-	outTab.outPutContents(setUp.ioOptions_);
+
+	VecStr row;
+	auto colPos = inTable.header_.getColPos(columnName);
+	while(inTable.getNextRow(row)){
+		if(comp(row[colPos])){
+			out << njh::conToStr(row, setUp.ioOptions_.outDelim_) << "\n";
+		}
+	}
+
 	return 0;
 }
 
