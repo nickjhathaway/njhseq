@@ -1180,14 +1180,14 @@ table table::countColumn(const std::vector<uint32_t> & colPositions){
 }
 
 table table::extractNumColGreater(const std::string & colName, double cutOff)const{
-  auto comp = [&](const std::string & str){
+  auto comp = [&cutOff](const std::string & str){
   	double numValue = std::stod(str);
   	return numValue > cutOff;
   };
   return extractByComp(colName, comp);
 }
 table table::extractNumColGreater(uint32_t colPos, double cutOff)const{
-  auto comp = [&](const std::string & str){
+  auto comp = [&cutOff](const std::string & str){
   	double numValue = std::stod(str);
   	return numValue > cutOff;
   };
@@ -1204,10 +1204,12 @@ void table::checkForColumnsThrow(const VecStr & requiredColumns, const std::stri
 	}
 	if (!columnsNotFound.empty()) {
 		std::stringstream ss;
-		ss << "Need to have " << vectorToString(requiredColumns, ",") << std::endl;
-		ss << "Did not find " << vectorToString(columnsNotFound, ",") << std::endl;
-		ss << "Only have " << vectorToString(columnNames_, ",")
-				<< std::endl;
+		ss << "Need to have " << njh::conToStrEndSpecial(requiredColumns, ",", " and ") << '\n';
+		ss << "Did not find " << njh::conToStrEndSpecial(columnsNotFound, ",", " or ") << '\n';
+		ss << "Only have " << '\n'
+		for(const auto & col : columnNames_){
+			ss << "\t" << col << '\n';
+		}
 		throw std::runtime_error { ss.str() };
 	}
 }
