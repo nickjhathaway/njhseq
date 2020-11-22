@@ -32,7 +32,7 @@ namespace njhseq {
 
 substituteMatrix::substituteMatrix(){
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	setWithSimple(1,-1);
+	setWithSimple(2,-2);
 }
 
 substituteMatrix::substituteMatrix(int32_t match, int32_t mismatch){

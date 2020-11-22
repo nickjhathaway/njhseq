@@ -46,8 +46,7 @@ class alnParts {
 public:
 	alnParts();
   alnParts(uint64_t maxSize, const gapScoringParameters& gapScores);
-  alnParts(uint64_t maxSize, const gapScoringParameters& gapScores,
-           const substituteMatrix& scoring);
+  alnParts(uint64_t maxSize, const gapScoringParameters& gapScores, const substituteMatrix& scoring);
 
   int32_t score_ = 0;
   uint64_t maxSize_;

@@ -113,7 +113,7 @@ void AlignmentResults::setAlignedObjects(){
 		ss << __PRETTY_FUNCTION__ << ", error setting comparison, refSeq hasn't been added yet"<< "\n";
 		throw std::runtime_error { ss.str() };
 	}
-	aligner alignerObj(500, gapScoringParameters(5,1), substituteMatrix(1,-1));
+	aligner alignerObj(500, gapScoringParameters(5,1), substituteMatrix(2,-2));
 	alignerObj.weighHomopolymers_ = false;
 	alignerObj.countEndGaps_ = false;
 	auto alnInfo = bamAlnToAlnInfoLocal(bAln_);
