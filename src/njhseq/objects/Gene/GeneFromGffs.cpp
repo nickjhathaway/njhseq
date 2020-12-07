@@ -67,68 +67,77 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 	std::stringstream missingMessage;
 	bool failed = false;
 	if(nullptr == gene_){
-		missingMessage << "input didn't have a record with feature type that match any of the following allowable gnee feature types " << njh::conToStrEndSpecial(allowableGeneFeatures, ", ", " or ") << "\n";
+		missingMessage << "input didn't have a record with feature type that match any of the following allowable gene feature types " << njh::conToStrEndSpecial(allowableGeneFeatures, ", ", " or ") << "\n";
 		failed = true;
 	}
 
-	if(!failed && mRNAs_.empty() && "RefSeq" == gene_->source_){
+	if(!failed && mRNAs_.empty() && CDS_.empty() && "RefSeq" == gene_->source_){
 		mRNAs_.emplace_back(gene_);
 	}
 
-	//check that CDS and exons have parents that are in mRNAs
-	for(const auto & CD : CDS_){
-		bool found = false;
-		for(const auto & mRNA : mRNAs_){
-			if(mRNA->getAttr("ID") == CD.first){
-				found = true;
-				break;
-			}
-		}
-		if(!found){
-			missingMessage << "CDS_ has records for " << CD.first << " but not fond in mRNAs_" << "\n";
-			missingMessage << "options: " << njh::conToStr(njh::convert<std::shared_ptr<GFFCore>,std::string>(mRNAs_, [](const std::shared_ptr<GFFCore> & gffRecord){
-				return gffRecord->getAttr("ID");
-			}), ",") << "\n";
-			failed = true;
-		}
-	}
-	for(const auto & exon : exons_){
-		bool found = false;
-		for(const auto & mRNA : mRNAs_){
-			if(mRNA->getAttr("ID") == exon.first){
-				found = true;
-				break;
-			}
-		}
-		if(!found){
-			missingMessage << "exons_ has records for " << exon.first << " but not fond in mRNAs_" << "\n";
-			missingMessage << "options: " << njh::conToStr(njh::convert<std::shared_ptr<GFFCore>,std::string>(mRNAs_, [](const std::shared_ptr<GFFCore> & gffRecord){
-				return gffRecord->getAttr("ID");
-			}), ",") << "\n";
-			failed = true;
-		}
-	}
-	//check to see that mRNAs have CDS and exon records
-	//if there are no exons, then create them from the CDS
-	for(const auto & mRNA : mRNAs_){
-		if (!njh::in(mRNA->getAttr("ID"), CDS_)
-				&& !njh::in(mRNA->getAttr("ID"), exons_)) {
-			missingMessage << mRNA->getAttr("ID") << " missing from CDS_ and exons_, gene records should have either CDS or exon features" << "\n";
-			missingMessage << "options: " << njh::conToStr(njh::getVecOfMapKeys(CDS_), ",") << "\n";
-			failed = true;
-		} else if (!njh::in(mRNA->getAttr("ID"), CDS_)
-				&& njh::in(mRNA->getAttr("ID"), exons_)) {
-			//this is a lazy way of doing this but most of the other functions assume CDS_ always has records
-			CDS_[mRNA->getAttr("ID")] = exons_[mRNA->getAttr("ID")];
-		}
-		//apparently some gff files only have CDS and not exons so the bellow is now commented out
-//		if(!njh::in(mRNA->getAttr("ID"), exons_)){
-//			missingMessage << mRNA->getAttr("ID") << " missing from exons_" << "\n";
-//			missingMessage << "options: " << njh::conToStr(njh::getVecOfMapKeys(exons_), ",") << "\n";
-//			failed = true;
-//		}
-	}
+	//this is a dirty fix for bacteria gff since they won't have mRNA
 
+	if(mRNAs_.empty() && 1 == CDS_.size() && 1 == CDS_.begin()->second.size()){
+		for(const auto & cds : CDS_){
+			//again very hacky, should do a more formal fix than this
+			mRNAs_.emplace_back(cds.second.front());
+			CDS_[cds.second.front()->getIDAttr()].emplace_back(cds.second.front());
+		}
+	}else{
+		//check that CDS and exons have parents that are in mRNAs
+		for(const auto & CD : CDS_){
+			bool found = false;
+			for(const auto & mRNA : mRNAs_){
+				if(mRNA->getAttr("ID") == CD.first){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				missingMessage << "CDS_ has records for " << CD.first << " but not fond in mRNAs_" << "\n";
+				missingMessage << "options: " << njh::conToStr(njh::convert<std::shared_ptr<GFFCore>,std::string>(mRNAs_, [](const std::shared_ptr<GFFCore> & gffRecord){
+					return gffRecord->getAttr("ID");
+				}), ",") << "\n";
+				failed = true;
+			}
+		}
+		for(const auto & exon : exons_){
+			bool found = false;
+			for(const auto & mRNA : mRNAs_){
+				if(mRNA->getAttr("ID") == exon.first){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				missingMessage << "exons_ has records for " << exon.first << " but not fond in mRNAs_" << "\n";
+				missingMessage << "options: " << njh::conToStr(njh::convert<std::shared_ptr<GFFCore>,std::string>(mRNAs_, [](const std::shared_ptr<GFFCore> & gffRecord){
+					return gffRecord->getAttr("ID");
+				}), ",") << "\n";
+				failed = true;
+			}
+		}
+		//check to see that mRNAs have CDS and exon records
+		//if there are no exons, then create them from the CDS
+		for(const auto & mRNA : mRNAs_){
+			if (!njh::in(mRNA->getAttr("ID"), CDS_)
+					&& !njh::in(mRNA->getAttr("ID"), exons_)) {
+				missingMessage << mRNA->getAttr("ID") << " missing from CDS_ and exons_, gene records should have either CDS or exon features" << "\n";
+				missingMessage << "options: " << njh::conToStr(njh::getVecOfMapKeys(CDS_), ",") << "\n";
+				failed = true;
+			} else if (!njh::in(mRNA->getAttr("ID"), CDS_)
+					&& njh::in(mRNA->getAttr("ID"), exons_)) {
+				//this is a lazy way of doing this but most of the other functions assume CDS_ always has records
+				CDS_[mRNA->getAttr("ID")] = exons_[mRNA->getAttr("ID")];
+			}
+			//apparently some gff files only have CDS and not exons so the bellow is now commented out
+	//		if(!njh::in(mRNA->getAttr("ID"), exons_)){
+	//			missingMessage << mRNA->getAttr("ID") << " missing from exons_" << "\n";
+	//			missingMessage << "options: " << njh::conToStr(njh::getVecOfMapKeys(exons_), ",") << "\n";
+	//			failed = true;
+	//		}
+		}
+	}
 
 
 	if(failed){
@@ -199,7 +208,11 @@ std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName()
 			}
 		}
 		if("" == name){
-			name = "NA";
+			if(m->hasAttr("product")){
+				name = m->getAttr("product");
+			} else {
+				name = "NA";
+			}
 		}
 		ret[m->getIDAttr()] = name;
 	}
@@ -280,6 +293,7 @@ void GeneFromGffs::writeOutGeneInfo(TwoBit::TwoBitFile & tReader, const OutOptio
 
 std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> GeneFromGffs::generateGeneSeqInfo(TwoBit::TwoBitFile & tReader, bool oneBased) const{
 	std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> ret;
+
 	for(const auto & transcript : mRNAs_){
 		GenomicRegion mRnaRegion(*transcript) ;
 		auto gDna = mRnaRegion.extractSeq(tReader);
