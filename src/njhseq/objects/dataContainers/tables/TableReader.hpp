@@ -43,6 +43,7 @@ public:
 
 	VecStr extractCols(const VecStr & row, const VecStr & cols) const;
 
+	void setHeaderlessHeader(uint32_t numOfCols) ;
 };
 
 }  // namespace njhseq

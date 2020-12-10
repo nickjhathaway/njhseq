@@ -30,24 +30,41 @@ namespace njhseq {
 
 TableReader::TableReader(const TableIOOpts & tabOpts): tabOpts_(tabOpts){
 	//inital header reader
-	njh::files::checkExistenceThrow(tabOpts_.in_.inFilename_);
-	std::string currentLine = njh::files::getFirstLine(
-			tabOpts_.in_.inFilename_);
-	//std::cout << currentLine << std::endl;
-	auto toks = tokenizeString(currentLine, tabOpts_.inDelim_, true);
-	VecStr columnNames;
-	if (!tabOpts_.hasHeader_) {
-		for (const auto i : iter::range(toks.size())) {
-			columnNames.emplace_back("col." + leftPadNumStr(i, toks.size()));
+	if("STDIN" == tabOpts_.in_.inFilename_){
+		in_ = std::make_unique<InputStream>(tabOpts_.in_);
+		if(tabOpts_.hasHeader_){
+			std::string currentLine = "";
+			njh::files::crossPlatGetline(*in_, currentLine);
+			auto toks = tokenizeString(currentLine, tabOpts_.inDelim_, true);
+			header_ = table(toks);
 		}
 	} else {
-		columnNames = toks;
+		njh::files::checkExistenceThrow(tabOpts_.in_.inFilename_);
+		std::string currentLine = njh::files::getFirstLine(tabOpts_.in_.inFilename_);
+		//std::cout << currentLine << std::endl;
+		auto toks = tokenizeString(currentLine, tabOpts_.inDelim_, true);
+		VecStr columnNames;
+		if (!tabOpts_.hasHeader_) {
+			for (const auto i : iter::range(toks.size())) {
+				columnNames.emplace_back("col." + leftPadNumStr(i, toks.size()));
+			}
+		} else {
+			columnNames = toks;
+		}
+		header_ = table(columnNames);
+		in_ = std::make_unique<InputStream>(tabOpts_.in_);
+		if(tabOpts_.hasHeader_){
+			njh::files::crossPlatGetline(*in_, currentLine);
+		}
+	}
+}
+
+void TableReader::setHeaderlessHeader(uint32_t numOfCols) {
+	VecStr columnNames;
+	for (const auto i : iter::range(numOfCols)) {
+		columnNames.emplace_back("col." + leftPadNumStr(i, numOfCols));
 	}
 	header_ = table(columnNames);
-	in_ = std::make_unique<InputStream>(tabOpts_.in_);
-	if(tabOpts_.hasHeader_){
-		njh::files::crossPlatGetline(*in_, currentLine);
-	}
 }
 
 
