@@ -561,6 +561,10 @@ bool seqSetUp::processRefFilename(bool required) {
 			"Reference Name Has Abundance Info");
 	setOption(pars_.refIoOptions_.lowerCaseBases_, "--refLower",
 			"What to do about lower case bases in ref seqs");
+	bool removeWhiteSpaceFromName = false;
+	setOption(removeWhiteSpaceFromName, "--refTrimNameWhiteSpace",
+			"What to do about lower case bases in ref seqs");
+	pars_.refIoOptions_.includeWhiteSpaceInName_ = !removeWhiteSpaceFromName;
 	if (commands_.hasFlagCaseInsenNoDash("--refFastq")) {
 		pars_.refIoOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQ;
 		pars_.refIoOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;

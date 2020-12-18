@@ -100,34 +100,35 @@ void kmerInfo::setKmersFromPortion(const std::string & seq, uint32_t kLength,
 	}
 }
 
-void kmerInfo::setKmers(const std::string & seq, uint32_t kLength,
-		bool setReverse) {
+void kmerInfo::setKmers(const std::string & seq, uint32_t kLength, bool setReverse) {
 	//reset information
 	infoSet_ = true;
 	kLen_ = kLength;
 	seqLen_ = seq.size();
 	kmers_.clear();
 	kmersRevComp_.clear();
-	//set kmer information in the current direction
-	for (const auto pos : iter::range(seq.size() + 1 - kLen_)) {
-		auto currentK = seq.substr(pos, kLen_);
-		auto k = kmers_.find(currentK);
-		if (k != kmers_.end()) {
-			k->second.addPosition(pos);
-		} else {
-			kmers_.emplace(currentK, kmer(currentK, pos));
-		}
-	}
-	//if needed set kmer information for the reverse direction
-	if (setReverse) {
-		std::string reverseComplement = seqUtil::reverseComplement(seq, "DNA");
-		for (const auto pos : iter::range(reverseComplement.size() + 1 - kLen_)) {
-			auto currentK = reverseComplement.substr(pos, kLen_);
-			auto k = kmersRevComp_.find(currentK);
-			if (k != kmersRevComp_.end()) {
+	if(kLength <=seq.length()){
+		//set kmer information in the current direction
+		for (const auto pos : iter::range(seq.size() + 1 - kLen_)) {
+			auto currentK = seq.substr(pos, kLen_);
+			auto k = kmers_.find(currentK);
+			if (k != kmers_.end()) {
 				k->second.addPosition(pos);
 			} else {
-				kmersRevComp_.emplace(currentK, kmer(currentK, pos));
+				kmers_.emplace(currentK, kmer(currentK, pos));
+			}
+		}
+		//if needed set kmer information for the reverse direction
+		if (setReverse) {
+			std::string reverseComplement = seqUtil::reverseComplement(seq, "DNA");
+			for (const auto pos : iter::range(reverseComplement.size() + 1 - kLen_)) {
+				auto currentK = reverseComplement.substr(pos, kLen_);
+				auto k = kmersRevComp_.find(currentK);
+				if (k != kmersRevComp_.end()) {
+					k->second.addPosition(pos);
+				} else {
+					kmersRevComp_.emplace(currentK, kmer(currentK, pos));
+				}
 			}
 		}
 	}

@@ -195,6 +195,10 @@ public:
 		bool removeImproperPairs_{false};
 		bool keepImproperMateUnmapped_{false};
 
+		uint32_t fivePrimeTrim_{0};
+		uint32_t threePrimeTrim_{0};
+
+
 		Json::Value toJson() const;
 
 	};

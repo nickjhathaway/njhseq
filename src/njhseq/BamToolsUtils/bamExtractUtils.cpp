@@ -27,7 +27,7 @@
 #include "njhseq/BamToolsUtils/BamAlnsCacheWithRegion.hpp"
 #include "njhseq/IO/SeqIO.h"
 #include "njhseq/objects/BioDataObject/BioRecordsUtils/BedUtility.hpp"
-
+#include "njhseq/readVectorManipulation/readVectorHelpers/readVecTrimmer.hpp"
 
 namespace njhseq {
 
@@ -3212,9 +3212,14 @@ Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const
 	ret["softClipPercentageCutOff_"] = njh::json::toJson(softClipPercentageCutOff_);
 	ret["removeImproperPairs_"] = njh::json::toJson(removeImproperPairs_);
 	ret["keepImproperMateUnmapped_"] = njh::json::toJson(keepImproperMateUnmapped_);
+	ret["fivePrimeTrim_"] = njh::json::toJson(fivePrimeTrim_);
+	ret["threePrimeTrim_"] = njh::json::toJson(threePrimeTrim_);
 
 	return ret;
 }
+
+
+
 
 Json::Value BamExtractor::writeUnMappedSeqsAndSmallAlnsWithFiltersPars::toJson() const{
 	Json::Value ret;
@@ -3351,12 +3356,25 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		//unpaired read
 		++ret.mateFilteredOff_;
 		if (extractPars.originalOrientation_) {
-			writer.openWrite(bamAlnToSeqInfo(bAln));
+			auto outSeq = bamAlnToSeqInfo(bAln);
+//			if(extractPars.fivePrimeTrim_ > 0 && len(outSeq) > extractPars.fivePrimeTrim_){
+//				readVecTrimmer::trimOffForwardBases(outSeq, extractPars.fivePrimeTrim_);
+//			}
+//			if(extractPars.threePrimeTrim_ > 0 && len(outSeq) > extractPars.threePrimeTrim_){
+//				readVecTrimmer::trimOffEndBases(outSeq, extractPars.threePrimeTrim_);
+//			}
+			writer.openWrite(outSeq);
 		} else {
 			seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
 					SangerQualOffset);
 			//put in the orientation of the output region
 //			bool revComp = bAln.IsReverseStrand();
+//			if(extractPars.fivePrimeTrim_ > 0 && len(outSeq) > extractPars.fivePrimeTrim_){
+//				readVecTrimmer::trimOffForwardBases(outSeq, extractPars.fivePrimeTrim_);
+//			}
+//			if(extractPars.threePrimeTrim_ > 0 && len(outSeq) > extractPars.threePrimeTrim_){
+//				readVecTrimmer::trimOffEndBases(outSeq, extractPars.threePrimeTrim_);
+//			}
 			if(region.reverseSrand_){
 				outSeq.reverseComplementRead(false, true);
 //				revComp = !revComp;
