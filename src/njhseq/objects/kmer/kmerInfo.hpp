@@ -68,15 +68,16 @@ public:
 	/**@brief the length of kmer being held in kmers_ and kmersRevComp_
 	 *
 	 */
-	uint32_t kLen_;
+	uint32_t kLen_ = std::numeric_limits<uint32_t>::max();
 
-	uint64_t seqLen_;
+	uint64_t seqLen_{0};
 
 	size_t seqPos_ = 0;
 
 	bool infoSet_ = false;
 
 	void setKmers(const std::string & seq, uint32_t kLength, bool setReverse);
+	void updateKmers(const std::string & seq, bool setReverse);
 
 	void setKmersFromPortion(const std::string & seq, uint32_t kLength,
 			size_t pos, uint32_t len, bool setReverse);
