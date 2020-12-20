@@ -382,7 +382,7 @@ VecStr sampleCluster::getPopHapInfoVec(double popReadCnt,
 VecStr sampleCluster::getPopHapInfoHeaderVec(){
 	return VecStr { "h_PopFrac", "h_AATyped","h_SumOfAllFracs", "h_AvgFracFoundAt",
 			"h_ReadFrac", "h_SampCnt", "h_SampFrac", "h_ReadCnt", "h_ClusterCnt",
-			"h_clusterNames", "h_Consesus"};
+			"h_clusterNames", "h_Consensus"};
 }
 
 
@@ -403,7 +403,7 @@ std::string sampleCluster::getFullPopInfoHeader(const std::string& coiHeader, co
 			<< delim << "h_ReadCnt"
 			<< delim << "h_ClusterCnt"
 			<< delim << "h_clusterNames"
-			<< delim << "h_Consesus"
+			<< delim << "h_Consensus"
 			<< delim << "h_Protein";
 	return ss.str();
 }
@@ -445,7 +445,7 @@ VecStr sampleCluster::getPopInfoHeaderVec() {
 	return VecStr {
 		  "h_popUID", "p_TotalPopulationSampCnt", "h_AATyped", "h_PopFrac",
 			"h_SumOfAllFracs", "h_AvgFracFoundAt", "h_ReadFrac", "h_SampCnt",
-			"h_SampFrac", "h_ReadCnt", "h_ClusterCnt", "h_Consesus" };
+			"h_SampFrac", "h_ReadCnt", "h_ClusterCnt", "h_Consensus" };
 }
 
 VecStr sampleCluster::getPopInfoVec(double popReadCnt, uint32_t popClusNum,
