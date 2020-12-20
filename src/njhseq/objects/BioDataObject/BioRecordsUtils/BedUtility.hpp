@@ -107,64 +107,14 @@ public:
 	struct SubRegionCombo {
 		SubRegionCombo(
 				const Bed6RecordCore & startRegion,
-				const Bed6RecordCore & endRegion):
-					startRegion_(startRegion),
-					endRegion_(endRegion){
-			if(endRegion_.chrom_ != startRegion_.chrom_){
-				std::stringstream ss;
-				ss << __PRETTY_FUNCTION__ << ", error " << "chromosomes don't match: "<< "\n";
-				ss << "startRegion chrom: " << startRegion_.chrom_ << '\n';
-				ss << "endRegion chrom: " << endRegion_.chrom_ << '\n';
-				throw std::runtime_error{ss.str()};
-			}
-			if(startRegion_.chromStart_ > endRegion_.chromStart_){
-				std::stringstream ss;
-				ss << __PRETTY_FUNCTION__ << ", error " << "start region starts after end region "<< "\n";
-				ss << "startRegion chromStart: " << startRegion_.chromStart_ << '\n';
-				ss << "endRegion chromStart: " << endRegion_.chromStart_ << '\n';
-				throw std::runtime_error{ss.str()};
-			}
-			if(startRegion_.chromEnd_ > endRegion_.chromEnd_){
-				std::stringstream ss;
-				ss << __PRETTY_FUNCTION__ << ", error " << "start region ends after end region "<< "\n";
-				ss << "startRegion chromEnd: " << startRegion_.chromEnd_ << '\n';
-				ss << "endRegion chromEnd: " << endRegion_.chromEnd_ << '\n';
-				throw std::runtime_error{ss.str()};
-			}
-		}
+				const Bed6RecordCore & endRegion);
 		Bed6RecordCore startRegion_;
 		Bed6RecordCore endRegion_;
 
-		Bed6RecordCore genOut(uint32_t maximumToInclude = std::numeric_limits<uint32_t>::max()) const {
-			Bed6RecordCore startReg = startRegion_;
-			Bed6RecordCore endReg = endRegion_;
-			if(startReg.length() > maximumToInclude){
-				startReg.chromStart_ = startReg.chromEnd_ - maximumToInclude;
-			}
-			if(endReg.length() > maximumToInclude){
-				endReg.chromEnd_ = endReg.chromStart_ + maximumToInclude;
-			}
-			Bed6RecordCore outRegion = startReg;
-			outRegion.chromEnd_ = endReg.chromEnd_;
-			outRegion.name_ = njh::pasteAsStr(startReg.name_, "--", endReg.name_);
-			outRegion.score_ = outRegion.length();
-			return outRegion;
-		}
-		Bed6RecordCore genSubStart(uint32_t maximumToInclude = std::numeric_limits<uint32_t>::max()) const {
-			Bed6RecordCore startReg = startRegion_;
-			if(startReg.length() > maximumToInclude){
-				startReg.chromStart_ = startReg.chromEnd_ - maximumToInclude;
-			}
-			return startReg;
-		}
+		Bed6RecordCore genOut(uint32_t maximumToInclude = std::numeric_limits<uint32_t>::max()) const ;
+		Bed6RecordCore genSubStart(uint32_t maximumToInclude = std::numeric_limits<uint32_t>::max()) const ;
 
-		Bed6RecordCore genSubEnd(uint32_t maximumToInclude = std::numeric_limits<uint32_t>::max()) const {
-			Bed6RecordCore endReg = endRegion_;
-			if(endReg.length() > maximumToInclude){
-				endReg.chromEnd_ = endReg.chromStart_ + maximumToInclude;
-			}
-			return endReg;
-		}
+		Bed6RecordCore genSubEnd(uint32_t maximumToInclude = std::numeric_limits<uint32_t>::max()) const;
 
 	};
 
@@ -234,12 +184,25 @@ public:
 						if(endReg.length() < pars.minBlockRegionLen){
 							continue;
 						}
+
 						SubRegionCombo combinedRegion(startReg, endReg);
 						Bed6RecordCore outRegion = combinedRegion.genOut(pars.includeFromSubRegionSize);
-						if(outRegion.length() >= pars.minLen && outRegion.length() <= pars.maxLen){
+						bool passMinLen = outRegion.length() >= pars.minLen;
+						if(!passMinLen){
+							if(startReg.length() > pars.maxLen && endReg.length() > pars.maxLen){
+								passMinLen = true;
+							}else if(0 == pos && endReg.length() > pars.maxLen){
+								passMinLen = true;
+							}else if(startReg.length() > pars.maxLen && downStreamPos == (byChrom.second.size() -1)){
+								passMinLen = true;
+							}else if(0 == pos && downStreamPos == (byChrom.second.size() -1)){
+								passMinLen = true;
+							}
+						}
+						if(passMinLen && outRegion.length() <= pars.maxLen){
 							ret.emplace_back(SubRegionCombo(startReg, endReg));
 						}
-						if(pars.justToNextRegion && outRegion.length() >= pars.minLen && outRegion.length() <= pars.maxLen){
+						if(pars.justToNextRegion && passMinLen && outRegion.length() <= pars.maxLen){
 							lastDownStreamPos = downStreamPos;
 							break;
 						}
