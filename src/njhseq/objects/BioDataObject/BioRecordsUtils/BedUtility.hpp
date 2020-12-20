@@ -93,8 +93,162 @@ public:
 	}
 
 
+	struct genSubRegionCombosPars{
+		bool includeFromFront = false;
+		bool includeFromBack = false;
+		uint32_t includeFromSubRegionSize = std::numeric_limits<uint32_t>::max();
+		uint32_t minLen = 1;
+		uint32_t maxLen = std::numeric_limits<uint32_t>::max();
+		uint32_t minBlockRegionLen = 1;
+		bool justToNextRegion = false;
+	};
 
 
+	struct SubRegionCombo {
+		SubRegionCombo(
+				const Bed6RecordCore & startRegion,
+				const Bed6RecordCore & endRegion):
+					startRegion_(startRegion),
+					endRegion_(endRegion){
+			if(endRegion_.chrom_ != startRegion_.chrom_){
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "chromosomes don't match: "<< "\n";
+				ss << "startRegion chrom: " << startRegion_.chrom_ << '\n';
+				ss << "endRegion chrom: " << endRegion_.chrom_ << '\n';
+				throw std::runtime_error{ss.str()};
+			}
+			if(startRegion_.chromStart_ > endRegion_.chromStart_){
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "start region starts after end region "<< "\n";
+				ss << "startRegion chromStart: " << startRegion_.chromStart_ << '\n';
+				ss << "endRegion chromStart: " << endRegion_.chromStart_ << '\n';
+				throw std::runtime_error{ss.str()};
+			}
+			if(startRegion_.chromEnd_ > endRegion_.chromEnd_){
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "start region ends after end region "<< "\n";
+				ss << "startRegion chromEnd: " << startRegion_.chromEnd_ << '\n';
+				ss << "endRegion chromEnd: " << endRegion_.chromEnd_ << '\n';
+				throw std::runtime_error{ss.str()};
+			}
+		}
+		Bed6RecordCore startRegion_;
+		Bed6RecordCore endRegion_;
+
+		Bed6RecordCore genOut(uint32_t maximumToInclude = std::numeric_limits<uint32_t>::max()) const {
+			Bed6RecordCore startReg = startRegion_;
+			Bed6RecordCore endReg = endRegion_;
+			if(startReg.length() > maximumToInclude){
+				startReg.chromStart_ = startReg.chromEnd_ - maximumToInclude;
+			}
+			if(endReg.length() > maximumToInclude){
+				endReg.chromEnd_ = endReg.chromStart_ + maximumToInclude;
+			}
+			Bed6RecordCore outRegion = startReg;
+			outRegion.chromEnd_ = endReg.chromEnd_;
+			outRegion.name_ = njh::pasteAsStr(startReg.name_, "--", endReg.name_);
+			outRegion.score_ = outRegion.length();
+			return outRegion;
+		}
+		Bed6RecordCore genSubStart(uint32_t maximumToInclude = std::numeric_limits<uint32_t>::max()) const {
+			Bed6RecordCore startReg = startRegion_;
+			if(startReg.length() > maximumToInclude){
+				startReg.chromStart_ = startReg.chromEnd_ - maximumToInclude;
+			}
+			return startReg;
+		}
+
+		Bed6RecordCore genSubEnd(uint32_t maximumToInclude = std::numeric_limits<uint32_t>::max()) const {
+			Bed6RecordCore endReg = endRegion_;
+			if(endReg.length() > maximumToInclude){
+				endReg.chromEnd_ = endReg.chromStart_ + maximumToInclude;
+			}
+			return endReg;
+		}
+
+	};
+
+	template<typename BED6>
+	static std::vector<SubRegionCombo> genSubRegionCombos(std::vector<BED6> regionsRaw,
+			const std::unordered_map<std::string, uint32_t> & genomeLen,
+			const genSubRegionCombosPars & pars){
+		std::vector<SubRegionCombo> ret;
+		BedUtility::coordSort(regionsRaw, false);
+		std::vector<std::shared_ptr<Bed6RecordCore>> regions;
+		regions.emplace_back(std::make_shared<Bed6RecordCore>(getRef(regionsRaw.front())));
+
+		for (const auto regPos : iter::range<uint32_t>(1, regionsRaw.size())) {
+			if (regions.back()->overlaps(getRef(regionsRaw[regPos]), 1) ||
+					(regions.back()->chrom_ == getRef(regionsRaw[regPos]).chrom_ && regions.back()->chromEnd_ == getRef(regionsRaw[regPos]).chromStart_) ) {
+				regions.back()->chromEnd_ = std::max(
+						regions.back()->chromEnd_,
+						getRef(regionsRaw[regPos]).chromEnd_);
+			} else {
+				regions.emplace_back(
+						std::make_shared<Bed6RecordCore>(getRef(regionsRaw[regPos])));
+			}
+		}
+
+
+		std::unordered_map<std::string, std::vector<std::shared_ptr<Bed6RecordCore>>> regionsByChrom;
+		for(const auto & region : regions){
+			regionsByChrom[region->chrom_].emplace_back(region);
+		}
+
+		if(pars.includeFromFront){
+			for(auto & byChrom : regionsByChrom){
+				if(byChrom.second.front()->chromStart_ > 10){
+					byChrom.second.emplace_back(std::make_shared<Bed6RecordCore>(byChrom.first, 0, 1, "start", 1, '+'));
+					BedUtility::coordSort(byChrom.second, false);
+				}
+			}
+		}
+		if(pars.includeFromBack){
+			for(auto & byChrom : regionsByChrom){
+				if(!njh::in(byChrom.first, genomeLen)){
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << "don't have chromosome " << byChrom.first << "\n";
+					ss << "has: " << njh::conToStr(njh::getVecOfMapKeys(genomeLen), ",") << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+				if(genomeLen.at(byChrom.first) - byChrom.second.back()->chromEnd_ > 10){
+					byChrom.second.emplace_back(std::make_shared<Bed6RecordCore>(byChrom.first, genomeLen.at(byChrom.first) -1, genomeLen.at(byChrom.first), "back", 1, '+'));
+				}
+			}
+		}
+
+
+		for(auto & byChrom : regionsByChrom){
+			if(byChrom.second.size() > 1){
+				uint32_t lastDownStreamPos = 0;
+				for(const auto pos : iter::range(byChrom.second.size() -1 )){
+					Bed6RecordCore startReg = *byChrom.second[pos];
+					if(startReg.length() < pars.minBlockRegionLen){
+						continue;
+					}
+					if(pars.justToNextRegion && pos < lastDownStreamPos){
+						continue;
+					}
+					for(const auto downStreamPos : iter::range(pos + 1, byChrom.second.size())){
+						Bed6RecordCore endReg   = *byChrom.second[downStreamPos];
+						if(endReg.length() < pars.minBlockRegionLen){
+							continue;
+						}
+						SubRegionCombo combinedRegion(startReg, endReg);
+						Bed6RecordCore outRegion = combinedRegion.genOut(pars.includeFromSubRegionSize);
+						if(outRegion.length() >= pars.minLen && outRegion.length() <= pars.maxLen){
+							ret.emplace_back(SubRegionCombo(startReg, endReg));
+						}
+						if(pars.justToNextRegion && outRegion.length() >= pars.minLen && outRegion.length() <= pars.maxLen){
+							lastDownStreamPos = downStreamPos;
+							break;
+						}
+					}
+				}
+			}
+		}
+		return ret;
+	}
 
 };
 
