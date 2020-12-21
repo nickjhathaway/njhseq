@@ -189,11 +189,11 @@ public:
 						Bed6RecordCore outRegion = combinedRegion.genOut(pars.includeFromSubRegionSize);
 						bool passMinLen = outRegion.length() >= pars.minLen;
 						if(!passMinLen){
-							if(startReg.length() > pars.maxLen && endReg.length() > pars.maxLen){
+							if(startReg.length() + endReg.length() > pars.maxLen){
 								passMinLen = true;
-							}else if(0 == pos && endReg.length() > pars.maxLen){
+							}else if(0 == pos && endReg.length() > startReg.length() + endReg.length() > pars.maxLen){
 								passMinLen = true;
-							}else if(startReg.length() > pars.maxLen && downStreamPos == (byChrom.second.size() -1)){
+							}else if(startReg.length() + endReg.length() > pars.maxLen && downStreamPos == (byChrom.second.size() -1)){
 								passMinLen = true;
 							}else if(0 == pos && downStreamPos == (byChrom.second.size() -1)){
 								passMinLen = true;
