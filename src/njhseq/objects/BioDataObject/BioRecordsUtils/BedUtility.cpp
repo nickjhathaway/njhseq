@@ -115,12 +115,16 @@ BedUtility::SubRegionCombo::SubRegionCombo(const Bed6RecordCore &startRegion,
 Bed6RecordCore BedUtility::SubRegionCombo::genOut(uint32_t maximumToInclude) const {
 	Bed6RecordCore startReg = startRegion_;
 	Bed6RecordCore endReg = endRegion_;
+//	std::cout << startReg.toDelimStr() << std::endl;
+//	std::cout << endReg.toDelimStr() << std::endl;
 	if (startReg.length() > maximumToInclude) {
 		startReg.chromStart_ = startReg.chromEnd_ - maximumToInclude;
 	}
 	if (endReg.length() > maximumToInclude) {
 		endReg.chromEnd_ = endReg.chromStart_ + maximumToInclude;
 	}
+//	std::cout << startReg.toDelimStr() << std::endl;
+//	std::cout << endReg.toDelimStr() << std::endl;
 	Bed6RecordCore outRegion = startReg;
 	outRegion.chromEnd_ = endReg.chromEnd_;
 	outRegion.name_ = njh::pasteAsStr(startReg.name_, "--", endReg.name_);

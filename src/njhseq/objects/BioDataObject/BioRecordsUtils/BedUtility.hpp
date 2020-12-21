@@ -101,6 +101,7 @@ public:
 		uint32_t maxLen = std::numeric_limits<uint32_t>::max();
 		uint32_t minBlockRegionLen = 1;
 		bool justToNextRegion = false;
+		bool mergeOverlappingOrAdjacentRegions = false;
 	};
 
 
@@ -126,18 +127,26 @@ public:
 		BedUtility::coordSort(regionsRaw, false);
 		std::vector<std::shared_ptr<Bed6RecordCore>> regions;
 		regions.emplace_back(std::make_shared<Bed6RecordCore>(getRef(regionsRaw.front())));
-
-		for (const auto regPos : iter::range<uint32_t>(1, regionsRaw.size())) {
-			if (regions.back()->overlaps(getRef(regionsRaw[regPos]), 1) ||
-					(regions.back()->chrom_ == getRef(regionsRaw[regPos]).chrom_ && regions.back()->chromEnd_ == getRef(regionsRaw[regPos]).chromStart_) ) {
-				regions.back()->chromEnd_ = std::max(
-						regions.back()->chromEnd_,
-						getRef(regionsRaw[regPos]).chromEnd_);
+		if(regionsRaw.size() > 1){
+			if(pars.mergeOverlappingOrAdjacentRegions){
+				for (const auto regPos : iter::range<uint32_t>(1, regionsRaw.size())) {
+					if (regions.back()->overlaps(getRef(regionsRaw[regPos]), 1) ||
+							(regions.back()->chrom_ == getRef(regionsRaw[regPos]).chrom_ && regions.back()->chromEnd_ == getRef(regionsRaw[regPos]).chromStart_) ) {
+						regions.back()->chromEnd_ = std::max(
+								regions.back()->chromEnd_,
+								getRef(regionsRaw[regPos]).chromEnd_);
+					} else {
+						regions.emplace_back(
+								std::make_shared<Bed6RecordCore>(getRef(regionsRaw[regPos])));
+					}
+				}
 			} else {
-				regions.emplace_back(
-						std::make_shared<Bed6RecordCore>(getRef(regionsRaw[regPos])));
+				for (const auto regPos : iter::range<uint32_t>(1, regionsRaw.size())) {
+					regions.emplace_back(std::make_shared<Bed6RecordCore>(getRef(regionsRaw[regPos])));
+				}
 			}
 		}
+
 
 
 		std::unordered_map<std::string, std::vector<std::shared_ptr<Bed6RecordCore>>> regionsByChrom;
