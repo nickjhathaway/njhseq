@@ -529,7 +529,7 @@ bool SeqInput::readNextFastaStream(std::istream & fastaFile, seqInfo& read,
 }
 
 bool SeqInput::readNextQualStream(std::istream & qualFile,
-		std::vector<uint32_t>& quals, std::string & name) {
+		std::vector<uint8_t>& quals, std::string & name) {
 	name.clear();
 	quals.clear();
 
@@ -556,7 +556,7 @@ bool SeqInput::readNextQualStream(std::istream & qualFile,
 		} else {
 			name = name.substr(1);
 		}
-		quals = stringToVector<uint32_t>(buildingQual);
+		quals = stringToVector<uint8_t>(buildingQual);
 		return true;
 	} else {
 		std::stringstream ss;
@@ -574,7 +574,7 @@ bool SeqInput::readNextFastaQualStream(std::istream& fastaReader,
 	if (!readNextFastaStream(fastaReader, read, processed)) {
 		return false;
 	}
-	std::vector<uint32_t> quals;
+	std::vector<uint8_t> quals;
 	std::string name;
 	bool qualStatus = readNextQualStream(qualReader, quals, name);
 	if (qualStatus) {
@@ -600,7 +600,7 @@ bool SeqInput::readNextFastaQualStream(std::istream& fastaReader,
 }
 
 
-bool SeqInput::readNextFastqStream(const VecStr & data, const uint32_t lCount, uint32_t offSet, seqInfo& seq,
+bool SeqInput::readNextFastqStream(const VecStr & data, const uint32_t lCount, uint8_t offSet, seqInfo& seq,
 		bool processed){
 	if (lCount == 4) {
 		if (data[0].size() < 1 || data[0][0] != '@' || data[2].size() < 1
@@ -651,7 +651,7 @@ bool SeqInput::readNextFastqStream(const VecStr & data, const uint32_t lCount, u
 	}
 }
 
-bool SeqInput::readNextFastqStream(std::istream& is, uint32_t offSet,
+bool SeqInput::readNextFastqStream(std::istream& is, uint8_t offSet,
 		seqInfo& seq, bool processed) {
 	// assumes that there is no wrapping of lines, lines go name, seq, comments,
 	// qual

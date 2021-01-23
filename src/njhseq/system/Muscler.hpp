@@ -291,7 +291,7 @@ public:
 							getSeqBase(seqs[pos.first]).clipOut(posSizes.at(pos.first).pos_,
 									posSizes.at(pos.first).size_);
 						}
-						getSeqBase(seqs[pos.first]).insert(posSizes.at(pos.first).pos_, seqInfo("", std::string(maxLen, '-'), std::vector<uint32_t>(maxLen, 0)));
+						getSeqBase(seqs[pos.first]).insert(posSizes.at(pos.first).pos_, seqInfo("", std::string(maxLen, '-'), std::vector<uint8_t>(maxLen, 0)));
 					}
 				}
 			} catch (std::exception & e) {

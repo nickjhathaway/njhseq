@@ -140,7 +140,7 @@ void readObject::addQual(const std::string & qualString, uint32_t offSet) {
   averageErrorRate = getAverageErrorRate();
 }
 
-void readObject::addQual(const std::vector<uint32_t> & quals){
+void readObject::addQual(const std::vector<uint8_t> & quals){
 	seqBase_.addQual(quals);
   averageErrorRate = getAverageErrorRate();
 }
@@ -437,7 +437,7 @@ void readObject::adjustHomopolyerRunQualities() {
   createCondensedSeq();
   seqBase_.qual_.clear();
   for (const auto i : iter::range<uint64_t>(0, condensedSeq.length())) {
-    addOtherVec(seqBase_.qual_, std::vector<uint32_t>(condensedSeqCount[i],
+    addOtherVec(seqBase_.qual_, std::vector<uint8_t>(condensedSeqCount[i],
                                                       condensedSeqQual[i]));
   }
 }
@@ -459,7 +459,7 @@ void readObject::updateQualCounts(
 void readObject::updateQualWindowCounts(
     uint32_t pos, std::map<std::string, std::map<double, uint32_t>>& counts,
     int qualWindowSize) const {
-  std::vector<uint32_t> currentQuals;
+  std::vector<uint8_t> currentQuals;
   currentQuals.push_back(seqBase_.qual_[pos]);
   addOtherVec(currentQuals, seqBase_.getLeadQual(pos, qualWindowSize));
   addOtherVec(currentQuals, seqBase_.getTrailQual(pos, qualWindowSize));
@@ -493,7 +493,7 @@ void readObject::updateQaulCountsAtPos(
     uint32_t pos, std::map<std::string, std::map<double, uint32_t>>& counts,
     int qualWindowSize, const std::array<double, 100>& qualErrorLookUp) const {
 
-  std::vector<uint32_t> currentQuals;
+  std::vector<uint8_t> currentQuals;
   currentQuals.push_back(seqBase_.qual_[pos]);
   addOtherVec(currentQuals, seqBase_.getLeadQual(pos, qualWindowSize));
   addOtherVec(currentQuals, seqBase_.getTrailQual(pos, qualWindowSize));

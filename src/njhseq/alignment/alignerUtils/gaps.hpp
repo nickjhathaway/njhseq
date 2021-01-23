@@ -45,7 +45,7 @@ public:
 	 * @param ref Whether the gap is in the ref (insertion) or in the query (deletion)
 	 */
 	gap(uint32_t startPos, uint32_t refPos, uint32_t seqPos,
-			const std::string& gapedSequence, uint32_t firstQual, bool ref);
+			const std::string& gapedSequence, uint8_t firstQual, bool ref);
 
 	/*
 	 * members
@@ -56,7 +56,7 @@ public:
 	uint32_t seqPos_; /**< Position in actual sequence, seq */
 	uint32_t size_; /**< Position in actual sequence, will be ref pos or query */
 	std::string gapedSequence_; /**< The sequence that is missing */
-	std::vector<uint32_t> qualities_; /**< The quality scores of the gaped sequence */
+	std::vector<uint8_t> qualities_; /**< The quality scores of the gaped sequence */
 	bool ref_; /**< ref == true : insertion, ref == false: deletion*/
 
 	/*

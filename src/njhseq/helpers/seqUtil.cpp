@@ -961,7 +961,7 @@ std::string seqUtil::getSeqFromFlow(const std::vector<double> &flows,
 
 void seqUtil::processQualityWindowString(const std::string &qualityWindowString,
 		uint32_t &qualityWindowLength, uint32_t &qualityWindowStep,
-		uint32_t &qualityWindowThres) {
+		uint8_t &qualityWindowThres) {
 	VecStr toks = tokenizeString(qualityWindowString, ",");
 	if (toks.size() != 3) {
 		std::cout << "Error qualityWindow must be given with three values separatd "
@@ -976,7 +976,7 @@ void seqUtil::processQualityWindowString(const std::string &qualityWindowString,
 
 bool seqUtil::checkQualityWindow(int windowSize, int minimumAverageQaul,
                                  int stepSize,
-                                 const std::vector<uint32_t> &quality) {
+                                 const std::vector<uint8_t> &quality) {
   bool pass = true;
   uint32_t currentPos = 0;
   while ((windowSize + currentPos) < quality.size() && pass) {
@@ -995,7 +995,7 @@ bool seqUtil::checkQualityWindow(int windowSize, int minimumAverageQaul,
 }
 size_t seqUtil::checkQualityWindowPos(int windowSize, int minimumAverageQaul,
                                       int stepSize,
-                                      const std::vector<uint32_t> &quality) {
+                                      const std::vector<uint8_t> &quality) {
 	bool pass = true;
   uint32_t currentPos = 0;
   while ((windowSize + currentPos) < quality.size() && pass) {
@@ -1124,7 +1124,7 @@ uint64_t seqUtil::getNumberOfPossibleDNAStrandsFromProtein(
 }
 
 void seqUtil::removeLowerCase(std::string &sequence,
-                              std::vector<uint32_t> &quality) {
+                              std::vector<uint8_t> &quality) {
   for (uint32_t i = 0; i < sequence.size(); i++) {
     if (islower(sequence[i])) {
       sequence.erase(sequence.begin() + i);
@@ -1136,8 +1136,8 @@ void seqUtil::removeLowerCase(std::string &sequence,
     }
   }
 }
-std::pair<std::string, std::vector<uint32_t>> seqUtil::removeLowerCaseReturn(
-    std::string sequence, std::vector<uint32_t> quality) {
+std::pair<std::string, std::vector<uint8_t>> seqUtil::removeLowerCaseReturn(
+    std::string sequence, std::vector<uint8_t> quality) {
   for (uint32_t i = 0; i < sequence.size(); ++i) {
     if (islower(sequence[i])) {
       sequence.erase(sequence.begin() + i);
@@ -1254,7 +1254,7 @@ std::vector<uint32_t> seqUtil::getQualPositions(const std::string &consensus,
   return ans;
 }
 std::vector<uint32_t> seqUtil::rearrangeQuals(
-    const std::vector<uint32_t> &qual, const std::vector<uint32_t> &positions) {
+    const std::vector<uint8_t> &qual, const std::vector<uint32_t> &positions) {
   std::vector<uint32_t> ans;
   ans.reserve(positions.size());
   for (const auto pos : iter::range(positions.size() - 1)) {
@@ -1301,7 +1301,7 @@ uint32_t seqUtil::countMismatchesInAlignment(const std::string &ref,
 
 
 void seqUtil::rstripRead(std::string & str,
-		std::vector<uint32_t> & qual, char c){
+		std::vector<uint8_t> & qual, char c){
 	uint32_t pos = str.size();
 	while (pos != 0 && str[pos - 1] == c){
 		--pos;

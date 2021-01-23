@@ -144,7 +144,7 @@ void sffObject::addSffInfo(std::unordered_map<std::string, std::string> &info) {
 	clipQualLeft_ = std::stoi(info["Clip Qual Left"]);
 	clipQualRight_ = std::stoi(info["Clip Qual Right"]);
 	// add qual info
-	seqBase_.qual_ = stringToVectorTest<uint32_t>(info["Quality Scores"]);
+	seqBase_.qual_ = stringToVectorTest<uint8_t>(info["Quality Scores"]);
 	// add flow indexes
 	flowIndex_ = stringToVectorTest<uint32_t>(info["Flow Indexes"]);
 	// add flowgram data

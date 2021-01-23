@@ -255,15 +255,15 @@ public:
 	std::unique_ptr<sffBinaryHeader> sffBinHeader_;
 	bool readNextFastaStream(std::istream& fastaFile, seqInfo& read,
 			bool processed);
-	bool readNextFastqStream(std::istream& fastqFile, uint32_t offSet, seqInfo& read,
+	bool readNextFastqStream(std::istream& fastqFile, uint8_t offSet, seqInfo& read,
 			bool processed);
 private:
-	bool readNextQualStream(std::istream& qualFile, std::vector<uint32_t>& quals,
+	bool readNextQualStream(std::istream& qualFile, std::vector<uint8_t>& quals,
 			std::string & name);
 	bool readNextFastaQualStream(std::istream& fastaFile,
 			std::istream& qualFile, seqInfo & read, bool processed);
 
-	bool readNextFastqStream(const VecStr & data, const uint32_t lCount, uint32_t offSet, seqInfo& read,
+	bool readNextFastqStream(const VecStr & data, const uint32_t lCount, uint8_t offSet, seqInfo& read,
 			bool processed);
 
 	bool readNextBam(BamTools::BamReader & bReader, seqInfo& read,

@@ -140,11 +140,11 @@ public:
 class ReadCheckerOnQualityWindow: public ReadChecker {
 public:
 	ReadCheckerOnQualityWindow(uint32_t qualityWindowLength,
-			uint32_t qualityWindowStep, uint32_t qualityWindowThres,
+			uint32_t qualityWindowStep, uint8_t qualityWindowThres,
 			bool mark = true);
 	const uint32_t qualityWindowLength_;
 	const uint32_t qualityWindowStep_;
-	const uint32_t qualityWindowThres_;
+	const uint8_t qualityWindowThres_;
 	virtual bool checkRead(seqInfo & info) const;
 
 	virtual ~ReadCheckerOnQualityWindow();
@@ -153,11 +153,11 @@ public:
 class ReadCheckerOnQualityWindowTrim: public ReadChecker {
 public:
 	ReadCheckerOnQualityWindowTrim(uint32_t qualityWindowLength,
-			uint32_t qualityWindowStep, uint32_t qualityWindowThres, uint32_t minLen,
+			uint32_t qualityWindowStep, uint8_t qualityWindowThres, uint32_t minLen,
 			bool mark = true);
 	const uint32_t qualityWindowLength_;
 	const uint32_t qualityWindowStep_;
-	const uint32_t qualityWindowThres_;
+	const uint8_t qualityWindowThres_;
 	const uint32_t minLen_;
 
 	virtual bool checkRead(seqInfo & info) const;

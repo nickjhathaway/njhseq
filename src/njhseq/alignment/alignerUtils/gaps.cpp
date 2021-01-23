@@ -28,7 +28,7 @@ gap::gap(uint32_t startPos,
 		uint32_t refPos,
 		uint32_t seqPos,
 		const std::string& gapedSequence,
-		uint32_t firstQual,
+		uint8_t firstQual,
 		bool ref)
     : startPos_(startPos),
 			refPos_(refPos),

@@ -33,7 +33,7 @@
 namespace njhseq {
 
 
-static const uint32_t IlluminaQualOffset = 64;
-static const uint32_t SangerQualOffset = 33;
+static const uint8_t IlluminaQualOffset = 64;
+static const uint8_t SangerQualOffset = 33;
 
 }  // namespace njhseq
