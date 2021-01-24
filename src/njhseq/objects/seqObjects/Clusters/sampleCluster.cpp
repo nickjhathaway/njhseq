@@ -47,7 +47,11 @@ sampleCluster::sampleCluster(const seqInfo& initializerRead,
 void sampleCluster::addRead(const sampleCluster& cr) {
   // add the cluster's reads and update the info
   for (const auto& read : cr.reads_) {
-    updateInfoWithRead(*read, reads_.size());
+  	//if this read does not have this samp info, add it's basic info
+  	if(!njh::in(read->sampName, sampInfos_)){
+  		sampInfos_.emplace(read->sampName, sampInfo(cr.sampInfos().at(read->sampName).runName_, cr.sampInfos().at(read->sampName).runReadCnt_));
+  	}
+  	updateInfoWithRead(*read, reads_.size());
     reads_.push_back(read);
   }
   // update the fraction and totalCounts
@@ -61,7 +65,7 @@ void sampleCluster::addRead(const sampleCluster& cr) {
 void sampleCluster::updateInfoWithRead(const readObject& read, uint32_t pos) {
   // update infos with the read
 	sampleClusters_[read.sampName].push_back(pos);
-  sampInfos_[read.sampName].update(read.seqBase_);
+	sampInfos_[read.sampName].update(read.seqBase_);
 }
 
 
@@ -81,6 +85,24 @@ std::unordered_map<std::string, std::unordered_map<std::string, double>> sampleC
 		}
 	}
 	return ret;
+}
+
+
+const std::map<std::string, sampInfo> & sampleCluster::sampInfos()const{return sampInfos_;}
+const std::map<std::string, std::vector<uint32_t>> & sampleCluster::sampleClusters()const{return sampleClusters_;}
+
+void sampleCluster::setSampInfos(const std::map<std::string, sampInfo> & sampInfos){
+	sampInfos_ = sampInfos;
+}
+
+void sampleCluster::setSampInfosTotals(const std::map<std::string, sampInfo> & sampInfos){
+	sampInfos_ = sampInfos;
+	for(auto & info : sampInfos_){
+		info.second.resetBasicInfo();
+	}
+	for (const auto & seq : reads_) {
+		sampInfos_[getSeqBase(seq).getOwnSampName()].update(getSeqBase(seq));
+	}
 }
 
 void sampleCluster::resetInfos(){
@@ -126,8 +148,14 @@ double sampleCluster::getAveragedFrac() const {
   		fracs.emplace_back(0);
   	}
   }
-
-  return vectorMean(fracs);
+  if(0 == fracs.size()){
+  	return 0;
+  }
+  double fracSum = 0;
+  for(const auto frac : fracs){
+  	fracSum +=frac;
+  }
+  return fracSum/std::min<uint32_t>(totalRepNumberInAnalysis_, sampInfos_.size());
 }
 
 double sampleCluster::getAveragedFrac(const VecStr & forClusters)const{

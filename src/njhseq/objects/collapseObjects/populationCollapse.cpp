@@ -51,16 +51,20 @@ populationCollapse::populationCollapse(
 				<< populationName_ << "\n";
 		throw std::runtime_error { ss.str() };
 	}
-
+	//no longer doing this cause for large sample numbers it would require way too much ram, e.g. 8000 samples would do 8000*8000 infos which adds up
+//	for (auto & i : input_.clusters_) {
+//		i.setSampInfosTotals(input_.info_.infos_);
+//	}
 	for (auto & i : input_.clusters_) {
-		i.setSampInfosTotals(input_.info_.infos_);
+		i.totalRepNumberInAnalysis_ = input_.info_.infos_.size();
+	}
+
+	for(auto & clus : input_.clusters_){
+		clus.updateSampInfosFracs();
 	}
 	std::cout <<njh::bashCT::boldRed("Sleeping......") << std::endl;;
 	using namespace std::chrono_literals;
 	std::this_thread::sleep_for(100000s);
-	for(auto & clus : input_.clusters_){
-		clus.updateSampInfosFracs();
-	}
 }
 
 void populationCollapse::addInput(
