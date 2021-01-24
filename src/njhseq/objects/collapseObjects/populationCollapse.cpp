@@ -51,12 +51,13 @@ populationCollapse::populationCollapse(
 				<< populationName_ << "\n";
 		throw std::runtime_error { ss.str() };
 	}
-	std::cout <<njh::bashCT::boldRed("Sleeping......") << std::endl;;
-	using namespace std::chrono_literals;
-	std::this_thread::sleep_for(100000s);
+
 	for (auto & i : input_.clusters_) {
 		i.setSampInfosTotals(input_.info_.infos_);
 	}
+	std::cout <<njh::bashCT::boldRed("Sleeping......") << std::endl;;
+	using namespace std::chrono_literals;
+	std::this_thread::sleep_for(100000s);
 	for(auto & clus : input_.clusters_){
 		clus.updateSampInfosFracs();
 	}
