@@ -709,8 +709,9 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 void SampleCollapseCollection::doPopulationClustering(
 		const std::vector<sampleCluster> & input, aligner & alignerObj,
 		const collapser & collapserObj, const CollapseIterations & popColIters) {
-	popCollapse_ = std::make_unique<collapse::populationCollapse>(input,
-			popNames_.populationName_);
+
+	popCollapse_ = std::make_unique<collapse::populationCollapse>(input, popNames_.populationName_);
+
 	popCollapse_->popCluster(collapserObj, popColIters, "fraction", alignerObj);
 
 	std::unordered_map<std::string, uint32_t> clusterTotals;
