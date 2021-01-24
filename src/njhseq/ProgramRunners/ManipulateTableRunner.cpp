@@ -499,33 +499,60 @@ int ManipulateTableRunner::sortTable(
 
 int ManipulateTableRunner::tableExtractColumns(const njh::progutils::CmdArgs & inputCommands){
 	ManipulateTableSetUp setUp(inputCommands);
-	std::string columns;
+	VecStr extractColumns;
 	bool getUniqueRows = false;
 	setUp.processFileName();
 	setUp.processNonRquiredDefaults();
 	setUp.processSorting();
   std::string extractColumnsStrings = "";
-  setUp.setOption(columns, "--columns",
+  setUp.setOption(extractColumns, "--columns",
                   "Names Of Columns To Extract, either comma separated input or a file with each line a column name",
 									true);
   setUp.setOption(getUniqueRows, "-getUniqueRows", "GetUniqueRows");
   setUp.finishSetUp(std::cout);
 
-  auto extractColumns = getInputValues(columns, ",");
 
-	table inTab(setUp.ioOptions_);
-	table outTab = inTab.getColumns(extractColumns);
 
-	if (setUp.sortByColumn_ != "") {
+  if(!getUniqueRows && "" == setUp.sortByColumn_){
+  	// if not sorting and not getting unique columns, just use tab reader
+  	TableReader tabReader(setUp.ioOptions_);
+  	tabReader.header_.checkForColumnsThrow(extractColumns,__PRETTY_FUNCTION__);
 
-		outTab.sortTable(setUp.sortByColumn_, setUp.decending_);
-	}
-
-	if (getUniqueRows) {
-		outTab = outTab.getUniqueRows();
-	}
-
-	outTab.outPutContents(setUp.ioOptions_);
+  	OutputStream out(setUp.ioOptions_.out_);
+  	out << njh::conToStr(extractColumns, setUp.ioOptions_.outDelim_) << "\n";
+  	VecStr row;
+  	std::vector<uint32_t> columnPositions;
+  	for(const auto & col : extractColumns){
+  		columnPositions.emplace_back(tabReader.header_.getColPos(col));
+  	}
+  	std::function<void(const VecStr &)>extractAndWrite;
+  	if(1 == extractColumns.size()){
+  		extractAndWrite = [&out,&columnPositions](const VecStr & row){
+  			out << row[columnPositions[0]] << "\n";
+  		};
+  	}else{
+  		extractAndWrite = [&out,&columnPositions,&setUp](const VecStr & row){
+  			out << row[columnPositions[0]];
+  			for(const auto pos : iter::range<uint32_t>(1,columnPositions.size())){
+  				out << setUp.ioOptions_.outDelim_ << row[columnPositions[pos]];
+  			}
+  			out << "\n";
+  		};
+  	}
+  	while(tabReader.getNextRow(row)){
+  		extractAndWrite(row);
+  	}
+  } else {
+  	table inTab(setUp.ioOptions_);
+  	table outTab = inTab.getColumns(extractColumns);
+  	if (setUp.sortByColumn_ != "") {
+  		outTab.sortTable(setUp.sortByColumn_, setUp.decending_);
+  	}
+  	if (getUniqueRows) {
+  		outTab = outTab.getUniqueRows();
+  	}
+  	outTab.outPutContents(setUp.ioOptions_);
+  }
 	return 0;
 }
 
