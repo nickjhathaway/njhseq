@@ -51,6 +51,9 @@ populationCollapse::populationCollapse(
 				<< populationName_ << "\n";
 		throw std::runtime_error { ss.str() };
 	}
+	std::cout <<njh::bashCT::boldRed("Sleeping......") << std::endl;;
+	using namespace std::chrono_literals;
+	std::this_thread::sleep_for(100000s);
 	for (auto & i : input_.clusters_) {
 		i.setSampInfosTotals(input_.info_.infos_);
 	}
@@ -74,9 +77,7 @@ void populationCollapse::addInput(
 void populationCollapse::popCluster(const collapser &collapserObj,
 		CollapseIterations iteratorMap, const std::string &sortBy,
 		aligner &alignerObj) {
-	std::cout <<njh::bashCT::boldRed("Sleeping......") << std::endl;;
-	using namespace std::chrono_literals;
-	std::this_thread::sleep_for(100000s);
+
 	collapsed_.clusters_ = collapserObj.runClustering(input_.clusters_, iteratorMap, alignerObj);
 	renameClusters(); //before with the update right afterwards, the base name will no longer represent the underlying samples
 	for(auto & clus : collapsed_.clusters_){
