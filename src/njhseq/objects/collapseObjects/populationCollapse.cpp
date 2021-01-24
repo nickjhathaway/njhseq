@@ -62,9 +62,9 @@ populationCollapse::populationCollapse(
 	for(auto & clus : input_.clusters_){
 		clus.updateSampInfosFracs();
 	}
-	std::cout <<njh::bashCT::boldRed("Sleeping......") << std::endl;;
-	using namespace std::chrono_literals;
-	std::this_thread::sleep_for(100000s);
+//	std::cout <<njh::bashCT::boldRed("Sleeping......") << std::endl;;
+//	using namespace std::chrono_literals;
+//	std::this_thread::sleep_for(100000s);
 }
 
 void populationCollapse::addInput(
