@@ -21,7 +21,7 @@
 //
 namespace njhseq {
 sampleCluster::sampleCluster(const seqInfo& initializerRead,
-		const std::map<std::string, sampInfo>& infos) {
+		const std::map<std::string, sampInfo>& infos):sampInfos_(infos) {
 	seqBase_ = initializerRead;
 
 	firstReadName_ = initializerRead.name_;
@@ -29,15 +29,18 @@ sampleCluster::sampleCluster(const seqInfo& initializerRead,
 
 	sampName = getOwnSampName();
 
-	for (const auto & i : infos) {
-		sampInfos_[i.second.runName_] = sampInfo(i.second.runName_, i.second.runReadCnt_);
-	}
+//	for (const auto & i : infos) {
+//		sampInfos_[i.second.runName_] = sampInfo(i.second.runName_, i.second.runReadCnt_);
+//	}
 
 	reads_.emplace_back(std::make_shared<readObject>(*this));
 	updateInfoWithRead(*this, 0);
 	remove = false;
 	needToCalculateConsensus_ = false;
 	setLetterCount();
+
+
+
 }
 
 
