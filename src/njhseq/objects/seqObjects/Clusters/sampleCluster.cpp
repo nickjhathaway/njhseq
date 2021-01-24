@@ -30,8 +30,7 @@ sampleCluster::sampleCluster(const seqInfo& initializerRead,
 	sampName = getOwnSampName();
 
 	for (const auto & i : infos) {
-		sampInfos_[i.second.runName_] = sampInfo(i.second.runName_,
-				i.second.runReadCnt_);
+		sampInfos_[i.second.runName_] = sampInfo(i.second.runName_, i.second.runReadCnt_);
 	}
 
 	reads_.emplace_back(std::make_shared<readObject>(*this));

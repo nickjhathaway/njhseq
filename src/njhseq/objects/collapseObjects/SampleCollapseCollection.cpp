@@ -684,21 +684,24 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 		for (const auto &out : samp.collapsed_.clusters_) {
 			totalReadCnt += out.seqBase_.cnt_;
 		}
-		std::map<std::string, sampInfo> outSampInfos { { sampleName, sampInfo(
-				sampleName, totalReadCnt) } };
+		std::map<std::string, sampInfo> outSampInfos { { sampleName, sampInfo(sampleName, totalReadCnt) } };
 		for (const auto &out : samp.collapsed_.clusters_) {
 			output.emplace_back(sampleCluster(out.createRead(), outSampInfos));
 			std::string oldName = output.back().seqBase_.name_;
 			output.back().updateName();
 			oututSampClusToOldNameKey_[sampleName][oldName] = output.back().seqBase_.name_;
-			output.back().reads_.front()->seqBase_.name_ =
-					output.back().seqBase_.name_;
+			output.back().reads_.front()->seqBase_.name_ = output.back().seqBase_.name_;
 		}
 		if(!keepSampleInfoInMemory_){
 //			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			clearSample(sampleName);
 		}
 	}
+
+
+
+	std::cout << "size of sample Cluster" << sizeof(sampleCluster) << std::endl;
+
 //	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return output;
 }
