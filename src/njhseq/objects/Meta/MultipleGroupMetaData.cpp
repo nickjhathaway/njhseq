@@ -329,7 +329,7 @@ bool MultipleGroupMetaData::hasSample(const std::string & sample) const{
 MetaDataInName MultipleGroupMetaData::getMetaForSample(const std::string & name, const VecStr & fields) const{
 	if(!njh::in(name, samples_)){
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": error, no smaple: " << name << "\n";
+		ss << __PRETTY_FUNCTION__ << ": error, no sample: " << name << "\n";
 		ss << "Options are: " << njh::conToStr(samples_);
 		throw std::runtime_error{ss.str()};
 	}
