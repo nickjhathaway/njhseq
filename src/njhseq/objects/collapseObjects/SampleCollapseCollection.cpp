@@ -152,8 +152,14 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 void SampleCollapseCollection::addGroupMetaData(
 		const bfs::path & groupingsFile) {
 
-	groupMetaData_ = std::make_unique<MultipleGroupMetaData>(
-			njh::files::normalize(groupingsFile), popNames_.samples_);
+	groupMetaData_ = std::make_unique<MultipleGroupMetaData>(njh::files::normalize(groupingsFile), popNames_.samples_);
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << njh::conToStr(popNames_.samples_) << std::endl;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << njh::conToStr(groupMetaData_->samples_) << std::endl;
+	//std::cout << njh::conToStr(groupMetaData_->missingSamples_) << std::endl;
+
+
 	/**@todo add some output to output directory that states the samples missing and missing meta*/
 	groupDataPaths_ = std::make_unique<AllGroupDataPaths>(
 			njh::files::make_path(njh::files::normalize(masterOutputDir_), "groups"),
