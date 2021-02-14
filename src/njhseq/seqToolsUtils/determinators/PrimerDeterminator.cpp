@@ -25,6 +25,8 @@
 //
 #include "PrimerDeterminator.hpp"
 #include "njhseq/helpers/seqUtil.hpp"
+#include "njhseq/seqToolsUtils/seqToolsUtils.hpp"
+
 
 namespace njhseq {
 
@@ -198,11 +200,19 @@ PrimerDeterminator::primerInfo::PrimerSeq::PrimerSeq(const seqInfo & primer):
 		motRC_ (seqUtil::genMotifStrAccountDegenBase(infoRC_.seq_))
 		{
 
-	infoLetCounter_.increaseCountByString(info_.seq_);
+	auto degenSeqs = createDegenStrs(info_.seq_);
+	for(const auto & degenSeq : degenSeqs){
+		infoLetCounter_.increaseCountByString(degenSeq);
+	}
+	//infoLetCounter_.increaseCountByString(info_.seq_);
 	infoLetCounter_.resetAlphabet(false);
 	infoLetCounter_.setFractions();
 
-	infoLetCounterRC_.increaseCountByString(infoRC_.seq_);
+	auto degenSeqsRC = createDegenStrs(infoRC_.seq_);
+	for(const auto & degenSeq : degenSeqsRC){
+		infoLetCounterRC_.increaseCountByString(degenSeq);
+	}
+	//infoLetCounterRC_.increaseCountByString(infoRC_.seq_);
 	infoLetCounterRC_.resetAlphabet(false);
 	infoLetCounterRC_.setFractions();
 }
@@ -466,6 +476,9 @@ PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestForward
 			for(const auto c : fwd.infoLetCounter_.alphabet_){
 				basesShared += std::min(letCounter.chars_[c], fwd.infoLetCounter_.chars_[c]);
 			}
+//			std::cout << "fwd: " << fwd.info_.seq_ << std::endl;
+//			std::cout << "\t" << static_cast<double>(basesShared) << std::endl;
+//			std::cout << "\t" << static_cast<double>(basesShared)/fwd.info_.seq_.size() << std::endl;
 			if(static_cast<double>(basesShared)/fwd.info_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
 				continue;
 			}
