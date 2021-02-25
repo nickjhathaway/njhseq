@@ -49,6 +49,7 @@ public:
 		std::string id_;
 
 		std::map<uint32_t, std::map<char, uint32_t>> allBases;
+		std::map<uint32_t, uint32_t> depthPerPosition;
 
 		std::map<uint32_t, std::map<char, uint32_t>> snps;
 		std::map<uint32_t, std::map<std::string,uint32_t>> insertions;
@@ -67,7 +68,8 @@ public:
 				const std::string & alignedQuerySeq, uint32_t querySeqCount,
 				const comparison & comp, uint32_t offSetStart = 0);
 
-		void setFinals(const RunPars & rPars, uint32_t totalPopCount);
+		void setFinals(const RunPars & rPars);
+		//void setFinals(const RunPars & rPars, uint32_t totalPopCount);
 
 	};
 

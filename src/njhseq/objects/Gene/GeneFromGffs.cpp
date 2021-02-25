@@ -457,7 +457,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 		if(gRecord->hasAttr("ID") && njh::in(gRecord->getAttr("ID"), ids) ){
 			if(!njh::in(gRecord->type_, allowableFeatureType)) {// "gene" != gRecord->type_){
 				std::stringstream ss;
-				ss << __PRETTY_FUNCTION__ << ", error feature type needs to be gene, not " << gRecord->type_ << "\n";
+				ss << __PRETTY_FUNCTION__ << ", error feature type needs to be gene, not " << gRecord->type_ << " for: " << gRecord->getAttr("ID") << "\n";
 				throw std::runtime_error{ss.str()};
 			}
 			auto currentId = gRecord->getAttr("ID");

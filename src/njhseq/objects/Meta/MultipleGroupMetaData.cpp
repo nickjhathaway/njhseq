@@ -326,6 +326,11 @@ bool MultipleGroupMetaData::hasSample(const std::string & sample) const{
 	return njh::in(sample, samples_);
 }
 
+
+MetaDataInName MultipleGroupMetaData::getMetaForSample(const std::string & name) const{
+	return getMetaForSample(name, getVectorOfMapKeys(groupData_));
+}
+
 MetaDataInName MultipleGroupMetaData::getMetaForSample(const std::string & name, const VecStr & fields) const{
 	if(!njh::in(name, samples_)){
 		std::stringstream ss;

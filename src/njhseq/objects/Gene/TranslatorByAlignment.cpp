@@ -63,42 +63,63 @@ TranslatorByAlignment::VariantsInfo::VariantsInfo(const std::string & id) : id_(
 }
 
 
-void TranslatorByAlignment::VariantsInfo::setFinals(const RunPars & rPars, uint32_t totalPopCount){
+void TranslatorByAlignment::VariantsInfo::setFinals(const RunPars & rPars){
 //	std::cout << "rPars.lowVariantCutOff: " << rPars.lowVariantCutOff << std::endl;
 //	std::cout << "rPars.occurrenceCutOff: " << rPars.occurrenceCutOff << std::endl;
 //	std::cout << "totalPopCount: " << totalPopCount << std::endl;
+
+	depthPerPosition.clear();
+	snpsFinal.clear();
+	deletionsFinal.clear();
+	insertionsFinal.clear();
+	variablePositons_.clear();
+
+	//get counts per position
+	for(const auto & pos : allBases){
+		for(const auto & base : pos.second){
+			depthPerPosition[pos.first] += base.second; //this add insertions and match/mismatch but not deletions
+		}
+	}
+	//add depth counts for deleted sections
+	for(const auto & pos : deletions){
+		for(const auto & del : pos.second){
+			for(const auto seqPos : iter::range(del.first.size())){
+				depthPerPosition[pos.first + seqPos] += del.second;
+			}
+		}
+	}
+
+
 	//filter saps and indels by occurrence cut off
 	for(auto & snp : snps){
 		for(const auto & b : snp.second){
-			if(b.second < rPars.occurrenceCutOff || b.second/static_cast<double>(totalPopCount) < rPars.lowVariantCutOff){
-				continue;
+			//if(b.second < rPars.occurrenceCutOff || b.second/static_cast<double>(totalPopCount) < rPars.lowVariantCutOff){
+			if(b.second < rPars.occurrenceCutOff || b.second/static_cast<double>(depthPerPosition[snp.first]) < rPars.lowVariantCutOff){
+			continue;
 			}
 			snpsFinal[snp.first][b.first] = b.second;
-			if(b.second/static_cast<double>(totalPopCount) > rPars.lowVariantCutOff){
-				variablePositons_.emplace(snp.first);
-			}
+			variablePositons_.emplace(snp.first);
 		}
 	}
 	for(const auto & del : deletions){
 		for(const auto & d : del.second){
-			if(d.second < rPars.occurrenceCutOff || d.second/static_cast<double>(totalPopCount) < rPars.lowVariantCutOff){
+			//if(d.second < rPars.occurrenceCutOff || d.second/static_cast<double>(totalPopCount) < rPars.lowVariantCutOff){
+			if(d.second < rPars.occurrenceCutOff || d.second/static_cast<double>(depthPerPosition[del.first]) < rPars.lowVariantCutOff){
 				continue;
 			}
+
 			deletionsFinal[del.first][d.first] = d.second;
-			if(d.second/static_cast<double>(totalPopCount) > rPars.lowVariantCutOff){
-				variablePositons_.emplace(del.first);
-			}
+			variablePositons_.emplace(del.first);
 		}
 	}
 	for(const auto & ins : insertions){
 		for(const auto & i : ins.second){
-			if(i.second < rPars.occurrenceCutOff || i.second/static_cast<double>(totalPopCount) < rPars.lowVariantCutOff){
+//		if(i.second < rPars.occurrenceCutOff || i.second/static_cast<double>(totalPopCount) < rPars.lowVariantCutOff){
+			if(i.second < rPars.occurrenceCutOff || i.second/static_cast<double>(depthPerPosition[ins.first]) < rPars.lowVariantCutOff){
 				continue;
 			}
 			insertionsFinal[ins.first][i.first] = i.second;
-			if(i.second/static_cast<double>(totalPopCount) > rPars.lowVariantCutOff){
-				variablePositons_.emplace(ins.first);
-			}
+			variablePositons_.emplace(ins.first);
 		}
 	}
 }
@@ -660,8 +681,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	}
 
 	for(auto & varPerChrom : ret.seqVariants_){
-		varPerChrom.second.setFinals(rPars, totalPopCount);
-
+		//varPerChrom.second.setFinals(rPars, totalPopCount);
+		varPerChrom.second.setFinals(rPars);
 	}
 
 	//index amino acid changes per transcript
@@ -680,7 +701,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	}
 
 	for(auto & varPerTrans : ret.proteinVariants_){
-		varPerTrans.second.setFinals(rPars, totalPopCount);
+		varPerTrans.second.setFinals(rPars);
+		//varPerTrans.second.setFinals(rPars, totalPopCount);
 	}
 
 	return ret;

@@ -26,6 +26,7 @@
 #include "njhseq/objects/Meta/GroupMetaData.hpp"
 #include "njhseq/objects/Meta/MetaDataInName.hpp"
 #include "njhseq/objects/dataContainers/tables/table.hpp"
+#include "njhseq/objects/seqObjects/BaseObjects/seqInfo.hpp"
 
 namespace njhseq {
 
@@ -122,6 +123,8 @@ public:
 	bool hasSample(const std::string & sample) const;
 
 	MetaDataInName getMetaForSample(const std::string & name, const VecStr & fields) const;
+	MetaDataInName getMetaForSample(const std::string & name) const;
+
 	MetaDataInName genNaMeta(const VecStr & fields) const;
 
 
@@ -130,6 +133,30 @@ public:
 
 
 	table leftJoinWithMeta(const table & sampleTable) const;
+
+	template<typename T>
+	bool attemptToAddSeqMeta(T & seq) const{
+		if(MetaDataInName::nameHasMetaData(getSeqBase(seq).name_)){
+			MetaDataInName metaData(getSeqBase(seq).name_);
+			if(metaData.containsMeta("sample") && njh::in(metaData.getMeta("sample"), samples_)){
+				auto seqMeta = getMetaForSample(metaData.getMeta("sample"), getVectorOfMapKeys(groupData_));
+				metaData.addMeta(seqMeta, true);
+				metaData.resetMetaInName(getSeqBase(seq).name_);
+				return true;
+			}else if(hasSample(getSeqBase(seq).name_)){
+				auto seqMeta = getMetaForSample(getSeqBase(seq).name_, getVectorOfMapKeys(groupData_));
+				seqMeta.resetMetaInName(getSeqBase(seq).name_);
+				return true;
+			}
+		}else{
+			if(hasSample(getSeqBase(seq).name_)){
+				auto seqMeta = getMetaForSample(getSeqBase(seq).name_, getVectorOfMapKeys(groupData_));
+				seqMeta.resetMetaInName(getSeqBase(seq).name_);
+				return true;
+			}
+		}
+		return false;
+	}
 };
 
 }  // namespace njhseq
