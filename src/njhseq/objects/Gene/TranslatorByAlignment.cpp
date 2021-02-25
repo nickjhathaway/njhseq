@@ -77,18 +77,29 @@ void TranslatorByAlignment::VariantsInfo::setFinals(const RunPars & rPars){
 	//get counts per position
 	for(const auto & pos : allBases){
 		for(const auto & base : pos.second){
-			depthPerPosition[pos.first] += base.second; //this add insertions and match/mismatch but not deletions
+			//std::cout << "pos:" << pos.first << ",base:" << base.first << ",count:" << base.second << std::endl;
+			depthPerPosition[pos.first] += base.second; //this add both deletion and match/mismatch because the addVariant calls adds - in query counts
 		}
 	}
-	//add depth counts for deleted sections
-	for(const auto & pos : deletions){
-		for(const auto & del : pos.second){
-			for(const auto seqPos : iter::range(del.first.size())){
-				depthPerPosition[pos.first + seqPos] += del.second;
-			}
-		}
-	}
+//	std::cout << njh::bashCT::red;
+//	for(const auto & pos : depthPerPosition){
+//		std::cout << "pos: " << pos.first << ":depth: " << pos.second << std::endl;
+//	}
+//	std::cout << njh::bashCT::reset;
 
+	//add depth counts for deleted sections, this is not necessary since the above addition of allBases will add deltions
+//	for(const auto & pos : deletions){
+//		for(const auto & del : pos.second){
+//			for(const auto seqPos : iter::range(del.first.size())){
+//				depthPerPosition[pos.first + seqPos] += del.second;
+//			}
+//		}
+//	}
+//	std::cout << njh::bashCT::blue;
+//	for(const auto & pos : depthPerPosition){
+//		std::cout << "pos: " << pos.first << ":depth: " << pos.second << std::endl;
+//	}
+//	std::cout << njh::bashCT::reset;
 
 	//filter saps and indels by occurrence cut off
 	for(auto & snp : snps){
