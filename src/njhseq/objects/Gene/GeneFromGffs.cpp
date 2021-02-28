@@ -436,6 +436,228 @@ std::unordered_map<std::string, table> GeneFromGffs::getIntronExonTables() const
 	}
 	return ret;
 }
+std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::getGenesFromGffForGuessedTranscriptOrGeneIds(const bfs::path & gffFnp, const std::set<std::string> & allIDs){
+
+	VecStr deirvedFromRecordFeatures {"polypeptide"};
+	VecStr allowableFeatureType {"gene", "pseudogene"};
+
+	std::unordered_set<std::string> geneIds;
+	//first gather GeneIDs from the transcript
+	{
+		/**@todo add some throwing if doesn't have parents, acceptable format for mRNA (some annotating do CDS vs mRNA vs other features) etc */
+		BioDataFileIO<GFFCore> reader{IoOptions(InOptions(gffFnp))};
+		std::vector<std::shared_ptr<GFFCore>> cache;
+		reader.openIn();
+		std::string line = "";
+		std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
+		while (nullptr != gRecord) {
+			if(gRecord->hasAttr("ID") && njh::in(gRecord->getAttr("ID"), allIDs) ){
+				if(njh::in(gRecord->type_, allowableFeatureType)) {
+					//possibly geneID
+					geneIds.emplace(gRecord->getAttr("ID"));
+
+				} else {
+					//wasn't a gene format so get it's parent as it's probably a mRNA transcript
+					if(gRecord->hasAttr("Parent")){
+						geneIds.emplace(gRecord->getAttr("Parent"));
+					}
+				}
+			}
+			bool end = false;
+			while ('#' == reader.inFile_->peek()) {
+				if (njh::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+					end = true;
+					break;
+				}
+				njh::files::crossPlatGetline(*reader.inFile_, line);
+			}
+			if (end) {
+				break;
+			}
+			gRecord = reader.readNextRecord();
+		}
+	}
+
+
+	std::unordered_map<std::string, std::set<std::string>> parents;
+	std::unordered_map<std::string, std::vector<std::shared_ptr<GFFCore>>> gffRecs;
+	std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> genes;
+
+
+	BioDataFileIO<GFFCore> reader{IoOptions(InOptions(gffFnp))};
+	std::vector<std::shared_ptr<GFFCore>> cache;
+	reader.openIn();
+	uint32_t count = 0;
+	std::string line = "";
+	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
+	while (nullptr != gRecord) {
+		if(gRecord->hasAttr("ID") && njh::in(gRecord->getAttr("ID"), geneIds) ){
+			if(!njh::in(gRecord->type_, allowableFeatureType)) {// "gene" != gRecord->type_){
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error feature type needs to be gene, not " << gRecord->type_ << " for: " << gRecord->getAttr("ID") << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+			auto currentId = gRecord->getAttr("ID");
+			parents[currentId].insert(gRecord->getAttr("ID"));
+			gffRecs[currentId].emplace_back(std::make_shared<GFFCore>(*gRecord));
+		}else if(gRecord->hasAttr("Parent")){
+			auto currentParents = tokenizeString(gRecord->getAttr("Parent"), ",");
+			for(const auto & currentParent : currentParents){
+				for(auto & p : parents){
+					if(njh::in(currentParent, p.second)){
+						p.second.insert(gRecord->getAttr("ID"));
+						gffRecs[p.first].emplace_back(std::make_shared<GFFCore>(*gRecord));
+					}
+				}
+			}
+		} else if(njh::in(gRecord->type_, deirvedFromRecordFeatures) ){
+			cache.emplace_back(std::make_shared<GFFCore>(*gRecord));
+		}
+		if("gene" == gRecord->type_){
+			for(const auto & fromCache : cache){
+				//grab any possible polypeptides or misc records,
+				//I have found that sometimes these come before the gene record so you have to keep a cache around since the last cache
+				//there might be a better way of doing this
+				if(fromCache->hasAttr("Derives_from")){
+					auto currentParent = fromCache->getAttr("Derives_from");
+					for(auto & p : parents){
+						if(njh::in(currentParent, p.second)){
+							gffRecs[p.first].emplace_back(std::make_shared<GFFCore>(*fromCache));
+						}
+					}
+				}
+			}
+			cache.clear();
+		}
+		bool end = false;
+		while ('#' == reader.inFile_->peek()) {
+			if (njh::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+				end = true;
+				break;
+			}
+			njh::files::crossPlatGetline(*reader.inFile_, line);
+		}
+		if (end) {
+			break;
+		}
+		gRecord = reader.readNextRecord();
+		++count;
+	}
+
+	for(const auto & geneGffs : gffRecs){
+		genes[geneGffs.first] = std::make_shared<GeneFromGffs>(geneGffs.second);
+	}
+	return genes;
+
+}
+
+
+std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::getGenesFromGffForTranscriptIds(const bfs::path & gffFnp, const std::set<std::string> & transcriptIDs){
+	VecStr deirvedFromRecordFeatures {"polypeptide"};
+	VecStr allowableFeatureType {"gene", "pseudogene"};
+
+	std::unordered_set<std::string> geneIds;
+	//first gather GeneIDs from the transcript
+	{
+		/**@todo add some throwing if doesn't have parents etc */
+		BioDataFileIO<GFFCore> reader{IoOptions(InOptions(gffFnp))};
+		std::vector<std::shared_ptr<GFFCore>> cache;
+		reader.openIn();
+		std::string line = "";
+		std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
+		while (nullptr != gRecord) {
+			if(gRecord->hasAttr("ID") && njh::in(gRecord->getAttr("ID"), transcriptIDs) ){
+				if(gRecord->hasAttr("Parent")){
+					geneIds.emplace(gRecord->getAttr("Parent"));
+				}
+			}
+			bool end = false;
+			while ('#' == reader.inFile_->peek()) {
+				if (njh::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+					end = true;
+					break;
+				}
+				njh::files::crossPlatGetline(*reader.inFile_, line);
+			}
+			if (end) {
+				break;
+			}
+			gRecord = reader.readNextRecord();
+		}
+	}
+
+
+	std::unordered_map<std::string, std::set<std::string>> parents;
+	std::unordered_map<std::string, std::vector<std::shared_ptr<GFFCore>>> gffRecs;
+	std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> genes;
+
+
+	BioDataFileIO<GFFCore> reader{IoOptions(InOptions(gffFnp))};
+	std::vector<std::shared_ptr<GFFCore>> cache;
+	reader.openIn();
+	uint32_t count = 0;
+	std::string line = "";
+	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
+	while (nullptr != gRecord) {
+		if(gRecord->hasAttr("ID") && njh::in(gRecord->getAttr("ID"), geneIds) ){
+			if(!njh::in(gRecord->type_, allowableFeatureType)) {// "gene" != gRecord->type_){
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error feature type needs to be gene, not " << gRecord->type_ << " for: " << gRecord->getAttr("ID") << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+			auto currentId = gRecord->getAttr("ID");
+			parents[currentId].insert(gRecord->getAttr("ID"));
+			gffRecs[currentId].emplace_back(std::make_shared<GFFCore>(*gRecord));
+		}else if(gRecord->hasAttr("Parent")){
+			auto currentParents = tokenizeString(gRecord->getAttr("Parent"), ",");
+			for(const auto & currentParent : currentParents){
+				for(auto & p : parents){
+					if(njh::in(currentParent, p.second)){
+						p.second.insert(gRecord->getAttr("ID"));
+						gffRecs[p.first].emplace_back(std::make_shared<GFFCore>(*gRecord));
+					}
+				}
+			}
+		} else if(njh::in(gRecord->type_, deirvedFromRecordFeatures) ){
+			cache.emplace_back(std::make_shared<GFFCore>(*gRecord));
+		}
+		if("gene" == gRecord->type_){
+			for(const auto & fromCache : cache){
+				//grab any possible polypeptides or misc records,
+				//I have found that sometimes these come before the gene record so you have to keep a cache around since the last cache
+				//there might be a better way of doing this
+				if(fromCache->hasAttr("Derives_from")){
+					auto currentParent = fromCache->getAttr("Derives_from");
+					for(auto & p : parents){
+						if(njh::in(currentParent, p.second)){
+							gffRecs[p.first].emplace_back(std::make_shared<GFFCore>(*fromCache));
+						}
+					}
+				}
+			}
+			cache.clear();
+		}
+		bool end = false;
+		while ('#' == reader.inFile_->peek()) {
+			if (njh::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+				end = true;
+				break;
+			}
+			njh::files::crossPlatGetline(*reader.inFile_, line);
+		}
+		if (end) {
+			break;
+		}
+		gRecord = reader.readNextRecord();
+		++count;
+	}
+
+	for(const auto & geneGffs : gffRecs){
+		genes[geneGffs.first] = std::make_shared<GeneFromGffs>(geneGffs.second);
+	}
+	return genes;
+}
+
 
 
 std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::getGenesFromGffForIds(

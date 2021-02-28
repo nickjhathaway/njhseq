@@ -296,6 +296,7 @@ public:
 	VecStr getColumnLevels(uint32_t colPos)const;
 	VecStr getColumnLevels(const std::string & colName)const;
 
+	void changeHeaderToLowerCase();
 
 //	/**@brief Create a json array with members the column name
 //	 *
@@ -352,6 +353,9 @@ public:
 
 	void checkForColumnsThrow(const VecStr & requiredColumns,
 			const std::string & funcName) const;
+
+	VecStr getMissingHeaders(const VecStr requiredColumns) const;
+
 
 };
 }  // namespace njh

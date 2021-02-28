@@ -141,6 +141,13 @@ VecStr table::getColumnLevels(const std::string & colName) const {
 	return getColumnLevels(getColPos(colName));
 }
 
+void table::changeHeaderToLowerCase(){
+	njh::for_each(columnNames_,[](std::string & col){
+		njh::strToLower(col);
+	});
+	setColNamePositions();
+}
+
 void table::populateTable(std::istream & in, const std::string &inDelim, bool header){
 	inDelim_ = inDelim;
 	if(inDelim == "tab"){
@@ -1215,5 +1222,18 @@ void table::checkForColumnsThrow(const VecStr & requiredColumns, const std::stri
 		throw std::runtime_error { ss.str() };
 	}
 }
+
+
+VecStr table::getMissingHeaders(const VecStr requiredColumns) const{
+	VecStr columnsNotFound;
+	for (const auto & col : requiredColumns) {
+		if (!njh::in(col, columnNames_)) {
+			columnsNotFound.emplace_back(col);
+		}
+	}
+	return columnsNotFound;
+}
+
+
 
 }  // namespace njh
