@@ -50,6 +50,8 @@ public:
 		bool preferHeader_ = false;
 		uint32_t kmerLength_= 7;
 		uint32_t padding_ = 150;
+		uint32_t extend_ = 0;
+
 		bool mark_ = false;
 	};
 

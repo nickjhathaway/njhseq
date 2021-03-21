@@ -69,6 +69,7 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 
 		alignerObj.alignCacheGlobal(forwardSeqRef, backSeq);
 		alignerObj.rearrangeObjsGlobal(forwardSeqRef, backSeq);
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //		debugWriter.write(alignerObj.alignObjectA_);
 //		debugWriter.write(alignerObj.alignObjectB_);
 
@@ -77,11 +78,19 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 		auto lastRefPositionForBackSeqEnd = lastRefPositionForBackSeqInclusive + 1;
 
 		uint32_t endPositionForBackSeqForOutput = std::numeric_limits<uint32_t>::max();
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << "endPositionForBackSeqForOutput: " << endPositionForBackSeqForOutput << std::endl;
 		uint32_t originalInputSeqStartForOutput = std::numeric_limits<uint32_t>::max();
 
 		if(pars.preferHeader_){
 			if(lastRefPositionForBackSeqEnd > refStartPosition){
 				endPositionForBackSeqForOutput = alignerObj.getSeqPosForAlnBPos(alignerObj.getAlignPosForSeqAPos(refStartPosition));
+//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				std::cout << "endPositionForBackSeqForOutput: " << endPositionForBackSeqForOutput << std::endl;
+			}else{
+				endPositionForBackSeqForOutput = len(backSeq);
+//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				std::cout << "endPositionForBackSeqForOutput: " << endPositionForBackSeqForOutput << std::endl;
 			}
 			originalInputSeqStartForOutput = 0;
 		} else {
@@ -90,8 +99,12 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 				//back seq went further than front of ref seq
 				auto lastRefAlnPositionInRealalignment = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
 				endPositionForBackSeqForOutput = alignerObj.getSeqPosForAlnBPos(lastRefAlnPositionInRealalignment) + 1;
+//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				std::cout << "endPositionForBackSeqForOutput: " << endPositionForBackSeqForOutput << std::endl;
 			}else{
 				endPositionForBackSeqForOutput = len(backSeq);
+//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				std::cout << "endPositionForBackSeqForOutput: " << endPositionForBackSeqForOutput << std::endl;
 				if(firstAlnInputPos <= lastRefPositionForBackSeqInclusive){
 					originalInputSeqStartForOutput = getRealPosForAlnPos(originalAlign2.seqBase_.seq_, getAlnPosForRealPos(originalAlign1.seqBase_.seq_, lastRefPositionForBackSeqInclusive)) + 1;
 				}else{
@@ -103,6 +116,8 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 		if('-' == alignerObj.alignObjectA_.seqBase_.seq_.front() ){
 			startPositionForBackSeqForOutput = alignerObj.getSeqPosForAlnBPos(alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-'));
 		}
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << "endPositionForBackSeqForOutput: " << endPositionForBackSeqForOutput << std::endl;
 		auto outSeq = backSeq.getSubRead(startPositionForBackSeqForOutput, endPositionForBackSeqForOutput - startPositionForBackSeqForOutput);
 		if(lastRefPositionForBackSeqEnd >= refStartPosition){
 			if(std::numeric_limits<uint32_t>::max() != originalInputSeqStartForOutput ){
@@ -115,6 +130,11 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 					seqMeta.addMeta("length", len(outSeq), true);
 					seqMeta.addMeta("inputLength", len(seq), true);
 					seqMeta.addMeta("refTransitionPoint", refStartPosition);
+//					std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//					std::cout << "endPositionForBackSeqForOutput: " << endPositionForBackSeqForOutput << std::endl;
+//					std::cout << "inputPos: " << inputPos << std::endl;
+//					std::cout << "startPositionForBackSeqForOutput: " << startPositionForBackSeqForOutput << std::endl;
+//					std::cout << "inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput: " << inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput << std::endl;
 					seqMeta.addMeta("inputPosition", njh::pasteAsStr(
 							inputPos + startPositionForBackSeqForOutput, "-", inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput,
 							",",
@@ -130,6 +150,11 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 					seqMeta.addMeta("length", len(outSeq), true);
 					seqMeta.addMeta("inputLength", len(seq), true);
 					seqMeta.addMeta("refTransitionPoint", refStartPosition);
+//					std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//					std::cout << "endPositionForBackSeqForOutput: " << endPositionForBackSeqForOutput << std::endl;
+//					std::cout << "inputPos: " << inputPos << std::endl;
+//					std::cout << "startPositionForBackSeqForOutput: " << startPositionForBackSeqForOutput << std::endl;
+//					std::cout << "inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput: " << inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput << std::endl;
 					seqMeta.addMeta("inputPosition", njh::pasteAsStr(
 							inputPos + startPositionForBackSeqForOutput, "-", inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput));
 					seqMeta.resetMetaInName(outSeq.name_);
@@ -149,6 +174,11 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 					seqMeta.addMeta("length", len(outSeq), true);
 					seqMeta.addMeta("inputLength", len(seq), true);
 					seqMeta.addMeta("refTransitionPoint", refStartPosition);
+//					std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//					std::cout << "endPositionForBackSeqForOutput: " << endPositionForBackSeqForOutput << std::endl;
+//					std::cout << "inputPos: " << inputPos << std::endl;
+//					std::cout << "startPositionForBackSeqForOutput: " << startPositionForBackSeqForOutput << std::endl;
+//					std::cout << "inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput: " << inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput << std::endl;
 					seqMeta.addMeta("inputPosition", njh::pasteAsStr(
 							inputPos + startPositionForBackSeqForOutput, "-", inputPos + endPositionForBackSeqForOutput - startPositionForBackSeqForOutput));
 					seqMeta.resetMetaInName(outSeq.name_);
@@ -161,6 +191,11 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 					seqMeta.addMeta("length", len(backSeqTrimmed), true);
 					seqMeta.addMeta("inputLength", len(seq), true);
 					seqMeta.addMeta("refTransitionPoint", refStartPosition);
+//					std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//					std::cout << "endPositionForBackSeqForOutput: " << endPositionForBackSeqForOutput << std::endl;
+//					std::cout << "inputPos: " << inputPos << std::endl;
+//					std::cout << "startPositionForBackSeqForOutput: " << startPositionForBackSeqForOutput << std::endl;
+//					std::cout << "inputPos - originalInputSeqStartForOutput: " << inputPos - originalInputSeqStartForOutput << std::endl;
 					seqMeta.addMeta("inputPosition", njh::pasteAsStr(originalInputSeqStartForOutput, "-", inputPos - originalInputSeqStartForOutput));
 					seqMeta.resetMetaInName(backSeqTrimmed.name_);
 				}
@@ -195,6 +230,7 @@ std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(seqInfo seq,
 
 		alignerObj.alignCacheGlobal(refBackSeq, frontInputSeq);
 		alignerObj.rearrangeObjsGlobal(refBackSeq, frontInputSeq);
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //		debugWriter.write(alignerObj.alignObjectA_);
 //		debugWriter.write(alignerObj.alignObjectB_);
 		auto remainderInputSeq = seq.getSubRead(inputFrontEndPos);
