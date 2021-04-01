@@ -1216,7 +1216,7 @@ void table::checkForColumnsThrow(const VecStr & requiredColumns, const std::stri
 		ss << "Only have " << '\n';
 		uint32_t colCount = 1;
 		for(const auto & col : columnNames_){
-			ss << "\tcol" << col << " is " << col << '\n';
+			ss << "\tcolum " << colCount << " is " << col << '\n';
 			++colCount;
 		}
 		throw std::runtime_error { ss.str() };

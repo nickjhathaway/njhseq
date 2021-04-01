@@ -416,13 +416,34 @@ int ManipulateTableRunner::countColumn(
 	setUp.finishSetUp(std::cout);
 	TableReader inTabReader(setUp.ioOptions_);
 
-	inTabReader.header_.checkForColumnsThrow(columnName, __PRETTY_FUNCTION__);
+	if(!("STDIN" == setUp.ioOptions_.in_.inFilename_ && !setUp.ioOptions_.hasHeader_)){
+		inTabReader.header_.checkForColumnsThrow(columnName, __PRETTY_FUNCTION__);
+	}
 
 	table ret;
 	VecStr row;
+	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (columnName.size() == 1) {
-
-		auto colPos = inTabReader.header_.getColPos(columnName.front());
+		uint32_t colPos = std::numeric_limits<uint32_t>::max();
+		std::cout << "setUp.ioOptions_.in_.inFilename_: " << setUp.ioOptions_.in_.inFilename_ << std::endl;
+		std::cout << njh::colorBool(("STDIN" == setUp.ioOptions_.in_.inFilename_ && !setUp.ioOptions_.hasHeader_)) << std::endl;
+		if("STDIN" == setUp.ioOptions_.in_.inFilename_ && !setUp.ioOptions_.hasHeader_){
+			std::regex pat("col.([0-9]+)");
+			std::smatch match;
+			if(std::regex_match(columnName.front(), match, pat)){
+				std::cout << "match[1]: " << match[1] << std::endl;
+				colPos = njh::StrToNumConverter::stoToNum<uint32_t>(match[1]);
+				std::cout << "colPos: " << colPos << std::endl;
+			}else{
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error "
+						<< "when reading from standard in (STDIN) with no header, need to supply column name in pattern col.[0-9]+, not "
+						<< columnName.front() << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+		}else{
+			colPos = inTabReader.header_.getColPos(columnName.front());
+		}
 
 		std::unordered_map<std::string, uint64_t> counts;
 		while(inTabReader.getNextRow(row)){

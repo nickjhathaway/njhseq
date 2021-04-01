@@ -73,6 +73,12 @@ bool TableReader::getNextRow(VecStr & row){
 	row.clear();
 	if(njh::files::crossPlatGetline(*in_, currentLine)){
 		row = tokenizeString(currentLine, tabOpts_.inDelim_, true);
+		//if this is the first line when reading from STDIN without a header, need to set the column names
+		if(0 == header_.nCol() && "STDIN" == tabOpts_.in_.inFilename_ && !tabOpts_.hasHeader_){
+			for (const auto i : iter::range(row.size())) {
+				header_.columnNames_.emplace_back("col." + leftPadNumStr(i, row.size()));
+			}
+		}
 		if(row.size() != header_.nCol()){
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", error the row has a different number of columns than the first line" << "\n";
