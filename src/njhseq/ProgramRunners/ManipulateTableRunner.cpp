@@ -464,7 +464,7 @@ int ManipulateTableRunner::countColumn(
 		}
 		VecStr outColumnNames;
 		for(const auto & pos : colPositions){
-			outColumnNames.emplace_back(columnName[pos]);
+			outColumnNames.emplace_back(inTabReader.header_.columnNames_[pos]);
 		}
 		outColumnNames.emplace_back("count");
 		ret = table(outColumnNames);
@@ -473,7 +473,6 @@ int ManipulateTableRunner::countColumn(
 			toks.emplace_back(estd::to_string(c.second));
 			ret.content_.emplace_back(toks);
 		}
-
 	}
 	if (setUp.sortByColumn_ != "") {
 		ret.sortTable(setUp.sortByColumn_, setUp.decending_);
