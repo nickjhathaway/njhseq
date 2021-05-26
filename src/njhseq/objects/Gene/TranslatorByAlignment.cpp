@@ -58,8 +58,210 @@ std::tuple<char, char, char> TranslatorByAlignment::TranslateSeqRes::getCodonFor
 
 
 
-TranslatorByAlignment::VariantsInfo::VariantsInfo(const std::string & id) : id_(id){
+TranslatorByAlignment::VariantsInfo::VariantsInfo(const Bed3RecordCore & region, const seqInfo & refSeq) : region_(region),
+		seqBase_(refSeq){
 
+}
+
+
+char TranslatorByAlignment::VariantsInfo::getBaseForGenomicRegionNoCheck(const uint32_t pos) const{
+	return seqBase_.seq_[pos - region_.chromStart_];
+}
+
+char TranslatorByAlignment::VariantsInfo::getBaseForGenomicRegion(const uint32_t pos) const{
+	if(pos < region_.chromStart_){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "position: " << pos << " is before the start of the region: " << region_.chromStart_<< "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	uint32_t relativePos = pos -region_.chromStart_;
+	if(relativePos > len(seqBase_)){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "position: " << pos << ", relative position: " << relativePos << " is out of range, seq size is: " << len(seqBase_)<< "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	return seqBase_.seq_[relativePos];
+}
+void TranslatorByAlignment::VariantsInfo::writeVCF(const OutOptions & vcfOutOpts) const {
+	OutputStream vcfOut(vcfOutOpts);
+
+	std::unordered_set<uint32_t> positionsSet;
+	for(const auto & snps : snpsFinal){
+		positionsSet.emplace(snps.first);
+	}
+
+
+	std::map<uint32_t, std::map<std::string,uint32_t>> insertionsFinalForVCF;
+	std::map<uint32_t, std::map<std::string,uint32_t>> deletionsFinalForVCF;
+	for(const auto & ins : insertionsFinal){
+		if(0 == ins.first ){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle insertion at position 0"<< "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		insertionsFinalForVCF[ins.first - 1] = ins.second;
+	}
+	for(const auto & del : deletionsFinal){
+		if(0 == del.first ){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle insertion at position 0"<< "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		deletionsFinalForVCF[del.first - 1] = del.second;
+	}
+
+	for(const auto & ins : insertionsFinalForVCF){
+		positionsSet.emplace(ins.first);
+	}
+	for(const auto & del : deletionsFinalForVCF){
+		positionsSet.emplace(del.first);
+	}
+
+
+	vcfOut << "##fileformat=VCFv4.0" << std::endl;
+	vcfOut << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Allele Depth\">" << std::endl;
+	vcfOut << "##INFO=<ID=NS,Number=1,Type=Integer,Description=\"Number of Samples With Data\">" << std::endl;
+	vcfOut << "##INFO=<ID=AF,Number=.,Type=Float,Description=\"Allele Frequency\">" << std::endl;
+	vcfOut << "##INFO=<ID=AC,Number=.,Type=Integer,Description=\"Allele Count\">" << std::endl;
+	vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
+
+	std::vector<uint32_t> positions(positionsSet.begin(), positionsSet.end());
+
+	njh::sort(positions);
+	for(const auto & pos : positions){
+		if (njh::in(pos, insertionsFinalForVCF) || njh::in(pos, snpsFinal)) {
+			vcfOut <<  region_.chrom_
+					<< "\t" << pos+ 1
+					<< "\t" << "."
+					<< "\t";
+			std::vector<std::string> alts;
+			std::vector<uint32_t> altsCounts;
+			std::vector<double> altsFreqs;
+			vcfOut << getBaseForGenomicRegion(pos) << "\t";
+			if(njh::in(pos, snpsFinal)){
+				uint32_t snpCount = 0;
+				for(const auto & b : snpsFinal.at(pos)){
+					snpCount+= b.second;
+					alts.emplace_back(std::string(1, b.first));
+					altsCounts.emplace_back(b.second);
+					altsFreqs.emplace_back(b.second/static_cast<double>(depthPerPosition.at(pos)));
+				}
+			}
+			if (njh::in(pos, insertionsFinalForVCF)) {
+				for (const auto & ins : insertionsFinalForVCF[pos]) {
+					alts.emplace_back(njh::pasteAsStr(getBaseForGenomicRegion(pos), ins.first));
+					altsCounts.emplace_back(ins.second);
+					altsFreqs.emplace_back(ins.second/static_cast<double>(depthPerPosition.at(pos)));
+				}
+			}
+
+			vcfOut << njh::conToStr(alts, ",")
+			<< "\t40\tPASS\t";
+			vcfOut
+					<< "DP=" << depthPerPosition.at(pos) << ";"
+					<< "NS=" << samplesPerPosition.at(pos).size() << ";"
+					<< "AC=" << njh::conToStr(altsCounts, ",") << ";"
+					<< "AF=" << njh::conToStr(altsFreqs, ",")
+			<< std::endl;
+		}
+		if (njh::in(pos, deletionsFinalForVCF)) {
+			for (const auto & d : deletionsFinalForVCF[pos]) {
+				vcfOut <<  region_.chrom_
+						<< "\t" << pos + 1
+						<< "\t" << "."
+						<< "\t";
+				vcfOut << getBaseForGenomicRegion(pos) << d.first
+				<< "\t" << getBaseForGenomicRegion(pos) << "\t";
+				vcfOut << "40\tPASS\t";
+				vcfOut
+						<< "DP=" << depthPerPosition.at(pos) << ";"
+						<< "NS=" << samplesPerPosition.at(pos).size() << ";"
+						<< "AC=" << d.second << ";"
+						<< "AF=" << d.second/static_cast<double>(depthPerPosition.at(pos))
+				<< std::endl;
+			}
+		}
+	}
+}
+
+
+void TranslatorByAlignment::VariantsInfo::writeSNPTable(const OutOptions &snpTabOutOpts)const{
+
+
+	OutputStream snpTabOut(snpTabOutOpts);
+
+
+	std::unordered_set<uint32_t> positionsSet;
+	for(const auto & snps : snpsFinal){
+		positionsSet.emplace(snps.first);
+	}
+
+
+	std::map<uint32_t, std::map<std::string,uint32_t>> insertionsFinalForVCF;
+	std::map<uint32_t, std::map<std::string,uint32_t>> deletionsFinalForVCF;
+	for(const auto & ins : insertionsFinal){
+		if(0 == ins.first ){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle insertion at position 0"<< "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		insertionsFinalForVCF[ins.first - 1] = ins.second;
+	}
+	for(const auto & del : deletionsFinal){
+		if(0 == del.first ){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle insertion at position 0"<< "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		deletionsFinalForVCF[del.first - 1] = del.second;
+	}
+
+	for(const auto & ins : insertionsFinalForVCF){
+		positionsSet.emplace(ins.first);
+	}
+	for(const auto & del : deletionsFinalForVCF){
+		positionsSet.emplace(del.first);
+	}
+
+	snpTabOut << "chrom\tposition\tref\tvariant\tcount\tfrequency\talleleDepth\tsamples" << std::endl;
+
+	std::vector<uint32_t> positions(positionsSet.begin(), positionsSet.end());
+
+	njh::sort(positions);
+	for(const auto & pos : positions){
+		if (njh::in(pos, insertionsFinalForVCF) || njh::in(pos, snpsFinal)) {
+			std::vector<std::string> alts;
+			std::vector<uint32_t> altsCounts;
+			std::vector<double> altsFreqs;
+
+
+			if(njh::in(pos, snpsFinal)){
+				uint32_t snpCount = 0;
+				for(const auto & b : snpsFinal.at(pos)){
+					snpTabOut << region_.chrom_
+							<< "\t" << pos
+							<< "\t" << getBaseForGenomicRegion(pos)
+							<< "\t" << std::string(1, b.first)
+							<< "\t" << b.second
+							<< "\t" << b.second/static_cast<double>(depthPerPosition.at(pos))
+							<< "\t" << depthPerPosition.at(pos)
+							<< "\t" << samplesPerPosition.at(pos).size() << std::endl;
+					snpCount+= b.second;
+					alts.emplace_back(std::string(1, b.first));
+					altsCounts.emplace_back(b.second);
+					altsFreqs.emplace_back(b.second/static_cast<double>(depthPerPosition.at(pos)));
+				}
+				snpTabOut << region_.chrom_
+						<< "\t" << pos
+						<< "\t" << getBaseForGenomicRegion(pos)
+						<< "\t" << getBaseForGenomicRegion(pos)
+						<< "\t" << depthPerPosition.at(pos) - snpCount
+						<< "\t" << (depthPerPosition.at(pos) - snpCount)/static_cast<double>(depthPerPosition.at(pos))
+						<< "\t" << depthPerPosition.at(pos)
+						<< "\t" << samplesPerPosition.at(pos).size() << std::endl;
+			}
+		}
+	}
 }
 
 
@@ -138,11 +340,11 @@ void TranslatorByAlignment::VariantsInfo::setFinals(const RunPars & rPars){
 
 Bed3RecordCore TranslatorByAlignment::VariantsInfo::getVariableRegion() {
 	if (!variablePositons_.empty()) {
-		return Bed3RecordCore(id_,
+		return Bed3RecordCore(seqBase_.name_,
 				*std::min_element(variablePositons_.begin(), variablePositons_.end()),
 				*std::max_element(variablePositons_.begin(), variablePositons_.end()) + 1 );
 	}
-	return Bed3RecordCore(id_, std::numeric_limits<uint32_t>::max(),
+	return Bed3RecordCore(seqBase_.name_, std::numeric_limits<uint32_t>::max(),
 			std::numeric_limits<uint32_t>::max());
 }
 
@@ -151,19 +353,22 @@ void TranslatorByAlignment::VariantsInfo::addVariantInfo(
 		const std::string & alignedRefSeq,
 		const std::string & alignedQuerySeq,
 		uint32_t querySeqCount,
+		const std::unordered_set<std::string> & samples,
 		const comparison & comp,
 		uint32_t offSetStart
 		){
 	uint32_t queryAlnStart = alignedQuerySeq.find_first_not_of("-");
 	uint32_t queryAlnEnd = alignedQuerySeq.find_last_not_of("-");
 	for(const auto seqPos : iter::range(queryAlnStart, queryAlnEnd + 1)){
-		if('-' != alignedRefSeq[seqPos]){
+		if('-' != alignedRefSeq[seqPos]){ //skip over insertions
 			uint32_t seqChromPosition = getRealPosForAlnPos(alignedRefSeq, seqPos) + offSetStart;
 			allBases[seqChromPosition][alignedQuerySeq[seqPos]] += querySeqCount;
+			samplesPerPosition[seqChromPosition].insert(samples.begin(), samples.end());
 		}
 	}
 	for(const auto & m : comp.distances_.mismatches_){
 		snps[m.second.refBasePos + offSetStart][m.second.seqBase]+= querySeqCount;
+
 	}
 	for(const auto & gap : comp.distances_.alignmentGaps_){
 		if(gap.second.ref_){
@@ -172,6 +377,9 @@ void TranslatorByAlignment::VariantsInfo::addVariantInfo(
 		}else{
 			//deletion
 			deletions[gap.second.refPos_ + offSetStart][gap.second.gapedSequence_]+=querySeqCount;
+			for(const auto pos : iter::range(gap.second.gapedSequence_.size())){
+				samplesPerPosition[gap.second.refPos_ + offSetStart + pos].insert(samples.begin(), samples.end());
+			}
 		}
 	}
 }
@@ -531,12 +739,12 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 
 TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		const SeqIOOptions & seqOpts,
-		const std::unordered_map<std::string, uint32_t> & sampCountsForHaps,
-		const RunPars & rPars){
+					const std::unordered_map<std::string, std::unordered_set<std::string>> & sampCountsForHaps,
+					const RunPars & rPars){
 
 	uint32_t totalPopCount = 0;
 	for(const auto & sampCount : sampCountsForHaps){
-		totalPopCount += sampCount.second;
+		totalPopCount += sampCount.second.size();
 	}
 	TranslatorByAlignmentResult ret;
 	std::vector<bfs::path> fnpsToRemove;
@@ -648,10 +856,20 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	BamTools::BamAlignment bAln;
 	auto chromLengths = tReader.getSeqLens();
 
+	struct MinMaxPos{
+		MinMaxPos(){
+
+		}
+		size_t minPos_{std::numeric_limits<uint32_t>::max()};
+		size_t maxPos_{0};
+	};
+	std::unordered_map<std::string, MinMaxPos> minMaxPositionsPerChrom;
 	while (bReader.GetNextAlignment(bAln)) {
 		if (bAln.IsMapped() && bAln.IsPrimaryAlignment()) {
 			bAln.Name = names[njh::StrToNumConverter::stoToNum<uint32_t>(bAln.Name)];
 			auto balnGenomicRegion = GenomicRegion(bAln, refData);
+			minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_ = std::min(minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_,balnGenomicRegion.start_);
+			minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_ = std::max(minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_,balnGenomicRegion.end_);
 			auto results = ReAlignedSeq::genRealignment(bAln, refData, alignObjSeq, chromLengths, tReader, rPars.realnPars);
 			ret.seqAlns_[bAln.Name].emplace_back(results);
 			if (!njh::in(balnGenomicRegion.createUidFromCoords(), alnRegionToGeneIds)) {
@@ -678,15 +896,22 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	for(const auto & seqName : ret.seqAlns_){
 		for(const auto & aln : seqName.second){
 			if(!njh::in(aln.gRegion_.chrom_, ret.seqVariants_)){
-				ret.seqVariants_.emplace(aln.gRegion_.chrom_, VariantsInfo(aln.gRegion_.chrom_));
+				Bed3RecordCore chromRegion(
+										aln.gRegion_.chrom_,
+										minMaxPositionsPerChrom[aln.gRegion_.chrom_].minPos_,
+										minMaxPositionsPerChrom[aln.gRegion_.chrom_].maxPos_);
+				ret.seqVariants_.emplace(aln.gRegion_.chrom_, VariantsInfo(chromRegion, GenomicRegion(chromRegion).extractSeq(tReader)));
 			}
 			for(uint32_t seqPos = 0; seqPos < aln.refSeq_.seq_.size(); ++ seqPos){
 				ret.baseForPosition_[aln.gRegion_.chrom_][aln.gRegion_.start_ + seqPos] = aln.refSeq_.seq_[seqPos];
 			}
-			uint32_t popCount = njh::mapAt(sampCountsForHaps, aln.querySeq_.name_);
+			uint32_t popCount = njh::mapAt(sampCountsForHaps, aln.querySeq_.name_).size();
 			ret.seqVariants_.at(aln.gRegion_.chrom_).addVariantInfo(
-					aln.alnRefSeq_.seq_, aln.alnQuerySeq_.seq_,
-					popCount, aln.comp_,
+					aln.alnRefSeq_.seq_,
+					aln.alnQuerySeq_.seq_,
+					popCount,
+					sampCountsForHaps.at(aln.querySeq_.name_),
+					aln.comp_,
 					aln.gRegion_.start_);
 		}
 	}
@@ -702,12 +927,13 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			if("" == ret.proteinForTranscript_[transcript.first]){
 				ret.proteinForTranscript_[transcript.first] = njh::replaceString(transcript.second.refAlnTranslation_.seq_, "-", "");
 			}
-			auto popCount = sampCountsForHaps.at(seqName.first);
+			auto popCount = sampCountsForHaps.at(seqName.first).size();
 			if(!njh::in(transcript.first, ret.proteinVariants_)){
-				ret.proteinVariants_.emplace(transcript.first, VariantsInfo{transcript.first});
+				ret.proteinVariants_.emplace(transcript.first, VariantsInfo{Bed3RecordCore(transcript.first, 0, transcript.second.refAlnTranslation_.seq_.size()),
+					transcript.second.refAlnTranslation_});
 			}
 			ret.proteinVariants_.at(transcript.first).addVariantInfo(transcript.second.refAlnTranslation_.seq_,
-					transcript.second.queryAlnTranslation_.seq_, popCount, transcript.second.comp_);
+					transcript.second.queryAlnTranslation_.seq_, popCount, sampCountsForHaps.at(seqName.first), transcript.second.comp_, 0);
 		}
 	}
 

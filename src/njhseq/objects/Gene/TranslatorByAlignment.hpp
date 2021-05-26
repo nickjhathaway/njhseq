@@ -45,11 +45,14 @@ public:
 
 	struct VariantsInfo {
 
-		VariantsInfo(const std::string & id);
-		std::string id_;
+		VariantsInfo(const Bed3RecordCore & region, const seqInfo & refSeq);
+		Bed3RecordCore region_;
+		seqInfo seqBase_;
+
 
 		std::map<uint32_t, std::map<char, uint32_t>> allBases;
 		std::map<uint32_t, uint32_t> depthPerPosition;
+		std::map<uint32_t, std::unordered_set<std::string>> samplesPerPosition;
 
 		std::map<uint32_t, std::map<char, uint32_t>> snps;
 		std::map<uint32_t, std::map<std::string,uint32_t>> insertions;
@@ -65,12 +68,22 @@ public:
 
 
 		void addVariantInfo(const std::string & alignedRefSeq,
-				const std::string & alignedQuerySeq, uint32_t querySeqCount,
-				const comparison & comp, uint32_t offSetStart = 0);
+				const std::string & alignedQuerySeq,
+				uint32_t querySeqCount,
+				const std::unordered_set<std::string> & samples,
+				const comparison & comp,
+				uint32_t offSetStart);
 
 		void setFinals(const RunPars & rPars);
 		//void setFinals(const RunPars & rPars, uint32_t totalPopCount);
 
+		char getBaseForGenomicRegionNoCheck(const uint32_t pos) const;
+
+		char getBaseForGenomicRegion(const uint32_t pos) const;
+
+		void writeVCF(const OutOptions &vcfOutOpts) const;
+
+		void writeSNPTable(const OutOptions &snpTabOutOpts)const;
 	};
 
 	struct TranslatorByAlignmentPars{
@@ -150,7 +163,7 @@ public:
 	TranslatorByAlignment(const TranslatorByAlignmentPars & pars);
 
 	TranslatorByAlignmentResult run(const SeqIOOptions & seqOpts,
-			const std::unordered_map<std::string, uint32_t> & sampCountsForHaps,
+			const std::unordered_map<std::string, std::unordered_set<std::string>> & sampCountsForHaps,
 			const RunPars & rPars);
 
 };
