@@ -18,9 +18,9 @@ HmmerDomainHitTab::HmmerDomainHitTab(){
 
 HmmerDomainHitTab::HmmerDomainHitTab(const std::string & line) {
 	auto toks = tokenizeString(line, "whitespace");
-	if (23 != toks.size()) {
+	if (toks.size() < 23) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ", error there should be 22 items not "
+		ss << __PRETTY_FUNCTION__ << ", error there should be at least 23 items not "
 				<< toks.size() << "\n";
 		for(const auto pos : iter::range(toks.size())){
 			ss << pos << ": " << toks[pos] << "\n";
@@ -58,8 +58,11 @@ HmmerDomainHitTab::HmmerDomainHitTab(const std::string & line) {
 
 	acc_ =  njh::StrToNumConverter::stoToNum<double>(toks[21]);
 	targetDesc_ = toks[22];
-
-
+	if(toks.size() > 23){
+		for(const auto pos : iter::range<uint32_t>(23,toks.size())){
+			targetDesc_ += " " + std::string(toks[pos]);
+		}
+	}
 }
 
 
