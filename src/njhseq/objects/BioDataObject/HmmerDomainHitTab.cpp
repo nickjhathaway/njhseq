@@ -9,6 +9,9 @@
 
 #include "HmmerDomainHitTab.hpp"
 
+#include "njhseq/utils/vectorUtils.hpp"
+
+
 namespace njhseq {
 
 HmmerDomainHitTab::HmmerDomainHitTab(){
@@ -94,6 +97,69 @@ Json::Value HmmerDomainHitTab::toJson() const{
 	ret["targetDesc_"] = njh::json::toJson(targetDesc_);
 	return ret;
 }
+
+
+
+VecStr HmmerDomainHitTab::toDelimStrHeader (){
+	return VecStr{
+		"targetName",
+		"targetAccession",
+		"targetLen",
+		"queryName",
+		"queryAccession",
+		"queryLen",
+		"seqEvalue",
+		"seqScore",
+		"seqBias",
+		"domainId",
+		"domainsTotals",
+		"domain_c_evalue",
+		"domain_i_evalue",
+		"domainScore",
+		"domainBias",
+		"hmmFrom",
+		"hmmTo",
+		"alignFrom",
+		"alignTo",
+		"envFrom",
+		"envTo",
+		"modelAccuracy",
+		"targetDesc"
+	};
+}
+
+
+
+std::string HmmerDomainHitTab::toDelimStr() const{
+
+	return njh::conToStr(toVecStr(
+			targetName_,
+			targetAcc_,
+			targetLen_,
+			queryName_,
+			queryAcc_,
+			queryLen_,
+			seqEvalue_,
+			seqScore_,
+			seqBias_,
+			domainId_,
+			domainsTotals_,
+			domain_c_evalue_,
+			domain_i_evalue_,
+			domainScore_,
+			domainBias_,
+			hmmFrom_,
+			hmmTo_,
+			alignFrom_,
+			alignTo_,
+			envFrom_,
+			envTo_,
+			acc_,
+			targetDesc_
+		), "\t");
+}
+
+
 
 
 }  // namespace njhseq
