@@ -51,6 +51,8 @@ public:
 		uint32_t kmerLength_= 7;
 		uint32_t padding_ = 150;
 		uint32_t extend_ = 0;
+		uint32_t extendSeqCheckLenTo_ = 100;
+		uint32_t extendSeqCheckLenFrom_ = 15;
 
 		bool mark_ = false;
 	};
