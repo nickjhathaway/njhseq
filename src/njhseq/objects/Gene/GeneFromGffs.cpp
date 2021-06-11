@@ -202,7 +202,7 @@ std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName()
 					}
 				}
 			}
-		} else if ("PlasmoDB" == gene_->source_ || "pf3k" == gene_->source_) {
+		} else if ("EuPathDB" == gene_->source_ || "PlasmoDB" == gene_->source_ || "pf3k" == gene_->source_) {
 			if (gene_->hasAttr("description")) {
 				name = gene_->getAttr("description");
 			}
