@@ -3214,7 +3214,7 @@ Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const
 	ret["keepImproperMateUnmapped_"] = njh::json::toJson(keepImproperMateUnmapped_);
 	ret["fivePrimeTrim_"] = njh::json::toJson(fivePrimeTrim_);
 	ret["threePrimeTrim_"] = njh::json::toJson(threePrimeTrim_);
-
+	ret["writeAll_"] = njh::json::toJson(writeAll_);
 	return ret;
 }
 
@@ -3270,17 +3270,17 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	}
 
 	bfs::path outBam(njh::appendAsNeededRet(outOpts.outFilename_.string(), ".bam"));
-	OutOptions outBamOpts(outBam);
-	outBamOpts.transferOverwriteOpts(outOpts);
-	if(outBamOpts.outExists() && !outBamOpts.overWriteFile_){
-		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ", error " << outBamOpts.outName() << " already exits" << "\n";
-		throw std::runtime_error{ss.str()};
-	}
-
 	BamTools::BamWriter bWriter;
-	bWriter.Open(outBam.string(), bReader.GetHeader(), bReader.GetReferenceData());
-
+	if(extractPars.writeAll_){
+		OutOptions outBamOpts(outBam);
+		outBamOpts.transferOverwriteOpts(outOpts);
+		if(outBamOpts.outExists() && !outBamOpts.overWriteFile_){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << outBamOpts.outName() << " already exits" << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		bWriter.Open(outBam.string(), bReader.GetHeader(), bReader.GetReferenceData());
+	}
 
 	auto outPairs = SeqIOOptions::genPairedOut(outOpts.outFilename_);
 	outPairs.out_.transferOverwriteOpts(outOpts);
@@ -3351,7 +3351,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	SeqOutput debugSinglesWriter(debugSinglsOpts);
 
 
-	auto writeMateFilteredOff = [&ret,extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
+	auto writeMateFilteredOff = [&ret,&extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
 		//unpaired read
 		++ret.mateFilteredOff_;
 		if (extractPars.originalOrientation_) {
@@ -3387,9 +3387,11 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //			seqMeta.resetMetaInName(outSeq.name_);
 			writer.openWrite(outSeq);
 		}
-		bWriter.SaveAlignment(bAln);
+		if(extractPars.writeAll_){
+			bWriter.SaveAlignment(bAln);
+		}
 	};
-	auto writeMateFilteredOffSoftClip = [&ret,extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
+	auto writeMateFilteredOffSoftClip = [&ret,&extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
 		//unpaired read
 		++ret.pairedReadsMateFailedSoftClip_;
 		if (extractPars.originalOrientation_) {
@@ -3402,7 +3404,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			}
 			writer.openWrite(outSeq);
 		}
-		bWriter.SaveAlignment(bAln);
+		if(extractPars.writeAll_){
+			bWriter.SaveAlignment(bAln);
+		}
 	};
 
 
@@ -3423,6 +3427,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //				inversePairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
 //			}
 //		}
+//	if(extractPars.writeAll_){
+		//		bWriter.SaveAlignment(bAln);
+		//		bWriter.SaveAlignment(searchAln);
+//	}
 //		bWriter.SaveAlignment(bAln);
 //		bWriter.SaveAlignment(searchAln);
 //	};
@@ -3449,19 +3457,22 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				}
 			}
 		}
-		if(bAlnSeqPass && searchSeqPass) {
-			if (bAln.IsFirstMate()) {
-				filteredPairWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
-			} else {
-				filteredPairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
+		if (extractPars.writeAll_) {
+			if (bAlnSeqPass && searchSeqPass) {
+				if (bAln.IsFirstMate()) {
+					filteredPairWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
+				} else {
+					filteredPairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
+				}
+
+			} else if (bAlnSeqPass) {
+				singleFilteredWriter.openWrite(bAlnSeq);
+			} else if (searchSeqPass) {
+				singleFilteredWriter.openWrite(searchSeq);
 			}
-		} else if(bAlnSeqPass) {
-			singleFilteredWriter.openWrite(bAlnSeq);
-		} else if(searchSeqPass) {
-			singleFilteredWriter.openWrite(searchSeq);
+			bWriter.SaveAlignment(bAln);
+			bWriter.SaveAlignment(searchAln);
 		}
-		bWriter.SaveAlignment(bAln);
-		bWriter.SaveAlignment(searchAln);
 	};
 //
 	auto writeBothPairsFiltered = [&ret,&extractPars,&filteredPairWriter,&bWriter,&singleFilteredWriter](const BamTools::BamAlignment & bAln,
@@ -3486,21 +3497,21 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				}
 			}
 		}
-		if(bAlnSeqPass && searchSeqPass) {
-			if (bAln.IsFirstMate()) {
-				filteredPairWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
-			} else {
-				filteredPairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
+		if (extractPars.writeAll_) {
+			if (bAlnSeqPass && searchSeqPass) {
+				if (bAln.IsFirstMate()) {
+					filteredPairWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
+				} else {
+					filteredPairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
+				}
+			} else if (bAlnSeqPass) {
+				singleFilteredWriter.openWrite(bAlnSeq);
+			} else if (searchSeqPass) {
+				singleFilteredWriter.openWrite(searchSeq);
 			}
-		} else if(bAlnSeqPass) {
-			singleFilteredWriter.openWrite(bAlnSeq);
-		} else if(searchSeqPass) {
-			singleFilteredWriter.openWrite(searchSeq);
+			bWriter.SaveAlignment(bAln);
+			bWriter.SaveAlignment(searchAln);
 		}
-
-
-		bWriter.SaveAlignment(bAln);
-		bWriter.SaveAlignment(searchAln);
 	};
 
 	auto writeBothPairsFilteredSoftClip = [&ret,&extractPars,&filteredPairSoftClipWriter,&bWriter,&singleFilteredSoftClipWriter](const BamTools::BamAlignment & bAln,
@@ -3525,21 +3536,21 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				}
 			}
 		}
-		if(bAlnSeqPass && searchSeqPass) {
-			if (bAln.IsFirstMate()) {
-				filteredPairSoftClipWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
-			} else {
-				filteredPairSoftClipWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
+		if (extractPars.writeAll_) {
+			if (bAlnSeqPass && searchSeqPass) {
+				if (bAln.IsFirstMate()) {
+					filteredPairSoftClipWriter.openWrite(PairedRead(bAlnSeq, searchSeq));
+				} else {
+					filteredPairSoftClipWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
+				}
+			} else if (bAlnSeqPass) {
+				singleFilteredSoftClipWriter.openWrite(bAlnSeq);
+			} else if (searchSeqPass) {
+				singleFilteredSoftClipWriter.openWrite(searchSeq);
 			}
-		} else if(bAlnSeqPass) {
-			singleFilteredSoftClipWriter.openWrite(bAlnSeq);
-		} else if(searchSeqPass) {
-			singleFilteredSoftClipWriter.openWrite(searchSeq);
+			bWriter.SaveAlignment(bAln);
+			bWriter.SaveAlignment(searchAln);
 		}
-
-
-		bWriter.SaveAlignment(bAln);
-		bWriter.SaveAlignment(searchAln);
 	};
 
 	auto writeSingleFiltered = [&ret,&extractPars,&singleFilteredWriter,&bWriter](const BamTools::BamAlignment & bAln){
@@ -3553,10 +3564,12 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				pass = false;
 			}
 		}
-		if(pass){
-			singleFilteredWriter.openWrite(bAlnSeq);
+		if (extractPars.writeAll_) {
+			if (pass) {
+				singleFilteredWriter.openWrite(bAlnSeq);
+			}
+			bWriter.SaveAlignment(bAln);
 		}
-		bWriter.SaveAlignment(bAln);
 	};
 
 	auto writeSingleFilteredSoftClip = [&ret,&extractPars,&singleFilteredSoftClipWriter,&bWriter](const BamTools::BamAlignment & bAln){
@@ -3570,10 +3583,12 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				pass = false;
 			}
 		}
-		if(pass){
-			singleFilteredSoftClipWriter.openWrite(bAlnSeq);
+		if (extractPars.writeAll_) {
+			if (pass) {
+				singleFilteredSoftClipWriter.openWrite(bAlnSeq);
+			}
+			bWriter.SaveAlignment(bAln);
 		}
-		bWriter.SaveAlignment(bAln);
 	};
 
 	auto writeDiscordantPair = [&ret,&extractPars,&pairWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq,
@@ -3592,8 +3607,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				pairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
 			}
 		}
-		bWriter.SaveAlignment(bAln);
-		bWriter.SaveAlignment(searchAln);
+		if (extractPars.writeAll_) {
+			bWriter.SaveAlignment(bAln);
+			bWriter.SaveAlignment(searchAln);
+		}
 	};
 
 	auto writeRegPair = [&ret,&extractPars,&pairWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq,
@@ -3612,8 +3629,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				pairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
 			}
 		}
-		bWriter.SaveAlignment(bAln);
-		bWriter.SaveAlignment(searchAln);
+		if (extractPars.writeAll_) {
+			bWriter.SaveAlignment(bAln);
+			bWriter.SaveAlignment(searchAln);
+		}
 	};
 	auto writeMateUnmappedPair = [&ret,&extractPars,&mateUnmappedPairWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq,
 			const BamTools::BamAlignment & searchAln, const seqInfo & searchSeq){
@@ -3631,8 +3650,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				mateUnmappedPairWriter.openWrite(PairedRead(searchSeq, bAlnSeq));
 			}
 		}
-		bWriter.SaveAlignment(bAln);
-		bWriter.SaveAlignment(searchAln);
+		if (extractPars.writeAll_) {
+			bWriter.SaveAlignment(bAln);
+			bWriter.SaveAlignment(searchAln);
+		}
 	};
 
 	auto writeThrowAwayUnmappedMate = [&ret,&extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
@@ -3642,7 +3663,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		}else{
 			writer.openWrite(bAlnSeq);
 		}
-		bWriter.SaveAlignment(bAln);
+		if(extractPars.writeAll_){
+			bWriter.SaveAlignment(bAln);
+		}
 	};
 
 	auto writeTheThrownAwayUnmappedMate = [&extractPars,&thrownAwayUnammpedMateWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
@@ -3660,7 +3683,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				thrownAwayUnammpedMateWriter.openWrite(bAlnSeq);
 			}
 		}
-		bWriter.SaveAlignment(bAln);
+		if(extractPars.writeAll_){
+			bWriter.SaveAlignment(bAln);
+		}
 	};
 
 	auto writeTheThrownAwayMate = [&extractPars,&thrownAwayUnammpedMateWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
@@ -3678,7 +3703,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				thrownAwayUnammpedMateWriter.openWrite(bAlnSeq);
 			}
 		}
-		bWriter.SaveAlignment(bAln);
+		if(extractPars.writeAll_){
+			bWriter.SaveAlignment(bAln);
+		}
 	};
 
 	auto writeTheMateFailedSoftClip= [&extractPars,&singleFilteredSoftClipWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
@@ -3689,14 +3716,16 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				pass = false;
 			}
 		}
-		if(pass){
-			if(extractPars.originalOrientation_){
-				singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(bAln));
-			}else{
-				singleFilteredSoftClipWriter.openWrite(bAlnSeq);
+		if (extractPars.writeAll_) {
+			if (pass) {
+				if (extractPars.originalOrientation_) {
+					singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(bAln));
+				} else {
+					singleFilteredSoftClipWriter.openWrite(bAlnSeq);
+				}
 			}
+			bWriter.SaveAlignment(bAln);
 		}
-		bWriter.SaveAlignment(bAln);
 	};
 
 	auto writeUnmappedMateFilteredPair= [&ret,&extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
@@ -3706,18 +3735,22 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		}else{
 			writer.openWrite(bAlnSeq);
 		}
-		bWriter.SaveAlignment(bAln);
+		if(extractPars.writeAll_){
+			bWriter.SaveAlignment(bAln);
+		}
 	};
 
 
 	auto writeUnmappedMateFilteredSoftClipPair= [&ret,&extractPars,&singleFilteredSoftClipWriter,&bWriter](const BamTools::BamAlignment & bAln, const seqInfo & bAlnSeq){
 		++ret.pairedReadsMateUnmappedFailedSoftClip_;
-		if(extractPars.originalOrientation_){
-			singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(bAln));
-		}else{
-			singleFilteredSoftClipWriter.openWrite(bAlnSeq);
+		if (extractPars.writeAll_) {
+			if (extractPars.originalOrientation_) {
+				singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(bAln));
+			} else {
+				singleFilteredSoftClipWriter.openWrite(bAlnSeq);
+			}
+			bWriter.SaveAlignment(bAln);
 		}
-		bWriter.SaveAlignment(bAln);
 	};
 
 	for (const auto regionPos : iter::range(regions.size())) {
@@ -4300,7 +4333,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							}
 							writer.openWrite(searchSeq);
 						}
-						bWriter.SaveAlignment(*search);
+						if(extractPars.writeAll_){
+							bWriter.SaveAlignment(*search);
+						}
 					}else{
 						++ret.orphansFiltered_;
 //						std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -4312,8 +4347,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				}else{
 					//write filterd orphan
 					++ret.orphansFilteredSoftCip_;
-					singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(*search));
-					bWriter.SaveAlignment(*search);
+					if(extractPars.writeAll_){
+						singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(*search));
+						bWriter.SaveAlignment(*search);
+					}
 				}
 			}else{
 				//write filterd orphan
@@ -4322,8 +4359,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //				std::cout << "getAlnLen(*search) >= extractPars.minAlnMapSize_: " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
 //				std::cout << "getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
 //				std::cout <<  "searchIn: " <<njh::colorBool(searchIn) << std::endl;
-				singleFilteredWriter.openWrite(bamAlnToSeqInfo(*search));
-				bWriter.SaveAlignment(*search);
+				if(extractPars.writeAll_){
+					singleFilteredWriter.openWrite(bamAlnToSeqInfo(*search));
+					bWriter.SaveAlignment(*search);
+				}
 			}
 			alnCache.remove(name);
 		}
