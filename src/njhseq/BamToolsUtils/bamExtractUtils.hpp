@@ -207,6 +207,12 @@ public:
 			const std::vector<GenomicRegion> & regions,
 			const extractReadsWtihCrossRegionMappingPars & extractPars);
 
+	ExtractedFilesOpts extractReadsWtihCrossRegionMapping(
+			BamTools::BamReader & bReader,
+			const OutOptions & outOpts,
+			const std::vector<GenomicRegion> & regions,
+			const extractReadsWtihCrossRegionMappingPars & extractPars);
+
 	ExtractedFilesOpts extractReadsWtihCrossRegionMappingAsSingles(
 				const SeqIOOptions & inOutOpts,
 				const std::vector<GenomicRegion> & regions, double percInRegion,

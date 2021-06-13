@@ -3233,12 +3233,14 @@ Json::Value BamExtractor::writeUnMappedSeqsAndSmallAlnsWithFiltersPars::toJson()
 }
 
 
-
-
 BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMapping(
-		const SeqIOOptions & inOutOpts,
+		BamTools::BamReader & bReader,
+		const OutOptions & outOpts,
 		const std::vector<GenomicRegion> & regions,
-		const extractReadsWtihCrossRegionMappingPars & extractPars) {
+		const extractReadsWtihCrossRegionMappingPars & extractPars){
+
+	BamTools::BamAlignment bAln;
+
 	//std::cout << "percInRegion: " << percInRegion << std::endl;
 	//check to see if regions overlap
 	bool overlapsFound = false;
@@ -3256,11 +3258,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		throw std::runtime_error{overalMessage.str()};
 	}
 	/**@todo also need to do a check for if a sequence lands in more than 1 region */
-	BamTools::BamAlignment bAln;
-	BamTools::BamReader bReader;
-	bReader.Open(inOutOpts.firstName_.string());
-	checkBamOpenThrow(bReader, inOutOpts.firstName_.string());
-	loadBamIndexThrow(bReader);
+
+
 	auto refs = bReader.GetReferenceData();
 	BamAlnsCacheWithRegion alnCache;
 
@@ -3270,9 +3269,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		refNameToId[refData[pos].RefName] = pos;
 	}
 
-	bfs::path outBam(njh::appendAsNeededRet(inOutOpts.out_.outFilename_.string(), ".bam"));
+	bfs::path outBam(njh::appendAsNeededRet(outOpts.outFilename_.string(), ".bam"));
 	OutOptions outBamOpts(outBam);
-	outBamOpts.transferOverwriteOpts(inOutOpts.out_);
+	outBamOpts.transferOverwriteOpts(outOpts);
 	if(outBamOpts.outExists() && !outBamOpts.overWriteFile_){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error " << outBamOpts.outName() << " already exits" << "\n";
@@ -3283,37 +3282,37 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	bWriter.Open(outBam.string(), bReader.GetHeader(), bReader.GetReferenceData());
 
 
-	auto outPairs = SeqIOOptions::genPairedOut(inOutOpts.out_.outFilename_);
-	outPairs.out_.transferOverwriteOpts(inOutOpts.out_);
+	auto outPairs = SeqIOOptions::genPairedOut(outOpts.outFilename_);
+	outPairs.out_.transferOverwriteOpts(outOpts);
 
-	auto outPairsUnmappedMate = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "mateUnmapped_"));
-	outPairsUnmappedMate.out_.transferOverwriteOpts(inOutOpts.out_);
+	auto outPairsUnmappedMate = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(outOpts.outFilename_, "mateUnmapped_"));
+	outPairsUnmappedMate.out_.transferOverwriteOpts(outOpts);
 
-	auto thrownAwayUnammpedMateOpts = SeqIOOptions::genFastqOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "thrownAwayMate_"));
-	thrownAwayUnammpedMateOpts.out_.transferOverwriteOpts(inOutOpts.out_);
+	auto thrownAwayUnammpedMateOpts = SeqIOOptions::genFastqOut(njh::files::prependFileBasename(outOpts.outFilename_, "thrownAwayMate_"));
+	thrownAwayUnammpedMateOpts.out_.transferOverwriteOpts(outOpts);
 
 	//inverse here is if when the pairs are put into the orientation of the target region of interest they end up being not being in the same orientation or regular inverse as well
-	auto outPairsInverse = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "inverse_"));
-	outPairsInverse.out_.transferOverwriteOpts(inOutOpts.out_);
+	auto outPairsInverse = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(outOpts.outFilename_, "inverse_"));
+	outPairsInverse.out_.transferOverwriteOpts(outOpts);
 
 	//filtered off seqs, the inverse and not completely in the region sequences
-	auto outPairsFiltered = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "filteredPairs_"));
-	outPairsFiltered.out_.transferOverwriteOpts(inOutOpts.out_);
+	auto outPairsFiltered = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(outOpts.outFilename_, "filteredPairs_"));
+	outPairsFiltered.out_.transferOverwriteOpts(outOpts);
 
-	auto outPairsFilteredSoftClip = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "filteredSoftClipPairs_"));
-	outPairsFilteredSoftClip.out_.transferOverwriteOpts(inOutOpts.out_);
+	auto outPairsFilteredSoftClip = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(outOpts.outFilename_, "filteredSoftClipPairs_"));
+	outPairsFilteredSoftClip.out_.transferOverwriteOpts(outOpts);
 
 	//filtered off single seqs
-	auto filteredSinglesOpts = SeqIOOptions::genFastqOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "filteredSingles_"));
-	filteredSinglesOpts.out_.transferOverwriteOpts(inOutOpts.out_);
+	auto filteredSinglesOpts = SeqIOOptions::genFastqOut(njh::files::prependFileBasename(outOpts.outFilename_, "filteredSingles_"));
+	filteredSinglesOpts.out_.transferOverwriteOpts(outOpts);
 
 	//filtered off single seqs due to soft clipping
-	auto filteredSoftClipSinglesOpts = SeqIOOptions::genFastqOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "filteredSoftClipSingles_"));
-	filteredSoftClipSinglesOpts.out_.transferOverwriteOpts(inOutOpts.out_);
+	auto filteredSoftClipSinglesOpts = SeqIOOptions::genFastqOut(njh::files::prependFileBasename(outOpts.outFilename_, "filteredSoftClipSingles_"));
+	filteredSoftClipSinglesOpts.out_.transferOverwriteOpts(outOpts);
 
 
-	auto outUnpaired = SeqIOOptions::genFastqOut(inOutOpts.out_.outFilename_);
-	outUnpaired.out_.transferOverwriteOpts(inOutOpts.out_);
+	auto outUnpaired = SeqIOOptions::genFastqOut(outOpts.outFilename_);
+	outUnpaired.out_.transferOverwriteOpts(outOpts);
 	//pair writers
 	SeqOutput pairWriter(outPairs);
 	SeqOutput filteredPairWriter(outPairsFiltered);
@@ -3343,11 +3342,11 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 
 
 	//debuging
-	auto debugPairsOpts = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "debug_pairs_"));;
+	auto debugPairsOpts = SeqIOOptions::genPairedOut(njh::files::prependFileBasename(outOpts.outFilename_, "debug_pairs_"));;
 	debugPairsOpts.out_.overWriteFile_ = true;
 	SeqOutput debugPairWriter(debugPairsOpts);
 
-	auto debugSinglsOpts = SeqIOOptions::genFastqOut(njh::files::prependFileBasename(inOutOpts.out_.outFilename_, "debug_singles_"));
+	auto debugSinglsOpts = SeqIOOptions::genFastqOut(njh::files::prependFileBasename(outOpts.outFilename_, "debug_singles_"));
 	debugSinglsOpts.out_.overWriteFile_ = true;
 	SeqOutput debugSinglesWriter(debugSinglsOpts);
 
@@ -4103,7 +4102,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	 *  should maybe investigate where they are falling or when remapping consider taking these now  */
 	std::ofstream orphansSiblingsLocationFile;
 	if(debug_){
-		OutOptions orphansSiblingsLocationFileOpt(njh::files::make_path(inOutOpts.out_.outFilename_.parent_path(), "orphansSiblingsStats.tab.txt"));
+		OutOptions orphansSiblingsLocationFileOpt(njh::files::make_path(outOpts.outFilename_.parent_path(), "orphansSiblingsStats.tab.txt"));
 		orphansSiblingsLocationFileOpt.openFile(orphansSiblingsLocationFile);
 		orphansSiblingsLocationFile << "OrphanName\tdistance\tclosetRegions\tRefId\tPosition\tIsMapped\tMateRefId\tMatePosition\tIsMateMapped" << "\n";
 	}
@@ -4112,11 +4111,11 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		auto names = alnCache.getNames();
 		if (extractPars.tryToFindOrphansMate_) {
 			//find orphans' mates if possible;
-			BamTools::BamReader bReaderMateFinder;
-			bReaderMateFinder.Open(inOutOpts.firstName_.string());
-			checkBamOpenThrow(bReaderMateFinder, inOutOpts.firstName_.string());
-			loadBamIndexThrow(bReaderMateFinder);
-			auto refData = bReaderMateFinder.GetReferenceData();
+//			BamTools::BamReader bReaderMateFinder;
+//			bReaderMateFinder.Open(inOutOpts.firstName_.string());
+//			checkBamOpenThrow(bReaderMateFinder, inOutOpts.firstName_.string());
+//			loadBamIndexThrow(bReaderMateFinder);
+//			auto refData = bReaderMateFinder.GetReferenceData();
 			//gather all the orphans regions
 			std::unordered_map<std::string, std::set<uint32_t>> orphanPositions;
 			for (const auto & name : names) {
@@ -4144,8 +4143,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				}
 			}
 			for(const auto & reg : orphanMateRegions){
-				setBamFileRegionThrow(bReaderMateFinder, reg);
-				while (bReaderMateFinder.GetNextAlignment(bAln)) {
+				setBamFileRegionThrow(bReader, reg);
+				while (bReader.GetNextAlignment(bAln)) {
 					//skip secondary alignments
 					if (!bAln.IsPrimaryAlignment()) {
 						continue;
@@ -4175,12 +4174,12 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			}
 		} else {
 			for(const auto & region : regions){
-				BamTools::BamReader bReaderMateFinder;
-				bReaderMateFinder.Open(inOutOpts.firstName_.string());
-				checkBamOpenThrow(bReaderMateFinder, inOutOpts.firstName_.string());
-				loadBamIndexThrow(bReaderMateFinder);
-				setBamFileRegionThrow(bReaderMateFinder, region);
-				while (bReaderMateFinder.GetNextAlignment(bAln)) {
+//				BamTools::BamReader bReaderMateFinder;
+//				bReaderMateFinder.Open(inOutOpts.firstName_.string());
+//				checkBamOpenThrow(bReaderMateFinder, inOutOpts.firstName_.string());
+//				loadBamIndexThrow(bReaderMateFinder);
+				setBamFileRegionThrow(bReader, region);
+				while (bReader.GetNextAlignment(bAln)) {
 					//skip secondary alignments
 					if (!bAln.IsPrimaryAlignment()) {
 						continue;
@@ -4330,6 +4329,21 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		}
 	}
 	return ret;
+}
+
+
+
+
+BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMapping(
+		const SeqIOOptions & inOutOpts,
+		const std::vector<GenomicRegion> & regions,
+		const extractReadsWtihCrossRegionMappingPars & extractPars) {
+	BamTools::BamReader bReader;
+	bReader.Open(inOutOpts.firstName_.string());
+	checkBamOpenThrow(bReader, inOutOpts.firstName_.string());
+	loadBamIndexThrow(bReader);
+
+	return extractReadsWtihCrossRegionMapping(bReader, inOutOpts.out_, regions, extractPars);
 }
 
 }  // namespace njhseq
