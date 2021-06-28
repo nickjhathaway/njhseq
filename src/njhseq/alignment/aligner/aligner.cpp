@@ -1441,9 +1441,7 @@ void aligner::processAlnInfoInputNoCheck(const std::string& alnInfoDirName, bool
 
 void aligner::processAlnInfoOutputNoCheck(const std::string& outAlnInfoDirName, bool verbose){
 	if ("" != outAlnInfoDirName) {
-		if(!njh::files::bfs::exists(outAlnInfoDirName)){
-			njh::files::makeDir(njh::files::MkdirPar(outAlnInfoDirName));
-		}
+		njh::files::makeDirP(njh::files::MkdirPar(outAlnInfoDirName));
 		alnHolder_.write(outAlnInfoDirName, verbose);
 	}
 }

@@ -79,6 +79,8 @@ public:
 	bool setNextPairs(PairwisePairVec & pairs, uint32_t num);
 
 
+	static uint64_t getTotalPairwiseComps(uint64_t numOfElements);
+
 };
 
 }  // namespace njhseq

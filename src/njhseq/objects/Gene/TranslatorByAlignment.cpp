@@ -337,6 +337,22 @@ void TranslatorByAlignment::VariantsInfo::setFinals(const RunPars & rPars){
 	}
 }
 
+uint32_t TranslatorByAlignment::VariantsInfo::getFinalNumberOfSegratingSites() const{
+	std::unordered_set<uint32_t> idPositions;
+	for(const auto & snp : snpsFinal){
+		idPositions.emplace(snp.first);
+	}
+	for(const auto & ins : insertionsFinal){
+		idPositions.emplace(ins.first);
+	}
+	for(const auto & del : deletionsFinal){
+		for(const auto & seq : del.second){
+			idPositions.emplace(del.first + seq.first.size());
+		}
+	}
+	return idPositions.size();
+}
+
 
 Bed3RecordCore TranslatorByAlignment::VariantsInfo::getVariableRegion() {
 	if (!variablePositons_.empty()) {

@@ -74,6 +74,7 @@ public:
 				const comparison & comp,
 				uint32_t offSetStart);
 
+
 		void setFinals(const RunPars & rPars);
 		//void setFinals(const RunPars & rPars, uint32_t totalPopCount);
 
@@ -83,7 +84,9 @@ public:
 
 		void writeVCF(const OutOptions &vcfOutOpts) const;
 
-		void writeSNPTable(const OutOptions &snpTabOutOpts)const;
+		void writeSNPTable(const OutOptions &snpTabOutOpts) const;
+
+		uint32_t getFinalNumberOfSegratingSites() const;
 	};
 
 	struct TranslatorByAlignmentPars{
