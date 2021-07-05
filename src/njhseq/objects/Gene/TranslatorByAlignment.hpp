@@ -169,6 +169,9 @@ public:
 			const std::unordered_map<std::string, std::unordered_set<std::string>> & sampCountsForHaps,
 			const RunPars & rPars);
 
+
+	static std::unordered_map<std::string, std::set<uint32_t>> readInAAPositions(const bfs::path & knownAminoAcidChangesFnp);
+
 };
 
 }  // namespace njhseq

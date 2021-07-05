@@ -962,5 +962,28 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 }
 
 
+std::unordered_map<std::string, std::set<uint32_t>> TranslatorByAlignment::readInAAPositions(const bfs::path & knownAminoAcidChangesFnp){
+	njh::files::checkExistenceThrow(knownAminoAcidChangesFnp, __PRETTY_FUNCTION__);
+	table knownAminoAcidChanges(knownAminoAcidChangesFnp, "\t", true);
+	njh::for_each(knownAminoAcidChanges.columnNames_, [](std::string & col){
+		njh::strToLower(col);
+	});
+	knownAminoAcidChanges.setColNamePositions();
+	knownAminoAcidChanges.checkForColumnsThrow(VecStr{"transcriptid", "aaposition"}, __PRETTY_FUNCTION__);
+	std::unordered_map<std::string, std::set<uint32_t>> knownMutationsLocationsMap;
+	if(knownAminoAcidChanges.nRow() > 0){
+		for(const auto & row : knownAminoAcidChanges){
+			if(std::all_of(row.begin(), row.end(), [](const std::string & element){
+				return "" ==element;
+			})){
+				continue;
+			}
+			knownMutationsLocationsMap[row[knownAminoAcidChanges.getColPos("transcriptid")]].emplace(njh::StrToNumConverter::stoToNum<uint32_t>(row[knownAminoAcidChanges.getColPos("aaposition")]));
+		}
+	}
+	return knownMutationsLocationsMap;
+}
+
+
 
 }  // namespace njhseq

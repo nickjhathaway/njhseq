@@ -184,6 +184,15 @@ table::table(std::istream & in, const std::string &inDelim,
 }
 
 table::table(const bfs::path &filename, const std::string &inDelim,bool header) {
+
+	if(filename != "STDIN"){
+		if("" == filename){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "input file is blank" << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		njh::files::checkExistenceThrow(filename, __PRETTY_FUNCTION__);
+	}
 	InputStream in(filename);
 	populateTable(in, inDelim, header);
 }
