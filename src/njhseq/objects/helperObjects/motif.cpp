@@ -53,6 +53,7 @@ void motif::motifSubUnit::setScoreArray() {
 		for (const auto & aa : aas_) {
 			score_[aa - 'A'] = 1;
 		}
+		otherScore_ = 0;
 	} else {
 		// if exclusive give all other letters a score of 1 and
 		// any in the input as a score of 0 for a non-match
@@ -62,11 +63,18 @@ void motif::motifSubUnit::setScoreArray() {
 		for (const auto & aa : aas_) {
 			score_[aa - 'A'] = 0;
 		}
+		otherScore_ = 1;
 	}
 }
-uint32_t motif::motifSubUnit::scoreChar(char c) const {
+uint32_t motif::motifSubUnit::scoreCharNoCheck(char c) const {
 	return score_[c - 'A'];
 }
+
+uint32_t motif::motifSubUnit::scoreCharCheck(char c) const {
+	return (c>'Z' || c < 'A')? otherScore_ :score_[c - 'A'];
+}
+
+
 motif::motifSubUnit motif::processInclusion(uint32_t start, uint32_t stop) {
 	std::vector<char> include;
 	for (const auto pos : iter::range(start + 1, stop)) {
@@ -165,7 +173,7 @@ uint32_t motif::scoreMotif(const std::string & possibleMotif) const {
 	}
 	uint32_t score = 0;
 	for (const auto cPos : iter::range(possibleMotif.size())) {
-		score += motifUnits_.at(cPos).scoreChar(possibleMotif[cPos]);
+		score += motifUnits_.at(cPos).scoreCharCheck(possibleMotif[cPos]);
 	}
 	return score;
 }
@@ -205,7 +213,7 @@ uint32_t motif::scoreMotif(const std::string::const_iterator & targetBegin,
 	auto strIt = targetBegin;
 	auto mapIt = motifUnits_.begin();
 	for (; strIt != targetEnd; ++strIt, ++mapIt) {
-		score += mapIt->second.scoreChar(*strIt);
+		score += mapIt->second.scoreCharCheck(*strIt);
 	}
 	return score;
 }
@@ -242,7 +250,7 @@ bool motif::frontPassNoCheck(const std::string & wholeProtein,
 	auto predTest =
 			[&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
 			{
-				sum += 1 - mot.second.scoreChar(a);
+				sum += 1 - mot.second.scoreCharCheck(a);
 				return sum <= allowableErrors;
 			};
 	return std::equal(wholeProtein.begin(),
@@ -256,7 +264,7 @@ std::vector<size_t> motif::findPositionsFull(const std::string & wholeProtein,
 	auto predTest =
 			[&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
 			{
-				sum += 1 - mot.second.scoreChar(a);
+				sum += 1 - mot.second.scoreCharCheck(a);
 				return sum <= allowableErrors;
 			};
 	size_t pos = start;
@@ -283,7 +291,7 @@ std::vector<size_t> motif::findPositionsSubSets(
 	auto predTest =
 			[&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
 			{
-				sum += 1 - mot.second.scoreChar(a);
+				sum += 1 - mot.second.scoreCharCheck(a);
 				return sum <= allowableErrors;
 			};
 	size_t pos = start;
@@ -315,7 +323,7 @@ std::vector<size_t> motif::findPositionsSubSetsBest(
 	auto predTest =
 			[&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
 			{
-				sum += 1 - mot.second.scoreChar(a);
+				sum += 1 - mot.second.scoreCharCheck(a);
 				return sum <= allowableErrors;
 			};
 	size_t pos = start;

@@ -45,8 +45,11 @@ class motif {
 		std::array<uint32_t, 26> score_;
 		//functions
 		void setScoreArray();
+		uint32_t otherScore_{std::numeric_limits<uint32_t>::max()};
+
 	public:
-		uint32_t scoreChar(char c) const;
+		uint32_t scoreCharNoCheck(char c) const;
+		uint32_t scoreCharCheck(char c) const;
 		friend class motif;
 	};
 public:
