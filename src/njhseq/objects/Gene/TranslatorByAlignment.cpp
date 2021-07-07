@@ -755,13 +755,9 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 
 TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		const SeqIOOptions & seqOpts,
-					const std::unordered_map<std::string, std::unordered_set<std::string>> & sampCountsForHaps,
-					const RunPars & rPars){
+		const std::unordered_map<std::string, std::unordered_set<std::string>> & sampCountsForHaps,
+		const RunPars & rPars){
 
-	uint32_t totalPopCount = 0;
-	for(const auto & sampCount : sampCountsForHaps){
-		totalPopCount += sampCount.second.size();
-	}
 	TranslatorByAlignmentResult ret;
 	std::vector<bfs::path> fnpsToRemove;
 	auto seqInputFnp = njh::files::make_path(pars_.workingDirtory_, "inputSeqs.fasta");
@@ -770,7 +766,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 
 	VecStr names;
 	{
-		//write out fasta file of input
+		//write out fasta file of input, replacing seq name so can be mapped
 		seqInfo seq;
 		SeqInput reader(seqOpts);
 		reader.openIn();
@@ -786,9 +782,6 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		}
 	}
 
-//	for(const auto & pos : iter::range(names.size())){
-//		std::cout << pos << ":" << names[pos] << std::endl;
-//	}
 
 	BioCmdsUtils bRunner(false);
 	bRunner.RunFaToTwoBit(pars_.lzPars_.genomeFnp);
@@ -808,9 +801,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	fnpsToRemove.emplace_back(uniqueSeqInOpts.out_.outFilename_.string() + ".bai");
 
 	uniqueSeqInOpts.out_.transferOverwriteOpts(seqOpts.out_);
+	//map to genome
 	if(!pars_.useLastz_){
 		auto bowtieRunOut = bRunner.bowtie2Align(uniqueSeqInOpts, pars_.lzPars_.genomeFnp, pars_.additionalBowtieArguments_);
-
 		//auto bowtieRunOut = bRunner.bowtie2Align(uniqueSeqInOpts, pars_.lzPars_.genomeFnp, "-D 20 -R 3 -N 1 -L 15 -i S,1,0.5 --end-to-end");
 		BioCmdsUtils::checkRunOutThrow(bowtieRunOut, __PRETTY_FUNCTION__);
 	}else{
@@ -818,6 +811,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		BioCmdsUtils::checkRunOutThrow(lastzRunOut, __PRETTY_FUNCTION__);
 	}
 
+	//count the regions mapped
 	auto regionsCounter = GenomicRegionCounter::countRegionsInBam(uniqueSeqInOpts.out_.outName());
 	auto ids = regionsCounter.getIntersectingGffIds(pars_.gffFnp_);
 	ret.geneIds_ = ids;
@@ -901,6 +895,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			}
 		}
 	}
+	//remove the temporary files
 	if(!pars_.keepTemporaryFiles_){
 		for(const auto & fnp : fnpsToRemove){
 			if(bfs::exists(fnp)){
@@ -931,9 +926,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					aln.gRegion_.start_);
 		}
 	}
-
+	//set finals for the snps
 	for(auto & varPerChrom : ret.seqVariants_){
-		//varPerChrom.second.setFinals(rPars, totalPopCount);
 		varPerChrom.second.setFinals(rPars);
 	}
 
@@ -945,17 +939,20 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			}
 			auto popCount = sampCountsForHaps.at(seqName.first).size();
 			if(!njh::in(transcript.first, ret.proteinVariants_)){
-				ret.proteinVariants_.emplace(transcript.first, VariantsInfo{Bed3RecordCore(transcript.first, 0, transcript.second.refAlnTranslation_.seq_.size()),
-					transcript.second.refAlnTranslation_});
+				ret.proteinVariants_.emplace(transcript.first,
+						VariantsInfo{Bed3RecordCore(transcript.first, 0, transcript.second.refAlnTranslation_.seq_.size()), transcript.second.refAlnTranslation_});
 			}
-			ret.proteinVariants_.at(transcript.first).addVariantInfo(transcript.second.refAlnTranslation_.seq_,
-					transcript.second.queryAlnTranslation_.seq_, popCount, sampCountsForHaps.at(seqName.first), transcript.second.comp_, 0);
+			ret.proteinVariants_.at(transcript.first).addVariantInfo(
+					transcript.second.refAlnTranslation_.seq_,
+					transcript.second.queryAlnTranslation_.seq_,
+					popCount,
+					sampCountsForHaps.at(seqName.first),
+					transcript.second.comp_,
+					0);
 		}
 	}
-
 	for(auto & varPerTrans : ret.proteinVariants_){
 		varPerTrans.second.setFinals(rPars);
-		//varPerTrans.second.setFinals(rPars, totalPopCount);
 	}
 
 	return ret;
