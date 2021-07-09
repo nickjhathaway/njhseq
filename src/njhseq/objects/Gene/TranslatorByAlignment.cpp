@@ -31,17 +31,20 @@ void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & set
 
 
 
-std::tuple<char, char, char> TranslatorByAlignment::TranslateSeqRes::getCodonForAARefPos(
+TranslatorByAlignment::Codon TranslatorByAlignment::TranslateSeqRes::getCodonForAARefPos(
 		uint32_t aaRefPos) const {
 	if (aaRefPos < std::get<0>(firstAminoInfo_).aaPos_
 			|| aaRefPos > std::get<0>(lastAminoInfo_).aaPos_) {
-		return std::make_tuple('-', '-', '-');
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "position: " << aaRefPos
+				<< " out of range, current range is:"
+				<< std::get<0>(firstAminoInfo_).aaPos_ << "-"
+				<< std::get<0>(lastAminoInfo_).aaPos_ << "\n";
+		throw std::runtime_error { ss.str() };
 	}
 
-	uint32_t alnPosForLoc = getAlnPosForRealPos(refAlnTranslation_.seq_,
-			aaRefPos);
-	uint32_t queryCDNAPos = getRealPosForAlnPos(queryAlnTranslation_.seq_,
-			alnPosForLoc) * 3;
+	uint32_t alnPosForLoc = getAlnPosForRealPos(refAlnTranslation_.seq_, aaRefPos);
+	uint32_t queryCDNAPos = getRealPosForAlnPos(queryAlnTranslation_.seq_, alnPosForLoc) * 3;
 
 	if (queryCDNAPos + 2 >= cDna_.seq_.size()) {
 		std::stringstream ss;
@@ -50,9 +53,18 @@ std::tuple<char, char, char> TranslatorByAlignment::TranslateSeqRes::getCodonFor
 				<< cDna_.seq_.size() << "\n";
 		throw std::runtime_error { ss.str() };
 	}
-	return std::make_tuple(cDna_.seq_[queryCDNAPos + 0], cDna_.seq_[queryCDNAPos + 1],
-			cDna_.seq_[queryCDNAPos + 2]);
 
+	char aa = queryAlnTranslation_.seq_[alnPosForLoc];
+	if('-' == aa){
+		return Codon(aa, std::make_tuple('-', '-', '-'));
+	}else{
+		return Codon(aa,
+				std::make_tuple(
+				cDna_.seq_[queryCDNAPos + 0],
+				cDna_.seq_[queryCDNAPos + 1],
+				cDna_.seq_[queryCDNAPos + 2])
+				);
+	}
 }
 
 
@@ -351,6 +363,41 @@ uint32_t TranslatorByAlignment::VariantsInfo::getFinalNumberOfSegratingSites() c
 		}
 	}
 	return idPositions.size();
+}
+
+void TranslatorByAlignment::VariantsInfo::writeOutSNPsInfo(std::ostream & out,
+		const std::string & name,
+		const std::set<uint32_t> & snpPositions,
+		bool oneBased){
+
+	for(const auto & snpPos : snpPositions){
+		if(!njh::in(snpPos, allBases)){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "no info for snp position: " << snpPos << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		for(const auto & aa : allBases[snpPos]){
+			out << name
+					<< "\t" << (oneBased ? snpPos +1 : snpPos)
+					<< "\t" << getBaseForGenomicRegion(snpPos)
+					<< "\t" << aa.first
+					<< "\t" << aa.second
+					<< "\t" << aa.second/static_cast<double>(depthPerPosition[snpPos])
+					<< "\t" << depthPerPosition[snpPos]
+					<< "\t" << samplesPerPosition[snpPos].size() << std::endl;
+		}
+	}
+}
+
+void TranslatorByAlignment::VariantsInfo::writeOutSNPsFinalInfo(std::ostream & out,
+		const std::string & name,
+		bool oneBased){
+	writeOutSNPsInfo(out, name, njh::getSetOfMapKeys(snpsFinal), oneBased);
+}
+void TranslatorByAlignment::VariantsInfo::writeOutSNPsAllInfo(std::ostream & out,
+		const std::string & name,
+		bool oneBased){
+	writeOutSNPsInfo(out, name, njh::getSetOfMapKeys(allBases), oneBased);
 }
 
 
@@ -753,6 +800,22 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 }
 
 
+void TranslatorByAlignment::TranslatorByAlignmentResult::writeSeqLocations(std::ostream & out )const {
+	for(const auto & seqLocs : seqAlns_){
+		for(const auto & loc : seqLocs.second){
+			out << loc.gRegion_.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+		}
+	}
+	for(const auto & pop : seqsUnableToBeMapped_){
+		out << "*"
+				<< "\t" << "*"
+				<< "\t" << "*"
+				<< "\t" << pop
+				<< "\t" << "*"
+				<< "\t" << "*" << std::endl;
+	}
+}
+
 TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		const SeqIOOptions & seqOpts,
 		const std::unordered_map<std::string, std::unordered_set<std::string>> & sampCountsForHaps,
@@ -893,8 +956,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					ret.translations_[bAln.Name].emplace(trans);
 				}
 			}
+		}else if(!bAln.IsMapped()){
+			ret.seqsUnableToBeMapped_.emplace_back(names[njh::StrToNumConverter::stoToNum<uint32_t>(bAln.Name)]);
 		}
 	}
+
 	//remove the temporary files
 	if(!pars_.keepTemporaryFiles_){
 		for(const auto & fnp : fnpsToRemove){

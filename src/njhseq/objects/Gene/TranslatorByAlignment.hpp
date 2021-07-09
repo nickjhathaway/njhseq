@@ -23,16 +23,25 @@ namespace njhseq {
 class TranslatorByAlignment{
 public:
 
+	struct Codon{
+		Codon(char aa, std::tuple<char, char, char> bases): aa_(aa), bases_(bases){
+
+		}
+		char aa_;
+		std::tuple<char, char, char> bases_;
+	};
+
 	struct AAInfo {
-		AAInfo(std::string transcriptName, char aa, uint32_t zeroBasedPos, std::tuple<char, char, char> codon,
+		AAInfo(std::string transcriptName,
+				uint32_t zeroBasedPos,
+				Codon cod,
 				bool knownMut) : transcriptName_(transcriptName),
-				aa_(aa), zeroBasedPos_(zeroBasedPos), codon_(codon), knownMut_(
+				 zeroBasedPos_(zeroBasedPos), cod_(cod), knownMut_(
 						knownMut) {
 		}
 		std::string transcriptName_;
-		char aa_;
 		uint32_t zeroBasedPos_;
-		std::tuple<char, char, char> codon_;
+		Codon cod_;
 		bool knownMut_;
 	};
 
@@ -87,6 +96,49 @@ public:
 		void writeSNPTable(const OutOptions &snpTabOutOpts) const;
 
 		uint32_t getFinalNumberOfSegratingSites() const;
+
+		/**@brief write out info for positions, will throw if no info present
+		 *
+		 * The order written, name, position, ref base, query base, count, frequency, allele Depth, samples depth
+		 *
+		 * @param out the stream to write to
+		 * @param name a name to output with the info
+		 * @param snpPositions the positions
+		 * @param oneBased whether to write out the positions as one base or zero based positions
+		 */
+		void writeOutSNPsInfo(std::ostream & out,
+				const std::string & name,
+				const std::set<uint32_t> & snpPositions,
+				bool oneBased = false);
+		/**@brief write out info determined snps
+		 *
+		 * The order written, name, position, ref base, query base, count, frequency, allele Depth, samples depth
+		 *
+		 * @param out the stream to write to
+		 * @param name a name to output with the info
+		 * @param oneBased whether to write out the positions as one base or zero based positions
+		 */
+		void writeOutSNPsFinalInfo(std::ostream & out,
+				const std::string & name,
+				bool oneBased = false);
+		/**@brief write out info all positions
+		 *
+		 * The order written, name, position, ref base, query base, count, frequency, allele Depth, samples depth
+		 *
+		 * @param out the stream to write to
+		 * @param name a name to output with the info
+		 * @param oneBased whether to write out the positions as one base or zero based positions
+		 */
+		void writeOutSNPsAllInfo(std::ostream & out,
+				const std::string & name,
+				bool oneBased = false);
+
+		static VecStr SNPHeaderAminoAcid(){
+			return VecStr{"transcript","position(1-based)","refAA","AA","count","freq","alleleDepth","samples"};
+		}
+		static VecStr SNPHeaderGenomic(){
+			return VecStr{"transcript","position(0-based)","ref","base","count","freq","alleleDepth","samples"};
+		}
 	};
 
 	struct TranslatorByAlignmentPars{
@@ -117,7 +169,8 @@ public:
 
 
 		comparison comp_;
-		std::tuple<char, char, char> getCodonForAARefPos(uint32_t aaRefPos) const;
+
+		Codon getCodonForAARefPos(uint32_t aaRefPos) const;
 	};
 
 
@@ -138,6 +191,10 @@ public:
 		std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>>  transcriptInfosForGene_;
 		std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>  translationInfoForTranscirpt_;
 
+
+		VecStr seqsUnableToBeMapped_;
+
+		void writeSeqLocations(std::ostream & out) const;
 	};
 
 
