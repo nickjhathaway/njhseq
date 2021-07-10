@@ -92,6 +92,7 @@ public:
 		char getBaseForGenomicRegion(const uint32_t pos) const;
 
 		void writeVCF(const OutOptions &vcfOutOpts) const;
+		void writeVCF(std::ostream & out) const;
 
 		void writeSNPTable(const OutOptions &snpTabOutOpts) const;
 
@@ -106,7 +107,13 @@ public:
 		 * @param snpPositions the positions
 		 * @param oneBased whether to write out the positions as one base or zero based positions
 		 */
-		void writeOutSNPsInfo(std::ostream & out,
+		void writeOutSNPsInfo(
+				std::ostream & out,
+				const std::string & name,
+				const std::set<uint32_t> & snpPositions,
+				bool oneBased = false);
+		void writeOutSNPsInfo(
+				const OutOptions & outOpts,
 				const std::string & name,
 				const std::set<uint32_t> & snpPositions,
 				bool oneBased = false);
@@ -118,7 +125,12 @@ public:
 		 * @param name a name to output with the info
 		 * @param oneBased whether to write out the positions as one base or zero based positions
 		 */
-		void writeOutSNPsFinalInfo(std::ostream & out,
+		void writeOutSNPsFinalInfo(
+				std::ostream & out,
+				const std::string & name,
+				bool oneBased = false);
+		void writeOutSNPsFinalInfo(
+				const OutOptions & outOpts,
 				const std::string & name,
 				bool oneBased = false);
 		/**@brief write out info all positions
@@ -129,7 +141,12 @@ public:
 		 * @param name a name to output with the info
 		 * @param oneBased whether to write out the positions as one base or zero based positions
 		 */
-		void writeOutSNPsAllInfo(std::ostream & out,
+		void writeOutSNPsAllInfo(
+				std::ostream & out,
+				const std::string & name,
+				bool oneBased = false);
+		void writeOutSNPsAllInfo(
+				const OutOptions & outOpts,
 				const std::string & name,
 				bool oneBased = false);
 
@@ -171,6 +188,8 @@ public:
 		comparison comp_;
 
 		Codon getCodonForAARefPos(uint32_t aaRefPos) const;
+
+		Bed6RecordCore genBedRec() const;
 	};
 
 
@@ -195,6 +214,8 @@ public:
 		VecStr seqsUnableToBeMapped_;
 
 		void writeSeqLocations(std::ostream & out) const;
+		void writeSeqLocationsTranslation(std::ostream & out) const;
+
 	};
 
 

@@ -29,7 +29,14 @@ void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & set
 }
 
 
-
+Bed6RecordCore TranslatorByAlignment::TranslateSeqRes::genBedRec() const{
+	return Bed6RecordCore(transcriptName_,
+						std::get<0>(firstAminoInfo_).aaPos_,
+						std::get<0>(lastAminoInfo_).aaPos_ + 1,
+						cDna_.name_,
+						std::get<0>(lastAminoInfo_).aaPos_ + 1 - std::get<0>(firstAminoInfo_).aaPos_,
+						'+');
+}
 
 TranslatorByAlignment::Codon TranslatorByAlignment::TranslateSeqRes::getCodonForAARefPos(
 		uint32_t aaRefPos) const {
@@ -94,9 +101,8 @@ char TranslatorByAlignment::VariantsInfo::getBaseForGenomicRegion(const uint32_t
 	}
 	return seqBase_.seq_[relativePos];
 }
-void TranslatorByAlignment::VariantsInfo::writeVCF(const OutOptions & vcfOutOpts) const {
-	OutputStream vcfOut(vcfOutOpts);
 
+void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 	std::unordered_set<uint32_t> positionsSet;
 	for(const auto & snps : snpsFinal){
 		positionsSet.emplace(snps.first);
@@ -194,6 +200,10 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(const OutOptions & vcfOutOpts
 			}
 		}
 	}
+}
+void TranslatorByAlignment::VariantsInfo::writeVCF(const OutOptions & vcfOutOpts) const {
+	OutputStream vcfOut(vcfOutOpts);
+	writeVCF(vcfOut);
 }
 
 
@@ -365,6 +375,20 @@ uint32_t TranslatorByAlignment::VariantsInfo::getFinalNumberOfSegratingSites() c
 	return idPositions.size();
 }
 
+void TranslatorByAlignment::VariantsInfo::writeOutSNPsInfo(
+		const OutOptions & outOpts,
+		const std::string & name,
+		const std::set<uint32_t> & snpPositions,
+		bool oneBased){
+	OutputStream out(outOpts);
+	if(oneBased){
+		out << njh::conToStr(TranslatorByAlignment::VariantsInfo::SNPHeaderAminoAcid(), "\t") << std::endl;
+	}else{
+		out << njh::conToStr(TranslatorByAlignment::VariantsInfo::SNPHeaderGenomic(), "\t") << std::endl;
+	}
+	writeOutSNPsInfo(out, name, snpPositions, oneBased);
+}
+
 void TranslatorByAlignment::VariantsInfo::writeOutSNPsInfo(std::ostream & out,
 		const std::string & name,
 		const std::set<uint32_t> & snpPositions,
@@ -394,10 +418,37 @@ void TranslatorByAlignment::VariantsInfo::writeOutSNPsFinalInfo(std::ostream & o
 		bool oneBased){
 	writeOutSNPsInfo(out, name, njh::getSetOfMapKeys(snpsFinal), oneBased);
 }
+
+void TranslatorByAlignment::VariantsInfo::writeOutSNPsFinalInfo(
+		const OutOptions & outOpts,
+		const std::string & name,
+		bool oneBased){
+	OutputStream out(outOpts);
+	if(oneBased){
+		out << njh::conToStr(TranslatorByAlignment::VariantsInfo::SNPHeaderAminoAcid(), "\t") << std::endl;
+	}else{
+		out << njh::conToStr(TranslatorByAlignment::VariantsInfo::SNPHeaderGenomic(), "\t") << std::endl;
+	}
+	writeOutSNPsFinalInfo(out, name, oneBased);
+}
+
 void TranslatorByAlignment::VariantsInfo::writeOutSNPsAllInfo(std::ostream & out,
 		const std::string & name,
 		bool oneBased){
 	writeOutSNPsInfo(out, name, njh::getSetOfMapKeys(allBases), oneBased);
+}
+void TranslatorByAlignment::VariantsInfo::writeOutSNPsAllInfo(
+		const OutOptions & outOpts,
+		const std::string & name,
+		bool oneBased){
+	OutputStream out(outOpts);
+	if(oneBased){
+		out << njh::conToStr(TranslatorByAlignment::VariantsInfo::SNPHeaderAminoAcid(), "\t") << std::endl;
+	}else{
+		out << njh::conToStr(TranslatorByAlignment::VariantsInfo::SNPHeaderGenomic(), "\t") << std::endl;
+	}
+	writeOutSNPsInfo(out, name, njh::getSetOfMapKeys(allBases), oneBased);
+
 }
 
 
@@ -799,6 +850,23 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 	}
 }
 
+
+
+void TranslatorByAlignment::TranslatorByAlignmentResult::writeSeqLocationsTranslation(std::ostream & out) const {
+	for(const auto & transcript : translations_){
+		for(const auto & seqs : transcript.second){
+			out << seqs.second.genBedRec().toDelimStrWithExtra()<< std::endl;
+		}
+	}
+	for(const auto & pop : seqsUnableToBeMapped_){
+		out << "*"
+				<< "\t" << "*"
+				<< "\t" << "*"
+				<< "\t" << pop
+				<< "\t" << "*"
+				<< "\t" << "*" << std::endl;
+	}
+}
 
 void TranslatorByAlignment::TranslatorByAlignmentResult::writeSeqLocations(std::ostream & out )const {
 	for(const auto & seqLocs : seqAlns_){
