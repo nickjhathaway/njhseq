@@ -170,6 +170,9 @@ public:
 
 		bfs::path knownAminoAcidMutationsFnp_; //! at least 2 columns, transcriptid, aaposition/
 
+		uint32_t aaExpand_ = 10;
+		bool useFullProtein_ = false;
+
 		void setOptions(seqSetUp & setUp);
 	};
 
@@ -221,7 +224,7 @@ public:
 
 
 
-	static std::unordered_map<std::string, TranslateSeqRes> translateBasedOnAlignment(
+	std::unordered_map<std::string, TranslateSeqRes> translateBasedOnAlignment(
 			const BamTools::BamAlignment & bAln,
 			const GeneFromGffs & currentGene,
 			const std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> & transcriptInfosForGene,
@@ -229,7 +232,7 @@ public:
 			aligner & alignerObj,
 			const BamTools::RefVector & refData);
 
-	static std::unordered_map<std::string, TranslateSeqRes> translateBasedOnAlignment(
+	std::unordered_map<std::string, TranslateSeqRes> translateBasedOnAlignment(
 			const ReAlignedSeq & realigned,
 			const GeneFromGffs & currentGene,
 			const std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> & transcriptInfosForGene,

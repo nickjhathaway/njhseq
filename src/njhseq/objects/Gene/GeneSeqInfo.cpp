@@ -76,6 +76,7 @@ void GeneSeqInfo::setTable(){
 					len(protein_.seq_) > pos / 3 ? std::string(1, protein_.seq_[pos / 3]) : "NA");
 		}
 	}
+	infosByAAPos_ = getInfosByAAPos();
 }
 
 Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(const uint32_t aaStart,

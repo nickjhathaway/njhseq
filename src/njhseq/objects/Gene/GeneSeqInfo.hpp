@@ -27,6 +27,14 @@ public:
 		GenomicRegion region_;
 		bool oneBasedPos_ = false;
 	};
+	struct GenePosInfo {
+		uint32_t gDNAPos_ = std::numeric_limits<uint32_t>::max();
+		uint32_t cDNAPos_ = std::numeric_limits<uint32_t>::max();
+		uint32_t aaPos_ = std::numeric_limits<uint32_t>::max();
+		uint32_t codonPos_ = std::numeric_limits<uint32_t>::max();
+		char base_;
+		char aa_;
+	};
 	GeneSeqInfo(const seqInfo & cDna, const seqInfo & gDna, GeneSeqInfoPars pars);
 
 	void setTable();
@@ -45,15 +53,7 @@ public:
 	seqInfo protein_;
 	GeneSeqInfoPars pars_;
 	table infoTab_;
-
-	struct GenePosInfo {
-		uint32_t gDNAPos_ = std::numeric_limits<uint32_t>::max();
-		uint32_t cDNAPos_ = std::numeric_limits<uint32_t>::max();
-		uint32_t aaPos_ = std::numeric_limits<uint32_t>::max();
-		uint32_t codonPos_ = std::numeric_limits<uint32_t>::max();
-		char base_;
-		char aa_;
-	};
+	std::unordered_map<uint32_t, std::tuple<GenePosInfo,GenePosInfo,GenePosInfo>> infosByAAPos_;
 
 	std::unordered_map<uint32_t, GenePosInfo> getInfosByGDNAPos() const;
 	std::unordered_map<uint32_t, GenePosInfo> getInfosByCDNAPos() const;
