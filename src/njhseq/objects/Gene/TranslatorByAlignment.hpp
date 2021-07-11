@@ -46,6 +46,8 @@ public:
 	};
 
 	struct RunPars {
+
+		RunPars();
 		uint32_t occurrenceCutOff = 2;
 		double lowVariantCutOff = 0.005;
 		ReAlignedSeq::genRealignmentPars realnPars;
@@ -173,6 +175,8 @@ public:
 		uint32_t aaExpand_ = 10;
 		bool useFullProtein_ = false;
 
+		uint32_t allowableStopCodons_ {1};
+
 		void setOptions(seqSetUp & setUp);
 	};
 
@@ -200,21 +204,21 @@ public:
 	struct TranslatorByAlignmentResult{
 		std::set<std::string> geneIds_;
 		std::unordered_map<std::string, std::unordered_map<std::string, TranslateSeqRes>> translations_;
+		std::unordered_map<std::string, std::unordered_map<std::string, TranslateSeqRes>> filteredOffTranslations_;
 
 		std::unordered_map<std::string, std::vector<ReAlignedSeq>> seqAlns_;
 
 		//by transcript name
 		std::unordered_map<std::string, VariantsInfo> proteinVariants_;
-		std::unordered_map<std::string, std::string> proteinForTranscript_;
 		//by chromosome
 		std::unordered_map<std::string, VariantsInfo> seqVariants_;
-		std::unordered_map<std::string, std::unordered_map<uint32_t, char>> baseForPosition_;
 
 		std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>>  transcriptInfosForGene_;
 		std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>  translationInfoForTranscirpt_;
 
 
 		VecStr seqsUnableToBeMapped_;
+		VecStr seqsTranslationFiltered_;
 
 		void writeSeqLocations(std::ostream & out) const;
 		void writeSeqLocationsTranslation(std::ostream & out) const;
@@ -224,13 +228,13 @@ public:
 
 
 
-	std::unordered_map<std::string, TranslateSeqRes> translateBasedOnAlignment(
-			const BamTools::BamAlignment & bAln,
-			const GeneFromGffs & currentGene,
-			const std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> & transcriptInfosForGene,
-			TwoBit::TwoBitFile & tReader,
-			aligner & alignerObj,
-			const BamTools::RefVector & refData);
+//	std::unordered_map<std::string, TranslateSeqRes> translateBasedOnAlignment(
+//			const BamTools::BamAlignment & bAln,
+//			const GeneFromGffs & currentGene,
+//			const std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> & transcriptInfosForGene,
+//			TwoBit::TwoBitFile & tReader,
+//			aligner & alignerObj,
+//			const BamTools::RefVector & refData);
 
 	std::unordered_map<std::string, TranslateSeqRes> translateBasedOnAlignment(
 			const ReAlignedSeq & realigned,
