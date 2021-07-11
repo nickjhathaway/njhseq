@@ -658,15 +658,18 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 				uint32_t cDnaStart = *std::min_element(starts.begin(), starts.end());
 				uint32_t cDnaStop = *std::max_element(ends.begin(), ends.end());
 				cdnaGenomicStart = cDnaStart;
-				cdnaGenomicEndInconclusive = cDnaStop;
+				cdnaGenomicEndInconclusive = cDnaStop -1 ;
 
-				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //				std::cout << "cDnaStart:" << cDnaStart << std::endl;
 //				std::cout << "cDnaStop:" << cDnaStop << std::endl;
 //				std::cout << "realigned.gRegion_.start_:" << realigned.gRegion_.start_ << std::endl;
 //				std::cout << "realigned.gRegion_.end_:" << realigned.gRegion_.end_ << std::endl;
 //				std::cout << "cDNAIntersectedWith.front().start_:" << cDNAIntersectedWith.front().start_ << std::endl;
 //				std::cout << "cDNAIntersectedWith.front().end_:" << cDNAIntersectedWith.front().end_ << std::endl;
+//
+//				std::cout << "cdnaGenomicStart          :" << cdnaGenomicStart << std::endl;
+//				std::cout << "cdnaGenomicEndInconclusive:" << cdnaGenomicEndInconclusive << std::endl;
 
 				if (currentGene.gene_->isReverseStrand()) {
 					if (njh::mapAt(genePosInfoByGDna, cDnaStart).cDNAPos_
