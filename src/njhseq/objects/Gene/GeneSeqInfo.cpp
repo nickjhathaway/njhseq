@@ -242,12 +242,14 @@ std::unordered_map<uint32_t, std::tuple<GeneSeqInfo::GenePosInfo,GeneSeqInfo::Ge
 		throw std::runtime_error { ss.str() };
 	}
 	auto infoTabSplit = infoTab_.splitTableOnColumn("aaPos");
+
 	for (const auto & aa : infoTabSplit) {
 		if (3 != aa.second.nRow()) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__
 					<< ", error amino acid split table should contain 3 rows not "
 					<< aa.second.nRow() << "\n";
+			aa.second.outPutContentOrganized(ss);
 			throw std::runtime_error { ss.str() };
 		}
 		auto codonSplit = aa.second.splitTableOnColumn("codonPos");

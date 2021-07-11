@@ -91,7 +91,7 @@ TranslatorByAlignment::Codon TranslatorByAlignment::TranslateSeqRes::getCodonFor
 
 
 TranslatorByAlignment::RunPars::RunPars(){
-	realnPars.extendAmount = 40;
+	realnPars.extendAmount = 100;
 }
 
 TranslatorByAlignment::VariantsInfo::VariantsInfo(const Bed3RecordCore & region, const seqInfo & refSeq) : region_(region),
@@ -1024,6 +1024,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			writer.write(seq);
 		}
 	}
+	seqMaxLen = seqMaxLen + rPars.realnPars.extendAmount * 2;
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 	BioCmdsUtils bRunner(false);
@@ -1067,10 +1068,24 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	OutOptions outOpts(njh::files::make_path(geneInfoDir, "gene"));
 
 	std::unordered_map<std::string, VecStr> idToTranscriptName;
-	std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> genes = GeneFromGffs::getGenesFromGffForIds(pars_.gffFnp_, ids);
+	std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> rawGenes = GeneFromGffs::getGenesFromGffForIds(pars_.gffFnp_, ids);
+	std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> genes;
+	for(const auto & gene : genes){
+		bool failFilter = false;
+		for(const auto & transcript : gene.second->mRNAs_){
+			if(njh::in(njh::strToLowerRet(transcript->type_), VecStr{"rrna", "trna"}) ){
+				failFilter = true;
+				break;
+			}
+		}
+		if(!failFilter){
+			genes[gene.first] = gene.second;
+		}
+	}
+
 	//std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>> geneTranscriptInfos;
 	;
-	uint64_t proteinMaxLen = 0;
+	uint64_t proteinMaxLen = seqMaxLen;
 	std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>>> genesByChrom;
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & gene : genes){
@@ -1091,9 +1106,6 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		}
 	}
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	if(!pars_.useFullProtein_){
-		proteinMaxLen = seqMaxLen + rPars.realnPars.extendAmount * 2;
-	}
 	aligner alignObj(proteinMaxLen, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2));
 	//aligner alignObjSeq(seqMaxLen + rPars.realnPars.extendAmount * 2, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2));
 
