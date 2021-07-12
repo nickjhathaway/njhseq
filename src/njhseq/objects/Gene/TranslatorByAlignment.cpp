@@ -26,7 +26,7 @@ void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & set
 			"Gff file to intersect the final haplotypes with genes to get translations", "" != knownAminoAcidMutationsFnp_, "Translation Output");
 	setUp.setOption(lzPars_.genomeFnp, "--genome",
 			"Genome file so final haplotypes can be mapped to a genome", "" != gffFnp_ || "" != knownAminoAcidMutationsFnp_, "Translation Output");
-	if(!bfs::is_regular_file(lzPars_.genomeFnp)){
+	if("" != lzPars_.genomeFnp && bfs::exists(lzPars_.genomeFnp) && !bfs::is_regular_file(lzPars_.genomeFnp)){
 		setUp.failed_ = true;
 		setUp.addWarning(njh::pasteAsStr(lzPars_.genomeFnp, " should be a file, not a directory"));
 	}
