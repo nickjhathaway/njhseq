@@ -1057,8 +1057,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	//count the regions mapped
 	auto regionsCounter = GenomicRegionCounter::countRegionsInBam(uniqueSeqInOpts.out_.outName());
+
 	auto ids = regionsCounter.getIntersectingGffIds(pars_.gffFnp_);
 	ret.geneIds_ = ids;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << "ids.size() : " << ids.size() << std::endl;
 
 	// get gene information
 	auto geneInfoDir = njh::files::make_path(pars_.workingDirtory_, "geneInfos");
@@ -1069,19 +1072,26 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 
 	std::unordered_map<std::string, VecStr> idToTranscriptName;
 	std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> rawGenes = GeneFromGffs::getGenesFromGffForIds(pars_.gffFnp_, ids);
+//	std::cout << "rawGenes.size(): " << rawGenes.size() << std::endl;
+
 	std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> genes;
-	for(const auto & gene : genes){
+	for(const auto & gene : rawGenes){
 		bool failFilter = false;
 		for(const auto & transcript : gene.second->mRNAs_){
 			if(njh::in(njh::strToLowerRet(transcript->type_), VecStr{"rrna", "trna"}) ){
+//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				transcript->writeGffRecord(std::cout);
 				failFilter = true;
 				break;
 			}
 		}
+
 		if(!failFilter){
+			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			genes[gene.first] = gene.second;
 		}
 	}
+	std::cout << "genes.size(): " << genes.size() << std::endl;
 
 	//std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>> geneTranscriptInfos;
 	;
