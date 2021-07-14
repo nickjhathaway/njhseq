@@ -31,7 +31,7 @@
 namespace njhseq {
 
 bool MultiSeqIO::containsReader(const std::string & uid) const {
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout <<__FILE__ << " " << __LINE__ << std::endl;
 	return readIos_.find(uid) != readIos_.end();
 }
 
@@ -121,7 +121,7 @@ void MultiSeqIO::setOpenLimit(uint32_t limit) {
 }
 
 void MultiSeqIO::containsReaderThrow(const std::string & uid) const {
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout <<__FILE__ << " " << __LINE__ << std::endl;
 	if (!containsReader(uid)) {
 		std::stringstream ss;
 		ss << njh::bashCT::bold << njh::bashCT::red << __PRETTY_FUNCTION__
@@ -134,25 +134,25 @@ void MultiSeqIO::containsReaderThrow(const std::string & uid) const {
 
 
 void MultiSeqIO::openOut(const std::string & uid){
-	std::cout << __PRETTY_FUNCTION__ << 1 << std::endl;
-	std::cout << uid << std::endl;
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout <<__PRETTY_FUNCTION__ << 1 << std::endl;
+	//std::cout <<uid << std::endl;
+	//std::cout <<__FILE__ << " " << __LINE__ << std::endl;
 	containsReaderThrow(uid);
-	std::cout << __PRETTY_FUNCTION__ << 2 << std::endl;
+	//std::cout <<__PRETTY_FUNCTION__ << 2 << std::endl;
 	mut_.lock();
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout <<__FILE__ << " " << __LINE__ << std::endl;
 	std::lock_guard<std::mutex> lock(readIos_.at(uid)->mut_);
-	std::cout << __PRETTY_FUNCTION__ << 3 << std::endl;
+	//std::cout <<__PRETTY_FUNCTION__ << 3 << std::endl;
 	auto readIO = readIos_.find(uid);
-	std::cout << __PRETTY_FUNCTION__ << 4 << std::endl;
+	//std::cout <<__PRETTY_FUNCTION__ << 4 << std::endl;
 	if (!readIO->second->out_.outOpen()) {
-		std::cout << __PRETTY_FUNCTION__ << 5 << std::endl;
+		//std::cout <<__PRETTY_FUNCTION__ << 5 << std::endl;
 		if (outCurrentlyOpen_ >= outOpenLimit_) {
-			std::cout << __PRETTY_FUNCTION__ << 6 << std::endl;
+			//std::cout <<__PRETTY_FUNCTION__ << 6 << std::endl;
 			closeNext();
-			std::cout << __PRETTY_FUNCTION__ << 7 << std::endl;
+			//std::cout <<__PRETTY_FUNCTION__ << 7 << std::endl;
 		} else {
-			std::cout << __PRETTY_FUNCTION__ << 8 << std::endl;
+			//std::cout <<__PRETTY_FUNCTION__ << 8 << std::endl;
 			if (readIos_.at(uid)->ioOptions_.outFormat_
 					    == SeqIOOptions::outFormats::FASTQPAIRED
 					|| readIos_.at(uid)->ioOptions_.outFormat_
@@ -163,19 +163,19 @@ void MultiSeqIO::openOut(const std::string & uid){
 			} else {
 				++outCurrentlyOpen_;
 			}
-			std::cout << __PRETTY_FUNCTION__ << 9 << std::endl;
+			//std::cout <<__PRETTY_FUNCTION__ << 9 << std::endl;
 		}
-		std::cout << __PRETTY_FUNCTION__ << 10 << std::endl;
+		//std::cout <<__PRETTY_FUNCTION__ << 10 << std::endl;
 		readIO->second->out_.openOut();
-		std::cout << __PRETTY_FUNCTION__ << 11 << std::endl;
+		//std::cout <<__PRETTY_FUNCTION__ << 11 << std::endl;
 	}
-	std::cout << __PRETTY_FUNCTION__ << 12 << std::endl;
+	//std::cout <<__PRETTY_FUNCTION__ << 12 << std::endl;
 	outsOpen_.push_back(uid);
-	std::cout << __PRETTY_FUNCTION__ << 13 << std::endl;
+	//std::cout <<__PRETTY_FUNCTION__ << 13 << std::endl;
 	++openPriorityCounts_[uid];
-	std::cout << __PRETTY_FUNCTION__ << 14 << std::endl;
+	//std::cout <<__PRETTY_FUNCTION__ << 14 << std::endl;
 	mut_.unlock();
-	std::cout << __PRETTY_FUNCTION__ << 15 << std::endl;
+	//std::cout <<__PRETTY_FUNCTION__ << 15 << std::endl;
 }
 
 
