@@ -1087,11 +1087,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		}
 
 		if(!failFilter){
-			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			genes[gene.first] = gene.second;
 		}
 	}
-	std::cout << "genes.size(): " << genes.size() << std::endl;
+//	std::cout << "genes.size(): " << genes.size() << std::endl;
 
 	//std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>> geneTranscriptInfos;
 	;
