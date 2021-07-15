@@ -22,6 +22,9 @@
 #include "njhseq/seqToolsUtils/seqToolsUtils.hpp"
 #include <TwoBit.h>
 
+#include "njhseq/BamToolsUtils/BamToolsUtils.hpp"
+
+
 namespace njhseq {
 
 
@@ -488,8 +491,8 @@ bool SeqInput::readNextBam(BamTools::BamReader & bReader, seqInfo& read,
 		BamTools::BamAlignment & aln, bool processed) {
 	bool succes = bReader.GetNextAlignment(aln);
 	if (succes) {
-		read = seqInfo(aln.Name, aln.QueryBases, aln.Qualities,
-				SangerQualOffset);
+		//read = seqInfo(aln.Name, aln.QueryBases, aln.Qualities, SangerQualOffset);
+		read = bamAlnToSeqInfo(aln, false);
 	}
 	return succes;
 }
