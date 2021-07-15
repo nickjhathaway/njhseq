@@ -1077,10 +1077,12 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 //	std::cout << "rawGenes.size(): " << rawGenes.size() << std::endl;
 
 	std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> genes;
+
+
 	for(const auto & gene : rawGenes){
 		bool failFilter = false;
 		for(const auto & transcript : gene.second->mRNAs_){
-			if(njh::in(njh::strToLowerRet(transcript->type_), VecStr{"rrna", "trna"}) ){
+			if(njh::in(njh::strToLowerRet(transcript->type_), VecStr{"rrna", "trna", "snorna","snrna","ncrna"}) ){
 //				std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //				transcript->writeGffRecord(std::cout);
 				failFilter = true;
