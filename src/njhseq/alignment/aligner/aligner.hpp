@@ -66,6 +66,9 @@ class aligner {
   baseReadObject alignObjectB_;
 
   alnParts parts_;
+  uint32_t inputAlignmentBlockSize_{100};
+  uint32_t inputAlignmentBlockWalkbackSize_{50};
+
   alnInfoMasterHolder alnHolder_;
 
   uint32_t numberOfAlingmentsDone_ = 0;

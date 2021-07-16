@@ -94,7 +94,7 @@ seqInfo seqInfo::getSubRead(uint32_t pos) const {
 
 void seqInfo::updateName() {
 	size_t totalPos = name_.rfind("_t");
-	if (totalPos != std::string::npos) {
+	if (totalPos != std::string::npos && totalPos + 2 != name_.size() && isDoubleStr(name_.substr(totalPos + 2))) {
 		name_ = name_.substr(0, totalPos);
 	}
 	name_ += "_t" + estd::to_string(cnt_);
@@ -144,6 +144,10 @@ seqInfo seqInfo::translateRet(bool complement, bool reverse,
 void seqInfo::processRead(bool processed) {
 	bool setFraction = false;
 	if (processed) {
+//		std::cout << njh::bashCT::red ;
+//		std::cout << name_ << std::endl;
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << njh::bashCT::reset;
 		VecStr toks;
 		bool containsAllNumbers = true;
 		if (name_.rfind("_t") == std::string::npos
@@ -156,20 +160,25 @@ void seqInfo::processRead(bool processed) {
 				ss << "failed due to name not have a _ or _t, " << name_ << "\n";
 				throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
 			} else {
-				toks = tokenizeString(name_, "_");
+				toks = VecStr{name_.substr(0, name_.rfind("_")), name_.substr(name_.rfind("_")+1)};
+				//toks = tokenizeString(name_, "_");
 			}
 		}else if (name_.rfind("_t") != std::string::npos
 				&& name_.rfind("_f") != std::string::npos){
 			if(name_.rfind("_t") > name_.rfind("_f")){
-				toks = tokenizeString(name_, "_t");
+				//toks = tokenizeString(name_, "_t");
+				toks = VecStr{name_.substr(0, name_.rfind("_t")), name_.substr(name_.rfind("_t")+2)};
 			}else{
-				toks = tokenizeString(name_, "_f");
+				//toks = tokenizeString(name_, "_f");
+				toks = VecStr{name_.substr(0, name_.rfind("_f")), name_.substr(name_.rfind("_f")+2)};
 				setFraction = true;
 			}
 		} else if (name_.rfind("_t") != std::string::npos) {
-			toks = tokenizeString(name_, "_t");
+			//toks = tokenizeString(name_, "_t");
+			toks = VecStr{name_.substr(0, name_.rfind("_t")), name_.substr(name_.rfind("_t")+2)};
 		} else {
-			toks = tokenizeString(name_, "_f");
+			//toks = tokenizeString(name_, "_f");
+			toks = VecStr{name_.substr(0, name_.rfind("_f")), name_.substr(name_.rfind("_f")+2)};
 			setFraction = true;
 		}
 		containsAllNumbers = isDoubleStr(toks[toks.size() - 1]);

@@ -1161,6 +1161,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_ = std::min(minMaxPositionsPerChrom[results.gRegion_.chrom_].minPos_,results.gRegion_.start_);
 			minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_ = std::max(minMaxPositionsPerChrom[results.gRegion_.chrom_].maxPos_,results.gRegion_.end_);
 			ret.seqAlns_[bAln.Name].emplace_back(results);
+
 			if (!njh::in(balnGenomicRegion.createUidFromCoords(), alnRegionToGeneIds)) {
 				continue;
 			}

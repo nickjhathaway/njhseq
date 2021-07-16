@@ -113,9 +113,10 @@ void aligner::alignScoreGlobal(const std::string& firstSeq,
 
 void aligner::alignScoreGlobalDiag(const std::string& firstSeq,
 		const std::string& secondSeq) {
-	alignCalc::runNeedleDiagonalSave(firstSeq, secondSeq, 100, 50, parts_);
+	alignCalc::runNeedleDiagonalSave(firstSeq, secondSeq, inputAlignmentBlockSize_, inputAlignmentBlockWalkbackSize_, parts_);
 	++numberOfAlingmentsDone_;
 }
+
 
 void aligner::alignScoreGlobalNoInternalGaps(const std::string& firstSeq,
 		const std::string& secondSeq) {
@@ -145,7 +146,7 @@ void aligner::alignScoreCacheGlobalDiag(const std::string& firstSeq,
 		parts_.score_ = parts_.gHolder_.score_;
 		comp_.alnScore_ = parts_.score_;
 	} else {
-		alignCalc::runNeedleDiagonalSave(firstSeq, secondSeq, 100, 50, parts_);
+		alignCalc::runNeedleDiagonalSave(firstSeq, secondSeq, inputAlignmentBlockSize_, inputAlignmentBlockWalkbackSize_, parts_);
 		alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
 				firstSeq, secondSeq, parts_.gHolder_);
 		++numberOfAlingmentsDone_;
