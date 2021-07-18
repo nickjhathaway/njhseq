@@ -490,7 +490,7 @@ void TranslatorByAlignment::VariantsInfo::writeOutSNPsAllInfo(
 
 Bed3RecordCore TranslatorByAlignment::VariantsInfo::getVariableRegion() {
 	if (!variablePositons_.empty()) {
-		return Bed3RecordCore(seqBase_.name_,
+		return Bed3RecordCore(region_.chrom_,
 				*std::min_element(variablePositons_.begin(), variablePositons_.end()),
 				*std::max_element(variablePositons_.begin(), variablePositons_.end()) + 1 );
 	}
