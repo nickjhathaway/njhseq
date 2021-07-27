@@ -58,81 +58,27 @@ ManipulateTableRunner::ManipulateTableRunner() :
 				}, "ManipulateTable", "1") {
 }
 //
+
+
+
 int ManipulateTableRunner::splitColumnContainingMeta(
 		const njh::progutils::CmdArgs & inputCommands) {
 
-	std::string column = "";
-	bool keepMetaInColumn = false;
-	bool prefixWithColName = false;
-	bool removeEmptyColumn = false;
+	table::splitColWithMetaPars splitingColsPars;
 	ManipulateTableSetUp setUp(inputCommands);
-	setUp.setOption(column, "--column", "Column to split which contains meta with the following formating [key1=val1;key2=val2;]", true);
-	setUp.setOption(keepMetaInColumn, "--keepMetaInColumn", "Keep meta in the original column");
-	setUp.setOption(removeEmptyColumn, "--removeEmptyColumn", "remove original column if it becomes an empty column");
-	setUp.setOption(prefixWithColName, "--prefixWithColName", "Prefix new columns with column name");
+	setUp.setOption(splitingColsPars.column_, "--column", "Column to split which contains meta with the following formating [key1=val1;key2=val2;]", true);
+	setUp.setOption(splitingColsPars.keepMetaInColumn_, "--keepMetaInColumn", "Keep meta in the original column");
+	setUp.setOption(splitingColsPars.removeEmptyColumn_, "--removeEmptyColumn", "remove original column if it becomes an empty column");
+	setUp.setOption(splitingColsPars.prefixWithColName_, "--prefixWithColName", "Prefix new columns with column name");
 	setUp.processFileName(true);
 	setUp.processNonRquiredDefaults();
-	bool sorting = setUp.processSorting();
+	splitingColsPars.sorting_ = setUp.processSorting();
+	splitingColsPars.descending_ = setUp.decending_;
+	splitingColsPars.sortCol_ = setUp.sortByColumn_;
 	setUp.finishSetUp(std::cout);
 	table inTab(setUp.ioOptions_);
-	inTab.checkForColumnsThrow({column}, __PRETTY_FUNCTION__);
-	std::set<std::string> metaFields;
-	std::unordered_map<std::string, VecStr> metaValues;
 
-	bool noneContainMeta = true;
-	for (const auto & row : inTab.content_) {
-		if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(column)])){
-			MetaDataInName rowMeta(row[inTab.getColPos(column)]);
-			auto metas = getVectorOfMapKeys(rowMeta.meta_);
-			std::copy(metas.begin(), metas.end(),
-					std::inserter(metaFields, metaFields.end()));
-			noneContainMeta = false;
-		}
-	}
-	if(!noneContainMeta){
-		bool allEmpty = true;
-		for (auto & row : inTab.content_) {
-			if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(column)])){
-				MetaDataInName rowMeta(row[inTab.getColPos(column)]);
-				for(const auto & m : rowMeta.meta_){
-					metaValues[m.first].emplace_back(m.second);
-				}
-				for(const auto & metaField : metaFields){
-					if(!njh::in(metaField, rowMeta.meta_)){
-						metaValues[metaField].emplace_back("NA");
-					}
-				}
-				if(!keepMetaInColumn){
-					MetaDataInName::removeMetaDataInName(row[inTab.getColPos(column)]);
-					if("" != row[inTab.getColPos(column)]){
-						allEmpty = false;
-					}
-				}
-			}else{
-				for(const auto & metaField : metaFields){
-					metaValues[metaField].emplace_back("NA");
-				}
-			}
-		}
-		if (allEmpty && removeEmptyColumn) {
-			inTab.deleteColumn(column);
-		}
-		for (const auto & m : metaValues) {
-			std::string newColName = m.first;
-			if (prefixWithColName) {
-				newColName = column + "-" + m.first;
-			}
-			inTab.addColumn(m.second, newColName);
-		}
-		if(sorting){
-			inTab.sortTable(setUp.sortByColumn_, setUp.decending_);
-		}
-	}else{
-		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": No values in " << column << " contain meta data, doing nothing" << "\n";
-		throw std::runtime_error{ss.str()};
-
-	}
+	table outTab = table::splitColWithMeta(inTab, splitingColsPars);
 	inTab.hasHeader_ = setUp.addHeader_;
 	setUp.ioOptions_.hasHeader_ = setUp.addHeader_;
 	inTab.outPutContents(setUp.ioOptions_);

@@ -356,6 +356,18 @@ public:
 
 	VecStr getMissingHeaders(const VecStr requiredColumns) const;
 
+	 struct splitColWithMetaPars{
+
+		std::string column_;
+		bool keepMetaInColumn_= false;
+		bool prefixWithColName_ = false;
+		bool removeEmptyColumn_ = false;
+		bool sorting_ = false;
+		std::string sortCol_;
+		bool descending_ = false;
+	};
+
+	 static table splitColWithMeta(const table & inputTab, const splitColWithMetaPars & pars);
 
 };
 }  // namespace njh

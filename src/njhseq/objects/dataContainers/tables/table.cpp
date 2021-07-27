@@ -3,6 +3,8 @@
 #include "njhseq/IO/InputStream.hpp"
 #include "njhseq/IO/OutputStream.hpp"
 #include <njhcpp/bashUtils.h>
+#include "njhseq/objects/Meta/MetaDataInName.hpp"
+
 
 //
 // njhseq - A library for analyzing sequence data
@@ -1243,6 +1245,66 @@ VecStr table::getMissingHeaders(const VecStr requiredColumns) const{
 	return columnsNotFound;
 }
 
+table table::splitColWithMeta(const table & inputTab, const splitColWithMetaPars & pars){
+	auto inTab = inputTab;
+	inTab.checkForColumnsThrow({pars.column_}, __PRETTY_FUNCTION__);
+	std::set<std::string> metaFields;
+	std::unordered_map<std::string, VecStr> metaValues;
 
+	bool noneContainMeta = true;
+	for (const auto & row : inTab.content_) {
+		if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(pars.column_)])){
+			MetaDataInName rowMeta(row[inTab.getColPos(pars.column_)]);
+			auto metas = getVectorOfMapKeys(rowMeta.meta_);
+			std::copy(metas.begin(), metas.end(),
+					std::inserter(metaFields, metaFields.end()));
+			noneContainMeta = false;
+		}
+	}
+	if(!noneContainMeta){
+		bool allEmpty = true;
+		for (auto & row : inTab.content_) {
+			if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(pars.column_)])){
+				MetaDataInName rowMeta(row[inTab.getColPos(pars.column_)]);
+				for(const auto & m : rowMeta.meta_){
+					metaValues[m.first].emplace_back(m.second);
+				}
+				for(const auto & metaField : metaFields){
+					if(!njh::in(metaField, rowMeta.meta_)){
+						metaValues[metaField].emplace_back("NA");
+					}
+				}
+				if(!pars.keepMetaInColumn_){
+					MetaDataInName::removeMetaDataInName(row[inTab.getColPos(pars.column_)]);
+					if("" != row[inTab.getColPos(pars.column_)]){
+						allEmpty = false;
+					}
+				}
+			}else{
+				for(const auto & metaField : metaFields){
+					metaValues[metaField].emplace_back("NA");
+				}
+			}
+		}
+		if (allEmpty && pars.removeEmptyColumn_) {
+			inTab.deleteColumn(pars.column_);
+		}
+		for (const auto & m : metaValues) {
+			std::string newColName = m.first;
+			if (pars.prefixWithColName_) {
+				newColName = pars.column_ + "-" + m.first;
+			}
+			inTab.addColumn(m.second, newColName);
+		}
+		if(pars.sorting_){
+			inTab.sortTable(pars.sortCol_, pars.descending_);
+		}
+	}else{
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": No values in " << pars.column_ << " contain meta data, doing nothing" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	return inTab;
+}
 
 }  // namespace njh
