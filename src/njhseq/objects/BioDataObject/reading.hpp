@@ -66,6 +66,7 @@ struct intersectBedLocsWtihGffRecordsPars {
 	VecStr extraAttributes_;
 	VecStr selectFeatures_;
 
+	VecStr filterSubRegionFeatures_{"rrna", "trna", "snorna","snrna","ncrna"};
 	Json::Value toJson() const;
 };
 

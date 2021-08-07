@@ -213,7 +213,7 @@ Json::Value intersectBedLocsWtihGffRecordsPars::toJson() const{
 	ret["gffFnp_"] = njh::json::toJson(gffFnp_);
 	ret["extraAttributes_"] = njh::json::toJson(extraAttributes_);
 	ret["selectFeatures_"] = njh::json::toJson(selectFeatures_);
-
+	ret["filterSubRegionFeatures_"] = njh::json::toJson(filterSubRegionFeatures_);
 	return ret;
 }
 
