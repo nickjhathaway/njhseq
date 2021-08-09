@@ -79,9 +79,9 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 	table inTab(setUp.ioOptions_);
 
 	table outTab = table::splitColWithMeta(inTab, splitingColsPars);
-	inTab.hasHeader_ = setUp.addHeader_;
+	outTab.hasHeader_ = setUp.addHeader_;
 	setUp.ioOptions_.hasHeader_ = setUp.addHeader_;
-	inTab.outPutContents(setUp.ioOptions_);
+	outTab.outPutContents(setUp.ioOptions_);
 	return 0;
 }
 
