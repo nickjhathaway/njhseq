@@ -36,12 +36,13 @@ public:
 
 		Json::Value toJson() const;
 	};
+
+
 	class Primer {
 	public:
 		std::string name_ = "";
-		double penality_ = -1;
-		std::string originalSeq_ = ""; //seq in the file
-		std::string fowardOrientationSeq_ = ""; // for right primer this is the reverse complient of the seq in the file so it's in the forward direction
+		double penalty_ = -1;
+		std::string seq_ = ""; //seq in the file
 		double tm_ = -1;
 		double gc_percent_ = -1; // between 0 - 100
 		double self_any_th_ = -1;
@@ -49,12 +50,32 @@ public:
 		double hairpin_th_ = -1;
 		double end_stability_ = -1;
 		bool right_ = false;
+
+		VecStr problems_;
+
 		region originalPos_; //zero based
 		region forwardOrientationPos_; //zero based, for right primers the position given is the end position, this is the start in the forward orientation
-		Json::Value toJson() const;
 
+		Json::Value toJson() const;
 		GenomicRegion genRegion(const std::string & templateId) const;
 	};
+
+
+	class PrimerPair{
+	public:
+		std::string name_;
+		Primer left_;
+		Primer right_;
+		double compl_any_th_{std::numeric_limits<double>::max()};
+		double compl_end_th_{std::numeric_limits<double>::max()};
+		double penalty_{std::numeric_limits<double>::max()};
+		uint32_t product_size_{std::numeric_limits<uint32_t>::max()};
+
+		Json::Value toJson() const;
+
+	};
+
+
 
 	std::string sequence_id_;
 	std::string sequence_template_;
@@ -66,13 +87,12 @@ public:
 	uint32_t primer_pair_num_returned_ = 0;
 
 
-	std::unordered_map<std::string, std::shared_ptr<Primer>> primers_;
+	std::vector<std::shared_ptr<PrimerPair>> primerPairs_;
 
 	std::unordered_map<std::string, GenomicRegion> genPrimersRegions() const;
 
 	Json::Value toJson() const;
-	static std::vector<std::shared_ptr<Primer3Results>> parsePrimer3OutputResults(
-			const bfs::path & input);
+	static std::vector<std::shared_ptr<Primer3Results>> parsePrimer3OutputResults(const bfs::path & input, bool ignoreUnexpected = false);
 };
 
 
