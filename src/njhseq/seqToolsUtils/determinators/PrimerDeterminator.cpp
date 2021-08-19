@@ -32,6 +32,7 @@ namespace njhseq {
 
 size_t PrimerDeterminator::getMaxPrimerSize() const {
 	size_t ret = 0;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for (const auto & p : primers_) {
 		for(const auto & fwd : p.second.fwds_){
 			if (len(fwd.info_) > ret) {
@@ -44,6 +45,7 @@ size_t PrimerDeterminator::getMaxPrimerSize() const {
 			}
 		}
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return ret;
 }
 

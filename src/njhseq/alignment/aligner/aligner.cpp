@@ -202,6 +202,15 @@ void aligner::alignCacheGlobal(const seqInfo & ref, const seqInfo & read){
 	rearrangeObjsGlobal(ref, read);
 }
 
+
+void aligner::alignCacheGlobalDiag(const std::string & ref, const std::string & read){
+	alignScoreCacheGlobalDiag(ref, read);
+	rearrangeObjsGlobal(ref, read);
+}
+
+
+
+
 void aligner::alignCacheGlobalDiag(const seqInfo & ref, const seqInfo & read){
 //	ref.outPutSeq(std::cout);
 //	read.outPutSeq(std::cout);
@@ -248,6 +257,12 @@ void aligner::alignRegGlobal(const seqInfo & ref, const seqInfo & read){
 	alignScoreGlobal(ref.seq_, read.seq_);
 	rearrangeObjsGlobal(ref, read);
 }
+
+void aligner::alignRegGlobalDiag(const std::string & ref, const std::string & read){
+	alignScoreGlobalDiag(ref, read);
+	rearrangeObjsGlobal(ref, read);
+}
+
 void aligner::alignRegGlobalDiag(const seqInfo & ref, const seqInfo & read){
 	alignScoreGlobalDiag(ref.seq_, read.seq_);
 	rearrangeObjsGlobal(ref, read);
@@ -317,6 +332,15 @@ void aligner::rearrangeObjsLocal(const seqInfo& firstRead, const seqInfo& second
 			alignObjectB_.seqBase_.qual_, 0, parts_.lHolder_);
 }
 
+void aligner::rearrangeObjsGlobal(const std::string & firstRead, const std::string& secondRead){
+	alignObjectA_.seqBase_ = seqInfo(alignObjectA_.seqBase_.name_, firstRead);
+	alignObjectB_.seqBase_ = seqInfo(alignObjectB_.seqBase_.name_, secondRead);
+	alignCalc::rearrangeGlobal(alignObjectA_.seqBase_.seq_,
+			alignObjectB_.seqBase_.seq_, '-', parts_.gHolder_);
+	alignCalc::rearrangeGlobal(alignObjectA_.seqBase_.qual_,
+			alignObjectB_.seqBase_.qual_, 0, parts_.gHolder_);
+}
+
 void aligner::rearrangeObjsGlobal(const seqInfo& firstRead, const seqInfo& secondRead){
 	alignObjectA_.seqBase_ = firstRead;
 	alignObjectB_.seqBase_ = secondRead;
@@ -337,6 +361,13 @@ void aligner::resetAlignmentInfo() {
 
 void aligner::setQual(QualScorePars pars) {
   qScorePars_ = pars;
+}
+
+
+const comparison& aligner::profilePrimerAlignment(const std::string &objectA,
+		const std::string &objectB) {
+	return profilePrimerAlignment(seqInfo(alignObjectA_.seqBase_.name_, objectA),
+			seqInfo(alignObjectB_.seqBase_.name_, objectB));
 }
 
 
