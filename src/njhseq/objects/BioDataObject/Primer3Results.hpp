@@ -79,13 +79,16 @@ public:
 
 	std::string sequence_id_;
 	std::string sequence_template_;
+	std::string primer_task_{"generic"};
 	std::vector<region> sequence_target_;
 	std::vector<region> sequence_excluded_region_;
 	uint32_t primer_left_num_returned_ = 0;
 	uint32_t primer_right_num_returned_ = 0;
 	uint32_t primer_internal_num_returned_ = 0;
 	uint32_t primer_pair_num_returned_ = 0;
+	VecStr warnings_;
 
+	std::unordered_multimap<std::string, std::string> misc_;//!< everything else that's not specifically handled
 
 	std::vector<std::shared_ptr<PrimerPair>> primerPairs_;
 

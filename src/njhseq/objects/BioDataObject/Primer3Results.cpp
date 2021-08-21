@@ -92,6 +92,11 @@ Json::Value Primer3Results::toJson() const{
 	ret["primer_pair_num_returned_"] =njh::json::toJson(primer_pair_num_returned_);
 
 	ret["primers_"] =njh::json::toJson(primerPairs_);
+	ret["warnings_"] =njh::json::toJson(warnings_);
+	ret["misc_"] =njh::json::toJson(misc_);
+
+
+
 	return ret;
 }
 
@@ -110,7 +115,6 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 
 	InputStream in(input);
 	std::string line = "";
-	std::unordered_multimap<std::string, std::string> misc;
 	std::shared_ptr<Primer3Results> currentResult = std::make_shared<Primer3Results>();
 	std::shared_ptr<PrimerPair> currentPair = std::make_shared<PrimerPair>();
 	currentResult->primerPairs_.emplace_back(currentPair);
@@ -261,7 +265,7 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 					currentPair->name_ = name;
 				} else {
 					if(ignoreUnexpected){
-						misc.emplace(toks[0], toks[1]);
+						currentResult->misc_.emplace(toks[0], toks[1]);
 					}else{
 						std::stringstream ss;
 						ss << __PRETTY_FUNCTION__ << ", unexpected sub case for : " << line
@@ -274,6 +278,10 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 					currentResult->sequence_id_ = toks[1];
 				} else if ("SEQUENCE_TEMPLATE" == toks[0]) {
 					currentResult->sequence_template_ = toks[1];
+				} else if ("PRIMER_WARNING" == toks[0]) {
+					currentResult->warnings_ = tokenizeString(toks[1], ";"); //=pick_sequencing_primers
+				} else if ("PRIMER_TASK" == toks[0]) {
+					currentResult->primer_task_ = toks[1]; //
 				} else if ("SEQUENCE_TARGET" == toks[0]) {
 					auto secondToks = tokenizeString(toks[1], " ");
 					for (const auto & tok : secondToks) {
@@ -324,12 +332,28 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 							njh::StrToNumConverter::stoToNum<uint32_t>(toks[1]);
 				} else {
 					if (ignoreUnexpected) {
-						misc.emplace(toks[0], toks[1]);
+						currentResult->misc_.emplace(toks[0], toks[1]);
 					} else {
 						std::stringstream ss;
 						ss << __PRETTY_FUNCTION__ << ", unhandled case for line: " << line << ", case: " << toks[0] << "\n";
 						throw std::runtime_error { ss.str() };
 					}
+				}
+			}
+		}
+	}
+
+	for( auto & res : results){
+		if(res->primer_task_ == "pick_sequencing_primers"){
+			for(auto & primerPair : res->primerPairs_){
+				primerPair->penalty_ = primerPair->left_.penalty_ + primerPair->right_.penalty_;
+				primerPair->name_ = njh::replaceString(primerPair->left_.name_, "LEFT", "PAIR");
+				uint32_t targetStart = primerPair->left_.forwardOrientationPos_.start_;
+				uint32_t targetEnd = primerPair->right_.forwardOrientationPos_.start_ + primerPair->right_.forwardOrientationPos_.size_;
+				primerPair->product_size_ = 1 + targetEnd - targetStart;
+				auto misMapFind = res->misc_.find("PRIMER_FIRST_BASE_INDEX");
+				if(misMapFind != res->misc_.end() && "0" == misMapFind->second){
+					primerPair->product_size_ = targetEnd - targetStart;
 				}
 			}
 		}
