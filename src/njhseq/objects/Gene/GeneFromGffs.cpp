@@ -41,6 +41,9 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 		}else if("CDS" == record->type_){
 			auto currentParents = tokenizeString(record->getAttr("Parent"), ",");
 			for(const auto & parent : currentParents){
+//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				std::cout << "parent: " << parent << std::endl;
+//				std::cout << "record.getID: " << record->getIDAttr() << std::endl;
 				CDS_[parent].emplace_back(record);
 			}
 		}else if("exon" == record->type_){

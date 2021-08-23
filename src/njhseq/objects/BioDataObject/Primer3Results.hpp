@@ -73,6 +73,12 @@ public:
 
 		Json::Value toJson() const;
 
+		uint32_t getStart() const;
+		uint32_t getEnd() const;
+
+		bool overlaps(const PrimerPair & other, uint32_t minOverlap =1)const;
+		uint32_t getOverlapLen(const PrimerPair & other)const;
+
 	};
 
 
@@ -88,11 +94,18 @@ public:
 	uint32_t primer_pair_num_returned_ = 0;
 	VecStr warnings_;
 
+	std::string primer_left_explain_;
+	std::string primer_right_explain_;
+	std::string primer_pair_explain_;
+
 	std::unordered_multimap<std::string, std::string> misc_;//!< everything else that's not specifically handled
 
 	std::vector<std::shared_ptr<PrimerPair>> primerPairs_;
 
 	std::unordered_map<std::string, GenomicRegion> genPrimersRegions() const;
+
+	std::shared_ptr<PrimerPair> getLowestPenaltyPair() const;// use only for "generic" mood
+	std::vector<std::shared_ptr<PrimerPair>> getLowestPenaltyNonOverlappingPairs() const;// use only for "generic" mood
 
 	Json::Value toJson() const;
 	static std::vector<std::shared_ptr<Primer3Results>> parsePrimer3OutputResults(const bfs::path & input, bool ignoreUnexpected = false);

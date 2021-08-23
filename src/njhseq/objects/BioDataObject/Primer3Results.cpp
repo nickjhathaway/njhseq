@@ -59,6 +59,36 @@ Json::Value Primer3Results::PrimerPair::toJson() const{
 	return ret;
 }
 
+uint32_t Primer3Results::PrimerPair::getStart() const{
+	return left_.forwardOrientationPos_.start_;
+}
+uint32_t Primer3Results::PrimerPair::getEnd() const{
+	return right_.forwardOrientationPos_.start_ + right_.forwardOrientationPos_.size_;
+}
+
+bool Primer3Results::PrimerPair::overlaps(const PrimerPair & other, uint32_t minOverlap)const{
+	return getOverlapLen(other) >= minOverlap;
+}
+
+uint32_t Primer3Results::PrimerPair::getOverlapLen(const PrimerPair & other)const{
+	uint32_t overlapLength = 0;
+
+
+	if( (other.getStart() >= getStart() && other.getStart() < getEnd()) ||
+			(other.getEnd() > getStart() && other.getEnd() <= getEnd()) ||
+			(getStart() >= other.getStart() &&  getStart() <  other.getEnd()) ||
+			(getEnd() > other.getStart() && getEnd() <= other.getEnd())  ) {
+
+		auto overlapStart = std::max(other.getStart(), getStart());
+		auto overlapEnd = std::min(other.getEnd(), getEnd());
+		overlapLength =  overlapEnd - overlapStart;
+	}
+	return overlapLength;
+}
+
+
+
+
 
 Json::Value Primer3Results::Primer::toJson() const {
 	Json::Value ret;
@@ -108,6 +138,48 @@ std::unordered_map<std::string, GenomicRegion> Primer3Results::genPrimersRegions
 	}
 	return ret;
 }
+
+
+
+std::shared_ptr<Primer3Results::PrimerPair> Primer3Results::getLowestPenaltyPair() const{
+	std::shared_ptr<Primer3Results::PrimerPair> ret;
+	double lowestPenality = std::numeric_limits<double>::max();
+	for(const auto & pair : primerPairs_){
+		if(pair->penalty_ < lowestPenality){
+			lowestPenality = pair->penalty_;
+			ret = pair;
+		}
+	}
+	return ret;
+}
+std::vector<std::shared_ptr<Primer3Results::PrimerPair>> Primer3Results::getLowestPenaltyNonOverlappingPairs() const{
+	std::vector<std::shared_ptr<Primer3Results::PrimerPair>> ret;
+
+	std::vector<uint32_t> primerPositons(primerPairs_.size());
+	njh::iota(primerPositons, 0U);
+
+	njh::sort(primerPositons,[this](const uint32_t & pair1Pos, const uint32_t & pair2Pos){
+		return primerPairs_[pair1Pos]->penalty_ <= primerPairs_[pair2Pos]->penalty_;
+	});
+
+	for(const auto & pairPos : primerPositons){
+		bool pass = true;
+		for(const auto & already : ret){
+			if(primerPairs_[pairPos]->overlaps(*already)){
+				pass = false;
+				break;
+			}
+		}
+
+		if(pass){
+			ret.emplace_back(primerPairs_[pairPos]);
+		}
+	}
+
+	return ret;
+}
+
+
 
 std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputResults(
 		const bfs::path & input, bool ignoreUnexpected) {
@@ -274,6 +346,11 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 					}
 				}
 			} else {
+				/*
+				 * 	std::string ;
+	std::string ;
+	std::string ;
+				 */
 				if ("SEQUENCE_ID" == toks[0]) {
 					currentResult->sequence_id_ = toks[1];
 				} else if ("SEQUENCE_TEMPLATE" == toks[0]) {
@@ -281,7 +358,13 @@ std::vector<std::shared_ptr<Primer3Results>> Primer3Results::parsePrimer3OutputR
 				} else if ("PRIMER_WARNING" == toks[0]) {
 					currentResult->warnings_ = tokenizeString(toks[1], ";"); //=pick_sequencing_primers
 				} else if ("PRIMER_TASK" == toks[0]) {
-					currentResult->primer_task_ = toks[1]; //
+					currentResult->primer_task_ = toks[1];
+				} else if ("PRIMER_LEFT_EXPLAIN" == toks[0]) {
+					currentResult->primer_left_explain_ = toks[1];
+				} else if ("PRIMER_RIGHT_EXPLAIN" == toks[0]) {
+					currentResult->primer_right_explain_ = toks[1];
+				} else if ("PRIMER_PAIR_EXPLAIN" == toks[0]) {
+					currentResult->primer_pair_explain_ = toks[1];
 				} else if ("SEQUENCE_TARGET" == toks[0]) {
 					auto secondToks = tokenizeString(toks[1], " ");
 					for (const auto & tok : secondToks) {
