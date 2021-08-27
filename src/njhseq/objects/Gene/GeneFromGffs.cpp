@@ -220,6 +220,41 @@ std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName()
 		ret[m->getIDAttr()] = name;
 	}
 
+	for (const auto & cdsPerTranscript : CDS_) {
+		for(const auto & c : cdsPerTranscript.second){
+			std::string name = "";
+			if ("chado" == gene_->source_) {
+				if (njh::in(c->getIDAttr(), polypeptides_)) {
+					if (polypeptides_.at(c->getIDAttr()).size() == 1
+							&& polypeptides_.at(c->getIDAttr()).front()->hasAttr("product")) {
+						auto productToks = tokenizeString(polypeptides_.at(c->getIDAttr()).front()->getAttr("product"), ";");
+						for(const auto & productTok : productToks){
+							auto subToks = tokenizeString(productTok, "=");
+							if(2 == subToks.size() && "term" == subToks[0]){
+								if("" != name){
+									name += ", ";
+								}
+								name += subToks[1];
+							}
+						}
+					}
+				}
+			} else if ("EuPathDB" == gene_->source_ || "PlasmoDB" == gene_->source_ || "pf3k" == gene_->source_) {
+				if (gene_->hasAttr("description")) {
+					name = gene_->getAttr("description");
+				}
+			}
+			if("" == name){
+				if(c->hasAttr("product")){
+					name = c->getAttr("product");
+				} else if(gene_->hasAttr("Name")){
+					name = gene_->getAttr("Name");
+				}
+			}
+			ret[c->getIDAttr()] = name;
+		}
+	}
+
 	return ret;
 }
 
