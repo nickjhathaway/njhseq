@@ -3215,6 +3215,7 @@ Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const
 	ret["fivePrimeTrim_"] = njh::json::toJson(fivePrimeTrim_);
 	ret["threePrimeTrim_"] = njh::json::toJson(threePrimeTrim_);
 	ret["writeAll_"] = njh::json::toJson(writeAll_);
+	ret["percentSubSample_"] = njh::json::toJson(percentSubSample_);
 	return ret;
 }
 
@@ -3239,6 +3240,17 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		const std::vector<GenomicRegion> & regions,
 		const extractReadsWtihCrossRegionMappingPars & extractPars){
 
+	njh::randomGenerator rGen;
+	std::function<bool()> subSamplingFunction;
+	if(extractPars.percentSubSample_ == 1){
+		subSamplingFunction = [](){
+			return true;
+		};
+	}else{
+		subSamplingFunction = [&rGen,&extractPars](){
+			return rGen()  <= extractPars.percentSubSample_;
+		};
+	};
 	BamTools::BamAlignment bAln;
 
 	//std::cout << "percInRegion: " << percInRegion << std::endl;
@@ -3872,9 +3884,13 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 									//check for inverse mapping
 									if (bAln.IsReverseStrand() == search->IsReverseStrand()) {
 										//writeInversePair(bAln, bAlnSeq, *search, searchSeq);
-										writeInverseFilteredPair(bAln, *search);
+										if(subSamplingFunction()){
+											writeInverseFilteredPair(bAln, *search);
+										}
 									} else {
-										writeRegPair(bAln, bAlnSeq, *search, searchSeq);
+										if(subSamplingFunction()){
+											writeRegPair(bAln, bAlnSeq, *search, searchSeq);
+										}
 									}
 								} else {
 									if(!searchPassSoftClipAmount && !bAlnPassSoftClipAmount){
@@ -3888,76 +3904,95 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //										std::cout << "static_cast<double>(search.QueryBases.size(): " << static_cast<double>(search->QueryBases.size()) << std::endl;
 //										std::cout << "getSoftClipAmount(search)/static_cast<double>(search.QueryBases.size()): " << getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) << std::endl;
 //										std::cout << "getSoftClipAmount(search)/static_cast<double>(search.QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
-										writeBothPairsFilteredSoftClip(bAln, *search);
+										if(subSamplingFunction()){
+											writeBothPairsFilteredSoftClip(bAln, *search);
+										}
 									}else if(searchPassSoftClipAmount){
-										writeMateFilteredOffSoftClip(*search, *searchRegion);
-										writeTheMateFailedSoftClip(bAln, bAlnSeq);
+										if(subSamplingFunction()){
+											writeMateFilteredOffSoftClip(*search, *searchRegion);
+											writeTheMateFailedSoftClip(bAln, bAlnSeq);
+										}
 									}else if(bAlnPassSoftClipAmount){
-										writeMateFilteredOffSoftClip(bAln, region);
-										writeTheMateFailedSoftClip(*search, searchSeq);
+										if(subSamplingFunction()){
+											writeMateFilteredOffSoftClip(bAln, region);
+											writeTheMateFailedSoftClip(*search, searchSeq);
+										}
 									}
 								}
 							}else if(searchAllFilters){
-								if(searchPassSoftClipAmount){
-									writeMateFilteredOff(*search, *searchRegion);
-								}else{
-									writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+								if(subSamplingFunction()){
+									if(searchPassSoftClipAmount){
+										writeMateFilteredOff(*search, *searchRegion);
+									}else{
+										writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+									}
+									writeTheThrownAwayMate(bAln, bAlnSeq);
 								}
-								writeTheThrownAwayMate(bAln, bAlnSeq);
 							}else if(balnAllFilters){
-								if(bAlnPassSoftClipAmount){
-									writeMateFilteredOff(bAln, region);
-								}else{
-									writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+								if(subSamplingFunction()){
+									if(bAlnPassSoftClipAmount){
+										writeMateFilteredOff(bAln, region);
+									}else{
+										writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+									}
+									writeTheThrownAwayMate(*search, searchSeq);
 								}
-								writeTheThrownAwayMate(*search, searchSeq);
 							}else{
 								//both searchAllFilters and balnAllFilters are false, which means they both partially map to this region but don't pass the criteria
 								//for inclusion, would be good to count how often this happens
 								//since we are keeping the thrown away mate why don't we keep both of these to try to map during recruitment
 								/**@todo */
-								writeBothPairsFiltered(bAln, *search);
+								if(subSamplingFunction()){
+									writeBothPairsFiltered(bAln, *search);
+								}
 							}
 						} else {
 							if (searchAllFilters && balnAllFilters) {
 								if(searchPassSoftClipAmount && bAlnPassSoftClipAmount){
-									//if these checks end up being the same it means the seq is now in the original orientation
-									//if false then they are now in the reverse complement of what they use to be
-									bool bAlnCheck = region.reverseSrand_ == bAln.IsReverseStrand();
-									bool searchCheck = searchRegion->reverseSrand_ == search->IsReverseStrand();
-									//if the checks equal each other that means the mates are now in the opposite orientation from each other and therefore are inverse mapping
-									if (bAlnCheck == searchCheck) {
-										//writeInversePair(bAln, bAlnSeq, *search, searchSeq);
-										writeInverseFilteredPair(bAln, *search);
-									} else {
-										writeDiscordantPair(bAln, bAlnSeq, *search, searchSeq);
+									if(subSamplingFunction()){
+										//if these checks end up being the same it means the seq is now in the original orientation
+										//if false then they are now in the reverse complement of what they use to be
+										bool bAlnCheck = region.reverseSrand_ == bAln.IsReverseStrand();
+										bool searchCheck = searchRegion->reverseSrand_ == search->IsReverseStrand();
+										//if the checks equal each other that means the mates are now in the opposite orientation from each other and therefore are inverse mapping
+										if (bAlnCheck == searchCheck) {
+											//writeInversePair(bAln, bAlnSeq, *search, searchSeq);
+											writeInverseFilteredPair(bAln, *search);
+										} else {
+											writeDiscordantPair(bAln, bAlnSeq, *search, searchSeq);
+										}
 									}
 								}else{
-									if(!searchPassSoftClipAmount && !bAlnPassSoftClipAmount){
-										std::cout << __FILE__ << " " << __LINE__ << std::endl;
-										writeBothPairsFilteredSoftClip(bAln, *search);
-									}else if(searchPassSoftClipAmount){
-										writeMateFilteredOffSoftClip(*search, *searchRegion);
-										writeTheMateFailedSoftClip(bAln, bAlnSeq);
-									}else if(bAlnPassSoftClipAmount){
-										writeMateFilteredOffSoftClip(bAln, region);
-										writeTheMateFailedSoftClip(*search, searchSeq);
+									if(subSamplingFunction()){
+										if(!searchPassSoftClipAmount && !bAlnPassSoftClipAmount){
+											writeBothPairsFilteredSoftClip(bAln, *search);
+										}else if(searchPassSoftClipAmount){
+											writeMateFilteredOffSoftClip(*search, *searchRegion);
+											writeTheMateFailedSoftClip(bAln, bAlnSeq);
+										}else if(bAlnPassSoftClipAmount){
+											writeMateFilteredOffSoftClip(bAln, region);
+											writeTheMateFailedSoftClip(*search, searchSeq);
+										}
 									}
 								}
 							}else if(searchAllFilters){
-								if(searchPassSoftClipAmount){
-									writeMateFilteredOff(*search, *searchRegion);
-								}else{
-									writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+								if(subSamplingFunction()){
+									if(searchPassSoftClipAmount){
+										writeMateFilteredOff(*search, *searchRegion);
+									}else{
+										writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+									}
+									writeTheThrownAwayMate(bAln, bAlnSeq);
 								}
-								writeTheThrownAwayMate(bAln, bAlnSeq);
 							}else if(balnAllFilters){
-								if(bAlnPassSoftClipAmount){
-									writeMateFilteredOff(bAln, region);
-								}else{
-									writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+								if(subSamplingFunction()){
+									if(bAlnPassSoftClipAmount){
+										writeMateFilteredOff(bAln, region);
+									}else{
+										writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+									}
+									writeTheThrownAwayMate(*search, searchSeq);
 								}
-								writeTheThrownAwayMate(*search, searchSeq);
 							}else{
 								//both searchAllFilters and balnAllFilters are false, which means they both partially map to this region but don't pass the criteria
 								//for inclusion, would be good to count how often this happens
@@ -3969,12 +4004,14 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					}else if(bAln.IsMapped()){
 						if (extractPars.throwAwayUnmappedMate_) {
 							if(balnAllFilters){
-								if(bAlnPassSoftClipAmount){
-									writeThrowAwayUnmappedMate(bAln, bAlnSeq);
-								}else{
-									writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+								if(subSamplingFunction()){
+									if(bAlnPassSoftClipAmount){
+										writeThrowAwayUnmappedMate(bAln, bAlnSeq);
+									}else{
+										writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+									}
+									writeTheThrownAwayUnmappedMate(*search, searchSeq);
 								}
-								writeTheThrownAwayUnmappedMate(*search, searchSeq);
 							}
 						} else {
 							//first check to see if un mapped mate is likely falling within the region of interest
@@ -4008,36 +4045,42 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 								if(!region.reverseSrand_){
 									searchSeq.reverseComplementRead(false, true);
 								}
-								if(balnAllFilters){
-									if(bAlnPassSoftClipAmount){
-										writeMateUnmappedPair(bAln, bAlnSeq, *search, searchSeq);
+								if(subSamplingFunction()){
+									if(balnAllFilters){
+										if(bAlnPassSoftClipAmount){
+											writeMateUnmappedPair(bAln, bAlnSeq, *search, searchSeq);
+										}else{
+											writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+											writeUnmappedMateFilteredPair(*search, searchSeq);
+										}
 									}else{
-										writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
 										writeUnmappedMateFilteredPair(*search, searchSeq);
 									}
-								}else{
-									writeUnmappedMateFilteredPair(*search, searchSeq);
 								}
 							}else{
-								if(balnAllFilters){
-									if(bAlnPassSoftClipAmount){
-										writeThrowAwayUnmappedMate(bAln, bAlnSeq);
-									}else{
-										writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+								if(subSamplingFunction()){
+									if(balnAllFilters){
+										if(bAlnPassSoftClipAmount){
+											writeThrowAwayUnmappedMate(bAln, bAlnSeq);
+										}else{
+											writeUnmappedMateFilteredSoftClipPair(bAln, bAlnSeq);
+										}
+										writeTheThrownAwayUnmappedMate(*search, searchSeq);
 									}
-									writeTheThrownAwayUnmappedMate(*search, searchSeq);
 								}
 							}
 						}
 					}else if(search->IsMapped()){
 						if (extractPars.throwAwayUnmappedMate_) {
 							if(searchAllFilters){
-								if(searchPassSoftClipAmount){
-									writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
-								}else{
-									writeThrowAwayUnmappedMate(*search, searchSeq);
+								if(subSamplingFunction()){
+									if(searchPassSoftClipAmount){
+										writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+									}else{
+										writeThrowAwayUnmappedMate(*search, searchSeq);
+									}
+									writeTheThrownAwayUnmappedMate(bAln, bAlnSeq);
 								}
-								writeTheThrownAwayUnmappedMate(bAln, bAlnSeq);
 							}
 						} else {
 							/**@todo should incorporate insert size if possible */
@@ -4067,28 +4110,32 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							}
 							//if(posibleMatePosition >= searchRegion->start_ && posibleMatePosition < searchRegion->end_){
 							if(matePass){
-								//since to make it here at least one of the mates had to align, just check which one did
-								if(!searchRegion->reverseSrand_){
-									bAlnSeq.reverseComplementRead(false, true);
-								}
-								if(searchAllFilters){
-									if(searchPassSoftClipAmount){
-										writeMateUnmappedPair(bAln, bAlnSeq, *search, searchSeq);
+								if(subSamplingFunction()){
+									//since to make it here at least one of the mates had to align, just check which one did
+									if(!searchRegion->reverseSrand_){
+										bAlnSeq.reverseComplementRead(false, true);
+									}
+									if(searchAllFilters){
+										if(searchPassSoftClipAmount){
+											writeMateUnmappedPair(bAln, bAlnSeq, *search, searchSeq);
+										}else{
+											writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+											writeUnmappedMateFilteredPair(bAln, bAlnSeq);
+										}
 									}else{
-										writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
 										writeUnmappedMateFilteredPair(bAln, bAlnSeq);
 									}
-								}else{
-									writeUnmappedMateFilteredPair(bAln, bAlnSeq);
 								}
 							} else {
-								if (searchAllFilters) {
-									if(searchPassSoftClipAmount){
-										writeThrowAwayUnmappedMate(*search, searchSeq);
-									}else{
-										writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+								if(subSamplingFunction()){
+									if (searchAllFilters) {
+										if(searchPassSoftClipAmount){
+											writeThrowAwayUnmappedMate(*search, searchSeq);
+										}else{
+											writeUnmappedMateFilteredSoftClipPair(*search, searchSeq);
+										}
+										writeTheThrownAwayUnmappedMate(bAln, bAlnSeq);
 									}
-									writeTheThrownAwayUnmappedMate(bAln, bAlnSeq);
 								}
 							}
 						}
@@ -4106,25 +4153,31 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 
 				if(region.getPercInRegion(bAln, refData) >= extractPars.percInRegion_ && getAlnLen(bAln) >= extractPars.minAlnMapSize_){
 					if(getSoftClipAmount(bAln)/static_cast<double>(bAln.QueryBases.size()) > extractPars.softClipPercentageCutOff_){
-						writeSingleFilteredSoftClip(bAln);
+						if(subSamplingFunction()){
+							writeSingleFilteredSoftClip(bAln);
+						}
 					}else{
-						//unpaired read
-						++ret.unpaiedReads_;
-						if (extractPars.originalOrientation_) {
-							writer.openWrite(bamAlnToSeqInfo(bAln));
-						} else {
-							seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
-									SangerQualOffset);
-							//put in the orientation of the output region
-							if(region.reverseSrand_){
-								outSeq.reverseComplementRead(false, true);
+						if(subSamplingFunction()){
+							//unpaired read
+							++ret.unpaiedReads_;
+							if (extractPars.originalOrientation_) {
+								writer.openWrite(bamAlnToSeqInfo(bAln));
+							} else {
+								seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
+										SangerQualOffset);
+								//put in the orientation of the output region
+								if(region.reverseSrand_){
+									outSeq.reverseComplementRead(false, true);
+								}
+								writer.openWrite(outSeq);
 							}
-							writer.openWrite(outSeq);
 						}
 					}
 				}else{
 					//single filtered off
-					writeSingleFiltered(bAln);
+					if(subSamplingFunction()){
+						writeSingleFiltered(bAln);
+					}
 				}
 			}
 		}
@@ -4198,7 +4251,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 									}
 								}
 								if(pass){
-									writeTheThrownAwayMate(bAln, balnSeq);
+									if(subSamplingFunction()){
+										writeTheThrownAwayMate(bAln, balnSeq);
+									}
 								}
 							}
 						}
@@ -4222,9 +4277,11 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							auto search = alnCache.get(bAln.Name);
 							if (bAln.IsFirstMate() != search->IsFirstMate()) {
 								/**@todo look into this...*/
-								writeTheThrownAwayMate(bAln,
-										seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
-												SangerQualOffset));
+								if(subSamplingFunction()){
+									writeTheThrownAwayMate(bAln,
+											seqInfo(bAln.Name, bAln.QueryBases, bAln.Qualities,
+													SangerQualOffset));
+								}
 							}
 						}
 					}
@@ -4325,13 +4382,17 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 
 					if(pass){
 						if (extractPars.originalOrientation_) {
-							writer.openWrite(bamAlnToSeqInfo(*search));
+							if(subSamplingFunction()){
+								writer.openWrite(bamAlnToSeqInfo(*search));
+							}
 						} else {
 							seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
 							if (searchRegion->reverseSrand_) {
 								searchSeq.reverseComplementRead(false, true);
 							}
-							writer.openWrite(searchSeq);
+							if(subSamplingFunction()){
+								writer.openWrite(searchSeq);
+							}
 						}
 						if(extractPars.writeAll_){
 							bWriter.SaveAlignment(*search);
@@ -4348,7 +4409,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					//write filterd orphan
 					++ret.orphansFilteredSoftCip_;
 					if(extractPars.writeAll_){
-						singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(*search));
+						if(subSamplingFunction()){
+							singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(*search));
+						}
 						bWriter.SaveAlignment(*search);
 					}
 				}
@@ -4360,7 +4423,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //				std::cout << "getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
 //				std::cout <<  "searchIn: " <<njh::colorBool(searchIn) << std::endl;
 				if(extractPars.writeAll_){
-					singleFilteredWriter.openWrite(bamAlnToSeqInfo(*search));
+					if(subSamplingFunction()){
+						singleFilteredWriter.openWrite(bamAlnToSeqInfo(*search));
+					}
 					bWriter.SaveAlignment(*search);
 				}
 			}

@@ -191,12 +191,13 @@ public:
 
 		double softClipPercentageCutOff_{1};//! by default can soft clip all
 
+		double percentSubSample_{1};//! should be 0 to 1, sub sample region
 
 		bool removeImproperPairs_{false};
 		bool keepImproperMateUnmapped_{false};
 
-		uint32_t fivePrimeTrim_{0};
-		uint32_t threePrimeTrim_{0};
+		uint32_t fivePrimeTrim_{0};//! not yet implemented
+		uint32_t threePrimeTrim_{0};//! not yet implemented
 
 		bool writeAll_{true};
 
