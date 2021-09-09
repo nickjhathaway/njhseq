@@ -770,9 +770,9 @@ void BamExtractor::writeExtractReadsFromBam(const bfs::path & bamFnp,
 }
 
 
-void BamExtractor::writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
+BamExtractor::ExtractCounts BamExtractor::writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
 		const OutOptions & outOpts) {
-
+	BamExtractor::ExtractCounts ret;
 	BamTools::BamReader bReader;
 	BamTools::BamAlignment bAln;
 	bReader.Open(bamFnp.string());
@@ -826,6 +826,7 @@ void BamExtractor::writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
 								PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
 										false));
 					}
+					++ret.pairedReads_;
 					// now that operations have been computed, remove first mate found from cache
 					alnCache.remove(search->Name);
 					continue;
@@ -845,6 +846,7 @@ void BamExtractor::writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
 					//it should be in the cache therefore program was unable to find mate
 					//do orphaned operation
 					writer.openWrite(bamAlnToSeqInfo(bAln));
+					++ret.orphans_;
 					continue;
 				} else {
 					auto search = alnCache.get(bAln.Name);
@@ -868,6 +870,7 @@ void BamExtractor::writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
 								PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
 										false));
 					}
+					++ret.pairedReads_;
 					// now that operations have been computed, remove first mate found from cache
 					alnCache.remove(search->Name);
 				}
@@ -877,6 +880,7 @@ void BamExtractor::writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
 			}
 		} else {
 			//unpaired read
+			++ret.unpaiedReads_;
 			if (!bAln.IsMapped()) {
 				// do non-mapping operation
 				writer.openWrite(bamAlnToSeqInfo(bAln));
@@ -890,11 +894,13 @@ void BamExtractor::writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
 	if (len(alnCache) > 0) {
 		auto names = alnCache.getNames();
 		for (const auto & name : names) {
+			++ret.orphans_;
 			auto search = alnCache.get(name);
 			writer.openWrite(bamAlnToSeqInfo(*search));
 			alnCache.remove(name);
 		}
 	}
+	return ret;
 }
 
 

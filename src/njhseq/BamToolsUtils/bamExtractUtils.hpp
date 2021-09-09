@@ -153,7 +153,7 @@ public:
 	void writeExtractReadsFromBam(const bfs::path & bamFnp,
 			const OutOptions & outOpts);
 
-	void writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
+	ExtractCounts writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
 			const OutOptions & outOpts);
 
 
