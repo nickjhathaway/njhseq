@@ -4358,7 +4358,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //			std::cout << "\tgetAlnLen(*search): " << getAlnLen(*search) << std::endl;
 //			std::cout << "\tnjh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_): " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
 //			std::cout << "\tsearchIn: " << njh::colorBool(searchIn) << std::endl;
-
+//			std::cout << "\tsearchRegion->getPercInRegion(*search, refData): " << searchRegion->getPercInRegion(*search, refData) << std::endl;
 			if (searchIn &&
 					getAlnLen(*search) >= extractPars.minAlnMapSize_) {
 //				std::cout << "\tgetSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
@@ -4382,10 +4382,6 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 						}
 					}
 
-
-
-
-
 					if(pass){
 						if (extractPars.originalOrientation_) {
 							if(subSamplingFunction()){
@@ -4406,10 +4402,22 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					}else{
 						++ret.orphansFiltered_;
 //						std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//						std::cout << search->Name << std::endl;
+//						std::cout << "\tgetAlnLen(*search): " << getAlnLen(*search) << std::endl;
+//						std::cout << "\tnjh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_): " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
+//						std::cout << "\tsearchIn: " << njh::colorBool(searchIn) << std::endl;
+//						std::cout << "\tsearchRegion->getPercInRegion(*search, refData): " << searchRegion->getPercInRegion(*search, refData) << std::endl;
+//						std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //						std::cout << "getAlnLen(*search) >= extractPars.minAlnMapSize_: " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
 //						std::cout << "getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
 //						std::cout << "pass: " << njh::colorBool(pass) << std::endl;
 //						std::cout <<  "searchIn: " <<njh::colorBool(searchIn) << std::endl;
+						if(extractPars.writeAll_){
+							if(subSamplingFunction()){
+								singleFilteredWriter.openWrite(bamAlnToSeqInfo(*search));
+							}
+							bWriter.SaveAlignment(*search);
+						}
 					}
 				}else{
 					//write filterd orphan
@@ -4425,9 +4433,15 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				//write filterd orphan
 				++ret.orphansFiltered_;
 //				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				std::cout << search->Name << std::endl;
+//				std::cout << "\tgetAlnLen(*search): " << getAlnLen(*search) << std::endl;
+//				std::cout << "\tnjh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_): " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
+//				std::cout << "\tsearchIn: " << njh::colorBool(searchIn) << std::endl;
+//				std::cout << "\tsearchRegion->getPercInRegion(*search, refData): " << searchRegion->getPercInRegion(*search, refData) << std::endl;
+//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //				std::cout << "getAlnLen(*search) >= extractPars.minAlnMapSize_: " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
 //				std::cout << "getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
-//				std::cout <<  "searchIn: " <<njh::colorBool(searchIn) << std::endl;
+//				std::cout <<  "searchIn: " <<njh::colorBool(searchIn)  << std::endl;
 				if(extractPars.writeAll_){
 					if(subSamplingFunction()){
 						singleFilteredWriter.openWrite(bamAlnToSeqInfo(*search));
@@ -4435,6 +4449,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					bWriter.SaveAlignment(*search);
 				}
 			}
+//			std::cout << std::endl << std::endl;
 			alnCache.remove(name);
 		}
 	}
