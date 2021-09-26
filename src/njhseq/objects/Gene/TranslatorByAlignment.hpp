@@ -57,7 +57,7 @@ public:
 	struct VariantsInfo {
 
 		VariantsInfo(const Bed3RecordCore & region, const seqInfo & refSeq);
-		Bed3RecordCore region_;
+		Bed3RecordCore region_;//!< the reference region being compared to
 		seqInfo seqBase_;
 
 
@@ -177,7 +177,7 @@ public:
 
 		uint32_t allowableStopCodons_ {1};
 
-		void setOptions(seqSetUp & setUp);
+		void setOptions(seqSetUp & setUp, bool requireGenome = false);
 	};
 
 	struct TranslateSeqRes {
@@ -216,6 +216,8 @@ public:
 		std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>>  transcriptInfosForGene_;
 		std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>  translationInfoForTranscirpt_;
 
+		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> fullAATypedWithCodonInfo_;
+
 
 		VecStr seqsUnableToBeMapped_;
 		VecStr seqsTranslationFiltered_;
@@ -223,6 +225,8 @@ public:
 		void writeSeqLocations(std::ostream & out) const;
 		void writeSeqLocationsTranslation(std::ostream & out) const;
 
+		void writeOutSeqAlnIndvVars(const OutOptions & outopts) const;
+		void writeOutTranslatedIndvVars(const OutOptions & outOpts) const;
 	};
 
 
@@ -245,10 +249,12 @@ public:
 
 	TranslatorByAlignmentPars pars_;
 
-	std::unordered_map<std::string, std::vector<uint32_t>> knownAminoAcidPositions_;
+	std::unordered_map<std::string, std::set<uint32_t>> knownAminoAcidPositions_;
 	std::unordered_map<std::string, std::unordered_map<uint32_t, MetaDataInName>> metaDataAssociatedWithAminoacidPosition_;
 
 	TranslatorByAlignment(const TranslatorByAlignmentPars & pars);
+
+	std::set<uint32_t> getAllInterestingAAPosZeroBased(const std::string & transcript, const TranslatorByAlignmentResult & results);
 
 	TranslatorByAlignmentResult run(const SeqIOOptions & seqOpts,
 			const std::unordered_map<std::string, std::unordered_set<std::string>> & sampCountsForHaps,

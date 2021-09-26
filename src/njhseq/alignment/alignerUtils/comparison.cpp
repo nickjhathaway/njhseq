@@ -39,9 +39,11 @@ Json::Value DistanceMet::toJson()const{
 
 
 VecStr DistanceComp::BasicInfoHeader(){
-	return VecStr{"chrom", "start", "end", "queryName", "type", "refSeq", "querySeq"};
+	return VecStr{"chrom", "start", "end", "queryName", "type", "refSeq", "querySeq", "variantTotal"};
 }
-void DistanceComp::writeBasicInfo(std::ostream & out, const Bed3RecordCore & gPos, const std::string & queryName) const{
+void DistanceComp::writeBasicInfo(std::ostream &out, const Bed3RecordCore &gPos,
+		const std::string &queryName) const {
+	uint32_t totalVariants = mismatches_.size() + alignmentGaps_.size();
 	//mismatches
 	for(const auto & m : mismatches_){
 		out << njh::conToStr(toVecStr(
@@ -51,7 +53,8 @@ void DistanceComp::writeBasicInfo(std::ostream & out, const Bed3RecordCore & gPo
 				queryName,
 				"SNP",
 				m.second.refBase,
-				m.second.seqBase), "\t") << "\n";
+				m.second.seqBase,
+				totalVariants), "\t") << "\n";
 	}
 	//INDELs
 	for(const auto & indel: alignmentGaps_){
@@ -64,7 +67,8 @@ void DistanceComp::writeBasicInfo(std::ostream & out, const Bed3RecordCore & gPo
 					queryName,
 					"insertion",
 					std::string(indel.second.gapedSequence_.size(), '-'),
-					indel.second.gapedSequence_), "\t") << "\n";
+					indel.second.gapedSequence_,
+					totalVariants), "\t") << "\n";
 		}else{
 			//gap is in query so a deletion
 			out << njh::conToStr(toVecStr(
@@ -74,10 +78,55 @@ void DistanceComp::writeBasicInfo(std::ostream & out, const Bed3RecordCore & gPo
 					queryName,
 					"deletion",
 					indel.second.gapedSequence_,
-					std::string(indel.second.gapedSequence_.size(), '-')), "\t") << "\n";
+					std::string(indel.second.gapedSequence_.size(), '-'),
+					totalVariants), "\t") << "\n";
 		}
 	}
 }
+
+void DistanceComp::writeBasicInfoOneBasedOut(std::ostream & out, const Bed3RecordCore & gPos, const std::string & queryName) const{
+	uint32_t totalVariants = mismatches_.size() + alignmentGaps_.size();
+	//mismatches
+	for(const auto & m : mismatches_){
+		out << njh::conToStr(toVecStr(
+				gPos.chrom_,
+				gPos.chromStart_ + m.second.refBasePos + 1,
+				gPos.chromStart_ + m.second.refBasePos + 1,
+				queryName,
+				"SNP",
+				m.second.refBase,
+				m.second.seqBase,
+				totalVariants), "\t") << "\n";
+	}
+	//INDELs
+	for(const auto & indel: alignmentGaps_){
+		if(indel.second.ref_){
+			//gap is in reference so a insertion
+			out << njh::conToStr(toVecStr(
+					gPos.chrom_,
+					gPos.chromStart_ + indel.second.refPos_ + 1,
+					gPos.chromStart_ + indel.second.refPos_ + 1,
+					queryName,
+					"insertion",
+					std::string(indel.second.gapedSequence_.size(), '-'),
+					indel.second.gapedSequence_,
+					totalVariants), "\t") << "\n";
+		}else{
+			//gap is in query so a deletion
+			out << njh::conToStr(toVecStr(
+					gPos.chrom_,
+					gPos.chromStart_ + indel.second.refPos_ + 1,
+					gPos.chromStart_ + indel.second.refPos_ + indel.second.gapedSequence_.size(),
+					queryName,
+					"deletion",
+					indel.second.gapedSequence_,
+					std::string(indel.second.gapedSequence_.size(), '-'),
+					totalVariants), "\t") << "\n";
+		}
+	}
+}
+
+
 
 void DistanceComp::reset() {
 	basesInAln_ = 0;

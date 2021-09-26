@@ -102,6 +102,7 @@ public:
 
 	static VecStr BasicInfoHeader();
 	void writeBasicInfo(std::ostream & out, const Bed3RecordCore & gPos, const std::string & queryName) const;
+	void writeBasicInfoOneBasedOut(std::ostream & out, const Bed3RecordCore & gPos, const std::string & queryName) const;
 
 };
 

@@ -19,13 +19,13 @@ TranslatorByAlignment::TranslatorByAlignmentPars::TranslatorByAlignmentPars(){
 }
 
 
-void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & setUp){
+void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & setUp, bool requireGenome){
 	setUp.setOption(knownAminoAcidMutationsFnp_, "--knownAminoAcidChangesFnp",
 			"Known Amino Acid Changes, must have at least 2 columns, positions are 1-postion-based (first position is 1), 1)TranscriptID, 2)AAPosition ", false, "Translation Output");
 	setUp.setOption(gffFnp_, "--gff",
-			"Gff file to intersect the final haplotypes with genes to get translations", "" != knownAminoAcidMutationsFnp_, "Translation Output");
+			"Gff file to intersect the final haplotypes with genes to get translations", requireGenome || "" != knownAminoAcidMutationsFnp_, "Translation Output");
 	setUp.setOption(lzPars_.genomeFnp, "--genome",
-			"Genome file so final haplotypes can be mapped to a genome", "" != gffFnp_ || "" != knownAminoAcidMutationsFnp_, "Translation Output");
+			"Genome file so final haplotypes can be mapped to a genome", requireGenome || "" != gffFnp_ || "" != knownAminoAcidMutationsFnp_, "Translation Output");
 	setUp.setOption(useLastz_, "--useLastz", "Use lastz for alignment", false,
 			"Translation Output");
 	if("" != lzPars_.genomeFnp && bfs::exists(lzPars_.genomeFnp) && !bfs::is_regular_file(lzPars_.genomeFnp)){
@@ -922,7 +922,16 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 	}else{
 		njh::sys::requireExternalProgramThrow("lastz");
 	}
+	VecStr warnings;
 	if("" != pars_.knownAminoAcidMutationsFnp_){
+		if("" != pars_.knownAminoAcidMutationsFnp_){
+			if("" == pars_.gffFnp_){
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "if supplying known amino acid positions than must also supply --gffFnp file"<< "\n";
+				warnings.emplace_back(ss.str());
+			}
+		}
+
 		table knownAminoAcidChanges(pars_.knownAminoAcidMutationsFnp_, "\t", true);
 		VecStr originalColNames = knownAminoAcidChanges.columnNames_;
 		njh::for_each(knownAminoAcidChanges.columnNames_, [](std::string & col){
@@ -931,7 +940,6 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 		knownAminoAcidChanges.setColNamePositions();
 		knownAminoAcidChanges.checkForColumnsThrow(VecStr{"transcriptid", "aaposition"}, __PRETTY_FUNCTION__);
 		if(knownAminoAcidChanges.nRow() > 0){
-			VecStr warnings;
 			for(const auto & row : knownAminoAcidChanges){
 				if(std::all_of(row.begin(), row.end(), [](const std::string & element){
 					return "" == element;
@@ -943,7 +951,7 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 				if(njh::in(aaPosition, knownAminoAcidPositions_[transciprtId])){
 					warnings.emplace_back(njh::pasteAsStr("already have aaposition ", aaPosition, " for transcriptID: ", transciprtId));
 				}
-				knownAminoAcidPositions_[transciprtId].emplace_back(aaPosition);
+				knownAminoAcidPositions_[transciprtId].emplace(aaPosition);
 				if(originalColNames.size() > 2){
 					for(const auto && colPos : iter::range(knownAminoAcidChanges.columnNames_.size())){
 						if(!njh::in(knownAminoAcidChanges.columnNames_[colPos], VecStr{"transcriptid", "aaposition"})){
@@ -952,27 +960,66 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 					}
 				}
 			}
-			if(!warnings.empty()){
-				std::stringstream ss;
-				ss << __PRETTY_FUNCTION__ << ", error " << "found repeat amino acid positions "<< "\n";
-				for(const auto & warn : warnings){
-					ss << warn << std::endl;
-				}
-				throw std::runtime_error{ss.str()};
-			}
+		}
+	}
+	if(!warnings.empty()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "found repeat amino acid positions "<< "\n";
+		for(const auto & warn : warnings){
+			ss << warn << std::endl;
+		}
+		throw std::runtime_error{ss.str()};
+	}
+}
+
+
+
+void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutSeqAlnIndvVars(const OutOptions & outopts) const{
+	OutputStream individualAlnedVariantInfoOut(outopts);
+	individualAlnedVariantInfoOut << njh::conToStr(DistanceComp::BasicInfoHeader(), "\t") << std::endl;
+	auto seqAlnNames = getVectorOfMapKeys(seqAlns_);
+	njh::sort(seqAlnNames);
+	for(const auto & seqAlnName : seqAlnNames){
+		for(const auto & alns : seqAlns_.at(seqAlnName)){
+			alns.comp_.distances_.writeBasicInfo(individualAlnedVariantInfoOut, alns.gRegion_.genBed3RecordCore(), seqAlnName);
 		}
 	}
 }
 
+void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutTranslatedIndvVars(const OutOptions & outOpts) const {
+	OutputStream individualVariantInfoOut(outOpts);
+	individualVariantInfoOut << njh::conToStr(DistanceComp::BasicInfoHeader(), "\t") << std::endl;
+	auto seqNames = njh::getVecOfMapKeys(translations_);
+	njh::sort(seqNames);
+	for(const auto & seqName : seqNames){
+		for(const auto & transcript : translations_.at(seqName)){
+			transcript.second.comp_.distances_.writeBasicInfoOneBasedOut(individualVariantInfoOut, njh::mapAt(proteinVariants_, transcript.first).region_, seqName);
+		}
+	}
+}
 
 
 void TranslatorByAlignment::TranslatorByAlignmentResult::writeSeqLocationsTranslation(std::ostream & out) const {
-	for(const auto & transcript : translations_){
-		for(const auto & seqs : transcript.second){
+	auto seqNames = getVectorOfMapKeys(translations_);
+	njh::sort(seqNames);
+	for(const auto & seqName : seqNames){
+		for(const auto & seqs : translations_.at(seqName)){
 			out << seqs.second.genBedRec().toDelimStrWithExtra()<< std::endl;
 		}
 	}
-	for(const auto & pop : seqsUnableToBeMapped_){
+	auto filteredSeqName = getVectorOfMapKeys(translations_);
+	njh::sort(filteredSeqName);
+	for(const auto & filtName : filteredSeqName){
+		if(!njh::in(filtName, filteredSeqName)){
+			out << "*"
+					<< "\t" << "*"
+					<< "\t" << "*"
+					<< "\t" << filtName
+					<< "\t" << "*"
+					<< "\t" << "*" << std::endl;
+		}
+	}
+	for(const auto & pop : iter::sorted(seqsUnableToBeMapped_)){
 		out << "*"
 				<< "\t" << "*"
 				<< "\t" << "*"
@@ -982,13 +1029,15 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeSeqLocationsTransl
 	}
 }
 
-void TranslatorByAlignment::TranslatorByAlignmentResult::writeSeqLocations(std::ostream & out )const {
-	for(const auto & seqLocs : seqAlns_){
-		for(const auto & loc : seqLocs.second){
+void TranslatorByAlignment::TranslatorByAlignmentResult::writeSeqLocations(std::ostream & out ) const {
+	auto seqAlnNames = getVectorOfMapKeys(seqAlns_);
+	njh::sort(seqAlnNames);
+	for(const auto & seqName : seqAlnNames){
+		for(const auto & loc : seqAlns_.at(seqName)){
 			out << loc.gRegion_.genBedRecordCore().toDelimStrWithExtra() << std::endl;
 		}
 	}
-	for(const auto & pop : seqsUnableToBeMapped_){
+	for(const auto & pop : iter::sorted(seqsUnableToBeMapped_)){
 		out << "*"
 				<< "\t" << "*"
 				<< "\t" << "*"
@@ -997,6 +1046,25 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeSeqLocations(std::
 				<< "\t" << "*" << std::endl;
 	}
 }
+
+
+std::set<uint32_t> TranslatorByAlignment::getAllInterestingAAPosZeroBased(const std::string & transcript, const TranslatorByAlignmentResult & results){
+	std::set<uint32_t> ret;
+	//add in known locations
+	//known mutation locations are one-based positioned
+	if(njh::in(transcript, knownAminoAcidPositions_)){
+		for(const auto pos : knownAminoAcidPositions_[transcript]){
+			ret.emplace(pos - 1);
+		}
+	}
+	//add in locations with variations in final set
+	if(njh::in(transcript, results.proteinVariants_)){
+		njh::addVecToSet(njh::getVecOfMapKeys(results.proteinVariants_.at(transcript).snpsFinal), ret);
+	}
+	return ret;
+}
+
+
 
 TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		const SeqIOOptions & seqOpts,
@@ -1256,6 +1324,29 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(auto & varPerTrans : ret.proteinVariants_){
 		varPerTrans.second.setFinals(rPars);
+	}
+	//type sequences for significant protein variation including codon info
+	for(auto & varPerTrans : ret.proteinVariants_){
+		std::set<uint32_t> knownMutationsLocationsZeroBased;
+		for(const auto pos : knownAminoAcidPositions_[varPerTrans.first]){
+			knownMutationsLocationsZeroBased.emplace(pos - 1);
+		}
+		//this includes both known mutations as well as locations with significant variation
+		std::set<uint32_t> allLocations = getAllInterestingAAPosZeroBased(varPerTrans.first, ret);
+		for (auto & seqName : ret.translations_) {
+			if (njh::in(varPerTrans.first, seqName.second)) {
+				for (const auto & loc : allLocations) {
+					if(loc < std::get<0>(seqName.second[varPerTrans.first].firstAminoInfo_).aaPos_ || loc > std::get<0>(seqName.second[varPerTrans.first].lastAminoInfo_).aaPos_){
+						//location is not within the aligned translation
+						continue;
+					}
+					auto codon = seqName.second[varPerTrans.first].getCodonForAARefPos(loc);
+					ret.fullAATypedWithCodonInfo_[seqName.first].emplace_back(
+							TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
+									njh::in(loc, knownMutationsLocationsZeroBased)));
+				}
+			}
+		}
 	}
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return ret;
