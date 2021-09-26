@@ -79,6 +79,7 @@ public:
 	bool setNextPairs(PairwisePairVec & pairs, uint32_t num);
 
 
+	//((numOfElements - 1) * numOfElements) / 2
 	static uint64_t getTotalPairwiseComps(uint64_t numOfElements);
 
 };
