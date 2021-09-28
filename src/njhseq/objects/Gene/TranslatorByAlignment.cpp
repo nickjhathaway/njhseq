@@ -1289,7 +1289,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	std::vector<bfs::path> fnpsToRemove;
 	auto seqInputFnp = njh::files::make_path(pars_.workingDirtory_, "inputSeqs.fasta");
 	fnpsToRemove.emplace_back(seqInputFnp);
-	uint64_t seqMaxLen = 0;
+	uint64_t seqMaxLen = 500;
 	uint32_t averageLen = 0;
 	VecStr names;
 	{
@@ -1442,21 +1442,27 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		std::unordered_map<std::string, MinMaxPos> minMaxPositionsPerChrom;
 		while (bReader.GetNextAlignment(bAln)) {
 			if (bAln.IsMapped() && bAln.IsPrimaryAlignment()) {
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				bAln.Name = names[njh::StrToNumConverter::stoToNum<uint32_t>(bAln.Name)];
 				auto balnGenomicRegion = GenomicRegion(bAln, refData);
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_ = std::min(minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_,balnGenomicRegion.start_);
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_ = std::max(minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_,balnGenomicRegion.end_);
-//				std::cout << "rPars.realnPars.extendAmount: " << rPars.realnPars.extendAmount << std::endl;
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				//				std::cout << "rPars.realnPars.extendAmount: " << rPars.realnPars.extendAmount << std::endl;
 //				std::cout << "averageLen: " << averageLen << std::endl;
 //				std::cout << "bAln.QueryBases.size(): " << bAln.QueryBases.size() << std::endl;
 //				std::cout << "bAln.GetEndPosition() - bAln.Position: " << bAln.GetEndPosition() - bAln.Position << std::endl;
 //				std::cout << "diff: " << uAbsdiff(averageLen, bAln.QueryBases.size()) << std::endl;
 //				std::cout << "diff with aln: " << uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) << std::endl;
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				auto reAlignParsCopy = rPars.realnPars;
 				if(uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) > reAlignParsCopy.extendAmount){
 					reAlignParsCopy.extendAmount = reAlignParsCopy.extendAmount + uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position);
 				}
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				ReAlignedSeq results;
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				if(uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) > 100){
 					//adjust aligner giving more weight to matches to help with large deletions or insertions
 					aligner alignObjAdjusted(proteinMaxLen, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(10,-2));
@@ -1464,6 +1470,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				}else{
 					results = ReAlignedSeq::genRealignment(bAln, refData, alignObj, chromLengths, tReader, reAlignParsCopy);
 				}
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_ = std::min(minMaxPositionsPerChrom[results.gRegion_.chrom_].minPos_,results.gRegion_.start_);
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_ = std::max(minMaxPositionsPerChrom[results.gRegion_.chrom_].maxPos_,results.gRegion_.end_);
 				ret.seqAlns_[bAln.Name].emplace_back(results);
