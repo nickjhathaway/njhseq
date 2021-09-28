@@ -53,7 +53,7 @@ alnParts::alnParts()
           maxSize_, std::vector<scoreMatrixCell>(maxSize_))) {}
 
 void alnParts::setMaxSize(uint64_t maxSize){
-	if(maxSize  > maxSize_){
+	if(maxSize  >= maxSize_){
 		maxSize_ = maxSize + 50;
 		ScoreMatrix_.clear();
 		auto temp = std::vector<std::vector<scoreMatrixCell>>(

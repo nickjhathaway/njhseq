@@ -534,12 +534,12 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 					trimPars.startInclusive_ = 0;
 					trimPars.endInclusive_ = len(primaryRefInfo) -1;
 					if(pars_.numThreads_ == 1){
-						if(len(trimmedExtractedSeq) > orgAlignerObj.parts_.maxSize_){
+						if(len(trimmedExtractedSeq) >= orgAlignerObj.parts_.maxSize_){
 							orgAlignerObj.parts_.setMaxSize(len(trimmedExtractedSeq));
 						}
 						readVecTrimmer::trimSeqToRefByGlobalAln(trimmedExtractedSeq, primaryRefInfo, trimPars, orgAlignerObj);
 					}else{
-						if(len(trimmedExtractedSeq) > aligners[threadNumber].parts_.maxSize_){
+						if(len(trimmedExtractedSeq) >= aligners[threadNumber].parts_.maxSize_){
 							aligners[threadNumber].parts_.setMaxSize(len(trimmedExtractedSeq));
 						}
 						readVecTrimmer::trimSeqToRefByGlobalAln(trimmedExtractedSeq, primaryRefInfo, trimPars, aligners[threadNumber]);

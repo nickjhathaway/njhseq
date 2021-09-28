@@ -433,7 +433,7 @@ bool baseCluster::calculateConsensusTo(
 //		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		matchCurrentSeq = seqBase_.seq_ == calcConsensusInfo_.seq_;
 //		std::cout << __FILE__ << " " << __LINE__ << std::endl;
-		if(calcConsensusInfo_.seq_.size() > alignerObj.parts_.maxSize_){
+		if(calcConsensusInfo_.seq_.size() >= alignerObj.parts_.maxSize_){
 			alignerObj.parts_.setMaxSize(calcConsensusInfo_.seq_.size() + 20 );
 		}
 		if (conPars.setToConsensus) {
