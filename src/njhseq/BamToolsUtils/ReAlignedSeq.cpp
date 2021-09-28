@@ -24,7 +24,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 		TwoBit::TwoBitFile & tReader,
 	const genRealignmentPars & pars){
 	GenomicRegion gRegion(bAln, refData);
-
+//
 //	auto endPositon = bAln.GetEndPosition();
 //	std::cout << "endPositon:" << endPositon << std::endl;
 
@@ -41,8 +41,8 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 	uint32_t extend = std::max(pars.extendAmount, insertAmount);
 //	std::cout << "extend: " << extend << std::endl;
 //	std::cout << "pars.extendAmount: " << pars.extendAmount << std::endl;
-//	auto alnLocal = bamAlnToAlnInfoLocal(bAln);
-//
+	auto alnLocal = bamAlnToAlnInfoLocal(bAln);
+
 
 	gRegion.reverseSrand_ = false;
 	uint32_t softClipLeft = 0;
@@ -64,7 +64,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 	auto qSeq = bamAlnToSeqInfo(bAln, true);
 //	rSeq.outPutSeqAnsi(std::cout);
 //	qSeq.outPutSeqAnsi(std::cout);
-//
+
 //	auto rSeqCopy = rSeq;
 //	auto qSeqCopy = qSeq;
 //	alignCalc::rearrangeLocal(rSeqCopy.seq_,
@@ -86,13 +86,14 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 	uint32_t realRefStart  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnStart);
 	uint32_t realRefLastBase  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnLastBase);
 	uint32_t realRefEnd = realRefLastBase + 1;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //	alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
 //	alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
 	seqInfo referenceAln = alignerObj.alignObjectA_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
 	seqInfo queryAln = alignerObj.alignObjectB_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
 //	alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
 //	alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
-
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	alignerObj.alignObjectA_.seqBase_ = referenceAln;
 	alignerObj.alignObjectB_.seqBase_ = queryAln;
 	seqInfo refSeq = referenceAln;
@@ -101,7 +102,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 	gRegion.start_ = gRegion.start_ + realRefStart;
 	gRegion.end_ = gRegion.start_ + realRefEnd - realRefStart;
 //	std::cout << gRegion.genBedRecordCore().toDelimStr()  << std::endl;
-
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	alignerObj.profileAlignment(rSeq, qSeq, false, false, false);
 
 	if('-' == alignerObj.alignObjectA_.seqBase_.seq_.front() || '-' == alignerObj.alignObjectA_.seqBase_.seq_.back()){
@@ -124,13 +125,14 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 //		rSeq.outPutSeqAnsi(std::cout);
 //		qSeq.outPutSeqAnsi(std::cout);
 
-//		auto rSeqCopy = rSeq;
-//		auto qSeqCopy = qSeq;
-//		alignCalc::rearrangeLocal(rSeqCopy.seq_,
-//				qSeqCopy.seq_, '-', alnLocal.begin()->second);
-//		alignCalc::rearrangeLocal(rSeqCopy.qual_,
-//				qSeqCopy.qual_, 0, alnLocal.begin()->second);
-//		rSeqCopy.name_ = gRegion.createUidFromCoordsStrand();
+		auto rSeqCopy = rSeq;
+		auto qSeqCopy = qSeq;
+		alignCalc::rearrangeLocal(rSeqCopy.seq_,
+				qSeqCopy.seq_, '-', alnLocal.begin()->second);
+		alignCalc::rearrangeLocal(rSeqCopy.qual_,
+				qSeqCopy.qual_, 0, alnLocal.begin()->second);
+		rSeqCopy.name_ = gRegion.createUidFromCoordsStrand();
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //		rSeqCopy.outPutSeqAnsi(std::cout);
 //		qSeqCopy.outPutSeqAnsi(std::cout);
 
@@ -144,12 +146,14 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 		realRefStart  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnStart);
 		realRefLastBase  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnLastBase);
 		realRefEnd = realRefLastBase + 1;
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //		alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
 //		alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
 		referenceAln = alignerObj.alignObjectA_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
 		queryAln = alignerObj.alignObjectB_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
 //		alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
 //		alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 		alignerObj.alignObjectA_.seqBase_ = referenceAln;
 		alignerObj.alignObjectB_.seqBase_ = queryAln;

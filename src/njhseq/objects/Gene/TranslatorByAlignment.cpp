@@ -127,7 +127,7 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 		positionsSet.emplace(snps.first);
 	}
 
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	std::map<uint32_t, std::map<std::string,uint32_t>> insertionsFinalForVCF;
 	std::map<uint32_t, std::map<std::string,uint32_t>> deletionsFinalForVCF;
 	for(const auto & ins : insertionsFinal){
@@ -146,15 +146,15 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 		}
 		deletionsFinalForVCF[del.first - 1] = del.second;
 	}
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & ins : insertionsFinalForVCF){
 		positionsSet.emplace(ins.first);
 	}
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & del : deletionsFinalForVCF){
 		positionsSet.emplace(del.first);
 	}
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 	vcfOut << "##fileformat=VCFv4.0" << std::endl;
 	vcfOut << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Allele Depth\">" << std::endl;
@@ -164,11 +164,11 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 	vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
 
 	std::vector<uint32_t> positions(positionsSet.begin(), positionsSet.end());
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	njh::sort(positions);
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & pos : positions){
-		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		if (njh::in(pos, insertionsFinalForVCF) || njh::in(pos, snpsFinal)) {
 			vcfOut <<  region_.chrom_
 					<< "\t" << pos+ 1
@@ -177,7 +177,7 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 			std::vector<std::string> alts;
 			std::vector<uint32_t> altsCounts;
 			std::vector<double> altsFreqs;
-			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			vcfOut << getBaseForGenomicRegion(pos) << "\t";
 			if(njh::in(pos, snpsFinal)){
 				uint32_t snpCount = 0;
@@ -188,11 +188,11 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 					altsFreqs.emplace_back(b.second/static_cast<double>(depthPerPosition.at(pos)));
 				}
 			}
-			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			if (njh::in(pos, insertionsFinalForVCF)) {
-				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				for (const auto & ins : insertionsFinalForVCF[pos]) {
-					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+					////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //					std::cout << "pos: " << pos << std::endl;
 //					std::cout << vectorMinimum(getVectorOfMapKeys(depthPerPosition)) << std::endl;
 //					std::cout << vectorMaximum(getVectorOfMapKeys(depthPerPosition)) << std::endl;
@@ -201,7 +201,7 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 					altsFreqs.emplace_back(ins.second/static_cast<double>(depthPerPosition.at(pos)));
 				}
 			}
-			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			vcfOut << njh::conToStr(alts, ",")
 			<< "\t40\tPASS\t";
 			vcfOut
@@ -211,17 +211,17 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 					<< "AF=" << njh::conToStr(altsFreqs, ",")
 			<< std::endl;
 		}
-		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		if (njh::in(pos, deletionsFinalForVCF)) {
 			for (const auto & d : deletionsFinalForVCF[pos]) {
 				vcfOut <<  region_.chrom_
 						<< "\t" << pos + 1
 						<< "\t" << "."
 						<< "\t";
-				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				vcfOut << getBaseForGenomicRegion(pos) << d.first
 				<< "\t" << getBaseForGenomicRegion(pos) << "\t";
-				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				vcfOut << "40\tPASS\t";
 				vcfOut
 						<< "DP=" << depthPerPosition.at(pos) << ";"
@@ -229,12 +229,12 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 						<< "AC=" << d.second << ";"
 						<< "AF=" << d.second/static_cast<double>(depthPerPosition.at(pos))
 				<< std::endl;
-				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			}
 		}
-		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	}
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 }
 
 void TranslatorByAlignment::VariantsInfo::writeVCF(const OutOptions & vcfOutOpts) const {
@@ -662,7 +662,7 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 				cdnaGenomicStart = cDnaStart;
 				cdnaGenomicEndInconclusive = cDnaStop -1 ;
 
-//				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //				std::cout << "cDnaStart:" << cDnaStart << std::endl;
 //				std::cout << "cDnaStop:" << cDnaStop << std::endl;
 //				std::cout << "realigned.gRegion_.start_:" << realigned.gRegion_.start_ << std::endl;
@@ -733,7 +733,7 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 			uint32_t cDnaLen = cDnaLenRaw - (cDnaLenRaw %3);
 			uint32_t firstAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-"));
 			uint32_t lastAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-"));
-//			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //			std::cout << "firstAmino: " << firstAmino << std::endl;
 //			std::cout << "lastAmino : " << lastAmino << std::endl;
 			lastAmino = std::min<uint32_t>(lastAmino,len(currentTranscriptInfo->protein_) - 1);
@@ -1288,9 +1288,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	auto seqInputFnp = njh::files::make_path(pars_.workingDirtory_, "inputSeqs.fasta");
 	fnpsToRemove.emplace_back(seqInputFnp);
 	uint64_t seqMaxLen = 0;
-
+	uint32_t averageLen = 0;
 	VecStr names;
 	{
+
 		//write out fasta file of input, replacing seq name so can be mapped
 		seqInfo seq;
 		SeqInput reader(seqOpts);
@@ -1298,13 +1299,16 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		SeqOutput writer(SeqIOOptions::genFastaOut(seqInputFnp));
 		writer.openOut();
 		uint32_t pos = 0;
+		std::vector<uint32_t> allReadLens;
 		while(reader.readNextRead(seq)){
+			allReadLens.emplace_back(len(seq));
 			readVec::getMaxLength(seq, seqMaxLen);
 			names.emplace_back(seq.name_);
 			seq.name_ = estd::to_string(pos);
 			++pos;
 			writer.write(seq);
 		}
+		averageLen = vectorMean(allReadLens);
 	}
 	seqMaxLen = seqMaxLen + rPars.realnPars.extendAmount * 2;
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -1339,13 +1343,13 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			auto lastzRunOut = bRunner.lastzAlign(uniqueSeqInOpts, pars_.lzPars_);
 			BioCmdsUtils::checkRunOutThrow(lastzRunOut, __PRETTY_FUNCTION__);
 		}
-		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//count the regions mapped
 		auto regionsCounter = GenomicRegionCounter::countRegionsInBam(uniqueSeqInOpts.out_.outName());
 
 		auto ids = regionsCounter.getIntersectingGffIds(pars_.gffFnp_);
 		ret.geneIds_ = ids;
-	//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	//	std::cout << "ids.size() : " << ids.size() << std::endl;
 
 		// get gene information
@@ -1366,7 +1370,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			bool failFilter = false;
 			for(const auto & transcript : gene.second->mRNAs_){
 				if(njh::in(njh::strToLowerRet(transcript->type_), VecStr{"rrna", "trna", "snorna","snrna","ncrna"}) ){
-	//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	//				transcript->writeGffRecord(std::cout);
 					failFilter = true;
 					break;
@@ -1374,7 +1378,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			}
 
 			if(!failFilter){
-	//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				genes[gene.first] = gene.second;
 			}
 		}
@@ -1384,7 +1388,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		;
 		uint64_t proteinMaxLen = seqMaxLen;
 		std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>>> genesByChrom;
-		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		for(const auto & gene : genes){
 			genesByChrom[gene.second->gene_->seqid_].emplace(gene.first, gene.second);
 			for(const auto & transcript : gene.second->mRNAs_){
@@ -1402,7 +1406,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				gene.second->writeOutGeneInfo(tReader, outOpts);
 			}
 		}
-		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		aligner alignObj(proteinMaxLen, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2));
 		//aligner alignObjSeq(seqMaxLen + rPars.realnPars.extendAmount * 2, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2));
 
@@ -1417,7 +1421,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				}
 			}
 		}
-		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		BamTools::BamReader bReader;
 		bReader.Open(uniqueSeqInOpts.out_.outName().string());
 		checkBamOpenThrow(bReader, uniqueSeqInOpts.out_.outName());
@@ -1440,7 +1444,22 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				auto balnGenomicRegion = GenomicRegion(bAln, refData);
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_ = std::min(minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_,balnGenomicRegion.start_);
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_ = std::max(minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_,balnGenomicRegion.end_);
-				auto results = ReAlignedSeq::genRealignment(bAln, refData, alignObj, chromLengths, tReader, rPars.realnPars);
+//				std::cout << "rPars.realnPars.extendAmount: " << rPars.realnPars.extendAmount << std::endl;
+//				std::cout << "averageLen: " << averageLen << std::endl;
+//				std::cout << "bAln.QueryBases.size(): " << bAln.QueryBases.size() << std::endl;
+//				std::cout << "bAln.GetEndPosition() - bAln.Position: " << bAln.GetEndPosition() - bAln.Position << std::endl;
+//				std::cout << "diff: " << uAbsdiff(averageLen, bAln.QueryBases.size()) << std::endl;
+//				std::cout << "diff with aln: " << uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) << std::endl;
+				auto reAlignParsCopy = rPars.realnPars;
+				reAlignParsCopy.extendAmount = 100;
+				ReAlignedSeq results;
+				if(uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) > 100){
+					//adjust aligner giving more weight to matches to help with large deletions or insertions
+					aligner alignObjAdjusted(proteinMaxLen, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(10,-2));
+					results = ReAlignedSeq::genRealignment(bAln, refData, alignObjAdjusted, chromLengths, tReader, reAlignParsCopy);
+				}else{
+					results = ReAlignedSeq::genRealignment(bAln, refData, alignObj, chromLengths, tReader, reAlignParsCopy);
+				}
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_ = std::min(minMaxPositionsPerChrom[results.gRegion_.chrom_].minPos_,results.gRegion_.start_);
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_ = std::max(minMaxPositionsPerChrom[results.gRegion_.chrom_].maxPos_,results.gRegion_.end_);
 				ret.seqAlns_[bAln.Name].emplace_back(results);
@@ -1478,14 +1497,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		}
 
 
-		//remove the temporary files
-		if(!pars_.keepTemporaryFiles_){
-			for(const auto & fnp : fnpsToRemove){
-				if(bfs::exists(fnp)){
-					bfs::remove(fnp);
-				}
-			}
-		}
+
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//index snps
 		for(const auto & positons : minMaxPositionsPerChrom){
@@ -1581,12 +1593,21 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			});
 		}
 	}
-	//remove input seqs
+	fnpsToRemove.emplace_back(seqInputFnp);
+	//remove the temporary files
 	if(!pars_.keepTemporaryFiles_){
-		bfs::remove(seqInputFnp);
-		bfs::remove(uniqueSeqInOpts.out_.outName());
-		bfs::remove(uniqueSeqInOpts.out_.outName().string() + ".bai");
+		for(const auto & fnp : fnpsToRemove){
+			if(bfs::exists(fnp)){
+				bfs::remove(fnp);
+			}
+		}
 	}
+//	//remove input seqs
+//	if(!pars_.keepTemporaryFiles_){
+//		bfs::remove(seqInputFnp);
+//		bfs::remove(uniqueSeqInOpts.out_.outName());
+//		bfs::remove(uniqueSeqInOpts.out_.outName().string() + ".bai");
+//	}
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return ret;
 }
