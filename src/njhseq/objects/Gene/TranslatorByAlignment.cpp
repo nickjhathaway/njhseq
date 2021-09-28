@@ -127,7 +127,7 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 		positionsSet.emplace(snps.first);
 	}
 
-	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	std::map<uint32_t, std::map<std::string,uint32_t>> insertionsFinalForVCF;
 	std::map<uint32_t, std::map<std::string,uint32_t>> deletionsFinalForVCF;
 	for(const auto & ins : insertionsFinal){
@@ -146,15 +146,15 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 		}
 		deletionsFinalForVCF[del.first - 1] = del.second;
 	}
-	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & ins : insertionsFinalForVCF){
 		positionsSet.emplace(ins.first);
 	}
-	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & del : deletionsFinalForVCF){
 		positionsSet.emplace(del.first);
 	}
-	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 	vcfOut << "##fileformat=VCFv4.0" << std::endl;
 	vcfOut << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Allele Depth\">" << std::endl;
@@ -164,11 +164,11 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 	vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
 
 	std::vector<uint32_t> positions(positionsSet.begin(), positionsSet.end());
-	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	njh::sort(positions);
-	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & pos : positions){
-		////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		if (njh::in(pos, insertionsFinalForVCF) || njh::in(pos, snpsFinal)) {
 			vcfOut <<  region_.chrom_
 					<< "\t" << pos+ 1
@@ -177,7 +177,7 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 			std::vector<std::string> alts;
 			std::vector<uint32_t> altsCounts;
 			std::vector<double> altsFreqs;
-			////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			vcfOut << getBaseForGenomicRegion(pos) << "\t";
 			if(njh::in(pos, snpsFinal)){
 				uint32_t snpCount = 0;
@@ -188,20 +188,22 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 					altsFreqs.emplace_back(b.second/static_cast<double>(depthPerPosition.at(pos)));
 				}
 			}
-			////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			if (njh::in(pos, insertionsFinalForVCF)) {
-				////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				for (const auto & ins : insertionsFinalForVCF[pos]) {
-					////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //					std::cout << "pos: " << pos << std::endl;
 //					std::cout << vectorMinimum(getVectorOfMapKeys(depthPerPosition)) << std::endl;
 //					std::cout << vectorMaximum(getVectorOfMapKeys(depthPerPosition)) << std::endl;
+//					std::cout << "ins.second: " << ins.second << std::endl;
+//					std::cout << "ins.first: " << ins.first << std::endl;
 					alts.emplace_back(njh::pasteAsStr(getBaseForGenomicRegion(pos), ins.first));
 					altsCounts.emplace_back(ins.second);
 					altsFreqs.emplace_back(ins.second/static_cast<double>(depthPerPosition.at(pos)));
 				}
 			}
-			////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			vcfOut << njh::conToStr(alts, ",")
 			<< "\t40\tPASS\t";
 			vcfOut
@@ -211,17 +213,17 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 					<< "AF=" << njh::conToStr(altsFreqs, ",")
 			<< std::endl;
 		}
-		////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		if (njh::in(pos, deletionsFinalForVCF)) {
 			for (const auto & d : deletionsFinalForVCF[pos]) {
 				vcfOut <<  region_.chrom_
 						<< "\t" << pos + 1
 						<< "\t" << "."
 						<< "\t";
-				////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				vcfOut << getBaseForGenomicRegion(pos) << d.first
 				<< "\t" << getBaseForGenomicRegion(pos) << "\t";
-				////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				vcfOut << "40\tPASS\t";
 				vcfOut
 						<< "DP=" << depthPerPosition.at(pos) << ";"
@@ -229,12 +231,12 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 						<< "AC=" << d.second << ";"
 						<< "AF=" << d.second/static_cast<double>(depthPerPosition.at(pos))
 				<< std::endl;
-				////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			}
 		}
-		////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	}
-	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 }
 
 void TranslatorByAlignment::VariantsInfo::writeVCF(const OutOptions & vcfOutOpts) const {
@@ -1476,13 +1478,26 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 					const auto & currentGeneInfo = njh::mapAt(ret.transcriptInfosForGene_, g);
 					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-					auto translations = translateBasedOnAlignment(results, *currentGene, currentGeneInfo, alignObj);
-					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-					for(const auto & trans : translations){
-						if(countOccurences(trans.second.queryAlnTranslation_.seq_, "*") > pars_.allowableStopCodons_){
-							ret.filteredOffTranslations_[bAln.Name].emplace(trans);
-						}else{
-							ret.translations_[bAln.Name].emplace(trans);
+					std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> translations;
+					try {
+						translations = translateBasedOnAlignment(results, *currentGene, currentGeneInfo, alignObj);
+						//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
+						for(const auto & trans : translations){
+							auto queryTransStart = trans.second.queryAlnTranslation_.seq_.find_first_not_of("-");
+							if('-' == trans.second.refAlnTranslation_.seq_[queryTransStart]){
+								//probably should do a more intensive check here fo
+								ret.filteredOffTranslations_[bAln.Name].emplace(trans);
+							}else if(countOccurences(trans.second.queryAlnTranslation_.seq_, "*") > pars_.allowableStopCodons_){
+								ret.filteredOffTranslations_[bAln.Name].emplace(trans);
+							}else{
+								ret.translations_[bAln.Name].emplace(trans);
+							}
+						}
+					} catch (std::exception & e) {
+						//Generally if an exception happen while attempting to translate alignment is mangled
+						if(!njh::in(bAln.Name, ret.translations_)){
+							ret.seqsTranslationFiltered_.emplace_back(bAln.Name);
 						}
 					}
 				}
