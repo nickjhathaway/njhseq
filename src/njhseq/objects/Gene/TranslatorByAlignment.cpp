@@ -1451,7 +1451,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 //				std::cout << "diff: " << uAbsdiff(averageLen, bAln.QueryBases.size()) << std::endl;
 //				std::cout << "diff with aln: " << uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) << std::endl;
 				auto reAlignParsCopy = rPars.realnPars;
-				reAlignParsCopy.extendAmount = 100;
+				if(uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) > reAlignParsCopy.extendAmount){
+					reAlignParsCopy.extendAmount = reAlignParsCopy.extendAmount + uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position);
+				}
 				ReAlignedSeq results;
 				if(uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) > 100){
 					//adjust aligner giving more weight to matches to help with large deletions or insertions
