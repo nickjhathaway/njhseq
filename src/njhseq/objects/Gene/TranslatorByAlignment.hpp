@@ -217,16 +217,27 @@ public:
 		std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>  translationInfoForTranscirpt_;
 
 		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> fullAATypedWithCodonInfo_;
+		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> variantAATypedWithCodonInfo_;
 
+		std::map<std::string, std::string> genSeqSNPTypedStr() const;
+
+
+		std::map<std::string, std::string> genAATypedStr() const;
+		std::map<std::string, std::string> genAATypedStrOnlyKnowns() const;
+		std::map<std::string, std::string> genAATypedStrOnlyPopVariant() const;
 
 		VecStr seqsUnableToBeMapped_;
 		VecStr seqsTranslationFiltered_;
+
+		std::set<std::string> getAllSeqNames() const;
 
 		void writeSeqLocations(std::ostream & out) const;
 		void writeSeqLocationsTranslation(std::ostream & out) const;
 
 		void writeOutSeqAlnIndvVars(const OutOptions & outopts) const;
-		void writeOutTranslatedIndvVars(const OutOptions & outOpts) const;
+		void writeOutTranslatedIndvVars(const OutOptions & outOpts, const std::unordered_map<std::string, std::set<uint32_t>> & knownAminoAcidPositions1Based = {}) const;
+
+		void writeOutAATypedInfo(const OutOptions &outOpts) const;
 	};
 
 
