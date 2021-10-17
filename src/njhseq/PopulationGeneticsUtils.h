@@ -1,10 +1,10 @@
 #pragma once
-//
-//  seqContainers.h
-//
-//  Created by Nicholas Hathaway on 03/07/14.
-//
-//
+/*
+ * PopulationGenetics.hpp
+ *
+ *  Created on: Mar 15, 2018
+ *      Author: nick
+ */
 // njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
 //
@@ -23,9 +23,11 @@
 // You should have received a copy of the GNU General Public License
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-// include all the seq container objects
-#include "njhseq/objects/seqContainers/baseContainer.hpp"
-#include "njhseq/objects/seqContainers/otuContainer.hpp"
-#include "njhseq/objects/seqContainers/refMapContainer.hpp"
-#include "njhseq/objects/seqContainers/refVariants.hpp"
-#include "njhseq/objects/seqContainers/CollapsedHaps.hpp"
+
+
+
+#include "njhseq/PopulationGeneticsUtils/PopGenUtils.hpp"
+
+
+
+

@@ -366,6 +366,8 @@ int ManipulateTableRunner::countColumn(
 		inTabReader.header_.checkForColumnsThrow(columnName, __PRETTY_FUNCTION__);
 	}
 
+	setUp.ioOptions_.out_.throwIfOutExistsNoOverWrite(__PRETTY_FUNCTION__);
+
 	table ret;
 	VecStr row;
 	if (columnName.size() == 1) {

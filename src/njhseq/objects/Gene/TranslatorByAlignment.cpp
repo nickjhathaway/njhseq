@@ -22,9 +22,9 @@ TranslatorByAlignment::TranslatorByAlignmentPars::TranslatorByAlignmentPars(){
 void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & setUp, bool requireGenome){
 	setUp.setOption(knownAminoAcidMutationsFnp_, "--knownAminoAcidChangesFnp",
 			"Known Amino Acid Changes, must have at least 2 columns, positions are 1-postion-based (first position is 1), 1)TranscriptID, 2)AAPosition ", false, "Translation Output");
-	setUp.setOption(gffFnp_, "--gff",
+	setUp.setOption(gffFnp_, "--gff,--gffFnp",
 			"Gff file to intersect the final haplotypes with genes to get translations", requireGenome || "" != knownAminoAcidMutationsFnp_, "Translation Output");
-	setUp.setOption(lzPars_.genomeFnp, "--genome",
+	setUp.setOption(lzPars_.genomeFnp, "--genome,--genomeFnp",
 			"Genome file so final haplotypes can be mapped to a genome", requireGenome || "" != gffFnp_ || "" != knownAminoAcidMutationsFnp_, "Translation Output");
 	setUp.setOption(useLastz_, "--useLastz", "Use lastz for alignment", false,
 			"Translation Output");
