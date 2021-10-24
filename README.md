@@ -1,6 +1,6 @@
 njhseq
 ======
-Version 3.0.1
+Version 3.0.2-dev
 
 C++ library for dealing with dna sequence data and various other biological data created by Nicholas John Hathaway (njh)  
 
