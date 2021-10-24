@@ -32,11 +32,13 @@
 
 namespace njhseq {
 
-void allSetKmers(std::vector<std::unique_ptr<seqWithKmerInfo>> & reads,
-		uint32_t kLength, bool setReverse);
+template<typename T>
+void allSetKmers(std::vector<T> & seqs, uint32_t kLength, bool setReverse){
+	njh::for_each(seqs, [&kLength,&setReverse](T & seq){
+		getRef(seq).setKmers(kLength, setReverse);
+	});
+}
 
-void allSetKmers(std::vector<seqWithKmerInfo> & reads,
-		uint32_t kLength, bool setReverse);
 
 template<typename T>
 std::vector<std::unique_ptr<seqWithKmerInfo>> createKmerReadVec(const std::vector<T> & reads){
@@ -65,7 +67,7 @@ std::vector<kmerCluster> greedyKmerSimCluster(const std::vector<READ> & inReads,
 		bool verbose) {
 	auto reads = createKmerReadVec(inReads, kLength, checkComplement);
 	std::vector<kmerCluster> kClusters;
-	for (const auto & readPos : iter::range(reads.size())) {
+	for (const auto readPos : iter::range(reads.size())) {
 		if (verbose) {
 			std::cout << "currently on " << readPos << " of " << reads.size() << "\r";
 		}

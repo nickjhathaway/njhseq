@@ -93,7 +93,9 @@ std::string Bed6RecordCore::toDelimStrWithExtra() const {
 					toVecStr(super::toDelimStr(), name_, score_, strand_, extraFields_), "\t");
 }
 
-
+std::string Bed6RecordCore::genUIDFromCoordsWithStrand() const{
+	return njh::pasteAsStr(chrom_, "-", chromStart_, "-", chromEnd_, "-", strand_ == '+' ? "for" : "rev");
+}
 
 Json::Value Bed6RecordCore::toJson() const{
 	Json::Value ret;
@@ -112,12 +114,27 @@ std::vector<std::shared_ptr<Bed6RecordCore>> convertBed3ToBed6(const std::vector
 	std::vector<std::shared_ptr<Bed6RecordCore>> ret;
 	for(const auto & b : beds	){
 		std::string line = "";
-		if(b->extraFields_.size() >=3){
+		//check if 2 field is compatible with being a score and that the 3 field is a single character
+		if(b->extraFields_.size() >=3 && isDoubleStr(b->extraFields_[1]) && (1 == b->extraFields_[2].size() &&(b->extraFields_[2][0] == '+' || b->extraFields_[2][0] == '-')) ){
 			//this should unpack extraFields as one one
 			line = njh::conToStr(toVecStr(b->chrom_,
 					b->chromStart_,
 					b->chromEnd_,
 					b->extraFields_), "\t");
+		}else if(b->extraFields_.size() == 1){
+			line = njh::conToStr(toVecStr(b->chrom_,
+					b->chromStart_,
+					b->chromEnd_,
+					b->extraFields_[0],
+					b->length(),
+					'+'), "\t");
+		}else if(b->extraFields_.size() == 2 && isDoubleStr(b->extraFields_[1])){
+			line = njh::conToStr(toVecStr(b->chrom_,
+					b->chromStart_,
+					b->chromEnd_,
+					b->extraFields_[0],
+					b->extraFields_[1],
+					'+'), "\t");
 		}else{
 			line = njh::conToStr(toVecStr(b->chrom_,
 					b->chromStart_,

@@ -106,14 +106,14 @@ class seqUtil {
   static bool doesSequenceContainDegenerativeBase(const std::string &seq);
   static size_t checkQualityWindowPos(int windowSize, int minimumAverageQaul,
                                       int stepSize,
-                                      const std::vector<uint32_t> &quality);
+                                      const std::vector<uint8_t> &quality);
   static bool checkQualityWindow(int windowSize, int minimumAverageQaul,
                                  int stepSize,
-                                 const std::vector<uint32_t> &quality);
+                                 const std::vector<uint8_t> &quality);
   static void processQualityWindowString(const std::string &qualityWindowString,
                                          uint32_t &qualityWindowLength,
 																				 uint32_t &qualityWindowStep,
-																				 uint32_t &qualityWindowThres);
+																				 uint8_t &qualityWindowThres);
   static std::string findLongestSharedSubString(VecStr dnaStrings);
   static VecStr findLongestShardedMotif(VecStr dnaStrings);
   static double getAverageErrorRate(const std::vector<int> &qual);
@@ -134,10 +134,10 @@ class seqUtil {
 
 
   static void removeLowerCase(std::string &sequence,
-                              std::vector<uint32_t> &quality);
+                              std::vector<uint8_t> &quality);
 
-  static std::pair<std::string, std::vector<uint32_t>> removeLowerCaseReturn(
-      std::string sequence, std::vector<uint32_t> quality);
+  static std::pair<std::string, std::vector<uint8_t>> removeLowerCaseReturn(
+      std::string sequence, std::vector<uint8_t> quality);
 
   static std::string removeGapsReturn(const std::string &seq);
   static void removeGaps(std::string &seq);
@@ -149,7 +149,7 @@ class seqUtil {
 
 
   static std::vector<uint32_t> rearrangeQuals(
-      const std::vector<uint32_t> &qual,
+      const std::vector<uint8_t> &qual,
       const std::vector<uint32_t> &positions);
   static std::vector<uint32_t> getQualPositions(const std::string &consensus,
                                                 const std::string &compare);
@@ -159,7 +159,7 @@ class seqUtil {
 
 
   static void rstripRead(std::string & str,
-  		std::vector<uint32_t> & qual, char c);
+  		std::vector<uint8_t> & qual, char c);
 
 
 }; // class seqUtils

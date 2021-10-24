@@ -37,7 +37,7 @@ void kmerCalculator::addStrKmersPosExpand(
   while (cursor + kmerLen <= sInfo.seq_.length()) {
     std::string currentKmer = sInfo.seq_.substr(cursor, kmerLen);
     auto kPositions = determineExpandPos(expandSize, cursor, sInfo);
-    for(const auto & nCursor : iter::range(kPositions.first, kPositions.second)){
+    for(const auto nCursor : iter::range(kPositions.first, kPositions.second)){
     	addKmerForPos(outputKmers,nCursor, currentKmer, sInfo);
     }
     ++cursor;

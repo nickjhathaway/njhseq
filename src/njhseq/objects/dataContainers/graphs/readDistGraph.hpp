@@ -47,7 +47,7 @@ public:
 	readDistGraph(const std::unordered_map<std::string, std::unordered_map<std::string, DIST>> & distances,
 			const std::vector<T> & reads){
 	  std::vector<std::string> readNames;
-		for(const auto & pos : iter::range(reads.size())){
+		for(const auto pos : iter::range(reads.size())){
 	  	this->addNode(reads[pos].seqBase_.name_,
 	  			std::make_shared<seqInfo>(reads[pos].seqBase_));
 	  	readNames.emplace_back(reads[pos].seqBase_.name_);
@@ -77,12 +77,12 @@ public:
 	template<typename T>
 	readDistGraph(const std::vector<std::vector<DIST>> & distances,
 			const std::vector<T> & reads){
-	  for(const auto & pos : iter::range(reads.size())){
+	  for(const auto pos : iter::range(reads.size())){
 	  	this->addNode(reads[pos].seqBase_.name_,
 	  			std::make_shared<seqInfo>(reads[pos].seqBase_));
 	  }
-	  for(const auto & pos : iter::range(distances.size())){
-	  	for(const auto & subPos : iter::range<uint64_t>(distances[pos].size())){
+	  for(const auto pos : iter::range(distances.size())){
+	  	for(const auto subPos : iter::range<uint64_t>(distances[pos].size())){
 	  		this->addEdge(reads[pos].seqBase_.name_,
 	  				reads[subPos].seqBase_.name_,
 	  				distances[pos][subPos]);
@@ -96,7 +96,7 @@ public:
 	 */
 	template<typename T>
 	readDistGraph(const std::vector<T> & reads) {
-		for (const auto & pos : iter::range(reads.size())) {
+		for (const auto pos : iter::range(reads.size())) {
 			this->addNode(getSeqBase(reads[pos]).name_,
 					std::make_shared<seqInfo>(getSeqBase(reads[pos])));
 		}
@@ -108,12 +108,12 @@ public:
 			const Args&... args) {
 			auto distances = getDistanceCopy(reads, numThreads, func, args...);
 
-		  for(const auto & pos : iter::range(reads.size())){
+		  for(const auto pos : iter::range(reads.size())){
 		  	this->addNode(reads[pos].seqBase_.name_,
 		  			std::make_shared<seqInfo>(reads[pos].seqBase_));
 		  }
-		  for(const auto & pos : iter::range(distances.size())){
-		  	for(const auto & subPos : iter::range<uint64_t>(distances[pos].size())){
+		  for(const auto pos : iter::range(distances.size())){
+		  	for(const auto subPos : iter::range<uint64_t>(distances[pos].size())){
 		  		this->addEdge(reads[pos].seqBase_.name_,
 		  				reads[subPos].seqBase_.name_,
 		  				distances[pos][subPos]);
@@ -124,12 +124,12 @@ public:
 	template<typename T>
 	readDistGraph(const std::vector<std::vector<DIST>> & distances,
 			const std::vector<std::unique_ptr<T>> & reads){
-	  for(const auto & pos : iter::range(reads.size())){
+	  for(const auto pos : iter::range(reads.size())){
 	  	this->addNode(reads[pos]->seqBase_.name_,
 	  			std::make_shared<seqInfo>(reads[pos]->seqBase_));
 	  }
-	  for(const auto & pos : iter::range(distances.size())){
-	  	for(const auto & subPos : iter::range<uint64_t>(distances[pos].size())){
+	  for(const auto pos : iter::range(distances.size())){
+	  	for(const auto subPos : iter::range<uint64_t>(distances[pos].size())){
 	  		this->addEdge(reads[pos]->seqBase_.name_,
 	  				reads[subPos]->seqBase_.name_,
 	  				distances[pos][subPos]);
@@ -146,12 +146,12 @@ public:
 	template<typename T>
 	readDistGraph(const std::vector<std::vector<DIST>> & distances,
 			const std::vector<std::shared_ptr<T>> & reads){
-	  for(const auto & pos : iter::range(reads.size())){
+	  for(const auto pos : iter::range(reads.size())){
 	  	this->addNode(reads[pos]->seqBase_.name_,
 	  			std::make_shared<seqInfo>(reads[pos]->seqBase_));
 	  }
-	  for(const auto & pos : iter::range(distances.size())){
-	  	for(const auto & subPos : iter::range<uint64_t>(distances[pos].size())){
+	  for(const auto pos : iter::range(distances.size())){
+	  	for(const auto subPos : iter::range<uint64_t>(distances[pos].size())){
 	  		this->addEdge(reads[pos]->seqBase_.name_,
 	  				reads[subPos]->seqBase_.name_,
 	  				distances[pos][subPos]);
@@ -219,7 +219,7 @@ public:
 					std::string lastName = this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_;
 					auto lColors = getColsBetweenExcludeClosest(nameColors[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_],
 							nameColors[e->nodeToNode_.begin()->second.lock()->name_], e->dist_ + 1);
-					for(const auto & mis : iter::range(e->dist_)){
+					for(const auto mis : iter::range(e->dist_)){
 						std::string newName = this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_
 								+ estd::to_string(mis) + e->nodeToNode_.begin()->second.lock()->name_;
 			  		nameToNewPos[newName] = pos;
@@ -288,7 +288,7 @@ public:
 	  		satStart, satStop,
 	  		groups.size());
 
-		for(const auto & pos : iter::range(groups.size())){
+		for(const auto pos : iter::range(groups.size())){
 			groupColors[groups[pos]] = gColors[pos];
 		}
 
@@ -330,7 +330,7 @@ public:
 					std::string lastName = this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_;
 					auto lColors = getColsBetweenExcludeClosest(groupColors[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->group_],
 							groupColors[e->nodeToNode_.begin()->second.lock()->group_], e->dist_ + 1);
-					for(const auto & mis : iter::range(e->dist_)){
+					for(const auto mis : iter::range(e->dist_)){
 						std::string newName = this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_
 								+ estd::to_string(mis) + e->nodeToNode_.begin()->second.lock()->name_;
 						nameToNewPos[newName] = pos;
@@ -388,7 +388,7 @@ public:
 		  		satStart, satStop,
 		  		groups.size());
 
-			for(const auto & pos : iter::range(groups.size())){
+			for(const auto pos : iter::range(groups.size())){
 				groupColors[groups[pos]] = gColors[pos];
 			}
 
@@ -428,7 +428,7 @@ public:
 						std::string lastName = this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_;
 						auto lColors = getColsBetweenExcludeClosest(groupColors[this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->group_],
 								groupColors[e->nodeToNode_.begin()->second.lock()->group_], e->dist_ + 1);
-						for(const auto & mis : iter::range(e->dist_)){
+						for(const auto mis : iter::range(e->dist_)){
 							std::string newName = this->nodes_[this->nameToNodePos_[e->nodeToNode_.begin()->first]]->name_
 									+ estd::to_string(mis) + e->nodeToNode_.begin()->second.lock()->name_;
 							nameToNewPos[newName] = pos;

@@ -31,7 +31,7 @@
 namespace njhseq {
 QualScorePars::QualScorePars():primaryQual_(20), secondaryQual_(15), qualThresWindow_(
 		2){}
-QualScorePars::QualScorePars(uint32_t primaryQual, uint32_t secondaryQual,
+QualScorePars::QualScorePars(uint8_t primaryQual, uint8_t secondaryQual,
 		uint32_t qualThresWindow) :
 		primaryQual_(primaryQual), secondaryQual_(secondaryQual), qualThresWindow_(
 				qualThresWindow) {

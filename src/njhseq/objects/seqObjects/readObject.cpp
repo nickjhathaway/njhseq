@@ -140,7 +140,7 @@ void readObject::addQual(const std::string & qualString, uint32_t offSet) {
   averageErrorRate = getAverageErrorRate();
 }
 
-void readObject::addQual(const std::vector<uint32_t> & quals){
+void readObject::addQual(const std::vector<uint8_t> & quals){
 	seqBase_.addQual(quals);
   averageErrorRate = getAverageErrorRate();
 }
@@ -402,7 +402,7 @@ void readObject::replace(const std::string& toBeReplaced,
   std::reverse(occurences.begin(), occurences.end());
   for (const auto pos : occurences) {
     std::vector<uint32_t> currentQuals;
-    for (const auto & subPos : iter::range(pos, pos + toBeReplaced.size())) {
+    for (const auto subPos : iter::range(pos, pos + toBeReplaced.size())) {
       currentQuals.push_back(seqBase_.qual_[subPos]);
     }
     for (size_t i = 0; i < toBeReplaced.size(); ++i) {
@@ -436,8 +436,8 @@ double readObject::getGCContent() {
 void readObject::adjustHomopolyerRunQualities() {
   createCondensedSeq();
   seqBase_.qual_.clear();
-  for (const auto& i : iter::range<uint64_t>(0, condensedSeq.length())) {
-    addOtherVec(seqBase_.qual_, std::vector<uint32_t>(condensedSeqCount[i],
+  for (const auto i : iter::range<uint64_t>(0, condensedSeq.length())) {
+    addOtherVec(seqBase_.qual_, std::vector<uint8_t>(condensedSeqCount[i],
                                                       condensedSeqQual[i]));
   }
 }
@@ -452,14 +452,14 @@ void readObject::updateQualCounts(
     std::map<std::string, std::map<double, uint32_t>>& counts,
     int qualWindowSize, const std::array<double, 100>& qualErrorLookUp) const {
 
-  for (const auto& pos : iter::range(seqBase_.qual_.size())) {
+  for (const auto pos : iter::range(seqBase_.qual_.size())) {
     updateQaulCountsAtPos(pos, counts, qualWindowSize, qualErrorLookUp);
   }
 }
 void readObject::updateQualWindowCounts(
     uint32_t pos, std::map<std::string, std::map<double, uint32_t>>& counts,
     int qualWindowSize) const {
-  std::vector<uint32_t> currentQuals;
+  std::vector<uint8_t> currentQuals;
   currentQuals.push_back(seqBase_.qual_[pos]);
   addOtherVec(currentQuals, seqBase_.getLeadQual(pos, qualWindowSize));
   addOtherVec(currentQuals, seqBase_.getTrailQual(pos, qualWindowSize));
@@ -473,7 +473,7 @@ void readObject::updateQualWindowCounts(
 void readObject::updateQualWindowCounts(
     std::map<std::string, std::map<double, uint32_t>>& counts,
     int qualWindowSize) const {
-  for (const auto& pos : iter::range(seqBase_.qual_.size())) {
+  for (const auto pos : iter::range(seqBase_.qual_.size())) {
     updateQualWindowCounts(pos, counts, qualWindowSize);
   }
 }
@@ -485,7 +485,7 @@ void readObject::updateBaseQualCounts(std::map<double, uint32_t>& baseCounts,
 
 void readObject::updateBaseQualCounts(std::map<double, uint32_t>& baseCounts)
     const {
-  for (const auto& pos : iter::range(seqBase_.qual_.size())) {
+  for (const auto pos : iter::range(seqBase_.qual_.size())) {
     updateBaseQualCounts(baseCounts, pos);
   }
 }
@@ -493,7 +493,7 @@ void readObject::updateQaulCountsAtPos(
     uint32_t pos, std::map<std::string, std::map<double, uint32_t>>& counts,
     int qualWindowSize, const std::array<double, 100>& qualErrorLookUp) const {
 
-  std::vector<uint32_t> currentQuals;
+  std::vector<uint8_t> currentQuals;
   currentQuals.push_back(seqBase_.qual_[pos]);
   addOtherVec(currentQuals, seqBase_.getLeadQual(pos, qualWindowSize));
   addOtherVec(currentQuals, seqBase_.getTrailQual(pos, qualWindowSize));

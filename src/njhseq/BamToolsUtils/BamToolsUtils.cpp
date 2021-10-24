@@ -29,6 +29,17 @@
 
 namespace njhseq {
 
+
+
+
+
+
+uint64_t getEndPosition(const BamTools::BamAlignment & bAln){
+	return static_cast<uint64_t>(bAln.GetEndPosition());
+}
+
+
+
 uint32_t getSoftClipAmount(const BamTools::BamAlignment & bAln){
 	uint32_t ret = 0;
 	if(bAln.CigarData.size() > 0 && 'S' == bAln.CigarData.front().Type){
@@ -39,6 +50,15 @@ uint32_t getSoftClipAmount(const BamTools::BamAlignment & bAln){
 	}
 	return ret;
 }
+
+std::string genCigarStr(const BamTools::BamAlignment & baln){
+	std::string ret;
+	for(const auto & cig : baln.CigarData){
+		ret += njh::pasteAsStr(cig.Type, cig.Length);
+	}
+	return ret;
+};
+
 
 
 std::vector<GenomicRegion> genGenRegionsFromRefData(const BamTools::RefVector & rData){
@@ -178,8 +198,7 @@ alnInfoLocal bamAlnToAlnInfoLocal(const std::vector<BamTools::CigarOp> & cigarDa
 
 
 seqInfo bamAlnToSeqInfo(const BamTools::BamAlignment & aln, bool keepPlusStrandOrientation) {
-	auto ret = seqInfo(aln.Name, aln.QueryBases, aln.Qualities,
-			SangerQualOffset);
+	auto ret = seqInfo(aln.Name, aln.QueryBases, aln.Qualities, SangerQualOffset);
 	if (aln.IsReverseStrand() && !keepPlusStrandOrientation) {
 		ret.reverseComplementRead(false, true);
 	}

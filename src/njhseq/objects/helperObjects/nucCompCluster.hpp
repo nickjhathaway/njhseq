@@ -132,7 +132,7 @@ void findBestNucComp(const T & read, uint64_t pos, const std::vector<char> & alp
 	bool found = false;
 	double lowestDifference = 1;
 	uint64_t bestPos = std::numeric_limits<uint64_t>::max();
-  for(const auto & compPos : iter::range(comps.size())){
+  for(const auto compPos : iter::range(comps.size())){
   	if(comps[compPos].compareRead(read, diffCutOff)){
   		found = true;
   		if(findBest){
@@ -159,7 +159,7 @@ void findBestNucComp(const T & read, uint64_t pos, uint64_t minLen,const std::ve
 	bool found = false;
 	double lowestDifference = 1;
 	uint64_t bestPos = std::numeric_limits<uint64_t>::max();
-  for(const auto & compPos : iter::range(comps.size())){
+  for(const auto compPos : iter::range(comps.size())){
   	if(comps[compPos].compareRead(read, diffCutOff)){
   		found = true;
   		if(findBest){

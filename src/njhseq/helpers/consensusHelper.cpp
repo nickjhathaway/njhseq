@@ -52,7 +52,8 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 
 	//read.seqBase_.outPutFastq(std::cout);
 	// the iterators to over the letter counter maps
-	uint32_t countAdjustedToBeatForInserts = fortyPercent * 2;
+	//uint32_t countAdjustedToBeatForInserts = fortyPercent * 2;
+	uint32_t countAdjustedToBeatForInserts = fortyPercent;
 	if(info.cnt_ < 10){
 		countAdjustedToBeatForInserts = info.cnt_;
 	}
@@ -70,8 +71,9 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 				char bestBaseTest = ' ';
 				uint32_t bestQualTest = 0;
 				counterInsert.second.getBest(bestBaseTest, bestQualTest);
-//				std::cout << "\t"<< "bestBaseTest: " << bestBaseTest << ": " << counterInsert.second.chars_[bestBaseTest]<< " total:" << std::round(info.cnt_) << std::endl;
+				//std::cout << "\t"<< "bestBaseTest: " << bestBaseTest << ": " << counterInsert.second.chars_[bestBaseTest]<< " total:" << std::round(info.cnt_) << std::endl;
 				counterInsert.second.getBest(bestBase, bestQuality, countAdjustedToBeatForInserts);
+				//std::cout << "\t"<< "bestBase    : " << bestBase << ": " << counterInsert.second.chars_[bestBase]<< ",countAdjustedToBeatForInserts: " << countAdjustedToBeatForInserts << " total:" << std::round(info.cnt_) << std::endl;
 
 				if (bestBase == ' ') {
 					continue;

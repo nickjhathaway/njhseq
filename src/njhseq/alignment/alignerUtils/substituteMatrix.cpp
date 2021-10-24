@@ -32,7 +32,7 @@ namespace njhseq {
 
 substituteMatrix::substituteMatrix(){
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	setWithSimple(1,-1);
+	setWithSimple(2,-2);
 }
 
 substituteMatrix::substituteMatrix(int32_t match, int32_t mismatch){
@@ -62,7 +62,7 @@ substituteMatrix::substituteMatrix(const std::array<std::array<int32_t, 127>, 12
 //	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 	for(const auto i : iter::range(mat.size())){
-		for(const auto & j : iter::range(mat[i].size())){
+		for(const auto j : iter::range(mat[i].size())){
 			mat_[i][j] = mat[i][j];
 		}
 	}
@@ -74,7 +74,7 @@ substituteMatrix::substituteMatrix(const substituteMatrix & other){
 //	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 	for(const auto i : iter::range(other.mat_.size())){
-		for(const auto & j : iter::range(other.mat_[i].size())){
+		for(const auto j : iter::range(other.mat_[i].size())){
 			mat_[i][j] = other.mat_[i][j];
 		}
 	}
@@ -115,8 +115,8 @@ Json::Value substituteMatrix::toJson() const {
 
 std::vector<char> substituteMatrix::determineLetters()const{
 	std::set<char> retSet;
-	for(const auto & row : iter::range(mat_.size())){
-		for(const auto & col : iter::range(mat_[row].size())){
+	for(const auto row : iter::range(mat_.size())){
+		for(const auto col : iter::range(mat_[row].size())){
 			if(mat_[row][col] > 0){
 				retSet.emplace(static_cast<char>(row));
 				retSet.emplace(static_cast<char>(col));
@@ -128,15 +128,15 @@ std::vector<char> substituteMatrix::determineLetters()const{
 }
 
 void substituteMatrix::setWithZeros(){
-	for(const auto & row : iter::range(mat_.size())){
-		for(const auto & col : iter::range(mat_[row].size())){
+	for(const auto row : iter::range(mat_.size())){
+		for(const auto col : iter::range(mat_[row].size())){
 			mat_[row][col] = 0;
 		}
 	}
 }
 void substituteMatrix::setWithSimple(int32_t match, int32_t mismatch){
-	for(const auto & row : iter::range(mat_.size())){
-		for(const auto & col : iter::range(mat_[row].size())){
+	for(const auto row : iter::range(mat_.size())){
+		for(const auto col : iter::range(mat_[row].size())){
 			if(row == col){
 				mat_[row][col] = match;
 			}else{
@@ -160,7 +160,7 @@ void substituteMatrix::setWithSimpleCaseInsense(int32_t match, int32_t mismatch)
   std::iota(upperCase.begin(), upperCase.end(), 'A');
   std::vector<char> lowerCase(26);
   std::iota(lowerCase.begin(), lowerCase.end(), 'a');
-  for (const auto& i : iter::range(lowerCase.size())) {
+  for (const auto i : iter::range(lowerCase.size())) {
   	mat_[upperCase[i]][lowerCase[i]] = match;
   	mat_[lowerCase[i]][upperCase[i]] = match;
   }

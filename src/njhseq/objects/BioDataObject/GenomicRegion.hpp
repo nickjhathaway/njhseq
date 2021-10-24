@@ -100,6 +100,20 @@ public:
 
 	bool startsInThisRegion(const GenomicRegion & otherRegion) const;
 	bool endsInThisRegion(const GenomicRegion & otherRegion) const;
+	bool fallsInThisRegion(const GenomicRegion & otherRegion) const;
+
+	bool startsInThisRegion(const BamTools::BamAlignment & bAln,
+			const BamTools::RefVector & refData) const;
+	bool endsInThisRegion(const BamTools::BamAlignment & bAln,
+			const BamTools::RefVector & refData) const;
+	bool fallsInThisRegion(const BamTools::BamAlignment & bAln,
+			const BamTools::RefVector & refData) const;
+
+	bool startsInThisRegion(const std::string & chrom, uint32_t start) const;
+	bool endsInThisRegion(const std::string & chrom, uint32_t end) const;
+	bool fallsInThisRegion(const std::string & chrom, uint32_t start,
+			uint32_t end) const; //no check for if start is less than end
+
 
 	Json::Value toJson() const;
 

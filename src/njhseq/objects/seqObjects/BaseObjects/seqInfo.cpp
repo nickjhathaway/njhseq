@@ -30,7 +30,7 @@ seqInfo::seqInfo(const std::string & name) :
 		name_(name), seq_(""), cnt_(1), frac_(0) {
 }
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
-		const std::vector<uint32_t>& qual) :
+		const std::vector<uint8_t>& qual) :
 		name_(name), seq_(seq), qual_(qual), cnt_(1), frac_(0) {
 	if(qual_.size() != seq.size()){
 		std::stringstream ss;
@@ -39,7 +39,7 @@ seqInfo::seqInfo(const std::string& name, const std::string& seq,
 	}
 }
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
-		const std::vector<uint32_t>& qual, double cnt) :
+		const std::vector<uint8_t>& qual, double cnt) :
 		name_(name), seq_(seq), qual_(qual), cnt_(cnt), frac_(0) {
 	if(qual_.size() != seq.size()){
 		std::stringstream ss;
@@ -48,7 +48,7 @@ seqInfo::seqInfo(const std::string& name, const std::string& seq,
 	}
 }
 seqInfo::seqInfo(const std::string& name, const std::string& seq) :
-		name_(name), seq_(seq), qual_(std::vector<uint32_t>(seq.size(), 40)), cnt_(
+		name_(name), seq_(seq), qual_(std::vector<uint8_t>(seq.size(), 40)), cnt_(
 				1), frac_(0) {
 
 }
@@ -60,8 +60,8 @@ seqInfo::seqInfo(const std::string& name, const std::string& seq) :
 //}
 
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
-		const std::string& stringQual, uint32_t off_set) :
-		name_(name), seq_(seq), qual_(std::vector<uint32_t>(0)), cnt_(1), frac_(0) {
+		const std::string& stringQual, uint8_t off_set) :
+		name_(name), seq_(seq), qual_(std::vector<uint8_t>(0)), cnt_(1), frac_(0) {
 	for (const auto & c : stringQual) {
 		qual_.emplace_back(c - off_set);
 	}
@@ -72,7 +72,7 @@ seqInfo::seqInfo(const std::string& name, const std::string& seq,
 	}
 }
 seqInfo::seqInfo(const std::string& name, const std::string& seq,
-		const std::vector<uint32_t>& qual, double cnt, double frac) :
+		const std::vector<uint8_t>& qual, double cnt, double frac) :
 		name_(name), seq_(seq), qual_(qual), cnt_(cnt), frac_(frac) {
 	if(qual_.size() != seq.size()){
 		std::stringstream ss;
@@ -94,7 +94,7 @@ seqInfo seqInfo::getSubRead(uint32_t pos) const {
 
 void seqInfo::updateName() {
 	size_t totalPos = name_.rfind("_t");
-	if (totalPos != std::string::npos) {
+	if (totalPos != std::string::npos && totalPos + 2 != name_.size() && isDoubleStr(name_.substr(totalPos + 2))) {
 		name_ = name_.substr(0, totalPos);
 	}
 	name_ += "_t" + estd::to_string(cnt_);
@@ -129,7 +129,7 @@ void seqInfo::translate(bool complement, bool reverse, size_t start) {
 	} else {
 		seq_ = seqUtil::convertToProtein(seq_, start, false);
 	}
-	qual_ = std::vector<uint32_t>(seq_.size(), 40);
+	qual_ = std::vector<uint8_t>(seq_.size(), 40);
 }
 
 seqInfo seqInfo::translateRet(bool complement, bool reverse,
@@ -144,6 +144,10 @@ seqInfo seqInfo::translateRet(bool complement, bool reverse,
 void seqInfo::processRead(bool processed) {
 	bool setFraction = false;
 	if (processed) {
+//		std::cout << njh::bashCT::red ;
+//		std::cout << name_ << std::endl;
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << njh::bashCT::reset;
 		VecStr toks;
 		bool containsAllNumbers = true;
 		if (name_.rfind("_t") == std::string::npos
@@ -156,20 +160,25 @@ void seqInfo::processRead(bool processed) {
 				ss << "failed due to name not have a _ or _t, " << name_ << "\n";
 				throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
 			} else {
-				toks = tokenizeString(name_, "_");
+				toks = VecStr{name_.substr(0, name_.rfind("_")), name_.substr(name_.rfind("_")+1)};
+				//toks = tokenizeString(name_, "_");
 			}
 		}else if (name_.rfind("_t") != std::string::npos
 				&& name_.rfind("_f") != std::string::npos){
 			if(name_.rfind("_t") > name_.rfind("_f")){
-				toks = tokenizeString(name_, "_t");
+				//toks = tokenizeString(name_, "_t");
+				toks = VecStr{name_.substr(0, name_.rfind("_t")), name_.substr(name_.rfind("_t")+2)};
 			}else{
-				toks = tokenizeString(name_, "_f");
+				//toks = tokenizeString(name_, "_f");
+				toks = VecStr{name_.substr(0, name_.rfind("_f")), name_.substr(name_.rfind("_f")+2)};
 				setFraction = true;
 			}
 		} else if (name_.rfind("_t") != std::string::npos) {
-			toks = tokenizeString(name_, "_t");
+			//toks = tokenizeString(name_, "_t");
+			toks = VecStr{name_.substr(0, name_.rfind("_t")), name_.substr(name_.rfind("_t")+2)};
 		} else {
-			toks = tokenizeString(name_, "_f");
+			//toks = tokenizeString(name_, "_f");
+			toks = VecStr{name_.substr(0, name_.rfind("_f")), name_.substr(name_.rfind("_f")+2)};
 			setFraction = true;
 		}
 		containsAllNumbers = isDoubleStr(toks[toks.size() - 1]);
@@ -215,17 +224,17 @@ void seqInfo::outPutSeqAnsi(std::ostream& fastaFile) const {
 	}
 	fastaFile << njh::bashCT::reset << "\n";
 }
-void seqInfo::prepend(const std::string& seq, uint32_t defaultQuality) {
-	prepend(seq, std::vector<uint32_t>(1, defaultQuality));
+void seqInfo::prepend(const std::string& seq, uint8_t defaultQuality) {
+	prepend(seq, std::vector<uint8_t>(1, defaultQuality));
 }
-void seqInfo::append(const std::string& seq, uint32_t defaultQuality) {
-	append(seq, std::vector<uint32_t>(1, defaultQuality));
+void seqInfo::append(const std::string& seq, uint8_t defaultQuality) {
+	append(seq, std::vector<uint8_t>(1, defaultQuality));
 }
 void seqInfo::append(const std::string& seq,
-		const std::vector<uint32_t>& qual) {
+		const std::vector<uint8_t>& qual) {
 	if (qual.size() == 1) {
 		seq_.append(seq);
-		addOtherVec(qual_, std::vector<uint32_t>(seq.size(), qual.front()));
+		addOtherVec(qual_, std::vector<uint8_t>(seq.size(), qual.front()));
 	} else if (qual.size() == seq.size()) {
 		seq_.append(seq);
 		addOtherVec(qual_, qual);
@@ -239,12 +248,12 @@ void seqInfo::append(const std::string& seq,
 	}
 }
 
-void seqInfo::prepend(const char & base, uint32_t quality) {
+void seqInfo::prepend(const char & base, uint8_t quality) {
 	seq_.insert(seq_.begin(), base);
 	qual_.insert(qual_.begin(), quality);
 }
 
-void seqInfo::append(const char & base, uint32_t quality) {
+void seqInfo::append(const char & base, uint8_t quality) {
 	seq_.push_back(base);
 	qual_.emplace_back(quality);
 }
@@ -261,8 +270,8 @@ void seqInfo::insert(uint32_t pos, const seqInfo & otherInfo){
 }
 
 void seqInfo::reverseHRunsQuals() {
-	std::vector<std::vector<uint32_t>> quals;
-	std::vector<uint32_t> currentQuals;
+	std::vector<std::vector<uint8_t>> quals;
+	std::vector<uint8_t> currentQuals;
 	currentQuals.push_back(qual_[0]);
 	for (uint32_t i = 1; i < seq_.length(); ++i) {
 		if (seq_[i] == seq_[i - 1]) {
@@ -285,8 +294,8 @@ void seqInfo::reverseComplementRead(bool mark, bool regQualReverse) {
 	if (regQualReverse) {
 		njh::reverse(qual_);
 	} else {
-		std::vector<std::vector<uint32_t>> quals;
-		std::vector<uint32_t> currentQuals;
+		std::vector<std::vector<uint8_t>> quals;
+		std::vector<uint8_t> currentQuals;
 		currentQuals.push_back(qual_[0]);
 		for (uint32_t i = 1; i < seq_.length(); ++i) {
 			if (seq_[i] == seq_[i - 1]) {
@@ -315,17 +324,18 @@ void seqInfo::reverseComplementRead(bool mark, bool regQualReverse) {
 	}
 }
 void seqInfo::prepend(const std::string& seq,
-		const std::vector<uint32_t>& qual) {
+		const std::vector<uint8_t>& qual) {
 	if (qual.size() == 1) {
 		seq_.insert(seq_.begin(), seq.begin(), seq.end());
-		prependVec(qual_, std::vector<uint32_t>(seq.size(), qual.front()));
+		prependVec(qual_, std::vector<uint8_t>(seq.size(), qual.front()));
 	} else if (qual.size() == seq.size()) {
+
 		seq_.insert(seq_.begin(), seq.begin(), seq.end());
 		prependVec(qual_, qual);
 	} else {
 		std::stringstream ss;
 		ss << "Need to supply either single a quality or same amount of "
-				"quality score for seq length" << "\n";
+				  "quality score for seq length" << "\n";
 		ss << "trying to add " << qual.size() << " qualities and a seq of length "
 				<< seq.length() << "\n";
 		throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
@@ -341,9 +351,9 @@ void seqInfo::append(const seqInfo & other){
 }
 
 
-const std::vector<uint32_t> seqInfo::getLeadQual(uint32_t posA,
+const std::vector<uint8_t> seqInfo::getLeadQual(uint32_t posA,
 		uint32_t out) const {
-	std::vector<uint32_t> ans;
+	std::vector<uint8_t> ans;
 	uint32_t lowerBound = 0;
 	if (posA - out > lowerBound) {
 		lowerBound = posA - out;
@@ -353,9 +363,9 @@ const std::vector<uint32_t> seqInfo::getLeadQual(uint32_t posA,
 	}
 	return ans;
 }
-const std::vector<uint32_t> seqInfo::getTrailQual(uint32_t posA,
+const std::vector<uint8_t> seqInfo::getTrailQual(uint32_t posA,
 		uint32_t out) const {
-	std::vector<uint32_t> ret;
+	std::vector<uint8_t> ret;
 	uint32_t higherBound = qual_.size() - 1;
 	if (posA + out + 1 < higherBound) {
 		higherBound = posA + out + 1;
@@ -365,7 +375,7 @@ const std::vector<uint32_t> seqInfo::getTrailQual(uint32_t posA,
 	}
 	return ret;
 }
-bool seqInfo::checkLeadQual(uint32_t pos, uint32_t secondayQual,
+bool seqInfo::checkLeadQual(uint32_t pos, uint8_t secondayQual,
 		uint32_t out) const {
 	uint32_t lowerBound = 0;
 	if (static_cast<int32_t>(pos) - out > lowerBound) {
@@ -378,7 +388,7 @@ bool seqInfo::checkLeadQual(uint32_t pos, uint32_t secondayQual,
 	}
 	return true;
 }
-bool seqInfo::checkTrailQual(uint32_t pos, uint32_t secondayQual,
+bool seqInfo::checkTrailQual(uint32_t pos, uint8_t secondayQual,
 		uint32_t out) const {
 	uint32_t higherBound = qual_.size() - 1;
 	if (pos + out + 1 < higherBound) {
@@ -391,7 +401,7 @@ bool seqInfo::checkTrailQual(uint32_t pos, uint32_t secondayQual,
 	}
 	return true;
 }
-bool seqInfo::checkPrimaryQual(uint32_t pos, uint32_t primaryQual) const {
+bool seqInfo::checkPrimaryQual(uint32_t pos, uint8_t primaryQual) const {
 	if (qual_[pos] <= primaryQual) {
 		return false;
 	}
@@ -409,7 +419,7 @@ bool seqInfo::checkQual(uint32_t pos, const QualScorePars & qScorePars) const {
 	}
 	return true;
 }
-uint32_t seqInfo::findLowestNeighborhoodQual(uint32_t posA,
+uint8_t seqInfo::findLowestNeighborhoodQual(uint32_t posA,
 		uint32_t out) const {
 	uint32_t lowerBound = 0;
 	uint32_t higherBound = qual_.size() - 1;
@@ -419,7 +429,7 @@ uint32_t seqInfo::findLowestNeighborhoodQual(uint32_t posA,
 	if (posA + out + 1 < higherBound) {
 		higherBound = posA + out + 1;
 	}
-	uint32_t lowestQual = UINT32_MAX;
+	uint8_t lowestQual = std::numeric_limits<uint8_t>::max();
 	for (auto i : iter::range(lowerBound, higherBound)) {
 		if (posA != i) {
 			if (qual_[i] < lowestQual) {
@@ -444,7 +454,7 @@ void seqInfo::removeBase(size_t pos) {
 	}
 }
 
-void seqInfo::removeLowQualityBases(uint32_t qualCutOff) {
+void seqInfo::removeLowQualityBases(uint8_t qualCutOff) {
 	std::vector<size_t> positions;
 	size_t pos = 0;
 	for (auto qIter : qual_) {
@@ -476,8 +486,8 @@ void seqInfo::setFractionByCount(double totalNumberOfReads){
 	frac_ = cnt_/totalNumberOfReads;
 }
 
-std::string seqInfo::getFastqString(const std::vector<uint32_t>& quals,
-		uint32_t offset) {
+std::string seqInfo::getFastqString(const std::vector<uint8_t>& quals,
+		uint8_t offset) {
 	std::string convertedQuals = "";
 	for (const auto& q : quals) {
 		if (q <= 93) {
@@ -488,7 +498,7 @@ std::string seqInfo::getFastqString(const std::vector<uint32_t>& quals,
 	}
 	return convertedQuals;
 }
-std::string seqInfo::getFastqQualString(uint32_t offset) const {
+std::string seqInfo::getFastqQualString(uint8_t offset) const {
 	return getFastqString(qual_, offset);
 }
 
@@ -599,10 +609,10 @@ void seqInfo::setName(const std::string& newName) {
 }
 
 void seqInfo::addQual(const std::string & qualString) {
-	addQual(stringToVector<uint32_t>(qualString));
+	addQual(stringToVector<uint8_t>(qualString));
 }
 
-void seqInfo::addQual(const std::string & qualString, uint32_t offSet) {
+void seqInfo::addQual(const std::string & qualString, uint8_t offSet) {
 	qual_.clear();
 	for (const auto & c : qualString) {
 		qual_.emplace_back(c - offSet);
@@ -615,7 +625,7 @@ void seqInfo::addQual(const std::string & qualString, uint32_t offSet) {
 	}
 }
 
-void seqInfo::addQual(const std::vector<uint32_t> & quals) {
+void seqInfo::addQual(const std::vector<uint8_t> & quals) {
 	if (quals.size() != seq_.size()) {
 		std::stringstream ss;
 		ss << "adding qual size does not equal seq size, qualSize: " << quals.size()
@@ -627,7 +637,7 @@ void seqInfo::addQual(const std::vector<uint32_t> & quals) {
 	qual_ = quals;
 }
 
-double seqInfo::getQualCheck(uint32_t qualCutOff) const {
+double seqInfo::getQualCheck(uint8_t qualCutOff) const {
 	uint32_t count = njh::count_if(qual_,
 			[&qualCutOff](uint32_t qual) {return qual >=qualCutOff;});
 	return static_cast<double>(count) / qual_.size();
@@ -842,11 +852,11 @@ bool seqInfo::operator ==(const seqInfo & other) const{
 
 void seqInfo::adjustHomopolymerRunQualities() {
   std::string condensedSeq = "";
-  std::vector<uint32_t> condensedSeqQual;
+  std::vector<uint8_t> condensedSeqQual;
   std::vector<uint32_t>condensedSeqCount;
   std::vector<std::pair<uint32_t, uint32_t>>condensedSeqQualPos;
   int currentCount = 1;
-  std::vector<uint32_t> currentQuals;
+  std::vector<uint8_t> currentQuals;
   currentQuals.push_back(qual_[0]);
   std::pair<uint32_t, uint32_t> currentQualPos {0,1};
   uint32_t i = 1;
@@ -872,8 +882,8 @@ void seqInfo::adjustHomopolymerRunQualities() {
   condensedSeqQualPos.emplace_back(currentQualPos);
   condensedSeqCount.push_back(currentCount);
   qual_.clear();
-  for (const auto& i : iter::range<uint64_t>(0, condensedSeq.length())) {
-    addOtherVec(qual_, std::vector<uint32_t>(condensedSeqCount[i],
+  for (const auto i : iter::range<uint64_t>(0, condensedSeq.length())) {
+    addOtherVec(qual_, std::vector<uint8_t>(condensedSeqCount[i],
                                                       condensedSeqQual[i]));
   }
 }

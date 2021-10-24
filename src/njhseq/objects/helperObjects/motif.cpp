@@ -53,6 +53,7 @@ void motif::motifSubUnit::setScoreArray() {
 		for (const auto & aa : aas_) {
 			score_[aa - 'A'] = 1;
 		}
+		otherScore_ = 0;
 	} else {
 		// if exclusive give all other letters a score of 1 and
 		// any in the input as a score of 0 for a non-match
@@ -62,21 +63,28 @@ void motif::motifSubUnit::setScoreArray() {
 		for (const auto & aa : aas_) {
 			score_[aa - 'A'] = 0;
 		}
+		otherScore_ = 1;
 	}
 }
-uint32_t motif::motifSubUnit::scoreChar(char c) const {
+uint32_t motif::motifSubUnit::scoreCharNoCheck(char c) const {
 	return score_[c - 'A'];
 }
+
+uint32_t motif::motifSubUnit::scoreCharCheck(char c) const {
+	return (c>'Z' || c < 'A')? otherScore_ :score_[c - 'A'];
+}
+
+
 motif::motifSubUnit motif::processInclusion(uint32_t start, uint32_t stop) {
 	std::vector<char> include;
-	for (const auto & pos : iter::range(start + 1, stop)) {
+	for (const auto pos : iter::range(start + 1, stop)) {
 		include.emplace_back(motifOriginal_[pos]);
 	}
 	return motifSubUnit(include, true);
 }
 motif::motifSubUnit motif::processExclusion(uint32_t start, uint32_t stop) {
 	std::vector<char> exclude;
-	for (const auto & pos : iter::range(start + 1, stop)) {
+	for (const auto pos : iter::range(start + 1, stop)) {
 		exclude.emplace_back(motifOriginal_[pos]);
 	}
 	return motifSubUnit(exclude, false);
@@ -87,7 +95,7 @@ void motif::processMotif() {
 	auto backBrackets = findOccurences(motifOriginal_, "}");
 	// printVector(backBrackets);
 	std::vector<std::pair<uint32_t, uint32_t>> exclusionPairs;
-	for (const auto & pos : iter::range(forwardBrackets.size())) {
+	for (const auto pos : iter::range(forwardBrackets.size())) {
 		exclusionPairs.emplace_back(std::pair<uint32_t, uint32_t> {
 				forwardBrackets[pos], backBrackets[pos] });
 	}
@@ -96,26 +104,26 @@ void motif::processMotif() {
 	auto backBrace = findOccurences(motifOriginal_, "]");
 	// printVector(backBrace);
 	std::vector<std::pair<uint32_t, uint32_t>> inclusionPairs;
-	for (const auto & pos : iter::range(forwardBrace.size())) {
+	for (const auto pos : iter::range(forwardBrace.size())) {
 		inclusionPairs.emplace_back(std::pair<uint32_t, uint32_t> {
 				forwardBrace[pos], backBrace[pos] });
 	}
 	std::vector<uint32_t> singles(motifOriginal_.size(), 0);
 	std::map<uint32_t, uint32_t> offSets;
-	for (const auto & pos : iter::range(motifOriginal_.size())) {
+	for (const auto pos : iter::range(motifOriginal_.size())) {
 		offSets[pos] = pos;
 	}
 	njh::iota<uint32_t>(singles, 0);
 	for (const auto & includ : inclusionPairs) {
 		removeElements(singles, getRange(includ.first, includ.second));
-		for (const auto & off : iter::range<uint32_t>(includ.first + 1,
+		for (const auto off : iter::range<uint32_t>(includ.first + 1,
 				motifOriginal_.size())) {
 			offSets[off] = offSets[off] - (includ.second - includ.first);
 		}
 	}
 	for (const auto & exclud : exclusionPairs) {
 		removeElements(singles, getRange(exclud.first, exclud.second));
-		for (const auto & off : iter::range<uint32_t>(exclud.first + 1,
+		for (const auto off : iter::range<uint32_t>(exclud.first + 1,
 				motifOriginal_.size())) {
 			offSets[off] = offSets[off] - (exclud.second - exclud.first);
 		}
@@ -164,8 +172,8 @@ uint32_t motif::scoreMotif(const std::string & possibleMotif) const {
 		throw std::runtime_error { ss.str() };
 	}
 	uint32_t score = 0;
-	for (const auto & cPos : iter::range(possibleMotif.size())) {
-		score += motifUnits_.at(cPos).scoreChar(possibleMotif[cPos]);
+	for (const auto cPos : iter::range(possibleMotif.size())) {
+		score += motifUnits_.at(cPos).scoreCharCheck(possibleMotif[cPos]);
 	}
 	return score;
 }
@@ -205,7 +213,7 @@ uint32_t motif::scoreMotif(const std::string::const_iterator & targetBegin,
 	auto strIt = targetBegin;
 	auto mapIt = motifUnits_.begin();
 	for (; strIt != targetEnd; ++strIt, ++mapIt) {
-		score += mapIt->second.scoreChar(*strIt);
+		score += mapIt->second.scoreCharCheck(*strIt);
 	}
 	return score;
 }
@@ -242,7 +250,7 @@ bool motif::frontPassNoCheck(const std::string & wholeProtein,
 	auto predTest =
 			[&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
 			{
-				sum += 1 - mot.second.scoreChar(a);
+				sum += 1 - mot.second.scoreCharCheck(a);
 				return sum <= allowableErrors;
 			};
 	return std::equal(wholeProtein.begin(),
@@ -256,7 +264,7 @@ std::vector<size_t> motif::findPositionsFull(const std::string & wholeProtein,
 	auto predTest =
 			[&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
 			{
-				sum += 1 - mot.second.scoreChar(a);
+				sum += 1 - mot.second.scoreCharCheck(a);
 				return sum <= allowableErrors;
 			};
 	size_t pos = start;
@@ -283,7 +291,7 @@ std::vector<size_t> motif::findPositionsSubSets(
 	auto predTest =
 			[&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
 			{
-				sum += 1 - mot.second.scoreChar(a);
+				sum += 1 - mot.second.scoreCharCheck(a);
 				return sum <= allowableErrors;
 			};
 	size_t pos = start;
@@ -305,6 +313,48 @@ std::vector<size_t> motif::findPositionsSubSets(
 	}
 	return positions;
 }
+
+std::vector<size_t> motif::findPositionsSubSetsBest(
+		const std::string & wholeProtein,
+		uint32_t allowableErrors,
+		size_t start, size_t stop,
+		uint32_t motifStart, uint32_t motifEnd) const{
+	uint32_t sum = 0;
+	auto predTest =
+			[&sum, &allowableErrors] (const char & a, decltype(*motifUnits_.begin()) mot)
+			{
+				sum += 1 - mot.second.scoreCharCheck(a);
+				return sum <= allowableErrors;
+			};
+	size_t pos = start;
+	std::vector<size_t> positions;
+	uint32_t motifSearchSize = motifEnd - motifStart;
+	uint32_t best = 0;
+	while (pos + motifSearchSize <= stop && pos + motifSearchSize <= wholeProtein.size()) {
+		sum = 0;
+		auto motifIterator = motifUnits_.begin();
+		for(uint32_t i = 0; i < motifStart; ++i){
+			++motifIterator;
+		}
+		if (std::equal(wholeProtein.begin() + pos,
+				wholeProtein.begin() + motifSearchSize + pos,
+				motifIterator,
+				predTest)) {
+			auto score = size() - sum;
+			if(score > best){
+				best = score;
+				positions.clear();
+				positions.emplace_back(pos);
+			}else if(best == score){
+				positions.emplace_back(pos);
+			}
+		}
+		++pos;
+	}
+	return positions;
+}
+
+
 
 size_t motif::size() const {
 	return motifUnits_.size();

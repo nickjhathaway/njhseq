@@ -25,11 +25,14 @@
 //
 #include "PrimerDeterminator.hpp"
 #include "njhseq/helpers/seqUtil.hpp"
+#include "njhseq/seqToolsUtils/seqToolsUtils.hpp"
+
 
 namespace njhseq {
 
 size_t PrimerDeterminator::getMaxPrimerSize() const {
 	size_t ret = 0;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for (const auto & p : primers_) {
 		for(const auto & fwd : p.second.fwds_){
 			if (len(fwd.info_) > ret) {
@@ -42,8 +45,28 @@ size_t PrimerDeterminator::getMaxPrimerSize() const {
 			}
 		}
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return ret;
 }
+
+size_t PrimerDeterminator::getMinPrimerSize() const {
+	size_t ret = std::numeric_limits<size_t>::max();
+	for (const auto & p : primers_) {
+		for(const auto & fwd : p.second.fwds_){
+			if (len(fwd.info_) < ret) {
+				ret = len(fwd.info_);
+			}
+		}
+		for(const auto & rev : p.second.revs_){
+			if (len(rev.info_) < ret) {
+				ret = len(rev.info_);
+			}
+		}
+	}
+	return ret;
+}
+
+
 
 PrimerDeterminator::PrimerDeterminator(const table & primers) {
 
@@ -179,11 +202,19 @@ PrimerDeterminator::primerInfo::PrimerSeq::PrimerSeq(const seqInfo & primer):
 		motRC_ (seqUtil::genMotifStrAccountDegenBase(infoRC_.seq_))
 		{
 
-	infoLetCounter_.increaseCountByString(info_.seq_);
+	auto degenSeqs = createDegenStrs(info_.seq_);
+	for(const auto & degenSeq : degenSeqs){
+		infoLetCounter_.increaseCountByString(degenSeq);
+	}
+	//infoLetCounter_.increaseCountByString(info_.seq_);
 	infoLetCounter_.resetAlphabet(false);
 	infoLetCounter_.setFractions();
 
-	infoLetCounterRC_.increaseCountByString(infoRC_.seq_);
+	auto degenSeqsRC = createDegenStrs(infoRC_.seq_);
+	for(const auto & degenSeq : degenSeqsRC){
+		infoLetCounterRC_.increaseCountByString(degenSeq);
+	}
+	//infoLetCounterRC_.increaseCountByString(infoRC_.seq_);
 	infoLetCounterRC_.resetAlphabet(false);
 	infoLetCounterRC_.setFractions();
 }
@@ -247,7 +278,7 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info,
 			/**@todo put in a check to make sure of semi-global alignment */
 
 			if(pars.useMotif_){
-				auto positions = rev.mot_.findPositionsSubSets(readBegin.seq_,
+				auto positions = rev.mot_.findPositionsSubSetsBest(readBegin.seq_,
 						pars.allowable_.hqMismatches_ + pars.allowable_.lqMismatches_,
 						0, len(readBegin),
 						1, rev.mot_.size());
@@ -272,8 +303,8 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info,
 			}else{
 				alignerObj.alignCacheGlobal(readBegin, rev.info_);
 				alignerObj.rearrangeObjs(readBegin, rev.info_, false);
-			}
 
+			}
 			/**@todo put in a check to make sure of semi-global alignment */
 			alignerObj.profileAlignment(readBegin,
 					rev.info_, false, true, false);
@@ -316,7 +347,7 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info,
 		bestPrimer = determinedPrimers.front();
 	} else {
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
@@ -415,7 +446,7 @@ PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestReverse
 		bestPrimer = determinedPrimers.front();
 	} else {
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
@@ -447,6 +478,9 @@ PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestForward
 			for(const auto c : fwd.infoLetCounter_.alphabet_){
 				basesShared += std::min(letCounter.chars_[c], fwd.infoLetCounter_.chars_[c]);
 			}
+//			std::cout << "fwd: " << fwd.info_.seq_ << std::endl;
+//			std::cout << "\t" << static_cast<double>(basesShared) << std::endl;
+//			std::cout << "\t" << static_cast<double>(basesShared)/fwd.info_.seq_.size() << std::endl;
 			if(static_cast<double>(basesShared)/fwd.info_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
 				continue;
 			}
@@ -503,7 +537,7 @@ PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestForward
 		bestPrimer = determinedPrimers.front();
 	} else {
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
@@ -549,7 +583,7 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 
 			/**@todo put in a check to make sure of semi-global alignment */
 			if(pars.useMotif_){
-				auto positions = fwd.mot_.findPositionsSubSets(readBegin.seq_,
+				auto positions = fwd.mot_.findPositionsSubSetsBest(readBegin.seq_,
 						pars.allowable_.hqMismatches_ + pars.allowable_.lqMismatches_,
 						0, len(readBegin),
 						1, fwd.mot_.size());
@@ -612,7 +646,7 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 		bestPrimer = determinedPrimers.front();
 	} else {
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
@@ -702,7 +736,7 @@ bool PrimerDeterminator::checkForReversePrimer(seqInfo & info,
 	} else {
 		primerGood =true;
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){
@@ -796,7 +830,7 @@ bool PrimerDeterminator::checkForForwardPrimerInRev(seqInfo & info, const std::s
 	} else {
 		primerGood =true;
 		bestPrimer = determinedPrimers.front();
-		for(const auto & pos : iter::range<uint32_t>(1, determinedPrimers.size())){
+		for(const auto pos : iter::range<uint32_t>(1, determinedPrimers.size())){
 			if(determinedPrimers[pos].getNormalizedScore() > bestPrimer.getNormalizedScore()){
 				bestPrimer = determinedPrimers[pos];
 			}else if(determinedPrimers[pos].getNormalizedScore() == bestPrimer.getNormalizedScore()){

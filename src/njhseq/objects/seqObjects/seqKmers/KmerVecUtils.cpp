@@ -30,13 +30,7 @@
 namespace njhseq {
 
 
-void allSetKmers(std::vector<std::unique_ptr<seqWithKmerInfo>> & reads, uint32_t kLength, bool setReverse){
-	njh::for_each(reads, [&kLength,&setReverse](std::unique_ptr<seqWithKmerInfo> & read){ read->setKmers(kLength, setReverse);});
-}
 
-void allSetKmers(std::vector<seqWithKmerInfo> & reads, uint32_t kLength, bool setReverse){
-	njh::for_each(reads, [&kLength,&setReverse](seqWithKmerInfo & read){ read.setKmers(kLength, setReverse);});
-}
 
 
 std::vector<kmerCluster> greedyKmerSimCluster(const SeqIOOptions & inReadsOpts,

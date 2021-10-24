@@ -234,7 +234,7 @@ void codonUsageCounter::increaseCountByString(const std::string &seq, double cnt
 	while (stop % 3 != 0){
 		--stop;
 	}
-	for(const auto & pos : iter::range<uint64_t> (0, stop, 3)){
+	for(const auto pos : iter::range<uint64_t> (0, stop, 3)){
 		counts_[seq.substr(pos, 3)] += cnt;
 	}
 }

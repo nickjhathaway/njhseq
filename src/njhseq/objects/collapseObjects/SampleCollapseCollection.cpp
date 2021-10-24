@@ -45,6 +45,31 @@ Json::Value SampleCollapseCollection::PreFilteringCutOffs::toJson() const{
 }
 
 
+std::unordered_map<std::string, double> SampleCollapseCollection::processCustomCutOffs(
+		const bfs::path &customCutOffsFnp, const VecStr &allSamples,
+		double defaultFracCutOff) {
+	std::unordered_map<std::string, double> ret;
+	if ("" != customCutOffsFnp.string()) {
+		table customCutOffsTab(customCutOffsFnp.string(), "\t", true);
+		customCutOffsTab.checkForColumnsThrow(VecStr { "sample", "cutOff" },
+				__PRETTY_FUNCTION__);
+		for (const auto rowPos : iter::range(customCutOffsTab.content_.size())) {
+			ret[customCutOffsTab.content_[rowPos][customCutOffsTab.getColPos("sample")]] =
+					njh::lexical_cast<double>(
+							customCutOffsTab.content_[rowPos][customCutOffsTab.getColPos(
+									"cutOff")]);
+		}
+	}
+	for (const auto &samp : allSamples) {
+		if (!njh::in(samp, ret)) {
+			ret[samp] = defaultFracCutOff;
+		}
+	}
+	return ret;
+}
+
+
+
 SampleCollapseCollection::PreFilteringCutOffs::PreFilteringCutOffs() {
 }
 SampleCollapseCollection::PreFilteringCutOffs::PreFilteringCutOffs(
@@ -86,9 +111,20 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 	inputOptions_ = SeqIOOptions(coreJson["inputOptions_"].toStyledString());
 	masterInputDir_ = coreJson["masterInputDir_"].asString();
 	masterOutputDir_ = coreJson["masterOutputDir_"].asString();
+	std::set<std::string> controlSamples;//this is for an update so older directories don't error out
+	if(coreJson["popNames_"].isMember("controlSamples_")){
+		controlSamples = njh::json::jsonArrayToSet<std::string>(
+				coreJson["popNames_"]["controlSamples_"], [](const Json::Value &val) {
+					return val.asString();
+				});
+	}
 	popNames_ = PopNamesInfo(coreJson["popNames_"]["populationName_"].asString(),
 			njh::json::jsonArrayToSet<std::string>(coreJson["popNames_"]["samples_"],
-					[](const Json::Value & val){ return val.asString();}));
+					[](const Json::Value &val) {
+						return val.asString();
+					})
+			,
+			controlSamples);
 	preFiltCutOffs_ = PreFilteringCutOffs(coreJson["preFiltCutOffs_"]);
 
 	populationOutputDir_ = coreJson["populationOutputDir_"].asString();
@@ -116,8 +152,14 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 void SampleCollapseCollection::addGroupMetaData(
 		const bfs::path & groupingsFile) {
 
-	groupMetaData_ = std::make_unique<MultipleGroupMetaData>(
-			njh::files::normalize(groupingsFile), popNames_.samples_);
+	groupMetaData_ = std::make_unique<MultipleGroupMetaData>(njh::files::normalize(groupingsFile), popNames_.samples_);
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << njh::conToStr(popNames_.samples_) << std::endl;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << njh::conToStr(groupMetaData_->samples_) << std::endl;
+	//std::cout << njh::conToStr(groupMetaData_->missingSamples_) << std::endl;
+
+
 	/**@todo add some output to output directory that states the samples missing and missing meta*/
 	groupDataPaths_ = std::make_unique<AllGroupDataPaths>(
 			njh::files::make_path(njh::files::normalize(masterOutputDir_), "groups"),
@@ -166,27 +208,23 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 	return setUpSample(sampleName, repFiles, alignerObj, collapserObj, chiOpts);
 }
 
+
 void SampleCollapseCollection::setUpSample(const std::string & sampleName,
-		const std::vector<RepFile> & analysisFiles,
+		const std::unordered_map<std::string, RepSeqs> & seqsByRep,
 		aligner & alignerObj,
-		const collapser & collapserObj,
-		const ChimeraOpts & chiOpts){
+		const collapser & collapserObj, const ChimeraOpts & chiOpts){
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
 
 	std::vector<std::vector<cluster>> inputClusters;
 	std::vector<std::vector<cluster>> lowCntInputClusters;
 
-	for (const auto & repf : analysisFiles) {
-		auto sampleOpts = inputOptions_;
-		sampleOpts.firstName_ = repf.repFnp_.string();
-		SeqInput reader(sampleOpts);
+	for (const auto & rep : seqsByRep) {
 
-		std::vector<cluster> clusters = baseCluster::convertVectorToClusterVector<
-				cluster>(reader.readAllReads<seqInfo>());
+		std::vector<cluster> clusters = baseCluster::convertVectorToClusterVector<cluster>(rep.second.repSeqs_);
 		readVecSorter::sortReadVector(clusters, "totalCount");
 		// consider adding the sample name in the name as well
-		if(repf.reNameInput_){
-			renameReadNamesNewClusters(clusters, repf.repName_, true, true, false);
+		if(rep.second.reNameInput_){
+			renameReadNamesNewClusters(clusters, rep.second.repName_, true, true, false);
 		}
 		if (chiOpts.checkChimeras_) {
 			for(auto & clus : clusters){
@@ -196,7 +234,7 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 		}
 
 		clusterVec::allSetFractionClusters(clusters);
-		if(repf.reNameInput_){
+		if(rep.second.reNameInput_){
 			readVec::allUpdateName(clusters);
 		}
 		double totalCount = readVec::getTotalReadCount(clusters);
@@ -229,6 +267,28 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 		}
 		lowRepCntSamples_.emplace_back(sampleName);
 	}
+}
+
+void SampleCollapseCollection::setUpSample(const std::string & sampleName,
+		const std::vector<RepFile> & analysisFiles,
+		aligner & alignerObj,
+		const collapser & collapserObj,
+		const ChimeraOpts & chiOpts){
+	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
+	std::unordered_map<std::string, RepSeqs> allRepSeqs;
+	for (const auto & repf : analysisFiles) {
+		auto sampleOpts = inputOptions_;
+		sampleOpts.firstName_ = repf.repFnp_.string();
+		SeqInput reader(sampleOpts);
+
+		if(njh::in(repf.repName_, allRepSeqs)){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "already have replicate name: " << repf.repName_ << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		allRepSeqs.emplace(repf.repName_,RepSeqs(repf.repName_, reader.readAllReads<seqInfo>()));
+	}
+	return setUpSample(sampleName, allRepSeqs, alignerObj, collapserObj, chiOpts);
 }
 
 bfs::path SampleCollapseCollection::getSampleFinalHapsPath(
@@ -473,9 +533,7 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 			"samplesOutput", sampleName, "excluded", "clusters");
 
 	njh::files::makeDir(njh::files::MkdirPar(sampDir.string(), true));
-
 	njh::files::makeDirP(njh::files::MkdirPar(finalClustersDir.string()));
-
 	njh::files::makeDirP(njh::files::MkdirPar(excludedClusteredDir.string()));
 	//final
 	if(!samp->collapsed_.clusters_.empty()){
@@ -567,7 +625,9 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 								njh::files::join(sampDir.string(), "refCompInfosExcluded.tab.txt")),
 						"\t", true));
 	}
-	clearSample(sampleName);
+	if(!keepSampleInfoInMemory_){
+		clearSample(sampleName);
+	}
 }
 
 void SampleCollapseCollection::clearSample(const std::string & sampleName) {
@@ -581,90 +641,6 @@ void SampleCollapseCollection::clearSamples(const VecStr & sampleNames) {
 	}
 }
 
-void SampleCollapseCollection::investigateChimeras(double chiCutOff,
-		aligner & alignerObj) {
-	comparison onlyHpErrors;
-	onlyHpErrors.oneBaseIndel_ = 1;
-	onlyHpErrors.twoBaseIndel_ = 0;
-	onlyHpErrors.largeBaseIndel_ = .99;
-
-	table chiInfoTab(VecStr { "sample", "numClustersSaved",
-			"totalClustersChecked", "clusterSavedNames" });
-	for (const auto & sampleName : popNames_.samples_) {
-		VecStr clustersSavedFromChi;
-		setUpSampleFromPrevious(sampleName);
-		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(sampleName, lowRepCntSamples_)){
-			continue;
-		}
-
-		uint32_t clustersNotSaved = 0;
-		//first mark the suspicious clusters as being chimeric
-		for (auto &clus : sampleCollapses_[sampleName]->collapsed_.clusters_) {
-			if (clus.isClusterAtLeastChimericCutOff(chiCutOff)) {
-				clus.seqBase_.markAsChimeric();
-			}
-		}
-		//now check to see if it is ever the top two variants of a sample and if it is unmark it
-		for (auto & clus : sampleCollapses_[sampleName]->collapsed_.clusters_) {
-			if (clus.seqBase_.isChimeric()) {
-				bool saved = false;
-				for (const auto & otherSampleName : popNames_.samples_) {
-					if (otherSampleName != sampleName
-							&& !njh::containsSubString(stringToLowerReturn(otherSampleName),
-									"control")
-							&& !njh::containsSubString(stringToLowerReturn(sampleName),
-									"control")) {
-						auto otherSampOpts = SeqIOOptions(
-								njh::files::make_path(masterOutputDir_, "samplesOutput",
-										otherSampleName, "final",
-										otherSampleName + inputOptions_.getOutExtension()).string(),
-								inputOptions_.inFormat_, true);
-						SeqInput otherReader(otherSampOpts);
-						otherReader.openIn();
-						uint32_t seqCount = 0;
-						seqInfo otherSeq;
-						while (otherReader.readNextRead(otherSeq) && seqCount < 2) {
-							++seqCount;
-							if (otherSeq.frac_ < 0.01) {
-								continue;
-							}
-							alignerObj.alignCacheGlobal(otherSeq, clus.seqBase_);
-							alignerObj.profilePrimerAlignment(otherSeq, clus.seqBase_);
-
-							if (onlyHpErrors.passErrorProfile(alignerObj.comp_)) {
-								clus.seqBase_.unmarkAsChimeric();
-								for (auto & subRead : clus.reads_) {
-									subRead->seqBase_.unmarkAsChimeric();
-								}
-								clus.resetInfos();
-								clustersSavedFromChi.emplace_back(clus.seqBase_.name_);
-								saved = true;
-								break;
-							}
-						}
-					}
-				}
-				if (!saved) {
-					++clustersNotSaved;
-				}
-			}
-			sampleCollapses_[sampleName]->collapsed_.setSetInfo();
-		}
-		chiInfoTab.content_.emplace_back(
-				toVecStr(sampleName,
-						getPercentageString(clustersSavedFromChi.size(),
-								clustersSavedFromChi.size() + clustersNotSaved),
-						clustersSavedFromChi.size() + clustersNotSaved,
-						vectorToString(clustersSavedFromChi, ",")));
-		dumpSample(sampleName);
-	}
-	TableIOOpts chiOutOptions(
-			OutOptions(masterOutputDir_.string() + "chiInfo", ".tab.txt"), "\t",
-			chiInfoTab.hasHeader_);
-	chiInfoTab.outPutContents(chiOutOptions);
-}
-
 
 void SampleCollapseCollection::setPassingSamples(){
 	passingSamples_.clear();
@@ -672,8 +648,7 @@ void SampleCollapseCollection::setPassingSamples(){
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampleName);
 		}
-		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ >= preFiltCutOffs_.sampleMinReadCount &&
-						!njh::in(sampleName, lowRepCntSamples_)){
+		if(!njh::in(sampleName, lowRepCntSamples_) && sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ >= preFiltCutOffs_.sampleMinReadCount){
 			passingSamples_.emplace_back(sampleName);
 		}
 		if(!keepSampleInfoInMemory_){
@@ -686,38 +661,57 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 	passingSamples_.clear();
 	oututSampClusToOldNameKey_.clear();
 	std::vector<sampleCluster> output;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for (const auto & sampleName : popNames_.samples_) {
-		setUpSampleFromPrevious(sampleName);
-		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount ||
-				njh::in(sampleName, lowRepCntSamples_)){
+		if(!keepSampleInfoInMemory_){
+//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			setUpSampleFromPrevious(sampleName);
+		}
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << "sampleName: " <<  sampleName << std::endl;
+//		std::cout << "njh::in(sampleName, lowRepCntSamples_): " << njh::colorBool(njh::in(sampleName, lowRepCntSamples_))<< std::endl;
+//		std::cout << "njh::in(sampleName, sampleCollapses_): " << njh::colorBool(njh::in(sampleName, sampleCollapses_))<< std::endl;
+
+		if (njh::in(sampleName, lowRepCntSamples_)
+				|| sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		passingSamples_.emplace_back(sampleName);
-		auto & samp = *(sampleCollapses_[sampleName]);
 		double totalReadCnt = 0;
-		for (const auto &out : samp.collapsed_.clusters_) {
+		for (const auto &out : sampleCollapses_[sampleName]->collapsed_.clusters_) {
 			totalReadCnt += out.seqBase_.cnt_;
 		}
-		std::map<std::string, sampInfo> outSampInfos { { sampleName, sampInfo(
-				sampleName, totalReadCnt) } };
-		for (const auto &out : samp.collapsed_.clusters_) {
-			output.emplace_back(sampleCluster(out.createRead(), outSampInfos));
+		std::map<std::string, sampInfo> outSampInfos { { sampleName, sampInfo(sampleName, totalReadCnt) } };
+		for (const auto &out : sampleCollapses_[sampleName]->collapsed_.clusters_) {
+			output.emplace_back(sampleCluster(out.seqBase_, outSampInfos));
+			//output.emplace_back(sampleCluster(out.createRead(), outSampInfos));
 			std::string oldName = output.back().seqBase_.name_;
 			output.back().updateName();
 			oututSampClusToOldNameKey_[sampleName][oldName] = output.back().seqBase_.name_;
-			output.back().reads_.front()->seqBase_.name_ =
-					output.back().seqBase_.name_;
+			output.back().reads_.front()->seqBase_.name_ = output.back().seqBase_.name_;
 		}
-		clearSample(sampleName);
+		if(!keepSampleInfoInMemory_){
+//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			clearSample(sampleName);
+		}
 	}
+
+
+
+//	std::cout << "size of sample Cluster" << sizeof(sampleCluster) << std::endl;
+
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return output;
 }
 
 void SampleCollapseCollection::doPopulationClustering(
 		const std::vector<sampleCluster> & input, aligner & alignerObj,
 		const collapser & collapserObj, const CollapseIterations & popColIters) {
-	popCollapse_ = std::make_unique<collapse::populationCollapse>(input,
-			popNames_.populationName_);
+
+	popCollapse_ = std::make_unique<collapse::populationCollapse>(input, popNames_.populationName_);
+
 	popCollapse_->popCluster(collapserObj, popColIters, "fraction", alignerObj);
 
 	std::unordered_map<std::string, uint32_t> clusterTotals;
@@ -735,7 +729,7 @@ void SampleCollapseCollection::doPopulationClustering(
 bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
 	std::vector<uint32_t> lowFreqHaps;
-	for(const auto & clusPos : iter::range(popCollapse_->collapsed_.clusters_.size())){
+	for(const auto clusPos : iter::range(popCollapse_->collapsed_.clusters_.size())){
 		const auto & clus = popCollapse_->collapsed_.clusters_[clusPos];
 		auto avgFrac = clus.getCumulativeFrac()/clus.sampInfos().size();
 		//std::cout << clus.seqBase_.name_ << " avgFrac: " << avgFrac << std::endl;
@@ -761,9 +755,11 @@ bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 		}
 	}
 	for(const auto & sampClusters : hapsToBeRemovePerSample){
-		setUpSampleFromPrevious(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampClusters.first);
+		}
 		std::vector<uint32_t> toBeExcluded;
-		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
+		for(const auto clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
 			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
 				toBeExcluded.push_back(clusPos);
 			}
@@ -786,7 +782,9 @@ bool SampleCollapseCollection::excludeCommonlyLowFreqHaps(double lowFreqCutOff){
 		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
 		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
 
-		dumpSample(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			dumpSample(sampClusters.first);
+		}
 	}
 	return true;
 }
@@ -813,9 +811,11 @@ bool SampleCollapseCollection::excludeOneSampOnlyHaps(double fracCutOff){
 	}
 
 	for(const auto & sampClusters : samplesWithUniqHaps){
-		setUpSampleFromPrevious(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampClusters.first);
+		}
 		std::vector<uint32_t> toBeExcluded;
-		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
+		for(const auto clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
 			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
 				toBeExcluded.push_back(clusPos);
 			}
@@ -837,7 +837,9 @@ bool SampleCollapseCollection::excludeOneSampOnlyHaps(double fracCutOff){
 		}
 		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
 		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
-		dumpSample(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			dumpSample(sampClusters.first);
+		}
 	}
 	return true;
 }
@@ -863,9 +865,11 @@ bool SampleCollapseCollection::excludeOneSampOnlyOneOffHaps(double fracCutOff, a
 	}
 
 	for(const auto & sampClusters : samplesWithUniqHaps){
-		setUpSampleFromPrevious(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampClusters.first);
+		}
 		std::vector<uint32_t> toBeExcluded;
-		for(const auto & clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
+		for(const auto clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
 			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
 				bool oneOffAnother = false;
 				for(const auto & clus : sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_){
@@ -899,7 +903,9 @@ bool SampleCollapseCollection::excludeOneSampOnlyOneOffHaps(double fracCutOff, a
 		}
 		sampleCollapses_.at(sampClusters.first)->updateAfterExclustion();
 		sampleCollapses_.at(sampClusters.first)->renameClusters("fraction");
-		dumpSample(sampClusters.first);
+		if(!keepSampleInfoInMemory_){
+			dumpSample(sampClusters.first);
+		}
 	}
 	return true;
 }
@@ -1000,6 +1006,7 @@ std::vector<seqInfo> SampleCollapseCollection::genOutPopSeqsPerSample() const{
 			subseqMeta.addMeta("PopUID", seq.getStubName(true));
 			subseqMeta.addMeta("sample", sample);
 			subseqMeta.addMeta("readCount", subSeq->seqBase_.cnt_);
+			subseqMeta.addMeta("p_name", popNames_.populationName_);
 			if(nullptr != groupMetaData_){
 				auto sampMeta = groupMetaData_->getMetaForSample(sample, getVectorOfMapKeys(groupMetaData_->groupData_));
 				subseqMeta.addMeta(sampMeta, false);
@@ -1236,9 +1243,12 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 	uint32_t maxRunCount = 0;
 	std::set<std::string> allMetaFields;
 	for (const auto & sampName : popNames_.samples_) {
-		setUpSampleFromPrevious(sampName);
-		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(sampName, lowRepCntSamples_)){
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampName);
+		}
+		if (njh::in(sampName, lowRepCntSamples_)
+				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
 		for(const auto & excluded : sampleCollapses_.at(sampName)->excluded_.clusters_){
@@ -1262,7 +1272,9 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 			maxRunCount =
 					sampleCollapses_.at(sampName)->collapsed_.info_.infos_.size();
 		}
-		clearSample(sampName);
+		if(!keepSampleInfoInMemory_){
+			clearSample(sampName);
+		}
 	}
 	std::string delim = "\t";
 	allSubClusterInfo << "s_name";
@@ -1286,9 +1298,12 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 
 	allSubClusterInfo << std::endl;
 	for (const auto& sampName : popNames_.samples_) {
-		setUpSampleFromPrevious(sampName);
-		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(sampName, lowRepCntSamples_)){
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampName);
+		}
+		if (njh::in(sampName, lowRepCntSamples_)
+				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
 		auto sampPtr = sampleCollapses_.at(sampName);
@@ -1399,7 +1414,9 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 			}
 			allSubClusterInfo << std::endl;
 		}
-		clearSample(sampName);
+		if(!keepSampleInfoInMemory_){
+			clearSample(sampName);
+		}
 	}
 }
 
@@ -1414,9 +1431,12 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 	uint32_t maxRunCount = 0;
 	std::vector<VecStr> rows;
 	for (const auto& sampName : samples) {
-		setUpSampleFromPrevious(sampName);
-		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(sampName, lowRepCntSamples_)){
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampName);
+		}
+		if (njh::in(sampName, lowRepCntSamples_)
+				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
 		if (maxRunCount
@@ -1424,12 +1444,17 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 			maxRunCount =
 					sampleCollapses_.at(sampName)->collapsed_.info_.infos_.size();
 		}
-		clearSample(sampName);
+		if(!keepSampleInfoInMemory_){
+			clearSample(sampName);
+		}
 	}
 	for (const auto& sampName : samples) {
-		setUpSampleFromPrevious(sampName);
-		if(sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(sampName, lowRepCntSamples_)){
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampName);
+		}
+		if (njh::in(sampName, lowRepCntSamples_)
+				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
 		for (const auto clusPos : iter::range(
@@ -1461,7 +1486,9 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 							checkingExpected, delim);
 			rows.emplace_back(tokenizeString(rowStream.str(), delim, true));
 		}
-		clearSample(sampName);
+		if(!keepSampleInfoInMemory_){
+			clearSample(sampName);
+		}
 	}
 	std::stringstream headerStream;
 	headerStream << "s_Sample"
@@ -1605,9 +1632,12 @@ void SampleCollapseCollection::outputRepAgreementInfo() {
 	table repInfoTab(
 			VecStr { "sampleName", "clusterName", "repName", "fraction" });
 	for (const auto & sampleName : popNames_.samples_) {
-		setUpSampleFromPrevious(sampleName);
-		if(sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount ||
-				njh::in(sampleName, lowRepCntSamples_) ){
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(sampleName);
+		}
+		if (njh::in(sampleName, lowRepCntSamples_)
+				|| sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_
+						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
 		auto & samp = *(sampleCollapses_[sampleName]);
@@ -1621,7 +1651,9 @@ void SampleCollapseCollection::outputRepAgreementInfo() {
 			rmseTab.content_.emplace_back(
 					toVecStr(sampleName, samp.collapsed_.getRMSE()));
 		}
-		clearSample(sampleName);
+		if(!keepSampleInfoInMemory_){
+			clearSample(sampleName);
+		}
 	}
 	repInfoTab.outPutContents(
 			TableIOOpts(
@@ -1684,10 +1716,10 @@ void SampleCollapseCollection::createCoreJsonFile() const{
 Json::Value SampleCollapseCollection::toJsonCore() const{
 	Json::Value ret;
 	ret["inputOptions_"] = njh::json::toJson(inputOptions_);
-	ret["masterInputDir_"] = njh::json::toJson(bfs::absolute(masterInputDir_));
-	ret["masterOutputDir_"] = njh::json::toJson(bfs::absolute(masterOutputDir_));
-	ret["samplesOutputDir_"] = njh::json::toJson(bfs::absolute(samplesOutputDir_));
-	ret["populationOutputDir_"] = njh::json::toJson(bfs::absolute(populationOutputDir_));
+	ret["masterInputDir_"] = njh::json::toJson(njh::files::normalize(masterInputDir_));
+	ret["masterOutputDir_"] = njh::json::toJson(njh::files::normalize(masterOutputDir_));
+	ret["samplesOutputDir_"] = njh::json::toJson(njh::files::normalize(samplesOutputDir_));
+	ret["populationOutputDir_"] = njh::json::toJson(njh::files::normalize(populationOutputDir_));
 	ret["popNames_"] = njh::json::toJson(popNames_);
 	ret["passingSamples_"] = njh::json::toJson(passingSamples_);
 	ret["lowRepCntSamples_"] = njh::json::toJson(lowRepCntSamples_);
@@ -1711,14 +1743,16 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 	}
 	njh::sort(popUidNames);
 	std::vector<std::vector<std::string>> inputContent = std::vector<std::vector<std::string>>{popUidNames.size(), std::vector<std::string>{}};
-	for(const auto & popPos : iter::range(popUidNames.size())){
+	for(const auto popPos : iter::range(popUidNames.size())){
 		inputContent[popPos].emplace_back(popUidNames[popPos]);
 	}
 	table ret(inputContent, VecStr{"#PopUID"});
 	for (const auto & samp : samples) {
-		setUpSampleFromPrevious(samp);
-		if(sampleCollapses_[samp]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount||
-				njh::in(samp, lowRepCntSamples_)){
+		if(!keepSampleInfoInMemory_){
+			setUpSampleFromPrevious(samp);
+		}
+		if(njh::in(samp, lowRepCntSamples_) || sampleCollapses_[samp]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount
+				){
 			continue;
 		}
 		std::unordered_map<std::string, double> popUidToFrac;
@@ -1740,7 +1774,9 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 			}
 		}
 		ret.addColumn(addingCol, samp);
-		clearSample(samp);
+		if(!keepSampleInfoInMemory_){
+			clearSample(samp);
+		}
 	}
 	return ret;
 }

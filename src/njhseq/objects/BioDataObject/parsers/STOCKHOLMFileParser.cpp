@@ -193,7 +193,7 @@ void STOCKHOLMFileParser::writeOutFile(const OutOptions & opts) const{
 	}
 
 	out << "" << std::endl;
-	for(const auto seq : seqs_){
+	for(const auto & seq : seqs_){
 		out << seq.name_ << std::string(maxnameSize + 5 - seq.name_.size(), ' ')
 		<< " " << "  " << " "
 		<< seq.seq_ << std::endl;

@@ -171,7 +171,7 @@ std::vector<Muscler::AlnPosScoreStreak> Muscler::getAlignmentStreaksPositions(co
 	uint32_t stopCutSeqPos  = len(scores) - (endCut - scores.rbegin()) - 1;
 
 	AlnPosScoreStreak currentStreak(scores[startCutSeqPos]);
-	for(const auto & streakSearchPos : iter::range(startCutSeqPos + 1, stopCutSeqPos + 1)){
+	for(const auto streakSearchPos : iter::range(startCutSeqPos + 1, stopCutSeqPos + 1)){
 		if(scorePred(scores[streakSearchPos])){
 			if(currentStreak.end_ == scores[streakSearchPos]->pos_){
 				++currentStreak.end_;

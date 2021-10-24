@@ -9,6 +9,9 @@
 
 #include "HmmerDomainHitTab.hpp"
 
+#include "njhseq/utils/vectorUtils.hpp"
+
+
 namespace njhseq {
 
 HmmerDomainHitTab::HmmerDomainHitTab(){
@@ -18,11 +21,11 @@ HmmerDomainHitTab::HmmerDomainHitTab(){
 
 HmmerDomainHitTab::HmmerDomainHitTab(const std::string & line) {
 	auto toks = tokenizeString(line, "whitespace");
-	if (23 != toks.size()) {
+	if (toks.size() < 23) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ", error there should be 22 items not "
+		ss << __PRETTY_FUNCTION__ << ", error there should be at least 23 items not "
 				<< toks.size() << "\n";
-		for(const auto & pos : iter::range(toks.size())){
+		for(const auto pos : iter::range(toks.size())){
 			ss << pos << ": " << toks[pos] << "\n";
 		}
 		throw std::runtime_error { ss.str() };
@@ -58,8 +61,11 @@ HmmerDomainHitTab::HmmerDomainHitTab(const std::string & line) {
 
 	acc_ =  njh::StrToNumConverter::stoToNum<double>(toks[21]);
 	targetDesc_ = toks[22];
-
-
+	if(toks.size() > 23){
+		for(const auto pos : iter::range<uint32_t>(23,toks.size())){
+			targetDesc_ += " " + std::string(toks[pos]);
+		}
+	}
 }
 
 
@@ -91,6 +97,69 @@ Json::Value HmmerDomainHitTab::toJson() const{
 	ret["targetDesc_"] = njh::json::toJson(targetDesc_);
 	return ret;
 }
+
+
+
+VecStr HmmerDomainHitTab::toDelimStrHeader (){
+	return VecStr{
+		"targetName",
+		"targetAccession",
+		"targetLen",
+		"queryName",
+		"queryAccession",
+		"queryLen",
+		"seqEvalue",
+		"seqScore",
+		"seqBias",
+		"domainId",
+		"domainsTotals",
+		"domain_c_evalue",
+		"domain_i_evalue",
+		"domainScore",
+		"domainBias",
+		"hmmFrom",
+		"hmmTo",
+		"alignFrom",
+		"alignTo",
+		"envFrom",
+		"envTo",
+		"modelAccuracy",
+		"targetDesc"
+	};
+}
+
+
+
+std::string HmmerDomainHitTab::toDelimStr() const{
+
+	return njh::conToStr(toVecStr(
+			targetName_,
+			targetAcc_,
+			targetLen_,
+			queryName_,
+			queryAcc_,
+			queryLen_,
+			seqEvalue_,
+			seqScore_,
+			seqBias_,
+			domainId_,
+			domainsTotals_,
+			domain_c_evalue_,
+			domain_i_evalue_,
+			domainScore_,
+			domainBias_,
+			hmmFrom_,
+			hmmTo_,
+			alignFrom_,
+			alignTo_,
+			envFrom_,
+			envTo_,
+			acc_,
+			targetDesc_
+		), "\t");
+}
+
+
 
 
 }  // namespace njhseq

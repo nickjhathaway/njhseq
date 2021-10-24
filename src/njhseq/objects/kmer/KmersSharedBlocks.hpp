@@ -46,11 +46,14 @@ public:
 	};
 
 	KmersSharedBlocks(const std::string & name, const std::string & seq, uint32_t kLen);
+	KmersSharedBlocks(const seqInfo & seq, const kmerInfo & kInfo);
+
 	std::shared_ptr<seqInfo> seqBase_;
 	std::shared_ptr<kmerInfo> kInfo_;
 	//key = ref position, value = size of kmers shared
 	std::unordered_map<uint32_t, KmersSharedBlock> kComps_;
 	uint32_t maxRefPos_ = 0;
+	uint32_t minBlockSize = 2;
 	KmersSharedBlock currentComp_ { std::numeric_limits<uint32_t>::max(),
 			std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max() };
 

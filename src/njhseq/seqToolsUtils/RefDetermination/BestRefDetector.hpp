@@ -54,7 +54,7 @@ public:
     double currentKmerCutOff = pars.kmerCutOff_;
     bool run = true;
     while(run){
-	    for (const auto& refPos : iter::range(refSeqs.size())) {
+	    for (const auto refPos : iter::range(refSeqs.size())) {
 	      const auto & ref = refSeqs[refPos];
 	      if (getSeqBase(ref).name_ == getSeqBase(inputSeq).name_) {
 	        continue;
@@ -112,11 +112,11 @@ public:
 	  std::mutex mut;
 
 
-	  auto compareInput = [&alnPool,&inputSeqs,&refSeqs,&posQueue,&pars,&mut,&ret](){
+	  std::function<void()> compareInput = [&alnPool,&inputSeqs,&refSeqs,&posQueue,&pars,&mut,&ret](){
 	  	std::vector<uint32_t> subPositions;
 	  	auto curAligner = alnPool.popAligner();
 	  	std::vector<kmerInfo> refInfos;
-	  	for (const auto& refPos : iter::range(refSeqs.size())){
+	  	for (const auto refPos : iter::range(refSeqs.size())){
 	  		refInfos.emplace_back(getSeqBase(refSeqs[refPos]).seq_, pars.kmerLen_, false);
 	  	}
 	  	while(posQueue.getVals(subPositions, pars.batchAmount_)){
@@ -129,7 +129,7 @@ public:
 			    double currentKmerCutOff = pars.kmerCutOff_;
 			    bool run = true;
 			    while(run){
-				    for (const auto& refPos : iter::range(refSeqs.size())) {
+				    for (const auto refPos : iter::range(refSeqs.size())) {
 				      const auto & ref = refSeqs[refPos];
 				      if (getSeqBase(ref).name_ == getSeqBase(input).name_) {
 				        continue;
@@ -179,11 +179,7 @@ public:
 				}
 	  		}
 		};
-		std::vector<std::thread> threads;
-		for (uint32_t t = 0; t < pars.numThreads; ++t) {
-			threads.emplace_back(std::thread(compareInput));
-		}
-		njh::concurrent::joinAllJoinableThreads(threads);
+		njh::concurrent::runVoidFunctionThreaded(compareInput, pars.numThreads);
 		return ret;
 	}
 

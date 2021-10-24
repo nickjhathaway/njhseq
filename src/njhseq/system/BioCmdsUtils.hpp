@@ -37,6 +37,7 @@ public:
 	BioCmdsUtils(bool verbose);
 	bool verbose_ = false;
 	std::string fastqDumpCmd_ = "fastq-dump";
+	std::string fasterqDumpCmd_ = "fasterq-dump";
 
 	njh::sys::RunOutput RunBowtie2Index(const bfs::path & genomeFnp) const;
 	njh::sys::RunOutput RunBwaIndex(const bfs::path & genomeFnp) const;
@@ -61,6 +62,7 @@ public:
 		std::string extraLastzArgs = "";
 	};
 	njh::sys::RunOutput lastzAlign(const SeqIOOptions & opts, const LastZPars & pars) const ;
+	njh::sys::RunOutput lastzAlignNoSort(const SeqIOOptions & opts, const LastZPars & pars) const ;
 
 
 	bool isSRAPairedEnd(const bfs::path & sraFnp) const;
@@ -89,7 +91,36 @@ public:
 		Json::Value toJson() const;
 	};
 
+
+
+	struct FasterqDumpResults{
+		bfs::path firstMateFnp_;
+		bfs::path secondMateFnp_;
+
+		bool isPairedEnd_ = false;
+		njh::sys::RunOutput output_;
+
+		Json::Value toJson() const;
+	};
+
+	struct FasterqDumpPars{
+		bfs::path sraFnp_;
+
+		std::string extraSraOptions_ = "";
+		bfs::path tempDir_ = "./";
+		bfs::path outputDir_ = "./";
+		bool force_ = false;
+
+		uint32_t numThreads_ = 1;
+
+		uint32_t readSubCacheSize_{100};
+		uint32_t writeCacheSize{50};
+		std::chrono::milliseconds writeWaitTime{std::chrono::milliseconds(1)};
+
+	};
+
 	FastqDumpResults runFastqDump(const FastqDumpPars & pars) const;
+	FasterqDumpResults runFasterqDump(const FasterqDumpPars & pars) const;
 
 	njh::sys::RunOutput runCmdCheck(const std::string & cmd,
 			const bfs::path & input, const bfs::path & check) const;

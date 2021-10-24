@@ -27,12 +27,12 @@
 
 namespace njhseq {
 PopNamesInfo::PopNamesInfo(std::string populationName,
-		std::set<std::string> samples) :
-		populationName_(populationName), samples_(samples) {
+		std::set<std::string> samples, std::set<std::string> controlSamples) :
+		populationName_(populationName), samples_(samples), controlSamples_(controlSamples){
 	checkPopNameThrow();
 
 }
-PopNamesInfo::PopNamesInfo(std::string populationName, VecStr samples) :
+PopNamesInfo::PopNamesInfo(std::string populationName, VecStr samples, VecStr controlSamples) :
 		populationName_(populationName) {
 	checkPopNameThrow();
 	auto counts = countVec(samples);
@@ -42,16 +42,36 @@ PopNamesInfo::PopNamesInfo(std::string populationName, VecStr samples) :
 			warnings.emplace_back(count.first + ":" + estd::to_string(count.second));
 		}
 	}
-	if (!warnings.empty()) {
+	VecStr controlWarnings;
+
+	for(const auto & controlSamp : controlSamples){
+		if(!njh::in(controlSamp, samples)){
+			controlWarnings.emplace_back("Control samples should also be in samples, did not find " + controlSamp);
+		}
+	}
+	auto controlCounts = countVec(controlSamples);
+	for (const auto & count : controlCounts) {
+		if (count.second > 1) {
+			controlWarnings.emplace_back("Found multiple of sample: "  + count.first + ":" + estd::to_string(count.second));
+		}
+	}
+	if (!warnings.empty() || !controlWarnings.empty()) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__
 				<< ": Error, the following samples were entered more than once\n";
 		for (const auto & warn : warnings) {
 			ss << warn << std::endl;
 		}
+		if(!controlWarnings.empty()){
+			ss << "Control Samples Warnings" << std::endl;
+		}
+		for(const auto & warn : controlWarnings){
+			ss << warn << std::endl;
+		}
 		throw std::runtime_error { ss.str() };
 	}
 	samples_ = std::set<std::string> { samples.begin(), samples.end() };
+	controlSamples_ = std::set<std::string> { controlSamples.begin(), controlSamples.end() };
 }
 
 void PopNamesInfo::checkPopNameThrow()const{
@@ -71,6 +91,7 @@ Json::Value PopNamesInfo::toJson() const{
 	Json::Value ret;
 	ret["class"] =           njh::json::toJson(njh::getTypeName(*this));
 	ret["samples_"] =        njh::json::toJson(samples_);
+	ret["controlSamples_"] =        njh::json::toJson(controlSamples_);
 	ret["populationName_"] = njh::json::toJson(populationName_);
 	return ret;
 }

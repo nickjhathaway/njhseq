@@ -291,7 +291,7 @@ public:
 							getSeqBase(seqs[pos.first]).clipOut(posSizes.at(pos.first).pos_,
 									posSizes.at(pos.first).size_);
 						}
-						getSeqBase(seqs[pos.first]).insert(posSizes.at(pos.first).pos_, seqInfo("", std::string(maxLen, '-'), std::vector<uint32_t>(maxLen, 0)));
+						getSeqBase(seqs[pos.first]).insert(posSizes.at(pos.first).pos_, seqInfo("", std::string(maxLen, '-'), std::vector<uint8_t>(maxLen, 0)));
 					}
 				}
 			} catch (std::exception & e) {
@@ -757,7 +757,7 @@ public:
 				}
 			}
 
-			for (const auto & alnSeqPos : iter::range(refSeqs.size(), allSeqs.size())) {
+			for (const auto alnSeqPos : iter::range(refSeqs.size(), allSeqs.size())) {
 				uint32_t spanningSpots = 0;
 				uint32_t nonZeroSpanningSpots = 0;
 				double score = 0;

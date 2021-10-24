@@ -89,9 +89,15 @@
 
 
 //non standard libraries
-#include <cppitertools/range.hpp>
-#include <cppitertools/reversed.hpp>
-#include <cppitertools/enumerate.hpp>
+#include <cppitertools/itertools.hpp>
+
 
 //own files
 #include "ediannessmacros.h"
+#if __APPLE__ == 1 && __cpp_lib_shared_timed_mutex < 201402L && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ <= 101106
+#include <sharedMutex.h>
+#else
+#include <shared_mutex>
+#endif
+
+

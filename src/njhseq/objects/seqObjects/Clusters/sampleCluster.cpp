@@ -21,7 +21,7 @@
 //
 namespace njhseq {
 sampleCluster::sampleCluster(const seqInfo& initializerRead,
-		const std::map<std::string, sampInfo>& infos) {
+		const std::map<std::string, sampInfo>& infos):sampInfos_(infos) {
 	seqBase_ = initializerRead;
 
 	firstReadName_ = initializerRead.name_;
@@ -29,23 +29,29 @@ sampleCluster::sampleCluster(const seqInfo& initializerRead,
 
 	sampName = getOwnSampName();
 
-	for (const auto & i : infos) {
-		sampInfos_[i.second.runName_] = sampInfo(i.second.runName_,
-				i.second.runReadCnt_);
-	}
+//	for (const auto & i : infos) {
+//		sampInfos_[i.second.runName_] = sampInfo(i.second.runName_, i.second.runReadCnt_);
+//	}
 
 	reads_.emplace_back(std::make_shared<readObject>(*this));
 	updateInfoWithRead(*this, 0);
 	remove = false;
 	needToCalculateConsensus_ = false;
 	setLetterCount();
+
+
+
 }
 
 
 void sampleCluster::addRead(const sampleCluster& cr) {
   // add the cluster's reads and update the info
   for (const auto& read : cr.reads_) {
-    updateInfoWithRead(*read, reads_.size());
+  	//if this read does not have this samp info, add it's basic info
+  	if(!njh::in(read->sampName, sampInfos_)){
+  		sampInfos_.emplace(read->sampName, sampInfo(cr.sampInfos().at(read->sampName).runName_, cr.sampInfos().at(read->sampName).runReadCnt_));
+  	}
+  	updateInfoWithRead(*read, reads_.size());
     reads_.push_back(read);
   }
   // update the fraction and totalCounts
@@ -59,7 +65,7 @@ void sampleCluster::addRead(const sampleCluster& cr) {
 void sampleCluster::updateInfoWithRead(const readObject& read, uint32_t pos) {
   // update infos with the read
 	sampleClusters_[read.sampName].push_back(pos);
-  sampInfos_[read.sampName].update(read.seqBase_);
+	sampInfos_[read.sampName].update(read.seqBase_);
 }
 
 
@@ -79,6 +85,24 @@ std::unordered_map<std::string, std::unordered_map<std::string, double>> sampleC
 		}
 	}
 	return ret;
+}
+
+
+const std::map<std::string, sampInfo> & sampleCluster::sampInfos()const{return sampInfos_;}
+const std::map<std::string, std::vector<uint32_t>> & sampleCluster::sampleClusters()const{return sampleClusters_;}
+
+void sampleCluster::setSampInfos(const std::map<std::string, sampInfo> & sampInfos){
+	sampInfos_ = sampInfos;
+}
+
+void sampleCluster::setSampInfosTotals(const std::map<std::string, sampInfo> & sampInfos){
+	sampInfos_ = sampInfos;
+	for(auto & info : sampInfos_){
+		info.second.resetBasicInfo();
+	}
+	for (const auto & seq : reads_) {
+		sampInfos_[getSeqBase(seq).getOwnSampName()].update(getSeqBase(seq));
+	}
 }
 
 void sampleCluster::resetInfos(){
@@ -124,8 +148,14 @@ double sampleCluster::getAveragedFrac() const {
   		fracs.emplace_back(0);
   	}
   }
-
-  return vectorMean(fracs);
+  if(0 == fracs.size()){
+  	return 0;
+  }
+  double fracSum = 0;
+  for(const auto frac : fracs){
+  	fracSum +=frac;
+  }
+  return fracSum/std::min<uint32_t>(totalRepNumberInAnalysis_, sampInfos_.size());
 }
 
 double sampleCluster::getAveragedFrac(const VecStr & forClusters)const{
@@ -260,7 +290,7 @@ VecStr sampleCluster::getClusterInfoVec() const{
   		, getReadWeightedAveragedFrac()
 			, seqBase_.cnt_
 			, numberOfRuns()
-			, seqBase_.seq_
+//			, seqBase_.seq_
 			, reads_.size()
 			, getChimeraInfoVec()
 			, vectorToString(readVec::getNames(reads_), ","));
@@ -268,7 +298,8 @@ VecStr sampleCluster::getClusterInfoVec() const{
 
 VecStr sampleCluster::getClusterInfoHeaderVec() {
 	return VecStr { "c_AveragedFrac", "c_ReadFrac", "c_ReadCnt", "c_RepCnt",
-			"c_Consensus", "c_InputCnt", "c_ChiReadCnt", "c_ChiClusCnt",
+		//"c_Consensus",
+			"c_InputCnt", "c_ChiReadCnt", "c_ChiClusCnt",
 			"c_ChiRepCnt", "c_InputNames" };
 }
 
@@ -282,7 +313,7 @@ std::string sampleCluster::getClusterInfo(const std::string& delim ) const{
   		<< delim << getReadWeightedAveragedFrac()
 			<< delim << seqBase_.cnt_
 			<< delim << numberOfRuns()
-			<< delim << seqBase_.seq_
+			//<< delim << seqBase_.seq_
 			<< delim << reads_.size()
 			<< delim << getChimeraInfo(delim)
 			<< delim << vectorToString(readVec::getNames(reads_), ",");
@@ -381,7 +412,7 @@ VecStr sampleCluster::getPopHapInfoVec(double popReadCnt,
 VecStr sampleCluster::getPopHapInfoHeaderVec(){
 	return VecStr { "h_PopFrac", "h_AATyped","h_SumOfAllFracs", "h_AvgFracFoundAt",
 			"h_ReadFrac", "h_SampCnt", "h_SampFrac", "h_ReadCnt", "h_ClusterCnt",
-			"h_clusterNames", "h_Consesus"};
+			"h_clusterNames", "h_Consensus"};
 }
 
 
@@ -402,7 +433,7 @@ std::string sampleCluster::getFullPopInfoHeader(const std::string& coiHeader, co
 			<< delim << "h_ReadCnt"
 			<< delim << "h_ClusterCnt"
 			<< delim << "h_clusterNames"
-			<< delim << "h_Consesus"
+			<< delim << "h_Consensus"
 			<< delim << "h_Protein";
 	return ss.str();
 }
@@ -441,9 +472,10 @@ std::string sampleCluster::getPopInfoHeader(const std::string & delim){
 
 VecStr sampleCluster::getPopInfoHeaderVec() {
 
-	return VecStr { "h_popUID", "p_TotalPopulationSampCnt", "h_AATyped", "h_PopFrac",
+	return VecStr {
+		  "h_popUID", "p_TotalPopulationSampCnt", "h_AATyped", "h_PopFrac",
 			"h_SumOfAllFracs", "h_AvgFracFoundAt", "h_ReadFrac", "h_SampCnt",
-			"h_SampFrac", "h_ReadCnt", "h_ClusterCnt", "h_clusterNames" };
+			"h_SampFrac", "h_ReadCnt", "h_ClusterCnt", "h_Consensus" };
 }
 
 VecStr sampleCluster::getPopInfoVec(double popReadCnt, uint32_t popClusNum,
@@ -463,7 +495,7 @@ VecStr sampleCluster::getPopInfoVec(double popReadCnt, uint32_t popClusNum,
 			, sampleClusters_.size() / static_cast<double>(sampNum)
 			, seqBase_.cnt_
 			, reads_.size()
-			, vectorToString(readVec::getNames(reads_), ","));
+			, seqBase_.seq_);
 }
 
 std::string sampleCluster::getPopInfo(double popReadCnt, uint32_t popClusNum,
@@ -473,7 +505,7 @@ std::string sampleCluster::getPopInfo(double popReadCnt, uint32_t popClusNum,
 
 std::vector<uint32_t> sampleCluster::getReadPositions(const VecStr & forClusters)const{
 	std::vector<uint32_t> ret;
-	for(const auto & readPos : iter::range(reads_.size())){
+	for(const auto readPos : iter::range(reads_.size())){
 		if(njh::in(reads_[readPos]->seqBase_.name_, forClusters)){
 			ret.emplace_back(readPos);
 		}

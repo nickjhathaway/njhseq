@@ -58,84 +58,30 @@ ManipulateTableRunner::ManipulateTableRunner() :
 				}, "ManipulateTable", "1") {
 }
 //
+
+
+
 int ManipulateTableRunner::splitColumnContainingMeta(
 		const njh::progutils::CmdArgs & inputCommands) {
 
-	std::string column = "";
-	bool keepMetaInColumn = false;
-	bool prefixWithColName = false;
-	bool removeEmptyColumn = false;
+	table::splitColWithMetaPars splitingColsPars;
 	ManipulateTableSetUp setUp(inputCommands);
-	setUp.setOption(column, "--column", "Column to split which contains meta with the following formating [key1=val1;key2=val2;]", true);
-	setUp.setOption(keepMetaInColumn, "--keepMetaInColumn", "Keep meta in the original column");
-	setUp.setOption(removeEmptyColumn, "--removeEmptyColumn", "remove original column if it becomes an empty column");
-	setUp.setOption(prefixWithColName, "--prefixWithColName", "Prefix new columns with column name");
+	setUp.setOption(splitingColsPars.column_, "--column", "Column to split which contains meta with the following formating [key1=val1;key2=val2;]", true);
+	setUp.setOption(splitingColsPars.keepMetaInColumn_, "--keepMetaInColumn", "Keep meta in the original column");
+	setUp.setOption(splitingColsPars.removeEmptyColumn_, "--removeEmptyColumn", "remove original column if it becomes an empty column");
+	setUp.setOption(splitingColsPars.prefixWithColName_, "--prefixWithColName", "Prefix new columns with column name");
 	setUp.processFileName(true);
 	setUp.processNonRquiredDefaults();
-	bool sorting = setUp.processSorting();
+	splitingColsPars.sorting_ = setUp.processSorting();
+	splitingColsPars.descending_ = setUp.decending_;
+	splitingColsPars.sortCol_ = setUp.sortByColumn_;
 	setUp.finishSetUp(std::cout);
 	table inTab(setUp.ioOptions_);
-	inTab.checkForColumnsThrow({column}, __PRETTY_FUNCTION__);
-	std::set<std::string> metaFields;
-	std::unordered_map<std::string, VecStr> metaValues;
 
-	bool noneContainMeta = true;
-	for (const auto & row : inTab.content_) {
-		if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(column)])){
-			MetaDataInName rowMeta(row[inTab.getColPos(column)]);
-			auto metas = getVectorOfMapKeys(rowMeta.meta_);
-			std::copy(metas.begin(), metas.end(),
-					std::inserter(metaFields, metaFields.end()));
-			noneContainMeta = false;
-		}
-	}
-	if(!noneContainMeta){
-		bool allEmpty = true;
-		for (auto & row : inTab.content_) {
-			if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(column)])){
-				MetaDataInName rowMeta(row[inTab.getColPos(column)]);
-				for(const auto & m : rowMeta.meta_){
-					metaValues[m.first].emplace_back(m.second);
-				}
-				for(const auto & metaField : metaFields){
-					if(!njh::in(metaField, rowMeta.meta_)){
-						metaValues[metaField].emplace_back("NA");
-					}
-				}
-				if(!keepMetaInColumn){
-					MetaDataInName::removeMetaDataInName(row[inTab.getColPos(column)]);
-					if("" != row[inTab.getColPos(column)]){
-						allEmpty = false;
-					}
-				}
-			}else{
-				for(const auto & metaField : metaFields){
-					metaValues[metaField].emplace_back("NA");
-				}
-			}
-		}
-		if (allEmpty && removeEmptyColumn) {
-			inTab.deleteColumn(column);
-		}
-		for (const auto & m : metaValues) {
-			std::string newColName = m.first;
-			if (prefixWithColName) {
-				newColName = column + "-" + m.first;
-			}
-			inTab.addColumn(m.second, newColName);
-		}
-		if(sorting){
-			inTab.sortTable(setUp.sortByColumn_, setUp.decending_);
-		}
-	}else{
-		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": No values in " << column << " contain meta data, doing nothing" << "\n";
-		throw std::runtime_error{ss.str()};
-
-	}
-	inTab.hasHeader_ = setUp.addHeader_;
+	table outTab = table::splitColWithMeta(inTab, splitingColsPars);
+	outTab.hasHeader_ = setUp.addHeader_;
 	setUp.ioOptions_.hasHeader_ = setUp.addHeader_;
-	inTab.outPutContents(setUp.ioOptions_);
+	outTab.outPutContents(setUp.ioOptions_);
 	return 0;
 }
 
@@ -217,33 +163,42 @@ int ManipulateTableRunner::countRowLengths(
 int ManipulateTableRunner::tableExtractCriteria(
 		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
+	setUp.description_ = "Extract table contents by filtering on a column, by default will take values higher than cut off, --lessThan to take values less than cut off";
 	std::string columnName = "";
 	double cutOff = 1;
 	bool lessThan = false;
 	setUp.processDefaultProgram(true);
-	setUp.setOption(columnName, "--columnName",
-			"Name of the column to extract on using cutOff", true);
-	setUp.setOption(cutOff, "--cutOff",
-			"Cut off of column to be extract, not inclusive, can be negative");
-	setUp.setOption(lessThan, "--lessThan",
-			"Take numbers less than value in cutOff flag");
+	setUp.setOption(columnName, "--columnName", "Name of the column to extract on using cutOff", true);
+	setUp.setOption(cutOff, "--cutOff", "Cut off of column to be extract, not inclusive");
+	setUp.setOption(lessThan, "--lessThan", "Take numbers less than value in cutOff flag");
 	setUp.finishSetUp(std::cout);
-	table inTab(setUp.ioOptions_);
-	table outTab;
+
+	TableReader inTable(setUp.ioOptions_);
+	inTable.header_.containsColumn(columnName);
+	OutputStream out(setUp.ioOptions_.out_);
+	if(setUp.ioOptions_.hasHeader_){
+		inTable.header_.outPutContents(out, setUp.ioOptions_.outDelim_);
+	}
+	std::function<bool(const std::string & str)> comp;
 	if (lessThan) {
-		auto compLess = [cutOff](const std::string & str) {
+		comp = [cutOff](const std::string & str) {
 			double numValue = std::stod(str);
 			return numValue < cutOff;
 		};
-		outTab = inTab.extractByComp(columnName, compLess);
 	} else {
-		auto compGreater = [cutOff](const std::string & str) {
+		comp = [cutOff](const std::string & str) {
 			double numValue = std::stod(str);
 			return numValue > cutOff;};
-		outTab = inTab.extractByComp(columnName, compGreater);
 	}
-	outTab.hasHeader_ = setUp.ioOptions_.hasHeader_;
-	outTab.outPutContents(setUp.ioOptions_);
+
+	VecStr row;
+	auto colPos = inTable.header_.getColPos(columnName);
+	while(inTable.getNextRow(row)){
+		if(comp(row[colPos])){
+			out << njh::conToStr(row, setUp.ioOptions_.outDelim_) << "\n";
+		}
+	}
+
 	return 0;
 }
 
@@ -402,26 +357,75 @@ int ManipulateTableRunner::countColumn(
 		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.processDefaultProgram(true);
-	std::string columnName = "";
+	VecStr columnName;
 	setUp.setOption(columnName, "--columnName", "columnName", true);
 	setUp.finishSetUp(std::cout);
-	auto toks = tokenizeString(columnName, ",");
-	table inTab(setUp.ioOptions_);
-	if (toks.size() == 1) {
-		auto counts = inTab.countColumn(columnName);
-		table ret(counts, { "element", "count" });
-		if (setUp.sortByColumn_ != "") {
-			ret.sortTable(setUp.sortByColumn_, setUp.decending_);
-		}
-		ret.outPutContents(setUp.ioOptions_);
-	} else {
-		auto ret = inTab.countColumn(toks);
-		if (setUp.sortByColumn_ != "") {
-			ret.sortTable(setUp.sortByColumn_, setUp.decending_);
-		}
-		ret.outPutContents(setUp.ioOptions_);
+	TableReader inTabReader(setUp.ioOptions_);
+
+	if(!("STDIN" == setUp.ioOptions_.in_.inFilename_ && !setUp.ioOptions_.hasHeader_)){
+		inTabReader.header_.checkForColumnsThrow(columnName, __PRETTY_FUNCTION__);
 	}
 
+	setUp.ioOptions_.out_.throwIfOutExistsNoOverWrite(__PRETTY_FUNCTION__);
+
+	table ret;
+	VecStr row;
+	if (columnName.size() == 1) {
+		uint32_t colPos = std::numeric_limits<uint32_t>::max();
+		if("STDIN" == setUp.ioOptions_.in_.inFilename_ && !setUp.ioOptions_.hasHeader_){
+			std::regex pat("col.([0-9]+)");
+			std::smatch match;
+			if(std::regex_match(columnName.front(), match, pat)){
+				colPos = njh::StrToNumConverter::stoToNum<uint32_t>(match[1]);
+			}else{
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error "
+						<< "when reading from standard in (STDIN) with no header, need to supply column name in pattern col.[0-9]+, not "
+						<< columnName.front() << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+		}else{
+			colPos = inTabReader.header_.getColPos(columnName.front());
+		}
+
+		std::unordered_map<std::string, uint64_t> counts;
+		while(inTabReader.getNextRow(row)){
+			++counts[row[colPos]];
+		}
+		ret = table(counts, VecStr{columnName.front(), "count"});
+	} else {
+		std::map<std::string, uint32_t> counts;
+		std::vector<uint32_t> colPositions(columnName.size());
+		for(const auto pos : iter::range(columnName.size())){
+			colPositions[pos] = inTabReader.header_.getColPos(columnName[pos]);
+		}
+		while(inTabReader.getNextRow(row)){
+			std::string codedName = "";
+			for(const auto & pos : colPositions){
+				if(pos == colPositions.back()){
+					codedName+= row[pos];
+				}else{
+					codedName+= row[pos] + "SPLITONTHIS";
+				}
+			}
+			++counts[codedName];
+		}
+		VecStr outColumnNames;
+		for(const auto & pos : colPositions){
+			outColumnNames.emplace_back(inTabReader.header_.columnNames_[pos]);
+		}
+		outColumnNames.emplace_back("count");
+		ret = table(outColumnNames);
+		for(const auto & c : counts){
+			auto toks = tokenizeString(c.first,"SPLITONTHIS");
+			toks.emplace_back(estd::to_string(c.second));
+			ret.content_.emplace_back(toks);
+		}
+	}
+	if (setUp.sortByColumn_ != "") {
+		ret.sortTable(setUp.sortByColumn_, setUp.decending_);
+	}
+	ret.outPutContents(setUp.ioOptions_);
 	return 0;
 }
 
@@ -458,33 +462,60 @@ int ManipulateTableRunner::sortTable(
 
 int ManipulateTableRunner::tableExtractColumns(const njh::progutils::CmdArgs & inputCommands){
 	ManipulateTableSetUp setUp(inputCommands);
-	std::string columns;
+	VecStr extractColumns;
 	bool getUniqueRows = false;
 	setUp.processFileName();
 	setUp.processNonRquiredDefaults();
 	setUp.processSorting();
   std::string extractColumnsStrings = "";
-  setUp.setOption(columns, "--columns",
+  setUp.setOption(extractColumns, "--columns",
                   "Names Of Columns To Extract, either comma separated input or a file with each line a column name",
 									true);
   setUp.setOption(getUniqueRows, "-getUniqueRows", "GetUniqueRows");
   setUp.finishSetUp(std::cout);
 
-  auto extractColumns = getInputValues(columns, ",");
 
-	table inTab(setUp.ioOptions_);
-	table outTab = inTab.getColumns(extractColumns);
 
-	if (setUp.sortByColumn_ != "") {
+  if(!getUniqueRows && "" == setUp.sortByColumn_){
+  	// if not sorting and not getting unique columns, just use tab reader
+  	TableReader tabReader(setUp.ioOptions_);
+  	tabReader.header_.checkForColumnsThrow(extractColumns,__PRETTY_FUNCTION__);
 
-		outTab.sortTable(setUp.sortByColumn_, setUp.decending_);
-	}
-
-	if (getUniqueRows) {
-		outTab = outTab.getUniqueRows();
-	}
-
-	outTab.outPutContents(setUp.ioOptions_);
+  	OutputStream out(setUp.ioOptions_.out_);
+  	out << njh::conToStr(extractColumns, setUp.ioOptions_.outDelim_) << "\n";
+  	VecStr row;
+  	std::vector<uint32_t> columnPositions;
+  	for(const auto & col : extractColumns){
+  		columnPositions.emplace_back(tabReader.header_.getColPos(col));
+  	}
+  	std::function<void(const VecStr &)>extractAndWrite;
+  	if(1 == extractColumns.size()){
+  		extractAndWrite = [&out,&columnPositions](const VecStr & row){
+  			out << row[columnPositions[0]] << "\n";
+  		};
+  	}else{
+  		extractAndWrite = [&out,&columnPositions,&setUp](const VecStr & row){
+  			out << row[columnPositions[0]];
+  			for(const auto pos : iter::range<uint32_t>(1,columnPositions.size())){
+  				out << setUp.ioOptions_.outDelim_ << row[columnPositions[pos]];
+  			}
+  			out << "\n";
+  		};
+  	}
+  	while(tabReader.getNextRow(row)){
+  		extractAndWrite(row);
+  	}
+  } else {
+  	table inTab(setUp.ioOptions_);
+  	table outTab = inTab.getColumns(extractColumns);
+  	if (setUp.sortByColumn_ != "") {
+  		outTab.sortTable(setUp.sortByColumn_, setUp.decending_);
+  	}
+  	if (getUniqueRows) {
+  		outTab = outTab.getUniqueRows();
+  	}
+  	outTab.outPutContents(setUp.ioOptions_);
+  }
 	return 0;
 }
 
@@ -728,6 +759,8 @@ inline std::map<njh::files::bfs::path, bool> listAllFiles(
 	return files;
 }
 
+
+
 int ManipulateTableRunner::rBind(
 		const njh::progutils::CmdArgs & inputCommands) {
 	std::string contains = "";
@@ -776,35 +809,101 @@ int ManipulateTableRunner::rBind(
 	}
 
 
-	table mainTable;
-	uint32_t count = 0;
-	for (const auto &file : allFiles) {
-		if (verbose) {
-			std::cout << file.first.string() << std::endl;
+
+
+
+	if(!fill){
+		njh::files::bfs::path firstFileFnp;
+		for (const auto &file : allFiles) {
+			if (njh::files::bfs::is_directory(file.first)) {
+				continue;
+			}
+			if (0 == njh::files::bfs::file_size(file.first)) {
+				continue;
+			}
+			firstFileFnp = file.first;
+			break;
 		}
-		if (njh::files::bfs::is_directory(file.first)) {
+
+		TableReader firstTable(TableIOOpts(InOptions(firstFileFnp), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_));
+		OutputStream out(setUp.ioOptions_.out_);
+		VecStr row;
+		if(setUp.ioOptions_.hasHeader_){
+			out << njh::conToStr(firstTable.header_.columnNames_, setUp.ioOptions_.outDelim_) << '\n';
+		}
+		while(firstTable.getNextRow(row)){
+			out << njh::conToStr(row, setUp.ioOptions_.outDelim_) << '\n';
+		}
+		for (const auto &file : allFiles) {
 			if (verbose) {
-				std::cout << "Skipping directory: " << file.first.string() << std::endl;
+				std::cout << file.first.string() << std::endl;
 			}
-			continue;
-		}
-		if (count == 0) {
-			table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
-			mainTable = inTab;
-		} else {
-			table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
-			try {
-				mainTable.rbind(inTab, fill);
-			}catch (std::exception & e) {
-				std::stringstream ss;
-				ss << __PRETTY_FUNCTION__ << ", failed to add table from " << file.first << "\n";
-				ss << e.what();
-				throw std::runtime_error{ss.str()};
+			if (njh::files::bfs::is_directory(file.first)) {
+				if (verbose) {
+					std::cout << "Skipping directory: " << file.first.string() << std::endl;
+				}
+				continue;
+			}
+			if (0 == njh::files::bfs::file_size(file.first)) {
+				if (verbose) {
+					std::cout << "Skipping empty file: " << file.first.string() << std::endl;
+				}
+				continue;
+			}
+			if(file.first != firstFileFnp){
+				TableReader currentTable(TableIOOpts(InOptions(file.first), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_));
+				VecStr row;
+				if(!std::equal(firstTable.header_.columnNames_.begin(), firstTable.header_.columnNames_.end(),
+						currentTable.header_.columnNames_.begin(), currentTable.header_.columnNames_.end())){
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << "header for " << file.first << " doesn't match other columns"<< "\n";
+					ss << "expected header: " << njh::conToStr(firstTable.header_.columnNames_) << "\n";
+					ss << "found    header: " << njh::conToStr(currentTable.header_.columnNames_) << '\n';
+					throw std::runtime_error{ss.str()};
+				}
+				while(currentTable.getNextRow(row)){
+					out << njh::conToStr(row, setUp.ioOptions_.outDelim_) << '\n';
+				}
 			}
 		}
-		++count;
+	}else{
+		table mainTable;
+		uint32_t count = 0;
+		for (const auto &file : allFiles) {
+			if (verbose) {
+				std::cout << file.first.string() << std::endl;
+			}
+			if (njh::files::bfs::is_directory(file.first)) {
+				if (verbose) {
+					std::cout << "Skipping directory: " << file.first.string() << std::endl;
+				}
+				continue;
+			}
+			if (0 == njh::files::bfs::file_size(file.first)) {
+				if (verbose) {
+					std::cout << "Skipping empty file: " << file.first.string() << std::endl;
+				}
+				continue;
+			}
+			if (count == 0) {
+				table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
+				mainTable = inTab;
+			} else {
+				table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
+				try {
+					mainTable.rbind(inTab, fill);
+				}catch (std::exception & e) {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", failed to add table from " << file.first << "\n";
+					ss << e.what();
+					throw std::runtime_error{ss.str()};
+				}
+			}
+			++count;
+		}
+		mainTable.outPutContents(setUp.ioOptions_);
 	}
-	mainTable.outPutContents(setUp.ioOptions_);
+
 	return 0;
 }
 
@@ -905,7 +1004,7 @@ int ManipulateTableRunner::printCol(
 	OutOptions outOpts(bfs::path(""));
 	outOpts.outExtention_ = ".txt";
 	seqSetUp setUp(inputCommands);
-	setUp.setOption(fnp, "--fnp", "Filename path", true);
+	setUp.setOption(fnp, "--file,--fnp", "Filename path", true);
 	setUp.setOption(columnName, "--columnName", "columnName", true);
 	setUp.setOption(delim, "--delim", "delim");
 	setUp.setOption(sort, "--sort", "sort output");

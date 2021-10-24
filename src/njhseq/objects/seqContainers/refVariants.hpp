@@ -29,6 +29,7 @@
 #include "njhseq/seqToolsUtils/seqToolsUtils.hpp"
 
 
+
 namespace njhseq {
 class variant {
 public:
@@ -82,10 +83,18 @@ public:
 	std::map<uint32_t, std::vector<char>> getVariantSnpLociMap(VecStr names,
 			uint32_t expand = 0) const;
 
+	std::map<uint32_t, std::vector<gap>> getVariantIndelLociMap(VecStr names, uint32_t gapSizeCutOff, bool excludeHomopolymers) const;
+	std::map<uint32_t, std::vector<gap>> getVariantDeletionLociMap(VecStr names, uint32_t gapSizeCutOff, bool excludeHomopolymers) const;
+	std::map<uint32_t, std::vector<gap>> getVariantInsertionLociMap(VecStr names, uint32_t gapSizeCutOff, bool excludeHomopolymers) const;
+
+
+	std::vector<uint32_t> getUniqueToRefPositions() const;
+
 	void outPut(std::ofstream & out) const;
 
 };
 
 }  // namespace njh
+
 
 

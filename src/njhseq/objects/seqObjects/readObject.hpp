@@ -91,7 +91,7 @@ class readObject : public baseReadObject {
 
   void addQual(const std::string & stringQual);
   void addQual(const std::string & stringQual, uint32_t offSet);
-  void addQual(const std::vector<uint32_t> & quals);
+  void addQual(const std::vector<uint8_t> & quals);
 
   void setFractionByCount(double totalNumberOfReads);
 

@@ -116,6 +116,7 @@ public:
 	std::map<std::string, primerInfo> primers_;
 
 	size_t getMaxPrimerSize() const;
+	size_t getMinPrimerSize() const;
 
 
 

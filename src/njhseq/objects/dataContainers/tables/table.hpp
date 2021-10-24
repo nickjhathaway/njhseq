@@ -296,6 +296,7 @@ public:
 	VecStr getColumnLevels(uint32_t colPos)const;
 	VecStr getColumnLevels(const std::string & colName)const;
 
+	void changeHeaderToLowerCase();
 
 //	/**@brief Create a json array with members the column name
 //	 *
@@ -309,7 +310,7 @@ public:
 	table extractByComp(uint32_t colPos, UnaryPredicate p) const {
 		table out(columnNames_);
 		if (colPos < columnNames_.size()) {
-			for (const auto & rowPos : iter::range(content_.size())) {
+			for (const auto rowPos : iter::range(content_.size())) {
 				if (p(content_[rowPos][colPos])) {
 					out.content_.emplace_back(content_[rowPos]);
 				}
@@ -352,6 +353,21 @@ public:
 
 	void checkForColumnsThrow(const VecStr & requiredColumns,
 			const std::string & funcName) const;
+
+	VecStr getMissingHeaders(const VecStr requiredColumns) const;
+
+	 struct splitColWithMetaPars{
+
+		std::string column_;
+		bool keepMetaInColumn_= false;
+		bool prefixWithColName_ = false;
+		bool removeEmptyColumn_ = false;
+		bool sorting_ = false;
+		std::string sortCol_;
+		bool descending_ = false;
+	};
+
+	 static table splitColWithMeta(const table & inputTab, const splitColWithMetaPars & pars);
 
 };
 }  // namespace njh

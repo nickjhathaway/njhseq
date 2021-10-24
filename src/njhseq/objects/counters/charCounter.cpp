@@ -59,7 +59,7 @@ Json::Value charCounter::toJson() const {
 
 charCounter::charCounter() :
 		charCounter(std::vector<char> { 'A', 'C', 'G', 'T', '-' }) {
-
+	reset();
 }
 
 charCounter::charCounter(const std::vector<char>& alphabet) :
@@ -68,6 +68,7 @@ charCounter::charCounter(const std::vector<char>& alphabet) :
 }
 
 charCounter::charCounter(const std::string & str) {
+	reset();
 	increaseCountByString(str);
 	resetAlphabet(false);
 	setFractions();
@@ -76,6 +77,7 @@ charCounter::charCounter(const std::string & str) {
 charCounter::charCounter(const std::string & str,
 		const std::vector<char>& alphabet) :
 		alphabet_(alphabet), originalAlphabet_(alphabet) {
+	reset();
 	increaseCountByString(str);
 	resetAlphabet(true);
 	setFractions();
@@ -265,7 +267,7 @@ int charCounter::getGcDifference() {
 }
 
 void charCounter::reset() {
-	for (const auto & pos : iter::range(chars_.size())) {
+	for (const auto pos : iter::range(chars_.size())) {
 		chars_[pos] = 0;
 		fractions_[pos] = 0;
 		qualities_[pos] = 0;
@@ -304,7 +306,7 @@ void charCounter::increaseCountOfBaseQual(const char &base, uint32_t qual,
 
 void charCounter::increaseCountByStringQual(const std::string &seq,
 		const std::vector<uint32_t> & qualities) {
-	for (const auto & pos : iter::range(seq.size())) {
+	for (const auto pos : iter::range(seq.size())) {
 		chars_[seq[pos]] += 1;
 		qualities_[seq[pos]] += qualities[pos];
 		allQualities_[seq[pos]].emplace_back(qualities[pos]);
@@ -312,7 +314,7 @@ void charCounter::increaseCountByStringQual(const std::string &seq,
 }
 void charCounter::increaseCountByStringQual(const std::string &seq,
 		const std::vector<uint32_t> & qualities, double cnt) {
-	for (const auto & pos : iter::range(seq.size())) {
+	for (const auto pos : iter::range(seq.size())) {
 		chars_[seq[pos]] += cnt;
 		qualities_[seq[pos]] += qualities[pos] * cnt;
 		addOtherVec(allQualities_[seq[pos]],
@@ -389,7 +391,7 @@ void charCounter::resetAlphabet(bool keepOld) {
 
 void charCounter::addOtherCounts(const charCounter & otherCounter,
 		bool setFractionsAfter) {
-	for (const auto & pos : iter::range(otherCounter.chars_.size())) {
+	for (const auto pos : iter::range(otherCounter.chars_.size())) {
 		chars_[pos] += otherCounter.chars_[pos];
 	}
 	if (setFractionsAfter) {

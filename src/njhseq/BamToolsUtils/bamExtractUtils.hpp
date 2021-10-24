@@ -26,6 +26,8 @@
 #include "njhseq/BamToolsUtils/BamToolsUtils.hpp"
 #include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 #include "njhseq/objects/seqObjects/Paired/PairedRead.hpp"
+#include "njhseq/readVectorManipulation/readVectorHelpers/readChecker.hpp"
+
 
 namespace njhseq {
 
@@ -42,18 +44,36 @@ public:
 
 	struct ExtractCounts {
 		uint32_t pairedReads_ = 0;
-		uint32_t pairedReadsMateUnmapped_ = 0;
+		uint32_t pairedReadsMateUnmapped_ = 0;//! one mate is mapped and the other mate is unmapped
+		uint32_t pairedReadsMateUnmappedFailedSoftClip_ = 0;//! one mate is mapped and the other mate is unmapped but the mapped mate failed soft-clip filter
+		uint32_t pairedReadsMateFailedSoftClip_ = 0;//! one mate mapped fully but the other mate failed a soft clip filter
+		uint32_t pairedReadsBothFailedSoftClip_ = 0;//! one mate mapped fully but the other mate failed a soft clip filter
 		uint32_t unpaiedReads_ = 0;
 		uint32_t orphans_ = 0; /**< reads that are paired but their mates weren't found */
+		uint32_t orphansFiltered_ = 0; /**< reads that are paired but their mates weren't found and eventually are filtered off */
+		uint32_t orphansFilteredSoftCip_ = 0; /**< reads that are paired but their mates weren't found and eventually are filtered off due to soft clip filter */
+
 		uint32_t orphansUnmapped_ = 0; /**< reads that are paired but their mates weren't found are unmapped */
 		uint32_t pairsUnMapped_ = 0;
 		uint32_t unpairedUnMapped_ = 0;
+		uint32_t unpairedFailedSoftClip_ = 0;//! single but failed a soft clip filter
 
-		uint32_t pairFilteredOff_ = 0;
-		uint32_t pairFilteredOffUnmapped_ = 0;
+		uint32_t improperPairFiltered_ = 0; //! number of reads removed for being a improper pair, doesn't count towards final counts
+		uint32_t markedDuplicateFiltered_ = 0; //! number of reads removed for being a marked duplicate, doesn't count towards final counts
+
+//		uint32_t mateFilteredOff_ = 0; //! mate has been filtered
+//		uint32_t mateFilteredOffUnmapped_ = 0;//! mate was unmapped
+
+		uint32_t bothMatesFilteredOff_ = 0; //! both mates has been filtered
+		uint32_t singlesFilteredOff_ = 0; //! single has been filtered
+
+
+		uint32_t mateFilteredOff_ = 0; //! mate has been filtered
+		uint32_t mateFilteredOffUnmapped_ = 0;//! mate was unmapped
 
 		uint32_t discordant_ = 0;
 		uint32_t inverse_ = 0;
+
 
 		uint32_t getTotal();
 		void log(std::ostream & out, const bfs::path & bamFnp) ;
@@ -81,6 +101,11 @@ public:
 		SeqIOOptions inUnpaired_;
 		SeqIOOptions inPairsUnMapped_;
 		SeqIOOptions inUnpairedUnMapped_;
+
+		SeqIOOptions inFilteredPairs_;
+		SeqIOOptions inFilteredSingles_;
+		SeqIOOptions inSoftClipFilteredPairs_;
+		SeqIOOptions inSoftClipFilteredSingles_;
 
 		SeqIOOptions inInverse_;
 		SeqIOOptions inDiscordant_;
@@ -128,7 +153,7 @@ public:
 	void writeExtractReadsFromBam(const bfs::path & bamFnp,
 			const OutOptions & outOpts);
 
-	void writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
+	ExtractCounts writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
 			const OutOptions & outOpts);
 
 
@@ -140,20 +165,55 @@ public:
 	 */
 	//BamExtractSeqsResultsAlns extractReadsFromBamAlns(const bfs::path & bamFnp);
 
+	struct extractReadsFromBamToSameOrientationContigsPars{
+		bool throwAwayUnmmpaedMates{true};
+		uint32_t centerClipCutOff = 20;
+		uint32_t forSoftClipFilterDistanceToEdges = 20;
+	};
 	ExtractedFilesOpts extractReadsFromBamToSameOrientationContigs(
 			const SeqIOOptions & opts,
-			bool throwAwayUnmmpaedMates);
+			const extractReadsFromBamToSameOrientationContigsPars & pars);
 
 	ExtractedFilesOpts extractReadsFromBamWrite(const SeqIOOptions & opts, bool referenceOrientation, bool throwAwayUnmmpaedMates);
 	ExtractedFilesOpts extractReadsFromBamWriteAsSingles(const SeqIOOptions & opts, bool referenceOrientation = false);
 
 
+	struct extractReadsWtihCrossRegionMappingPars {
+		double percInRegion_ = 0.5;
+		bool originalOrientation_ = false;
+		bool throwAwayUnmappedMate_ = false;
+		bool tryToFindOrphansMate_ = false;
+		bool keepMarkedDuplicate_ = false;
+		uint32_t minAlnMapSize_ = 35;
+		bool filterOffLowEntropyOrphansRecruits_{true};
+		double filterOffLowEntropyOrphansRecruitsCutOff_{1.5};
+		uint32_t entropyKlen_{2};
+
+		double softClipPercentageCutOff_{1};//! by default can soft clip all
+
+		double percentSubSample_{1};//! should be 0 to 1, sub sample region
+
+		bool removeImproperPairs_{false};
+		bool keepImproperMateUnmapped_{false};
+
+		uint32_t fivePrimeTrim_{0};//! not yet implemented
+		uint32_t threePrimeTrim_{0};//! not yet implemented
+
+		bool writeAll_{true};
+
+		Json::Value toJson() const;
+
+	};
 	ExtractedFilesOpts extractReadsWtihCrossRegionMapping(
 			const SeqIOOptions & inOutOpts,
-			const std::vector<GenomicRegion> & regions, double percInRegion,
-			bool originalOrientation,
-			bool throwAwayUnmappedMate,
-			bool tryToFindOrphansMate = false);
+			const std::vector<GenomicRegion> & regions,
+			const extractReadsWtihCrossRegionMappingPars & extractPars);
+
+	ExtractedFilesOpts extractReadsWtihCrossRegionMapping(
+			BamTools::BamReader & bReader,
+			const OutOptions & outOpts,
+			const std::vector<GenomicRegion> & regions,
+			const extractReadsWtihCrossRegionMappingPars & extractPars);
 
 	ExtractedFilesOpts extractReadsWtihCrossRegionMappingAsSingles(
 				const SeqIOOptions & inOutOpts,
@@ -162,6 +222,24 @@ public:
 
 
 	ExtractedFilesOpts writeUnMappedSeqs(const SeqIOOptions & opts);
+	struct writeUnMappedSeqsAndSmallAlnsWithFiltersPars {
+		uint32_t maxAlnSize_ { 35 };
+		uint32_t minSotClip_ { 40 };
+		uint32_t minQuerySize_ { 36 };
+		bool tryToFindOrphanMate_ { false };
+
+		bool filterOffLowEntropyShortAlnsRecruits_{true};
+		double filterOffLowEntropyShortAlnsRecruitsCutOff_{1.5};
+		uint32_t entropyKlen_{2};
+
+		Json::Value toJson() const;
+	};
+
+	ExtractedFilesOpts writeUnMappedSeqsAndSmallAlnsWithFilters(const SeqIOOptions & opts,
+			const ReadCheckerQualCheck & qualChecker,
+			const writeUnMappedSeqsAndSmallAlnsWithFiltersPars & alnSizeFilt,
+			const std::vector<GenomicRegion> & skipRegions);
+
 
 	bool verbose_ = false;
 	bool debug_ = false;

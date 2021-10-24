@@ -187,4 +187,21 @@ void GFFCore::writeGffRecord(std::ostream & out) const{
 			out <<"\n";
 }
 
+void GFFCore::revCompRecord(uint32_t chromLen){
+	//need to change start, end and strand.
+	if(strand_ == '+' || strand_ == '-'){
+		strand_ = ('-' == strand_ ? '+' : '-');
+	}
+	uint32_t newEnd = chromLen - start_ + 1;;
+	uint32_t newStart = chromLen - end_ + 1;;
+
+	end_ =   newEnd;
+	start_ = newStart;
+	//And then just turn phase to NA by turning it into MAX
+	//phase could be redetermined later
+	phase_ = std::numeric_limits<uint16_t>::max();
+}
+
+
+
 }  // namespace njhseq

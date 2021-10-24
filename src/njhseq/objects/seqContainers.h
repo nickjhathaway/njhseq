@@ -28,3 +28,4 @@
 #include "njhseq/objects/seqContainers/otuContainer.hpp"
 #include "njhseq/objects/seqContainers/refMapContainer.hpp"
 #include "njhseq/objects/seqContainers/refVariants.hpp"
+#include "njhseq/objects/seqContainers/CollapsedHaps.hpp"

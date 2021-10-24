@@ -322,7 +322,7 @@ std::unordered_map<std::string, njh::color> getColorsForNames(
 template<typename READ>
 std::vector<READ> vecStrToReadObjs(const VecStr & strs, const std::string & stubName){
 	std::vector<READ> ans;
-	for(const auto & strPos : iter::range(strs.size())){
+	for(const auto strPos : iter::range(strs.size())){
 		ans.emplace_back(READ(seqInfo(stubName + "." + leftPadNumStr(strPos, strs.size()), strs[strPos])));
 	}
 	return ans;
@@ -362,7 +362,7 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 	uint32_t inflectionPoint = UINT32_MAX;
 	uint32_t inflectionPointPar1 = UINT32_MAX;
 	uint32_t inflectionPointPar2 = UINT32_MAX;
-	for(const auto & refPos : iter::range(len(refSeqs))){
+	for(const auto  refPos : iter::range(len(refSeqs))){
 		auto & ref = refSeqs[refPos];
 		alignerObj.alignCache(ref.seqBase_, read.seqBase_, false);
 		alignerObj.profilePrimerAlignment(ref.seqBase_, read.seqBase_);
@@ -372,7 +372,7 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 			return foundAChimera;
 		}
 	}
-	for(const auto & refPos : iter::range(len(refSeqs))){
+	for(const auto refPos : iter::range(len(refSeqs))){
 		auto & ref = refSeqs[refPos];
 		alignerObj.alignCache(ref.seqBase_, read.seqBase_, false);
 		alignerObj.profilePrimerAlignment(ref.seqBase_, read.seqBase_);
@@ -400,7 +400,7 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 			//std::cout << "pass front: " << passFront << std::endl;
 			//std::cout << "pass back: " << passBack << std::endl;
 			if(passFront){
-				for(const auto & secondRefPos : iter::range(refPos + 1, len(refSeqs))){
+				for(const auto  secondRefPos : iter::range(refPos + 1, len(refSeqs))){
 					auto & secondRef = refSeqs[secondRefPos];
 					if(ref.seqBase_.name_ == secondRef.seqBase_.name_){
 						continue;
@@ -442,7 +442,7 @@ bool checkPossibleChiByRefs(const READ & read, const std::vector<REF> & refSeqs,
 				break;
 			}
 			if(passBack){
-				for(const auto & secondRefPos : iter::range(refPos + 1,len(refSeqs))){
+				for(const auto secondRefPos : iter::range(refPos + 1,len(refSeqs))){
 					auto & secondRef = refSeqs[secondRefPos];
 					if(ref.seqBase_.name_ == secondRef.seqBase_.name_){
 						continue;

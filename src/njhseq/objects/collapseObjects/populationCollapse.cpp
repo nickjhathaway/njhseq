@@ -51,12 +51,20 @@ populationCollapse::populationCollapse(
 				<< populationName_ << "\n";
 		throw std::runtime_error { ss.str() };
 	}
+	//no longer doing this cause for large sample numbers it would require way too much ram, e.g. 8000 samples would do 8000*8000 infos which adds up
+//	for (auto & i : input_.clusters_) {
+//		i.setSampInfosTotals(input_.info_.infos_);
+//	}
 	for (auto & i : input_.clusters_) {
-		i.setSampInfosTotals(input_.info_.infos_);
+		i.totalRepNumberInAnalysis_ = input_.info_.infos_.size();
 	}
+
 	for(auto & clus : input_.clusters_){
 		clus.updateSampInfosFracs();
 	}
+//	std::cout <<njh::bashCT::boldRed("Sleeping......") << std::endl;;
+//	using namespace std::chrono_literals;
+//	std::this_thread::sleep_for(100000s);
 }
 
 void populationCollapse::addInput(
@@ -75,8 +83,7 @@ void populationCollapse::popCluster(const collapser &collapserObj,
 		CollapseIterations iteratorMap, const std::string &sortBy,
 		aligner &alignerObj) {
 
-	collapsed_.clusters_ = collapserObj.runClustering(input_.clusters_,
-			iteratorMap, alignerObj);
+	collapsed_.clusters_ = collapserObj.runClustering(input_.clusters_, iteratorMap, alignerObj);
 	renameClusters(); //before with the update right afterwards, the base name will no longer represent the underlying samples
 	for(auto & clus : collapsed_.clusters_){
 		clus.updateSampInfosFracs();
@@ -175,7 +182,7 @@ void populationCollapse::renameToOtherPopNames(const std::vector<readObject> &pr
   	bool chimeric = clus.seqBase_.name_.find("CHI") != std::string::npos;
     double bestScore = 0;
     uint32_t bestRefPos = std::numeric_limits<uint32_t>::max();
-    for (const auto &refPos : iter::range(previousPop.size())) {
+    for (const auto refPos : iter::range(previousPop.size())) {
       alignerObj.alignCache(previousPop[refPos], clus, false);
       alignerObj.profilePrimerAlignment(previousPop[refPos], clus);
       if(allowableErrors.passErrorProfile(alignerObj.comp_) && alignerObj.parts_.score_ > bestScore) {
@@ -269,7 +276,7 @@ void populationCollapse::addRefMetaToName(
 	for (auto &clus : collapsed_.clusters_) {
 		double bestScore = 0;
 		uint32_t bestRefPos = std::numeric_limits<uint32_t>::max();
-		for (const auto &refPos : iter::range(previousPop.size())) {
+		for (const auto refPos : iter::range(previousPop.size())) {
 			alignerObj.alignCache(previousPop[refPos], clus, false);
 			alignerObj.profilePrimerAlignment(previousPop[refPos], clus);
 			if (allowableErrors.passErrorProfile(alignerObj.comp_)

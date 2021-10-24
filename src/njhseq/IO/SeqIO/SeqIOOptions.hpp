@@ -61,8 +61,9 @@ struct SeqIOOptions {
 
   SeqIOOptions();
 
-  SeqIOOptions(const bfs::path & firstName,
-  		inFormats inFormat, bool processed);
+  SeqIOOptions(const bfs::path & firstName, inFormats inFormat, bool processed = false);
+
+  SeqIOOptions(const bfs::path & firstName, const bfs::path & secondName, inFormats inFormat, bool processed = false);
 
 	SeqIOOptions(const OutOptions & out, outFormats outFormat);
 

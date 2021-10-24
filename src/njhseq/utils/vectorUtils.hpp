@@ -64,7 +64,7 @@ template<typename T>
 std::vector<T> vecStrToVecNum(const VecStr& vec) {
 	std::vector<T> ans;
 	for (const auto& s : vec) {
-		ans.emplace_back(static_cast<T>(std::stof(s)));
+		ans.emplace_back(njh::StrToNumConverter::stoToNum<T>(s));
 	}
 	return ans;
 }

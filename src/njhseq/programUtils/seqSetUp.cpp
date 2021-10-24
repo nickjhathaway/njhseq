@@ -436,15 +436,23 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 				pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
 			}
 		}
+		if (readInFormatsFound.front() == "--fastq1" || readInFormatsFound.front() == "--fastq1gz") {
+			if(pars_.ioOptions_.revComplMate_){
+				bool noRComp = false;
+				setOption(noRComp, "--norCompMate",
+						"Whether to reverse complement the sequence in the mate file, default is to reverse complement");
+				pars_.ioOptions_.revComplMate_ = !noRComp;
+			}else{
+				setOption(pars_.ioOptions_.revComplMate_, "--rCompMate",
+						"Whether to reverse complement the sequence in the mate file, default is to not reverse complement");
+			}
+		}
 		if (readInFormatsFound.front() == "--fastq1") {
 			if (!setOption(pars_.ioOptions_.secondName_, "--fastq2",
 					"Name of the mate file")) {
 				addWarning("If supplying -fastq1 need to also have -fastq2");
 				failed_ = true;
 			}
-			/*
-			setOption(pars_.ioOptions_.revComplMate_, "--complementMate",
-					"Whether to complement the sequence in the mate file");*/
 		}
 		if (readInFormatsFound.front() == "--fastq1gz") {
 			if (!setOption(pars_.ioOptions_.secondName_, "--fastq2gz",
@@ -452,9 +460,6 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 				addWarning("If supplying -fastq1gz need to also have -fastq2gz");
 				failed_ = true;
 			}
-			/*
-			setOption(pars_.ioOptions_.revComplMate_, "--complementMate",
-					"Whether to complement the sequence in the mate file");*/
 		}
 		//setOption(pars_.ioOptions_.out_.outFilename_, "--out", "Name of the out sequence file");
 		return true;
@@ -560,6 +565,12 @@ void seqSetUp::processWritingOptions(OutOptions & opts) {
 bool seqSetUp::processRefFilename(bool required) {
 	setOption(pars_.refIoOptions_.processed_, "--refProcessed",
 			"Reference Name Has Abundance Info");
+	setOption(pars_.refIoOptions_.lowerCaseBases_, "--refLower",
+			"What to do about lower case bases in ref seqs");
+	bool removeWhiteSpaceFromName = false;
+	setOption(removeWhiteSpaceFromName, "--refTrimNameWhiteSpace",
+			"What to do about lower case bases in ref seqs");
+	pars_.refIoOptions_.includeWhiteSpaceInName_ = !removeWhiteSpaceFromName;
 	if (commands_.hasFlagCaseInsenNoDash("--refFastq")) {
 		pars_.refIoOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQ;
 		pars_.refIoOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
@@ -587,7 +598,7 @@ bool seqSetUp::processSeq(std::string& inputSeq, const std::string& flag,
 bool seqSetUp::processSeq(seqInfo& inputSeq, const std::string& flag,
 		const std::string& parName, bool required,const std::string & flagGrouping) {
 	bool passed = setOption(inputSeq.seq_, flag, parName, required,flagGrouping);
-	//std::cout <<"1 "<< inputSeq << std::endl;
+	//std::cout <<"1 "<< inputSeq.seq_ << std::endl;
 	std::string originalSeq = inputSeq.seq_;
 	std::string originalName = inputSeq.name_;
 	if (bfs::path(inputSeq.seq_).filename().string().length() <= 255 && bfs::exists(inputSeq.seq_)) {
@@ -596,21 +607,26 @@ bool seqSetUp::processSeq(seqInfo& inputSeq, const std::string& flag,
 		if("" != originalName){
 			inputSeq.name_ = originalName;
 		}
-		//std::cout << "2 "<< inputSeq << std::endl;
+		//std::cout << "2 "<< inputSeq.seq_ << std::endl;
 		if (firstLine[0] == '>') {
-			//std::cout <<"3 "<< inputSeq << std::endl;
+			//std::cout <<"3.1 "<< inputSeq.seq_ << std::endl;
 			SeqIOOptions opts = SeqIOOptions::genFastaIn(originalSeq);
 			SeqInput reader(opts);
 			reader.openIn();
 			seqInfo seq;
 			reader.readNextRead(seq);
 			inputSeq = seq;
+			//std::cout <<"3.1.2 "<< inputSeq.seq_ << std::endl;
+
 		} else if (firstLine[0] == '@') {
-			std::ifstream inFile(inputSeq.seq_);
-			std::string nextLine = "";
-			njh::files::crossPlatGetline(inFile, nextLine);	//name line again
-			njh::files::crossPlatGetline(inFile, nextLine);	//seq line
-			inputSeq = seqInfo(firstLine.substr(1), nextLine);
+			//std::cout <<"3.2.1 "<< inputSeq.seq_ << std::endl;
+			SeqIOOptions opts = SeqIOOptions::genFastqIn(originalSeq);
+			SeqInput reader(opts);
+			reader.openIn();
+			seqInfo seq;
+			reader.readNextRead(seq);
+			inputSeq = seq;
+			//std::cout <<"3.2.2 "<< inputSeq.seq_ << std::endl;
 		}
 	} else {
 		inputSeq = seqInfo("seq", inputSeq.seq_);
@@ -618,7 +634,7 @@ bool seqSetUp::processSeq(seqInfo& inputSeq, const std::string& flag,
 			inputSeq.name_ = originalName;
 		}
 	}
-	//std::cout <<"4 "<< inputSeq << std::endl;
+	//std::cout <<"4 "<< inputSeq.seq_ << std::endl;
 	return passed;
 }
 

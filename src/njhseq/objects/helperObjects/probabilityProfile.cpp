@@ -53,8 +53,8 @@ void probabilityProfile::initCounts() {
     }
   }
 
-  for (const auto str : dnaStrings_) {
-    for (auto i : iter::range(str.size())) {
+  for (const auto & str : dnaStrings_) {
+    for (const auto i : iter::range(str.size())) {
       counts_[i].increaseCountOfBase(str[i]);
     }
   }

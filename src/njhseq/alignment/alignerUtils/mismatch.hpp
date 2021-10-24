@@ -35,12 +35,12 @@ namespace njhseq {
 class mismatch {
 
  public:
-  mismatch(const char rBase, uint32_t rQual,
-           const std::vector<uint32_t>& rLeadQual,
-           const std::vector<uint32_t>& rTrailQual, uint32_t rBasePos,
-           const char sBase, uint32_t sQual,
-           const std::vector<uint32_t>& sLeadQual,
-           const std::vector<uint32_t>& sTrailQual, uint32_t sBasePos,
+  mismatch(const char rBase, uint8_t rQual,
+           const std::vector<uint8_t>& rLeadQual,
+           const std::vector<uint8_t>& rTrailQual, uint32_t rBasePos,
+           const char sBase, uint8_t sQual,
+           const std::vector<uint8_t>& sLeadQual,
+           const std::vector<uint8_t>& sTrailQual, uint32_t sBasePos,
            int kFreqByPos, int kFreq)
       : refBase(rBase),
         refQual(rQual),
@@ -57,19 +57,19 @@ class mismatch {
         kMerFreq(kFreq){}
   //mismatch info shared between all seqs sharing this mismatch
   char refBase;
-  uint32_t refQual;
+  uint8_t refQual;
   uint32_t refBasePos;
   bool transition;
   uint32_t freq = 1;
   double frac_ = 0.0;
-  std::vector<uint32_t> refLeadingQual;
-  std::vector<uint32_t> refTrailingQual;
+  std::vector<uint8_t> refLeadingQual;
+  std::vector<uint8_t> refTrailingQual;
 
   //specific to a single sequence
   char seqBase;
-  uint32_t seqQual;
-  std::vector<uint32_t> seqLeadingQual;
-  std::vector<uint32_t> seqTrailingQual;
+  uint8_t seqQual;
+  std::vector<uint8_t> seqLeadingQual;
+  std::vector<uint8_t> seqTrailingQual;
   uint32_t seqBasePos;
   uint32_t kMerFreqByPos;
   uint32_t kMerFreq;

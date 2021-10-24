@@ -3,6 +3,8 @@
 #include "njhseq/IO/InputStream.hpp"
 #include "njhseq/IO/OutputStream.hpp"
 #include <njhcpp/bashUtils.h>
+#include "njhseq/objects/Meta/MetaDataInName.hpp"
+
 
 //
 // njhseq - A library for analyzing sequence data
@@ -115,7 +117,7 @@ void table::setRowSize(uint32_t rowSize){
 
 void table::setColNamePositions(){
 	colNameToPos_.clear();
-	for(const auto & pos : iter::range(columnNames_.size())){
+	for(const auto pos : iter::range(columnNames_.size())){
 		colNameToPos_[columnNames_[pos]] = pos;
 	}
 }
@@ -139,6 +141,13 @@ VecStr table::getColumnLevels(uint32_t colPos) const {
 
 VecStr table::getColumnLevels(const std::string & colName) const {
 	return getColumnLevels(getColPos(colName));
+}
+
+void table::changeHeaderToLowerCase(){
+	njh::for_each(columnNames_,[](std::string & col){
+		njh::strToLower(col);
+	});
+	setColNamePositions();
 }
 
 void table::populateTable(std::istream & in, const std::string &inDelim, bool header){
@@ -177,6 +186,15 @@ table::table(std::istream & in, const std::string &inDelim,
 }
 
 table::table(const bfs::path &filename, const std::string &inDelim,bool header) {
+
+	if(filename != "STDIN"){
+		if("" == filename){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "input file is blank" << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		njh::files::checkExistenceThrow(filename, __PRETTY_FUNCTION__);
+	}
 	InputStream in(filename);
 	populateTable(in, inDelim, header);
 }
@@ -196,7 +214,7 @@ void table::addPaddingToEndOfRows(const std::string & padding) {
 }
 
 void table::fillWithZeros() {
-  for (const auto &colPos : iter::range(columnNames_.size())) {
+  for (const auto colPos : iter::range(columnNames_.size())) {
     std::vector<size_t> blankPositions;
     VecStr nonBlanks;
     size_t pos = 0;
@@ -227,11 +245,11 @@ void table::addColumn(const VecStr & columnNew, const std::string & name){
 	}else{
 		columnNames_.emplace_back(name);
 		if(columnNew.size() == 1){
-			for(const auto & rowPos : iter::range(content_.size())){
+			for(const auto rowPos : iter::range(content_.size())){
 				content_[rowPos].emplace_back(columnNew[0]);
 			}
 		}else{
-			for(const auto & rowPos : iter::range(content_.size())){
+			for(const auto rowPos : iter::range(content_.size())){
 				content_[rowPos].emplace_back(columnNew[rowPos]);
 			}
 		}
@@ -593,11 +611,13 @@ void table::sortTable(const std::string &firstColumn,
 
 void table::sortTable(const std::string &byThisColumn, bool decending) {
 	if (!vectorContains(columnNames_, byThisColumn)) {
-		std::cerr << "Table does not contain " << byThisColumn
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "Table does not contain " << byThisColumn
 				<< " not sorting table" << "\n";
-		std::cerr << "options are: " << vectorToString(columnNames_, ",") << "\n";
-		printVector(columnNames_, ",");
-		return;
+		ss << "options are: " << vectorToString(columnNames_, ",") << "\n";
+		printVector(columnNames_, ",", ss);
+		ss << "\n";
+		throw std::runtime_error{ss.str()};
 	}
 	VecStr col = getColumn(byThisColumn);
 	uint32_t colPos = getColPos(byThisColumn);
@@ -745,88 +765,84 @@ table table::getColumnsMatchingPattern(const std::regex & pattern) const {
 	std::vector<uint32_t> positions = getPositionsMatchingPattern(columnNames_,
 			pattern);
 	if (positions.size() == 0) {
-    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that matched pattern" << "\n";
-		return table();
-	} else {
-		return getColumns(positions);
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "Couldn't find any columns that matched pattern"<< "\n";
+		throw std::runtime_error{ss.str()};
 	}
+	return getColumns(positions);
 }
 
 table table::getColumnsContainingPattern(const std::regex & pattern) const {
 	std::vector<uint32_t> positions = getPositionsContainingPattern(columnNames_,
 			pattern);
 	if (positions.size() == 0) {
-    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that contain pattern" << "\n";
-
-		return table();
-	} else {
-		return getColumns(positions);
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << " Couldn't find any columns that contain pattern"<< "\n";
+		throw std::runtime_error{ss.str()};
 	}
+	return getColumns(positions);
 }
 
 table table::getColumnsStartWith(const std::string &startsWith) const{
   std::vector<uint32_t> positions =
       getPositionsOfTargetStartsWith(columnNames_, startsWith);
   if (positions.size() == 0) {
-    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that started with: " << startsWith
-              << " returning the whole table" << "\n";
-    return table();
-  } else {
-    return getColumns(positions);
+  	std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << " Couldn't find any columns that started with: " << startsWith << "\n";
+		throw std::runtime_error{ss.str()};
   }
+  return getColumns(positions);
 }
 
 table table::getColumnsNotMatchingPattern(const std::regex & pattern) const {
 	std::vector<uint32_t> positions = getPositionsMatchingPattern(columnNames_,
 			pattern);
 	if (positions.size() == columnNames_.size()) {
-    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that matched pattern" << "\n";
-		return table();
-	} else {
-		std::vector<uint32_t> outPositions;
-		for(const auto pos : iter::range(columnNames_.size())){
-			if(!njh::in<uint32_t>(pos, positions)){
-				outPositions.emplace_back(pos);
-			}
-		}
-		return getColumns(outPositions);
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "Couldn't find any columns that matched pattern"<< "\n";
+		throw std::runtime_error{ss.str()};
 	}
+	std::vector<uint32_t> outPositions;
+	for(const auto pos : iter::range(columnNames_.size())){
+		if(!njh::in<uint32_t>(pos, positions)){
+			outPositions.emplace_back(pos);
+		}
+	}
+	return getColumns(outPositions);
 }
 
 table table::getColumnsNotContainingPattern(const std::regex & pattern) const {
 	std::vector<uint32_t> positions = getPositionsContainingPattern(columnNames_,
 			pattern);
 	if (positions.size() == columnNames_.size()) {
-    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that contain pattern" << "\n";
-
-		return table();
-	} else {
-		std::vector<uint32_t> outPositions;
-		for(const auto pos : iter::range(columnNames_.size())){
-			if(!njh::in<uint32_t>(pos, positions)){
-				outPositions.emplace_back(pos);
-			}
-		}
-		return getColumns(positions);
+    std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << " Couldn't find any columns that contain pattern " << "\n";
+		throw std::runtime_error{ss.str()};
 	}
+	std::vector<uint32_t> outPositions;
+	for(const auto pos : iter::range(columnNames_.size())){
+		if(!njh::in<uint32_t>(pos, positions)){
+			outPositions.emplace_back(pos);
+		}
+	}
+	return getColumns(positions);
 }
 
 table table::getColumnsNotStartWith(const std::string &startsWith) const{
   std::vector<uint32_t> positions =
       getPositionsOfTargetStartsWith(columnNames_, startsWith);
   if (positions.size() == columnNames_.size()) {
-    std::cerr << __PRETTY_FUNCTION__  << ": Couldn't find any columns that started with: " << startsWith
-              << " returning the whole table" << "\n";
-    return table();
-  } else {
-		std::vector<uint32_t> outPositions;
-		for(const auto pos : iter::range(columnNames_.size())){
-			if(!njh::in<uint32_t>(pos, positions)){
-				outPositions.emplace_back(pos);
-			}
-		}
-    return getColumns(positions);
+  	std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << " Couldn't find any columns that started with: " << startsWith<< "\n";
+		throw std::runtime_error{ss.str()};
   }
+	std::vector<uint32_t> outPositions;
+	for(const auto pos : iter::range(columnNames_.size())){
+		if(!njh::in<uint32_t>(pos, positions)){
+			outPositions.emplace_back(pos);
+		}
+	}
+  return getColumns(positions);
 }
 
 
@@ -1013,7 +1029,7 @@ table table::aggregateAdvance(const std::string &columnName,
   table numericColumns = getAllNumericColumns();
   table nonNumericColumns = getAllNonNumericColumns();
   std::vector<VecStr> collapsedColumns;
-  for (const auto row : nonNumericColumns.content_) {
+  for (const auto & row : nonNumericColumns.content_) {
     collapsedColumns.emplace_back(VecStr{vectorToString(row, sep)});
   }
 
@@ -1105,12 +1121,12 @@ table table::cbind(const std::map<std::string, table> &tables,
 }
 void table::removeEmpty(bool addPadding) {
 	std::vector<uint32_t> emptyPositions;
-	for(const auto & rowPos : iter::range(content_.size())){
+	for(const auto rowPos : iter::range(content_.size())){
 		if(content_.empty()){
 			emptyPositions.emplace_back(rowPos);
 		}else {
 			bool empty =true;
-			for(const auto & colPos : iter::range(content_[rowPos].size())){
+			for(const auto colPos : iter::range(content_[rowPos].size())){
 				if(!allWhiteSpaceStr(content_[rowPos][colPos])){
 					empty = false;
 					break;
@@ -1182,14 +1198,14 @@ table table::countColumn(const std::vector<uint32_t> & colPositions){
 }
 
 table table::extractNumColGreater(const std::string & colName, double cutOff)const{
-  auto comp = [&](const std::string & str){
+  auto comp = [&cutOff](const std::string & str){
   	double numValue = std::stod(str);
   	return numValue > cutOff;
   };
   return extractByComp(colName, comp);
 }
 table table::extractNumColGreater(uint32_t colPos, double cutOff)const{
-  auto comp = [&](const std::string & str){
+  auto comp = [&cutOff](const std::string & str){
   	double numValue = std::stod(str);
   	return numValue > cutOff;
   };
@@ -1206,12 +1222,89 @@ void table::checkForColumnsThrow(const VecStr & requiredColumns, const std::stri
 	}
 	if (!columnsNotFound.empty()) {
 		std::stringstream ss;
-		ss << "Need to have " << vectorToString(requiredColumns, ",") << std::endl;
-		ss << "Did not find " << vectorToString(columnsNotFound, ",") << std::endl;
-		ss << "Only have " << vectorToString(columnNames_, ",")
-				<< std::endl;
+		ss << "Need to have " << njh::conToStrEndSpecial(requiredColumns, ",", " and ") << '\n';
+		ss << "Did not find " << njh::conToStrEndSpecial(columnsNotFound, ",", " or ") << '\n';
+		ss << "Only have " << '\n';
+		uint32_t colCount = 1;
+		for(const auto & col : columnNames_){
+			ss << "\tcolum " << colCount << " is " << col << '\n';
+			++colCount;
+		}
 		throw std::runtime_error { ss.str() };
 	}
+}
+
+
+VecStr table::getMissingHeaders(const VecStr requiredColumns) const{
+	VecStr columnsNotFound;
+	for (const auto & col : requiredColumns) {
+		if (!njh::in(col, columnNames_)) {
+			columnsNotFound.emplace_back(col);
+		}
+	}
+	return columnsNotFound;
+}
+
+table table::splitColWithMeta(const table & inputTab, const splitColWithMetaPars & pars){
+	auto inTab = inputTab;
+	inTab.checkForColumnsThrow({pars.column_}, __PRETTY_FUNCTION__);
+	std::set<std::string> metaFields;
+	std::unordered_map<std::string, VecStr> metaValues;
+
+	bool noneContainMeta = true;
+	for (const auto & row : inTab.content_) {
+		if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(pars.column_)])){
+			MetaDataInName rowMeta(row[inTab.getColPos(pars.column_)]);
+			auto metas = getVectorOfMapKeys(rowMeta.meta_);
+			std::copy(metas.begin(), metas.end(),
+					std::inserter(metaFields, metaFields.end()));
+			noneContainMeta = false;
+		}
+	}
+	if(!noneContainMeta){
+		bool allEmpty = true;
+		for (auto & row : inTab.content_) {
+			if(MetaDataInName::nameHasMetaData(row[inTab.getColPos(pars.column_)])){
+				MetaDataInName rowMeta(row[inTab.getColPos(pars.column_)]);
+				for(const auto & m : rowMeta.meta_){
+					metaValues[m.first].emplace_back(m.second);
+				}
+				for(const auto & metaField : metaFields){
+					if(!njh::in(metaField, rowMeta.meta_)){
+						metaValues[metaField].emplace_back("NA");
+					}
+				}
+				if(!pars.keepMetaInColumn_){
+					MetaDataInName::removeMetaDataInName(row[inTab.getColPos(pars.column_)]);
+					if("" != row[inTab.getColPos(pars.column_)]){
+						allEmpty = false;
+					}
+				}
+			}else{
+				for(const auto & metaField : metaFields){
+					metaValues[metaField].emplace_back("NA");
+				}
+			}
+		}
+		if (allEmpty && pars.removeEmptyColumn_) {
+			inTab.deleteColumn(pars.column_);
+		}
+		for (const auto & m : metaValues) {
+			std::string newColName = m.first;
+			if (pars.prefixWithColName_) {
+				newColName = pars.column_ + "-" + m.first;
+			}
+			inTab.addColumn(m.second, newColName);
+		}
+		if(pars.sorting_){
+			inTab.sortTable(pars.sortCol_, pars.descending_);
+		}
+	}else{
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ": No values in " << pars.column_ << " contain meta data, doing nothing" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	return inTab;
 }
 
 }  // namespace njh

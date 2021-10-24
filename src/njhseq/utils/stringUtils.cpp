@@ -339,7 +339,7 @@ VecStr checkTwoRotatingStrings(const std::string& str1, const std::string& str2,
 	}
 	int minError = allowableMismatches;
 	VecStr lowMismatches;
-	for (const auto& i : iter::range(str1.length())) {
+	for (const auto i : iter::range(str1.length())) {
 		std::string current = str1.substr(i, str1.length() - i) + str1.substr(0, i);
 		int currentMinError = numberOfMismatches(current, str2);
 		if (currentMinError < minError) {

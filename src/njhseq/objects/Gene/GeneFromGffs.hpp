@@ -43,6 +43,8 @@ public:
 	void writeGffRecords(std::ostream & out) const;
 
 	static std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> getGenesFromGffForIds(const bfs::path & gffFnp, const std::set<std::string> & ids);
+	static std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> getGenesFromGffForTranscriptIds(const bfs::path & gffFnp, const std::set<std::string> & ids);
+	static std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> getGenesFromGffForGuessedTranscriptOrGeneIds(const bfs::path & gffFnp, const std::set<std::string> & ids);
 
 	struct gffRecordIDsToGeneInfoPars{
 		bfs::path inputFile = "";

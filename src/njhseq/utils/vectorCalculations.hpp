@@ -112,7 +112,13 @@ T vectorMaximum(const std::vector<T> &  scores) {
 }
 
 template <typename T>
-T vectorSum(const std::vector<T>& scores) {
+double vectorSum(const std::vector<T>& scores) {
+	double sum = std::accumulate(scores.begin(), scores.end(), 0.0);
+  return sum;
+}
+
+template <typename T>
+T vectorSumSameType(const std::vector<T>& scores) {
 	T sum = std::accumulate(scores.begin(), scores.end(), 0.0);
   return sum;
 }

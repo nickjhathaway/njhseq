@@ -66,6 +66,9 @@ class aligner {
   baseReadObject alignObjectB_;
 
   alnParts parts_;
+  uint32_t inputAlignmentBlockSize_{100};
+  uint32_t inputAlignmentBlockWalkbackSize_{50};
+
   alnInfoMasterHolder alnHolder_;
 
   uint32_t numberOfAlingmentsDone_ = 0;
@@ -140,13 +143,14 @@ class aligner {
 
 
 
-
+	void alignCacheGlobalDiag(const std::string & ref, const std::string & read);
 	void alignCacheGlobalDiag(const seqInfo & ref, const seqInfo & read);
 	template<typename READ1, typename READ2>
 	void alignCacheGlobalDiag(const READ1 & ref, const READ2 & read){
 		alignCacheGlobalDiag(getSeqBase(ref), getSeqBase(read));
 	}
 
+	void alignRegGlobalDiag(const std::string & ref, const std::string & read);
 	void alignRegGlobalDiag(const seqInfo & ref, const seqInfo & read);
 	template<typename READ1, typename READ2>
 	void alignRegGlobalDiag(const READ1 & ref, const READ2 & read){
@@ -184,14 +188,14 @@ class aligner {
 		rearrangeObjsLocal(getSeqBase(ref), getSeqBase(read));
 	}
 
+	void rearrangeObjsGlobal(const std::string & firstRead, const std::string& secondRead);
 	void rearrangeObjsGlobal(const seqInfo& firstRead, const seqInfo& secondRead);
 	template<typename READ1, typename READ2>
 	void rearrangeObjsGlobal(const READ1 & ref, const READ2 & read){
 		rearrangeObjsGlobal(getSeqBase(ref), getSeqBase(read));
 	}
 
-	void rearrangeObjs(const seqInfo& firstRead, const seqInfo& secondRead,
-			bool local);
+	void rearrangeObjs(const seqInfo& firstRead, const seqInfo& secondRead,bool local);
 	template<typename READ1, typename READ2>
 	void rearrangeObjs(const READ1 & ref, const READ2 & read, bool local){
 		rearrangeObjs(getSeqBase(ref), getSeqBase(read), local);
@@ -228,6 +232,8 @@ class aligner {
 	}
 
 
+  const comparison & profilePrimerAlignment(const std::string& objectA,
+			const std::string& objectB);
   const comparison & profilePrimerAlignment(const seqInfo& objectA,
 			const seqInfo& objectB);
 	template<typename READ1, typename READ2>

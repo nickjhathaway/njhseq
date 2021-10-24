@@ -32,10 +32,10 @@ namespace njhseq {
 
 struct QualScorePars {
 	QualScorePars();
-	QualScorePars(uint32_t primaryQual, uint32_t secondaryQual,
+	QualScorePars(uint8_t primaryQual, uint8_t secondaryQual,
 			uint32_t qualThresWindow);
-	uint32_t primaryQual_;
-	uint32_t secondaryQual_;
+	uint8_t primaryQual_;
+	uint8_t secondaryQual_;
 	uint32_t qualThresWindow_;
 };
 

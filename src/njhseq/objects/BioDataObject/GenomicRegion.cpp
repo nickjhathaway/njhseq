@@ -50,8 +50,14 @@ GenomicRegion::GenomicRegion(const Bed6RecordCore & bed) :
 		GenomicRegion(bed.name_, bed.chrom_, bed.chromStart_, bed.chromEnd_,
 				'-' == bed.strand_) {
 	if(bed.extraFields_.size() > 0){
-		if(MetaDataInName::nameHasMetaData(bed.extraFields_[0])){
-			meta_ = MetaDataInName(bed.extraFields_[0]);
+		uint32_t extraFieldCount = 0;
+		for(const auto & extraField : bed.extraFields_){
+			if(MetaDataInName::nameHasMetaData(extraField)){
+				meta_.addMeta(MetaDataInName(extraField), false);
+			} else {
+				meta_.addMeta(njh::pasteAsStr("extraField", leftPadNumStr<uint32_t>(extraFieldCount, bed.extraFields_.size())), extraField, false);
+			}
+			++extraFieldCount;
 		}
 	}
 }
@@ -68,8 +74,12 @@ GenomicRegion::GenomicRegion(const Bed3RecordCore & bed) :
 
 
 GenomicRegion::GenomicRegion(const TandemRepeatFinderRecord & trfRecord):GenomicRegion(
-		njh::pasteAsStr(trfRecord.repeatPatSeq_, "_x", trfRecord.numberOfAlignedRepeats_),
-		trfRecord.seqName_, trfRecord.start_ - 1, trfRecord.end_, false) {
+		njh::pasteAsStr(trfRecord.seqName_, "-",trfRecord.start_ - 1, "-",trfRecord.end_,
+				"__",trfRecord.repeatPatSeq_, "_x", (trfRecord.end_ + 1 - trfRecord.start_)/static_cast<double>(trfRecord.periodSize_)),
+		trfRecord.seqName_,
+		trfRecord.start_ - 1,
+		trfRecord.end_,
+		false) {
 
 }
 
@@ -116,7 +126,7 @@ void GenomicRegion::checkRegion(const BamTools::BamReader & bReader,
 		std::stringstream ss;
 		ss << "Error, ref name: " << chrom_
 				<< " not in Bam file, options are: " << std::endl;
-		for(const auto & refD : iter::enumerate(refs)){
+		for(const auto refD : iter::enumerate(refs)){
 			if(0 != refD.index){
 				ss << ",";
 			}
@@ -208,7 +218,7 @@ size_t GenomicRegion::distBetweenRegions(const Bed3RecordCore & otherRegion){
 
 size_t GenomicRegion::distBetweenRegions(const std::string & otherChrom, const size_t otherStart, const size_t otherend){
 	if(chrom_ != otherChrom){
-		return std::numeric_limits<uint32_t>::max();
+		return std::numeric_limits<size_t>::max();
 	}
 	if(overlaps(otherChrom, otherStart, otherend)){
 		return 0;
@@ -221,22 +231,63 @@ size_t GenomicRegion::distBetweenRegions(const std::string & otherChrom, const s
 }
 
 
+bool GenomicRegion::startsInThisRegion(const BamTools::BamAlignment & bAln,
+		const BamTools::RefVector & refData) const {
+	return startsInThisRegion(refData[bAln.RefID].RefName, bAln.Position);
+}
+
+bool GenomicRegion::endsInThisRegion(const BamTools::BamAlignment & bAln,
+		const BamTools::RefVector & refData) const {
+	return endsInThisRegion(refData[bAln.RefID].RefName, bAln.GetEndPosition());
+
+}
+
+bool GenomicRegion::fallsInThisRegion(const BamTools::BamAlignment & bAln,
+		const BamTools::RefVector & refData) const {
+
+	return fallsInThisRegion(refData[bAln.RefID].RefName, bAln.Position, bAln.GetEndPosition());
+}
+
+bool GenomicRegion::startsInThisRegion(const std::string & chrom,
+		uint32_t start) const { //no check for if start is less than end
+	if (chrom != chrom_) {
+		return false;
+	}
+	return start >= start_ && start < end_;
+}
+
+bool GenomicRegion::endsInThisRegion(const std::string & chrom,
+		uint32_t end) const { //no check for if start is less than end
+	if (chrom != chrom_) {
+		return false;
+	}
+	return end > start_ && end <= end_;
+}
+
+bool GenomicRegion::fallsInThisRegion(const std::string & chrom, uint32_t start,
+		uint32_t end) const { //no check for if start is less than end
+	if (chrom != chrom_) {
+		return false;
+	}
+	return overlaps(chrom, start, end);
+}
+
+
 
 
 bool GenomicRegion::endsInThisRegion(
 		const GenomicRegion & otherRegion) const {
-	if(otherRegion.chrom_ != chrom_){
-		return false;
-	}
-	return otherRegion.end_ > start_ && otherRegion.end_ <= end_;
+	return endsInThisRegion(otherRegion.chrom_, otherRegion.end_);
 }
 
 bool GenomicRegion::startsInThisRegion(
 		const GenomicRegion & otherRegion) const {
-	if(otherRegion.chrom_ != chrom_){
-		return false;
-	}
-	return otherRegion.start_ >= start_ && otherRegion.start_ < end_;
+	return startsInThisRegion(otherRegion.chrom_, otherRegion.start_);
+}
+
+bool GenomicRegion::fallsInThisRegion(
+		const GenomicRegion & otherRegion) const {
+	return fallsInThisRegion(otherRegion.chrom_, otherRegion.start_, otherRegion.end_);
 }
 
 
@@ -295,6 +346,9 @@ void GenomicRegion::addAltUid(const std::string & altUid) {
 Bed6RecordCore GenomicRegion::genBedRecordCore() const {
 	Bed6RecordCore ret (chrom_, start_, end_, uid_, getLen(),
 			reverseSrand_ ? '-' : '+');
+	if("" == uid_){
+		ret.name_ = createUidFromCoordsStrand();
+	}
 	if(!meta_.meta_.empty()){
 		ret.extraFields_.emplace_back(meta_.createMetaName());
 	}
@@ -360,16 +414,31 @@ double GenomicRegion::getPercInRegion(const BamTools::BamAlignment & bAln,
 	//1) bAln.Position falls within the region
 	//2) baln.GetEndPosition() falls within the region
 	//3) if the bAln covers the whole region and beyond
-
+//	std::cout << njh::bashCT::red;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if((     bAln.Position >= static_cast<int64_t>(start_)        && bAln.Position < static_cast<int64_t>(end_)) ||
 			(bAln.GetEndPosition() > static_cast<int64_t>(start_) && bAln.GetEndPosition() <= static_cast<int64_t>(end_)) ||
 			(bAln.Position <= static_cast<int64_t>(start_)        && bAln.GetEndPosition() >= static_cast<int64_t>(end_))){
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << "bAln.Position: " << bAln.Position << std::endl;
+//		std::cout << "bAln.GetEndPosition(): " << bAln.GetEndPosition() << std::endl;
+//		std::cout << "start_: " << start_ << std::endl;
+//		std::cout << "end_: " << end_ << std::endl;
 
 		auto start = std::max<size_t>(bAln.Position, start_);
 		auto end = std::min<size_t>(bAln.GetEndPosition(), end_);
+//		std::cout << "start: " << start << std::endl;
+//		std::cout << "end: " << end << std::endl;
+
 		double basesInRegion = end - start;
+//		std::cout << "basesInRegion: " << basesInRegion << std::endl;
+//		std::cout << "std::min<uint64_t>(bAln.AlignedBases.size(), getLen()): " << std::min<uint64_t>(bAln.AlignedBases.size(), getLen()) << std::endl;
+//		std::cout << njh::bashCT::reset;
+
 		return basesInRegion / std::min<uint64_t>(bAln.AlignedBases.size(), getLen());
 	}else{
+//		std::cout << njh::bashCT::reset;
+
 		return 0;
 	}
 

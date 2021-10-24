@@ -137,8 +137,8 @@ void SeqSetUpPars::initializeDefaults() {
   writingOutAlnInfo_ = false;
 
   //
-  colOpts_.kmerOpts_.runCutOffString_ = ".2%,1";
-  colOpts_.kmerOpts_.runCutOff_ = 1;
+  colOpts_.kmerOpts_.runCutOffString_ = ".2%,10";
+  colOpts_.kmerOpts_.runCutOff_ = 10;
 
 
   colOpts_.kmerOpts_.kLength_ = 9;

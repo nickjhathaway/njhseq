@@ -47,20 +47,20 @@ struct seqInfo {
    */
   seqInfo(const std::string & name);
   seqInfo(const std::string& name, const std::string& seq,
-          const std::vector<uint32_t>& qual);
+          const std::vector<uint8_t>& qual);
   seqInfo(const std::string& name, const std::string& seq,
-          const std::vector<uint32_t>& qual, double cnt);
+          const std::vector<uint8_t>& qual, double cnt);
   seqInfo(const std::string& name, const std::string& seq);
 //  seqInfo(const std::string& name, const std::string& seq,
 //          const std::string& stringQual);
   seqInfo(const std::string& name, const std::string& seq,
-          const std::string& stringQual, uint32_t off_set);
+          const std::string& stringQual, uint8_t off_set);
   seqInfo(const std::string& name, const std::string& seq,
-          const std::vector<uint32_t>& qual, double cnt, double frac);
+          const std::vector<uint8_t>& qual, double cnt, double frac);
   // Members
   std::string name_;
   std::string seq_;
-  std::vector<uint32_t> qual_;
+  std::vector<uint8_t> qual_;
   double cnt_;
   double frac_;
   bool on_ = true;
@@ -70,37 +70,37 @@ struct seqInfo {
 	seqInfo getSubRead(uint32_t pos, uint32_t size) const;
 	seqInfo getSubRead(uint32_t pos) const;
 	// changing the seq and qual of the read
-	void prepend(const std::string& seq, const std::vector<uint32_t>& qual);
-	void append(const std::string& seq, const std::vector<uint32_t>& qual);
-	void prepend(const std::string& seq, uint32_t defaultQuality = 40);
-	void append(const std::string& seq, uint32_t defaultQuality = 40);
-	void prepend(const char & base, uint32_t quality = 40);
-	void append(const char & base, uint32_t quality = 40);
+	void prepend(const std::string& seq, const std::vector<uint8_t>& qual);
+	void append(const std::string& seq, const std::vector<uint8_t>& qual);
+	void prepend(const std::string& seq, uint8_t defaultQuality = 40);
+	void append(const std::string& seq, uint8_t defaultQuality = 40);
+	void prepend(const char & base, uint8_t quality = 40);
+	void append(const char & base, uint8_t quality = 40);
 
 	void prepend(const seqInfo & other);
 	void append(const seqInfo & other);
 
 	void insert(uint32_t pos, const seqInfo & otherInfo);
 
-	bool checkLeadQual(uint32_t pos, uint32_t secondayQual, uint32_t out) const;
-	bool checkTrailQual(uint32_t pos, uint32_t secondayQual, uint32_t out) const;
-	bool checkPrimaryQual(uint32_t pos, uint32_t primaryQual) const;
+	bool checkLeadQual(uint32_t pos, uint8_t secondayQual, uint32_t out) const;
+	bool checkTrailQual(uint32_t pos, uint8_t secondayQual, uint32_t out) const;
+	bool checkPrimaryQual(uint32_t pos, uint8_t primaryQual) const;
 	bool checkQual(uint32_t pos, const QualScorePars & qScorePars) const;
-	uint32_t findLowestNeighborhoodQual(uint32_t posA, uint32_t out) const;
-	const std::vector<uint32_t> getLeadQual(uint32_t posA, uint32_t out) const;
-	const std::vector<uint32_t> getTrailQual(uint32_t posA, uint32_t out) const;
+	uint8_t findLowestNeighborhoodQual(uint32_t posA, uint32_t out) const;
+	const std::vector<uint8_t> getLeadQual(uint32_t posA, uint32_t out) const;
+	const std::vector<uint8_t> getTrailQual(uint32_t posA, uint32_t out) const;
   // get a quality string from vector
   std::string getQualString() const;
-  std::string getFastqQualString(uint32_t offset) const;
-  static std::string getFastqString(const std::vector<uint32_t>& quals,
-                                    uint32_t offset);
+  std::string getFastqQualString(uint8_t offset) const;
+  static std::string getFastqString(const std::vector<uint8_t>& quals,
+  		uint8_t offset);
 
   //setting fraction
   void setFractionByCount(double totalNumberOfReads);
 
   // remove base at position
   void removeBase(size_t pos);
-  void removeLowQualityBases(uint32_t qualCutOff);
+  void removeLowQualityBases(uint8_t qualCutOff);
   // handle gaps
   void removeGaps();
   // change name
@@ -138,8 +138,8 @@ struct seqInfo {
   void processRead(bool processed);
 
   void addQual(const std::string & qualString);
-  void addQual(const std::string & qualString, uint32_t offSet);
-  void addQual(const std::vector<uint32_t> & quals);
+  void addQual(const std::string & qualString, uint8_t offSet);
+  void addQual(const std::vector<uint8_t> & quals);
   /**@brief clip from the front and the back of the sequence
    * no safety checks for whether these positions exist in the sequence
    * @param upToPosNotIncluding clip the front of the up to this position but keep this position
@@ -167,7 +167,7 @@ struct seqInfo {
   double getAverageQual() const;
   double getAverageErrorRate() const;
   uint32_t getSumQual() const;
-  double getQualCheck(uint32_t qualCutOff)const;
+  double getQualCheck(uint8_t qualCutOff)const;
   bool operator ==(const seqInfo & other) const;
 
   //

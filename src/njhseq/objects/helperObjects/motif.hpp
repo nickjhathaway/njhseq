@@ -45,8 +45,11 @@ class motif {
 		std::array<uint32_t, 26> score_;
 		//functions
 		void setScoreArray();
+		uint32_t otherScore_{std::numeric_limits<uint32_t>::max()};
+
 	public:
-		uint32_t scoreChar(char c) const;
+		uint32_t scoreCharNoCheck(char c) const;
+		uint32_t scoreCharCheck(char c) const;
 		friend class motif;
 	};
 public:
@@ -93,6 +96,12 @@ public:
 			uint32_t allowableErrors) const;
 
 	std::vector<size_t> findPositionsSubSets(
+			const std::string & wholeProtein,
+			uint32_t allowableErrors,
+			size_t start, size_t stop,
+			uint32_t motifStart, uint32_t motifEnd) const;
+
+	std::vector<size_t> findPositionsSubSetsBest(
 			const std::string & wholeProtein,
 			uint32_t allowableErrors,
 			size_t start, size_t stop,

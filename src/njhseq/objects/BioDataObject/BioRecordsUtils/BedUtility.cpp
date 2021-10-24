@@ -81,4 +81,73 @@ GenomicRegion & BedUtility::extendLeftRight(GenomicRegion & b, uint32_t extendLe
 	return b;
 }
 
+
+
+BedUtility::SubRegionCombo::SubRegionCombo(const Bed6RecordCore &startRegion,
+		const Bed6RecordCore &endRegion) :
+		startRegion_(startRegion), endRegion_(endRegion) {
+	if (endRegion_.chrom_ != startRegion_.chrom_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "chromosomes don't match: "
+				<< "\n";
+		ss << "startRegion chrom: " << startRegion_.chrom_ << '\n';
+		ss << "endRegion chrom: " << endRegion_.chrom_ << '\n';
+		throw std::runtime_error { ss.str() };
+	}
+	if (startRegion_.chromStart_ > endRegion_.chromStart_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error "
+				<< "start region starts after end region " << "\n";
+		ss << "startRegion chromStart: " << startRegion_.chromStart_ << '\n';
+		ss << "endRegion chromStart: " << endRegion_.chromStart_ << '\n';
+		throw std::runtime_error { ss.str() };
+	}
+	if (startRegion_.chromEnd_ > endRegion_.chromEnd_) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error "
+				<< "start region ends after end region " << "\n";
+		ss << "startRegion chromEnd: " << startRegion_.chromEnd_ << '\n';
+		ss << "endRegion chromEnd: " << endRegion_.chromEnd_ << '\n';
+		throw std::runtime_error { ss.str() };
+	}
+}
+
+Bed6RecordCore BedUtility::SubRegionCombo::genOut(uint32_t maximumToInclude) const {
+	Bed6RecordCore startReg = startRegion_;
+	Bed6RecordCore endReg = endRegion_;
+//	std::cout << startReg.toDelimStr() << std::endl;
+//	std::cout << endReg.toDelimStr() << std::endl;
+	if (startReg.length() > maximumToInclude) {
+		startReg.chromStart_ = startReg.chromEnd_ - maximumToInclude;
+	}
+	if (endReg.length() > maximumToInclude) {
+		endReg.chromEnd_ = endReg.chromStart_ + maximumToInclude;
+	}
+//	std::cout << startReg.toDelimStr() << std::endl;
+//	std::cout << endReg.toDelimStr() << std::endl;
+	Bed6RecordCore outRegion = startReg;
+	outRegion.chromEnd_ = endReg.chromEnd_;
+	outRegion.name_ = njh::pasteAsStr(startReg.name_, "--", endReg.name_);
+	outRegion.score_ = outRegion.length();
+	return outRegion;
+}
+Bed6RecordCore BedUtility::SubRegionCombo::genSubStart(
+		uint32_t maximumToInclude) const {
+	Bed6RecordCore startReg = startRegion_;
+	if (startReg.length() > maximumToInclude) {
+		startReg.chromStart_ = startReg.chromEnd_ - maximumToInclude;
+	}
+	return startReg;
+}
+
+Bed6RecordCore BedUtility::SubRegionCombo::genSubEnd(uint32_t maximumToInclude) const {
+	Bed6RecordCore endReg = endRegion_;
+	if (endReg.length() > maximumToInclude) {
+		endReg.chromEnd_ = endReg.chromStart_ + maximumToInclude;
+	}
+	return endReg;
+}
+
+
+
 } /* namespace njhseq */

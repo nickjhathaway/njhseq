@@ -116,14 +116,16 @@ SeqIOOptions::outFormats SeqIOOptions::getOutFormat(const std::string & format){
 }
 
 SeqIOOptions::inFormats SeqIOOptions::getInFormatFromFnp(const bfs::path & fnp){
+	//below is somewhat dangerous because it wouldn't be unusual for a regular unpaired file to end with _1.fastq so
+	//this could lead to a mis identification of paired reads
 	auto fnpStr = fnp.string();
 	inFormats in = inFormats::NOFORMAT;
-	if (njh::endsWith(fnpStr, ".fastq") || njh::endsWith(fnpStr, ".fq") || njh::endsWith(fnpStr, ".fnq")) {
-		in =  inFormats::FASTQ;
-	} else if (njh::endsWith(fnpStr, "_R1.fastq") || njh::endsWith(fnpStr, "_1.fastq")) {
+	if (njh::endsWith(fnpStr, "_R1.fastq") || njh::endsWith(fnpStr, "_1.fastq")) {
 		in =  inFormats::FASTQPAIRED;
 	} else if (njh::endsWith(fnpStr, "_R1.fastq.gz") || njh::endsWith(fnpStr, "_1.fastq.gz")) {
 		in =  inFormats::FASTQPAIREDGZ;
+	} else if (njh::endsWith(fnpStr, ".fastq") || njh::endsWith(fnpStr, ".fq") || njh::endsWith(fnpStr, ".fnq")) {
+		in =  inFormats::FASTQ;
 	} else if (njh::endsWith(fnpStr, ".fastq.gz")|| njh::endsWith(fnpStr, ".fq.gz") || njh::endsWith(fnpStr, ".fnq.gz")) {
 		in =  inFormats::FASTQGZ;
 	} else if (njh::endsWith(fnpStr, ".fasta") || njh::endsWith(fnpStr, ".fa")|| njh::endsWith(fnpStr, ".fna")) {
@@ -146,14 +148,16 @@ SeqIOOptions::inFormats SeqIOOptions::getInFormatFromFnp(const bfs::path & fnp){
 }
 
 SeqIOOptions::outFormats SeqIOOptions::getOutFormatFromFnp(const bfs::path & fnp){
+	//below is somewhat dangerous because it wouldn't be unusual for a regular unpaired file to end with _1.fastq so
+	//this could lead to a mis identification of paired reads
 	auto fnpStr = fnp.string();
 	outFormats out = outFormats::NOFORMAT;
-	if (njh::endsWith(fnpStr, ".fastq") || njh::endsWith(fnpStr, ".fq") || njh::endsWith(fnpStr, ".fnq")) {
-		out =  outFormats::FASTQ;
-	} else if (njh::endsWith(fnpStr, "_R1.fastq") || njh::endsWith(fnpStr, "_1.fastq")) {
+	if (njh::endsWith(fnpStr, "_R1.fastq") || njh::endsWith(fnpStr, "_1.fastq")) {
 		out =  outFormats::FASTQPAIRED;
 	} else if (njh::endsWith(fnpStr, "_R1.fastq.gz") || njh::endsWith(fnpStr, "_1.fastq.gz")) {
 		out =  outFormats::FASTQPAIREDGZ;
+	} else if (njh::endsWith(fnpStr, ".fastq") || njh::endsWith(fnpStr, ".fq") || njh::endsWith(fnpStr, ".fnq")) {
+		out =  outFormats::FASTQ;
 	} else if (njh::endsWith(fnpStr, ".fastq.gz")|| njh::endsWith(fnpStr, ".fq.gz") || njh::endsWith(fnpStr, ".fnq.gz")) {
 		out =  outFormats::FASTQGZ;
 	} else if (njh::endsWith(fnpStr, ".fasta") || njh::endsWith(fnpStr, ".fa")|| njh::endsWith(fnpStr, ".fna")) {
@@ -629,6 +633,8 @@ SeqIOOptions::SeqIOOptions(const std::string & jsonStr) {
 	removeGaps_ = root.get("removeGaps_", false).asBool();
 	includeWhiteSpaceInName_ = root.get("includeWhiteSpaceInName_", true).asBool();
 	extra_ = root.get("extra_", true).asInt();
+
+
 }
 
 Json::Value SeqIOOptions::toJson() const {
@@ -683,9 +689,17 @@ SeqIOOptions::SeqIOOptions(const bfs::path & firstName, inFormats inFormat,
 		bool processed) :
 		firstName_(firstName), inFormat_(inFormat), outFormat_(
 				SeqIOOptions::getOutFormat(inFormat)), processed_(processed) {
+}
 
+SeqIOOptions::SeqIOOptions(const bfs::path & firstName,
+		const bfs::path & secondName, inFormats inFormat, bool processed) :
+		firstName_(firstName), secondName_(secondName), inFormat_(inFormat), outFormat_(
+				SeqIOOptions::getOutFormat(inFormat)), processed_(processed) {
 
 }
+
+
+
 
 
 }  // namespace njhseq

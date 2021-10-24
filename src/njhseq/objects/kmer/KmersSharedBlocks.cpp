@@ -55,16 +55,27 @@ Json::Value KmersSharedBlocks::KmersSharedBlock::toJson() const {
 
 KmersSharedBlocks::KmersSharedBlocks(const std::string & name,
 		const std::string & seq, uint32_t kLen) :
-		seqBase_(std::make_shared<seqInfo>(name, seq)), kInfo_(
-				std::make_shared<kmerInfo>(seq, kLen, false)) {
+		seqBase_(std::make_shared<seqInfo>(name, seq)),
+		kInfo_(std::make_shared<kmerInfo>(seq, kLen, false)) {
 
 }
+
+
+KmersSharedBlocks::KmersSharedBlocks(const seqInfo & seq, const kmerInfo & kInfo):
+				seqBase_(std::make_shared<seqInfo>(seq)),
+				kInfo_(std::make_shared<kmerInfo>(kInfo)) {
+}
+
+
+
 
 void KmersSharedBlocks::addComp(uint32_t refPos, uint32_t seqPos){
 	if(currentComp_){
 		if(currentComp_.size_ + currentComp_.refStart_ != refPos
 				||currentComp_.size_ + currentComp_.start_ != seqPos ){
-			kComps_[currentComp_.refStart_] = currentComp_;
+			if(currentComp_.size_ >=minBlockSize){
+				kComps_[currentComp_.refStart_] = currentComp_;
+			}
 			currentComp_ = {refPos, seqPos, 1};
 		}else{
 			++currentComp_.size_;
@@ -76,7 +87,9 @@ void KmersSharedBlocks::addComp(uint32_t refPos, uint32_t seqPos){
 
 void KmersSharedBlocks::finish() {
 	if (currentComp_) {
-		kComps_[currentComp_.refStart_] = currentComp_;
+		if(currentComp_.size_ >=minBlockSize){
+			kComps_[currentComp_.refStart_] = currentComp_;
+		}
 		currentComp_ = KmersSharedBlock();
 	}
 }

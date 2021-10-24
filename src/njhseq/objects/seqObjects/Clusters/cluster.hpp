@@ -76,7 +76,7 @@ class cluster : public baseCluster {
 
     double totalAmountOfReads = 0;
     //std::vector<T> clusteredReads;
-    for (const auto & readPos : iter::range(len(inReads))) {
+    for (const auto readPos : iter::range(len(inReads))) {
       //clusteredReads.push_back(r);
       totalAmountOfReads += inReads[readPos].seqBase_.cnt_;
       readsBySize[inReads[readPos].seqBase_.cnt_].emplace_back(readPos);
@@ -146,7 +146,8 @@ class cluster : public baseCluster {
 	struct snpBreakoutPars {
 		uint32_t minSnps = 1;
 		double snpFreqCutOff = 0.01;
-		uint32_t hardCutOff = 3;
+		uint32_t hardCutOff = 3; //! there needs to be at least this many reads with the snp to count
+		double hardSnpFreqCutOff = 0; //! range 0-1, only use snps with frequencies above this number
 		QualScorePars qScorePars;
 	};
   std::vector<cluster> breakoutClustersBasedOnSnps(aligner & alignerObj, const snpBreakoutPars& pars );
@@ -169,7 +170,7 @@ cluster getConsensus(const std::vector<T> & reads, aligner & alignerObj,
 	cluster mainCluster(getSeqBase(*reads.begin()));
 	if(reads.size() > 1){
 		std::vector<cluster> inClusters;
-		for(const auto & readPos : iter::range<uint64_t>(1,reads.size())){
+		for(const auto readPos : iter::range<uint64_t>(1,reads.size())){
 			inClusters.emplace_back(cluster(getSeqBase(reads[readPos])));
 		}
 		for(const auto & clus : inClusters){

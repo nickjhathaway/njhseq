@@ -64,6 +64,8 @@ public:
 
 	void writeGffRecord(std::ostream & out) const;
 
+
+	void revCompRecord(uint32_t chromLen);
 };
 
 

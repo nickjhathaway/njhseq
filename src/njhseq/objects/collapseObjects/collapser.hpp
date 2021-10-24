@@ -533,7 +533,7 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 		std::cout << "Initial Pass" << std::endl;
 	}
 	//subPos is the position of the clusters to investigate for being possibly chimeric
-	for (const auto & subPos : iter::range<size_t>(2, processedReads.size())) {
+	for (const auto subPos : iter::range<size_t>(2, processedReads.size())) {
 		if (opts_.verboseOpts_.verbose_) {
 			std::cout << subPos << ":" << processedReads.size() << "\r";
 			std::cout.flush();
@@ -546,7 +546,7 @@ table collapser::markChimeras(std::vector<READ> &processedReads,
 		std::map<size_t, std::vector<size_t>> endChiPos;
 		std::map<size_t, std::vector<size_t>> frontChiPos;
 		//pos is the position of the possible parents
-		for (const auto &pos : iter::range<size_t>(0, subPos)) {
+		for (const auto pos : iter::range<size_t>(0, subPos)) {
 			if (opts_.verboseOpts_.verbose_ && opts_.verboseOpts_.debug_) {
 				std::cout << std::endl;
 				std::cout << getSeqBase(processedReads[pos]).name_ << std::endl;

@@ -45,7 +45,7 @@ public:
 	//members
 	std::unordered_map<char, std::unordered_map<uint32_t, uint32_t>> hCounts_;
 	std::unordered_map<char,
-			std::unordered_map<uint32_t, std::vector<std::vector<uint32_t>>> >hQuals_;
+			std::unordered_map<uint32_t, std::vector<std::vector<uint8_t>>> >hQuals_;
 	std::unordered_map<char, std::unordered_map<uint32_t, double>> fractions_;
 
 	//functions

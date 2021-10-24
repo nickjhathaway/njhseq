@@ -29,7 +29,7 @@
 #include "njhseq/readVectorManipulation/readVectorOperations.h"
 #include "njhseq/objects/seqObjects/readObject.hpp"
 #include "njhseq/objects/collapseObjects/opts/IterPar.hpp"
-#include "njhseq/objects/kmer/kmerInfo.hpp"
+#include "njhseq/objects/seqObjects/seqKmers/seqWithKmerInfo.hpp"
 #include "njhseq/objects/helperObjects/probabilityProfile.hpp"
 #include "njhseq/readVectorManipulation/readVectorHelpers/trimming/trimPars.h"
 
@@ -40,6 +40,59 @@ namespace njhseq {
 
 class readVecTrimmer {
 public:
+
+
+
+	struct trimCircularGenomeToRefPars{
+
+		seqInfo refSeq_;
+		bool doNotReOrientDirection_ = false;
+		bool preferHeader_ = false;
+		uint32_t kmerLength_= 7;
+		uint32_t padding_ = 150;
+		uint32_t extend_ = 0;
+		uint32_t extendSeqCheckLenTo_ = 100;
+		uint32_t extendSeqCheckLenFrom_ = 15;
+
+		bool mark_ = false;
+	};
+
+	static std::vector<seqInfo> trimCircularGenomeToRef(seqInfo seq,
+			const trimCircularGenomeToRefPars & pars,
+			aligner & alignerObj);
+  template <class T>
+  static std::vector<seqInfo> trimCircularGenomeToRef(std::vector<T> &seqs, const trimCircularGenomeToRefPars & pars,
+			aligner & alignerObj);
+  template <class T>
+  static std::vector<seqInfo> trimCircularGenomeToRef(T &seq, const trimCircularGenomeToRefPars & pars,
+			aligner & alignerObj);
+
+
+
+	struct TrimEdgesByLowEntropyPars {
+		uint32_t windowStep = 5;
+		uint32_t windowSize = 50;
+		uint32_t kLen = 1;
+		double entropyCutOff = 1.5;
+		bool mark = false;
+
+	};
+
+	struct TrimEdgesByLowEntropyRes {
+		TrimEdgesByLowEntropyRes(uint32_t start, uint32_t end);
+		uint32_t start_ { std::numeric_limits<uint32_t>::max() };
+		uint32_t end_ { std::numeric_limits<uint32_t>::max() };
+	};
+
+	static TrimEdgesByLowEntropyRes determineTrimPostionsByLowEntropy(
+			const std::string & seq, const TrimEdgesByLowEntropyPars & pars);
+
+
+  template <class T>
+  static void trimEdgesForLowEntropy(std::vector<T> &seqs, const TrimEdgesByLowEntropyPars&  pars);
+  template <class T>
+  static void trimEdgesForLowEntropy(T &seq, const TrimEdgesByLowEntropyPars&  pars);
+  static void trimEdgesForLowEntropy(seqInfo &seq, const TrimEdgesByLowEntropyPars&  pars);
 
 
 
@@ -214,6 +267,14 @@ public:
 	static void trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seq, const std::vector<REFSEQ> & refSeqs,
 			const std::vector<kmerInfo> & refSeqsKInfos,aligner &alignerObj);
 
+	template<typename SEQYPTE>
+	static void trimSeqToRefByGlobalAln(SEQYPTE &seq,
+			const std::vector<seqWithKmerInfo> &refSeqs, aligner &alignObj);
+
+	template<typename SEQYPTE>
+	static void trimSeqToRefByGlobalAln(std::vector<SEQYPTE> &seq,
+			const std::vector<seqWithKmerInfo> &refSeqs, aligner &alignerObj);
+
 	struct GlobalAlnTrimPars{
 		uint32_t startInclusive_ = std::numeric_limits<uint32_t>::max();
 		uint32_t endInclusive_ = std::numeric_limits<uint32_t>::max();
@@ -247,6 +308,26 @@ public:
 	static std::vector<BreakUpRes> breakUpSeqOnPat(const seqInfo & seq, const njh::PatPosFinder & pFinder);
 
 };
+
+
+template <class T>
+std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(std::vector<T> &seqs, const trimCircularGenomeToRefPars & pars,
+		aligner & alignerObj){
+	std::vector<seqInfo> ret;
+	for(const auto & seq : seqs){
+		auto res = trimCircularGenomeToRef(getSeqBase(seq), pars, alignerObj);
+		addOtherVec(ret, res);
+	}
+	return ret;
+}
+
+template <class T>
+std::vector<seqInfo> readVecTrimmer::trimCircularGenomeToRef(T &seq, const trimCircularGenomeToRefPars & pars,
+		aligner & alignerObj){
+	return trimCircularGenomeToRef(getSeqBase(seq));
+}
+
+
 
 template<typename SEQYPTE, typename REFSEQ>
 void readVecTrimmer::trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seqs,
@@ -333,6 +414,94 @@ void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
 	}
 }
 
+
+template<typename SEQYPTE>
+void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE &seq,
+		const std::vector<seqWithKmerInfo> &refSeqs, aligner &alignerObj){
+
+	uint32_t bestIndex = std::numeric_limits<uint32_t>::max();
+	if (1 == refSeqs.size()) {
+		bestIndex = 0;
+	} else {
+		double kmerCutOff = 0.8;
+		kmerInfo seqKInfo(getSeqBase(seq).seq_, refSeqs.front().kInfo_.kLen_, false);
+	  double bestScore = std::numeric_limits<double>::lowest();
+	  std::vector<uint32_t> bestRefs;
+	  while(bestRefs.empty()){
+	    for (const auto refPos : iter::range(refSeqs.size())) {
+	      const auto & ref = refSeqs[refPos];
+	      if(refSeqs[refPos].kInfo_.compareKmers(seqKInfo).second < kmerCutOff){
+	       	continue;
+	      }
+	      alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
+				double currentScore = 0;
+				alignerObj.profileAlignment(ref, getSeqBase(seq), false, true, false);
+				currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
+				if (currentScore == bestScore) {
+					bestRefs.push_back(refPos);
+				}
+				if (currentScore > bestScore) {
+					bestRefs.clear();
+					bestRefs.push_back(refPos);
+					bestScore = currentScore;
+				}
+			}
+	    if(kmerCutOff < 0 && bestRefs.empty()){
+	    		std::stringstream ss;
+	    		ss << __PRETTY_FUNCTION__ << ", error, couldn't find a matching ref for : " << getSeqBase(seq).name_ << "\n";
+	    		throw std::runtime_error{ss.str()};
+	    }
+	    kmerCutOff -= .1;
+	  }
+	  bestIndex = bestRefs.front();
+	}
+	alignerObj.alignCacheGlobal(refSeqs[bestIndex], getSeqBase(seq));
+
+	//getTrimFront
+	uint32_t trimFront = std::numeric_limits<uint32_t>::max();
+	if('-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+		 '-' == alignerObj.alignObjectA_.seqBase_.seq_.front() ){
+		auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+		trimFront = alignerObj.getSeqPosForAlnBPos(refAlnPos);
+	}else{
+		if('-' == alignerObj.alignObjectB_.seqBase_.seq_.front() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() ){
+			getSeqBase(seq).on_ = false;
+		}
+	}
+
+	//getTrimBack
+	uint32_t trimBack = std::numeric_limits<uint32_t>::max();
+	if('-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
+		 '-' == alignerObj.alignObjectA_.seqBase_.seq_.back() ){
+		auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
+		trimBack = alignerObj.getSeqPosForAlnBPos(refAlnPos);
+	}else{
+		if('-' == alignerObj.alignObjectB_.seqBase_.seq_.back() &&
+			 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back() ){
+			getSeqBase(seq).on_ = false;
+		}
+	}
+	if (std::numeric_limits<uint32_t>::max() != trimFront
+			&& std::numeric_limits<uint32_t>::max() != trimBack) {
+		getSeqBase(seq).setClip(trimFront, trimBack);
+	} else if (std::numeric_limits<uint32_t>::max() != trimFront) {
+		getSeqBase(seq).trimFront(trimFront);
+	} else if (std::numeric_limits<uint32_t>::max() != trimBack) {
+		getSeqBase(seq).trimBack(trimBack + 1);
+	}
+}
+
+template<typename SEQYPTE>
+void readVecTrimmer::trimSeqToRefByGlobalAln(std::vector<SEQYPTE> &seqs,
+		const std::vector<seqWithKmerInfo> &refSeqs, aligner &alignerObj){
+	for(auto & seq : seqs	){
+		trimSeqToRefByGlobalAln(seq, refSeqs, alignerObj);
+	}
+}
+
+
+
 template<typename SEQYPTE, typename REFSEQ>
 void readVecTrimmer::trimSeqToRefByGlobalAln(std::vector<SEQYPTE> & seqs,
 		const std::vector<REFSEQ> & refSeqs,
@@ -348,6 +517,7 @@ void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
 		const std::vector<REFSEQ> & refSeqs,
 		const std::vector<kmerInfo> & refSeqsKInfos,
 		aligner &alignerObj){
+
 	uint32_t bestIndex = std::numeric_limits<uint32_t>::max();
 	if (1 == refSeqs.size()) {
 		bestIndex = 0;
@@ -357,7 +527,7 @@ void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
 	  double bestScore = std::numeric_limits<double>::lowest();
 	  std::vector<uint32_t> bestRefs;
 	  while(bestRefs.empty()){
-	    for (const auto& refPos : iter::range(refSeqs.size())) {
+	    for (const auto refPos : iter::range(refSeqs.size())) {
 	      const auto & ref = refSeqs[refPos];
 	      if(refSeqsKInfos[refPos].compareKmers(seqKInfo).second < kmerCutOff){
 	       	continue;
@@ -419,6 +589,19 @@ void readVecTrimmer::trimSeqToRefByGlobalAln(SEQYPTE & seq,
 	} else if (std::numeric_limits<uint32_t>::max() != trimBack) {
 		getSeqBase(seq).trimBack(trimBack + 1);
 	}
+}
+
+
+
+template <class T>
+void readVecTrimmer::trimEdgesForLowEntropy(std::vector<T> &seqs, const TrimEdgesByLowEntropyPars&  pars){
+  njh::for_each(seqs, [&](T & seq){ trimEdgesForLowEntropy(seq, pars);} );
+  return;
+}
+
+template <class T>
+void readVecTrimmer::trimEdgesForLowEntropy(T &seq, const TrimEdgesByLowEntropyPars&  pars){
+	trimEdgesForLowEntropy(getSeqBase(read), pars);
 }
 
 
@@ -661,7 +844,7 @@ void readVecTrimmer::trimToMostCommonKmer(std::vector<T> & seqs,
 	std::vector<kmerInfo> kInfos;
 	probabilityProfile profile(pars.kmerLength);
 
-  for(const auto & readPos : iter::range(len(seqs))){
+  for(const auto readPos : iter::range(len(seqs))){
   	auto & seq = seqs[readPos];
   	//first turn off short sequences if they are too short and then continue on
   	if(len(seq) < pars.windowLength ){
@@ -671,7 +854,7 @@ void readVecTrimmer::trimToMostCommonKmer(std::vector<T> & seqs,
   	uint32_t startPos = len(seq) - pars.windowLength;
   	uint32_t stopPos = len(seq) - pars.kmerLength + 1;
   	kInfos.emplace_back(kmerInfo(getSeqBase(seq).seq_.substr(startPos), pars.kmerLength, false));
-  	for(const auto & pos : iter::range(startPos, stopPos)){
+  	for(const auto pos : iter::range(startPos, stopPos)){
   		profile.add(getSeqBase(seq).seq_.substr(pos, pars.kmerLength), false);
   	}
   }
@@ -721,7 +904,7 @@ void readVecTrimmer::trimFromMostCommonKmer(std::vector<T> & seqs,
 	std::vector<kmerInfo> kInfos;
 	probabilityProfile profile(pars.kmerLength);
 
-  for(const auto & readPos : iter::range(len(seqs))){
+  for(const auto readPos : iter::range(len(seqs))){
   	auto & seq = seqs[readPos];
   	//first turn off short sequences if they are too short and then continue on
   	if(len(seq) < pars.windowLength ){
@@ -731,7 +914,7 @@ void readVecTrimmer::trimFromMostCommonKmer(std::vector<T> & seqs,
   	uint32_t startPos = 0;
   	uint32_t stopPos = pars.windowLength - pars.kmerLength + 1;
   	kInfos.emplace_back(kmerInfo(getSeqBase(seq).seq_.substr(0, stopPos), pars.kmerLength, false));
-  	for(const auto & pos : iter::range(startPos, stopPos)){
+  	for(const auto pos : iter::range(startPos, stopPos)){
   		profile.add(getSeqBase(seq).seq_.substr(pos, pars.kmerLength), false);
   	}
   }

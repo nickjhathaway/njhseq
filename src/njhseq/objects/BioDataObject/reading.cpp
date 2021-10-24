@@ -62,7 +62,20 @@ std::vector<std::shared_ptr<Bed6RecordCore>> getBeds(
 	reader.openIn();
 	std::vector<std::shared_ptr<Bed6RecordCore>> beds;
 	std::shared_ptr<Bed6RecordCore> bed = reader.readNextRecord();
+	VecStr posHeader;
+	if("" != reader.possibleHeader_){
+		posHeader = tokenizeString(reader.possibleHeader_, "\t");
+	}
 	while (nullptr != bed) {
+		if(posHeader.size() > 6){
+			uint32_t pos = 6;
+			for(auto & extraField : bed->extraFields_){
+				if(pos < posHeader.size() && !MetaDataInName::nameHasMetaData(extraField)){
+					extraField = njh::pasteAsStr("[", posHeader[pos], "=", extraField, ";]");
+				}
+				++pos;
+			}
+		}
 		beds.emplace_back(std::move(bed));
 		bed = reader.readNextRecord();
 	}
@@ -175,14 +188,21 @@ void checkPositionSortedBedThrow(const bfs::path & bedFnp,
 
 
 
-intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(){}
+intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(){
+	extraAttributes_.emplace_back("description");
+	selectFeatures_.emplace_back("gene");
+}
+
 intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(const bfs::path & gffFnp) :
 		gffFnp_(gffFnp) {
+	extraAttributes_.emplace_back("description");
+	selectFeatures_.emplace_back("gene");
 }
 intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(const bfs::path & gffFnp,
 		const VecStr & extraAttributes, const VecStr & selectFeatures) :
 		gffFnp_(gffFnp), extraAttributes_(extraAttributes), selectFeatures_(
 				selectFeatures) {
+
 }
 
 
@@ -193,7 +213,7 @@ Json::Value intersectBedLocsWtihGffRecordsPars::toJson() const{
 	ret["gffFnp_"] = njh::json::toJson(gffFnp_);
 	ret["extraAttributes_"] = njh::json::toJson(extraAttributes_);
 	ret["selectFeatures_"] = njh::json::toJson(selectFeatures_);
-
+	ret["filterSubRegionFeatures_"] = njh::json::toJson(filterSubRegionFeatures_);
 	return ret;
 }
 

@@ -126,7 +126,7 @@ public:
 			double dist_;
 		};
 
-		auto addToGraph =
+		std::function<void()> addToGraph =
 				[&graphMut, &pairFactory,&pairBatchCount,&belowEp,this]() {
 					PairwisePairFactory::PairwisePairVec pairs;
 					std::vector<PairDist> belowEps;
@@ -147,13 +147,9 @@ public:
 						}
 					}
 				};
-		std::vector<std::thread> threads;
-		for (uint32_t t = 0; t < numThreads; ++t) {
-			threads.emplace_back(std::thread(addToGraph));
-		}
-		for (auto & t : threads) {
-			t.join();
-		}
+
+		njh::concurrent::runVoidFunctionThreaded(addToGraph, numThreads);
+
 		if (verbose) {
 			std::cout << std::endl;
 			std::cout << "below: " << belowEp << "/" << pairFactory.totalCompares_ << std::endl;

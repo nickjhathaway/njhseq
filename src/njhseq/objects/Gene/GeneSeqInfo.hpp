@@ -27,23 +27,6 @@ public:
 		GenomicRegion region_;
 		bool oneBasedPos_ = false;
 	};
-	GeneSeqInfo(const seqInfo & cDna, const seqInfo & gDna, GeneSeqInfoPars pars);
-
-	void setTable();
-
-	void setCDnaAln(const seqInfo & cDnaAln);
-	void setCDnaAlnByAligning(aligner & alignerObj);
-
-	Bed6RecordCore genBedFromAAPositions(uint32_t aaStart, uint32_t aaStop);
-	Bed6RecordCore genBedFromCDNAPositions(uint32_t start, uint32_t stop);
-
-	seqInfo cDna_;
-	seqInfo gDna_;
-	std::shared_ptr<seqInfo> cDnaAln_;
-	seqInfo protein_;
-	GeneSeqInfoPars pars_;
-	table infoTab_;
-
 	struct GenePosInfo {
 		uint32_t gDNAPos_ = std::numeric_limits<uint32_t>::max();
 		uint32_t cDNAPos_ = std::numeric_limits<uint32_t>::max();
@@ -52,6 +35,25 @@ public:
 		char base_;
 		char aa_;
 	};
+	GeneSeqInfo(const seqInfo & cDna, const seqInfo & gDna, GeneSeqInfoPars pars);
+
+	void setTable();
+
+	void setCDnaAln(const seqInfo & cDnaAln);
+	void setCDnaAlnByAligning(aligner & alignerObj);
+
+	Bed6RecordCore genBedFromAAPositions(const uint32_t aaStart, const uint32_t aaStop) const;
+	std::unordered_map<std::string, std::set<uint32_t>> genGenomicPositionsFromAAPositions(const std::vector<uint32_t> & asPositions) const;
+
+	Bed6RecordCore genBedFromCDNAPositions(const uint32_t start, const uint32_t stop) const;
+
+	seqInfo cDna_;
+	seqInfo gDna_;
+	std::shared_ptr<seqInfo> cDnaAln_;
+	seqInfo protein_;
+	GeneSeqInfoPars pars_;
+	table infoTab_;
+	std::unordered_map<uint32_t, std::tuple<GenePosInfo,GenePosInfo,GenePosInfo>> infosByAAPos_;
 
 	std::unordered_map<uint32_t, GenePosInfo> getInfosByGDNAPos() const;
 	std::unordered_map<uint32_t, GenePosInfo> getInfosByCDNAPos() const;

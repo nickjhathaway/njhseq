@@ -47,11 +47,16 @@ class consensusHelper {
   		FUNC getSeqInfo, aligner & alignerObj,
   		std::map<uint32_t, charCounter> & counters,
   		std::map<uint32_t, std::map<uint32_t, charCounter>> & insertions,
-  		std::map<int32_t, charCounter> & beginningGap) {
-  	for (const auto & readPos : iter::range(reads.size())) {
+  		std::map<int32_t, charCounter> & beginningGap,
+			bool doDiagAlign = true) {
+  	for (const auto readPos : iter::range(reads.size())) {
   		//use input function to get the seqInfo to compare to
   		const seqInfo & read = getSeqInfo(reads[readPos]);
-  		alignerObj.alignCacheGlobal(seqBase, read);
+  		if(doDiagAlign){
+  			alignerObj.alignCacheGlobalDiag(seqBase, read);
+  		}else{
+  			alignerObj.alignCacheGlobal(seqBase, read);
+  		}
   		// the offset for the insertions
   		uint32_t offSet = 0;
   		uint32_t currentOffset = 1;
@@ -111,7 +116,7 @@ class consensusHelper {
   	uint32_t longestLenPos = -1;
   	uint64_t longestLen = 0;
   	//std::cout << "buildConsensus between2" << std::endl;
-  	for(const auto & readPos : iter::range(reads.size())){
+  	for(const auto readPos : iter::range(reads.size())){
   		const auto & readInfo = getSeqInfo(reads[readPos]);
   		lens.emplace_back(len(readInfo));
   		readTotal += readInfo.cnt_;

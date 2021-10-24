@@ -113,9 +113,10 @@ void aligner::alignScoreGlobal(const std::string& firstSeq,
 
 void aligner::alignScoreGlobalDiag(const std::string& firstSeq,
 		const std::string& secondSeq) {
-	alignCalc::runNeedleDiagonalSave(firstSeq, secondSeq, 100, 50, parts_);
+	alignCalc::runNeedleDiagonalSave(firstSeq, secondSeq, inputAlignmentBlockSize_, inputAlignmentBlockWalkbackSize_, parts_);
 	++numberOfAlingmentsDone_;
 }
+
 
 void aligner::alignScoreGlobalNoInternalGaps(const std::string& firstSeq,
 		const std::string& secondSeq) {
@@ -145,7 +146,7 @@ void aligner::alignScoreCacheGlobalDiag(const std::string& firstSeq,
 		parts_.score_ = parts_.gHolder_.score_;
 		comp_.alnScore_ = parts_.score_;
 	} else {
-		alignCalc::runNeedleDiagonalSave(firstSeq, secondSeq, 100, 50, parts_);
+		alignCalc::runNeedleDiagonalSave(firstSeq, secondSeq, inputAlignmentBlockSize_, inputAlignmentBlockWalkbackSize_, parts_);
 		alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_].addAlnInfo(
 				firstSeq, secondSeq, parts_.gHolder_);
 		++numberOfAlingmentsDone_;
@@ -201,6 +202,15 @@ void aligner::alignCacheGlobal(const seqInfo & ref, const seqInfo & read){
 	rearrangeObjsGlobal(ref, read);
 }
 
+
+void aligner::alignCacheGlobalDiag(const std::string & ref, const std::string & read){
+	alignScoreCacheGlobalDiag(ref, read);
+	rearrangeObjsGlobal(ref, read);
+}
+
+
+
+
 void aligner::alignCacheGlobalDiag(const seqInfo & ref, const seqInfo & read){
 //	ref.outPutSeq(std::cout);
 //	read.outPutSeq(std::cout);
@@ -247,6 +257,12 @@ void aligner::alignRegGlobal(const seqInfo & ref, const seqInfo & read){
 	alignScoreGlobal(ref.seq_, read.seq_);
 	rearrangeObjsGlobal(ref, read);
 }
+
+void aligner::alignRegGlobalDiag(const std::string & ref, const std::string & read){
+	alignScoreGlobalDiag(ref, read);
+	rearrangeObjsGlobal(ref, read);
+}
+
 void aligner::alignRegGlobalDiag(const seqInfo & ref, const seqInfo & read){
 	alignScoreGlobalDiag(ref.seq_, read.seq_);
 	rearrangeObjsGlobal(ref, read);
@@ -316,6 +332,15 @@ void aligner::rearrangeObjsLocal(const seqInfo& firstRead, const seqInfo& second
 			alignObjectB_.seqBase_.qual_, 0, parts_.lHolder_);
 }
 
+void aligner::rearrangeObjsGlobal(const std::string & firstRead, const std::string& secondRead){
+	alignObjectA_.seqBase_ = seqInfo(alignObjectA_.seqBase_.name_, firstRead);
+	alignObjectB_.seqBase_ = seqInfo(alignObjectB_.seqBase_.name_, secondRead);
+	alignCalc::rearrangeGlobal(alignObjectA_.seqBase_.seq_,
+			alignObjectB_.seqBase_.seq_, '-', parts_.gHolder_);
+	alignCalc::rearrangeGlobal(alignObjectA_.seqBase_.qual_,
+			alignObjectB_.seqBase_.qual_, 0, parts_.gHolder_);
+}
+
 void aligner::rearrangeObjsGlobal(const seqInfo& firstRead, const seqInfo& secondRead){
 	alignObjectA_.seqBase_ = firstRead;
 	alignObjectB_.seqBase_ = secondRead;
@@ -336,6 +361,13 @@ void aligner::resetAlignmentInfo() {
 
 void aligner::setQual(QualScorePars pars) {
   qScorePars_ = pars;
+}
+
+
+const comparison& aligner::profilePrimerAlignment(const std::string &objectA,
+		const std::string &objectB) {
+	return profilePrimerAlignment(seqInfo(alignObjectA_.seqBase_.name_, objectA),
+			seqInfo(alignObjectB_.seqBase_.name_, objectB));
 }
 
 
@@ -1441,9 +1473,7 @@ void aligner::processAlnInfoInputNoCheck(const std::string& alnInfoDirName, bool
 
 void aligner::processAlnInfoOutputNoCheck(const std::string& outAlnInfoDirName, bool verbose){
 	if ("" != outAlnInfoDirName) {
-		if(!njh::files::bfs::exists(outAlnInfoDirName)){
-			njh::files::makeDir(njh::files::MkdirPar(outAlnInfoDirName));
-		}
+		njh::files::makeDirP(njh::files::MkdirPar(outAlnInfoDirName));
 		alnHolder_.write(outAlnInfoDirName, verbose);
 	}
 }

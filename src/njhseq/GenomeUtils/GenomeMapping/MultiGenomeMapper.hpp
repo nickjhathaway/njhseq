@@ -132,19 +132,23 @@ public:
 	seqInfo extractGenomeRegion(const std::string & genome, const GenomicRegion & region) const;
 
 
-	std::vector<seqInfo> getRefSeqsWithPrimaryGenome(const GenomicRegion & region,
-			const bfs::path & alignmentsDir,
-			const BioCmdsUtils::LastZPars & lzPars,
-			bool keepBestOnly) const;
 
 
+
+	struct getRefSeqsWithPrimaryGenomePars{
+		BioCmdsUtils::LastZPars lzPars;
+		bool keepBestOnly = false;
+		bool extendAndTrim = false;
+		uint32_t extendAndTrimLen = 10;
+		bool shortNames = false;
+	};
+
 	std::vector<seqInfo> getRefSeqsWithPrimaryGenome(const GenomicRegion & region,
 			const bfs::path & alignmentsDir,
-			const BioCmdsUtils::LastZPars & lzPars,
-			bool keepBestOnly,
-			bool extendAndTrim,
-			uint32_t extendAndTrimLen,
+			const getRefSeqsWithPrimaryGenomePars & pars,
 			aligner & alignerObj) const;
+
+
 
 	std::unordered_map<std::string, std::vector<seqInfo>> getRefSeqsWithPrimaryGenomeAll(
 			const GenomicRegion & region, const bfs::path & alignmentsDir,

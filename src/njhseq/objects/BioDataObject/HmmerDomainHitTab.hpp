@@ -52,6 +52,8 @@ public:
 
 
 	Json::Value toJson() const;
+	std::string toDelimStr() const;
+	static VecStr toDelimStrHeader ();
 
 
 

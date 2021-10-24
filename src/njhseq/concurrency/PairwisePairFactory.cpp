@@ -51,6 +51,10 @@ bool PairwisePairFactory::setNextPair(PairwisePair & pair) {
 	return true;
 }
 
+uint64_t PairwisePairFactory::getTotalPairwiseComps(uint64_t numOfElements){
+	return ((numOfElements - 1) * numOfElements) / 2;
+}
+
 
 bool PairwisePairFactory::setNextPairs(PairwisePairVec & pairs, uint32_t num) {
 	std::lock_guard<std::mutex> lock(mut_);

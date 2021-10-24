@@ -44,7 +44,7 @@ table collapser::markChimerasTest(std::vector<cluster> &processedReads,
 		std::cout << "Initial Pass" << std::endl;
 	}
 	//subPos is the position of the clusters to investigate for being possibly chimeric
-	for (const auto & subPos : iter::range<size_t>(2, processedReads.size())) {
+	for (const auto subPos : iter::range<size_t>(2, processedReads.size())) {
 		if (opts_.verboseOpts_.verbose_) {
 			std::cout << subPos << ":" << processedReads.size() << "\r";
 			std::cout.flush();
@@ -57,7 +57,7 @@ table collapser::markChimerasTest(std::vector<cluster> &processedReads,
 		std::multimap<size_t, size_t> endChiPos;
 		std::multimap<size_t, size_t> frontChiPos;
 		//pos is the position of the possible parents
-		for (const auto &pos : iter::range<size_t>(0, subPos)) {
+		for (const auto pos : iter::range<size_t>(0, subPos)) {
 			if(opts_.verboseOpts_.verbose_ && opts_.verboseOpts_.debug_){
 				std::cout << std::endl;
 				std::cout << getSeqBase(processedReads[pos]).name_ << std::endl;
@@ -364,7 +364,7 @@ void collapser::runFullClustering(std::vector<cluster> & clusters,
   	allSetKmers(reads, opts_.kmerBinOpts_.kCompareLen_, false);
   	std::vector<kmerClusterPos> kClusters;
   	//now cluster reads based on kmers
-  	for(const auto & readPos : iter::range(reads.size())){
+  	for(const auto readPos : iter::range(reads.size())){
   		if(opts_.verboseOpts_.debug_ && readPos % 50 == 0){
   			std::cout << "Currently on " << readPos << " of "
   					<< reads.size() << std::endl;

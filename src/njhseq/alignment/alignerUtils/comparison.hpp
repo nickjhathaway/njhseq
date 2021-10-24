@@ -32,6 +32,8 @@
 #include "njhseq/alignment/alignerUtils/mismatch.hpp"
 #include "njhseq/alignment/alignerUtils/gaps.hpp"
 #include "njhseq/alignment/alignerUtils/QualScorePars.hpp"
+#include "njhseq/objects/BioDataObject/BedRecordCore.hpp"
+
 
 namespace njhseq {
 
@@ -97,6 +99,11 @@ public:
    * @return Json::Value object
    */
 	Json::Value toJson() const;
+
+	static VecStr BasicInfoHeader();
+	void writeBasicInfo(std::ostream & out, const Bed3RecordCore & gPos, const std::string & queryName) const;
+	void writeBasicInfoOneBasedOut(std::ostream & out, const Bed3RecordCore & gPos, const std::string & queryName) const;
+
 };
 
 

@@ -99,8 +99,9 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 		const snpBreakoutPars& pars) {
 	std::vector<cluster>  ret;
 	//log snp information
+//	std::cout << seqBase_.name_ << std::endl;
 	std::unordered_map<uint32_t, std::unordered_map<char, uint32_t>> mismatches;
-	for (const auto & subReadPos : iter::range(reads_.size())) {
+	for (const auto subReadPos : iter::range(reads_.size())) {
 		const auto & subRead = reads_[subReadPos];
 		alignerObj.alignCache(*this, subRead, false);
 		//count gaps and mismatches and get identity
@@ -112,12 +113,13 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 		}
 	}
 //	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << "pars.hardCutOff: " << pars.hardCutOff << std::endl; seqObjects/clusters/
 //	std::cout << "mismatches.size(): " << mismatches.size() << std::endl;
 	std::unordered_map<uint32_t, std::unordered_map<char, uint32_t>> mismatchesAboveCutOff;
 	for (const auto & position : mismatches) {
 		for (const auto & base : position.second) {
-//			std::cout << position.first << "\t" << base.first << '\t' << base.second << std::endl;
-			if (base.second > pars.hardCutOff) {
+			if (base.second > pars.hardCutOff && base.second/seqBase_.cnt_ > pars.hardSnpFreqCutOff) {
+//				std::cout << position.first << "\t" << base.first << '\t' << base.second << '\t' << base.second/seqBase_.cnt_<< std::endl;
 				mismatchesAboveCutOff[position.first][base.first] = base.second;
 			}
 		}
@@ -125,7 +127,7 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 //	std::cout << "mismatchesAboveCutOff.size(): " << mismatchesAboveCutOff.size() << std::endl;
 	if (!mismatchesAboveCutOff.empty()) {
 		std::unordered_map<std::string, std::vector<uint32_t>> readsSnpUids;
-		for (const auto & subReadPos : iter::range(
+		for (const auto subReadPos : iter::range(
 				reads_.size())) {
 			const auto & subRead = reads_[subReadPos];
 			alignerObj.alignCache(*this, subRead, false);
@@ -142,6 +144,7 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 					ss << m.second.refBasePos << ":" << m.second.seqBase << ";";
 				}
 			}
+//			std::cout << '\t' << "freqSum: " << freqSum << std::endl;
 			std::string snpProfileUid = ss.str();
 			if ("" != snpProfileUid &&
 					snpCount >= pars.minSnps &&

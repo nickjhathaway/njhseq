@@ -31,3 +31,5 @@
 #include "njhseq/system.h"
 #include "njhseq/GenomeUtils.h"
 
+#include "njhseq/PopulationGenetics.h"
+#include "njhseq/PopulationGeneticsUtils.h"

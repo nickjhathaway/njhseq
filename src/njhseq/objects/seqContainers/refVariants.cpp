@@ -18,7 +18,11 @@
 // You should have received a copy of the GNU General Public License
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+
 namespace njhseq {
+
+
+
 variant::variant(const seqInfo & seqBase) :
 		seqBase_(seqBase) {
 }
@@ -95,6 +99,28 @@ std::map<uint32_t, std::vector<char>> refVariants::getVariantSnpLociMap()const{
 	return ret;
 }
 
+
+std::vector<uint32_t> refVariants::getUniqueToRefPositions() const {
+	std::unordered_map<uint32_t, uint32_t> positions;
+	for (const auto &v : variants_) {
+		for (const auto &m : v.mismatches_) {
+			++positions[m.first];
+		}
+		for (const auto &d : v.deletions_) {
+			for (uint32_t pos = 0; pos < d.second.gapedSequence_.size(); ++pos) {
+				++positions[d.first + pos];
+			}
+		}
+	}
+	std::vector<uint32_t> positionsOuts;
+	for(const auto & pos : positions){
+		if(pos.second >= variants_.size()){
+			positionsOuts.emplace_back(pos.first);
+		}
+	}
+	return positionsOuts;
+}
+
 std::vector<uint32_t> refVariants::getVariantSnpLoci(VecStr names, uint32_t expand )const{
 	std::set<uint32_t> loci;
 	for(const auto & v : variants_){
@@ -102,7 +128,7 @@ std::vector<uint32_t> refVariants::getVariantSnpLoci(VecStr names, uint32_t expa
 			for(const auto & m : v.mismatches_){
 				loci.emplace(m.second.refBasePos);
 				if(expand > 0){
-					for(const auto & e : iter::range<uint32_t>(1,expand + 1)){
+					for(const auto e : iter::range<uint32_t>(1,expand + 1)){
 						if(e <=m.second.refBasePos){
 							loci.emplace(m.second.refBasePos - e);
 						}
@@ -124,7 +150,7 @@ std::map<uint32_t, std::vector<char>> refVariants::getVariantSnpLociMap(VecStr n
 			for(const auto & m : v.mismatches_){
 				lociChars[m.second.refBasePos].emplace(m.second.seqBase);
 				if(expand > 0){
-					for(const auto & e : iter::range<uint32_t>(1,expand + 1)){
+					for(const auto e : iter::range<uint32_t>(1,expand + 1)){
 						if(e <=m.second.refBasePos){
 							lociChars[m.second.refBasePos - e].emplace(m.second.seqBase);
 						}
@@ -143,6 +169,80 @@ std::map<uint32_t, std::vector<char>> refVariants::getVariantSnpLociMap(VecStr n
 	return ret;
 }
 
+
+std::map<uint32_t, std::vector<gap>> refVariants::getVariantIndelLociMap(VecStr names, uint32_t gapSizeCutOff, bool excludeHomopolymers) const{
+	std::map<uint32_t, std::vector<gap>> ret;
+	ret = getVariantInsertionLociMap(names, gapSizeCutOff, excludeHomopolymers);
+	auto dels = getVariantDeletionLociMap(names, gapSizeCutOff, excludeHomopolymers);
+	for(const auto & loc : dels){
+		for(const auto & del : loc.second){
+			ret[loc.first].emplace_back(del);
+		}
+	}
+	return ret;
+}
+
+std::map<uint32_t, std::vector<gap>> refVariants::getVariantDeletionLociMap(VecStr names, uint32_t gapSizeCutOff, bool excludeHomopolymers) const{
+	std::map<uint32_t, std::vector<gap>> ret;
+	for(const auto & v : variants_){
+		if(njh::in(v.seqBase_.name_, names)){
+			for(const auto & d : v.deletions_){
+				if(d.second.gapedSequence_.size() <gapSizeCutOff){
+					continue;
+				}
+				if(excludeHomopolymers && std::all_of(d.second.gapedSequence_.begin(), d.second.gapedSequence_.end(), [&d](char c){return c == *d.second.gapedSequence_.begin();})){
+					continue;
+				}
+				bool found = false;
+				if(njh::in(d.second.refPos_, ret)){
+					for(const auto & otherGap : ret[d.second.refPos_]){
+						if(otherGap.gapedSequence_ == d.second.gapedSequence_){
+							found = true;
+							break;
+						}
+					}
+				}
+				if(!found){
+					ret[d.second.refPos_].emplace_back(d.second);
+				}
+			}
+		}
+	}
+	return ret;
+}
+
+std::map<uint32_t, std::vector<gap>> refVariants::getVariantInsertionLociMap(VecStr names, uint32_t gapSizeCutOff, bool excludeHomopolymers) const{
+	std::map<uint32_t, std::vector<gap>> ret;
+	for(const auto & v : variants_){
+		if(njh::in(v.seqBase_.name_, names)){
+			for(const auto & i : v.insertions_){
+				if(i.second.gapedSequence_.size() <gapSizeCutOff){
+					continue;
+				}
+				if(excludeHomopolymers && std::all_of(i.second.gapedSequence_.begin(), i.second.gapedSequence_.end(), [&i](char c){return c == *i.second.gapedSequence_.begin();})){
+					continue;
+				}
+				bool found = false;
+				if(njh::in(i.second.refPos_, ret)){
+					for(const auto & otherGap : ret[i.second.refPos_]){
+						if(otherGap.gapedSequence_ == i.second.gapedSequence_){
+							found = true;
+							break;
+						}
+					}
+				}
+				if(!found){
+					ret[i.second.refPos_].emplace_back(i.second);
+				}
+			}
+		}
+	}
+	return ret;
+}
+
+
+
+
 void refVariants::outPut(std::ofstream & out)const {
 	for(const auto & v : variants_){
 		v.outputInfo(out, seqBase_);
@@ -150,3 +250,7 @@ void refVariants::outPut(std::ofstream & out)const {
 }
 
 }  // namespace njhseq
+
+
+
+

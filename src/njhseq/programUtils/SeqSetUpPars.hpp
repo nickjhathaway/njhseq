@@ -37,10 +37,10 @@ struct QualFilteringPars {
   std::string qualWindow_ = "50,5,25";
   uint32_t qualityWindowLength_ = 0;
   uint32_t qualityWindowStep_ = 0;
-  uint32_t qualityWindowThres_ = 0;
+  uint8_t qualityWindowThres_ = 0;
 
   bool checkingQFrac_ = false;
-  uint32_t qualCheck_ = 30;
+  uint8_t qualCheck_ = 30;
   double qualCheckCutOff_ = 0.80;
 
   uint32_t trimAtQualCutOff_ = 2;

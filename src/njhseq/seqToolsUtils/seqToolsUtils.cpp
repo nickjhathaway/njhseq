@@ -340,7 +340,7 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 	table inTab(sampNames, "whitespace", false);
 	//goes sample name -> pairs of midname - index name
 	std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> sampleDirWithSubDirs;
-	for(const auto & rowPos : iter::range(inTab.content_.size())){
+	for(const auto rowPos : iter::range(inTab.content_.size())){
 		const auto & row = inTab.content_[rowPos];
 		if(row.empty() || row[0].front() == '#'){
 			continue;
@@ -350,7 +350,7 @@ ExtractionInfo collectExtractionInfo(const std::string & dirName, const std::str
 					<< "setUpSampleDirs: rows should have at least 3 columns, row: "
 					<< rowPos << "has " << row.size() };
 		}
-		for(const auto & colPos : iter::range<uint32_t>(2,row.size())){
+		for(const auto colPos : iter::range<uint32_t>(2,row.size())){
 			if(row[colPos] == "" || allWhiteSpaceStr(row[colPos])){
 				continue;
 			}
@@ -449,7 +449,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 	table inTab(sampNames, "whitespace", false);
 	//goes sample name -> pairs of midname - index name
 	std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> sampleDirWithSubDirs;
-	for(const auto & rowPos : iter::range(inTab.content_.size())){
+	for(const auto rowPos : iter::range(inTab.content_.size())){
 		const auto & row = inTab.content_[rowPos];
 		if(row.empty() || row[0].front() == '#'){
 			continue;
@@ -459,7 +459,7 @@ ExtractionInfo collectExtractionInfoDirectName(const std::string & dirName, cons
 					<< "setUpSampleDirs: rows should have at least 3 columns, row: "
 					<< rowPos << "has " << row.size() };
 		}
-		for(const auto & colPos : iter::range<uint32_t>(2,row.size())){
+		for(const auto colPos : iter::range<uint32_t>(2,row.size())){
 			if(row[colPos] == "" || allWhiteSpaceStr(row[colPos])){
 				continue;
 			}
@@ -552,7 +552,7 @@ void setUpSampleDirs(
 	std::unordered_map<std::string,
 			std::unordered_map<std::string,
 					std::vector<std::pair<std::string, std::string>>> >sampleDirWithSubDirs;
-	for (const auto & rowPos : iter::range(inTab.content_.size())) {
+	for (const auto rowPos : iter::range(inTab.content_.size())) {
 		const auto & row = inTab.content_[rowPos];
 		if (row.empty() || row[0].front() == '#') {
 			continue;
@@ -563,7 +563,7 @@ void setUpSampleDirs(
 					<< row.size() };
 		}
 		VecStr repNames;
-		for (const auto & colPos : iter::range<uint32_t>(2, row.size())) {
+		for (const auto colPos : iter::range<uint32_t>(2, row.size())) {
 			if (row[colPos] == "" || allWhiteSpaceStr(row[colPos])) {
 				continue;
 			}
@@ -773,7 +773,7 @@ VecStr createDegenStrs(const std::string & str){
 
 table getSeqPosTab(const std::string & str){
 	table out(VecStr{"char", "pos"});
-	for(const auto & pos : iter::range(str.size())){
+	for(const auto pos : iter::range(str.size())){
 		out.content_.emplace_back(toVecStr(str[pos], pos));
 	}
 	return out;

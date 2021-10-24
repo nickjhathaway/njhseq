@@ -338,7 +338,7 @@ ReadCheckerOnNameContaining::~ReadCheckerOnNameContaining() {
 
 ReadCheckerOnQualityWindow::ReadCheckerOnQualityWindow(
 		uint32_t qualityWindowLength, uint32_t qualityWindowStep,
-		uint32_t qualityWindowThres, bool mark) :
+		uint8_t qualityWindowThres, bool mark) :
 		ReadChecker(
 				njh::err::F() << "_failedWindowOf_wl:" << qualityWindowLength << ",ws:"
 						<< qualityWindowStep << ",wt:" << qualityWindowThres, mark), qualityWindowLength_(
@@ -363,7 +363,7 @@ ReadCheckerOnQualityWindow::~ReadCheckerOnQualityWindow() {
 
 ReadCheckerOnQualityWindowTrim::ReadCheckerOnQualityWindowTrim(
 		uint32_t qualityWindowLength, uint32_t qualityWindowStep,
-		uint32_t qualityWindowThres, uint32_t minLen, bool mark) :
+		uint8_t qualityWindowThres, uint32_t minLen, bool mark) :
 		ReadChecker(
 				njh::err::F() << "_failedWindowOf_wl:" << qualityWindowLength << ",ws:"
 						<< qualityWindowStep << ",wt:" << qualityWindowThres, mark), qualityWindowLength_(

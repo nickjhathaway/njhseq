@@ -35,7 +35,7 @@ class substituteMatrix {
 public:
 	//constructor
 	/**
-	 * Simple 1 for match -1 for mismatch
+	 * Simple 2 for match -2 for mismatch
 	 */
 	substituteMatrix();
 	//constructor

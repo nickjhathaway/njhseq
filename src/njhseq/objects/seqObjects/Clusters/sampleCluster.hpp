@@ -160,22 +160,14 @@ protected:
   std::map<std::string, std::vector<uint32_t>> sampleClusters_;
   std::map<std::string, sampInfo> sampInfos_;
 public:
-  const std::map<std::string, sampInfo> & sampInfos()const{return sampInfos_;}
-  const std::map<std::string, std::vector<uint32_t>> & sampleClusters()const{return sampleClusters_;}
 
-  void setSampInfos(const std::map<std::string, sampInfo> & sampInfos){
-  	sampInfos_ = sampInfos;
-  }
+  uint32_t totalRepNumberInAnalysis_{std::numeric_limits<uint32_t>::max()};
 
-  void setSampInfosTotals(const std::map<std::string, sampInfo> & sampInfos){
-  	sampInfos_ = sampInfos;
-  	for(auto & info : sampInfos_){
-  		info.second.resetBasicInfo();
-  	}
-		for (const auto & seq : reads_) {
-			sampInfos_[getSeqBase(seq).getOwnSampName()].update(getSeqBase(seq));
-		}
-  }
+	const std::map<std::string, sampInfo>& sampInfos() const;
+	const std::map<std::string, std::vector<uint32_t>>& sampleClusters() const;
+
+	void setSampInfos(const std::map<std::string, sampInfo> &sampInfos);
+	void setSampInfosTotals(const std::map<std::string, sampInfo> &sampInfos);
 
   template <typename T>
   static void updateAllClusters(std::vector<T>& clusters,

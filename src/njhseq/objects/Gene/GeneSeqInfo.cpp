@@ -76,10 +76,11 @@ void GeneSeqInfo::setTable(){
 					len(protein_.seq_) > pos / 3 ? std::string(1, protein_.seq_[pos / 3]) : "NA");
 		}
 	}
+	infosByAAPos_ = getInfosByAAPos();
 }
 
-Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(uint32_t aaStart,
-		uint32_t aaStop) {
+Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(const uint32_t aaStart,
+		const uint32_t aaStop) const {
 	if(infoTab_.empty()){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error table hasn't been set yet"  << "\n";
@@ -136,8 +137,21 @@ Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(uint32_t aaStart,
 	return ret;
 }
 
-Bed6RecordCore GeneSeqInfo::genBedFromCDNAPositions(uint32_t start,
-		uint32_t stop) {
+std::unordered_map<std::string, std::set<uint32_t>> GeneSeqInfo::genGenomicPositionsFromAAPositions(
+		const std::vector<uint32_t> &aaPositions) const {
+	std::unordered_map<std::string, std::set<uint32_t>> chromPositions;
+	for (const auto &pos : aaPositions) {
+		auto genomicLocationForAAPos = genBedFromAAPositions(pos, pos + 1);
+		for (const auto gPos : iter::range(genomicLocationForAAPos.chromStart_,
+				genomicLocationForAAPos.chromEnd_)) {
+			chromPositions[genomicLocationForAAPos.chrom_].emplace(gPos);
+		}
+	}
+	return chromPositions;
+}
+
+Bed6RecordCore GeneSeqInfo::genBedFromCDNAPositions(const uint32_t start,
+		const uint32_t stop) const{
 	if(infoTab_.empty()){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error table hasn't been set yet"  << "\n";
@@ -228,12 +242,14 @@ std::unordered_map<uint32_t, std::tuple<GeneSeqInfo::GenePosInfo,GeneSeqInfo::Ge
 		throw std::runtime_error { ss.str() };
 	}
 	auto infoTabSplit = infoTab_.splitTableOnColumn("aaPos");
+
 	for (const auto & aa : infoTabSplit) {
 		if (3 != aa.second.nRow()) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__
 					<< ", error amino acid split table should contain 3 rows not "
 					<< aa.second.nRow() << "\n";
+			aa.second.outPutContentOrganized(ss);
 			throw std::runtime_error { ss.str() };
 		}
 		auto codonSplit = aa.second.splitTableOnColumn("codonPos");
