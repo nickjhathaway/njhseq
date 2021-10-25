@@ -79,7 +79,7 @@ bool TableReader::getNextRow(VecStr & row){
 				header_.columnNames_.emplace_back("col." + leftPadNumStr(i, row.size()));
 			}
 		}
-		if(row.size() != header_.nCol()){
+		if(!doNotCheckRowSizes && row.size() != header_.nCol()){
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", error the row has a different number of columns than the first line" << "\n";
 			ss << "rowSize: " << row.size() << ", firstLineSize: " << header_.nCol() << "\n";
