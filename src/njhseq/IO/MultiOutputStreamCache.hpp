@@ -80,7 +80,7 @@ public:
 	 *
 	 * @return
 	 */
-	uint32_t getCacheLimit() const;
+	[[nodiscard]] uint32_t getCacheLimit() const;
 
 	/**@brief Set the cache limit
 	 *
