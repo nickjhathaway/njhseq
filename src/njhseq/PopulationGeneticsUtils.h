@@ -1,8 +1,8 @@
 #pragma once
 /*
- * TableReader.hpp
+ * PopulationGenetics.hpp
  *
- *  Created on: Jan 21, 2018
+ *  Created on: Mar 15, 2018
  *      Author: nick
  */
 // njhseq - A library for analyzing sequence data
@@ -23,32 +23,10 @@
 // You should have received a copy of the GNU General Public License
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "njhseq/objects/dataContainers/tables/table.hpp"
-#include "njhseq/IO/IOOptions.h"
-#include "njhseq/IO/OutputStream.hpp"
-#include "njhseq/IO/InputStream.hpp"
 
-namespace njhseq {
 
-class TableReader {
-public:
 
-	TableReader(const TableIOOpts & tabOpts);
-	const TableIOOpts tabOpts_;
-	table header_;
-
-	std::unique_ptr<InputStream> in_;
-
-	bool getNextRow(VecStr & row);
-
-	VecStr extractCols(const VecStr & row, const VecStr & cols) const;
-
-	void setHeaderlessHeader(uint32_t numOfCols) ;
-
-	bool doNotCheckRowSizes = false;
-};
-
-}  // namespace njhseq
+#include "njhseq/PopulationGeneticsUtils/PopGenUtils.hpp"
 
 
 
