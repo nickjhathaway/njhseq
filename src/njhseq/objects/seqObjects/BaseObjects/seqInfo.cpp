@@ -579,18 +579,34 @@ std::string seqInfo::getStubName(bool removeChiFlag) const {
 	size_t tPos = name_.rfind("_t");
 	size_t fPos = name_.rfind("_f");
 	std::string outString = name_;
+
+	auto renameSense = [this](uint32_t pos){
+		std::string ret = name_;
+		//both _t and _f are size 2
+		if(pos > 0 && pos + 2 < name_.size()){
+			if(isDoubleStr(name_.substr(pos + 2))){
+				ret = name_.substr(0, pos);
+			}
+		}
+		return ret;
+	};
+
 	if (tPos == std::string::npos && fPos == std::string::npos) {
 		outString = name_;
 	} else if (tPos != std::string::npos && fPos != std::string::npos) {
 		if (tPos > fPos) {
-			outString = name_.substr(0, tPos);
+			outString = renameSense(tPos);
+			//outString = name_.substr(0, tPos);
 		} else {
-			outString = name_.substr(0, fPos);
+			outString = renameSense(fPos);
+			//outString = name_.substr(0, fPos);
 		}
 	} else if (tPos == std::string::npos) {
-		outString = name_.substr(0, fPos);
+		outString = renameSense(fPos);
+		//outString = name_.substr(0, fPos);
 	} else {
-		outString = name_.substr(0, tPos);
+		outString = renameSense(tPos);
+		//outString = name_.substr(0, tPos);
 	}
 
 	if (removeChiFlag) {
