@@ -8,6 +8,7 @@
 #include "GeneFromGffs.hpp"
 #include "njhseq/objects/BioDataObject/reading.hpp"
 #include "njhseq/objects/BioDataObject/BioDataFileIO.hpp"
+#include "njhseq/objects/BioDataObject/BioRecordsUtils/BedUtility.hpp"
 
 namespace njhseq {
 
@@ -880,6 +881,7 @@ void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars & par
 		if(allTranscriptRecords.size() > 1){
 			auto transcriptBedOpts = OutOptions(bfs::path(pars.outOpts.outFilename_.string() + "_" + "allTranscripts" + ".bed"));
 			OutputStream transcriptBedOut(transcriptBedOpts);
+			BedUtility::coordSort(allTranscriptRecords, false);
 			for(const auto & bedRecod : allTranscriptRecords){
 				transcriptBedOut << bedRecod.toDelimStrWithExtra() << std::endl;
 			}
