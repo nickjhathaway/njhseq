@@ -32,3 +32,4 @@
 #include "njhseq/objects/dataContainers/tables/MasterTableStaticCache.hpp"
 #include "njhseq/objects/dataContainers/tables/TableCache.hpp"
 #include "njhseq/objects/dataContainers/tables/TableReader.hpp"
+#include "njhseq/objects/dataContainers/tables/TableWriter.hpp"
