@@ -83,6 +83,54 @@ public:
 			size_t pos, uint32_t len, bool setReverse);
 
 
+	struct DetailedKmerDist{
+		uint32_t totalShared_{0};//!< total kmers shared between the two datasets
+		uint32_t totalKmersIn1_{0};//!< total number of kmers in 1
+		uint32_t totalKmersIn2_{0};//!< total number of kmers in 2
+
+		uint32_t totalUniqShared_{0};//!< total number of unique kmers shared
+		uint32_t totalUniqKmersIn1_{0};//!< total number of unique kmers found in 1
+		uint32_t totalUniqKmersIn2_{0};//!< total number of unique kmers found in 2
+
+		uint32_t totalUniqBetween_{0};//!< total number of unique kmers between both sets
+
+		/**
+		 * @fn double getDistTotalShared()const
+		 * @brief take the total number shared divided by the sum of total kmers in both datasets
+		 *
+		 * @return a number between 0 and 1, 0 being no kmers shared and 1 being all kmers between the datasets are shared
+		 */
+		double getDistTotalShared() const;
+
+		/**
+		 * @fn double getDistTotalSharedAdjusted()const
+		 * @brief take the total number shared divided by minimum number of kmers in either dataset
+		 *
+		 * @return a number between 0 and 1, 0 being no kmers shared and 1 being all kmers from the smaller sequence can be found within the larger one
+		 */
+		double getDistTotalSharedLenAdjusted() const;
+
+		/**
+		 * @fn double getDistUniqueShared()const
+		 * @brief take the total number of unqiue kmers (regardless of their within seq counts) shared between the datasets and divide by the total unique between the datasets
+		 *
+		 * @return a number between 0 and 1, 0 being no kmers shared, 1 being all unique kmers are shared between the two datasets
+		 */
+		double getDistUniqueShared() const;
+
+		/**
+		 * @fn double getDistUniqueSharedLenAdjusted()const
+		 * @brief take the total number of unqiue kmers (regardless of their within seq counts) shared between the datasets and divide by the total unique between the datasets
+		 *
+		 * @return a number between 0 and 1, 0 being no kmers shared, 1 being all unique kmers within the smaller unique dataset can be found within the large unqiue dataset
+		 */
+		double getDistUniqueSharedLenAdjusted() const;
+
+
+
+
+	};
+
 
 	/**@brief Compare kmers between two reads
 	 *
@@ -91,6 +139,16 @@ public:
 	 * and second is the fraction of kmers shared of the maximum possible shared kmers
 	 */
 	std::pair<uint32_t, double> compareKmers(const kmerInfo & info) const;
+
+	/**
+		 * @fn DetailedKmerDist compareKmersDetailed(const kmerInfo&)const
+	 * @brief Compare kmers of this seq against the kmers of the other read
+	 *
+	 * @param info The other info to compare to
+	 * @return a detailed structure of distances
+	 */
+	DetailedKmerDist compareKmersDetailed(const kmerInfo & info) const;
+
 	/**@brief Compare kmers of this seq against the reverse complement kmers of the other read
 	 *
 	 * @param read The other read to compare to
@@ -98,6 +156,16 @@ public:
 	 * and second is the fraction of kmers shared of the maximum possible shared kmers
 	 */
 	std::pair<uint32_t, double> compareKmersRevComp(const kmerInfo & info) const;
+
+	/**
+		 * @fn DetailedKmerDist compareKmersRevCompDetailed(const kmerInfo&)const
+	 * @brief Get the detailed breakdown of kmers being shared between the reverse complement kmers of other seq compared to this seq
+	 *
+	 * @param info The other info to compare it's reverse complement seqs to
+	 * @return a detailed structure of distances
+	 */
+	DetailedKmerDist compareKmersRevCompDetailed(const kmerInfo & info) const;
+
 	/**@brief Compare a sub set of kmers to the full kmers of the read
 	 *
 	 * @param read The read to compare against

@@ -21,6 +21,28 @@
 //
 namespace njhseq {
 
+
+double kmerInfo::DetailedKmerDist::getDistTotalShared() const {
+	return static_cast<double>(totalShared_) / (totalKmersIn1_ + totalKmersIn2_);
+}
+
+double kmerInfo::DetailedKmerDist::getDistTotalSharedLenAdjusted() const {
+	return static_cast<double>(totalShared_)
+			/ (std::min(totalKmersIn1_, totalKmersIn2_));
+}
+
+double kmerInfo::DetailedKmerDist::getDistUniqueShared() const {
+	return static_cast<double>(totalUniqShared_) / totalUniqBetween_;
+}
+
+double kmerInfo::DetailedKmerDist::getDistUniqueSharedLenAdjusted() const {
+	return static_cast<double>(totalUniqShared_)
+			/ (std::min(totalUniqKmersIn1_, totalUniqKmersIn2_));
+}
+
+
+
+
 kmerInfo::kmerInfo() :
 		kLen_(1), seqLen_(0) {
 }
@@ -179,6 +201,43 @@ std::pair<uint32_t, double> kmerInfo::compareKmers(
 		kShared/static_cast<double>(std::min(info.seqLen_, seqLen_) + 1 - kLen_)};
 }
 
+kmerInfo::DetailedKmerDist kmerInfo::compareKmersDetailed(const kmerInfo & info) const{
+	kmerInfo::DetailedKmerDist ret;
+	if(info.kmers_.size() > kmers_.size()){
+		for (const auto & k : kmers_) {
+			auto otherK = info.kmers_.find(k.first);
+			if (otherK != info.kmers_.end()) {
+				++ret.totalUniqShared_;
+				ret.totalShared_ += std::min(otherK->second.count_, k.second.count_);
+			}
+		}
+	}else{
+		for (const auto & k : info.kmers_) {
+			auto otherK = kmers_.find(k.first);
+			if (otherK != kmers_.end()) {
+				++ret.totalUniqShared_;
+				ret.totalShared_ += std::min(otherK->second.count_, k.second.count_);
+			}
+		}
+	}
+
+	{
+		std::unordered_set<std::string> uniqKmersBetween = njh::vecToUOSet(getVectorOfMapKeys(kmers_));
+		njh::addVecToUOSet(getVectorOfMapKeys(info.kmers_), uniqKmersBetween);
+		ret.totalUniqBetween_ = uniqKmersBetween.size();
+	}
+
+	ret.totalKmersIn1_ = seqLen_ + 1 - kLen_;
+	ret.totalKmersIn2_ = info.seqLen_ + 1 - kLen_;
+
+	ret.totalUniqKmersIn1_ = kmers_.size();
+	ret.totalUniqKmersIn2_ = info.kmers_.size();
+
+	return ret;
+}
+
+
+
 std::pair<uint32_t, double> kmerInfo::compareKmersRevComp(
 		const kmerInfo & info) const {
 	uint32_t kShared = 0;
@@ -192,6 +251,43 @@ std::pair<uint32_t, double> kmerInfo::compareKmersRevComp(
 		kShared/static_cast<double>(std::min(info.seqLen_,
 						seqLen_) + 1 - kLen_)};
 }
+
+kmerInfo::DetailedKmerDist kmerInfo::compareKmersRevCompDetailed(const kmerInfo & info) const{
+	kmerInfo::DetailedKmerDist ret;
+	if(info.kmersRevComp_.size() > kmers_.size()){
+		for (const auto & k : kmers_) {
+			auto otherK = info.kmersRevComp_.find(k.first);
+			if (otherK != info.kmersRevComp_.end()) {
+				++ret.totalUniqShared_;
+				ret.totalShared_ += std::min(otherK->second.count_, k.second.count_);
+			}
+		}
+	}else{
+		for (const auto & k : info.kmersRevComp_) {
+			auto otherK = kmers_.find(k.first);
+			if (otherK != kmers_.end()) {
+				++ret.totalUniqShared_;
+				ret.totalShared_ += std::min(otherK->second.count_, k.second.count_);
+			}
+		}
+	}
+
+	{
+		std::unordered_set<std::string> uniqKmersBetween = njh::vecToUOSet(getVectorOfMapKeys(kmers_));
+		njh::addVecToUOSet(getVectorOfMapKeys(info.kmersRevComp_), uniqKmersBetween);
+		ret.totalUniqBetween_ = uniqKmersBetween.size();
+	}
+
+	ret.totalKmersIn1_ = seqLen_ + 1 - kLen_;
+	ret.totalKmersIn2_ = info.seqLen_ + 1 - kLen_;
+
+	ret.totalUniqKmersIn1_ = kmers_.size();
+	ret.totalUniqKmersIn2_ = info.kmersRevComp_.size();
+
+	return ret;
+}
+
+
 
 std::pair<uint32_t, double> kmerInfo::compareKmers(const kmerInfo & info,
 		uint32_t startPos, uint32_t windowSize) const {
