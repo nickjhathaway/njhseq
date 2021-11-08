@@ -3773,7 +3773,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			bWriter.SaveAlignment(bAln);
 		}
 	};
-	try {
+//	try {
 	for (const auto regionPos : iter::range(regions.size())) {
 		const auto & region = regions[regionPos];
 		if (verbose_) {
@@ -4575,10 +4575,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			alnCache.remove(name);
 		}
 	}
-	} catch (std::exception & e) {
-		std::cout << e.what()	<< std::endl;
-		exit(1);
-	}
+//	} catch (std::exception & e) {
+//		std::cout << e.what()	<< std::endl;
+//		exit(1);
+//	}
 	return ret;
 }
 
