@@ -3372,7 +3372,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	SeqOutput debugSinglesWriter(debugSinglsOpts);
 
 
-	auto writeMateFilteredOff = [&ret,&extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
+	auto writeMateFilteredOff = [&ret,&extractPars,&writer,&bWriter,&refData](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
 		//unpaired read
 		++ret.mateFilteredOff_;
 		if (extractPars.originalOrientation_) {
@@ -3395,6 +3395,30 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //			if(extractPars.threePrimeTrim_ > 0 && len(outSeq) > extractPars.threePrimeTrim_){
 //				readVecTrimmer::trimOffEndBases(outSeq, extractPars.threePrimeTrim_);
 //			}
+			if((len(outSeq) > region.getLen() || region.getLen() < 150)){
+				seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
+				GenomicRegion balnRegion(bAln, refData);
+				uint32_t startRelative = region.start_ - balnRegion.start_;
+				uint32_t endRelative = region.end_ - balnRegion.start_;
+
+				seqInfo holderSeq(balnRegion.uid_, std::string(balnRegion.getLen(), 'N'));
+				auto alnInfo = bamAlnToAlnInfoLocal(bAln);
+				alignCalc::rearrangeLocal(holderSeq.seq_,  querySeq.seq_, '-'	, alnInfo.begin()->second);
+				alignCalc::rearrangeLocal(holderSeq.qual_, querySeq.qual_, 0	, alnInfo.begin()->second);
+
+				uint32_t startAln = 0;
+				if(region.start_ > balnRegion.start_){
+					startAln = getAlnPosForRealPos(holderSeq.seq_, startRelative);
+				}
+				uint32_t endAln = len(holderSeq);
+				if(region.end_ < balnRegion.end_){
+					endAln =  getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
+				}
+
+				auto outSeqTrimmed = querySeq.getSubRead(startAln, endAln - startAln);
+				outSeqTrimmed.removeGaps();
+				outSeq = outSeqTrimmed;
+			}
 			if(region.reverseSrand_){
 				outSeq.reverseComplementRead(false, true);
 //				revComp = !revComp;
@@ -3412,13 +3436,39 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			bWriter.SaveAlignment(bAln);
 		}
 	};
-	auto writeMateFilteredOffSoftClip = [&ret,&extractPars,&writer,&bWriter](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
+	auto writeMateFilteredOffSoftClip = [&ret,&extractPars,&writer,&bWriter,&refData](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
 		//unpaired read
 		++ret.pairedReadsMateFailedSoftClip_;
 		if (extractPars.originalOrientation_) {
 			writer.openWrite(bamAlnToSeqInfo(bAln));
 		} else {
 			seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities, SangerQualOffset);
+
+			if((len(outSeq) > region.getLen() || region.getLen() < 150)){
+				seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
+				GenomicRegion balnRegion(bAln, refData);
+				uint32_t startRelative = region.start_ - balnRegion.start_;
+				uint32_t endRelative = region.end_ - balnRegion.start_;
+
+				seqInfo holderSeq(balnRegion.uid_, std::string(balnRegion.getLen(), 'N'));
+				auto alnInfo = bamAlnToAlnInfoLocal(bAln);
+				alignCalc::rearrangeLocal(holderSeq.seq_,  querySeq.seq_, '-'	, alnInfo.begin()->second);
+				alignCalc::rearrangeLocal(holderSeq.qual_, querySeq.qual_, 0	, alnInfo.begin()->second);
+
+				uint32_t startAln = 0;
+				if(region.start_ > balnRegion.start_){
+					startAln = getAlnPosForRealPos(holderSeq.seq_, startRelative);
+				}
+				uint32_t endAln = len(holderSeq);
+				if(region.end_ < balnRegion.end_){
+					endAln =  getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
+				}
+
+				auto outSeqTrimmed = querySeq.getSubRead(startAln, endAln - startAln);
+				outSeqTrimmed.removeGaps();
+				outSeq = outSeqTrimmed;
+			}
+
 			//put in the orientation of the output region
 			if(region.reverseSrand_){
 				outSeq.reverseComplementRead(false, true);
@@ -3773,7 +3823,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			bWriter.SaveAlignment(bAln);
 		}
 	};
-//	try {
+	try {
 	for (const auto regionPos : iter::range(regions.size())) {
 		const auto & region = regions[regionPos];
 		if (verbose_) {
@@ -3875,7 +3925,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					}
 					bool balnAllFilters = bAlnIn && bAlnPassAlnSize;
 					bool searchAllFilters = searchIn && searchPassAlnSize;
-					if(len(bAlnSeq) > region.getLen() && bAlnIn){
+					if((len(bAlnSeq) > region.getLen() || region.getLen() < 150) && bAlnIn){
 						seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
 						GenomicRegion balnRegion(bAln, refData);
 						uint32_t startRelative = region.start_ - balnRegion.start_;
@@ -3899,7 +3949,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 						outSeq.removeGaps();
 						bAlnSeq = outSeq;
 					}
-					if(len(searchSeq) > searchRegion->getLen() && searchIn){
+					if((len(searchSeq) > searchRegion->getLen() || searchRegion->getLen() < 150) && searchIn){
 						seqInfo querySeq = bamAlnToSeqInfo(*search, true);
 						GenomicRegion balnRegion(*search, refData);
 						uint32_t startRelative = searchRegion->start_ - balnRegion.start_;
@@ -4225,7 +4275,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 								seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
 										SangerQualOffset);
 
-								if(len(outSeq) > region.getLen()){
+								if((len(outSeq) > region.getLen() || region.getLen() < 150) ){
 									seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
 									GenomicRegion balnRegion(bAln, refData);
 									uint32_t startRelative = region.start_ - balnRegion.start_;
@@ -4461,7 +4511,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					if(pass){
 						if (extractPars.originalOrientation_) {
 							if(subSamplingFunction()){
-								if(len(searchSeq) > searchRegion->getLen() && searchIn){
+								if((len(searchSeq) > searchRegion->getLen() || searchRegion->getLen() < 150) && searchIn){
 									seqInfo querySeq = bamAlnToSeqInfo(*search, true);
 									GenomicRegion balnRegion(*search, refData);
 									uint32_t startRelative = searchRegion->start_ - balnRegion.start_;
@@ -4490,7 +4540,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							}
 						} else {
 							seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
-							if(len(searchSeq) > searchRegion->getLen() && searchIn){
+							if((len(searchSeq) > searchRegion->getLen() || searchRegion->getLen() < 150) && searchIn){
 								seqInfo querySeq = bamAlnToSeqInfo(*search, true);
 								GenomicRegion balnRegion(*search, refData);
 								uint32_t startRelative = searchRegion->start_ - balnRegion.start_;
@@ -4575,10 +4625,10 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			alnCache.remove(name);
 		}
 	}
-//	} catch (std::exception & e) {
-//		std::cout << e.what()	<< std::endl;
-//		exit(1);
-//	}
+	} catch (std::exception & e) {
+		std::cout << e.what()	<< std::endl;
+		exit(1);
+	}
 	return ret;
 }
 
