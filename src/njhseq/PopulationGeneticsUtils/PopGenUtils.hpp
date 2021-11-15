@@ -43,7 +43,7 @@ struct CollapseAndCallVariantsPars{
 
 
 	bfs::path metaFnp;
-	std::set<std::string> ignoreSubFields;
+	std::set<std::string> ignoreSubFields{"site:LabCross", "site:LabControl", "site:LabContaminated"};
 
 	VecStr metaFieldsToCalcPopDiffs;
 

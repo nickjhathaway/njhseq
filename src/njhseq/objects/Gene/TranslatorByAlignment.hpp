@@ -169,6 +169,7 @@ public:
 		bfs::path workingDirtory_;
 
 		bool keepTemporaryFiles_ = false;
+		bool writeOutGeneInfos_ = true;
 
 		bfs::path knownAminoAcidMutationsFnp_; //! at least 2 columns, transcriptid, aaposition/
 
@@ -219,12 +220,19 @@ public:
 		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> fullAATypedWithCodonInfo_;
 		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> variantAATypedWithCodonInfo_;
 
+		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> translated_fullAATypedWithCodonInfo_;
+		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> translated_variantAATypedWithCodonInfo_;
+
 		std::map<std::string, std::string> genSeqSNPTypedStr() const;
 
 
 		std::map<std::string, std::string> genAATypedStr() const;
 		std::map<std::string, std::string> genAATypedStrOnlyKnowns() const;
 		std::map<std::string, std::string> genAATypedStrOnlyPopVariant() const;
+
+		std::map<std::string, std::string> translated_genAATypedStr() const;
+		std::map<std::string, std::string> translated_genAATypedStrOnlyKnowns() const;
+		std::map<std::string, std::string> translated_genAATypedStrOnlyPopVariant() const;
 
 		VecStr seqsUnableToBeMapped_;
 		VecStr seqsTranslationFiltered_;

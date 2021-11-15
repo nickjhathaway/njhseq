@@ -40,6 +40,11 @@ void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & set
 	setUp.setOption(allowableStopCodons_, "--allowableStopCodons",
 					"The number of stop codons to allow in a translation, if contains more than than the translation will be filtered off", false, "Translation Output");
 
+	bool doNotWriteOutGeneInfos = false;
+	setUp.setOption(doNotWriteOutGeneInfos, "--doNotWriteOutGeneInfos",
+					"Do Not Write Out Gene Infos that intersect with seqs", false, "Translation Output");
+
+	writeOutGeneInfos_  = !doNotWriteOutGeneInfos;
 }
 
 
@@ -1024,6 +1029,70 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 	return ret;
 }
 
+
+std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentResult::translated_genAATypedStr() const{
+	std::map<std::string, std::string> ret;
+	for(const auto & seqName : translated_fullAATypedWithCodonInfo_){
+		std::unordered_map<std::string, VecStr> perTranscript;
+		for(const auto & type : seqName.second){
+			perTranscript[type.transcriptName_].emplace_back(njh::pasteAsStr(type.zeroBasedPos_ + 1, type.cod_.aa_));
+		}
+		std::string typed;
+		for(const auto & trans : perTranscript){
+			if("" != typed){
+				typed += ";";
+			}
+			typed = njh::pasteAsStr(trans.first, "--", njh::conToStr(trans.second, ":"));
+		}
+		ret[seqName.first] = typed;
+	}
+	return ret;
+}
+
+
+
+std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentResult::translated_genAATypedStrOnlyKnowns() const{
+	std::map<std::string, std::string> ret;
+	for(const auto & seqName : translated_fullAATypedWithCodonInfo_){
+		std::unordered_map<std::string, VecStr> perTranscript;
+		for(const auto & type : seqName.second){
+			if(type.knownMut_){
+				perTranscript[type.transcriptName_].emplace_back(njh::pasteAsStr(type.zeroBasedPos_ + 1, type.cod_.aa_));
+			}
+		}
+		std::string typed;
+		for(const auto & trans : perTranscript){
+			if("" != typed){
+				typed += ";";
+			}
+			typed = njh::pasteAsStr(trans.first, "--", njh::conToStr(trans.second, ":"));
+		}
+		ret[seqName.first] = typed;
+	}
+	return ret;
+}
+
+std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentResult::translated_genAATypedStrOnlyPopVariant() const{
+	std::map<std::string, std::string> ret;
+	for(const auto & seqName : translated_variantAATypedWithCodonInfo_){
+		std::unordered_map<std::string, VecStr> perTranscript;
+		for(const auto & type : seqName.second){
+			perTranscript[type.transcriptName_].emplace_back(njh::pasteAsStr(type.zeroBasedPos_ + 1, type.cod_.aa_));
+		}
+		std::string typed;
+		for(const auto & trans : perTranscript){
+			if("" != typed){
+				typed += ";";
+			}
+			typed = njh::pasteAsStr(trans.first, "--", njh::conToStr(trans.second, ":"));
+		}
+		ret[seqName.first] = typed;
+	}
+	return ret;
+}
+
+
+
 std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentResult::genAATypedStr() const{
 	std::map<std::string, std::string> ret;
 	for(const auto & seqName : fullAATypedWithCodonInfo_){
@@ -1356,7 +1425,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 
 		// get gene information
 		auto geneInfoDir = njh::files::make_path(pars_.workingDirtory_, "geneInfos");
-		if(pars_.keepTemporaryFiles_){
+		if(pars_.keepTemporaryFiles_ || pars_.writeOutGeneInfos_){
 			njh::files::makeDir(njh::files::MkdirPar{geneInfoDir});
 		}
 		OutOptions outOpts(njh::files::make_path(geneInfoDir, "gene"));
@@ -1404,7 +1473,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				ret.proteinVariants_.emplace(transcriptInfo.first,
 										VariantsInfo{Bed3RecordCore(transcriptInfo.first, 0, transcriptInfo.second->protein_.seq_.size()), transcriptInfo.second->protein_});
 			}
-			if(pars_.keepTemporaryFiles_){
+			if(pars_.keepTemporaryFiles_ || pars_.writeOutGeneInfos_){
 				gene.second->writeOutGeneInfo(tReader, outOpts);
 			}
 		}
@@ -1603,16 +1672,25 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 						ret.fullAATypedWithCodonInfo_[seqName.first].emplace_back(
 								TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
 										njh::in(loc, knownMutationsLocationsZeroBased)));
+						ret.translated_fullAATypedWithCodonInfo_[njh::pasteAsStr(seqName.first, "[transcript=", varPerTrans.first, "]")].emplace_back(
+								TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
+										njh::in(loc, knownMutationsLocationsZeroBased)));
 						if(njh::in(loc, varPerTrans.second.snpsFinal)){
 							ret.variantAATypedWithCodonInfo_[seqName.first].emplace_back(
+									TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
+											njh::in(loc, knownMutationsLocationsZeroBased)));
+							ret.translated_variantAATypedWithCodonInfo_[njh::pasteAsStr(seqName.first, "[transcript=", varPerTrans.first, "]")].emplace_back(
 									TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
 											njh::in(loc, knownMutationsLocationsZeroBased)));
 						}
 					}
 				}
 			}
-
 		}
+
+		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> translated_fullAATypedWithCodonInfo_;
+		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> translated_variantAATypedWithCodonInfo_;
+
 		//sort
 		for(auto & seqName : ret.fullAATypedWithCodonInfo_){
 			njh::sort(seqName.second, [](const TranslatorByAlignment::AAInfo & info1, const TranslatorByAlignment::AAInfo & info2){

@@ -73,7 +73,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 	//pars.transPars.
 	//pars.transPars.additionalBowtieArguments_
 
-	translator->pars_.additionalBowtieArguments_ = njh::pasteAsStr(" -p ", pars.numThreads);
+	translator->pars_.additionalBowtieArguments_ = njh::pasteAsStr(translator->pars_.additionalBowtieArguments_, " -p ", pars.numThreads);
 	auto translatedRes = translator->run(SeqIOOptions::genFastaIn(uniqueSeqsOpts.out_.outName()), sampNamesForPopHaps, pars.variantCallerRunPars);
 	OutputStream popBedLocs(njh::files::make_path(variantInfoDir, "inputSeqs.bed"));
 	translatedRes.writeOutSeqAlnIndvVars(njh::files::make_path(variantInfoDir, "variantsPerSeqAln.tab.txt.gz"));
@@ -104,14 +104,29 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 		}
 		OutputStream divMeasuresOut(njh::files::make_path(variantInfoDir, "translatedDivMeasures.tab.txt"));
 		divMeasuresOut << njh::conToStr(pars.calcPopMeasuresPars.genHeader(), "\t") << std::endl;
+
+		///
+		auto fullTypedAAForTranslated = translatedRes.translated_genAATypedStr();
+		auto knownsTypedAAForTranslated = translatedRes.translated_genAATypedStrOnlyKnowns();
+		auto variableTypedAAForTranslated = translatedRes.translated_genAATypedStrOnlyPopVariant();
+
+		///
 		for(const auto & translatedSeqs : translatedSeqsByTranscript){
 			auto inputTranslatedSeq = CollapsedHaps::collapseReads(translatedSeqs.second, translatedSeqInputNames[translatedSeqs.first]);
 			std::string identifierTranslated = njh::pasteAsStr(pars.identifier, "-translated");
 			if(translatedSeqsByTranscript.size() > 1){
 				identifierTranslated = njh::pasteAsStr(pars.identifier, "-", translatedSeqs.first, "-translated");
 			}
-			inputTranslatedSeq.renameBaseOnFreq(identifierTranslated);
+
+//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//			for(const auto  seqPos : iter::range(inputTranslatedSeq.seqs_.size())){
+//				const auto & seq = inputTranslatedSeq.seqs_[seqPos];
+//				std::cout << seq->name_ << std::endl;
+//				std::cout << "\tfullTypedAAForTranslated: " << fullTypedAAForTranslated[seq->name_] << std::endl;
+//			}
+			auto renameRes = inputTranslatedSeq.renameBaseOnFreq(identifierTranslated);
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
 			//write out seqs
 			inputTranslatedSeq.writeOutAll(variantInfoDir, njh::pasteAsStr(translatedSeqs.first, "-", "uniqueTranslatedSeqs"));
 			//get div measures
@@ -120,6 +135,15 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			auto divMeasures = inputTranslatedSeq.getGeneralMeasuresOfDiversity(calcPopMeasuresPars, alignerObj);
 			divMeasuresOut << njh::conToStr(divMeasures.getOut(inputTranslatedSeq, identifierTranslated, calcPopMeasuresPars), "\t")  << std::endl;
+
+			OutputStream outAATyped(njh::files::make_path(variantInfoDir, njh::pasteAsStr(translatedSeqs.first, "-", "translatedSeqsAATyped.tab.txt.gz") ) );
+			outAATyped << "name\tfullTyped\tknownTyped\tvariantTyped" << std::endl;
+			for(const auto & seq : inputTranslatedSeq.seqs_){
+				outAATyped << seq->name_
+						<< "\t" << fullTypedAAForTranslated[renameRes.newNameToOldNameKey_[seq->name_]]
+						<< "\t" << knownsTypedAAForTranslated[renameRes.newNameToOldNameKey_[seq->name_]]
+						<< "\t" << variableTypedAAForTranslated[renameRes.newNameToOldNameKey_[seq->name_]] << std::endl;
+			}
 		}
 
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;

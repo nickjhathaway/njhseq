@@ -54,8 +54,9 @@ void CollapsedHaps::setFrequencies(){
 	setFrequencies(total);
 }
 
-std::unordered_map<std::string, uint32_t> CollapsedHaps::renameBaseOnFreq(
+CollapsedHaps::RenameRet CollapsedHaps::renameBaseOnFreq(
 		const std::string &identifier) {
+	CollapsedHaps::RenameRet ret;
 	//rename based on freq
 	std::vector<uint32_t> orderByCnt = getOrderByTopCnt();
 	uint32_t seqId = 0;
@@ -63,11 +64,16 @@ std::unordered_map<std::string, uint32_t> CollapsedHaps::renameBaseOnFreq(
 		MetaDataInName popMeta;
 		popMeta.addMeta("HapPopUIDCount",
 				static_cast<uint32_t>(std::round(seqs_[pos]->cnt_)));
+		std::string oldName = seqs_[pos]->name_;
 		seqs_[pos]->name_ = njh::pasteAsStr(identifier, ".",
 				leftPadNumStr<uint32_t>(seqId, size()), popMeta.createMetaName());
+		ret.oldNameToNewNameKey_[oldName] = seqs_[pos]->name_;
+		ret.newNameToOldNameKey_[seqs_[pos]->name_] = oldName;
 		++seqId;
 	}
-	return genSeqNameKey();
+
+	ret.newNameToPos_ = genSeqNameKey();
+	return ret;
 }
 
 uint32_t CollapsedHaps::getTotalHapCount() const{
@@ -105,7 +111,8 @@ VecStr CollapsedHaps::GenPopMeasuresPar::genHeader() const {
 		header.emplace_back("avgNumOfDiffs");
 		header.emplace_back("simpleAvalance");
 		header.emplace_back("completeAvalance");
-		if (numSegSites_ != std::numeric_limits < uint32_t > ::max()) {
+		if (true) {
+//			if (numSegSites_ != std::numeric_limits < uint32_t > ::max()) {
 			header.emplace_back("nSegratingSites");
 			header.emplace_back("TajimaD");
 			header.emplace_back("TajimaDPVal");

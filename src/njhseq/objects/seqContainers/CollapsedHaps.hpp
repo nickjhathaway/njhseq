@@ -47,7 +47,13 @@ public:
 	void setFrequencies(uint32_t total);
 	void setFrequencies();
 
-	std::unordered_map<std::string, uint32_t> renameBaseOnFreq(
+	struct RenameRet{
+		std::unordered_map<std::string, uint32_t> newNameToPos_;
+		std::unordered_map<std::string, std::string> oldNameToNewNameKey_;
+		std::unordered_map<std::string, std::string> newNameToOldNameKey_;
+	};
+
+	RenameRet renameBaseOnFreq(
 			const std::string &identifier);
 
 	////getting info
