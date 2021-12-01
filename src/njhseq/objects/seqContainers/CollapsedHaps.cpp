@@ -227,6 +227,7 @@ std::unordered_map<std::string,
 CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(const GenPopMeasuresPar &pars,
 		const std::shared_ptr<aligner> &alignerObj) const {
 	GenPopMeasuresRes ret;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (pars.getPairwiseComps) {
 		if(nullptr == alignerObj){
 			std::stringstream ss;
@@ -246,13 +247,15 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 			ret.avgPMeasures_.avgPercentId = 1;
 		}
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	//setFrequencies();
 	//set defaults;
 	ret.tajimaRes_.d_ = 0;
 	ret.tajimaRes_.pval_beta_ = 1;
 	ret.tajimaRes_.pval_normal_ = 1;
-
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	ret.divMeasures_ = PopGenCalculator::getGeneralMeasuresOfDiversity(seqs_);
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (pars.getPairwiseComps && size() > 1
 			&& std::numeric_limits < uint32_t > ::max() != pars.numSegSites_) {
 		if(pars.numSegSites_ == 0){
@@ -267,6 +270,7 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 			}
 		}
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return ret;
 }
 

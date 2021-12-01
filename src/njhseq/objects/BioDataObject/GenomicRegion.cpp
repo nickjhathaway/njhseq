@@ -448,14 +448,20 @@ double GenomicRegion::getPercInRegion(const BamTools::BamAlignment & bAln,
 
 size_t GenomicRegion::getRelativePositionFromStartStrandAware(
 		size_t strandAwarePositionFromStart) const {
-	if (strandAwarePositionFromStart >= getLen()) {
+	if (strandAwarePositionFromStart > getLen()) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error strandAwareStart: "
 				<< strandAwarePositionFromStart << " must be less than length: " << getLen()
 				<< " for " << genBed3RecordCore().toDelimStr() << "\n";
+		ss << "If trying to get the end position, do end minus 1 and add one to the end" << "\n";
 		throw std::runtime_error{ss.str()};
 	}
 	if(reverseSrand_){
+		if(end_ == strandAwarePositionFromStart){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "can't get relative positive from reverse strand for " << strandAwarePositionFromStart << " because "<< "\n";
+			throw std::runtime_error{ss.str()};
+		}
 		return end_ - 1 - strandAwarePositionFromStart;
 	}else{
 		return start_ + strandAwarePositionFromStart;

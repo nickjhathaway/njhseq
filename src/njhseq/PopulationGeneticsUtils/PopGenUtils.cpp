@@ -132,10 +132,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			//get div measures
 			auto calcPopMeasuresPars =  pars.calcPopMeasuresPars;
 			calcPopMeasuresPars.numSegSites_ = njh::mapAt(translatedRes.proteinVariants_, translatedSeqs.first).getFinalNumberOfSegratingSites();
-			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			auto divMeasures = inputTranslatedSeq.getGeneralMeasuresOfDiversity(calcPopMeasuresPars, alignerObj);
+//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			divMeasuresOut << njh::conToStr(divMeasures.getOut(inputTranslatedSeq, identifierTranslated, calcPopMeasuresPars), "\t")  << std::endl;
-
+//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			OutputStream outAATyped(njh::files::make_path(variantInfoDir, njh::pasteAsStr(translatedSeqs.first, "-", "translatedSeqsAATyped.tab.txt.gz") ) );
 			outAATyped << "name\tfullTyped\tknownTyped\tvariantTyped" << std::endl;
 			for(const auto & seq : inputTranslatedSeq.seqs_){
