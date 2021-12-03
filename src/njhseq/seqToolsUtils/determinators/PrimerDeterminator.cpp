@@ -570,6 +570,14 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
 			for(const auto c : fwd.infoLetCounter_.alphabet_){
 				basesShared += std::min(letCounter.chars_[c], fwd.infoLetCounter_.chars_[c]);
 			}
+			///@todo determine a faster way to limit which primers are searched, limit which ones are searched first by having a higher cut off and then progressively lower it if no match found
+//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//			std::cout << "static_cast<double>(basesShared)/fwd.info_.seq_.size() < pars.allowable_.distances_.query_.coverage_: " << njh::colorBool(static_cast<double>(basesShared)/fwd.info_.seq_.size() < pars.allowable_.distances_.query_.coverage_) << std::endl;
+//			std::cout << "pars.useMotif_: " << njh::colorBool(pars.useMotif_) << std::endl;
+//			std::cout << "\tpars.allowable_.distances_.query_.coverage_: " << pars.allowable_.distances_.query_.coverage_ << std::endl;
+//			std::cout << "\tbasesShared: " << basesShared << std::endl;
+//			std::cout << "\tstatic_cast<double>(basesShared)/fwd.info_.seq_.size(): " << static_cast<double>(basesShared)/fwd.info_.seq_.size() << std::endl;
+
 			if(static_cast<double>(basesShared)/fwd.info_.seq_.size() < pars.allowable_.distances_.query_.coverage_){
 				continue;
 			}
