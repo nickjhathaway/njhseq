@@ -928,16 +928,199 @@ comparison aligner::compareAlignment(
   return comp_;
 }
 
+
+struct DoubleHPSearchRes {
+	DoubleHPSearchRes(char firstBase, char secondBase, uint32_t secondBaseStart) :
+			firstBase_(firstBase), secondBase_(secondBase), secondBaseStart_(
+					secondBaseStart) {
+
+	}
+	DoubleHPSearchRes(){
+
+	}
+	bool matched_{false};
+	char firstBase_{' '};
+	char secondBase_{' '};
+	uint32_t secondBaseStart_ { std::numeric_limits<uint32_t>::max()};
+
+};
+
+
+DoubleHPSearchRes DoubleHPSearch(const std::string & str){
+	if(str.size() <= 1 || (2 == str.size() && str.front() == str.back()) || seqUtil::isHomopolyer(str) ){
+		return DoubleHPSearchRes();
+	} else {
+		DoubleHPSearchRes ret;
+		if(2 == str.size()){
+			ret.matched_ = true;
+			ret.firstBase_ = str.front();
+			ret.secondBase_ = str.back();
+			ret.secondBaseStart_ = 1;
+		} else {
+			uint32_t secondStart = 1;
+			while(str.front() == str[secondStart]){
+				++secondStart;
+			}
+			bool pass = true;
+			for(const auto pos : iter::range<uint64_t>(secondStart, str.size())){
+				if(str[pos] != str[secondStart]){
+					pass = false;
+					break;
+				}
+			}
+			ret.matched_ = pass;
+			if(pass){
+				ret.secondBaseStart_ = secondStart;
+				ret.firstBase_ = str.front();
+				ret.secondBase_ = str.back();
+			}
+		}
+		return ret;
+	}
+}
+
+
+
 void aligner::handleGapCountingInA(gap& currentGap) {
 	if (!seqUtil::isHomopolyer(currentGap.gapedSequence_) || !weighHomopolymers_) {
-		if (currentGap.size_ >= 3) {
-			++comp_.largeBaseIndel_;
-		} else if (currentGap.size_ == 2) {
-			++comp_.twoBaseIndel_;
-		} else if (currentGap.size_ == 1) {
-			++comp_.oneBaseIndel_;
+		if(weighHomopolymers_ && currentGap.size_ >=2){
+			auto dhpSearch = DoubleHPSearch(currentGap.gapedSequence_);
+//			std::cout << std::endl;
+//			std::cout << "Gap In A " << std::endl;
+//			std::cout << currentGap.gapedSequence_ << std::endl;
+//			std::cout << njh::colorBool(dhpSearch.matched_) << std::endl;
+//			std::cout << dhpSearch.firstBase_ << std::endl;
+//			std::cout << dhpSearch.secondBase_ << std::endl;
+//			std::cout << dhpSearch.secondBaseStart_ << std::endl;
+//			alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+//			alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+
+			if(dhpSearch.matched_){
+				{
+					//front
+					uint32_t frontGapSize = dhpSearch.secondBaseStart_;
+
+					uint32_t alnBBases = frontGapSize;
+					uint32_t alnABases = 0;
+					// forwards
+					uint32_t cursor = 1;
+					// backwards
+					while (cursor <= currentGap.startPos_
+							&& alignObjectA_.seqBase_.seq_[currentGap.startPos_ - cursor]
+									== currentGap.gapedSequence_.front()) {
+						++alnABases;
+						++cursor;
+					}
+					cursor = 1;
+					// backwards
+					while (cursor <= currentGap.startPos_
+							&& alignObjectB_.seqBase_.seq_[currentGap.startPos_ - cursor]
+									== currentGap.gapedSequence_.front()) {
+						++alnBBases;
+						++cursor;
+					}
+
+
+					double currentScore = frontGapSize;
+					//if it is a whole chuck of homopolymer missing, no weighting
+					if (alnABases == 0 || alnBBases == 0) {
+						frontGapSize = 1;
+
+					} else {
+						/*double currentScore = frontGapSize
+								/ ((alnBBases * alignObjectB_.seqBase_.cnt_
+										+ alnABases * alignObjectA_.seqBase_.cnt_)
+										/ (alignObjectB_.seqBase_.cnt_ + alignObjectA_.seqBase_.cnt_));*/
+						currentScore = frontGapSize / static_cast<double>(alnBBases + alnABases);
+					}
+//					std::cout << "front: " << "" << std::endl;
+//					std::cout << "frontGapSize: " << frontGapSize << std::endl;
+//					std::cout << "currentScore: " << currentScore << std::endl;
+//					std::cout << "alnBBases: " << alnBBases << std::endl;
+//					std::cout << "alnABases: " << alnABases << std::endl;
+
+					if (frontGapSize >= 3) {
+						if (currentScore > 1) {
+							++comp_.largeBaseIndel_;
+						} else {
+							comp_.largeBaseIndel_ += currentScore;
+						}
+					} else if (frontGapSize == 2) {
+						comp_.twoBaseIndel_ += currentScore;
+					} else if (frontGapSize == 1) {
+						comp_.oneBaseIndel_ += currentScore;
+					}
+				}
+				{
+					uint32_t backGapSize = currentGap.size_ - dhpSearch.secondBaseStart_;
+					uint32_t alnBBases = 0;
+					uint32_t alnABases = 0;
+					// forwards
+					uint32_t cursor = 0;
+					while ((currentGap.startPos_ + currentGap.size_ + cursor)
+							< alignObjectA_.seqBase_.seq_.size()
+							&& alignObjectA_.seqBase_.seq_[currentGap.startPos_ + currentGap.size_ + cursor] == currentGap.gapedSequence_.back() ) {
+						++alnABases;
+						++cursor;
+					}
+					cursor = dhpSearch.secondBaseStart_;
+					// forwards
+					while ((currentGap.startPos_ + cursor) < alignObjectB_.seqBase_.seq_.size()
+							&& alignObjectB_.seqBase_.seq_[currentGap.startPos_ + cursor]
+									== currentGap.gapedSequence_.back()) {
+						++alnBBases;
+						++cursor;
+					}
+					double currentScore = 1;
+					//if it is a whole chuck of homopolymer missing, no weighting
+					if (alnABases == 0 || alnBBases == 0) {
+						currentScore = 1;
+					} else {
+						/*double currentScore = backGapSize
+						 / ((alnBBases * alignObjectB_.seqBase_.cnt_
+						 + alnBBases * alignObjectB_.seqBase_.cnt_)
+						 / (alignObjectB_.seqBase_.cnt_ + alignObjectB_.seqBase_.cnt_));*/
+						currentScore = backGapSize
+								/ static_cast<double>(alnBBases + alnABases);
+					}
+//					std::cout << "back: " << "" << std::endl;
+//					std::cout << "backGapSize: " << backGapSize << std::endl;
+//					std::cout << "currentScore: " << currentScore << std::endl;
+//					std::cout << "alnBBases: " << alnBBases << std::endl;
+//					std::cout << "alnABases: " << alnABases << std::endl;
+
+					if (backGapSize >= 3) {
+						if (currentScore > 1) {
+							++comp_.largeBaseIndel_;
+						} else {
+							comp_.largeBaseIndel_ += currentScore;
+						}
+					} else if (backGapSize == 2) {
+						comp_.twoBaseIndel_ += currentScore;
+					} else if (backGapSize == 1) {
+						comp_.oneBaseIndel_ += currentScore;
+					}
+				}
+			}else{
+				if (currentGap.size_ >= 3) {
+					++comp_.largeBaseIndel_;
+				} else if (currentGap.size_ == 2) {
+					++comp_.twoBaseIndel_;
+				} else if (currentGap.size_ == 1) {
+					++comp_.oneBaseIndel_;
+				}
+			}
+		}else {
+			if (currentGap.size_ >= 3) {
+				++comp_.largeBaseIndel_;
+			} else if (currentGap.size_ == 2) {
+				++comp_.twoBaseIndel_;
+			} else if (currentGap.size_ == 1) {
+				++comp_.oneBaseIndel_;
+			}
 		}
 	} else {
+
 		uint32_t alnABases = 0;
 		uint32_t alnBBases = 0;
 		// forwards
@@ -1002,14 +1185,144 @@ void aligner::handleGapCountingInA(gap& currentGap) {
 		}
 	}
 }
+
+
+
 void aligner::handleGapCountingInB(gap& currentGap) {
 	if (!seqUtil::isHomopolyer(currentGap.gapedSequence_) || !weighHomopolymers_) {
-		if (currentGap.size_ >= 3) {
-			++comp_.largeBaseIndel_;
-		} else if (currentGap.size_ == 2) {
-			++comp_.twoBaseIndel_;
-		} else if (currentGap.size_ == 1) {
-			++comp_.oneBaseIndel_;
+
+		if(weighHomopolymers_ && currentGap.size_ >=2){
+			auto dhpSearch = DoubleHPSearch(currentGap.gapedSequence_);
+//			std::cout << std::endl;
+//			std::cout << "Gap in B" << std::endl;
+//			std::cout << currentGap.gapedSequence_ << std::endl;
+//			std::cout << njh::colorBool(dhpSearch.matched_) << std::endl;
+//			std::cout << dhpSearch.firstBase_ << std::endl;
+//			std::cout << dhpSearch.secondBase_ << std::endl;
+//			std::cout << dhpSearch.secondBaseStart_ << std::endl;
+			if(dhpSearch.matched_){
+				{
+					//front
+					uint32_t frontGapSize = dhpSearch.secondBaseStart_;
+
+					uint32_t alnABases = frontGapSize;
+					uint32_t alnBBases = 0;
+					// forwards
+					uint32_t cursor = 1;
+					// backwards
+					while (cursor <= currentGap.startPos_
+							&& alignObjectB_.seqBase_.seq_[currentGap.startPos_ - cursor]
+									== currentGap.gapedSequence_.front()) {
+						++alnBBases;
+						++cursor;
+					}
+					cursor = 1;
+					// backwards
+					while (cursor <= currentGap.startPos_
+							&& alignObjectA_.seqBase_.seq_[currentGap.startPos_ - cursor]
+									== currentGap.gapedSequence_.front()) {
+						++alnABases;
+						++cursor;
+					}
+
+
+					double currentScore = frontGapSize;
+					//if it is a whole chuck of homopolymer missing, no weighting
+					if (alnBBases == 0 || alnABases == 0) {
+						frontGapSize = 1;
+
+					} else {
+						/*double currentScore = frontGapSize
+								/ ((alnABases * alignObjectA_.seqBase_.cnt_
+										+ alnBBases * alignObjectB_.seqBase_.cnt_)
+										/ (alignObjectA_.seqBase_.cnt_ + alignObjectB_.seqBase_.cnt_));*/
+						currentScore = frontGapSize / static_cast<double>(alnABases + alnBBases);
+					}
+//					std::cout << "front: " << "" << std::endl;
+//					std::cout << "frontGapSize: " << frontGapSize << std::endl;
+//					std::cout << "currentScore: " << currentScore << std::endl;
+//					std::cout << "alnABases: " << alnABases << std::endl;
+//					std::cout << "alnBBases: " << alnBBases << std::endl;
+
+					if (frontGapSize >= 3) {
+						if (currentScore > 1) {
+							++comp_.largeBaseIndel_;
+						} else {
+							comp_.largeBaseIndel_ += currentScore;
+						}
+					} else if (frontGapSize == 2) {
+						comp_.twoBaseIndel_ += currentScore;
+					} else if (frontGapSize == 1) {
+						comp_.oneBaseIndel_ += currentScore;
+					}
+				}
+				{
+					uint32_t backGapSize = currentGap.size_ - dhpSearch.secondBaseStart_;
+					uint32_t alnABases = 0;
+					uint32_t alnBBases = 0;
+					// forwards
+					uint32_t cursor = 0;
+					while ((currentGap.startPos_ + currentGap.size_ + cursor)
+							< alignObjectB_.seqBase_.seq_.size()
+							&& alignObjectB_.seqBase_.seq_[currentGap.startPos_ + currentGap.size_ + cursor] == currentGap.gapedSequence_.back() ) {
+						++alnBBases;
+						++cursor;
+					}
+					cursor = dhpSearch.secondBaseStart_;
+					// forwards
+					while ((currentGap.startPos_ + cursor) < alignObjectA_.seqBase_.seq_.size()
+							&& alignObjectA_.seqBase_.seq_[currentGap.startPos_ + cursor]
+									== currentGap.gapedSequence_.back()) {
+						++alnABases;
+						++cursor;
+					}
+					double currentScore = 1;
+					//if it is a whole chuck of homopolymer missing, no weighting
+					if (alnBBases == 0 || alnABases == 0) {
+						currentScore = 1;
+					} else {
+						/*double currentScore = backGapSize
+						 / ((alnABases * alignObjectA_.seqBase_.cnt_
+						 + alnBBases * alignObjectB_.seqBase_.cnt_)
+						 / (alignObjectA_.seqBase_.cnt_ + alignObjectB_.seqBase_.cnt_));*/
+						currentScore = backGapSize
+								/ static_cast<double>(alnABases + alnBBases);
+					}
+//					std::cout << "back: " << "" << std::endl;
+//					std::cout << "backGapSize: " << backGapSize << std::endl;
+//					std::cout << "currentScore: " << currentScore << std::endl;
+//					std::cout << "alnABases: " << alnABases << std::endl;
+//					std::cout << "alnBBases: " << alnBBases << std::endl;
+
+					if (backGapSize >= 3) {
+						if (currentScore > 1) {
+							++comp_.largeBaseIndel_;
+						} else {
+							comp_.largeBaseIndel_ += currentScore;
+						}
+					} else if (backGapSize == 2) {
+						comp_.twoBaseIndel_ += currentScore;
+					} else if (backGapSize == 1) {
+						comp_.oneBaseIndel_ += currentScore;
+					}
+				}
+			}else{
+				if (currentGap.size_ >= 3) {
+					++comp_.largeBaseIndel_;
+				} else if (currentGap.size_ == 2) {
+					++comp_.twoBaseIndel_;
+				} else if (currentGap.size_ == 1) {
+					++comp_.oneBaseIndel_;
+				}
+			}
+		} else {
+			if (currentGap.size_ >= 3) {
+				++comp_.largeBaseIndel_;
+			} else if (currentGap.size_ == 2) {
+				++comp_.twoBaseIndel_;
+			} else if (currentGap.size_ == 1) {
+				++comp_.oneBaseIndel_;
+			}
 		}
 	} else {
 		uint32_t alnABases = 0;
