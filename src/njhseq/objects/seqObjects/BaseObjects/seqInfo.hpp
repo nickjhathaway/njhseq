@@ -132,8 +132,8 @@ struct seqInfo {
   std::string getReadId() const;
 
   // Protein conversion
-  void translate( bool complement, bool reverse, size_t start = 0);
-  seqInfo translateRet(bool complement, bool reverse,  size_t start = 0) const;
+  void translate( bool complement, bool reverse, size_t start = 0, bool forceMStart = false);
+  seqInfo translateRet(bool complement, bool reverse,  size_t start = 0, bool forceMStart = false) const;
 
   void processRead(bool processed);
 

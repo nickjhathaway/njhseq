@@ -16,7 +16,7 @@ GeneSeqInfo::GeneSeqInfo(const seqInfo & cDna, const seqInfo & gDna,
 		cDna_(cDna), gDna_(gDna), pars_(pars), infoTab_(VecStr { "cDnaPos", "chrom",
 				"gDnaPos", "aaPos", "codonPos", "base", "aminoAcid" }) {
 
-	protein_ = cDna.translateRet(false, false);
+	protein_ = cDna.translateRet(false, false, 0, true);
 
 }
 

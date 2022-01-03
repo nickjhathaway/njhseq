@@ -120,22 +120,22 @@ Json::Value seqInfo::toJson() const {
 	return ret;
 }
 
-void seqInfo::translate(bool complement, bool reverse, size_t start) {
+void seqInfo::translate(bool complement, bool reverse, size_t start, bool forceMStart) {
 	if (complement && reverse) {
 		reverseComplementRead(true, true);
-		seq_ = seqUtil::convertToProtein(seq_, start, false);
+		seq_ = seqUtil::convertToProtein(seq_, start, forceMStart);
 	} else if (complement) {
-		seqUtil::convertToProteinFromcDNA(seq_, start, false);
+		seqUtil::convertToProteinFromcDNA(seq_, start, forceMStart);
 	} else {
-		seq_ = seqUtil::convertToProtein(seq_, start, false);
+		seq_ = seqUtil::convertToProtein(seq_, start, forceMStart);
 	}
 	qual_ = std::vector<uint8_t>(seq_.size(), 40);
 }
 
 seqInfo seqInfo::translateRet(bool complement, bool reverse,
-		size_t start) const {
+		size_t start, bool forceMStart) const {
 	seqInfo ret(*this);
-	ret.translate(complement, reverse, start);
+	ret.translate(complement, reverse, start, forceMStart);
 //	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //	std::cout << "\t" << ret.seq_ << std::endl;
 	return ret;

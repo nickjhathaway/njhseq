@@ -700,7 +700,13 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 				balnSeq.reverseComplementRead(false, true);
 			}
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-			auto balnSeqTrans = balnSeq.translateRet(false, false, transStart);
+			bool forceMStart = false;
+			uint32_t aaStart = std::min(njh::mapAt(genePosInfoByGDna, cdnaGenomicStart).aaPos_, njh::mapAt(genePosInfoByGDna, cdnaGenomicEndInconclusive).aaPos_);
+			uint32_t aaEnd =   std::max(njh::mapAt(genePosInfoByGDna, cdnaGenomicStart).aaPos_, njh::mapAt(genePosInfoByGDna, cdnaGenomicEndInconclusive).aaPos_);
+			if(0 == aaStart){
+				forceMStart = true;
+			}
+			auto balnSeqTrans = balnSeq.translateRet(false, false, transStart, forceMStart);
 			MetaDataInName transMeta;
 			transMeta.addMeta("transcript", transcript->getIDAttr());
 			balnSeqTrans.name_ += transMeta.createMetaName();
@@ -708,8 +714,6 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 			if(pars_.useFullProtein_){
 				alignerObj.alignCacheGlobal(currentTranscriptInfo->protein_, balnSeqTrans);
 			}else{
-				uint32_t aaStart = std::min(njh::mapAt(genePosInfoByGDna, cdnaGenomicStart).aaPos_, njh::mapAt(genePosInfoByGDna, cdnaGenomicEndInconclusive).aaPos_);
-				uint32_t aaEnd =   std::max(njh::mapAt(genePosInfoByGDna, cdnaGenomicStart).aaPos_, njh::mapAt(genePosInfoByGDna, cdnaGenomicEndInconclusive).aaPos_);
 
 				if(aaStart > pars_.aaExpand_){
 					aaStart -= pars_.aaExpand_;
@@ -761,166 +765,6 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return ret;
 }
-
-//
-//std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> TranslatorByAlignment::translateBasedOnAlignment(
-//		const BamTools::BamAlignment & bAln,
-//		const GeneFromGffs & currentGene,
-//		const std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> & transcriptInfosForGene,
-//		TwoBit::TwoBitFile & tReader,
-//		aligner & alignerObj,
-//		const BamTools::RefVector & refData){
-//
-//	std::unordered_map<std::string, TranslateSeqRes> ret;
-//
-//	auto results = std::make_shared<AlignmentResults>(bAln, refData, true);
-//	results->setRefSeq(tReader);
-//	results->setComparison(true);
-//
-//
-//	for(const auto & transcript : currentGene.mRNAs_){
-//		auto currentTranscriptInfo = njh::mapAt(transcriptInfosForGene, transcript->getIDAttr());
-//		auto genePosInfoByGDna = currentTranscriptInfo->getInfosByGDNAPos();
-//		bool endsAtStopCodon = false;
-//		uint32_t transStart = 0;
-//		seqInfo balnSeq(bAln.Name);
-//		std::vector<uint32_t> codons;
-//		std::vector<GFFCore> cDNAIntersectedWith;
-//		for (const auto & cDna : currentGene.CDS_.at(transcript->getIDAttr())) {
-//			if (results->gRegion_.overlaps(*cDna)) {
-//				cDNAIntersectedWith.emplace_back(*cDna);
-//			}
-//		}
-//		if(cDNAIntersectedWith.size() == 0){
-//
-//		} else {
-//			if (cDNAIntersectedWith.size() == 1
-//					&& results->gRegion_.start_ >= cDNAIntersectedWith.front().start_ - 1
-//					&& results->gRegion_.end_ <= cDNAIntersectedWith.front().end_) {
-//				balnSeq = *(results->alnSeq_);
-//				if (currentGene.gene_->isReverseStrand()) {
-//					if (genePosInfoByGDna.at(results->gRegion_.start_).cDNAPos_
-//							== currentTranscriptInfo->cDna_.seq_.size() - 1) {
-//						endsAtStopCodon = true;
-//					}
-//					uint32_t gPos = results->gRegion_.end_ - 1;
-//					auto codon = genePosInfoByGDna.at(gPos).codonPos_;
-//					while (0 != codon) {
-//						--gPos;
-//						codon = genePosInfoByGDna.at(gPos).codonPos_;
-//						++transStart;
-//					}
-//				} else {
-//					if (genePosInfoByGDna.at(results->gRegion_.end_ - 1).cDNAPos_
-//							== currentTranscriptInfo->cDna_.seq_.size() - 1) {
-//						endsAtStopCodon = true;
-//					}
-//					uint32_t gPos = results->gRegion_.start_;
-//					uint32_t codon = genePosInfoByGDna.at(gPos).codonPos_;
-//					while (0 != codon) {
-//						++gPos;
-//						codon = genePosInfoByGDna.at(gPos).codonPos_;
-//						++transStart;
-//					}
-//				}
-//			} else {
-//				njh::sort(cDNAIntersectedWith,
-//						[](const GenomicRegion & reg1, const GenomicRegion & reg2) {
-//							if(reg1.start_ < reg2.start_) {
-//								return true;
-//							}
-//							return false;
-//						});
-//
-//				if (currentGene.gene_->isReverseStrand()) {
-//					auto cDnaStop = cDNAIntersectedWith.back().end_;
-//					uint32_t gPos = std::min(cDnaStop, results->gRegion_.end_) - 1;
-//					auto codon = genePosInfoByGDna.at(gPos).codonPos_;
-//					while (0 != codon) {
-//						--gPos;
-//						codon = genePosInfoByGDna.at(gPos).codonPos_;
-//						++transStart;
-//					}
-//				} else {
-//					auto cDnaStart = cDNAIntersectedWith.front().start_ - 1;
-//					uint32_t gPos = std::max(cDnaStart, results->gRegion_.start_);
-//					uint32_t codon = genePosInfoByGDna.at(gPos).codonPos_;
-//					while (0 != codon) {
-//						++gPos;
-//						codon = genePosInfoByGDna.at(gPos).codonPos_;
-//						++transStart;
-//					}
-//				}
-//				std::vector<uint32_t> starts;
-//				std::vector<uint32_t> ends;
-//				for (const auto & cDna : cDNAIntersectedWith) {
-//					auto cDnaStart = cDna.start_ - 1;
-//					auto detStart = std::max(cDnaStart, results->gRegion_.start_);
-//					auto detStop = std::min(cDna.end_, results->gRegion_.end_);
-//					ends.emplace_back(detStop);
-//					starts.emplace_back(detStart);
-//					detStart -= results->gRegion_.start_;
-//					detStop -= results->gRegion_.start_;
-//					auto alnStart = getAlnPosForRealPos(results->refSeqAligned_->seq_,
-//							detStart);
-//					auto alnStop = getAlnPosForRealPos(results->refSeqAligned_->seq_,
-//							detStop - 1);
-//					balnSeq.append(
-//							results->alnSeqAligned_->getSubRead(alnStart,
-//									alnStop - alnStart + 1));
-//				}
-//				uint32_t cDnaStart = *std::min_element(starts.begin(), starts.end());
-//				uint32_t cDnaStop = *std::max_element(ends.begin(), ends.end());
-//				if (currentGene.gene_->isReverseStrand()) {
-//					if (genePosInfoByGDna.at(cDnaStart).cDNAPos_
-//							== currentTranscriptInfo->cDna_.seq_.size() - 1) {
-//						endsAtStopCodon = true;
-//					}
-//				} else {
-//					if (genePosInfoByGDna.at(cDnaStop - 1).cDNAPos_
-//							== currentTranscriptInfo->cDna_.seq_.size() - 1) {
-//						endsAtStopCodon = true;
-//					}
-//				}
-//				balnSeq.removeGaps();
-//			}
-//			if (currentGene.gene_->isReverseStrand()) {
-//				balnSeq.reverseComplementRead(false, true);
-//			}
-//
-//			auto balnSeqTrans = balnSeq.translateRet(false, false, transStart);
-//
-//
-//			MetaDataInName transMeta;
-//			transMeta.addMeta("transcript", transcript->getIDAttr());
-//			balnSeqTrans.name_ += transMeta.createMetaName();
-//
-//			alignerObj.alignCacheGlobal(currentTranscriptInfo->protein_, balnSeqTrans);
-//			alignerObj.profilePrimerAlignment(currentTranscriptInfo->protein_, balnSeqTrans);
-//			TranslateSeqRes tRes;
-//
-//			uint32_t cDnaLenRaw = len(balnSeq) - transStart;
-//			uint32_t cDnaLen = cDnaLenRaw - (cDnaLenRaw %3);
-//			uint32_t firstAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of("-"));
-//			uint32_t lastAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of("-"));
-//			lastAmino = std::min<uint32_t>(lastAmino,len(currentTranscriptInfo->protein_) - 1);
-//
-//			auto aminoInfos = currentTranscriptInfo->getInfosByAAPos();
-//			tRes.firstAminoInfo_ = njh::mapAt(aminoInfos, firstAmino);
-//			tRes.lastAminoInfo_ = njh::mapAt(aminoInfos, lastAmino);
-//			tRes.cDna_ = balnSeq.getSubRead(transStart, cDnaLen);
-//			tRes.transcriptName_ = transcript->getIDAttr();
-//			tRes.translation_ = balnSeqTrans;
-//			tRes.refAlnTranslation_ = alignerObj.alignObjectA_.seqBase_;
-//			tRes.queryAlnTranslation_ = alignerObj.alignObjectB_.seqBase_;
-//			tRes.comp_ = alignerObj.comp_;
-//
-//			ret[transcript->getIDAttr()] = tRes;
-//		}
-//	}
-//	return ret;
-//}
-//
 
 TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & pars): pars_(pars){
 	njh::sys::requireExternalProgramThrow("samtools");
