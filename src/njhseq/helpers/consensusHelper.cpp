@@ -66,14 +66,27 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 		auto search = insertions.find(count.first);
 		if (search != insertions.end()) {
 			for (auto & counterInsert : search->second) {
+//				bool print = count.first >= 264 && count.first < 280 && info.name_ == "A0YIQC9601.0_f0.956522";
+//				if(print){
+//					std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//					std::cout << njh::bashCT::red << std::endl;
+//					std::cout << "count.first: " << count.first << std::endl;
+//					std::cout << "counterInsert.first: " << counterInsert.first << std::endl;
+//				}
 				bestQuality = 0;
 				bestBase = ' ';
 				char bestBaseTest = ' ';
 				uint32_t bestQualTest = 0;
 				counterInsert.second.getBest(bestBaseTest, bestQualTest);
-				//std::cout << "\t"<< "bestBaseTest: " << bestBaseTest << ": " << counterInsert.second.chars_[bestBaseTest]<< " total:" << std::round(info.cnt_) << std::endl;
+//				if(print){
+//					std::cout << "\t"<< "bestBaseTest: " << bestBaseTest << ": " << counterInsert.second.chars_[bestBaseTest]<< " total:" << std::round(info.cnt_) << std::endl;
+//
+//				}
 				counterInsert.second.getBest(bestBase, bestQuality, countAdjustedToBeatForInserts);
-				//std::cout << "\t"<< "bestBase    : " << bestBase << ": " << counterInsert.second.chars_[bestBase]<< ",countAdjustedToBeatForInserts: " << countAdjustedToBeatForInserts << " total:" << std::round(info.cnt_) << std::endl;
+//				if(print){
+//					std::cout << "\t"<< "bestBase    : " << bestBase << ": " << counterInsert.second.chars_[bestBase]<< ",countAdjustedToBeatForInserts: " << countAdjustedToBeatForInserts << " total:" << std::round(info.cnt_) << std::endl;
+//					std::cout << njh::bashCT::reset << std::endl;
+//				}
 
 				if (bestBase == ' ') {
 					continue;
@@ -85,15 +98,18 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 		}
 		count.second.getBest(bestBase, bestQuality);
 		//for debugging;
-		/*
-		if(print && count.first == 1472){
-			std::cout << __FILE__ << "  " << __LINE__ << "  " << __PRETTY_FUNCTION__ << std::endl;
-			std::cout << info.name_ << std::endl;
-			std::cout << "bestBase " << bestBase << std::endl;
-			std::cout << "bestQuality " << bestQuality << std::endl;
-			std::cout << "count.second.getTotalCount() " << count.second.getTotalCount() << std::endl;
-			std::cout << "fortyPercent " << fortyPercent << std::endl;
-		}*/
+//		bool print = count.first >= 264 && count.first < 280 && info.name_ == "A0YIQC9601.0_f0.956522";
+//		if(print && count.first == 1472){
+//		if(print){
+//			std::cout << std::endl;
+//			std::cout << __FILE__ << "  " << __LINE__ << "  " << std::endl;
+//			std::cout << info.name_ << std::endl;
+//			std::cout << "count.first: " << count.first << std::endl;
+//			std::cout << "bestBase " << bestBase << std::endl;
+//			std::cout << "bestQuality " << bestQuality << std::endl;
+//			std::cout << "count.second.getTotalCount() " << count.second.getTotalCount() << std::endl;
+//			std::cout << "fortyPercent " << fortyPercent << std::endl;
+//		}
 		if (bestBase == '-' || count.second.getTotalCount() < fortyPercent) {
 			continue;
 		}
@@ -101,7 +117,10 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 		info.seq_.push_back(bestBase);
 		info.qual_.emplace_back(bestQuality);
 	}
-
+//	bool print =  info.name_ == "A0YIQC9601.0_f0.956522";
+//	if(print){
+//		info.outPutSeqAnsi(std::cout);
+//	}
 }
 
 
