@@ -84,6 +84,12 @@ bool baseCluster::calculateConsensusTo(
 	bool matchCurrentSeq = false;
 	uint32_t convergeCount = 0;
 	seqInfo calcToThisCopy = calcToThisInput;
+
+//	for(const auto & clus : reads_){
+//		std::cout << clus->seqBase_.name_ << std::endl;
+//		std::cout << "\t" << clus->seqBase_.cnt_ << std::endl;
+//	}
+
 	while(!matchCurrentSeq && convergeCount <= conPars.convergeAttempts){
 		++convergeCount;
 		//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -98,12 +104,24 @@ bool baseCluster::calculateConsensusTo(
 		auto getSeqBase = [](const std::shared_ptr<readObject> & read) ->const seqInfo& {return read->seqBase_;};
 //		std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 		//consensusHelper::increaseCounters(seqBase_, reads_, getSeqBase, alignerObj, counters, insertions, beginningGap);
-		consensusHelper::increaseCounters(calcToThisCopy, reads_, getSeqBase, alignerObj, counters, insertions, beginningGap);
+
+		if(noWeightConsensus_){
+
+			consensusHelper::increaseCountersNoReadWeights(calcToThisCopy, reads_, getSeqBase, alignerObj, counters, insertions, beginningGap);
+		}else{
+			consensusHelper::increaseCounters(calcToThisCopy, reads_, getSeqBase, alignerObj, counters, insertions, beginningGap);
+		}
 
 //		std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
-		calcConsensusInfo_.cnt_ = seqBase_.cnt_;
-		calcConsensusInfo_.frac_ = seqBase_.frac_;
+		if(noWeightConsensus_){
+			calcConsensusInfo_.cnt_ = reads_.size();
+			calcConsensusInfo_.frac_ = seqBase_.frac_; //??? not sure about this
+		}else{
+			calcConsensusInfo_.cnt_ = seqBase_.cnt_;
+			calcConsensusInfo_.frac_ = seqBase_.frac_;
+		}
 
+		calcConsensusInfo_.name_ = calcToThisCopy.name_;
 		calcConsensusInfo_.seq_ = calcToThisCopy.seq_;
 		calcConsensusInfo_.qual_ = calcToThisCopy.qual_;
 
@@ -133,7 +151,8 @@ bool baseCluster::calculateConsensusTo(
 		}
 //		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//if the count is just 2 then just a majority rules consensus
-		if(seqBase_.cnt_ > 2){
+		if(reads_.size() > 2){
+		//if(seqBase_.cnt_ > 2){
 			/*//for debugging
 			bool print = false;
 			if(njh::containsSubString(seqBase_.name_, "lib1_Minor.00_seq.0001_5")){
@@ -312,7 +331,12 @@ bool baseCluster::calculateConsensusTo(
 						}
 						if(counters.at(headPos).fractions_[headBase] > contentionCutOff &&
 								counters.at(tailPos).fractions_[tailBase] > contentionCutOff ){
-							graph.addEdge(ConBasePathGraph::ConPath::PosBase{headPos,headBase}.getUid(),ConBasePathGraph::ConPath::PosBase{tailPos,tailBase}.getUid(),seq->seqBase_.cnt_ );
+							if(noWeightConsensus_){
+								graph.addEdge(ConBasePathGraph::ConPath::PosBase{headPos,headBase}.getUid(),ConBasePathGraph::ConPath::PosBase{tailPos,tailBase}.getUid(),1 );
+								//here
+							}else{
+								graph.addEdge(ConBasePathGraph::ConPath::PosBase{headPos,headBase}.getUid(),ConBasePathGraph::ConPath::PosBase{tailPos,tailBase}.getUid(),seq->seqBase_.cnt_ );
+							}
 						}
 						//graph.addEdge(ConBasePathGraph::ConPath::PosBase{headPos,headBase}.getUid(),ConBasePathGraph::ConPath::PosBase{tailPos,tailBase}.getUid(),seq->seqBase_.cnt_ );
 					}
@@ -428,6 +452,7 @@ bool baseCluster::calculateConsensusTo(
 			}
 		}
 //		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << "noWeightConsensus_: " << njh::colorBool(noWeightConsensus_) << std::endl;
 		//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
 		consensusHelper::genConsensusFromCounters(calcConsensusInfo_, counters, insertions, beginningGap);
 //		std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -480,7 +505,7 @@ bool baseCluster::calculateConsensusTo(
 	}
 	previousErrorChecks_.clear();
 	needToCalculateConsensus_ = false;
-	if(seqBase_.cnt_ > 2){
+	if(reads_.size() > 2){
 		//exit(1);
 	}
 	return matchCurrentSeq;

@@ -89,6 +89,53 @@ class consensusHelper {
   }
 
   template<typename T, typename FUNC>
+  static void increaseCountersNoReadWeights(const seqInfo & seqBase, const std::vector<T> & reads,
+  		FUNC getSeqInfo, aligner & alignerObj,
+  		std::map<uint32_t, charCounter> & counters,
+  		std::map<uint32_t, std::map<uint32_t, charCounter>> & insertions,
+  		std::map<int32_t, charCounter> & beginningGap,
+			bool doDiagAlign = true) {
+  	for (const auto readPos : iter::range(reads.size())) {
+  		//use input function to get the seqInfo to compare to
+  		const seqInfo & read = getSeqInfo(reads[readPos]);
+  		if(doDiagAlign){
+  			alignerObj.alignCacheGlobalDiag(seqBase, read);
+  		}else{
+  			alignerObj.alignCacheGlobal(seqBase, read);
+  		}
+  		// the offset for the insertions
+  		uint32_t offSet = 0;
+  		uint32_t currentOffset = 1;
+  		uint32_t start = 0;
+  		//check to see if there is a gap at the beginning
+  		// uint32_t readCnt = read.cnt_ < 1 ? 1 : std::round(read.cnt_);
+  		uint32_t readCnt = 1; //no read count weighting, each cluster counts as 1
+  		if (alignerObj.alignObjectA_.seqBase_.seq_.front() == '-') {
+  			start = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+  			for (uint32_t i = 0; i < start; ++i) {
+  				beginningGap[i - start].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += readCnt;
+  				beginningGap[i - start].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *readCnt;
+  				++offSet;
+  			}
+  		}
+  		for (uint32_t i = start; i < len(alignerObj.alignObjectB_); ++i) {
+  			// if the longest reference has an insertion in it put it in the
+  			// insertions letter counter map
+  			if (alignerObj.alignObjectA_.seqBase_.seq_[i] == '-') {
+  				insertions[i - offSet][currentOffset].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += readCnt;
+  				insertions[i - offSet][currentOffset].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *readCnt;
+  				++currentOffset;
+  				++offSet;
+  				continue;
+  			}
+  			currentOffset = 1;
+  			counters[i - offSet].chars_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += readCnt;
+  			counters[i - offSet].qualities_[alignerObj.alignObjectB_.seqBase_.seq_[i]] += alignerObj.alignObjectB_.seqBase_.qual_[i] *readCnt;
+  		}
+  	}
+  }
+
+  template<typename T, typename FUNC>
   static seqInfo buildConsensus(const seqInfo & seqBase, const std::vector<T> & reads,
   		FUNC getSeqInfo, aligner & alignerObj) {
   	seqInfo ret = seqBase;

@@ -51,6 +51,9 @@ class baseCluster : public readObject {
   std::vector<std::shared_ptr<readObject>> reads_;
   std::map<std::string, comparison> previousErrorChecks_;
   bool needToCalculateConsensus_;
+
+  bool noWeightConsensus_{false};
+
   seqInfo calcConsensusInfo_;
 
   void addRead(const baseCluster& newRead);

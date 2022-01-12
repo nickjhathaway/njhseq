@@ -691,6 +691,7 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 			output.back().updateName();
 			oututSampClusToOldNameKey_[sampleName][oldName] = output.back().seqBase_.name_;
 			output.back().reads_.front()->seqBase_.name_ = output.back().seqBase_.name_;
+			output.back().noWeightConsensus_ = true;
 		}
 		if(!keepSampleInfoInMemory_){
 //			std::cout << __FILE__ << " " << __LINE__ << std::endl;
