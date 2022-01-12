@@ -386,7 +386,7 @@ std::vector<seqInfo> MultiGenomeMapper::extractRegions(
 		bool found = false;
 		for (auto & otherRef : ret) {
 			if (otherRef.seq_ == ref.seq_) {
-				otherRef.name_ += "-" + ref.name_;
+				otherRef.name_ += "::" + ref.name_;
 				found = true;
 				break;
 			}
@@ -692,7 +692,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 		bool found = false;
 		for (auto & otherRef : ret) {
 			if (otherRef.seq_ == ref.seq_) {
-				otherRef.name_ += "-" + ref.name_;
+				otherRef.name_ += "::" + ref.name_;
 				found = true;
 				break;
 			}

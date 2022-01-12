@@ -30,6 +30,8 @@
 #include "njhseq/objects/BioDataObject/swisProt.hpp"
 #include "njhseq/objects/BioDataObject/Primer3Results.hpp"
 #include "njhseq/objects/BioDataObject/HmmerDomainHitTab.hpp"
+#include "njhseq/objects/BioDataObject/HmmerTableDomainHit.hpp"
+
 #include "njhseq/objects/BioDataObject/parsers.h"
 
 #include "njhseq/objects/BioDataObject/BioRecordsUtils.h"

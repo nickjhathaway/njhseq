@@ -1,0 +1,212 @@
+/*
+ * HmmerTableDomainHit.cpp
+ *
+ *  Created on: Apr 20, 2018
+ *      Author: nick
+ */
+
+
+
+#include "HmmerTableDomainHit.hpp"
+
+#include "njhseq/utils/vectorUtils.hpp"
+#include "njhseq/objects/Meta/MetaDataInName.hpp"
+
+
+namespace njhseq {
+
+HmmerTableDomainHit::HmmerTableDomainHit(){
+
+}
+
+// target name            accession  query name           accession  hmmfrom hmm to alifrom  ali to envfrom  env to  modlen strand   E-value  score  bias  description of target
+
+HmmerTableDomainHit::HmmerTableDomainHit(const std::string & line) {
+	auto toks = tokenizeString(line, "whitespace");
+	if (toks.size() < 16) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error there should be at least 16 items not "
+				<< toks.size() << "\n";
+		ss << line << "\n";
+		for(const auto pos : iter::range(toks.size())){
+			ss << pos << ": " << toks[pos] << "\n";
+		}
+
+		throw std::runtime_error { ss.str() };
+	}
+	targetName_ = toks[0];
+	targetAcc_ = toks[1];
+	queryName_ = toks[2];
+
+	queryAcc_ = toks[3];
+
+	hmmFrom_ = njh::StrToNumConverter::stoToNum<uint32_t>(toks[4]);
+	hmmTo_ = njh::StrToNumConverter::stoToNum<uint32_t>(toks[5]);
+
+	alignFrom_ = njh::StrToNumConverter::stoToNum<uint32_t>(toks[6]);
+	alignTo_ = njh::StrToNumConverter::stoToNum<uint32_t>(toks[7]);
+
+	envFrom_ = njh::StrToNumConverter::stoToNum<uint32_t>(toks[8]);
+	envTo_ = njh::StrToNumConverter::stoToNum<uint32_t>(toks[9]);
+	modelLen_ = njh::StrToNumConverter::stoToNum<uint32_t>(toks[10]);
+
+	strand_ = toks[11].at(0);
+	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	std::cout << "toks[12]: " << toks[12] << std::endl;
+	modelEvalue_ = njh::StrToNumConverter::stoToNum<double>(toks[12]);
+	modelScore_ = njh::StrToNumConverter::stoToNum<double>(toks[13]);
+	if(0 == modelEvalue_ && modelScore_ > 900){
+		modelEvalue_ = std::numeric_limits<double>::min() * 10;
+	}
+	modelBias_ = njh::StrToNumConverter::stoToNum<double>(toks[14]);
+
+	targetDesc_ = toks[15];
+	if(toks.size() > 16){
+		for(const auto pos : iter::range<uint32_t>(16, toks.size())){
+			targetDesc_ += " " + std::string(toks[pos]);
+		}
+	}
+}
+
+
+bool HmmerTableDomainHit::isReverseStrand() const {
+	return '+' == strand_;
+}
+
+
+
+
+
+
+Json::Value HmmerTableDomainHit::toJson() const{
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["targetName_"] = njh::json::toJson(targetName_);
+	ret["targetAcc_"] = njh::json::toJson(targetAcc_);
+	ret["queryName_"] = njh::json::toJson(queryName_);
+	ret["queryAcc_"] = njh::json::toJson(queryAcc_);
+
+	ret["hmmFrom_"] = njh::json::toJson(hmmFrom_);
+	ret["hmmTo_"] = njh::json::toJson(hmmTo_);
+	ret["alignFrom_"] = njh::json::toJson(alignFrom_);
+	ret["alignTo_"] = njh::json::toJson(alignTo_);
+	ret["envFrom_"] = njh::json::toJson(envFrom_);
+	ret["envTo_"] = njh::json::toJson(envTo_);
+	ret["modelLen_"] = njh::json::toJson(modelLen_);
+	ret["strand_"] = njh::json::toJson(strand_);
+
+
+	ret["modelEvalue_"] = njh::json::toJson(modelEvalue_);
+	ret["modelScore_"] = njh::json::toJson(modelScore_);
+	ret["modelBias_"] = njh::json::toJson(modelBias_);
+	ret["targetDesc_"] = njh::json::toJson(targetDesc_);
+	return ret;
+}
+
+
+
+
+
+VecStr HmmerTableDomainHit::toDelimStrHeader (){
+	return VecStr{
+		"targetName",
+		"targetAcc",
+		"queryName",
+		"queryAcc",
+		"hmmFrom",
+		"hmmTo",
+		"alignFrom",
+		"alignTo",
+		"envFrom",
+		"envTo",
+		"modelLen",
+		"strand",
+
+		"modelEvalue",
+		"modelScore",
+		"modelBias",
+		"targetDesc"
+	};
+}
+
+
+
+std::string HmmerTableDomainHit::toDelimStr() const{
+
+	return njh::conToStr(toVecStr(
+			targetName_,
+			targetAcc_,
+			queryName_,
+			queryAcc_,
+			hmmFrom_,
+			hmmTo_,
+			alignFrom_,
+			alignTo_,
+			envFrom_,
+			envTo_,
+			modelLen_,
+			strand_,
+
+			modelEvalue_,
+			modelScore_,
+			modelBias_,
+			targetDesc_
+		), "\t");
+}
+
+
+Bed3RecordCore HmmerTableDomainHit::genBed3() const {
+
+//	uint32_t start = isReverseStrand() ? alignFrom_ - 1 : alignTo_ - 1;
+//	uint32_t end = isReverseStrand() ? alignTo_ : alignFrom_;
+
+	uint32_t start = isReverseStrand() ? envFrom_ - 1 : envTo_ - 1;
+	uint32_t end = isReverseStrand() ? envTo_ : envFrom_;
+
+	Bed3RecordCore out(queryName_, start, end);
+	MetaDataInName meta;
+	meta.addMeta("modelName", targetName_);
+	meta.addMeta("targetDesc", targetDesc_);
+	meta.addMeta("hmmTo", hmmTo_);
+	meta.addMeta("hmmFrom", hmmFrom_);
+
+	meta.addMeta("score", modelScore_);
+	meta.addMeta("evalue", modelEvalue_);
+
+	out.extraFields_.emplace_back(meta.createMetaName());
+	return out;
+}
+
+Bed6RecordCore HmmerTableDomainHit::genBed6() const {
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	Bed6RecordCore(chrom, chromStart, chromEnd, name, score, strand)
+	//	uint32_t start = isReverseStrand() ? alignFrom_ - 1 : alignTo_ - 1;
+	//	uint32_t end = isReverseStrand() ? alignTo_ : alignFrom_;
+
+	uint32_t start = isReverseStrand() ? envFrom_ - 1 : envTo_ - 1;
+	uint32_t end = isReverseStrand() ? envTo_ : envFrom_;
+	//uint32_t len = end - start;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	Bed6RecordCore out(queryName_, start, end, targetName_, end - start, strand_);
+	out.name_ = out.genUIDFromCoordsWithStrand();
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	MetaDataInName meta;
+	meta.addMeta("modelName", targetName_);
+
+	meta.addMeta("targetDesc", targetDesc_);
+	meta.addMeta("hmmTo", hmmTo_);
+	meta.addMeta("hmmFrom", hmmFrom_);
+
+	meta.addMeta("score", modelScore_);
+	meta.addMeta("evalue", modelEvalue_);
+
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	out.extraFields_.emplace_back(meta.createMetaName());
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	return out;
+}
+
+}  // namespace njhseq
+
+
+
