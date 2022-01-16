@@ -74,6 +74,13 @@ public:
 
 	static VecStr toDelimStrHeader ();
 
+	double modelCoverage() const;
+
+	uint32_t env0BasedPlusStrandStart() const;
+	uint32_t env0BasedPlusStrandEnd() const;
+	uint32_t align0BasedPlusStrandStart() const;
+	uint32_t align0BasedPlusStrandEnd() const;
+
 
 	Bed3RecordCore genBed3() const;
 	Bed6RecordCore genBed6() const;

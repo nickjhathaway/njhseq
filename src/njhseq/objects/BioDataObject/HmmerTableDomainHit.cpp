@@ -51,13 +51,13 @@ HmmerTableDomainHit::HmmerTableDomainHit(const std::string & line) {
 	modelLen_ = njh::StrToNumConverter::stoToNum<uint32_t>(toks[10]);
 
 	strand_ = toks[11].at(0);
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	std::cout << "toks[12]: " << toks[12] << std::endl;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << "toks[12]: " << toks[12] << std::endl;
 	modelEvalue_ = njh::StrToNumConverter::stoToNum<double>(toks[12]);
 	modelScore_ = njh::StrToNumConverter::stoToNum<double>(toks[13]);
-	if(0 == modelEvalue_ && modelScore_ > 900){
-		modelEvalue_ = std::numeric_limits<double>::min() * 10;
-	}
+//	if(0 == modelEvalue_ && modelScore_ > 900){
+//		modelEvalue_ = std::numeric_limits<double>::min() * 10;
+//	}
 	modelBias_ = njh::StrToNumConverter::stoToNum<double>(toks[14]);
 
 	targetDesc_ = toks[15];
@@ -73,9 +73,31 @@ bool HmmerTableDomainHit::isReverseStrand() const {
 	return '+' == strand_;
 }
 
+double HmmerTableDomainHit::modelCoverage() const{
+	double modelLenCovered = uAbsdiff(hmmFrom_, hmmTo_) + 1; //positions are 1 based
+	return modelLenCovered/modelLen_;
+}
 
 
+uint32_t HmmerTableDomainHit::env0BasedPlusStrandStart() const{
+	uint32_t start = isReverseStrand() ? envFrom_ - 1 : envTo_ - 1;
+	return start;
+}
 
+uint32_t HmmerTableDomainHit::env0BasedPlusStrandEnd() const{
+	uint32_t end = isReverseStrand() ? envTo_ : envFrom_;
+	return end;
+}
+
+uint32_t HmmerTableDomainHit::align0BasedPlusStrandStart() const{
+	uint32_t start = isReverseStrand() ? alignFrom_ - 1 : alignTo_ - 1;
+	return start;
+}
+
+uint32_t HmmerTableDomainHit::align0BasedPlusStrandEnd() const{
+	uint32_t end = isReverseStrand() ? alignTo_ : alignFrom_;
+	return end;
+}
 
 
 Json::Value HmmerTableDomainHit::toJson() const{
@@ -169,6 +191,7 @@ Bed3RecordCore HmmerTableDomainHit::genBed3() const {
 	meta.addMeta("targetDesc", targetDesc_);
 	meta.addMeta("hmmTo", hmmTo_);
 	meta.addMeta("hmmFrom", hmmFrom_);
+	meta.addMeta("hmmCovered", modelCoverage());
 
 	meta.addMeta("score", modelScore_);
 	meta.addMeta("evalue", modelEvalue_);
@@ -196,6 +219,7 @@ Bed6RecordCore HmmerTableDomainHit::genBed6() const {
 	meta.addMeta("targetDesc", targetDesc_);
 	meta.addMeta("hmmTo", hmmTo_);
 	meta.addMeta("hmmFrom", hmmFrom_);
+	meta.addMeta("hmmCovered", modelCoverage());
 
 	meta.addMeta("score", modelScore_);
 	meta.addMeta("evalue", modelEvalue_);
