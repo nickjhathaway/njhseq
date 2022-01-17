@@ -18,10 +18,16 @@
 namespace njhseq {
 
 
-class HmmerTableDomainHit{
+/**
+ * @class HmmerSeqHitTab
+ * @brief class to hold the per line info for hits output by the DNA search functions of hmmer3
+ *
+ */
+class HmmerSeqHitTab{
+
 public:
-	HmmerTableDomainHit();
-	HmmerTableDomainHit(const std::string & line);
+	HmmerSeqHitTab();
+	HmmerSeqHitTab(const std::string & line);
 
 
 //	(1) target name: The name of the target sequence or profile.
@@ -75,16 +81,28 @@ public:
 	static VecStr toDelimStrHeader ();
 
 	double modelCoverage() const;
+	double queryCoverageEnv(uint32_t queryLen) const;
+	double queryCoverageAln(uint32_t queryLen) const;
+
 
 	uint32_t env0BasedPlusStrandStart() const;
 	uint32_t env0BasedPlusStrandEnd() const;
 	uint32_t align0BasedPlusStrandStart() const;
 	uint32_t align0BasedPlusStrandEnd() const;
 
+	uint32_t zeroBasedHmmFrom() const; //per file specs the positions are 1-based
 
-	Bed3RecordCore genBed3() const;
-	Bed6RecordCore genBed6() const;
+	uint32_t envLen() const;
+	uint32_t hmmLen() const;
+	uint32_t alignLen() const;
 
+
+
+	Bed6RecordCore genBed6_env() const;
+	Bed6RecordCore genBed6_aln() const;
+private:
+	Bed6RecordCore genBed6(uint32_t start, uint32_t end) const;
+public:
 };
 
 

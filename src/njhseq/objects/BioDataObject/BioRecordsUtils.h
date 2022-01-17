@@ -24,6 +24,8 @@
 // along with elucidator.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "njhseq/objects/BioDataObject/BioRecordsUtils/BedUtility.hpp"
+#include "njhseq/objects/BioDataObject/BioRecordsUtils/HmmerUtility.hpp"
+
 
 
 

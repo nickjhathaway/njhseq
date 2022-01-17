@@ -10,6 +10,7 @@
 #include "HmmerDomainHitTab.hpp"
 
 #include "njhseq/utils/vectorUtils.hpp"
+#include "njhseq/objects/Meta/MetaDataInName.hpp"
 
 
 namespace njhseq {
@@ -67,6 +68,68 @@ HmmerDomainHitTab::HmmerDomainHitTab(const std::string & line) {
 		}
 	}
 }
+
+
+uint32_t HmmerDomainHitTab::zeroBasedHmmFrom() const{
+	return hmmFrom_ -1;
+}
+
+uint32_t HmmerDomainHitTab::zeroBasedAlignFrom() const{
+	return alignFrom_ -1;
+}
+
+uint32_t HmmerDomainHitTab::zeroBasedEnvFrom() const{
+	return envFrom_ - 1;
+}
+
+uint32_t HmmerDomainHitTab::envLen() const{
+	return envTo_ - zeroBasedEnvFrom();
+}
+
+uint32_t HmmerDomainHitTab::hmmLen() const{
+	return hmmTo_ - zeroBasedHmmFrom();
+}
+
+uint32_t HmmerDomainHitTab::alignLen() const{
+	return alignTo_ - zeroBasedAlignFrom();
+}
+
+
+double HmmerDomainHitTab::modelCoverage() const{
+	return hmmLen()/static_cast<double>(queryLen_);
+}
+
+Bed6RecordCore HmmerDomainHitTab::genBed6_env() const {
+	uint32_t start = zeroBasedEnvFrom();
+	uint32_t end = envTo_;
+	return genBed6(start, end);
+}
+
+Bed6RecordCore HmmerDomainHitTab::genBed6_aln() const {
+
+	uint32_t start = zeroBasedAlignFrom();
+	uint32_t end = alignTo_;
+	return genBed6(start, end);
+
+}
+
+Bed6RecordCore HmmerDomainHitTab::genBed6(uint32_t start, uint32_t end) const{
+	Bed6RecordCore out(targetName_, start, end, queryName_, end - start, '+');
+	out.name_ = out.genUIDFromCoordsWithStrand();
+	MetaDataInName meta;
+	meta.addMeta("modelName", queryName_);
+	meta.addMeta("hmmTo", hmmTo_);
+	meta.addMeta("hmmFrom", zeroBasedHmmFrom());
+	meta.addMeta("hmmCovered", modelCoverage());
+	meta.addMeta("modelAccuracy", acc_);
+	meta.addMeta("score", domainScore_);
+	meta.addMeta("evalue", domain_i_evalue_);
+	out.extraFields_.emplace_back(meta.createMetaName());
+	return out;
+}
+
+
+
 
 
 Json::Value HmmerDomainHitTab::toJson() const{
