@@ -117,6 +117,16 @@ uint64_t getMinLength(const std::vector<T>& reads) {
 }
 
 template <typename T>
+std::vector<uint64_t> getLengths(const std::vector<T>& seqs) {
+	std::vector<uint64_t>  ret;
+  for (const auto& seq : seqs) {
+  	ret.emplace_back(len(getRef(seq)));
+  }
+  return ret;
+}
+
+
+template <typename T>
 VecStr getNames(const std::vector<T>& reads) {
   VecStr names;
   for (const auto& read : reads) {
