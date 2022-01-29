@@ -148,4 +148,26 @@ std::vector<std::shared_ptr<Bed6RecordCore>> convertBed3ToBed6(const std::vector
 	return ret;
 }
 
+
+Bed6RecordCore Bed6RecordCore::adjustSubRegionToRelativePosition(const Bed3RecordCore & subRegion){
+
+	Bed6RecordCore genomicLoc;
+
+	genomicLoc.chrom_ = chrom_;
+	if(reverseStrand()){
+		genomicLoc.strand_ = '-';
+		genomicLoc.chromStart_ = chromEnd_ - subRegion.chromEnd_;
+		genomicLoc.chromEnd_ = chromEnd_ - subRegion.chromStart_ ;
+	}else{
+		genomicLoc.chromStart_ = chromStart_ + subRegion.chromStart_;
+		genomicLoc.chromEnd_ = chromStart_ + subRegion.chromEnd_;
+		genomicLoc.strand_ = '+';
+	}
+	genomicLoc.score_ = genomicLoc.length();
+	genomicLoc.name_ = genomicLoc.genUIDFromCoordsWithStrand();
+	return genomicLoc;
+}
+
+
+
 } /* namespace njhseq */

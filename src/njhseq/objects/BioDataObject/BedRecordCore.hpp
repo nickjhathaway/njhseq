@@ -55,6 +55,7 @@ public:
 	std::string genUIDFromCoordsWithStrand() const;
 
 
+	Bed6RecordCore adjustSubRegionToRelativePosition(const Bed3RecordCore & subRegion);
 
 };
 

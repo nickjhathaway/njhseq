@@ -96,12 +96,16 @@ public:
 	struct genSubRegionCombosPars{
 		bool includeFromFront = false;
 		bool includeFromBack = false;
+		uint32_t includeFromEdgesMinSize = 10; //non-inconsilve
 		uint32_t includeFromSubRegionSize = std::numeric_limits<uint32_t>::max();
 		uint32_t minLen = 1;
 		uint32_t maxLen = std::numeric_limits<uint32_t>::max();
 		uint32_t minBlockRegionLen = 1;
 		bool justToNextRegion = false;
 		bool mergeOverlappingOrAdjacentRegions = false;
+
+		bool filterFinalRegionsWithinRegions = false;
+		bool filterFinalRegionsToNonoverlapingOrAdjacentRegions = false;
 	};
 
 
@@ -156,7 +160,7 @@ public:
 
 		if(pars.includeFromFront){
 			for(auto & byChrom : regionsByChrom){
-				if(byChrom.second.front()->chromStart_ > 10){
+				if(byChrom.second.front()->chromStart_ > pars.includeFromEdgesMinSize){
 					byChrom.second.emplace_back(std::make_shared<Bed6RecordCore>(byChrom.first, 0, 1, "start", 1, '+'));
 					BedUtility::coordSort(byChrom.second, false);
 				}
@@ -170,7 +174,7 @@ public:
 					ss << "has: " << njh::conToStr(njh::getVecOfMapKeys(genomeLen), ",") << "\n";
 					throw std::runtime_error{ss.str()};
 				}
-				if(genomeLen.at(byChrom.first) - byChrom.second.back()->chromEnd_ > 10){
+				if(genomeLen.at(byChrom.first) - byChrom.second.back()->chromEnd_ > pars.includeFromEdgesMinSize){
 					byChrom.second.emplace_back(std::make_shared<Bed6RecordCore>(byChrom.first, genomeLen.at(byChrom.first) -1, genomeLen.at(byChrom.first), "back", 1, '+'));
 				}
 			}
@@ -219,6 +223,45 @@ public:
 				}
 			}
 		}
+		njh::sort(ret,[](const SubRegionCombo & com1, const SubRegionCombo & com2){
+			if(com1.startRegion_.chromStart_ == com2.startRegion_.chromStart_){
+				return com1.endRegion_.chromEnd_ > com2.endRegion_.chromEnd_;
+			}else{
+				return com1.startRegion_.chromStart_ < com2.startRegion_.chromStart_;
+			}
+		});
+		if(pars.filterFinalRegionsWithinRegions){
+			std::vector<BedUtility::SubRegionCombo> filteredRegions;
+			for(const auto & subRegion : ret){
+				bool foundWithInAnother = false;
+				for(const auto & other : filteredRegions){
+					if(subRegion.startRegion_.chromStart_ >= other.startRegion_.chromStart_
+					&& subRegion.endRegion_.chromEnd_     <= other.endRegion_.chromEnd_){
+						foundWithInAnother = true;
+						break;
+					}
+				}
+				if(!foundWithInAnother){
+					filteredRegions.emplace_back(subRegion);
+				}
+			}
+			ret = filteredRegions;
+		}
+
+		if(pars.filterFinalRegionsToNonoverlapingOrAdjacentRegions){
+			//filter overlapping start and end regions
+			//technically need to get a little more sophisticated with region choosing for regions with tandem repeats
+			std::vector<SubRegionCombo> filteredRegions;
+			for(const auto & subRegion : ret){
+				if(!subRegion.startRegion_.overlaps(subRegion.endRegion_, 1) && subRegion.startRegion_.chromEnd_ != subRegion.endRegion_.chromStart_){
+					filteredRegions.emplace_back(subRegion);
+				}
+			}
+			ret = filteredRegions;
+		}
+
+
+
 		return ret;
 	}
 
