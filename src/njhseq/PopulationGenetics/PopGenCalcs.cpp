@@ -241,9 +241,10 @@ PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDivers
 	}
 
 
+
 	//ploidy 2
 	res.ploidy2_ = ExpectedPloidyInfo::genPloidyInfo(2, freqs);
-	//ploidy of 2 is kind of unnecssary since it's just expected hetereozygosity
+	//ploidy of 2 is kind of unnecessary since it's just expected hetereozygosity
 
 	//ploidy 3
 	res.ploidy3_ = ExpectedPloidyInfo::genPloidyInfo(3, freqs);
@@ -253,6 +254,16 @@ PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDivers
 
 	//ploidy 5
 	res.ploidy5_ = ExpectedPloidyInfo::genPloidyInfo(5, freqs);
+
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	for(const auto & freq : freqs){
+//		std::cout << freq << std::endl;
+//	}
+//	std::cout << "res.heterozygostiy_: " << res.heterozygostiy_ << std::endl;
+//	std::cout << "res.ploidy2_.expectedPolyClonal_: " << res.ploidy2_.expectedPolyClonal_ << std::endl;
+//	std::cout << "res.ploidy3_.expectedPolyClonal_: " << res.ploidy3_.expectedPolyClonal_ << std::endl;
+//	std::cout << "res.ploidy4_.expectedPolyClonal_: " << res.ploidy4_.expectedPolyClonal_ << std::endl;
+//	std::cout << "res.ploidy5_.expectedPolyClonal_: " << res.ploidy5_.expectedPolyClonal_ << std::endl;
 
 
 	return res;
