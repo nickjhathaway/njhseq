@@ -269,6 +269,27 @@ void seqInfo::insert(uint32_t pos, const seqInfo & otherInfo){
 	qual_.insert(qual_.begin() + pos, otherInfo.qual_.begin(), otherInfo.qual_.end());
 }
 
+void seqInfo::replace(uint32_t pos, uint32_t size, const seqInfo & otherInfo){
+	replace(pos, size, otherInfo.seq_, otherInfo.qual_);
+}
+void seqInfo::replace(uint32_t pos, uint32_t size, const std::string & otherInfo, uint8_t defaultQual){
+	std::vector<uint8_t> insertQual(otherInfo.size(), defaultQual);
+	replace(pos, size, otherInfo, insertQual);
+}
+void seqInfo::replace(uint32_t pos, uint32_t size, const std::string & otherInfo, const std::vector<uint8_t> & insertQual){
+	if(pos + size > seq_.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "pos: " << pos << ", plus size: " << size << ", is out of range of seq length: " << seq_.size()<< "\n";
+		throw std::runtime_error{ss.str()};
+	}
+
+	seq_.replace(pos, size, otherInfo);
+	qual_.erase(qual_.begin() + pos, qual_.begin() + pos + size);
+	qual_.insert(qual_.begin() + pos, insertQual.begin(), insertQual.end());
+}
+
+
+
 void seqInfo::reverseHRunsQuals() {
 	std::vector<std::vector<uint8_t>> quals;
 	std::vector<uint8_t> currentQuals;

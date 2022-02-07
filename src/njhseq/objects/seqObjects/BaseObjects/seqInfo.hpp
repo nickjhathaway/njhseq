@@ -81,7 +81,12 @@ struct seqInfo {
 	void append(const seqInfo & other);
 
 	void insert(uint32_t pos, const seqInfo & otherInfo);
-
+	void replace(uint32_t pos, uint32_t size, const seqInfo & otherInfo);
+	void replace(uint32_t pos, uint32_t size, const std::string & otherInfo, uint8_t defaultQual =40);
+private:
+	//making this private so it's only called by the above functions and i don't have to check it
+	void replace(uint32_t pos, uint32_t size, const std::string & otherInfo, const std::vector<uint8_t> & quals);
+public:
 	bool checkLeadQual(uint32_t pos, uint8_t secondayQual, uint32_t out) const;
 	bool checkTrailQual(uint32_t pos, uint8_t secondayQual, uint32_t out) const;
 	bool checkPrimaryQual(uint32_t pos, uint8_t primaryQual) const;
