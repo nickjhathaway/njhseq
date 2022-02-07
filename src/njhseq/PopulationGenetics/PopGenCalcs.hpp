@@ -67,6 +67,9 @@ public:
 		double expectedPolyClonal_; //!< the expected freq of polyclonal samples for given ploidy for given population frequencies
 		std::unordered_map<uint32_t, double> expectedCOIForPloidy_; //!< the expected COI or given ploidy for given population frequencies
 
+
+		double getMaxExpPloidy() const;
+
 		//currently only does ploidy up to and including 5, will throw otherwise
 		static ExpectedPloidyInfo genPloidyInfo(uint32_t ploidy, const std::vector<long double> & freqs);
 	};

@@ -73,7 +73,9 @@ PopGenCalculator::TajimaTestRes PopGenCalculator::calcTajimaTest(uint32_t nInput
   return TajimaTestRes(D, Pval_normal, Pval_beta);
 }
 
-
+double PopGenCalculator::ExpectedPloidyInfo::getMaxExpPloidy() const{
+	return expectedCOIForPloidy_.at(ploidy_);
+}
 
 PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPloidyInfo(uint32_t ploidy, const std::vector<long double> & freqs){
 
