@@ -2188,11 +2188,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 								if (bAln.RefID == search->RefID && std::abs(bAln.InsertSize) < insertLengthCutOff_) {
 									++ret.pairedReads_;
 									if (bAln.IsFirstMate()) {
-										mappedPairWriter.openWrite(
-												PairedRead(bAlnSeq, searchSeq, false));
+										mappedPairWriter.openWrite(PairedRead(bAlnSeq, searchSeq, false));
 									} else {
-										mappedPairWriter.openWrite(
-												PairedRead(searchSeq, bAlnSeq, false));
+										mappedPairWriter.openWrite(PairedRead(searchSeq, bAlnSeq, false));
 									}
 									bWriter.SaveAlignment(bAln);
 									bWriter.SaveAlignment(*search);
@@ -2205,6 +2203,21 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsFromBamToSameOrientat
 										(*discordantBedOut) << GenomicRegion(bAln,    rData).genBedRecordCore().toDelimStr() << std::endl;
 										(*discordantBedOut) << GenomicRegion(*search, rData).genBedRecordCore().toDelimStr() << std::endl;
 									}
+//									std::cout << std::endl;
+//									std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
+//									std::cout << "std::abs(bAln.InsertSize) < insertLengthCutOff_: " << njh::colorBool(std::abs(bAln.InsertSize) < insertLengthCutOff_) << std::endl;
+//									std::cout << "std::abs(bAln.InsertSize) : " << std::abs(bAln.InsertSize)  << std::endl;
+//									std::cout << "bAln.RefID == search->RefID: " << njh::colorBool(bAln.RefID == search->RefID) << std::endl;
+//									std::cout << "bAln.RefID: " << bAln.RefID << std::endl;
+//									std::cout << "search->RefID: " << search->RefID << std::endl;
+//									std::cout << "bAln.IsReverseStrand(): "  << njh::colorBool(bAln.IsReverseStrand())  << std::endl;
+//									std::cout << "search->IsReverseStrand(): "  << njh::colorBool(search->IsReverseStrand())  << std::endl;
+//									std::cout << "search->IsReverseStrand() == bAln.IsReverseStrand(): " << njh::colorBool(search->IsReverseStrand() == bAln.IsReverseStrand()) << std::endl;
+//									std::cout << "bAln.Position: " << bAln.Position << std::endl;
+//									std::cout << "bAln.RefID length: " << rData[bAln.RefID].RefLength << std::endl;
+//									std::cout << "search->Position: " << search->Position << std::endl;
+//									std::cout << "search->RefID length: " << rData[search->RefID].RefLength << std::endl;
 									//discordant if mapping to different chromosome or very far away from each other
 									++ret.discordant_;
 									if (bAln.IsFirstMate()) {

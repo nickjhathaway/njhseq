@@ -28,6 +28,8 @@
 //
 #include "njhseq/utils.h"
 #include "njhseq/alignment/alignerUtils/substituteMatrix.hpp"
+#include "njhseq/objects/dataContainers/tables/table.hpp"
+
 namespace njhseq {
 
 
@@ -102,6 +104,8 @@ public:
   char getDegenativeBase() const;
   // output data
   void outPutInfo(std::ostream &out, bool ifQualities) const;
+  table createOutputTab(bool addQualities) const;
+
   void outPutACGTInfo(std::ostream &out) const;
   void outPutACGTFractionInfo(std::ostream &out);
   double getFracDifference(const charCounter & otherCounter, const std::vector<char> & alph)const;

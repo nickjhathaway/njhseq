@@ -154,29 +154,35 @@ void charCounter::getBest(char & base, uint32_t &quality, uint32_t size) const {
 	}
 }
 
-void charCounter::outPutInfo(std::ostream &out, bool ifQualities) const {
+void charCounter::outPutInfo(std::ostream &out, bool addQuality) const {
+
+	auto infoTab = createOutputTab(addQuality);
+	infoTab.outPutContents(out, "\t");
+}
+
+table charCounter::createOutputTab(bool addQualities) const {
+
 	VecStr header;
-	if (ifQualities) {
-		header = {"letter", "count", "qualities","fraction"};
+	if (addQualities) {
+		header = { "letter", "count", "qualities", "fraction" };
 	} else {
-		header = {"letter", "count","fraction"};
+		header = { "letter", "count", "fraction" };
 	}
+	table ret(header);
 
 	double totalCount = getTotalCount();
 	std::vector<VecStr> outConent;
-	if (!ifQualities) {
+	if (!addQualities) {
 		for (const auto &let : alphabet_) {
-			outConent.emplace_back(
-					toVecStr(let, chars_[let], chars_[let] / totalCount));
+			ret.addRow(let, chars_[let], chars_[let] / totalCount);
 		}
 	} else {
 		for (const auto &let : alphabet_) {
-			outConent.emplace_back(
-					toVecStr(let, chars_[let], qualities_[let],
-							chars_[let] / totalCount));
+			ret.addRow(let, chars_[let], qualities_[let], chars_[let] / totalCount);
 		}
 	}
-	printTableOrganized(outConent, header, out);
+
+	return ret;
 }
 
 void charCounter::outPutACGTInfo(std::ostream &out) const {
