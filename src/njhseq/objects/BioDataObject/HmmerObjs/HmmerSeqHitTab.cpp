@@ -67,10 +67,10 @@ HmmerSeqHitTab::HmmerSeqHitTab(const std::string & line) {
 	}
 }
 
-
-bool HmmerSeqHitTab::isReverseStrand() const {
-	return '+' == strand_;
-}
+//
+//bool HmmerSeqHitTab::isReverseStrand() const {
+//	return '-' == strand_;
+//}
 
 double HmmerSeqHitTab::modelCoverage() const{
 	double modelLenCovered = uAbsdiff(hmmFrom_, hmmTo_) + 1; //positions are 1 based
@@ -88,42 +88,42 @@ double HmmerSeqHitTab::queryCoverageEnv(uint32_t queryLen) const{
 
 
 
-
-uint32_t HmmerSeqHitTab::env0BasedPlusStrandStart() const{
-	uint32_t start = isReverseStrand() ? envFrom_ - 1 : envTo_ - 1;
-	return start;
-}
-
-uint32_t HmmerSeqHitTab::env0BasedPlusStrandEnd() const{
-	uint32_t end = isReverseStrand() ? envTo_ : envFrom_;
-	return end;
-}
-
-uint32_t HmmerSeqHitTab::align0BasedPlusStrandStart() const{
-	uint32_t start = isReverseStrand() ? alignFrom_ - 1 : alignTo_ - 1;
-	return start;
-}
-
-uint32_t HmmerSeqHitTab::align0BasedPlusStrandEnd() const{
-	uint32_t end = isReverseStrand() ? alignTo_ : alignFrom_;
-	return end;
-}
-
-
-uint32_t HmmerSeqHitTab::zeroBasedHmmFrom() const{
-	//per file specs the positions are 1-based
-	return hmmFrom_ - 1;
-}
-
-uint32_t HmmerSeqHitTab::envLen() const{
-	return env0BasedPlusStrandEnd() - env0BasedPlusStrandStart();
-}
-uint32_t HmmerSeqHitTab::hmmLen() const{
-	return hmmTo_ - zeroBasedHmmFrom();
-}
-uint32_t HmmerSeqHitTab::alignLen() const{
-	return align0BasedPlusStrandEnd() - align0BasedPlusStrandStart();
-}
+//
+//uint32_t HmmerSeqHitTab::env0BasedPlusStrandStart() const{
+//	uint32_t start = !isReverseStrand() ? envFrom_ - 1 : envTo_ - 1;
+//	return start;
+//}
+//
+//uint32_t HmmerSeqHitTab::env0BasedPlusStrandEnd() const{
+//	uint32_t end = !isReverseStrand() ? envTo_ : envFrom_;
+//	return end;
+//}
+//
+//uint32_t HmmerSeqHitTab::align0BasedPlusStrandStart() const{
+//	uint32_t start = !isReverseStrand() ? alignFrom_ - 1 : alignTo_ - 1;
+//	return start;
+//}
+//
+//uint32_t HmmerSeqHitTab::align0BasedPlusStrandEnd() const{
+//	uint32_t end = !isReverseStrand() ? alignTo_ : alignFrom_;
+//	return end;
+//}
+//
+//
+//uint32_t HmmerSeqHitTab::zeroBasedHmmFrom() const{
+//	//per file specs the positions are 1-based
+//	return hmmFrom_ - 1;
+//}
+//
+//uint32_t HmmerSeqHitTab::envLen() const{
+//	return env0BasedPlusStrandEnd() - env0BasedPlusStrandStart();
+//}
+//uint32_t HmmerSeqHitTab::hmmLen() const{
+//	return hmmTo_ - zeroBasedHmmFrom();
+//}
+//uint32_t HmmerSeqHitTab::alignLen() const{
+//	return align0BasedPlusStrandEnd() - align0BasedPlusStrandStart();
+//}
 
 
 
@@ -168,6 +168,7 @@ VecStr HmmerSeqHitTab::toDelimStrHeader (){
 		"alignTo",
 		"envFrom",
 		"envTo",
+
 		"modelLen",
 		"strand",
 
@@ -203,29 +204,6 @@ std::string HmmerSeqHitTab::toDelimStr() const{
 		), "\t");
 }
 
-
-//Bed3RecordCore HmmerSeqHitTab::genBed3() const {
-//
-////	uint32_t start = isReverseStrand() ? alignFrom_ - 1 : alignTo_ - 1;
-////	uint32_t end = isReverseStrand() ? alignTo_ : alignFrom_;
-//
-//	uint32_t start = isReverseStrand() ? envFrom_ - 1 : envTo_ - 1;
-//	uint32_t end = isReverseStrand() ? envTo_ : envFrom_;
-//
-//	Bed3RecordCore out(queryName_, start, end);
-//	MetaDataInName meta;
-//	meta.addMeta("modelName", targetName_);
-//	meta.addMeta("targetDesc", targetDesc_);
-//	meta.addMeta("hmmTo", hmmTo_);
-//	meta.addMeta("hmmFrom", hmmFrom_);
-//	meta.addMeta("hmmCovered", modelCoverage());
-//
-//	meta.addMeta("score", modelScore_);
-//	meta.addMeta("evalue", modelEvalue_);
-//
-//	out.extraFields_.emplace_back(meta.createMetaName());
-//	return out;
-//}
 
 
 Bed6RecordCore HmmerSeqHitTab::genBed6(uint32_t start, uint32_t end) const{

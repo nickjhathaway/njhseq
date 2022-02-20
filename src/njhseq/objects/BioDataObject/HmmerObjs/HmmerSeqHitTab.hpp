@@ -14,6 +14,7 @@
 
 #include "njhseq/objects/BioDataObject/BedRecordCore.hpp"
 
+#include "njhseq/objects/BioDataObject/HmmerObjs/HmmerHitBase.hpp"
 
 namespace njhseq {
 
@@ -23,7 +24,7 @@ namespace njhseq {
  * @brief class to hold the per line info for hits output by the DNA search functions of hmmer3
  *
  */
-class HmmerSeqHitTab{
+class HmmerSeqHitTab : public HmmerHitBase{
 
 public:
 	HmmerSeqHitTab();
@@ -54,14 +55,14 @@ public:
 
 	std::string queryName_{""};
 	std::string queryAcc_{""};
-	uint32_t hmmFrom_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
-	uint32_t hmmTo_ {std::numeric_limits<uint32_t>::max()};    //1-based as per file spec
-
-	uint32_t alignFrom_ {std::numeric_limits<uint32_t>::max()};//1-based as per file spec
-	uint32_t alignTo_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
-
-	uint32_t envFrom_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
-	uint32_t envTo_ {std::numeric_limits<uint32_t>::max()};    //1-based as per file spec
+//	uint32_t hmmFrom_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
+//	uint32_t hmmTo_ {std::numeric_limits<uint32_t>::max()};    //1-based as per file spec
+//
+//	uint32_t alignFrom_ {std::numeric_limits<uint32_t>::max()};//1-based as per file spec
+//	uint32_t alignTo_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
+//
+//	uint32_t envFrom_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
+//	uint32_t envTo_ {std::numeric_limits<uint32_t>::max()};    //1-based as per file spec
 
 	uint32_t modelLen_{std::numeric_limits<uint32_t>::max()};
 
@@ -73,28 +74,31 @@ public:
 
 	std::string targetDesc_;
 
-	bool isReverseStrand() const;
+//	bool isReverseStrand() const;
 
-	Json::Value toJson() const;
-	std::string toDelimStr() const;
+	virtual Json::Value toJson() const;
+	virtual std::string toDelimStr() const;
 
 	static VecStr toDelimStrHeader ();
 
+	virtual ~HmmerSeqHitTab(){
+
+	}
 	double modelCoverage() const;
 	double queryCoverageEnv(uint32_t queryLen) const;
 	double queryCoverageAln(uint32_t queryLen) const;
 
 
-	uint32_t env0BasedPlusStrandStart() const;
-	uint32_t env0BasedPlusStrandEnd() const;
-	uint32_t align0BasedPlusStrandStart() const;
-	uint32_t align0BasedPlusStrandEnd() const;
-
-	uint32_t zeroBasedHmmFrom() const; //per file specs the positions are 1-based
-
-	uint32_t envLen() const;
-	uint32_t hmmLen() const;
-	uint32_t alignLen() const;
+//	uint32_t env0BasedPlusStrandStart() const;
+//	uint32_t env0BasedPlusStrandEnd() const;
+//	uint32_t align0BasedPlusStrandStart() const;
+//	uint32_t align0BasedPlusStrandEnd() const;
+//
+//	uint32_t zeroBasedHmmFrom() const; //per file specs the positions are 1-based
+//
+//	uint32_t envLen() const;
+//	uint32_t hmmLen() const;
+//	uint32_t alignLen() const;
 
 
 

@@ -11,6 +11,7 @@
 #include "njhseq/common.h"
 #include "njhseq/utils.h"
 #include "njhseq/objects/BioDataObject/BedRecordCore.hpp"
+#include "njhseq/objects/BioDataObject/HmmerObjs/HmmerHitBase.hpp"
 
 namespace njhseq {
 
@@ -20,7 +21,7 @@ namespace njhseq {
  * @brief class to hold the the per line info for the per domain hit for the protein functions of hmmer3
  *
  */
-class HmmerDomainHitTab{
+class HmmerDomainHitTab : public HmmerHitBase {
 	/*
 	(1) target name: The name of the target sequence or profile.
 	(2) target accession: Accession of the target sequence or profile, or ’-’ if none is available.
@@ -92,25 +93,25 @@ public:
 	double domainScore_ {std::numeric_limits<double>::max()};
 	double domainBias_ {std::numeric_limits<double>::max()};
 
-	uint32_t hmmFrom_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
-	uint32_t hmmTo_ {std::numeric_limits<uint32_t>::max()};    //1-based as per file spec
-
-	uint32_t alignFrom_ {std::numeric_limits<uint32_t>::max()};//1-based as per file spec
-	uint32_t alignTo_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
-
-	uint32_t envFrom_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
-	uint32_t envTo_ {std::numeric_limits<uint32_t>::max()};    //1-based as per file spec
+//	uint32_t hmmFrom_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
+//	uint32_t hmmTo_ {std::numeric_limits<uint32_t>::max()};    //1-based as per file spec
+//
+//	uint32_t alignFrom_ {std::numeric_limits<uint32_t>::max()};//1-based as per file spec
+//	uint32_t alignTo_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
+//
+//	uint32_t envFrom_ {std::numeric_limits<uint32_t>::max()};  //1-based as per file spec
+//	uint32_t envTo_ {std::numeric_limits<uint32_t>::max()};    //1-based as per file spec
 
 	double acc_{std::numeric_limits<double>::max()};
 	std::string targetDesc_{""};
 
-	uint32_t zeroBasedHmmFrom() const; //per file specs the positions are 1-based
-	uint32_t zeroBasedAlignFrom() const;//per file specs the positions are 1-based
-	uint32_t zeroBasedEnvFrom() const;//per file specs the positions are 1-based
-
-	uint32_t envLen() const;
-	uint32_t hmmLen() const;
-	uint32_t alignLen() const;
+//	uint32_t zeroBasedHmmFrom() const; //per file specs the positions are 1-based
+//	uint32_t zeroBasedAlignFrom() const;//per file specs the positions are 1-based
+//	uint32_t zeroBasedEnvFrom() const;//per file specs the positions are 1-based
+//
+//	uint32_t envLen() const;
+//	uint32_t hmmLen() const;
+//	uint32_t alignLen() const;
 
 	double modelCoverage() const;
 
@@ -121,9 +122,13 @@ private:
 public:
 
 
-	Json::Value toJson() const;
+	virtual Json::Value toJson() const;
 	std::string toDelimStr() const;
 	static VecStr toDelimStrHeader ();
+
+	virtual ~HmmerDomainHitTab(){
+
+	}
 
 };
 

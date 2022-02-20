@@ -70,29 +70,6 @@ HmmerDomainHitTab::HmmerDomainHitTab(const std::string & line) {
 }
 
 
-uint32_t HmmerDomainHitTab::zeroBasedHmmFrom() const{
-	return hmmFrom_ -1;
-}
-
-uint32_t HmmerDomainHitTab::zeroBasedAlignFrom() const{
-	return alignFrom_ -1;
-}
-
-uint32_t HmmerDomainHitTab::zeroBasedEnvFrom() const{
-	return envFrom_ - 1;
-}
-
-uint32_t HmmerDomainHitTab::envLen() const{
-	return envTo_ - zeroBasedEnvFrom();
-}
-
-uint32_t HmmerDomainHitTab::hmmLen() const{
-	return hmmTo_ - zeroBasedHmmFrom();
-}
-
-uint32_t HmmerDomainHitTab::alignLen() const{
-	return alignTo_ - zeroBasedAlignFrom();
-}
 
 
 double HmmerDomainHitTab::modelCoverage() const{
@@ -100,14 +77,14 @@ double HmmerDomainHitTab::modelCoverage() const{
 }
 
 Bed6RecordCore HmmerDomainHitTab::genBed6_env() const {
-	uint32_t start = zeroBasedEnvFrom();
+	uint32_t start = env0BasedPlusStrandStart();
 	uint32_t end = envTo_;
 	return genBed6(start, end);
 }
 
 Bed6RecordCore HmmerDomainHitTab::genBed6_aln() const {
 
-	uint32_t start = zeroBasedAlignFrom();
+	uint32_t start = align0BasedPlusStrandStart();
 	uint32_t end = alignTo_;
 	return genBed6(start, end);
 
