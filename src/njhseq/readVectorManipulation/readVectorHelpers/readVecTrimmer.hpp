@@ -532,21 +532,23 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlap(const 
 		aligner &alignerObj,
 		bool mark){
 	std::vector<seqInfo> ret;
-  std::vector<Bed6RecordCore> fullRegions;
-  std::vector<Bed6RecordCore> partialRegions;
+	std::vector<Bed6RecordCore> fullRegions;
+	std::vector<Bed6RecordCore> partialRegions;
 
 	double kmerCutOff = 0.8;
-	kmerInfo seqKInfo(getSeqBase(seq).seq_, refSeqsKInfos.front().kLen_, false);
+	std::shared_ptr<kmerInfo> seqKInfo;
+	if(1 != refSeqs.size()){
+		seqKInfo = std::make_shared<kmerInfo>(getSeqBase(seq).seq_, refSeqsKInfos.front().kLen_, false);
+	}
 
 
-
-  while(partialRegions.empty() && fullRegions.empty()){
-    for (const auto refPos : iter::range(refSeqs.size())) {
-      const auto & ref = refSeqs[refPos];
-      if(refSeqsKInfos[refPos].compareKmers(seqKInfo).second < kmerCutOff){
-       	continue;
-      }
-      alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
+	while(partialRegions.empty() && fullRegions.empty()){
+		for (const auto refPos : iter::range(refSeqs.size())) {
+			const auto & ref = refSeqs[refPos];
+			if(1 != refSeqs.size() && refSeqsKInfos[refPos].compareKmers(*seqKInfo).second < kmerCutOff){
+				continue;
+			}
+			alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
 			double currentScore = 0;
 			alignerObj.profileAlignment(ref, getSeqBase(seq), false, true, false);
 			currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
@@ -554,9 +556,9 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlap(const 
 			uint32_t trimFront = std::numeric_limits<uint32_t>::max();
 			bool partial = false;
 			if(('-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
-				  '-' == alignerObj.alignObjectA_.seqBase_.seq_.front()) ||
+					'-' == alignerObj.alignObjectA_.seqBase_.seq_.front()) ||
 				 ('-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
-				  '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() )){
+					'-' != alignerObj.alignObjectA_.seqBase_.seq_.front() )){
 				//either input seq has overlap compared to ref or the ends at the same
 				auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
 				trimFront = alignerObj.getSeqPosForAlnBPos(refAlnPos);
@@ -577,9 +579,9 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlap(const 
 			//getTrimBack
 			uint32_t trimBack = std::numeric_limits<uint32_t>::max();
 			if(('-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
-				  '-' == alignerObj.alignObjectA_.seqBase_.seq_.back()) ||
-				( '-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
-				  '-' != alignerObj.alignObjectA_.seqBase_.seq_.back())){
+					'-' == alignerObj.alignObjectA_.seqBase_.seq_.back()) ||
+				 ( '-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
+					 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back())){
 				//either input seq has overlap compared to ref or the ends at the same
 				auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
 				trimBack = alignerObj.getSeqPosForAlnBPos(refAlnPos) + 1;
@@ -604,88 +606,88 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlap(const 
 				fullRegions.emplace_back(region);
 			}
 		}
-    if(kmerCutOff < 0 && partialRegions.empty() && fullRegions.empty()){
-    		std::stringstream ss;
-    		ss << __PRETTY_FUNCTION__ << ", error, couldn't find a matching ref for : " << getSeqBase(seq).name_ << "\n";
-    		throw std::runtime_error{ss.str()};
-    }
-    kmerCutOff -= .1;
-  }
+		if(kmerCutOff < 0 && partialRegions.empty() && fullRegions.empty()){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error, couldn't find a matching ref for : " << getSeqBase(seq).name_ << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		kmerCutOff -= .1;
+	}
 
 	if (!fullRegions.empty()) {
-	  std::vector<Bed6RecordCore> bestNonOverlappingRegions;
-	  njh::sort(fullRegions, [](const Bed6RecordCore & reg1, const Bed6RecordCore & reg2){
-	  	return reg1.score_ > reg2.score_;
-	  });
-	  for(const auto & reg : fullRegions){
-	  	bool overlaps = false;
-	  	for(const auto & otherReg : bestNonOverlappingRegions){
-	  		if(otherReg.overlaps(reg, 1)){
-	  			overlaps = true;
-	  			break;
-	  		}
-	  	}
-	  	if(!overlaps){
-	  		bestNonOverlappingRegions.emplace_back(reg);
-	  	}
-	  }
-	  for(const auto & reg : bestNonOverlappingRegions){
-	  	ret.emplace_back(getSeqBase(seq).getSubRead(reg.chromStart_, reg.length()));
-	  	if(mark){
-		  	MetaDataInName meta;
-		  	if(MetaDataInName::nameHasMetaData(getSeqBase(seq).name_)){
-		  		meta = MetaDataInName(getSeqBase(seq).name_);
-		  	}
-		  	meta.addMeta("trimRef", reg.name_, true);
-		  	meta.addMeta("trimStart", reg.chromStart_, true);
-		  	meta.addMeta("trimEnd", reg.chromEnd_, true);
-		  	meta.resetMetaInName(ret.back().name_);
-	  	}
-	  	ret.back().on_ = true;
-	  }
+		std::vector<Bed6RecordCore> bestNonOverlappingRegions;
+		njh::sort(fullRegions, [](const Bed6RecordCore & reg1, const Bed6RecordCore & reg2){
+			return reg1.score_ > reg2.score_;
+		});
+		for(const auto & reg : fullRegions){
+			bool overlaps = false;
+			for(const auto & otherReg : bestNonOverlappingRegions){
+				if(otherReg.overlaps(reg, 1)){
+					overlaps = true;
+					break;
+				}
+			}
+			if(!overlaps){
+				bestNonOverlappingRegions.emplace_back(reg);
+			}
+		}
+		for(const auto & reg : bestNonOverlappingRegions){
+			ret.emplace_back(getSeqBase(seq).getSubRead(reg.chromStart_, reg.length()));
+			if(mark){
+				MetaDataInName meta;
+				if(MetaDataInName::nameHasMetaData(getSeqBase(seq).name_)){
+					meta = MetaDataInName(getSeqBase(seq).name_);
+				}
+				meta.addMeta("trimRef", reg.name_, true);
+				meta.addMeta("trimStart", reg.chromStart_, true);
+				meta.addMeta("trimEnd", reg.chromEnd_, true);
+				meta.resetMetaInName(ret.back().name_);
+			}
+			ret.back().on_ = true;
+		}
 	} else if (!partialRegions.empty()) {
-	  std::vector<Bed6RecordCore> bestNonOverlappingRegions;
-	  njh::sort(fullRegions, [](const Bed6RecordCore & reg1, const Bed6RecordCore & reg2){
-	  	return reg1.score_ > reg2.score_;
-	  });
-	  for(const auto & reg : partialRegions){
-	  	if(reg.length() < 10){
-	  		continue;
-	  	}
-	  	bool overlaps = false;
-	  	for(const auto & otherReg : bestNonOverlappingRegions){
-	  		if(otherReg.overlaps(reg, 1)){
-	  			overlaps = true;
-	  			break;
-	  		}
-	  	}
-	  	if(!overlaps){
-	  		bestNonOverlappingRegions.emplace_back(reg);
-	  	}
-	  }
-	  if(bestNonOverlappingRegions.empty() || (bestNonOverlappingRegions.size() == 1 &&
-	  		bestNonOverlappingRegions.front().chromStart_ == 0 &&
-				bestNonOverlappingRegions.front().chromEnd_ == len(getSeqBase(seq)))){
+		std::vector<Bed6RecordCore> bestNonOverlappingRegions;
+		njh::sort(fullRegions, [](const Bed6RecordCore & reg1, const Bed6RecordCore & reg2){
+			return reg1.score_ > reg2.score_;
+		});
+		for(const auto & reg : partialRegions){
+			if(reg.length() < 10){
+				continue;
+			}
+			bool overlaps = false;
+			for(const auto & otherReg : bestNonOverlappingRegions){
+				if(otherReg.overlaps(reg, 1)){
+					overlaps = true;
+					break;
+				}
+			}
+			if(!overlaps){
+				bestNonOverlappingRegions.emplace_back(reg);
+			}
+		}
+		if(bestNonOverlappingRegions.empty() || (bestNonOverlappingRegions.size() == 1 &&
+																						 bestNonOverlappingRegions.front().chromStart_ == 0 &&
+																						 bestNonOverlappingRegions.front().chromEnd_ == len(getSeqBase(seq)))){
 			ret.emplace_back(getSeqBase(seq));
 			ret.back().on_ = false;
-	  }else{
-		  for(const auto & reg : bestNonOverlappingRegions){
-		  	ret.emplace_back(getSeqBase(seq).getSubRead(reg.chromStart_, reg.length()));
-		  	if(mark){
-			  	MetaDataInName meta;
-			  	if(MetaDataInName::nameHasMetaData(getSeqBase(seq).name_)){
-			  		meta = MetaDataInName(getSeqBase(seq).name_);
-			  	}
-			  	meta.addMeta("trimRef", reg.name_, true);
-			  	meta.addMeta("trimStart", reg.chromStart_, true);
-			  	meta.addMeta("trimEnd", reg.chromEnd_, true);
-			  	meta.addMeta("trimLen", reg.length(), true);
-			  	meta.addMeta("trimPartial", "true", true);
-			  	meta.resetMetaInName(ret.back().name_);
-		  	}
-		  	ret.back().on_ = false;
-		  }
-	  }
+		}else{
+			for(const auto & reg : bestNonOverlappingRegions){
+				ret.emplace_back(getSeqBase(seq).getSubRead(reg.chromStart_, reg.length()));
+				if(mark){
+					MetaDataInName meta;
+					if(MetaDataInName::nameHasMetaData(getSeqBase(seq).name_)){
+						meta = MetaDataInName(getSeqBase(seq).name_);
+					}
+					meta.addMeta("trimRef", reg.name_, true);
+					meta.addMeta("trimStart", reg.chromStart_, true);
+					meta.addMeta("trimEnd", reg.chromEnd_, true);
+					meta.addMeta("trimLen", reg.length(), true);
+					meta.addMeta("trimPartial", "true", true);
+					meta.resetMetaInName(ret.back().name_);
+				}
+				ret.back().on_ = false;
+			}
+		}
 	} else {
 		ret.emplace_back(getSeqBase(seq));
 		ret.back().on_ = false;
@@ -703,22 +705,21 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 		aligner &alignerObj,
 		bool mark){
 	std::vector<seqInfo> ret;
-  std::vector<Bed6RecordCore> fullRegions;
-  std::vector<Bed6RecordCore> partialRegions;
-
+	std::vector<Bed6RecordCore> fullRegions;
+	std::vector<Bed6RecordCore> partialRegions;
 	double kmerCutOff = 0.8;
-	kmerInfo seqKInfo(getSeqBase(seq).seq_, refSeqsKInfos.front().kLen_, false);
+	std::shared_ptr<kmerInfo> seqKInfo;
+	if(1 != refSeqs.size()){
+		seqKInfo = std::make_shared<kmerInfo>(getSeqBase(seq).seq_, refSeqsKInfos.front().kLen_, false);
+	}
+	while(partialRegions.empty() && fullRegions.empty()){
 
-
-
-  while(partialRegions.empty() && fullRegions.empty()){
-
-    for (const auto refPos : iter::range(refSeqs.size())) {
-      const auto & ref = refSeqs[refPos];
-      if(refSeqsKInfos[refPos].compareKmers(seqKInfo).second < kmerCutOff){
-       	continue;
-      }
-      alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
+		for (const auto refPos : iter::range(refSeqs.size())) {
+			const auto & ref = refSeqs[refPos];
+			if(1 != refSeqs.size() && refSeqsKInfos[refPos].compareKmers(*seqKInfo).second < kmerCutOff){
+				continue;
+			}
+			alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
 			double currentScore = 0;
 			alignerObj.profileAlignment(ref, getSeqBase(seq), false, true, false);
 			currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
@@ -726,9 +727,9 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 			uint32_t trimFront = std::numeric_limits<uint32_t>::max();
 			bool partial = false;
 			if(('-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
-				  '-' == alignerObj.alignObjectA_.seqBase_.seq_.front()) ||
+					'-' == alignerObj.alignObjectA_.seqBase_.seq_.front()) ||
 				 ('-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
-				  '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() ) ){
+					'-' != alignerObj.alignObjectA_.seqBase_.seq_.front() ) ){
 				auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
 				trimFront = alignerObj.getSeqPosForAlnBPos(refAlnPos);
 			}else{
@@ -742,9 +743,9 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 			//getTrimBack
 			uint32_t trimBack = std::numeric_limits<uint32_t>::max();
 			if(('-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
-				  '-' == alignerObj.alignObjectA_.seqBase_.seq_.back()) ||
-				( '-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
-				  '-' != alignerObj.alignObjectA_.seqBase_.seq_.back()) ){
+					'-' == alignerObj.alignObjectA_.seqBase_.seq_.back()) ||
+				 ( '-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
+					 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back()) ){
 				auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
 				trimBack = alignerObj.getSeqPosForAlnBPos(refAlnPos) + 1;
 			}else{
@@ -762,12 +763,12 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 				fullRegions.emplace_back(region);
 			}
 		}
-    for (const auto refPos : iter::range(revComp_refSeqs.size())) {
-      const auto & ref = revComp_refSeqs[refPos];
-      if(revComp_refSeqsKInfos[refPos].compareKmers(seqKInfo).second < kmerCutOff){
-       	continue;
-      }
-      alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
+		for (const auto refPos : iter::range(revComp_refSeqs.size())) {
+			const auto & ref = revComp_refSeqs[refPos];
+			if(1 != refSeqs.size() && revComp_refSeqsKInfos[refPos].compareKmers(*seqKInfo).second < kmerCutOff){
+				continue;
+			}
+			alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
 			double currentScore = 0;
 			alignerObj.profileAlignment(ref, getSeqBase(seq), false, true, false);
 			currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
@@ -775,9 +776,9 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 			uint32_t trimFront = std::numeric_limits<uint32_t>::max();
 			bool partial = false;
 			if(('-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
-				  '-' == alignerObj.alignObjectA_.seqBase_.seq_.front()) ||
+					'-' == alignerObj.alignObjectA_.seqBase_.seq_.front()) ||
 				 ('-' != alignerObj.alignObjectB_.seqBase_.seq_.front() &&
-				  '-' != alignerObj.alignObjectA_.seqBase_.seq_.front() ) ){
+					'-' != alignerObj.alignObjectA_.seqBase_.seq_.front() ) ){
 				auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
 				trimFront = alignerObj.getSeqPosForAlnBPos(refAlnPos);
 			}else{
@@ -791,9 +792,9 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 			//getTrimBack
 			uint32_t trimBack = std::numeric_limits<uint32_t>::max();
 			if(('-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
-				  '-' == alignerObj.alignObjectA_.seqBase_.seq_.back()) ||
-				( '-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
-				  '-' != alignerObj.alignObjectA_.seqBase_.seq_.back())){
+					'-' == alignerObj.alignObjectA_.seqBase_.seq_.back()) ||
+				 ( '-' != alignerObj.alignObjectB_.seqBase_.seq_.back() &&
+					 '-' != alignerObj.alignObjectA_.seqBase_.seq_.back())){
 				auto refAlnPos = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
 				trimBack = alignerObj.getSeqPosForAlnBPos(refAlnPos) + 1;
 			}else{
@@ -811,98 +812,97 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 				fullRegions.emplace_back(region);
 			}
 		}
-    if(kmerCutOff < 0 && partialRegions.empty() && fullRegions.empty()){
-    		std::stringstream ss;
-    		ss << __PRETTY_FUNCTION__ << ", error, couldn't find a matching ref for : " << getSeqBase(seq).name_ << "\n";
-    		throw std::runtime_error{ss.str()};
-    }
-    kmerCutOff -= .1;
-  }
-
+		if(kmerCutOff < 0 && partialRegions.empty() && fullRegions.empty()){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error, couldn't find a matching ref for : " << getSeqBase(seq).name_ << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		kmerCutOff -= .1;
+	}
 	if (!fullRegions.empty()) {
-	  std::vector<Bed6RecordCore> bestNonOverlappingRegions;
-	  njh::sort(fullRegions, [](const Bed6RecordCore & reg1, const Bed6RecordCore & reg2){
-	  	return reg1.score_ > reg2.score_;
-	  });
-	  for(const auto & reg : fullRegions){
-	  	bool overlaps = false;
-	  	for(const auto & otherReg : bestNonOverlappingRegions){
-	  		if(otherReg.overlaps(reg, 1)){
-	  			overlaps = true;
-	  			break;
-	  		}
-	  	}
-	  	if(!overlaps){
-	  		bestNonOverlappingRegions.emplace_back(reg);
-	  	}
-	  }
-	  for(const auto & reg : bestNonOverlappingRegions){
-	  	ret.emplace_back(getSeqBase(seq).getSubRead(reg.chromStart_, reg.length()));
-	  	if(reg.reverseStrand()){
-	  		ret.back().reverseComplementRead(false, true);
-	  	}
-	  	if(mark){
-		  	MetaDataInName meta;
-		  	if(MetaDataInName::nameHasMetaData(getSeqBase(seq).name_)){
-		  		meta = MetaDataInName(getSeqBase(seq).name_);
-		  	}
-		  	meta.addMeta("trimRef", reg.name_, true);
-		  	meta.addMeta("trimStart", reg.chromStart_, true);
-		  	meta.addMeta("trimEnd", reg.chromEnd_, true);
-		  	meta.addMeta("trimLen", reg.length(), true);
+		std::vector<Bed6RecordCore> bestNonOverlappingRegions;
+		njh::sort(fullRegions, [](const Bed6RecordCore & reg1, const Bed6RecordCore & reg2){
+			return reg1.score_ > reg2.score_;
+		});
+		for(const auto & reg : fullRegions){
+			bool overlaps = false;
+			for(const auto & otherReg : bestNonOverlappingRegions){
+				if(otherReg.overlaps(reg, 1)){
+					overlaps = true;
+					break;
+				}
+			}
+			if(!overlaps){
+				bestNonOverlappingRegions.emplace_back(reg);
+			}
+		}
+		for(const auto & reg : bestNonOverlappingRegions){
+			ret.emplace_back(getSeqBase(seq).getSubRead(reg.chromStart_, reg.length()));
+			if(reg.reverseStrand()){
+				ret.back().reverseComplementRead(false, true);
+			}
+			if(mark){
+				MetaDataInName meta;
+				if(MetaDataInName::nameHasMetaData(getSeqBase(seq).name_)){
+					meta = MetaDataInName(getSeqBase(seq).name_);
+				}
+				meta.addMeta("trimRef", reg.name_, true);
+				meta.addMeta("trimStart", reg.chromStart_, true);
+				meta.addMeta("trimEnd", reg.chromEnd_, true);
+				meta.addMeta("trimLen", reg.length(), true);
 
-		  	meta.addMeta("trimStrand", reg.strand_, true);
-		  	meta.resetMetaInName(ret.back().name_);
-	  	}
-	  	ret.back().on_ = true;
-	  }
+				meta.addMeta("trimStrand", reg.strand_, true);
+				meta.resetMetaInName(ret.back().name_);
+			}
+			ret.back().on_ = true;
+		}
 	} else if (!partialRegions.empty()) {
-	  std::vector<Bed6RecordCore> bestNonOverlappingRegions;
-	  njh::sort(fullRegions, [](const Bed6RecordCore & reg1, const Bed6RecordCore & reg2){
-	  	return reg1.score_ > reg2.score_;
-	  });
-	  for(const auto & reg : partialRegions){
-	  	if(reg.length() < 10){
-	  		continue;
-	  	}
-	  	bool overlaps = false;
-	  	for(const auto & otherReg : bestNonOverlappingRegions){
-	  		if(otherReg.overlaps(reg, 1)){
-	  			overlaps = true;
-	  			break;
-	  		}
-	  	}
-	  	if(!overlaps){
-	  		bestNonOverlappingRegions.emplace_back(reg);
-	  	}
-	  }
-	  if(bestNonOverlappingRegions.empty() || (bestNonOverlappingRegions.size() == 1 &&
-	  		bestNonOverlappingRegions.front().chromStart_ == 0 &&
-				bestNonOverlappingRegions.front().chromEnd_ == len(getSeqBase(seq)))){
+		std::vector<Bed6RecordCore> bestNonOverlappingRegions;
+		njh::sort(fullRegions, [](const Bed6RecordCore & reg1, const Bed6RecordCore & reg2){
+			return reg1.score_ > reg2.score_;
+		});
+		for(const auto & reg : partialRegions){
+			if(reg.length() < 10){
+				continue;
+			}
+			bool overlaps = false;
+			for(const auto & otherReg : bestNonOverlappingRegions){
+				if(otherReg.overlaps(reg, 1)){
+					overlaps = true;
+					break;
+				}
+			}
+			if(!overlaps){
+				bestNonOverlappingRegions.emplace_back(reg);
+			}
+		}
+		if(bestNonOverlappingRegions.empty() || (bestNonOverlappingRegions.size() == 1 &&
+																						 bestNonOverlappingRegions.front().chromStart_ == 0 &&
+																						 bestNonOverlappingRegions.front().chromEnd_ == len(getSeqBase(seq)))){
 			ret.emplace_back(getSeqBase(seq));
 			ret.back().on_ = false;
-	  }else{
-		  for(const auto & reg : bestNonOverlappingRegions){
-		  	ret.emplace_back(getSeqBase(seq).getSubRead(reg.chromStart_, reg.length()));
-		  	if(reg.reverseStrand()){
-		  		ret.back().reverseComplementRead(false, true);
-		  	}
-		  	if(mark){
-			  	MetaDataInName meta;
-			  	if(MetaDataInName::nameHasMetaData(getSeqBase(seq).name_)){
-			  		meta = MetaDataInName(getSeqBase(seq).name_);
-			  	}
-			  	meta.addMeta("trimRef", reg.name_, true);
-			  	meta.addMeta("trimStart", reg.chromStart_, true);
-			  	meta.addMeta("trimEnd", reg.chromEnd_, true);
-			  	meta.addMeta("trimLen", reg.length(), true);
-			  	meta.addMeta("trimPartial", "true", true);
-			  	meta.addMeta("trimStrand", reg.strand_, true);
-			  	meta.resetMetaInName(ret.back().name_);
-		  	}
-		  	ret.back().on_ = false;
-		  }
-	  }
+		}else{
+			for(const auto & reg : bestNonOverlappingRegions){
+				ret.emplace_back(getSeqBase(seq).getSubRead(reg.chromStart_, reg.length()));
+				if(reg.reverseStrand()){
+					ret.back().reverseComplementRead(false, true);
+				}
+				if(mark){
+					MetaDataInName meta;
+					if(MetaDataInName::nameHasMetaData(getSeqBase(seq).name_)){
+						meta = MetaDataInName(getSeqBase(seq).name_);
+					}
+					meta.addMeta("trimRef", reg.name_, true);
+					meta.addMeta("trimStart", reg.chromStart_, true);
+					meta.addMeta("trimEnd", reg.chromEnd_, true);
+					meta.addMeta("trimLen", reg.length(), true);
+					meta.addMeta("trimPartial", "true", true);
+					meta.addMeta("trimStrand", reg.strand_, true);
+					meta.resetMetaInName(ret.back().name_);
+				}
+				ret.back().on_ = false;
+			}
+		}
 	} else {
 		ret.emplace_back(getSeqBase(seq));
 		ret.back().on_ = false;

@@ -637,6 +637,144 @@ BamExtractor::ExtractedFilesWithStichingOpts BamExtractor::writeExtractReadsFrom
 //}
 
 void BamExtractor::writeExtractReadsFromBam(const bfs::path & bamFnp,
+																const OutOptions & outOpts,
+																const std::unordered_set<std::string> & names){
+
+	BamTools::BamReader bReader;
+	BamTools::BamAlignment bAln;
+	bReader.Open(bamFnp.string());
+	checkBamOpenThrow(bReader, bamFnp);
+	loadBamIndexThrow(bReader);
+	auto refs = bReader.GetReferenceData();
+	BamAlnsCache alnCache;
+	auto refData = bReader.GetReferenceData();
+	std::unordered_map<std::string, uint32_t> refNameToId;
+	for (auto pos : iter::range(refData.size())) {
+		refNameToId[refData[pos].RefName] = pos;
+	}
+	//pair writer
+	SeqIOOptions outOptsPaired(outOpts.outFilename_, SeqIOOptions::outFormats::FASTQPAIREDGZ, outOpts);
+	SeqOutput pairWriter(outOptsPaired);
+
+	//non paired writer
+	SeqIOOptions outOptsSingle(outOpts.outFilename_, SeqIOOptions::outFormats::FASTQGZ, outOpts);
+	SeqOutput writer(outOptsSingle);
+
+	//R1 orphans
+	SeqIOOptions outOptsSingle_R1Orphans(outOpts.outFilename_.string() + "_R1Orphans", SeqIOOptions::outFormats::FASTQGZ, outOpts);
+	SeqOutput writer_R1Orphans(outOptsSingle_R1Orphans);
+
+	//R2 orphans
+	SeqIOOptions outOptsSingle_R2Orphans(outOpts.outFilename_.string() + "_R2Orphans", SeqIOOptions::outFormats::FASTQGZ, outOpts);
+	SeqOutput writer_R2Orphans(outOptsSingle_R2Orphans);
+
+	while (bReader.GetNextAlignment(bAln)) {
+		//skip secondary alignments
+		if (!bAln.IsPrimaryAlignment()) {
+			continue;
+		}
+		//skip alignments not in names
+		if(!njh::in(bAln.Name, names)){
+			continue;
+		}
+		/**@todo consider skipping duplicates */
+		if (bAln.IsPaired()) {
+			if ((bAln.MateRefID != bAln.RefID)
+					|| (!bAln.IsMapped() || !bAln.IsMateMapped())) {
+				// do non-concordant chromosome mapping operation or non-mapping mates
+				if (!alnCache.has(bAln.Name)) {
+					//pair hasn't been added to cache yet so add to cache
+					//this only works if mate and first mate have the same name
+					alnCache.add(bAln);
+					continue;
+				} else {
+					auto search = alnCache.get(bAln.Name);
+					if (bAln.IsFirstMate()) {
+						pairWriter.openWrite(
+										PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(*search),
+															 false));
+					} else {
+						pairWriter.openWrite(
+										PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
+															 false));
+					}
+					// now that operations have been computed, remove first mate found from cache
+					alnCache.remove(search->Name);
+					continue;
+				}
+			}
+			if (bAln.MatePosition == bAln.Position) {
+				if (!alnCache.has(bAln.Name)) {
+					//if mapped to the same place and the mate is yet to be encountered
+					//enter into cache for until mate is encountered
+					alnCache.add(bAln);
+					continue;
+				}
+			}
+			if (bAln.MatePosition <= bAln.Position) {
+				if (!alnCache.has(bAln.Name)) {
+					//since input should be sorted if matePosition is less than this position
+					//it should be in the cache therefore program was unable to find mate
+
+					//do orphaned operation
+					writer.openWrite(bamAlnToSeqInfo(bAln));
+					continue;
+				} else {
+					auto search = alnCache.get(bAln.Name);
+					//need to check to see if there is an overlap
+					if (search->GetEndPosition() > bAln.Position) {
+						//overlap
+
+						//do overlapped pairs operation
+
+					} else {
+						//no overlap, single read count both
+
+						//do no overlap pairs operation
+					}
+					if (bAln.IsFirstMate()) {
+						pairWriter.openWrite(
+										PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(*search),
+															 false));
+					} else {
+						pairWriter.openWrite(
+										PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
+															 false));
+					}
+					// now that operations have been computed, remove first mate found from cache
+					alnCache.remove(search->Name);
+				}
+			} else {
+				//enter into cache for until mate is encountered
+				alnCache.add(bAln);
+			}
+		} else {
+			//unpaired read
+			if (!bAln.IsMapped()) {
+				// do non-mapping operation
+				writer.openWrite(bamAlnToSeqInfo(bAln));
+			} else {
+				//do unpaired read operation
+				writer.openWrite(bamAlnToSeqInfo(bAln));
+			}
+		}
+	}
+	//save the orphans;
+	if (len(alnCache) > 0) {
+		auto names = alnCache.getNames();
+		for (const auto & name : names) {
+			auto search = alnCache.get(name);
+			if(search->IsFirstMate()){
+				writer_R1Orphans.openWrite(bamAlnToSeqInfo(*search));
+			}else{
+				writer_R2Orphans.openWrite(bamAlnToSeqInfo(*search));
+			}
+			alnCache.remove(name);
+		}
+	}
+}
+
+void BamExtractor::writeExtractReadsFromBam(const bfs::path & bamFnp,
 		const OutOptions & outOpts) {
 
 	BamTools::BamReader bReader;
@@ -672,6 +810,7 @@ void BamExtractor::writeExtractReadsFromBam(const bfs::path & bamFnp,
 		if (!bAln.IsPrimaryAlignment()) {
 			continue;
 		}
+
 		/**@todo consider skipping duplicates */
 		if (bAln.IsPaired()) {
 			if ((bAln.MateRefID != bAln.RefID)
@@ -771,6 +910,143 @@ void BamExtractor::writeExtractReadsFromBam(const bfs::path & bamFnp,
 
 
 BamExtractor::ExtractCounts BamExtractor::writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
+																																							 const OutOptions & outOpts,
+																																							 const std::unordered_set<std::string> & names) {
+		BamExtractor::ExtractCounts ret;
+		BamTools::BamReader bReader;
+		BamTools::BamAlignment bAln;
+		bReader.Open(bamFnp.string());
+		checkBamOpenThrow(bReader, bamFnp);
+		loadBamIndexThrow(bReader);
+		auto refs = bReader.GetReferenceData();
+		BamAlnsCache alnCache;
+		auto refData = bReader.GetReferenceData();
+		std::unordered_map<std::string, uint32_t> refNameToId;
+		for (auto pos : iter::range(refData.size())) {
+			refNameToId[refData[pos].RefName] = pos;
+		}
+		//pair writer
+		SeqIOOptions outOptsPaired(outOpts.outFilename_,
+															 SeqIOOptions::outFormats::FASTQPAIRED, outOpts);
+		SeqOutput pairWriter(outOptsPaired);
+
+		//non paired writer
+		SeqIOOptions outOptsSingle(outOpts.outFilename_,
+															 SeqIOOptions::outFormats::FASTQ, outOpts);
+		SeqOutput writer(outOptsSingle);
+
+		while (bReader.GetNextAlignment(bAln)) {
+			//skip secondary alignments
+			if (!bAln.IsPrimaryAlignment()) {
+				continue;
+			}
+			//skip alignments not in names
+			if(!njh::in(bAln.Name, names)){
+				continue;
+			}
+			//won't handled sequences with pairs that have a unmmaped mate, will make them orphan reads
+			//should improve upon
+			if(!bAln.IsMapped()){
+				continue;
+			}
+			/**@todo consider skipping duplicates */
+			if (bAln.IsPaired()) {
+				if ((bAln.MateRefID != bAln.RefID)
+						|| (!bAln.IsMapped() || !bAln.IsMateMapped())) {
+					// do non-concordant chromosome mapping operation or non-mapping mates
+					if (!alnCache.has(bAln.Name)) {
+						//pair hasn't been added to cache yet so add to cache
+						//this only works if mate and first mate have the same name
+						alnCache.add(bAln);
+						continue;
+					} else {
+						auto search = alnCache.get(bAln.Name);
+						if (bAln.IsFirstMate()) {
+							pairWriter.openWrite(
+											PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(*search),
+																 false));
+						} else {
+							pairWriter.openWrite(
+											PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
+																 false));
+						}
+						++ret.pairedReads_;
+						// now that operations have been computed, remove first mate found from cache
+						alnCache.remove(search->Name);
+						continue;
+					}
+				}
+				if (bAln.MatePosition == bAln.Position) {
+					if (!alnCache.has(bAln.Name)) {
+						//if mapped to the same place and the mate is yet to be encountered
+						//enter into cache for until mate is encountered
+						alnCache.add(bAln);
+						continue;
+					}
+				}
+				if (bAln.MatePosition <= bAln.Position) {
+					if (!alnCache.has(bAln.Name)) {
+						//since input should be sorted if matePosition is less than this position
+						//it should be in the cache therefore program was unable to find mate
+						//do orphaned operation
+						writer.openWrite(bamAlnToSeqInfo(bAln));
+						++ret.orphans_;
+						continue;
+					} else {
+						auto search = alnCache.get(bAln.Name);
+						//need to check to see if there is an overlap
+						if (search->GetEndPosition() > bAln.Position) {
+							//overlap
+
+							//do overlapped pairs operation
+
+						} else {
+							//no overlap, single read count both
+
+							//do no overlap pairs operation
+						}
+						if (bAln.IsFirstMate()) {
+							pairWriter.openWrite(
+											PairedRead(bamAlnToSeqInfo(bAln), bamAlnToSeqInfo(*search),
+																 false));
+						} else {
+							pairWriter.openWrite(
+											PairedRead(bamAlnToSeqInfo(*search), bamAlnToSeqInfo(bAln),
+																 false));
+						}
+						++ret.pairedReads_;
+						// now that operations have been computed, remove first mate found from cache
+						alnCache.remove(search->Name);
+					}
+				} else {
+					//enter into cache for until mate is encountered
+					alnCache.add(bAln);
+				}
+			} else {
+				//unpaired read
+				++ret.unpaiedReads_;
+				if (!bAln.IsMapped()) {
+					// do non-mapping operation
+					writer.openWrite(bamAlnToSeqInfo(bAln));
+				} else {
+					//do unpaired read operation
+					writer.openWrite(bamAlnToSeqInfo(bAln));
+				}
+			}
+		}
+		//save the orphans;
+		if (len(alnCache) > 0) {
+			auto names = alnCache.getNames();
+			for (const auto & name : names) {
+				++ret.orphans_;
+				auto search = alnCache.get(name);
+				writer.openWrite(bamAlnToSeqInfo(*search));
+				alnCache.remove(name);
+			}
+		}
+		return ret;
+	}
+	BamExtractor::ExtractCounts BamExtractor::writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
 		const OutOptions & outOpts) {
 	BamExtractor::ExtractCounts ret;
 	BamTools::BamReader bReader;

@@ -153,8 +153,16 @@ public:
 	void writeExtractReadsFromBam(const bfs::path & bamFnp,
 			const OutOptions & outOpts);
 
+		void writeExtractReadsFromBam(const bfs::path & bamFnp,
+																	const OutOptions & outOpts,
+																	const std::unordered_set<std::string> & names);
+
 	ExtractCounts writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
 			const OutOptions & outOpts);
+
+	ExtractCounts writeExtractReadsFromBamOnlyMapped(const bfs::path & bamFnp,
+																										 const OutOptions & outOpts,
+																										 const std::unordered_set<std::string> & names);
 
 
 
