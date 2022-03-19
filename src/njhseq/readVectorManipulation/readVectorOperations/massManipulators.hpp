@@ -127,5 +127,28 @@ void appendAll(std::vector<T>& reads, const std::string& seq,
   njh::for_each(reads, [&](T& read) { getSeqBase(read).append(seq, qual); });
 }
 
+template <typename KMERSEQ, typename REFKMERSEQ>
+void reorientSeq(KMERSEQ & seq, const std::vector<REFKMERSEQ> & refKmerReads, bool mark = true){
+	uint32_t forwardWinners = 0;
+	uint32_t revWinners = 0;
+	for (const auto & refSeq : refKmerReads) {
+		auto forDist = getRef(refSeq).compareKmers(getRef(seq));
+		auto revDist = getRef(refSeq).compareKmersRevComp(getRef(seq));
+		if (forDist.first < revDist.first) {
+			++revWinners;
+		} else {
+			++forwardWinners;
+		}
+	}
+	if (revWinners > forwardWinners) {
+		getSeqBase(seq).reverseComplementRead(mark, true);
+	}
+}
+
+template <typename KMERSEQ, typename REFKMERSEQ>
+void reorientSeqs(std::vector<KMERSEQ> & seqs, const std::vector<REFKMERSEQ> & refKmerReads, bool mark = true){
+	njh::for_each(seqs, [&refKmerReads,&mark](KMERSEQ& seq) { reorientSeq(seq, refKmerReads, mark); });
+}
+
 }  // namespace readVec
 }  // namespace njh
