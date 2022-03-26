@@ -62,6 +62,19 @@ public:
 		out_.openWrite(read);
 	}
 
+	static std::unordered_map<uint32_t, std::string>
+	rewriteSeqsWithIndexAsName(const SeqIOOptions &inOpts, const SeqIOOptions &outOpts);
+
+	static std::unordered_map<uint32_t, std::string>
+	rewriteSeqsWithIndexAsName(const SeqIOOptions &inOpts, const SeqIOOptions &outOpts,
+														 const OutOptions &seqKeyFileOutOpts);
+
+	static std::unordered_map<uint32_t, std::string>
+	rewriteSeqsWithIndexAsName(const std::vector<seqInfo> & seqs, const SeqIOOptions &outOpts);
+
+	static std::unordered_map<uint32_t, std::string>
+	rewriteSeqsWithIndexAsName(const std::vector<seqInfo> & seqs, const SeqIOOptions &outOpts,
+														 const OutOptions &seqKeyFileOutOpts);
 
 	std::mutex mut_;
 

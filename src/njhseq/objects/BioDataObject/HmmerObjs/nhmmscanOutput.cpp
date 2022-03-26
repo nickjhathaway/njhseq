@@ -73,6 +73,42 @@ Json::Value nhmmscanOutput::QueryResults::toJson() const {
 	return ret;
 }
 
+void nhmmscanOutput::QueryResults::sortHitsByEvaluesScores(std::vector<Hit> &hits) {
+	njh::sort(hits, [](const Hit &hit1, const Hit &hit2) {
+		if (hit1.modelEvalue_ == hit2.modelEvalue_) {
+			if (hit1.modelScore_ == hit2.modelScore_) {
+				return hit1.envLen() > hit2.envLen();
+			} else {
+				return hit1.modelScore_ > hit2.modelScore_;
+			}
+		} else {
+			return hit1.modelEvalue_ < hit2.modelEvalue_;
+		}
+	});
+}
+
+std::vector<nhmmscanOutput::Hit> nhmmscanOutput::QueryResults::getNonOverlapHits(const std::vector<Hit> &hits ){
+	std::vector<Hit> ret;
+	for (const auto &region: hits) {
+		bool overlap = false;
+		for (const auto &outRegion: ret) {
+			if (region.overlaps_env(outRegion, 1)) {
+				overlap = true;
+				break;
+			}
+		}
+		if (!overlap) {
+			ret.emplace_back(region);
+		}
+	}
+	return ret;
+}
+
+std::vector<nhmmscanOutput::Hit> nhmmscanOutput::QueryResults::getNonOverlapHits(std::vector<Hit> &hits, const std::function<bool(const Hit&, const Hit&)> & sortFunc){
+	njh::sort(hits, sortFunc);
+	return getNonOverlapHits(hits);
+}
+
 
 
 
@@ -85,6 +121,31 @@ Json::Value nhmmscanOutput::toJson() const {
 	return ret;
 }
 
+bool nhmmscanOutput::run_hmmpress_ifNeed(const bfs::path & hmmModelFnp){
+	bfs::path hmmModelPressCheckFnp = njh::files::make_path(hmmModelFnp.string() + ".h3f");
+	if(!bfs::exists(hmmModelPressCheckFnp) || njh::files::firstFileIsOlder(hmmModelPressCheckFnp, hmmModelFnp)){
+		std::stringstream cmdSs;
+		cmdSs << "hmmpress " << hmmModelFnp;
+		auto cmdOutput = njh::sys::run( {cmdSs.str() });
+
+		if (!cmdOutput.success_) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "failed to run hmmsearch "
+				 << "\n";
+			ss << cmdOutput.toJson() << "\n";
+			throw std::runtime_error { ss.str() };
+		}
+		return true;
+	}
+	return false;
+}
+
+
+nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input, const std::unordered_map<uint32_t, std::string> & seqKey){
+	auto ret = parseRawOutput(input);
+	ret.renameQuery(seqKey);
+	return ret;
+}
 
 nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 	nhmmscanOutput ret;
@@ -157,6 +218,7 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 					if(njh::beginsWith(subLine, ">> ")){
 						//process subLine for model name;
 						nhmmscanOutput::Hit hit;
+						hit.queryName_ = queryRes.queryName_;
 						hit.targetName_ = subLine.substr(3);
 						njh::trim(hit.targetName_);
 						std::string hitline = "";
@@ -429,6 +491,10 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 			}
 		}
 	}
+
+	for(auto & query : ret.qResults_){
+		QueryResults::sortHitsByEvaluesScores(query.hits_);
+	}
 	return ret;
 }
 
@@ -471,66 +537,145 @@ double nhmmscanOutput::Hit::percentGappedHit() const{
 	return (aln_modle_gapped + aln_query_gapped)/static_cast<double>(aln_posterior_probability_.size());
 }
 
+bool nhmmscanOutput::Hit::overlaps_env(const Hit & otherHit, uint32_t minOverlap)const{
+	return Bed3RecordCore::getOverlapLen(queryName_, env0BasedPlusStrandStart(), env0BasedPlusStrandEnd(),
+																			 otherHit.queryName_, otherHit.env0BasedPlusStrandStart(), otherHit.env0BasedPlusStrandEnd()) >= minOverlap;
+}
 
-void nhmmscanOutput::outputCustomHitsTable(const OutOptions & outOpts) const{
+VecStr nhmmscanOutput::Hit::getOutputDetHeader(){
+	return VecStr {"model"
+					,"hmm_From"
+					,"hmm_to"
+					,"hmm_edges"
+					,"model_len"
+
+					,"aln_from"
+					,"aln_to"
+					,"aln_len"
+					,"aln_edge"
+
+					,"env_from"
+					,"env_to"
+					,"env_len"
+					,"env_edge"
+
+					,"strand"
+					,"evalue"
+					,"score"
+					,"bias"
+					,"acc"
+					,"scoreOverLen"
+					,"percentGappedHit"
+					,"percentPerfectHit"
+					,"averagePP"};
+}
+
+VecStr nhmmscanOutput::Hit::getOutputDet() const{
+	return toVecStr(targetName_
+														,hmmFrom_
+														,hmmTo_
+														,hmmEdgeInfo_
+														,modelLen_
+
+														,alignFrom_
+														,alignTo_
+														,alignLen()
+														,aliEdgeInfo_
+
+														,envFrom_
+														,envTo_
+														,envLen()
+														,envEdgeInfo_
+
+														,strand_
+														,modelEvalue_
+														,modelScore_
+														,modelBias_
+														,acc_
+														,modelScore_/envLen()
+														,percentGappedHit()
+														,percentPerfectHit()
+														,averagePP());
+}
+
+
+void nhmmscanOutput::renameQuery(const std::unordered_map<uint32_t, std::string> & seqKey){
+	for(auto & query : qResults_){
+		query.queryName_ = seqKey.at(njh::StrToNumConverter::stoToNum<uint32_t>(query.queryName_));
+		for(auto & hit : query.hits_){
+			hit.queryName_ = query.queryName_;
+		}
+	}
+}
+
+void nhmmscanOutput::outputCustomHitsTable(const OutOptions &outOpts) const {
 	OutputStream out(outOpts);
 
 	out << "query"
-			<< "\t" << "queryLen"
-			<< "\t" << "model"
-			<< "\t" << "hmm_From"
-			<< "\t" << "hmm_to"
-			<< "\t" << "hmm_edges"
-			<< "\t" << "model_len"
-			<< "\t" << "aln_from"
-			<< "\t" << "aln_to"
-			<< "\t" << "aln_edge"
-			<< "\t" << "env_from"
-			<< "\t" << "env_to"
-			<< "\t" << "env_edge"
-			<< "\t" << "strand"
-			<< "\t" << "evalue"
-			<< "\t" << "score"
-			<< "\t" << "bias"
-			<< "\t" << "acc"
-			<< "\t" << "scoreOverLen"
-			<< "\t" << "percentGappedHit"
-			<< "\t" << "percentPerfectHit"
-			<< "\t" << "averagePP"
-			<< std::endl;
+			<< "\t" << "queryLen";
+	out << "\t" << njh::conToStr(Hit::getOutputDetHeader(), "\t");
+	out << std::endl;
 
-	for(const auto & res : qResults_){
-		for(const auto & hit : res.hits_){
+	for (const auto &res: qResults_) {
+		for (const auto &hit: res.hits_) {
 			out << res.queryName_
-					<< "\t" << res.queryLen_
-					<< "\t" << hit.targetName_
-					<< "\t" << hit.hmmFrom_
-					<< "\t" << hit.hmmTo_
-					<< "\t" << hit.hmmEdgeInfo_
-					<< "\t" << hit.modelLen_
-					<< "\t" << hit.alignFrom_
-					<< "\t" << hit.alignTo_
-					<< "\t" << hit.aliEdgeInfo_
-					<< "\t" << hit.envFrom_
-					<< "\t" << hit.envTo_
-					<< "\t" << hit.envEdgeInfo_
-
-					<< "\t" << hit.strand_
-					<< "\t" << hit.modelEvalue_
-					<< "\t" << hit.modelScore_
-					<< "\t" << hit.modelBias_
-					<< "\t" << hit.acc_
-					<< "\t" << hit.modelScore_/hit.envLen()
-					<< "\t" << hit.percentGappedHit()
-					<< "\t" << hit.percentPerfectHit()
-					<< "\t" << hit.averagePP()
-					<< std::endl;
+					<< "\t" << res.queryLen_;
+			out << "\t" << njh::conToStr(hit.getOutputDet(), "\t");
+			out << std::endl;
 		}
 	}
 }
 
 
+nhmmscanOutput::PostProcessHitsRes nhmmscanOutput::postProcessHits(const PostProcessHitsPars & pars) {
+	PostProcessHitsRes ret;
+	for(auto & query : qResults_){
+		for(const auto & hit : query.hits_){
+			auto loc = hit.genBed6_env();
+			uint32_t hmmFromBack = hit.modelLen_ - hit.hmmTo_;
+			uint32_t hmmFromFront = hit.zeroBasedHmmFrom();
+			if(hmmFromBack <= pars.hmmStartFilter && hmmFromFront <= pars.hmmStartFilter && loc.length() >= pars.minLength && ( hit.acc_ >=  pars.accCutOff || hit.modelScore_ >=  pars.scoreCutOff)){
+				ret.filteredHitsByQuery_[hit.queryName_].emplace_back(hit);
+			}
+		}
+	}
+	for(auto & filteredHits : ret.filteredHitsByQuery_){
+		nhmmscanOutput::QueryResults::sortHitsByEvaluesScores(filteredHits.second);
+		ret.filteredNonOverlapHitsByQuery_[filteredHits.first] = nhmmscanOutput::QueryResults::getNonOverlapHits(filteredHits.second);
+	}
+	return ret;
+}
 
+void nhmmscanOutput::writeInfoFiles(const PostProcessHitsRes & postProcessResults, const bfs::path & outputDir) const {
+	OutputStream allHitsBedOut(njh::files::make_path(outputDir, "all_hits.bed"));
+	for(auto & query : qResults_){
+		for(const auto & hit : query.hits_){
+			auto loc = hit.genBed6_env();
+			allHitsBedOut << loc.toDelimStrWithExtra() << std::endl;
+		}
+	}
+	OutOptions hitTableOutOpts = njh::files::make_path(outputDir, "nhmmscan_hits_table.tab.txt");
+	outputCustomHitsTable(hitTableOutOpts);
+
+	OutputStream hitFilteredTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_table.tab.txt"));
+	OutputStream hitFilteredBedOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered.bed"));
+
+	OutputStream hitNonOverlapFilteredTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_nonOverlap_filtered_table.tab.txt"));
+	OutputStream hitNonOverlapFilteredBedOut(njh::files::make_path(outputDir, "nhmmscan_hits_nonOverlap_filtered.bed"));
+
+	hitFilteredTableOut << "queryName\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
+	hitNonOverlapFilteredTableOut << "queryName\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
+	for(const auto & filteredHits : postProcessResults.filteredHitsByQuery_){
+		for(const auto & hit : filteredHits.second){
+			hitFilteredTableOut << filteredHits.first << "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
+			hitFilteredBedOut << hit.genBed6_env().toDelimStrWithExtra() << std::endl;
+		}
+		for(const auto & hit : postProcessResults.filteredNonOverlapHitsByQuery_.at(filteredHits.first)){
+			hitNonOverlapFilteredTableOut << filteredHits.first << "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
+			hitNonOverlapFilteredBedOut << hit.genBed6_env().toDelimStrWithExtra() << std::endl;
+		}
+	}
+}
 
 
 

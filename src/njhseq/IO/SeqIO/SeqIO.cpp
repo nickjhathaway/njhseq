@@ -43,6 +43,56 @@ void SeqIO::closeOut(){
 	out_.closeOut();
 }
 
+std::unordered_map<uint32_t, std::string> SeqIO::rewriteSeqsWithIndexAsName(const SeqIOOptions & inOpts, const SeqIOOptions & outOpts){
+	std::unordered_map<uint32_t, std::string> seqKey;
+	//rewrite the seqs so name is just number
+	seqInfo seq;
+	SeqInput reader(inOpts);
+	SeqOutput writer(outOpts);
+	reader.openIn();
+	writer.openOut();
+	uint32_t count = 0;
+	while(reader.readNextRead(seq)){
+		seqKey[count] = seq.name_;
+		seq.name_ = njh::pasteAsStr(count);
+		writer.write(seq);
+		++count;
+	}
+	return seqKey;
+}
 
+std::unordered_map<uint32_t, std::string> SeqIO::rewriteSeqsWithIndexAsName(const SeqIOOptions & inOpts, const SeqIOOptions & outOpts, const OutOptions & seqKeyFileOutOpts) {
+	auto seqKey = rewriteSeqsWithIndexAsName(inOpts, outOpts);
+	OutputStream seqNameKeyOut(seqKeyFileOutOpts);
+	seqNameKeyOut << "oldName\tnewName" << "\n";
+	for(const auto key : iter::range(0UL, seqKey.size())){
+		seqNameKeyOut << seqKey[key] << "\t" << key << "\n";
+	}
+	return seqKey;
+}
+
+std::unordered_map<uint32_t, std::string> SeqIO::rewriteSeqsWithIndexAsName(const std::vector<seqInfo> & seqs, const SeqIOOptions & outOpts){
+	std::unordered_map<uint32_t, std::string> seqKey;
+	SeqOutput writer(outOpts);
+	writer.openOut();
+	uint32_t count = 0;
+	for(auto seq : seqs){
+		seqKey[count] = seq.name_;
+		seq.name_ = njh::pasteAsStr(count);
+		writer.write(seq);
+		++count;
+	}
+	return seqKey;
+}
+
+std::unordered_map<uint32_t, std::string> SeqIO::rewriteSeqsWithIndexAsName(const std::vector<seqInfo> & seqs, const SeqIOOptions & outOpts, const OutOptions & seqKeyFileOutOpts) {
+	auto seqKey = rewriteSeqsWithIndexAsName(seqs, outOpts);
+	OutputStream seqNameKeyOut(seqKeyFileOutOpts);
+	seqNameKeyOut << "oldName\tnewName" << "\n";
+	for(const auto key : iter::range(0UL, seqKey.size())){
+		seqNameKeyOut << seqKey[key] << "\t" << key << "\n";
+	}
+	return seqKey;
+}
 
 }  // namespace njhseq

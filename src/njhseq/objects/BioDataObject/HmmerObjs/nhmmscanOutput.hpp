@@ -66,14 +66,17 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 		 * posterior probability (essentially the expected accuracy) of each aligned residue. A 0 means 0-5%, 1 means 5-15%, and so on; 9 means 85-95%, and a * means 95-100% posterior probability
 		 */
 
-		uint32_t sumOfPosteriorProbability() const;
-		double averagePP() const;
+		[[nodiscard]] uint32_t sumOfPosteriorProbability() const;
+		[[nodiscard]] double averagePP() const;
 
-		double percentPerfectHit() const;
+		[[nodiscard]] double percentPerfectHit() const;
 
-		double percentGappedHit() const;
+		[[nodiscard]] double percentGappedHit() const;
 
+		bool overlaps_env(const Hit & otherHit, uint32_t minOverlap = 1) const;
 
+		static VecStr getOutputDetHeader();
+		VecStr getOutputDet() const;
 		virtual Json::Value toJson() const;
 		virtual ~Hit(){
 
@@ -98,21 +101,50 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 		double Mc_per_sec_{std::numeric_limits<double>::max()};
 		double hitsFrac_{std::numeric_limits<double>::max()};
 
-		Json::Value toJson() const;
+		[[nodiscard]] Json::Value toJson() const;
+
+		static void sortHitsByEvaluesScores(std::vector<Hit> &hits);
+
+		static std::vector<Hit> getNonOverlapHits(const std::vector<Hit> &hits );
+		static std::vector<Hit> getNonOverlapHits(std::vector<Hit> &hits, const std::function<bool(const Hit&, const Hit&)> & sortFunc);
+
 	};
 
 	std::vector<QueryResults> qResults_;
 
 
-	Json::Value toJson() const;
+	[[nodiscard]] Json::Value toJson() const;
 
 
 	static nhmmscanOutput parseRawOutput(const bfs::path & input);
+	static nhmmscanOutput parseRawOutput(const bfs::path & input, const std::unordered_map<uint32_t, std::string> & seqKey);
 
+
+	static bool run_hmmpress_ifNeed(const bfs::path & hmmModelFnp);
 
 	void outputCustomHitsTable(const OutOptions & outOpts) const;
 
+	/**
+	 * @brief rename query, only works if the input was named with query index
+	 * @param seqKey index to name
+	 */
+	void renameQuery(const std::unordered_map<uint32_t, std::string> & seqKey);
 
+	struct PostProcessHitsPars{
+		uint32_t minLength = 0;
+		double accCutOff = 0;
+		double scoreCutOff = 0;
+		uint32_t hmmStartFilter = std::numeric_limits<uint32_t>::max();
+	};
+	struct PostProcessHitsRes{
+		std::unordered_map<std::string, std::vector<nhmmscanOutput::Hit>> filteredHitsByQuery_;
+		std::unordered_map<std::string, std::vector<nhmmscanOutput::Hit>> filteredNonOverlapHitsByQuery_;
+	};
+
+	PostProcessHitsRes postProcessHits(const PostProcessHitsPars & pars);
+
+	
+	void writeInfoFiles(const PostProcessHitsRes & postProcessResults, const bfs::path & outputDir) const;
 };
 
 
