@@ -60,15 +60,20 @@ void AlignmentResults::setRefSeq(const seqInfo & refSeq){
 	stringToUpper(refSeq_->seq_);
 }
 
+
 void AlignmentResults::setComparison(bool keepAlignedObjects){
+	aligner alignerObj(10, gapScoringParameters(5,1), substituteMatrix::createDegenScoreMatrix(1,-1));
+	alignerObj.weighHomopolymers_ = false;
+	alignerObj.countEndGaps_ = false;
+	setComparison(keepAlignedObjects, alignerObj);
+}
+
+void AlignmentResults::setComparison(bool keepAlignedObjects, aligner & alignerObj){
 	if(nullptr == refSeq_){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error setting comparison, refSeq hasn't been added yet"<< "\n";
 		throw std::runtime_error { ss.str() };
 	}
-	aligner alignerObj(10, gapScoringParameters(5,1), substituteMatrix::createDegenScoreMatrix(1,-1));
-	alignerObj.weighHomopolymers_ = false;
-	alignerObj.countEndGaps_ = false;
 	auto alnInfo = bamAlnToAlnInfoLocal(bAln_);
 
 
@@ -105,6 +110,7 @@ void AlignmentResults::setComparison(bool keepAlignedObjects){
 		}
 	}
 	comp_ = alignerObj.comp_;
+
 }
 
 void AlignmentResults::setAlignedObjects(){
