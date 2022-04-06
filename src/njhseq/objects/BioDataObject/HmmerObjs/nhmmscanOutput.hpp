@@ -132,8 +132,10 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 
 	struct PostProcessHitsPars{
 		uint32_t minLength = 0;
-		double accCutOff = 0;
-		double scoreCutOff = 0;
+		double accCutOff = 0;/**< a soft cut off for accuracy, must be above this unless the score is above the scoreCutOff */
+		double scoreCutOff = 0;/**< a soft cut off for score, must be above this unless the accuracy is above the accCutOff */
+		double hardAccCutOff = 0;/**< a hard cut off for accuracy, must be above this cut off regardless of score */
+		double hardScoreCutOff = 0;/**< a hard cut off for score, must be above this cut off regardless of accuracy */
 		uint32_t hmmStartFilter = std::numeric_limits<uint32_t>::max();
 	};
 	struct PostProcessHitsRes{

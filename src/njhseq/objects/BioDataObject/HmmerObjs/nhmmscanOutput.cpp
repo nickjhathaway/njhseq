@@ -634,7 +634,13 @@ nhmmscanOutput::PostProcessHitsRes nhmmscanOutput::postProcessHits(const PostPro
 			auto loc = hit.genBed6_env();
 			uint32_t hmmFromBack = hit.modelLen_ - hit.hmmTo_;
 			uint32_t hmmFromFront = hit.zeroBasedHmmFrom();
-			if(hmmFromBack <= pars.hmmStartFilter && hmmFromFront <= pars.hmmStartFilter && loc.length() >= pars.minLength && ( hit.acc_ >=  pars.accCutOff || hit.modelScore_ >=  pars.scoreCutOff)){
+			if(
+							hmmFromBack <= pars.hmmStartFilter &&
+							hmmFromFront <= pars.hmmStartFilter &&
+							loc.length() >= pars.minLength &&
+							hit.acc_ >= pars.hardAccCutOff &&
+							hit.modelScore_ >= pars.hardScoreCutOff &&
+							( hit.acc_ >=  pars.accCutOff || hit.modelScore_ >=  pars.scoreCutOff)){
 				ret.filteredHitsByQuery_[hit.queryName_].emplace_back(hit);
 			}
 		}
