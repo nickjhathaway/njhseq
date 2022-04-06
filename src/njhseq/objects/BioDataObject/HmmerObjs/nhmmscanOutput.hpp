@@ -104,6 +104,7 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 		[[nodiscard]] Json::Value toJson() const;
 
 		static void sortHitsByEvaluesScores(std::vector<Hit> &hits);
+		static void sortHitsByGenomicCoords(std::vector<Hit> &hits);
 
 		static std::vector<Hit> getNonOverlapHits(const std::vector<Hit> &hits );
 		static std::vector<Hit> getNonOverlapHits(std::vector<Hit> &hits, const std::function<bool(const Hit&, const Hit&)> & sortFunc);

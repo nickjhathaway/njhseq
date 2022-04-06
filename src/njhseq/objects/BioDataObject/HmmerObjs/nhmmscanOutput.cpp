@@ -10,6 +10,7 @@
 
 #include "njhseq/IO/InputStream.hpp"
 #include "njhseq/IO/OutputStream.hpp"
+#include "njhseq/objects/BioDataObject/BioRecordsUtils/BedUtility.hpp"
 
 
 namespace njhseq {
@@ -71,6 +72,23 @@ Json::Value nhmmscanOutput::QueryResults::toJson() const {
 	ret["Mc_per_sec_"] = njh::json::toJson(Mc_per_sec_);
 	ret["hitsFrac_"] = njh::json::toJson(hitsFrac_);
 	return ret;
+}
+
+
+void nhmmscanOutput::QueryResults::sortHitsByGenomicCoords(std::vector<Hit> &hits) {
+	auto envCoordSorterFunc =
+					[](const Hit &reg1, const Hit &reg2) {
+						if (reg1.queryName_ == reg2.queryName_) {
+							if (reg1.env0BasedPlusStrandStart() == reg2.env0BasedPlusStrandStart()) {
+								return reg1.env0BasedPlusStrandEnd() < reg2.env0BasedPlusStrandEnd();
+							} else {
+								return reg1.env0BasedPlusStrandStart() < reg2.env0BasedPlusStrandStart();
+							}
+						} else {
+							return reg1.queryName_ < reg2.queryName_;
+						}
+					};
+	njh::sort(hits, envCoordSorterFunc);
 }
 
 void nhmmscanOutput::QueryResults::sortHitsByEvaluesScores(std::vector<Hit> &hits) {
@@ -671,15 +689,22 @@ void nhmmscanOutput::writeInfoFiles(const PostProcessHitsRes & postProcessResult
 
 	hitFilteredTableOut << "queryName\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
 	hitNonOverlapFilteredTableOut << "queryName\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
-	for(const auto & filteredHits : postProcessResults.filteredHitsByQuery_){
-		for(const auto & hit : filteredHits.second){
-			hitFilteredTableOut << filteredHits.first << "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
-			hitFilteredBedOut << hit.genBed6_env().toDelimStrWithExtra() << std::endl;
-		}
-		for(const auto & hit : postProcessResults.filteredNonOverlapHitsByQuery_.at(filteredHits.first)){
-			hitNonOverlapFilteredTableOut << filteredHits.first << "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
-			hitNonOverlapFilteredBedOut << hit.genBed6_env().toDelimStrWithExtra() << std::endl;
-		}
+	std::vector<Hit> allFilteredHits;
+	std::vector<Hit> allFilteredNonOverlapHits;
+	for(const auto & filteredHits : postProcessResults.filteredHitsByQuery_) {
+		addOtherVec(allFilteredHits, filteredHits.second);
+		addOtherVec(allFilteredNonOverlapHits, postProcessResults.filteredNonOverlapHitsByQuery_.at(filteredHits.first));
+	}
+	QueryResults::sortHitsByGenomicCoords(allFilteredHits);
+	QueryResults::sortHitsByGenomicCoords(allFilteredNonOverlapHits);
+
+	for(const auto & hit : allFilteredHits){
+		hitFilteredTableOut << hit.queryName_ << "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
+		hitFilteredBedOut << hit.genBed6_env().toDelimStrWithExtra() << std::endl;
+	}
+	for(const auto & hit : allFilteredNonOverlapHits) {
+		hitNonOverlapFilteredTableOut << hit.queryName_ << "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
+		hitNonOverlapFilteredBedOut << hit.genBed6_env().toDelimStrWithExtra() << std::endl;
 	}
 }
 
