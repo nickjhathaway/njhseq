@@ -29,7 +29,6 @@ const std::array<int32_t, 256>  GHDNA::ntValNoN = {
 uint64_t GHDNA::gen(const std::string & str){
 	uint32_t tau = (str.size() - (str.size() % 2));
 	uint32_t beta = (tau/2) - 1;
-
 	double R = 0;
 	for(uint32_t u = tau; u < str.size() + 1; ++u){
 		R += (ntValNoN[str[u - 1]]  - (str.size() - std::sqrt(u)))/ntValNoN[str[u - 1]];
@@ -43,7 +42,6 @@ uint64_t GHDNA::gen(const std::string & str){
 		C += ((nuc1 - std::sqrt((i%2) + 1) ) * (nuc2 + + std::sqrt((i%3) + 1) ) )/(nuc3);
 	}
 	C -= R;
-
 	double ID = str.size()/C;
 	uint64_t prehash = std::abs(std::round(ID * std::pow(10, 14) )-str.size());
 	std::string prehashAsStr = njh::leftPadNumStr<uint64_t>(prehash, std::pow(10, 13));

@@ -12,7 +12,7 @@
 #include "njhseq/utils.h"
 
 
-#include "njhseq/objects/BioDataObject/BedRecordCore.hpp"
+#include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 
 #include "njhseq/objects/BioDataObject/HmmerObjs/HmmerHitBase.hpp"
 
@@ -84,28 +84,16 @@ public:
 	virtual ~HmmerSeqHitTab(){
 
 	}
-	double modelCoverage() const;
-	double queryCoverageEnv(uint32_t queryLen) const;
-	double queryCoverageAln(uint32_t queryLen) const;
+	[[nodiscard]] double modelCoverage() const;
+	[[nodiscard]] double queryCoverageEnv(uint32_t queryLen) const;
+	[[nodiscard]] double queryCoverageAln(uint32_t queryLen) const;
 
+	[[nodiscard]] bool overlaps_env(const HmmerSeqHitTab & otherHit, uint32_t minOverlap = 1) const;
 
-//	uint32_t env0BasedPlusStrandStart() const;
-//	uint32_t env0BasedPlusStrandEnd() const;
-//	uint32_t align0BasedPlusStrandStart() const;
-//	uint32_t align0BasedPlusStrandEnd() const;
-//
-//	uint32_t zeroBasedHmmFrom() const; //per file specs the positions are 1-based
-//
-//	uint32_t envLen() const;
-//	uint32_t hmmLen() const;
-//	uint32_t alignLen() const;
-
-
-
-	Bed6RecordCore genBed6_env() const;
-	Bed6RecordCore genBed6_aln() const;
+	[[nodiscard]] Bed6RecordCore genBed6_env() const;
+	[[nodiscard]] Bed6RecordCore genBed6_aln() const;
 private:
-	Bed6RecordCore genBed6(uint32_t start, uint32_t end) const;
+	[[nodiscard]] Bed6RecordCore genBed6(uint32_t start, uint32_t end) const;
 public:
 };
 

@@ -67,13 +67,15 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 		 */
 
 		[[nodiscard]] uint32_t sumOfPosteriorProbability() const;
+		[[nodiscard]] uint64_t productOfPosteriorProbability() const;
+
 		[[nodiscard]] double averagePP() const;
 
 		[[nodiscard]] double percentPerfectHit() const;
 
 		[[nodiscard]] double percentGappedHit() const;
 
-		bool overlaps_env(const Hit & otherHit, uint32_t minOverlap = 1) const;
+
 
 		static VecStr getOutputDetHeader();
 		VecStr getOutputDet() const;
@@ -106,6 +108,16 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 		static void sortHitsByEvaluesScores(std::vector<Hit> &hits);
 		static void sortHitsByGenomicCoords(std::vector<Hit> &hits);
 
+		struct HitOverlapGroup{
+			explicit HitOverlapGroup(const Hit & firstHit);
+			GenomicRegion region_;
+			std::vector<Hit> hits_;
+
+			void addHit(const Hit & nextHit);
+		};
+
+		static std::vector<HitOverlapGroup> mergeOverlapingHits(std::vector<Hit> hits );
+
 		static std::vector<Hit> getNonOverlapHits(const std::vector<Hit> &hits );
 		static std::vector<Hit> getNonOverlapHits(std::vector<Hit> &hits, const std::function<bool(const Hit&, const Hit&)> & sortFunc);
 
@@ -130,6 +142,7 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 	 * @param seqKey index to name
 	 */
 	void renameQuery(const std::unordered_map<uint32_t, std::string> & seqKey);
+	[[nodiscard]]  std::unordered_map<std::string, uint32_t> genQueryIndexKey() const;
 
 	struct PostProcessHitsPars{
 		uint32_t minLength = 0;

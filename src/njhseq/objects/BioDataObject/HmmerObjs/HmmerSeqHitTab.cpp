@@ -230,6 +230,11 @@ Bed6RecordCore HmmerSeqHitTab::genBed6_aln() const {
 	return genBed6(start, end);
 }
 
+bool HmmerSeqHitTab::overlaps_env(const HmmerSeqHitTab & otherHit, uint32_t minOverlap)const{
+	return Bed3RecordCore::getOverlapLen(queryName_, env0BasedPlusStrandStart(), env0BasedPlusStrandEnd(),
+																			 otherHit.queryName_, otherHit.env0BasedPlusStrandStart(), otherHit.env0BasedPlusStrandEnd()) >= minOverlap;
+}
+
 Bed6RecordCore HmmerSeqHitTab::genBed6_env() const {
 	uint32_t start = env0BasedPlusStrandStart();
 	uint32_t end = env0BasedPlusStrandEnd();

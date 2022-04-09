@@ -91,6 +91,70 @@ void nhmmscanOutput::QueryResults::sortHitsByGenomicCoords(std::vector<Hit> &hit
 	njh::sort(hits, envCoordSorterFunc);
 }
 
+
+nhmmscanOutput::QueryResults::HitOverlapGroup::HitOverlapGroup(const Hit & firstHit){
+	region_ = GenomicRegion(firstHit.genBed6_env());
+	region_.uid_ = firstHit.targetName_;
+	hits_.emplace_back(firstHit);
+}
+
+void nhmmscanOutput::QueryResults::HitOverlapGroup::addHit(const Hit & nextHit){
+	//have to take the max end in case the next hit is encompassed by the previous hit
+	region_.end_ = std::max<uint64_t>(nextHit.env0BasedPlusStrandEnd(), region_.end_);
+	hits_.emplace_back(nextHit);
+}
+
+
+std::vector<nhmmscanOutput::QueryResults::HitOverlapGroup> nhmmscanOutput::QueryResults::mergeOverlapingHits(std::vector<Hit> hits ){
+	//sort by by query and target
+	auto coordSorterFunc =
+					[](const Hit &reg1, const Hit &reg2) {
+		if (reg1.queryName_ == reg2.queryName_) {
+			if (reg1.targetName_ == reg2.targetName_){
+				if(reg1.isReverseStrand() == reg2.isReverseStrand()){
+					if (reg1.env0BasedPlusStrandStart() == reg2.env0BasedPlusStrandStart()) {
+						return reg1.env0BasedPlusStrandEnd() < reg2.env0BasedPlusStrandEnd();
+					} else {
+						return reg1.env0BasedPlusStrandStart() < reg2.env0BasedPlusStrandStart();
+					}
+				}else{
+					return reg1.isReverseStrand() < reg2.isReverseStrand();
+				}
+			}else{
+				return reg1.targetName_ < reg2.targetName_;
+			}
+		} else {
+			return reg1.queryName_ < reg2.queryName_;
+		}
+	};
+	njh::sort(hits, coordSorterFunc);
+	std::vector<HitOverlapGroup> ret;
+	for(const auto & hit : hits){
+		if(ret.empty()){
+			ret.emplace_back(hit);
+		}else{
+			//target and query name the same
+			//same strand
+			//both hmm and env overlap
+			if(
+							ret.back().hits_.back().targetName_ == hit.targetName_ &&
+											ret.back().hits_.back().queryName_ == hit.queryName_ &&
+											ret.back().hits_.back().isReverseStrand() == hit.isReverseStrand() &&
+							Bed3RecordCore::getOverlapLen(ret.back().hits_.back().targetName_, ret.back().hits_.back().hmmFrom_, ret.back().hits_.back().hmmTo_,
+																						hit.targetName_, hit.hmmFrom_, hit.hmmTo_) > 0 &&
+							hit.env0BasedPlusStrandStart() <= ret.back().hits_.back().env0BasedPlusStrandEnd()
+																						) {
+				ret.back().addHit(hit);
+			}else{
+				ret.emplace_back(hit);
+			}
+		}
+	}
+	return ret;
+}
+
+
+
 void nhmmscanOutput::QueryResults::sortHitsByEvaluesScores(std::vector<Hit> &hits) {
 	njh::sort(hits, [](const Hit &hit1, const Hit &hit2) {
 		if (hit1.modelEvalue_ == hit2.modelEvalue_) {
@@ -239,7 +303,7 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 						hit.queryName_ = queryRes.queryName_;
 						hit.targetName_ = subLine.substr(3);
 						njh::trim(hit.targetName_);
-						std::string hitline = "";
+						std::string hitline;
 
 						//hit header
 						njh::files::crossPlatGetline(in, hitline);
@@ -264,12 +328,20 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 						hit.alignFrom_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[7]);
 						hit.alignTo_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[8]);
 						hit.aliEdgeInfo_ = hitValuesToks[9];
+						//fix for ali edge info since it doesn't seem to be being marked correctly, specifically the end bracket
+						auto aliStart = std::min(hit.alignFrom_, hit.alignTo_);
+						auto aliEnd = std::max(hit.alignFrom_, hit.alignTo_);
+						hit.aliEdgeInfo_ = njh::pasteAsStr(aliStart  == 1 ? '[' : '.', aliEnd == queryRes.queryLen_ ? ']' : '.');
+						
 						hit.strand_ = hit.isReverseStrand() ? '-' : '+';
 						//env
 						hit.envFrom_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[10]);
 						hit.envTo_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[11]);
 						hit.envEdgeInfo_ = hitValuesToks[12];
-
+						//fix for env edge info since it doesn't seem to be being marked correctly, specifically the end bracket 
+						auto envStart = std::min(hit.envFrom_, hit.envTo_);
+						auto envEnd = std::max(hit.envFrom_, hit.envTo_);
+						hit.envEdgeInfo_ = njh::pasteAsStr(envStart  == 1 ? '[' : '.', envEnd == queryRes.queryLen_ ? ']' : '.');
 						hit.modelLen_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[13]);
 						hit.acc_ = njh::StrToNumConverter::stoToNum<double>(hitValuesToks[14]);
 
@@ -513,6 +585,8 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 	for(auto & query : ret.qResults_){
 		QueryResults::sortHitsByEvaluesScores(query.hits_);
 	}
+
+
 	return ret;
 }
 
@@ -531,6 +605,26 @@ uint32_t nhmmscanOutput::Hit::sumOfPosteriorProbability() const{
 	}
 	return ret;
 }
+
+uint64_t nhmmscanOutput::Hit::productOfPosteriorProbability() const{
+	uint64_t ret = 0;
+	for(const auto c : aln_posterior_probability_){
+		uint64_t prob = 0;
+		if('*' == c){
+			prob = 10;
+		}else if ('.' == c){
+			prob = 0;
+		}else{
+			prob = njh::StrToNumConverter::stoToNum<uint32_t>(std::string(1, c));
+		}
+		prob += 1;
+		ret *= prob;
+	}
+	return ret;
+}
+
+
+
 
 double nhmmscanOutput::Hit::averagePP() const{
 	return sumOfPosteriorProbability()/static_cast<double>(aln_posterior_probability_.size())	;
@@ -555,10 +649,7 @@ double nhmmscanOutput::Hit::percentGappedHit() const{
 	return (aln_modle_gapped + aln_query_gapped)/static_cast<double>(aln_posterior_probability_.size());
 }
 
-bool nhmmscanOutput::Hit::overlaps_env(const Hit & otherHit, uint32_t minOverlap)const{
-	return Bed3RecordCore::getOverlapLen(queryName_, env0BasedPlusStrandStart(), env0BasedPlusStrandEnd(),
-																			 otherHit.queryName_, otherHit.env0BasedPlusStrandStart(), otherHit.env0BasedPlusStrandEnd()) >= minOverlap;
-}
+
 
 VecStr nhmmscanOutput::Hit::getOutputDetHeader(){
 	return VecStr {"model"
@@ -626,6 +717,16 @@ void nhmmscanOutput::renameQuery(const std::unordered_map<uint32_t, std::string>
 	}
 }
 
+std::unordered_map<std::string, uint32_t> nhmmscanOutput::genQueryIndexKey() const{
+	std::unordered_map<std::string, uint32_t> ret;
+	for(const auto & qIndx : iter::enumerate(qResults_)){
+		ret[qIndx.second.queryName_] = qIndx.first;
+	}
+	return ret;
+}
+
+
+
 void nhmmscanOutput::outputCustomHitsTable(const OutOptions &outOpts) const {
 	OutputStream out(outOpts);
 
@@ -687,23 +788,28 @@ void nhmmscanOutput::writeInfoFiles(const PostProcessHitsRes & postProcessResult
 	OutputStream hitNonOverlapFilteredTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_nonOverlap_filtered_table.tab.txt"));
 	OutputStream hitNonOverlapFilteredBedOut(njh::files::make_path(outputDir, "nhmmscan_hits_nonOverlap_filtered.bed"));
 
-	hitFilteredTableOut << "queryName\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
-	hitNonOverlapFilteredTableOut << "queryName\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
+	hitFilteredTableOut << "query\tqueryLen\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
+	hitNonOverlapFilteredTableOut << "query\tqueryLen\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
 	std::vector<Hit> allFilteredHits;
 	std::vector<Hit> allFilteredNonOverlapHits;
+
 	for(const auto & filteredHits : postProcessResults.filteredHitsByQuery_) {
 		addOtherVec(allFilteredHits, filteredHits.second);
 		addOtherVec(allFilteredNonOverlapHits, postProcessResults.filteredNonOverlapHitsByQuery_.at(filteredHits.first));
 	}
 	QueryResults::sortHitsByGenomicCoords(allFilteredHits);
 	QueryResults::sortHitsByGenomicCoords(allFilteredNonOverlapHits);
-
+	auto qKey = genQueryIndexKey();
 	for(const auto & hit : allFilteredHits){
-		hitFilteredTableOut << hit.queryName_ << "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
+		hitFilteredTableOut << hit.queryName_
+		<< "\t" << qResults_[qKey[hit.queryName_]].queryLen_
+		<< "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
 		hitFilteredBedOut << hit.genBed6_env().toDelimStrWithExtra() << std::endl;
 	}
 	for(const auto & hit : allFilteredNonOverlapHits) {
-		hitNonOverlapFilteredTableOut << hit.queryName_ << "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
+		hitNonOverlapFilteredTableOut << hit.queryName_
+						<< "\t" << qResults_[qKey[hit.queryName_]].queryLen_
+						<< "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
 		hitNonOverlapFilteredBedOut << hit.genBed6_env().toDelimStrWithExtra() << std::endl;
 	}
 }
