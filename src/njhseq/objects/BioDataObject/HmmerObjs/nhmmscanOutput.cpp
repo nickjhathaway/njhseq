@@ -880,7 +880,7 @@ void nhmmscanOutput::writeInfoFiles(const PostProcessHitsRes & postProcessResult
 			for(const auto & hit : groupHit.hits_){
 				models.emplace(hit.targetName_);
 			}
-			hitFilteredMergedHitsTableOut << groupHit.region_.genBedRecordCore().toDelimStr()
+			hitFilteredMergedTableOut << groupHit.region_.genBedRecordCore().toDelimStr()
 																		<< "\t" << filteredMerged.first
 																		<< "\t" << qResults_[qKey[filteredMerged.first]].queryLen_
 																		<< "\t" << static_cast<double>(groupHit.region_.getLen())/qResults_[qKey[filteredMerged.first]].queryLen_
