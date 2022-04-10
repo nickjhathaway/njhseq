@@ -114,9 +114,17 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 			std::vector<Hit> hits_;
 
 			void addHit(const Hit & nextHit);
+
+			double sumScores() const;
+
+			GenomicRegion genOutRegion()const;
 		};
 
-		static std::vector<HitOverlapGroup> mergeOverlapingHits(std::vector<Hit> hits );
+		struct mergeOverlapingHitsPars{
+			bool requireHmmOverlap_ = false;
+			bool requireSameHmmModel_ = true;
+		};
+		static std::vector<HitOverlapGroup> mergeOverlapingHits(std::vector<Hit> hits, const mergeOverlapingHitsPars & pars);
 
 		static std::vector<Hit> getNonOverlapHits(const std::vector<Hit> &hits );
 		static std::vector<Hit> getNonOverlapHits(std::vector<Hit> &hits, const std::function<bool(const Hit&, const Hit&)> & sortFunc);
@@ -146,15 +154,25 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 
 	struct PostProcessHitsPars{
 		uint32_t minLength = 0;
-		double accCutOff = 0;/**< a soft cut off for accuracy, must be above this unless the score is above the scoreCutOff */
-		double scoreCutOff = 0;/**< a soft cut off for score, must be above this unless the accuracy is above the accCutOff */
-		double hardAccCutOff = 0;/**< a hard cut off for accuracy, must be above this cut off regardless of score */
-		double hardScoreCutOff = 0;/**< a hard cut off for score, must be above this cut off regardless of accuracy */
+		double accCutOff = 0;/**< a soft cut off for accuracy, must be above this unless the scoreNorm/score/evalue is above the scoreCutOff */
+		double scoreCutOff = 0;/**< a soft cut off for score, must be above this unless the scoreNorm/accuracy/evalue is above the accCutOff */
+		double evalueCutOff = std::numeric_limits<double>::max();/**< a soft cut off for evalue, must be above this unless the scoreNorm/accuracy/score is above the accCutOff */
+		double scoreNormCutOff = 0;/**< a soft cut off for scoreNorm, must be above this unless the accuracy/evalue/score is above the accCutOff */
+
+		double hardAccCutOff = 0;/**< a hard cut off for accuracy, must be above this cut off regardless of other measures */
+		double hardScoreCutOff = 0;/**< a hard cut off for score, must be above this cut off regardless of other measures */
+		double hardEvalueCutOff = std::numeric_limits<double>::max();/**< a hard cut off for evalue, must be above this cut off regardless of other measures */
+		double hardScoreNormCutOff = 0;/**< a hard cut off for scoreNorm, must be above this cut off regardless of other measures */
+
 		uint32_t hmmStartFilter = std::numeric_limits<uint32_t>::max();
+
+		QueryResults::mergeOverlapingHitsPars mergePars_;
 	};
 	struct PostProcessHitsRes{
 		std::unordered_map<std::string, std::vector<nhmmscanOutput::Hit>> filteredHitsByQuery_;
 		std::unordered_map<std::string, std::vector<nhmmscanOutput::Hit>> filteredNonOverlapHitsByQuery_;
+		std::unordered_map<std::string, std::vector<nhmmscanOutput::QueryResults::HitOverlapGroup>> filteredHitsMergedByQuery_;
+		std::unordered_map<std::string, std::vector<nhmmscanOutput::QueryResults::HitOverlapGroup>> filteredHitsMergedNonOverlapByQuery_;
 	};
 
 	PostProcessHitsRes postProcessHits(const PostProcessHitsPars & pars);

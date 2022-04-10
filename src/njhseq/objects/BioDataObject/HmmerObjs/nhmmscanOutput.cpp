@@ -105,7 +105,18 @@ void nhmmscanOutput::QueryResults::HitOverlapGroup::addHit(const Hit & nextHit){
 }
 
 
-std::vector<nhmmscanOutput::QueryResults::HitOverlapGroup> nhmmscanOutput::QueryResults::mergeOverlapingHits(std::vector<Hit> hits ){
+double nhmmscanOutput::QueryResults::HitOverlapGroup::sumScores() const{
+	double ret = 0;
+	for(const auto & hit : hits_){
+		ret += hit.modelScore_;
+	}
+	return ret;
+}
+
+
+
+
+std::vector<nhmmscanOutput::QueryResults::HitOverlapGroup> nhmmscanOutput::QueryResults::mergeOverlapingHits(std::vector<Hit> hits, const mergeOverlapingHitsPars & pars){
 	//sort by by query and target
 	auto coordSorterFunc =
 					[](const Hit &reg1, const Hit &reg2) {
@@ -137,12 +148,12 @@ std::vector<nhmmscanOutput::QueryResults::HitOverlapGroup> nhmmscanOutput::Query
 			//same strand
 			//both hmm and env overlap
 			if(
-							ret.back().hits_.back().targetName_ == hit.targetName_ &&
-											ret.back().hits_.back().queryName_ == hit.queryName_ &&
-											ret.back().hits_.back().isReverseStrand() == hit.isReverseStrand() &&
-							Bed3RecordCore::getOverlapLen(ret.back().hits_.back().targetName_, ret.back().hits_.back().hmmFrom_, ret.back().hits_.back().hmmTo_,
-																						hit.targetName_, hit.hmmFrom_, hit.hmmTo_) > 0 &&
-							hit.env0BasedPlusStrandStart() <= ret.back().hits_.back().env0BasedPlusStrandEnd()
+			(!pars.requireSameHmmModel_ || ret.back().hits_.back().targetName_ == hit.targetName_) &&
+			ret.back().hits_.back().queryName_ == hit.queryName_ &&
+			ret.back().hits_.back().isReverseStrand() == hit.isReverseStrand() &&
+			(!pars.requireHmmOverlap_ || Bed3RecordCore::getOverlapLen(ret.back().hits_.back().targetName_, ret.back().hits_.back().hmmFrom_, ret.back().hits_.back().hmmTo_,
+																									 hit.targetName_, hit.hmmFrom_, hit.hmmTo_) > 0 )&&
+			hit.env0BasedPlusStrandStart() <= ret.back().hits_.back().env0BasedPlusStrandEnd()
 																						) {
 				ret.back().addHit(hit);
 			}else{
@@ -725,6 +736,22 @@ std::unordered_map<std::string, uint32_t> nhmmscanOutput::genQueryIndexKey() con
 	return ret;
 }
 
+GenomicRegion nhmmscanOutput::QueryResults::HitOverlapGroup::genOutRegion()const{
+	std::vector<double> scores;
+	std::vector<double> evalues;
+	std::vector<std::string> modelNames;
+	for(const auto & hit : hits_){
+		scores.emplace_back(hit.modelScore_);
+		modelNames.emplace_back(hit.targetName_);
+		evalues.emplace_back(hit.modelEvalue_);
+	}
+	auto outRegion = region_;
+	outRegion.meta_.meta_.clear();
+	outRegion.meta_.addMeta("hmmScores", njh::conToStr(scores, ","));
+	outRegion.meta_.addMeta("hmmModelNames", njh::conToStr(modelNames, ","));
+	outRegion.meta_.addMeta("hmmEvalues", njh::conToStr(evalues, ","));
+	return outRegion;
+}
 
 
 void nhmmscanOutput::outputCustomHitsTable(const OutOptions &outOpts) const {
@@ -759,7 +786,9 @@ nhmmscanOutput::PostProcessHitsRes nhmmscanOutput::postProcessHits(const PostPro
 							loc.length() >= pars.minLength &&
 							hit.acc_ >= pars.hardAccCutOff &&
 							hit.modelScore_ >= pars.hardScoreCutOff &&
-							( hit.acc_ >=  pars.accCutOff || hit.modelScore_ >=  pars.scoreCutOff)){
+							hit.modelEvalue_ <= pars.hardEvalueCutOff &&
+							(hit.modelScore_/hit.envLen()) >= pars.hardScoreNormCutOff  &&
+							( hit.acc_ >=  pars.accCutOff || hit.modelScore_ >=  pars.scoreCutOff || hit.modelEvalue_ <= pars.evalueCutOff || (hit.modelScore_/hit.envLen()) >= pars.scoreNormCutOff )){
 				ret.filteredHitsByQuery_[hit.queryName_].emplace_back(hit);
 			}
 		}
@@ -767,7 +796,30 @@ nhmmscanOutput::PostProcessHitsRes nhmmscanOutput::postProcessHits(const PostPro
 	for(auto & filteredHits : ret.filteredHitsByQuery_){
 		nhmmscanOutput::QueryResults::sortHitsByEvaluesScores(filteredHits.second);
 		ret.filteredNonOverlapHitsByQuery_[filteredHits.first] = nhmmscanOutput::QueryResults::getNonOverlapHits(filteredHits.second);
+
+		ret.filteredHitsMergedByQuery_[filteredHits.first] = QueryResults::mergeOverlapingHits(filteredHits.second, pars.mergePars_);
+		//merge overlapping hits
+		njh::sort(ret.filteredHitsMergedByQuery_[filteredHits.first], [](const QueryResults::HitOverlapGroup & group1, const QueryResults::HitOverlapGroup & group2){
+			return group1.sumScores() > group2.sumScores();
+		});
+		//now get non-overlapping merged hits
+		std::vector<QueryResults::HitOverlapGroup> nonOverlapping;
+		for(const auto & hitGroup : ret.filteredHitsMergedByQuery_[filteredHits.first]){
+			bool overlapping = false;
+			for(const auto & otherGroup : nonOverlapping){
+				if(otherGroup.region_.overlaps(hitGroup.region_)){
+					overlapping = true;
+					break;
+				}
+			}
+			if(!overlapping){
+				nonOverlapping.emplace_back(hitGroup);
+			}
+			ret.filteredHitsMergedNonOverlapByQuery_[filteredHits.first] = nonOverlapping;
+		}
 	}
+
+
 	return ret;
 }
 
@@ -811,6 +863,75 @@ void nhmmscanOutput::writeInfoFiles(const PostProcessHitsRes & postProcessResult
 						<< "\t" << qResults_[qKey[hit.queryName_]].queryLen_
 						<< "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
 		hitNonOverlapFilteredBedOut << hit.genBed6_env().toDelimStrWithExtra() << std::endl;
+	}
+
+	//merged results
+	OutputStream hitFilteredMergedHitsTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged_table_hits.tab.txt"));
+	OutputStream hitFilteredMergedTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged_table.tab.txt"));
+	OutputStream hitFilteredMergedBedOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged.bed"));
+	std::vector<Bed6RecordCore> filteredMergedRegions;
+	hitFilteredMergedHitsTableOut << "#chrom\tstart\tend\tname\tlength\tstrand\tquery\tqueryLen\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
+	hitFilteredMergedTableOut << "#chrom\tstart\tend\tname\tlength\tstrand\tquery\tqueryLen\t" << "queryCov\tsumScores\thits\tmodel" << std::endl;
+
+	for(const auto & filteredMerged : postProcessResults.filteredHitsMergedByQuery_){
+		for(const auto & groupHit : filteredMerged.second){
+			filteredMergedRegions.emplace_back(groupHit.genOutRegion().genBedRecordCore());
+			std::set<std::string> models;
+			for(const auto & hit : groupHit.hits_){
+				models.emplace(hit.targetName_);
+			}
+			hitFilteredMergedHitsTableOut << groupHit.region_.genBedRecordCore().toDelimStr()
+																		<< "\t" << filteredMerged.first
+																		<< "\t" << qResults_[qKey[filteredMerged.first]].queryLen_
+																		<< "\t" << static_cast<double>(groupHit.region_.getLen())/qResults_[qKey[filteredMerged.first]].queryLen_
+																		<< "\t" << groupHit.sumScores()
+																		<< "\t" << groupHit.hits_.size()
+																		<< "\t" << njh::conToStr(models, ",") << std::endl;
+
+			for(const auto & hit : groupHit.hits_){
+				hitFilteredMergedHitsTableOut << groupHit.region_.genBedRecordCore().toDelimStr()
+								<< "\t" << hit.queryName_
+																	<< "\t" << qResults_[qKey[hit.queryName_]].queryLen_
+																	<< "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
+			}
+		}
+	}
+	BedUtility::coordSort(filteredMergedRegions);
+	for(const auto & region : filteredMergedRegions){
+		hitFilteredMergedBedOut << region.toDelimStrWithExtra() << std::endl;
+	}
+
+	//merged non-overlapping results
+	OutputStream hitFilteredMergedNonOverlappingHitsTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged_noOverlap_table_hits.tab.txt"));
+	OutputStream hitFilteredMergedNonOverlappingTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged_noOverlap_table.tab.txt"));
+	OutputStream hitFilteredMergedNonOverlappingBedOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged_noOverlap.bed"));
+	std::vector<Bed6RecordCore> filteredMergedNonOverlappingRegions;
+	hitFilteredMergedNonOverlappingHitsTableOut << "#chrom\tstart\tend\tname\tlength\tstrand\tquery\tqueryLen\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
+	for(const auto & filteredMerged : postProcessResults.filteredHitsMergedNonOverlapByQuery_){
+		for(const auto & groupHit : filteredMerged.second){
+			filteredMergedNonOverlappingRegions.emplace_back(groupHit.genOutRegion().genBedRecordCore());
+			std::set<std::string> models;
+			for(const auto & hit : groupHit.hits_){
+				models.emplace(hit.targetName_);
+			}
+			hitFilteredMergedNonOverlappingTableOut << groupHit.region_.genBedRecordCore().toDelimStr()
+																		<< "\t" << filteredMerged.first
+																		<< "\t" << qResults_[qKey[filteredMerged.first]].queryLen_
+																		<< "\t" << static_cast<double>(groupHit.region_.getLen())/qResults_[qKey[filteredMerged.first]].queryLen_
+																		<< "\t" << groupHit.sumScores()
+																		<< "\t" << groupHit.hits_.size()
+																		<< "\t" << njh::conToStr(models, ",") << std::endl;
+			for(const auto & hit : groupHit.hits_){
+				hitFilteredMergedNonOverlappingHitsTableOut << groupHit.region_.genBedRecordCore().toDelimStr()
+								<< "\t" << hit.queryName_
+																	<< "\t" << qResults_[qKey[hit.queryName_]].queryLen_
+																	<< "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
+			}
+		}
+	}
+	BedUtility::coordSort(filteredMergedNonOverlappingRegions);
+	for(const auto & region : filteredMergedNonOverlappingRegions){
+		hitFilteredMergedNonOverlappingBedOut << region.toDelimStrWithExtra() << std::endl;
 	}
 }
 
