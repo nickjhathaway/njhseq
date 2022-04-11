@@ -907,6 +907,8 @@ void nhmmscanOutput::writeInfoFiles(const PostProcessHitsRes & postProcessResult
 	OutputStream hitFilteredMergedNonOverlappingBedOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged_noOverlap.bed"));
 	std::vector<Bed6RecordCore> filteredMergedNonOverlappingRegions;
 	hitFilteredMergedNonOverlappingHitsTableOut << "#chrom\tstart\tend\tname\tlength\tstrand\tquery\tqueryLen\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
+	hitFilteredMergedNonOverlappingTableOut << "#chrom\tstart\tend\tname\tlength\tstrand\tquery\tqueryLen\t" << "queryCov\tsumScores\thits\tmodel" << std::endl;
+
 	for(const auto & filteredMerged : postProcessResults.filteredHitsMergedNonOverlapByQuery_){
 		for(const auto & groupHit : filteredMerged.second){
 			filteredMergedNonOverlappingRegions.emplace_back(groupHit.genOutRegion().genBedRecordCore());
