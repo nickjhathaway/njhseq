@@ -223,11 +223,18 @@ public:
 			visited_ = true;
 			++visitedAmount_;
 			auto neighbors = getNeighborsEps(pars.eps_);
+			//only count neighbors from current group or unassigned neighbors
+			std::vector<std::shared_ptr<edge>> filtNeighbors;
+			for(const auto & neigh : neighbors){
+				auto next = neigh->nodeToNode_[name_].lock();
+				if(std::numeric_limits<uint32_t>::max() == next->group_ || currentGroup == next->group_){
+					filtNeighbors.emplace_back(neigh);
+				}
+			}
 			//based off the r implementation i think the origin point counts in the neighbor counts
-			if (neighbors.size() + 1 >= pars.minEpNeighbors_) {
+			if (filtNeighbors.size() + 1 >= pars.minEpNeighbors_) {
 				corePoint_ = true;
-				for (auto & neigh : neighbors) {
-
+				for (auto & neigh : filtNeighbors) {
 					auto next = neigh->nodeToNode_[name_].lock();
 					if(std::numeric_limits<uint32_t>::max() == next->group_){
 						neigh->on_ = true;
@@ -249,12 +256,19 @@ public:
 			visited_ = true;
 			++visitedAmount_;
 			auto neighbors = getNeighborsEps(pars.eps_);
+			std::vector<std::shared_ptr<edge>> filtNeighbors;
+			for(const auto & neigh : neighbors){
+				auto next = neigh->nodeToNode_[name_].lock();
+				if(std::numeric_limits<uint32_t>::max() == next->group_ || currentGroup == next->group_){
+					filtNeighbors.emplace_back(neigh);
+				}
+			}
 			//based off the r implementation i think the origin point counts in the neighbor counts
-			if (neighbors.size() + 1 >= pars.minEpNeighbors_) {
+			if (filtNeighbors.size() + 1 >= pars.minEpNeighbors_) {
 				group_ = currentGroup;
 				on_ = true;
 				corePoint_ = true;
-				for (auto & neigh : neighbors) {
+				for (auto & neigh : filtNeighbors) {
 					//if neighbor is unassigned add
 					auto next = neigh->nodeToNode_[name_].lock();
 					if(std::numeric_limits<uint32_t>::max() == next->group_){
