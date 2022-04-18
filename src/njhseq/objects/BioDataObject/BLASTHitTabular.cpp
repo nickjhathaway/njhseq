@@ -24,6 +24,7 @@
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "BLASTHitTabular.hpp"
+#include "njhseq/objects/Meta/MetaDataInName.hpp"
 
 namespace njhseq {
 
@@ -86,6 +87,36 @@ Json::Value BLASTHitTab::toJson() const{
 	ret["bitScore_"] = njh::json::toJson(bitScore_);
 	return ret;
 }
+
+bool BLASTHitTab::reverseStrand() const{
+	return sEnd_ < sStart_;
+}
+
+
+Bed6RecordCore BLASTHitTab::genSubjectBed6() const{
+	MetaDataInName meta;
+	meta.addMeta("perID", perId_);
+	meta.addMeta("alignLen", alignLen_);
+	meta.addMeta("mismatches", mismatches_);
+	meta.addMeta("gapOpens", gapOpens_);
+	meta.addMeta("sStart", sStart_);
+	meta.addMeta("sEnd", sEnd_);
+	meta.addMeta("evalue", evalue_);
+	meta.addMeta("bitScore", bitScore_);
+
+	Bed6RecordCore ret(subjectName_,
+										 reverseStrand() ? sEnd_ -1 : sStart_ -1,
+										 reverseStrand() ? sStart_ : sEnd_,
+										 queryName_,
+										 uAbsdiff(sStart_, sEnd_) + 1,
+										 reverseStrand() ? '-' : '+');
+	ret.extraFields_.emplace_back(meta.createMetaName());
+
+	return ret;
+}
+
+
+
 
 
 }  // namespace njhseq

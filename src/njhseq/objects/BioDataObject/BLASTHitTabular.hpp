@@ -28,6 +28,7 @@
 #include "njhseq/common.h"
 #include "njhseq/utils.h"
 
+#include "njhseq/objects/BioDataObject/BedRecordCore.hpp"
 
 namespace njhseq {
 
@@ -36,7 +37,7 @@ class BLASTHitTab {
 
 public:
 	BLASTHitTab();
-	BLASTHitTab(const std::string & line);
+	explicit BLASTHitTab(const std::string & line);
 
 	std::string queryName_;
 	std::string subjectName_;
@@ -52,7 +53,12 @@ public:
 	double evalue_;
 	double bitScore_;
 
-	Json::Value toJson() const;
+	[[nodiscard]] Json::Value toJson() const;
+
+	[[nodiscard]] bool reverseStrand() const;
+
+
+	[[nodiscard]] Bed6RecordCore genSubjectBed6() const;
 
 };
 
