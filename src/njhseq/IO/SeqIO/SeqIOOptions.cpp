@@ -139,6 +139,7 @@ SeqIOOptions::inFormats SeqIOOptions::getInFormatFromFnp(const bfs::path & fnp){
 	} else if (njh::endsWith(fnpStr, ".sff")){
 		in =  inFormats::SFFBIN;
 	}else {
+
 		std::stringstream ss;
 		ss << "Unrecognized file extension for : " << fnp
 				<< ", in " << __PRETTY_FUNCTION__ << std::endl;
