@@ -139,6 +139,9 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 
 	static nhmmscanOutput parseRawOutput(const bfs::path & input);
 	static nhmmscanOutput parseRawOutput(const bfs::path & input, const std::unordered_map<uint32_t, std::string> & seqKey);
+	static nhmmscanOutput parseRawOutput(const bfs::path & input, const std::unordered_map<uint32_t, std::string> & seqKey,
+																			 const std::unordered_map<std::string, GenomicRegion> & subRegions,
+																			 const std::unordered_map<std::string, uint32_t> & queryLens);
 
 
 	static bool run_hmmpress_ifNeed(const bfs::path & hmmModelFnp);

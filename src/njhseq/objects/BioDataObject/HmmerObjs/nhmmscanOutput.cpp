@@ -234,6 +234,85 @@ bool nhmmscanOutput::run_hmmpress_ifNeed(const bfs::path & hmmModelFnp){
 }
 
 
+nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input, const std::unordered_map<uint32_t, std::string> & seqKey,
+																		 const std::unordered_map<std::string, GenomicRegion> & subRegions,
+																		 const std::unordered_map<std::string, uint32_t> & queryLens){
+	auto rawResults = parseRawOutput(input, seqKey);
+
+	auto ret = rawResults;
+	ret.qResults_.clear();
+	std::unordered_map<std::string, QueryResults> renamedQueryResults;
+
+	//adjust hits to locations
+	//currently not taking into account plus vs negative strand, assuming sub regions read in as bed3 format
+	for(const auto & qRes : rawResults.qResults_){
+		for(const auto & hit : qRes.hits_){
+			auto hitCopy = hit;
+			auto realQuery = njh::mapAt(subRegions, hit.queryName_);
+			auto realQueryLen = njh::mapAt(queryLens, realQuery.chrom_);
+			hitCopy.queryName_ = realQuery.chrom_;
+
+			//rename locations, ali and env
+			hitCopy.alignTo_ = hit.alignTo_ + realQuery.start_;
+			hitCopy.alignFrom_ = hit.alignFrom_ + realQuery.start_;
+
+			hitCopy.envTo_ = hit.envTo_ + realQuery.start_;
+			hitCopy.envFrom_ = hit.envFrom_ + realQuery.start_;
+			if(hitCopy.isReverseStrand()){
+				std::string aliBackEdge = ".";
+				if(1 == hitCopy.alignFrom_){
+					aliBackEdge = "]";
+				}
+				std::string aliFrontEdge = ".";
+				if(realQueryLen == hitCopy.alignTo_){
+					aliFrontEdge = "[";
+				}
+				hitCopy.aliEdgeInfo_ = njh::pasteAsStr(aliFrontEdge, aliBackEdge);
+
+				std::string envBackEdge = ".";
+				if(1 == hitCopy.envFrom_){
+					envBackEdge = "]";
+				}
+				std::string envFrontEdge = ".";
+				if(realQueryLen == hitCopy.envTo_){
+					envFrontEdge = "[";
+				}
+				hitCopy.envEdgeInfo_ = njh::pasteAsStr(envFrontEdge, envBackEdge);
+			}else{
+				std::string aliFrontEdge = ".";
+				if(1 == hitCopy.alignFrom_){
+					aliFrontEdge = "[";
+				}
+				std::string aliBackEdge = ".";
+				if(realQueryLen == hitCopy.alignTo_){
+					aliBackEdge = "]";
+				}
+				hitCopy.aliEdgeInfo_ = njh::pasteAsStr(aliFrontEdge, aliBackEdge);
+
+				std::string envFrontEdge = ".";
+				if(1 == hitCopy.envFrom_){
+					envFrontEdge = "[";
+				}
+				std::string envBackEdge = ".";
+				if(realQueryLen == hitCopy.envTo_){
+					envBackEdge = "]";
+				}
+				hitCopy.envEdgeInfo_ = njh::pasteAsStr(envFrontEdge, envBackEdge);
+			}
+			renamedQueryResults[realQuery.chrom_].hits_.emplace_back(hitCopy);
+		}
+	}
+
+	for(auto & res : renamedQueryResults){
+		res.second.queryName_ = res.first;
+		res.second.queryLen_ = njh::mapAt(queryLens, res.first);
+		QueryResults::sortHitsByEvaluesScores(res.second.hits_);
+		ret.qResults_.emplace_back(res.second);
+	}
+	return ret;
+}
+
+
 nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input, const std::unordered_map<uint32_t, std::string> & seqKey){
 	auto ret = parseRawOutput(input);
 	ret.renameQuery(seqKey);
