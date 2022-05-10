@@ -815,6 +815,35 @@ std::unordered_map<std::string, uint32_t> nhmmscanOutput::genQueryIndexKey() con
 	return ret;
 }
 
+
+std::string nhmmscanOutput::QueryResults::HitOverlapGroup::hmmEdgeInfo() const{
+  std::vector<uint32_t> hitIndex(hits_.size());
+  njh::iota(hitIndex, 0U);
+  njh::sort(hitIndex,[this](const uint32_t & hit1Idx, const uint32_t & hit2Idx){
+    if(hits_[hit1Idx].hmmFrom_ == hits_[hit2Idx].hmmFrom_){
+      return hits_[hit1Idx].hmmTo_ < hits_[hit2Idx].hmmTo_;
+    }else{
+      return hits_[hit1Idx].hmmFrom_ < hits_[hit2Idx].hmmFrom_;
+    }
+  });
+  return njh::pasteAsStr(hits_[hitIndex.front()].hmmEdgeInfo_.front(),
+                         hits_[hitIndex.back()].hmmEdgeInfo_.back());
+}
+
+std::string nhmmscanOutput::QueryResults::HitOverlapGroup::envEdgeInfo() const{
+  std::vector<uint32_t> hitIndex(hits_.size());
+  njh::iota(hitIndex, 0U);
+  njh::sort(hitIndex,[this](const uint32_t & hit1Idx, const uint32_t & hit2Idx){
+    if(hits_[hit1Idx].env0BasedPlusStrandEnd() == hits_[hit2Idx].env0BasedPlusStrandEnd()){
+      return hits_[hit1Idx].env0BasedPlusStrandEnd() < hits_[hit2Idx].env0BasedPlusStrandEnd();
+    }else{
+      return hits_[hit1Idx].env0BasedPlusStrandEnd() < hits_[hit2Idx].env0BasedPlusStrandEnd();
+    }
+  });
+  return njh::pasteAsStr(hits_[hitIndex.front()].envEdgeInfo_.front(),
+                         hits_[hitIndex.back()].envEdgeInfo_.back());
+}
+
 GenomicRegion nhmmscanOutput::QueryResults::HitOverlapGroup::genOutRegion()const{
 	std::vector<double> scores;
 	std::vector<double> evalues;

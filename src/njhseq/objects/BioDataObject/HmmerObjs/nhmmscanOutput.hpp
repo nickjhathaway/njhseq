@@ -115,10 +115,14 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 
 			void addHit(const Hit & nextHit);
 
-			double sumScores() const;
+			[[nodiscard]] double sumScores() const;
 
-			GenomicRegion genOutRegion()const;
-		};
+			[[nodiscard]] GenomicRegion genOutRegion() const;
+
+      std::string hmmEdgeInfo() const;
+      std::string envEdgeInfo() const;
+
+    };
 
 		struct mergeOverlapingHitsPars{
 			bool requireHmmOverlap_ = false;
