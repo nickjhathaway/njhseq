@@ -8,7 +8,7 @@ from genFuncs import genHelper
 def main():
     name = "njhseq"
     #libs = "bamtools:develop,bibcpp:develop,armadillo:8.200.0"
-    libs = "TwoBit:develop,bamtools:develop,boost_math:1_75_0"
+    libs = "TwoBit:develop,bamtools:develop,boost_math:1_78_0"
     args = genHelper.parseNjhConfigureArgs()
     if Utils.isMac():
         macv, _, _ = platform.mac_ver()

@@ -60,6 +60,7 @@ PopGenCalculator::TajimaTestRes PopGenCalculator::calcTajimaTest(uint32_t nInput
   double tmp2 = Dmax - Dmin;
   double a = -tmp1 * Dmax/tmp2;
   double b = tmp1 * Dmin/tmp2;
+
   boost::math::beta_distribution<double> betadist(b, a);
   double p = boost::math::cdf(betadist,(D - Dmin)/tmp2);
   if (p < 0.5){
