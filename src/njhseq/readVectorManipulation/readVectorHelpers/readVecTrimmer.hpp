@@ -850,8 +850,8 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 				meta.addMeta("trimStart", reg.chromStart_, true);
 				meta.addMeta("trimEnd", reg.chromEnd_, true);
 				meta.addMeta("trimLen", reg.length(), true);
-
 				meta.addMeta("trimStrand", reg.strand_, true);
+				meta.addMeta("trimScore", reg.score_, true);
 				meta.resetMetaInName(ret.back().name_);
 			}
 			ret.back().on_ = true;
@@ -898,6 +898,7 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 					meta.addMeta("trimLen", reg.length(), true);
 					meta.addMeta("trimPartial", "true", true);
 					meta.addMeta("trimStrand", reg.strand_, true);
+					meta.addMeta("trimScore", reg.score_, true);
 					meta.resetMetaInName(ret.back().name_);
 				}
 				ret.back().on_ = false;
