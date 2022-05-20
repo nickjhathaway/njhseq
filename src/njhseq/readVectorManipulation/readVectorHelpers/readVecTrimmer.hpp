@@ -622,7 +622,7 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlap(const 
 		for(const auto & reg : fullRegions){
 			bool overlaps = false;
 			for(const auto & otherReg : bestNonOverlappingRegions){
-				if(otherReg.overlaps(reg, 1)){
+				if(otherReg.overlaps(reg, 1) || otherReg.name_ == reg.name_){
 					overlaps = true;
 					break;
 				}
@@ -656,7 +656,7 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlap(const 
 			}
 			bool overlaps = false;
 			for(const auto & otherReg : bestNonOverlappingRegions){
-				if(otherReg.overlaps(reg, 1)){
+				if(otherReg.overlaps(reg, 1) || otherReg.name_ == reg.name_){
 					overlaps = true;
 					break;
 				}
@@ -713,7 +713,6 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 		seqKInfo = std::make_shared<kmerInfo>(getSeqBase(seq).seq_, refSeqsKInfos.front().kLen_, false);
 	}
 	while(partialRegions.empty() && fullRegions.empty()){
-
 		for (const auto refPos : iter::range(refSeqs.size())) {
 			const auto & ref = refSeqs[refPos];
 			if(1 != refSeqs.size() && refSeqsKInfos[refPos].compareKmers(*seqKInfo).second < kmerCutOff){
@@ -827,7 +826,7 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 		for(const auto & reg : fullRegions){
 			bool overlaps = false;
 			for(const auto & otherReg : bestNonOverlappingRegions){
-				if(otherReg.overlaps(reg, 1)){
+				if(otherReg.overlaps(reg, 1) || otherReg.name_ == reg.name_){
 					overlaps = true;
 					break;
 				}
@@ -867,7 +866,7 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 			}
 			bool overlaps = false;
 			for(const auto & otherReg : bestNonOverlappingRegions){
-				if(otherReg.overlaps(reg, 1)){
+				if(otherReg.overlaps(reg, 1) || otherReg.name_ == reg.name_){
 					overlaps = true;
 					break;
 				}
