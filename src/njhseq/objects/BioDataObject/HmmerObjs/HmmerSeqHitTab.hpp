@@ -68,7 +68,7 @@ public:
 
 	char strand_ {' '};
 
-	double modelEvalue_ {std::numeric_limits<double>::max()};
+	long double modelEvalue_ {std::numeric_limits<long double>::max()};
 	double modelScore_ {std::numeric_limits<double>::max()};
 	double modelBias_ {std::numeric_limits<double>::max()};
 

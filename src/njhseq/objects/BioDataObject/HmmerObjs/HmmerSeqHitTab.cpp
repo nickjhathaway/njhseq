@@ -145,7 +145,7 @@ Json::Value HmmerSeqHitTab::toJson() const{
 	ret["strand_"] = njh::json::toJson(strand_);
 
 
-	ret["modelEvalue_"] = njh::json::toJson(modelEvalue_);
+	ret["modelEvalue_"] = njh::json::toJson(estd::to_string(modelEvalue_));
 	ret["modelScore_"] = njh::json::toJson(modelScore_);
 	ret["modelBias_"] = njh::json::toJson(modelBias_);
 	ret["targetDesc_"] = njh::json::toJson(targetDesc_);
