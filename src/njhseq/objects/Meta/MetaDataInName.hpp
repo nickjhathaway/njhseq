@@ -81,6 +81,7 @@ public:
 			size_t pos = std::numeric_limits<size_t>::max()) const;
 
 	static void removeMetaDataInName(std::string & name);
+	static std::string removeMetaDataInNameRet(std::string name);
 
 	static bool nameHasMetaData(const std::string & name);
 

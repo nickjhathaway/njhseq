@@ -316,6 +316,12 @@ void MetaDataInName::resetMetaInName(std::string & name,
 	}
 }
 
+
+std::string MetaDataInName::removeMetaDataInNameRet(std::string name){
+	removeMetaDataInName(name);
+	return name;
+}
+
 void MetaDataInName::removeMetaDataInName(std::string & name){
 	if(nameHasMetaData(name)){
 		auto firstBracket = name.find("[");
