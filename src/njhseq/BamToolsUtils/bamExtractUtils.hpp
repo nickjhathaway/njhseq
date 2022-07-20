@@ -187,6 +187,8 @@ public:
 
 
 	struct extractReadsWtihCrossRegionMappingPars {
+		bool renameSingles_ = false;
+		bool trimToRegion_ = false;
 		double percInRegion_ = 0.5;
 		bool originalOrientation_ = false;
 		bool throwAwayUnmappedMate_ = false;

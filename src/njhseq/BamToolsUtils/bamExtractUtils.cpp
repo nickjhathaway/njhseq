@@ -3495,6 +3495,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const{
 	Json::Value ret;
 	ret["class"] = njh::getTypeName(*this);
+	ret["renameSingles_"] = njh::json::toJson(renameSingles_);
+
+	ret["trimToRegion_"] = njh::json::toJson(trimToRegion_);
 	ret["percInRegion_"] = njh::json::toJson(percInRegion_);
 	ret["originalOrientation_"] = njh::json::toJson(originalOrientation_);
 	ret["throwAwayUnmappedMate_"] = njh::json::toJson(throwAwayUnmappedMate_);
@@ -3684,7 +3687,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //			if(extractPars.threePrimeTrim_ > 0 && len(outSeq) > extractPars.threePrimeTrim_){
 //				readVecTrimmer::trimOffEndBases(outSeq, extractPars.threePrimeTrim_);
 //			}
-			if((len(outSeq) > region.getLen() || region.getLen() < 150)){
+			if((len(outSeq) > region.getLen() || region.getLen() < 150 || extractPars.trimToRegion_) ){
 				seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
 				GenomicRegion balnRegion(bAln, refData);
 				uint32_t startRelative = region.start_ - balnRegion.start_;
@@ -3733,7 +3736,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		} else {
 			seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities, SangerQualOffset);
 
-			if((len(outSeq) > region.getLen() || region.getLen() < 150)){
+			if((len(outSeq) > region.getLen() || region.getLen() < 150 || extractPars.trimToRegion_) ){
 				seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
 				GenomicRegion balnRegion(bAln, refData);
 				uint32_t startRelative = region.start_ - balnRegion.start_;
@@ -3945,6 +3948,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 		}
 		if (extractPars.writeAll_) {
 			if (pass) {
+				if(extractPars.renameSingles_){
+					bAlnSeq.name_ = njh::pasteAsStr(bAlnSeq.name_, "-", ret.unpairedFailedSoftClip_ + ret.unpaiedReads_);
+				}
 				singleFilteredSoftClipWriter.openWrite(bAlnSeq);
 			}
 			bWriter.SaveAlignment(bAln);
@@ -4214,7 +4220,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					}
 					bool balnAllFilters = bAlnIn && bAlnPassAlnSize;
 					bool searchAllFilters = searchIn && searchPassAlnSize;
-					if((len(bAlnSeq) > region.getLen() || region.getLen() < 150) && bAlnIn){
+					if((len(bAlnSeq) > region.getLen() || region.getLen() < 150 || extractPars.trimToRegion_) && bAlnIn){
 						seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
 						GenomicRegion balnRegion(bAln, refData);
 						uint32_t startRelative = region.start_ - balnRegion.start_;
@@ -4564,7 +4570,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 								seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities,
 										SangerQualOffset);
 
-								if((len(outSeq) > region.getLen() || region.getLen() < 150) ){
+								if((len(outSeq) > region.getLen() || region.getLen() < 150|| extractPars.trimToRegion_) ){
 									seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
 									GenomicRegion balnRegion(bAln, refData);
 									uint32_t startRelative = region.start_ - balnRegion.start_;
@@ -4588,6 +4594,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 								//put in the orientation of the output region
 								if(region.reverseSrand_){
 									outSeq.reverseComplementRead(false, true);
+								}
+								if(extractPars.renameSingles_){
+									outSeq.name_ = njh::pasteAsStr(outSeq.name_, "-", ret.unpairedFailedSoftClip_ + ret.unpaiedReads_);
 								}
 								writer.openWrite(outSeq);
 							}
