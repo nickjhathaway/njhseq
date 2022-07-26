@@ -850,6 +850,9 @@ int ManipulateTableRunner::rBind(
 				}
 				continue;
 			}
+			if (skipNonExistFiles && !bfs::exists(file.first)){
+				continue;
+			}
 			if (0 == njh::files::bfs::file_size(file.first)) {
 				if (verbose) {
 					std::cout << "Skipping empty file: " << file.first.string() << std::endl;
