@@ -768,6 +768,7 @@ int ManipulateTableRunner::rBind(
 	bool recursive = false;
 	bool verbose = false;
 	bool fill = false;
+	bool skipNonExistFiles = false;
 	std::string files = "";
 	uint32_t levels = std::numeric_limits < uint32_t > ::max();
 	std::string directory = "./";
@@ -784,6 +785,8 @@ int ManipulateTableRunner::rBind(
 	setUp.setOption(contains, "--contains", "contains", "" == files);
 	setUp.setOption(recursive, "--recursive", "recursive");
 	setUp.setOption(fill, "--fill", "fill in missing columns with NAs when combining tables");
+	setUp.setOption(skipNonExistFiles, "--skipNonExistFiles", "skip Non Existant Files");
+
 
 	if(setUp.needsHelp()){
 		setUp.printFlags(std::cout);
@@ -816,6 +819,9 @@ int ManipulateTableRunner::rBind(
 		njh::files::bfs::path firstFileFnp;
 		for (const auto &file : allFiles) {
 			if (njh::files::bfs::is_directory(file.first)) {
+				continue;
+			}
+			if (skipNonExistFiles && !bfs::exists(file.first)){
 				continue;
 			}
 			if (0 == njh::files::bfs::file_size(file.first)) {
@@ -877,6 +883,9 @@ int ManipulateTableRunner::rBind(
 				if (verbose) {
 					std::cout << "Skipping directory: " << file.first.string() << std::endl;
 				}
+				continue;
+			}
+			if (skipNonExistFiles && !bfs::exists(file.first)){
 				continue;
 			}
 			if (0 == njh::files::bfs::file_size(file.first)) {
