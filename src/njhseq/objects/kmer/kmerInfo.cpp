@@ -23,7 +23,9 @@ namespace njhseq {
 
 
 double kmerInfo::DetailedKmerDist::getDistTotalShared() const {
-	return static_cast<double>(totalShared_) / (totalKmersIn1_ + totalKmersIn2_);
+	/*@todo rename these functions, they are not getting distance, they are getting similarity metrics*/
+	//the total shared is the minnumber when the kmer appears in both so double here for the metric
+	return static_cast<double>(totalShared_ + totalShared_) / (totalKmersIn1_ + totalKmersIn2_);
 }
 
 double kmerInfo::DetailedKmerDist::getDistTotalSharedLenAdjusted() const {

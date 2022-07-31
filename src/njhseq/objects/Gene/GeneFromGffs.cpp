@@ -190,7 +190,7 @@ std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName()
 	std::unordered_map<std::string, std::string> ret;
 	for (const auto & m : mRNAs_) {
 		std::string name = "";
-		if ("chado" == gene_->source_) {
+		if ("chado" == gene_->source_  || "" == gene_->source_) {
 			if (njh::in(m->getIDAttr(), polypeptides_)) {
 				if (polypeptides_.at(m->getIDAttr()).size() == 1
 						&& polypeptides_.at(m->getIDAttr()).front()->hasAttr("product")) {
@@ -224,7 +224,7 @@ std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName()
 	for (const auto & cdsPerTranscript : CDS_) {
 		for(const auto & c : cdsPerTranscript.second){
 			std::string name = "";
-			if ("chado" == gene_->source_) {
+			if ("chado" == gene_->source_ || "" == gene_->source_) {
 				if (njh::in(c->getIDAttr(), polypeptides_)) {
 					if (polypeptides_.at(c->getIDAttr()).size() == 1
 							&& polypeptides_.at(c->getIDAttr()).front()->hasAttr("product")) {
