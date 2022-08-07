@@ -179,7 +179,7 @@ std::string GeneFromGffs::getOneGeneDetailedName() const{
 	auto allNames = getGeneDetailedName();
 	std::set<std::string> uniqueNames;
 	for(const auto & name : allNames){
-		if("na" != njh::strToLowerRet(name.second)){
+		if("na" != njh::strToLowerRet(name.second) && !name.second.empty()){
 			uniqueNames.insert(name.second);
 		}
 	}
@@ -189,29 +189,32 @@ std::string GeneFromGffs::getOneGeneDetailedName() const{
 std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName() const {
 	std::unordered_map<std::string, std::string> ret;
 	for (const auto & m : mRNAs_) {
-		std::string name = "";
-		if ("chado" == gene_->source_  || "" == gene_->source_) {
-			if (njh::in(m->getIDAttr(), polypeptides_)) {
-				if (polypeptides_.at(m->getIDAttr()).size() == 1
-						&& polypeptides_.at(m->getIDAttr()).front()->hasAttr("product")) {
-					auto productToks = tokenizeString(polypeptides_.at(m->getIDAttr()).front()->getAttr("product"), ";");
-					for(const auto & productTok : productToks){
-						auto subToks = tokenizeString(productTok, "=");
-						if(2 == subToks.size() && "term" == subToks[0]){
-							if("" != name){
-								name += ", ";
-							}
-							name += subToks[1];
+		std::string name;
+		if ("EuPathDB" == gene_->source_ || "PlasmoDB" == gene_->source_ || "pf3k" == gene_->source_) {
+			if (gene_->hasAttr("description")) {
+				if(!name.empty()){
+					name += ", ";
+				}
+				name += gene_->getAttr("description");
+			}
+		}
+		if (njh::in(m->getIDAttr(), polypeptides_)) {
+			if (polypeptides_.at(m->getIDAttr()).size() == 1
+					&& polypeptides_.at(m->getIDAttr()).front()->hasAttr("product")) {
+				auto productToks = tokenizeString(polypeptides_.at(m->getIDAttr()).front()->getAttr("product"), ";");
+				for(const auto & productTok : productToks){
+					auto subToks = tokenizeString(productTok, "=");
+					if(2 == subToks.size() && "term" == subToks[0]){
+						if(!name.empty()){
+							name += ", ";
 						}
+						name += subToks[1];
 					}
 				}
 			}
-		} else if ("EuPathDB" == gene_->source_ || "PlasmoDB" == gene_->source_ || "pf3k" == gene_->source_) {
-			if (gene_->hasAttr("description")) {
-				name = gene_->getAttr("description");
-			}
 		}
-		if("" == name){
+
+		if(name.empty()){
 			if(m->hasAttr("product")){
 				name = m->getAttr("product");
 			} else {
@@ -767,9 +770,18 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 		gRecord = reader.readNextRecord();
 		++count;
 	}
-
+	VecStr  skipFeatures {"tRNA", "rRNA"};
 	for(const auto & geneGffs : gffRecs){
-		genes[geneGffs.first] = std::make_shared<GeneFromGffs>(geneGffs.second);
+		bool skip = false;
+		for(const auto & rec : geneGffs.second){
+			if(njh::in(rec->type_, skipFeatures)){
+				skip = true;
+				break;
+			}
+		}
+		if(!skip){
+			genes[geneGffs.first] = std::make_shared<GeneFromGffs>(geneGffs.second);
+		}
 	}
 	return genes;
 }
@@ -878,13 +890,11 @@ void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars & par
 				SeqOutput::write(std::vector<seqInfo>{gsInfo->cDna_}, proteinOpts);
 			}
 		}
-		if(allTranscriptRecords.size() > 1){
-			auto transcriptBedOpts = OutOptions(bfs::path(pars.outOpts.outFilename_.string() + "_" + "allTranscripts" + ".bed"));
-			OutputStream transcriptBedOut(transcriptBedOpts);
-			BedUtility::coordSort(allTranscriptRecords, false);
-			for(const auto & bedRecod : allTranscriptRecords){
-				transcriptBedOut << bedRecod.toDelimStrWithExtra() << std::endl;
-			}
+		auto transcriptBedOpts = OutOptions(bfs::path(pars.outOpts.outFilename_.string() + "_" + "allTranscripts" + ".bed"));
+		OutputStream transcriptBedOut(transcriptBedOpts);
+		BedUtility::coordSort(allTranscriptRecords, false);
+		for(const auto & bedRecod : allTranscriptRecords){
+			transcriptBedOut << bedRecod.toDelimStrWithExtra() << std::endl;
 		}
 	}
 
