@@ -606,7 +606,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 						refSeqs.emplace_back(seqInfo(genome, refSeq));
 					}
 				}
-			}else{
+			} else {
 				uint64_t maxlen = 0;
 				for(const auto & reg : regions){
 					if(reg.getLen() > maxlen){
@@ -637,6 +637,8 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 					refMeta.addMeta("start",   regions[scores.front().second].start_);
 					refMeta.addMeta("end",     regions[scores.front().second].end_);
 					refMeta.addMeta("strand", (regions[scores.front().second].reverseSrand_ ? '-' : '+'));
+					refMeta.addMeta("score", scores.front().first);
+
 					if(!pars.shortNames){
 						genomeSeqs[scores.front().second].name_ += " " + refMeta.createMetaName();
 					}
@@ -644,7 +646,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 						std::lock_guard<std::mutex> lock(refSeqsMut);
 						refSeqs.emplace_back(genomeSeqs[scores.front().second]);
 					}
-					bestBedOut << regions.front().genBedRecordCore().toDelimStrWithExtra() << std::endl;
+					bestBedOut << regions[scores.front().second].genBedRecordCore().toDelimStrWithExtra() << std::endl;
 				}
 				if(!pars.keepBestOnly){
 					for(const auto scorePos : iter::range<uint32_t>(1, scores.size())){
@@ -654,6 +656,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 						refMeta.addMeta("start",  regions[scores[scorePos].second].start_);
 						refMeta.addMeta("end",    regions[scores[scorePos].second].end_);
 						refMeta.addMeta("strand", (regions[scores[scorePos].second].reverseSrand_ ? '-' : '+'));
+						refMeta.addMeta("score", scores[scorePos].first);
 						genomeSeqs[scores[scorePos].second].name_ += "." + estd::to_string(scorePos);
 						if(!pars.shortNames){
 							genomeSeqs[scores[scorePos].second].name_ += " " + refMeta.createMetaName();
