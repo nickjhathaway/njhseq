@@ -574,7 +574,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 
 				intersectBedLocsWtihGffRecords(bedRegions, intersectPars);
 			}
-
+			OutputStream bestBedOut(OutOptions(njh::files::make_path(refAlignsDir, genome + "_bestRegion.bed")));
 			OutputStream bedOut(OutOptions(njh::files::make_path(refAlignsDir, genome + "_regions.bed")));
 			for(const auto & reg : bedRegions){
 				++genomeExtractionsResults.at(genome).extractCounts_;
@@ -597,6 +597,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 				refMeta.addMeta("start", regions.front().start_);
 				refMeta.addMeta("end", regions.front().end_);
 				refMeta.addMeta("strand", (regions.front().reverseSrand_ ? '-' : '+'));
+				bestBedOut << regions.front().genBedRecordCore().toDelimStrWithExtra() << std::endl;
 				{
 					std::lock_guard<std::mutex> lock(refSeqsMut);
 					if(!pars.shortNames){
@@ -643,6 +644,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 						std::lock_guard<std::mutex> lock(refSeqsMut);
 						refSeqs.emplace_back(genomeSeqs[scores.front().second]);
 					}
+					bestBedOut << regions.front().genBedRecordCore().toDelimStrWithExtra() << std::endl;
 				}
 				if(!pars.keepBestOnly){
 					for(const auto scorePos : iter::range<uint32_t>(1, scores.size())){
