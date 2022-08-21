@@ -576,18 +576,17 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 			}
 			OutputStream bestBedOut(OutOptions(njh::files::make_path(refAlignsDir, genome + "_bestRegion.bed")));
 			OutputStream bedOut(OutOptions(njh::files::make_path(refAlignsDir, genome + "_regions.bed")));
-			for(const auto & reg : bedRegions){
-				++genomeExtractionsResults.at(genome).extractCounts_;
-				if(reg.reverseStrand()){
-					++genomeExtractionsResults.at(genome).reverseHits_;
-				}else{
-					++genomeExtractionsResults.at(genome).forwardHits_;
-				}
-				bedOut << reg.toDelimStrWithExtra() << std::endl;
-			}
+
 			TwoBit::TwoBitFile refReader(genomes_.at(genome)->fnpTwoBit_);
 			std::string refSeq = "";
-
+			for (const auto &reg: bedRegions) {
+				++genomeExtractionsResults.at(genome).extractCounts_;
+				if (reg.reverseStrand()) {
+					++genomeExtractionsResults.at(genome).reverseHits_;
+				} else {
+					++genomeExtractionsResults.at(genome).forwardHits_;
+				}
+			}
 			if(regions.size() == 1){
 				refReader[regions.front().chrom_]->getSequence(refSeq, regions.front().start_,
 						regions.front().end_, regions.front().reverseSrand_);
@@ -598,6 +597,8 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 				refMeta.addMeta("end", regions.front().end_);
 				refMeta.addMeta("strand", (regions.front().reverseSrand_ ? '-' : '+'));
 				bestBedOut << regions.front().genBedRecordCore().toDelimStrWithExtra() << std::endl;
+				bedOut << regions.front().genBedRecordCore().toDelimStrWithExtra() << std::endl;
+
 				{
 					std::lock_guard<std::mutex> lock(refSeqsMut);
 					if(!pars.shortNames){
@@ -615,7 +616,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 				}
 				readVec::getMaxLength(primaryRefInfo, maxlen);
 				aligner alignerObj(maxlen, gapScoringParameters(5,1,5,1,5,1), substituteMatrix(2,-2), true);
-				std::vector<std::pair<int32_t,uint32_t>> scores;
+				std::vector<std::pair<double, uint32_t>> scores;
 				std::vector<seqInfo> genomeSeqs;
 									for(const auto  regPos : iter::range(regions.size())){
 					const auto & reg  = regions[regPos];
@@ -625,8 +626,14 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 					seqInfo genomeSeq(genome, refSeq);
 					genomeSeqs.emplace_back(genomeSeq);
 					alignerObj.alignCacheGlobal(primaryRefInfo, genomeSeq);
-					scores.emplace_back(std::make_pair(alignerObj.parts_.score_, regPos));
-										}
+					alignerObj.rearrangeObjsGlobal(primaryRefInfo, genomeSeq);
+					alignerObj.profilePrimerAlignment(primaryRefInfo, genomeSeq);
+					if(pars.byScore){
+						scores.emplace_back(std::make_pair(alignerObj.parts_.score_, regPos));
+					}else{
+						scores.emplace_back(std::make_pair(alignerObj.comp_.distances_.eventBasedIdentityHq_, regPos));
+					}
+			}
 				njh::sort(scores, [](const auto & s1, const auto & s2 ){
 					return s1.first > s2.first;
 				});
@@ -646,7 +653,11 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 						std::lock_guard<std::mutex> lock(refSeqsMut);
 						refSeqs.emplace_back(genomeSeqs[scores.front().second]);
 					}
-					bestBedOut << regions[scores.front().second].genBedRecordCore().toDelimStrWithExtra() << std::endl;
+					bestBedOut << regions[scores.front().second].genBedRecordCore().toDelimStrWithExtra() << "\t" << "[score=" << scores.front().first << ";]"<< std::endl;
+					bedOut << regions[scores.front().second].genBedRecordCore().toDelimStrWithExtra() << "\t" << "[score=" << scores.front().first << ";]"<< std::endl;
+				}
+				for(const auto scorePos : iter::range<uint32_t>(1, scores.size())){
+					bedOut << regions[scores[scorePos].second].genBedRecordCore().toDelimStrWithExtra() << "\t" << "[score=" << scores[scorePos].first << ";]"<< std::endl;
 				}
 				if(!pars.keepBestOnly){
 					for(const auto scorePos : iter::range<uint32_t>(1, scores.size())){
@@ -657,6 +668,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 						refMeta.addMeta("end",    regions[scores[scorePos].second].end_);
 						refMeta.addMeta("strand", (regions[scores[scorePos].second].reverseSrand_ ? '-' : '+'));
 						refMeta.addMeta("score", scores[scorePos].first);
+
 						genomeSeqs[scores[scorePos].second].name_ += "." + estd::to_string(scorePos);
 						if(!pars.shortNames){
 							genomeSeqs[scores[scorePos].second].name_ += " " + refMeta.createMetaName();

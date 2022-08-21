@@ -138,6 +138,7 @@ public:
 	struct getRefSeqsWithPrimaryGenomePars{
 		BioCmdsUtils::LastZPars lzPars;
 		bool keepBestOnly = false;
+		bool byScore = false;
 		bool extendAndTrim = false;
 		uint32_t extendAndTrimLen = 10;
 		bool shortNames = false;
