@@ -6,7 +6,7 @@
  */
 
 
-#include <njhseq/objects/BioDataObject/BioRecordsUtils/HmmerUtility.hpp>
+#include "HmmerUtility.hpp"
 
 
 namespace njhseq {
