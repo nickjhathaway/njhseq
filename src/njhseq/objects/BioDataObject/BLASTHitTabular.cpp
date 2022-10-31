@@ -99,8 +99,10 @@ Bed6RecordCore BLASTHitTab::genSubjectBed6() const{
 	meta.addMeta("alignLen", alignLen_);
 	meta.addMeta("mismatches", mismatches_);
 	meta.addMeta("gapOpens", gapOpens_);
-	meta.addMeta("sStart", sStart_);
-	meta.addMeta("sEnd", sEnd_);
+	meta.addMeta("subjectStart", sStart_);
+	meta.addMeta("subjectEnd", sEnd_);
+	meta.addMeta("queryStart", qStart_);
+	meta.addMeta("queryEnd", qEnd_);
 	meta.addMeta("evalue", evalue_);
 	meta.addMeta("bitScore", bitScore_);
 
