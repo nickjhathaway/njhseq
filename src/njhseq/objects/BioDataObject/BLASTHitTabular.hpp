@@ -35,6 +35,11 @@ namespace njhseq {
 
 class BLASTHitTab {
 
+	/**
+	 * @brief BLAST Hit tabular record
+	 *
+	 * expects the format to be of -outfmt 6
+	 */
 public:
 	BLASTHitTab();
 	explicit BLASTHitTab(const std::string & line);
