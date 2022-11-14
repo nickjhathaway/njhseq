@@ -109,6 +109,7 @@ VecStr CollapsedHaps::GenPopMeasuresPar::genHeader() const {
 	if (getPairwiseComps) {
 		header.emplace_back("avgPercentID");
 		header.emplace_back("avgNumOfDiffs");
+		header.emplace_back("NucleotideDiversity");
 		header.emplace_back("simpleAvalance");
 		header.emplace_back("completeAvalance");
 		if (true) {
@@ -144,7 +145,9 @@ VecStr CollapsedHaps::GenPopMeasuresRes::getOut(const CollapsedHaps & inputSeqs,
 			);
 	if(pars.getPairwiseComps){
 		njh::addConToVec(ret, toVecStr(avgPMeasures_.avgPercentId, avgPMeasures_.avgNumOfDiffs));
+		njh::addConToVec(ret, toVecStr(avgPMeasures_.nucleotideDiversity_));
 		njh::addConToVec(ret, toVecStr(avgPMeasures_.simpleAvalance_, avgPMeasures_.completeAvalance_));
+
 		if(pars.numSegSites_ != std::numeric_limits<uint32_t>::max()){
 			njh::addConToVec(ret, toVecStr(pars.numSegSites_, tajimaRes_.d_, tajimaRes_.pval_beta_));
 		}
@@ -713,10 +716,10 @@ CollapsedHaps::AvgPairwiseMeasures CollapsedHaps::getAvgPairwiseMeasures(const s
 	PairwisePairFactory::PairwisePair pair;
 
 
-
+	double sumOfEventsPerNucSites = 0;
 	while(pFac.setNextPair(pair)){
 		uint32_t toalSeqInComp = seqs_[pair.row_]->cnt_ + seqs_[pair.col_]->cnt_;
-
+		double freqMulti = seqs_[pair.row_]->frac_ * seqs_[pair.col_]->frac_;
 		uint32_t totalBetweenComps =
 				  PairwisePairFactory::getTotalPairwiseComps(toalSeqInComp)
 				- PairwisePairFactory::getTotalPairwiseComps(seqs_[pair.row_]->cnt_)
@@ -725,6 +728,7 @@ CollapsedHaps::AvgPairwiseMeasures CollapsedHaps::getAvgPairwiseMeasures(const s
 		ret.completeAvalance_ += (1 - allComps[pair.row_][pair.col_].distances_.eventBasedIdentityHq_) * seqs_[pair.row_]->frac_ * seqs_[pair.col_]->frac_ * 2;
 		ret.avgPercentId  += allComps[pair.row_][pair.col_].distances_.eventBasedIdentityHq_ * totalBetweenComps;
 		ret.avgNumOfDiffs += allComps[pair.row_][pair.col_].distances_.getNumOfEvents(true) * totalBetweenComps;
+		sumOfEventsPerNucSites += (static_cast<double>(allComps[pair.row_][pair.col_].distances_.getNumOfEvents(true))/allComps[pair.row_][pair.col_].distances_.overLappingEvents_) * freqMulti * 2;
 	}
 
 	uint64_t total = getTotalHapCount();
@@ -732,6 +736,8 @@ CollapsedHaps::AvgPairwiseMeasures CollapsedHaps::getAvgPairwiseMeasures(const s
 		//add in the 100% percent matches between the same exact seqs for the pairwise comps
 		ret.avgPercentId += PairwisePairFactory::getTotalPairwiseComps(seqs_[pos]->cnt_);
 	}
+	double estimator = static_cast<double>(getTotalUniqueHapCount())/(getTotalUniqueHapCount() - 1);
+	ret.nucleotideDiversity_ = estimator * sumOfEventsPerNucSites;
 
 	ret.simpleAvalance_ /= (getTotalUniqueHapCount() * (getTotalUniqueHapCount() - 1));
 	ret.avgPercentId  /= PairwisePairFactory::getTotalPairwiseComps(total);

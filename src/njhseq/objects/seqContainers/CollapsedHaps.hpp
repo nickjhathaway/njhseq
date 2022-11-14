@@ -69,6 +69,8 @@ public:
 
 		double simpleAvalance_ = 0;
 		double completeAvalance_ = 0;
+
+		double nucleotideDiversity_ = 0;
 	};
 
 	//population genetics
