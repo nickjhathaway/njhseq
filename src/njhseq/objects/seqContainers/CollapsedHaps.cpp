@@ -149,7 +149,8 @@ VecStr CollapsedHaps::GenPopMeasuresRes::getOut(const CollapsedHaps & inputSeqs,
 		njh::addConToVec(ret, toVecStr(avgPMeasures_.simpleAvalance_, avgPMeasures_.completeAvalance_));
 
 		if(pars.numSegSites_ != std::numeric_limits<uint32_t>::max()){
-			njh::addConToVec(ret, toVecStr(pars.numSegSites_, tajimaRes_.d_, tajimaRes_.pval_beta_));
+//			njh::addConToVec(ret, toVecStr(pars.numSegSites_, tajimaRes_.d_, tajimaRes_.pval_beta_));
+			njh::addConToVec(ret, toVecStr(pars.numSegSites_, tajimaRes_.d_, tajimaRes_.pval_normal_));
 		}
 	}
 	return ret;
@@ -270,6 +271,8 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 				ret.tajimaRes_ = PopGenCalculator::calcTajimaTest(getTotalHapCount(), pars.numSegSites_, ret.avgPMeasures_.avgNumOfDiffs);
 			} catch (std::exception &e) {
 				//currently doing nothing, some times due to frequency filtering etc the calc throw an exception;
+//				std::cout << "seqs_.size():" << seqs_.size() << std::endl;
+//				std::cout << e.what() << std::endl;
 			}
 		}
 	}

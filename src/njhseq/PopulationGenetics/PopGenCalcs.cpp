@@ -60,18 +60,30 @@ PopGenCalculator::TajimaTestRes PopGenCalculator::calcTajimaTest(uint32_t nInput
   double tmp2 = Dmax - Dmin;
   double a = -tmp1 * Dmax/tmp2;
   double b = tmp1 * Dmin/tmp2;
-
-  boost::math::beta_distribution<double> betadist(b, a);
-  double p = boost::math::cdf(betadist,(D - Dmin)/tmp2);
-  if (p < 0.5){
-  	p =  2 * p;
-  }else{
-  	p =  2 * (1 - p);
-  }
-  boost::math::normal ndist;
-  double Pval_normal = 2 * boost::math::cdf(ndist, -std::abs(D));
-  double Pval_beta = p;
-  return TajimaTestRes(D, Pval_normal, Pval_beta);
+	double Pval_beta = 1;
+	double Pval_normal = 1;
+	try {
+		boost::math::beta_distribution<double> betadist(b, a);
+		double inputX = (D - Dmin) / tmp2;
+		//don't know if this accurate
+		inputX = std::min(1.0, inputX);
+		double p = boost::math::cdf(betadist, inputX);
+		if (p < 0.5) {
+			p = 2 * p;
+		} else {
+			p = 2 * (1 - p);
+		}
+		Pval_beta = p;
+	} catch (std::exception &e) {
+		//currently doing nothing, sometimes due to frequency filtering etc the calc throw an exception;
+	}
+	try {
+		boost::math::normal ndist;
+		Pval_normal = 2 * boost::math::cdf(ndist, -std::abs(D));
+	} catch (std::exception &e) {
+		//currently doing nothing, sometimes due to frequency filtering etc the calc throw an exception;
+	}
+  return {D, Pval_normal, Pval_beta};
 }
 
 double PopGenCalculator::ExpectedPloidyInfo::getMaxExpPloidy() const{
