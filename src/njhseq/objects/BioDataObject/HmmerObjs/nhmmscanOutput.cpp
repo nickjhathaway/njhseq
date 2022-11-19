@@ -135,6 +135,7 @@ std::vector<nhmmscanOutput::QueryResults::HitOverlapGroup> nhmmscanOutput::Query
 	}
 	return ret;
 }
+
 void nhmmscanOutput::QueryResults::sortHitsByEvaluesScores(std::vector<Hit> &hits) {
 	njh::sort(hits, [](const Hit &hit1, const Hit &hit2) {
 		if (hit1.modelEvalue_ == hit2.modelEvalue_) {
@@ -148,22 +149,28 @@ void nhmmscanOutput::QueryResults::sortHitsByEvaluesScores(std::vector<Hit> &hit
 		}
 	});
 }
-std::vector<nhmmscanOutput::Hit> nhmmscanOutput::QueryResults::getNonOverlapHits(const std::vector<Hit> &hits ){
-	std::vector<Hit> ret;
-	for (const auto &region: hits) {
+
+std::vector<nhmmscanOutput::Hit> nhmmscanOutput::QueryResults::getNonOverlapHits(const std::vector<Hit> &hits) {
+	std::unordered_map<std::string, std::vector<Hit>> retByChrom;
+	for (const auto & region: hits) {
 		bool overlap = false;
-		for (const auto &outRegion: ret) {
+		for (const auto &outRegion: retByChrom[region.targetName_]) {
 			if (region.overlaps_env(outRegion, 1)) {
 				overlap = true;
 				break;
 			}
 		}
 		if (!overlap) {
-			ret.emplace_back(region);
+			retByChrom[region.targetName_].emplace_back(region);
 		}
+	}
+	std::vector<Hit> ret;
+	for(const auto & byChrom : retByChrom){
+		addOtherVec(ret, byChrom.second);
 	}
 	return ret;
 }
+
 std::vector<nhmmscanOutput::Hit> nhmmscanOutput::QueryResults::getNonOverlapHits(std::vector<Hit> &hits, const std::function<bool(const Hit&, const Hit&)> & sortFunc){
 	njh::sort(hits, sortFunc);
 	return getNonOverlapHits(hits);
@@ -807,22 +814,28 @@ nhmmscanOutput::PostProcessHitsRes nhmmscanOutput::postProcessHits(const PostPro
 		ret.filteredHitsMergedByQuery_[filteredHits.first] = QueryResults::mergeOverlapingHits(filteredHits.second, pars.mergePars_);
 		//merge overlapping hits
 		njh::sort(ret.filteredHitsMergedByQuery_[filteredHits.first], [](const QueryResults::HitOverlapGroup & group1, const QueryResults::HitOverlapGroup & group2){
-			return group1.sumScores() > group2.sumScores();
+			if(group1.region_.chrom_ == group2.region_.chrom_){
+				return group1.sumScores() > group2.sumScores();
+			} else {
+				return group1.region_.chrom_ < group2.region_.chrom_;
+			}
 		});
 		//now get non-overlapping merged hits
-		std::vector<QueryResults::HitOverlapGroup> nonOverlapping;
+		std::unordered_map<std::string, std::vector<QueryResults::HitOverlapGroup>> nonOverlappingByChrom;
 		for(const auto & hitGroup : ret.filteredHitsMergedByQuery_[filteredHits.first]){
 			bool overlapping = false;
-			for(const auto & otherGroup : nonOverlapping){
+			for(const auto & otherGroup : nonOverlappingByChrom[hitGroup.region_.chrom_]){
 				if(otherGroup.region_.overlaps(hitGroup.region_)){
 					overlapping = true;
 					break;
 				}
 			}
-			if(!overlapping){
-				nonOverlapping.emplace_back(hitGroup);
+			if(!overlapping) {
+				nonOverlappingByChrom[hitGroup.region_.chrom_].emplace_back(hitGroup);
 			}
-			ret.filteredHitsMergedNonOverlapByQuery_[filteredHits.first] = nonOverlapping;
+		}
+		for(const auto & nonOverlappingPerChrom : nonOverlappingByChrom){
+			addOtherVec(ret.filteredHitsMergedNonOverlapByQuery_[filteredHits.first] , nonOverlappingPerChrom.second);
 		}
 	}
 	return ret;
