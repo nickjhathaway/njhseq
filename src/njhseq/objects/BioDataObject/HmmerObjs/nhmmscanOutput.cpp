@@ -848,42 +848,84 @@ void nhmmscanOutput::writeInfoFiles(const PostProcessHitsRes & postProcessResult
 			allHitsBedOut << loc.toDelimStrWithExtra() << std::endl;
 		}
 	}
+//	njh::stopWatch watch;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	OutOptions hitTableOutOpts = njh::files::make_path(outputDir, "nhmmscan_hits_table.tab.txt");
 	outputCustomHitsTable(hitTableOutOpts);
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	OutputStream hitFilteredTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_table.tab.txt"));
 	OutputStream hitFilteredBedOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered.bed"));
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	OutputStream hitNonOverlapFilteredTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_nonOverlap_filtered_table.tab.txt"));
 	OutputStream hitNonOverlapFilteredBedOut(njh::files::make_path(outputDir, "nhmmscan_hits_nonOverlap_filtered.bed"));
 	hitFilteredTableOut << "query\tqueryLen\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
 	hitNonOverlapFilteredTableOut << "query\tqueryLen\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
 	std::vector<Hit> allFilteredHits;
 	std::vector<Hit> allFilteredNonOverlapHits;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
+	uint32_t allFilteredHitsCount = 0;
+	uint32_t allFilteredNonOverlapHitsCount =0;
 	for(const auto & filteredHits : postProcessResults.filteredHitsByQuery_) {
-		addOtherVec(allFilteredHits, filteredHits.second);
-		addOtherVec(allFilteredNonOverlapHits, postProcessResults.filteredNonOverlapHitsByQuery_.at(filteredHits.first));
+		allFilteredHitsCount += filteredHits.second.size();
+		allFilteredNonOverlapHitsCount += postProcessResults.filteredNonOverlapHitsByQuery_.at(filteredHits.first).size();
 	}
+	allFilteredHits.reserve(allFilteredHitsCount);
+	allFilteredNonOverlapHits.reserve(allFilteredNonOverlapHitsCount);
+	for(const auto & filteredHits : postProcessResults.filteredHitsByQuery_) {
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << watch.timeLapFormatted() << std::endl;
+//		std::cout << "filteredHits.second.size(): " << filteredHits.second.size() << std::endl;
+//		std::cout << "allFilteredHits.size(): " << allFilteredHits.size() << std::endl;
+		addOtherVec(allFilteredHits, filteredHits.second);
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << watch.timeLapFormatted() << std::endl;
+//		std::cout << "postProcessResults.filteredNonOverlapHitsByQuery_.at(filteredHits.first).size(): " << postProcessResults.filteredNonOverlapHitsByQuery_.at(filteredHits.first).size() << std::endl;
+//		std::cout << "allFilteredNonOverlapHits.size(): " << allFilteredNonOverlapHits.size() << std::endl;
+		addOtherVec(allFilteredNonOverlapHits, postProcessResults.filteredNonOverlapHitsByQuery_.at(filteredHits.first));
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << watch.timeLapFormatted() << std::endl;
+	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	QueryResults::sortHitsByGenomicCoords(allFilteredHits);
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	QueryResults::sortHitsByGenomicCoords(allFilteredNonOverlapHits);
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	auto qKey = genQueryIndexKey();
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	for(const auto & hit : allFilteredHits){
 		hitFilteredTableOut << hit.queryName_
 		<< "\t" << qResults_[qKey[hit.queryName_]].queryLen_
 		<< "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
 		hitFilteredBedOut << hit.genBed6_env().toDelimStrWithExtra() << std::endl;
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	for(const auto & hit : allFilteredNonOverlapHits) {
 		hitNonOverlapFilteredTableOut << hit.queryName_
 						<< "\t" << qResults_[qKey[hit.queryName_]].queryLen_
 						<< "\t" << njh::conToStr(hit.getOutputDet(), "\t") << std::endl;
 		hitNonOverlapFilteredBedOut << hit.genBed6_env().toDelimStrWithExtra() << std::endl;
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	//merged results
 	OutputStream hitFilteredMergedHitsTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged_table_hits.tab.txt"));
 	OutputStream hitFilteredMergedTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged_table.tab.txt"));
 	OutputStream hitFilteredMergedBedOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged.bed"));
 	std::vector<Bed6RecordCore> filteredMergedRegions;
+	filteredMergedRegions.reserve(allFilteredHitsCount);
 	hitFilteredMergedHitsTableOut << "#chrom\tstart\tend\tname\tlength\tstrand\tquery\tqueryLen\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
 	hitFilteredMergedTableOut << "#chrom\tstart\tend\tname\tlength\tstrand\tquery\tqueryLen\t" << "queryCov\tsumScores\thits\tmodel" << std::endl;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	for(const auto & filteredMerged : postProcessResults.filteredHitsMergedByQuery_){
 		for(const auto & groupHit : filteredMerged.second){
 			filteredMergedRegions.emplace_back(groupHit.genOutRegion().genBedRecordCore());
@@ -906,17 +948,24 @@ void nhmmscanOutput::writeInfoFiles(const PostProcessHitsRes & postProcessResult
 			}
 		}
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	BedUtility::coordSort(filteredMergedRegions);
 	for(const auto & region : filteredMergedRegions){
 		hitFilteredMergedBedOut << region.toDelimStrWithExtra() << std::endl;
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	//merged non-overlapping results
 	OutputStream hitFilteredMergedNonOverlappingHitsTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged_noOverlap_table_hits.tab.txt"));
 	OutputStream hitFilteredMergedNonOverlappingTableOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged_noOverlap_table.tab.txt"));
 	OutputStream hitFilteredMergedNonOverlappingBedOut(njh::files::make_path(outputDir, "nhmmscan_hits_filtered_merged_noOverlap.bed"));
 	std::vector<Bed6RecordCore> filteredMergedNonOverlappingRegions;
+	filteredMergedNonOverlappingRegions.reserve(allFilteredNonOverlapHitsCount);
 	hitFilteredMergedNonOverlappingHitsTableOut << "#chrom\tstart\tend\tname\tlength\tstrand\tquery\tqueryLen\t" << njh::conToStr(nhmmscanOutput::Hit::getOutputDetHeader(), "\t") << std::endl;
 	hitFilteredMergedNonOverlappingTableOut << "#chrom\tstart\tend\tname\tlength\tstrand\tquery\tqueryLen\t" << "queryCov\tsumScores\thits\tmodel" << std::endl;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	for(const auto & filteredMerged : postProcessResults.filteredHitsMergedNonOverlapByQuery_){
 		for(const auto & groupHit : filteredMerged.second){
 			filteredMergedNonOverlappingRegions.emplace_back(groupHit.genOutRegion().genBedRecordCore());
@@ -939,9 +988,13 @@ void nhmmscanOutput::writeInfoFiles(const PostProcessHitsRes & postProcessResult
 			}
 		}
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 	BedUtility::coordSort(filteredMergedNonOverlappingRegions);
 	for(const auto & region : filteredMergedNonOverlappingRegions){
 		hitFilteredMergedNonOverlappingBedOut << region.toDelimStrWithExtra() << std::endl;
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << watch.timeLapFormatted() << std::endl;
 }
 }  // namespace njhseq
