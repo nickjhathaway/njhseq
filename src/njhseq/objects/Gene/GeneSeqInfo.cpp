@@ -250,21 +250,22 @@ std::unordered_map<uint32_t, std::tuple<GeneSeqInfo::GenePosInfo,GeneSeqInfo::Ge
 					<< ", error for " << pars_.region_.uid_ << " amino acid split table should contain 3 rows not "
 					<< aa.second.nRow() << "\n";
 			aa.second.outPutContentOrganized(ss);
-			throw std::runtime_error { ss.str() };
+//			throw std::runtime_error { ss.str() };
+		} else {
+			auto codonSplit = aa.second.splitTableOnColumn("codonPos");
+			if (!njh::in(std::string("0"), codonSplit)
+					|| !njh::in(std::string("1"), codonSplit)
+					|| !njh::in(std::string("2"), codonSplit)) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", codon column should have 0, 1, and 2 not "
+					 << njh::conToStr(getVectorOfMapKeys(codonSplit), ", ") << "\n";
+				throw std::runtime_error { ss.str() };
+			}
+			auto codon0 = rowToGenePosInfo(infoTab_, codonSplit.at("0").content_.front());
+			auto codon1 = rowToGenePosInfo(infoTab_, codonSplit.at("1").content_.front());
+			auto codon2 = rowToGenePosInfo(infoTab_, codonSplit.at("2").content_.front());
+			ret[njh::StrToNumConverter::stoToNum<uint32_t>(aa.first)] = std::make_tuple(codon0, codon1, codon2);
 		}
-		auto codonSplit = aa.second.splitTableOnColumn("codonPos");
-		if (!njh::in(std::string("0"), codonSplit)
-				|| !njh::in(std::string("1"), codonSplit)
-				|| !njh::in(std::string("2"), codonSplit)) {
-			std::stringstream ss;
-			ss << __PRETTY_FUNCTION__ << ", codon column should have 0, 1, and 2 not "
-					<< njh::conToStr(getVectorOfMapKeys(codonSplit), ", ") << "\n";
-			throw std::runtime_error { ss.str() };
-		}
-		auto codon0 = rowToGenePosInfo(infoTab_, codonSplit.at("0").content_.front());
-		auto codon1 = rowToGenePosInfo(infoTab_, codonSplit.at("1").content_.front());
-		auto codon2 = rowToGenePosInfo(infoTab_, codonSplit.at("2").content_.front());
-		ret[njh::StrToNumConverter::stoToNum<uint32_t>(aa.first)] = std::make_tuple(codon0, codon1, codon2);
 	}
 	return ret;
 }
