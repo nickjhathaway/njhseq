@@ -16,7 +16,7 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 	VecStr alreadyAddedIDs;
 	//just from what i've seen from chado annotations
 	VecStr acceptableMrnaLikeRecords = {"mRNA", "ncRNA", "rRNA", "snoRNA", "tRNA", "snRNA", "transcript"};
-	VecStr allowableGeneFeatures{"gene", "pseudogene"};
+	VecStr allowableGeneFeatures{"gene", "pseudogene", "protein_coding_gene"};
 	for(const auto & record : geneRecords){
 		if(record->hasAttr("ID") && njh::in(record->getAttr("ID"), alreadyAddedIDs)){
 			std::stringstream ss;
@@ -26,7 +26,7 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 			throw std::runtime_error{ss.str()};
 		}
 
-		if(njh::in(record->type_, allowableGeneFeatures)){// "gene" == record->type_){
+		if(njh::in(record->type_, allowableGeneFeatures)){
 			if (nullptr != gene_) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__
@@ -481,7 +481,7 @@ std::unordered_map<std::string, table> GeneFromGffs::getIntronExonTables() const
 std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::getGenesFromGffForGuessedTranscriptOrGeneIds(const bfs::path & gffFnp, const std::set<std::string> & allIDs){
 
 	VecStr deirvedFromRecordFeatures {"polypeptide"};
-	VecStr allowableFeatureType {"gene", "pseudogene"};
+	VecStr allowableFeatureType {"gene", "pseudogene", "protein_coding_gene"};
 
 	std::unordered_set<std::string> geneIds;
 	//first gather GeneIDs from the transcript
@@ -534,7 +534,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
 	while (nullptr != gRecord) {
 		if(gRecord->hasAttr("ID") && njh::in(gRecord->getAttr("ID"), geneIds) ){
-			if(!njh::in(gRecord->type_, allowableFeatureType)) {// "gene" != gRecord->type_){
+			if(!njh::in(gRecord->type_, allowableFeatureType)) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error feature type needs to be gene, not " << gRecord->type_ << " for: " << gRecord->getAttr("ID") << "\n";
 				throw std::runtime_error{ss.str()};
@@ -555,7 +555,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 		} else if(njh::in(gRecord->type_, deirvedFromRecordFeatures) ){
 			cache.emplace_back(std::make_shared<GFFCore>(*gRecord));
 		}
-		if("gene" == gRecord->type_){
+		if(njh::in(gRecord->type_, allowableFeatureType)){
 			for(const auto & fromCache : cache){
 				//grab any possible polypeptides or misc records,
 				//I have found that sometimes these come before the gene record so you have to keep a cache around since the last cache
@@ -596,7 +596,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 
 std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::getGenesFromGffForTranscriptIds(const bfs::path & gffFnp, const std::set<std::string> & transcriptIDs){
 	VecStr deirvedFromRecordFeatures {"polypeptide"};
-	VecStr allowableFeatureType {"gene", "pseudogene"};
+	VecStr allowableFeatureType {"gene", "pseudogene", "protein_coding_gene"};
 
 	std::unordered_set<std::string> geneIds;
 	//first gather GeneIDs from the transcript
@@ -642,7 +642,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
 	while (nullptr != gRecord) {
 		if(gRecord->hasAttr("ID") && njh::in(gRecord->getAttr("ID"), geneIds) ){
-			if(!njh::in(gRecord->type_, allowableFeatureType)) {// "gene" != gRecord->type_){
+			if(!njh::in(gRecord->type_, allowableFeatureType)) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error feature type needs to be gene, not " << gRecord->type_ << " for: " << gRecord->getAttr("ID") << "\n";
 				throw std::runtime_error{ss.str()};
@@ -663,7 +663,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 		} else if(njh::in(gRecord->type_, deirvedFromRecordFeatures) ){
 			cache.emplace_back(std::make_shared<GFFCore>(*gRecord));
 		}
-		if("gene" == gRecord->type_){
+		if(njh::in(gRecord->type_, allowableFeatureType)){
 			for(const auto & fromCache : cache){
 				//grab any possible polypeptides or misc records,
 				//I have found that sometimes these come before the gene record so you have to keep a cache around since the last cache
@@ -716,10 +716,10 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 	std::string line = "";
 	VecStr deirvedFromRecordFeatures {"polypeptide"};
 	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
-	VecStr allowableFeatureType {"gene", "pseudogene"};
+	VecStr allowableFeatureType {"gene", "pseudogene", "protein_coding_gene"};
 	while (nullptr != gRecord) {
 		if(gRecord->hasAttr("ID") && njh::in(gRecord->getAttr("ID"), ids) ){
-			if(!njh::in(gRecord->type_, allowableFeatureType)) {// "gene" != gRecord->type_){
+			if(!njh::in(gRecord->type_, allowableFeatureType)) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error feature type needs to be gene, not " << gRecord->type_ << " for: " << gRecord->getAttr("ID") << "\n";
 				throw std::runtime_error{ss.str()};
@@ -740,7 +740,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 		} else if(njh::in(gRecord->type_, deirvedFromRecordFeatures) ){
 			cache.emplace_back(std::make_shared<GFFCore>(*gRecord));
 		}
-		if("gene" == gRecord->type_){
+		if(njh::in(gRecord->type_, allowableFeatureType)){
 			for(const auto & fromCache : cache){
 				//grab any possible polypeptides or misc records,
 				//I have found that sometimes these come before the gene record so you have to keep a cache around since the last cache
