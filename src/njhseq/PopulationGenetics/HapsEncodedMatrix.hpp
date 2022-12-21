@@ -36,6 +36,7 @@ public:
 		void setDefaults(seqSetUp & setUp);
 		uint32_t numThreads = 1;
 		bool majorOnly = false;
+    uint32_t minNumOfTargets = std::numeric_limits<uint32_t>::max();
 	};
 
 	HapsEncodedMatrix(const SetWithExternalPars & pars);
