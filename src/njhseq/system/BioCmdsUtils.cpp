@@ -376,9 +376,9 @@ BioCmdsUtils::FasterqDumpResults BioCmdsUtils::runFasterqDump(const FasterqDumpP
 		ss << __PRETTY_FUNCTION__ << ", error SRA file " << pars.sraFnp_ << " doesn't exist" << "\n";
 		throw std::runtime_error{ss.str()};
 	}
-	if(!njh::endsWith(pars.sraFnp_.string(), ".sra")){
+	if(!(njh::endsWith(pars.sraFnp_.string(), ".sra") || njh::endsWith(pars.sraFnp_.string(), ".sralite")) ){
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ", error SRA file " << pars.sraFnp_ << " doesn't end in .sra" << "\n";
+		ss << __PRETTY_FUNCTION__ << ", error SRA file " << pars.sraFnp_ << " doesn't end in .sra or in .sralite" << "\n";
 		throw std::runtime_error{ss.str()};
 	}
 	if(!bfs::exists(pars.outputDir_)){
