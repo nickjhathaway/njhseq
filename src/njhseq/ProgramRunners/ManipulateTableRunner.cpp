@@ -242,7 +242,7 @@ int ManipulateTableRunner::addColumn(
 			throw std::runtime_error{ss.str()};
 		}
 		outTab.addSingleValueColumns(toks, colToks);
-	}else{
+	} else {
 		if (toks.size() > 1) {
 			if (outTab.content_.size() % toks.size() != 0) {
 				std::stringstream ss;
