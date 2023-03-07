@@ -125,12 +125,14 @@ public:
 		return determineForwardPrimer(getSeqBase(read), pars, alignerObj);
 	}
 	std::string determineForwardPrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
+  std::string determineForwardPrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj, const VecStr & primers);
 
 	template<typename T>
 	std::string determineWithReversePrimer(T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
 		return determineWithReversePrimer(getSeqBase(read), pars, alignerObj);
 	}
 	std::string determineWithReversePrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
+  std::string determineWithReversePrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj, const VecStr & primers);
 
 
 	template<typename T>
