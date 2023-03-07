@@ -21,6 +21,7 @@
 #include "njhseq/objects/counters/hrCounter.hpp"
 #include "njhseq/objects/counters/strCounterMap.hpp"
 #include "njhseq/objects/counters/charCounter.hpp"
+#include "njhseq/objects/counters/DNABaseCounter.hpp"
 
 
 

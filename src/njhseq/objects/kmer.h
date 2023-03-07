@@ -32,5 +32,8 @@
 #include "njhseq/objects/kmer/kmerCalculator.hpp"
 #include "njhseq/objects/kmer/kmerInfo.hpp"
 #include "njhseq/objects/kmer/KmersSharedBlocks.hpp"
+#include "njhseq/objects/kmer/KmerUtils.hpp"
+#include "njhseq/objects/kmer/SimpleKmerHash.hpp"
+#include "njhseq/objects/kmer/KmerGatherer.hpp"
 
 

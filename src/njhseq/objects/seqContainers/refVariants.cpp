@@ -57,6 +57,7 @@ refVariants::refVariants(const seqInfo & seqBase): seqBase_(seqBase){}
 void refVariants::addVariant(const seqInfo & var, aligner & alignerObj,
 		bool weighHomopolymer) {
 	variant varObj(var);
+  //std::cout << alignerObj.parts_.maxSize_ << std::endl;
 	alignerObj.alignCache(seqBase_, var, false);
 	alignerObj.profilePrimerAlignment(seqBase_, var);
 	for (const auto & m : alignerObj.comp_.distances_.mismatches_) {
