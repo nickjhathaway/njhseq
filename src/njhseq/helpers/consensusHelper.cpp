@@ -52,8 +52,11 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 
 	//read.seqBase_.outPutFastq(std::cout);
 	// the iterators to over the letter counter maps
+
+  //
+
 	//uint32_t countAdjustedToBeatForInserts = fortyPercent * 2;
-	uint32_t countAdjustedToBeatForInserts = fortyPercent;
+	double countAdjustedToBeatForInserts = fortyPercent;
 	if(info.cnt_ < 10){
 		countAdjustedToBeatForInserts = info.cnt_;
 	}
@@ -65,7 +68,13 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 //		std::cout << count.first << std::endl;
 		auto search = insertions.find(count.first);
 		if (search != insertions.end()) {
-			for (auto & counterInsert : search->second) {
+      double priorToHere = 0;
+      if(count.first != 0){
+        priorToHere = counters.at(count.first - 1).getTotalCount();
+      }
+//      std::cout << "count.first: " << count.first << std::endl;
+
+      for (auto & counterInsert : search->second) {
 //				bool print = count.first >= 264 && count.first < 280 && info.name_ == "A0YIQC9601.0_f0.956522";
 //				if(print){
 //					std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -77,14 +86,21 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 				bestBase = ' ';
 				char bestBaseTest = ' ';
 				uint32_t bestQualTest = 0;
+
+//        char prior_bestBaseTest = ' ';
+//        uint32_t prior_bestQualTest = 0;
+//        if(count.first != 0){
+//          counters.at(count.first - 1).getBest(prior_bestBaseTest, prior_bestQualTest);
+//        }
 				counterInsert.second.getBest(bestBaseTest, bestQualTest);
+//        std::cout << '\t' << counterInsert.first << std::endl;
 //				if(print){
-//					std::cout << "\t"<< "bestBaseTest: " << bestBaseTest << ": " << counterInsert.second.chars_[bestBaseTest]<< " total:" << std::round(info.cnt_) << std::endl;
-//
+//					std::cout << "\t"<< "bestBaseTest: " << bestBaseTest << ": " << counterInsert.second.chars_[bestBaseTest]<< " total:" << std::round(info.cnt_) << " priorToHere: " << priorToHere << std::endl;
+//          std::cout << "\t"<< "prior_bestBaseTest: " << prior_bestBaseTest << ": " << counters.at(count.first - 1).chars_[prior_bestBaseTest] << std::endl;
 //				}
 				counterInsert.second.getBest(bestBase, bestQuality, countAdjustedToBeatForInserts);
 //				if(print){
-//					std::cout << "\t"<< "bestBase    : " << bestBase << ": " << counterInsert.second.chars_[bestBase]<< ",countAdjustedToBeatForInserts: " << countAdjustedToBeatForInserts << " total:" << std::round(info.cnt_) << std::endl;
+//					std::cout << "\t"<< "bestBase    : " << bestBase << ": " << counterInsert.second.chars_[bestBase]<< ",countAdjustedToBeatForInserts: " << countAdjustedToBeatForInserts << " total:" << std::round(info.cnt_)<< " priorToHere: " << priorToHere  << std::endl;
 //					std::cout << njh::bashCT::reset << std::endl;
 //				}
 

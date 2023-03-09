@@ -21,7 +21,8 @@
 
 namespace njhseq {
 inline bool qualPass(const std::vector<uint8_t> & quals, uint8_t qualCutOff){
-	return quals.empty() ? true : std::all_of(quals.begin(), quals.end(),[qualCutOff](uint32_t qual){return qual >qualCutOff;});
+	return quals.empty() ||
+         std::all_of(quals.begin(), quals.end(), [qualCutOff](uint32_t qual) { return qual > qualCutOff; });
 }
 
 bool mismatch::highQuality(const QualScorePars & qScorePars) const{

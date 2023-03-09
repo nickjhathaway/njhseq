@@ -43,7 +43,7 @@ public:
 	charCounter(const std::string & str, const std::vector<char>& alphabet);
 
 	//members
-  std::array<uint32_t, 127> chars_;
+  std::array<double, 127> chars_;
   std::array<double, 127> fractions_;
 
   std::array<uint32_t, 127> qualities_;
@@ -84,7 +84,7 @@ public:
   void setFractions();
   void setFractions(const std::vector<char>& alphabet);
   void addOtherCounts(const charCounter & otherCounter, bool setFractions);
-  uint32_t getTotalCount() const ;
+  double getTotalCount() const ;
   std::multimap<double, char, std::less<double>> createLikelihoodMaps(
       bool setFractionFirst);
 

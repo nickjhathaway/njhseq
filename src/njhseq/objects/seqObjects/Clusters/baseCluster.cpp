@@ -78,7 +78,7 @@ void baseCluster::calculateConsensusToCurrent(aligner& alignerObj, calculateCons
 
 
 bool baseCluster::calculateConsensusTo(
-		const seqInfo calcToThisInput,
+		const seqInfo & calcToThisInput,
 		aligner& alignerObj,
 		calculateConsensusPars conPars) {
 	bool matchCurrentSeq = false;
@@ -433,7 +433,7 @@ bool baseCluster::calculateConsensusTo(
 						std::cout << pathCounter.toJson() << std::endl;
 					}*/
 					for(const auto & pb : bestPath.bases_){
-						uint32_t otherCount = 0;
+						double otherCount = 0;
 						auto & counter = counters.at(pb.pos_);
 						for(const auto base : counter.alphabet_){
 							if(base!= pb.base_){
@@ -453,7 +453,8 @@ bool baseCluster::calculateConsensusTo(
 		}
 //		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //		std::cout << "noWeightConsensus_: " << njh::colorBool(noWeightConsensus_) << std::endl;
-		//std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
+//		std::cout << __FILE__ << " : " << __LINE__  << " : " << __PRETTY_FUNCTION__ << std::endl;
+//    calcConsensusInfo_.outPutSeqAnsi(std::cout);
 		consensusHelper::genConsensusFromCounters(calcConsensusInfo_, counters, insertions, beginningGap);
 //		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		matchCurrentSeq = seqBase_.seq_ == calcConsensusInfo_.seq_;

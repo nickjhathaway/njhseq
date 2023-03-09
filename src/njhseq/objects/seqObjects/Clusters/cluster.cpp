@@ -100,7 +100,7 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 	std::vector<cluster>  ret;
 	//log snp information
 //	std::cout << seqBase_.name_ << std::endl;
-	std::unordered_map<uint32_t, std::unordered_map<char, uint32_t>> mismatches;
+	std::unordered_map<uint32_t, std::unordered_map<char, double>> mismatches;
 	for (const auto subReadPos : iter::range(reads_.size())) {
 		const auto & subRead = reads_[subReadPos];
 		alignerObj.alignCache(*this, subRead, false);
@@ -113,9 +113,11 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 		}
 	}
 //	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	std::cout << "pars.hardCutOff: " << pars.hardCutOff << std::endl; seqObjects/clusters/
-//	std::cout << "mismatches.size(): " << mismatches.size() << std::endl;
-	std::unordered_map<uint32_t, std::unordered_map<char, uint32_t>> mismatchesAboveCutOff;
+//	std::cout << "pars.hardCutOff: " << pars.hardCutOff << std::endl;
+//  std::cout << "pars.hardSnpFreqCutOff: " << pars.hardSnpFreqCutOff << std::endl;
+//  std::cout << "pars.snpFreqCutOff: " << pars.snpFreqCutOff << std::endl;
+//  std::cout << "mismatches.size(): " << mismatches.size() << std::endl;
+	std::unordered_map<uint32_t, std::unordered_map<char, double>> mismatchesAboveCutOff;
 	for (const auto & position : mismatches) {
 		for (const auto & base : position.second) {
 			if (base.second > pars.hardCutOff && base.second/seqBase_.cnt_ > pars.hardSnpFreqCutOff) {
@@ -145,17 +147,27 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 				}
 			}
 //			std::cout << '\t' << "freqSum: " << freqSum << std::endl;
+
 			std::string snpProfileUid = ss.str();
+//      std::cout << "\t" << "snpProfileUid: " << snpProfileUid << std::endl;
 			if ("" != snpProfileUid &&
-					snpCount >= pars.minSnps &&
-					freqSum >= pars.snpFreqCutOff) {
+					snpCount >= pars.minSnps
+//          && freqSum >= pars.snpFreqCutOff
+          ) {
 				readsSnpUids[snpProfileUid].emplace_back(subReadPos);
 			}
 		}
 		std::vector<uint32_t> readsToErase;
 		for (const auto & readsWithSnpUid : readsSnpUids) {
+      double countOfReadsWithSnpUID = 0;
+      for(const auto & seqPos : readsWithSnpUid.second){
+        countOfReadsWithSnpUID += reads_[seqPos]->seqBase_.cnt_;
+      }
 //			std::cout << readsWithSnpUid.first << " " << readsWithSnpUid.second.size() << std::endl;
-			if (readsWithSnpUid.second.size() > pars.hardCutOff) {
+
+
+			if (countOfReadsWithSnpUID > pars.hardCutOff) {
+//        if (readsWithSnpUid.second.size() > pars.hardCutOff) {
 //				std::cout << "\t" << readsWithSnpUid.first << " " << readsWithSnpUid.second.size() << std::endl;
 				std::vector<std::shared_ptr<readObject>> splitSeqs;
 				for(const auto & pos : readsWithSnpUid.second){
@@ -164,10 +176,10 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 				}
 				readVecSorter::sort(splitSeqs);
 //				std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//				OutOptions outOpts(bfs::path("first_name_of_first_splitSeqs.txt"));
-//				outOpts.append_ = true;
-//				OutputStream out(outOpts);
-//				out << splitSeqs.front()->seqBase_.name_ << roundDecPlaces(splitSeqs.front()->averageErrorRate, 4)<< std::endl;
+				OutOptions outOpts(bfs::path("first_name_of_first_splitSeqs.txt"));
+				outOpts.append_ = true;
+				OutputStream out(outOpts);
+				out << splitSeqs.front()->seqBase_.name_ << roundDecPlaces(splitSeqs.front()->averageErrorRate, 4)<< std::endl;
 				ret.emplace_back(getConsensus(splitSeqs, alignerObj, splitSeqs.front()->seqBase_.name_));
 				ret.back().needToCalculateConsensus_ = true;
 				ret.back().calculateConsensus(alignerObj, true);;

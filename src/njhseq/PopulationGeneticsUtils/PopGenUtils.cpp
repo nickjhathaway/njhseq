@@ -75,7 +75,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 
 	translator->pars_.additionalBowtieArguments_ = njh::pasteAsStr(translator->pars_.additionalBowtieArguments_, " -p ", pars.numThreads);
 	auto translatedRes = translator->run(SeqIOOptions::genFastaIn(uniqueSeqsOpts.out_.outName()), sampNamesForPopHaps, pars.variantCallerRunPars);
-	OutputStream popBedLocs(njh::files::make_path(variantInfoDir, "inputSeqs.bed"));
+
+  OutputStream popBedLocs(njh::files::make_path(variantInfoDir, "inputSeqs.bed"));
 	translatedRes.writeOutSeqAlnIndvVars(njh::files::make_path(variantInfoDir, "variantsPerSeqAln.tab.txt.gz"));
 	translatedRes.writeSeqLocations(popBedLocs);
 

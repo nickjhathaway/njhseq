@@ -162,4 +162,34 @@ void ExtractionStator::outTotalStats(std::ostream & out, const std::string & del
 			getPercentageString(totalContam, totalReadCount_)), delim) << "\n";
 }
 
+
+void ExtractionStator::addOtherExtractorCounts(const ExtractionStator & otherCounts){
+
+
+  for(const auto & count : otherCounts.counts_){
+    for(const auto & dir : count.second){
+      counts_[count.first][dir.first].good_ += dir.second.good_;
+      counts_[count.first][dir.first].bad_ += dir.second.bad_;
+      counts_[count.first][dir.first].badReverse_ += dir.second.badReverse_;
+      counts_[count.first][dir.first].mismatchPrimers_ += dir.second.mismatchPrimers_;
+      counts_[count.first][dir.first].containsNs_ += dir.second.containsNs_;
+      counts_[count.first][dir.first].minLenBad_ += dir.second.minLenBad_;
+      counts_[count.first][dir.first].maxLenBad_ += dir.second.maxLenBad_;
+      counts_[count.first][dir.first].qualityFailed_ += dir.second.qualityFailed_;
+      counts_[count.first][dir.first].contamination_ += dir.second.contamination_;
+    }
+  }
+
+  totalReadCount_ += otherCounts.totalReadCount_;
+  readsUnrecBarcode_ += otherCounts.readsUnrecBarcode_;
+  readsUnrecBarcodePosContamination_ += otherCounts.readsUnrecBarcodePosContamination_;
+  smallFrags_ += otherCounts.smallFrags_;
+  for(const auto & ff : otherCounts.failedForward_){
+    for(const auto & dir : ff.second){
+      failedForward_[ff.first][dir.first] += dir.second;
+    }
+  }
+}
+
+
 }  // namespace njhseq

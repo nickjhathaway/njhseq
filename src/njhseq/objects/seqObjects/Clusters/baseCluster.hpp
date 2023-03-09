@@ -68,7 +68,7 @@ class baseCluster : public readObject {
 		uint32_t convergeAttempts = 5;
 	};
   void calculateConsensus(aligner& alignerObj,                            calculateConsensusPars conPars);
-  bool calculateConsensusTo(const seqInfo seqBase, aligner& alignerObj, calculateConsensusPars conPars);
+  bool calculateConsensusTo(const seqInfo & seqBase, aligner& alignerObj, calculateConsensusPars conPars);
   void calculateConsensusToCurrent(aligner& alignerObj,                   calculateConsensusPars conPars);
   // consensus comparison
   // get info about the reads in the reads vectors

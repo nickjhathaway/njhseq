@@ -72,13 +72,13 @@ public:
 			uint32_t readsUnrecBarcodePosContamination, uint32_t smallFrags);
 
 private:
+public:
   std::map<std::string,std::map<bool,extractCounts>> counts_; /**< The counts per MID and primer */
   std::map<std::string,std::map<bool,uint32_t>> failedForward_; /**< The counts of failing forward primer for MID */
   uint32_t totalReadCount_ = 0;
   uint32_t readsUnrecBarcode_ = 0;
   uint32_t readsUnrecBarcodePosContamination_ = 0;
   uint32_t smallFrags_ = 0;
-public:
   /**@brief Increase the count failing the forward primer
    *
    * @param midName The name of the MID
@@ -116,6 +116,12 @@ public:
 	 */
 	void outTotalStats(std::ostream & out, const std::string & delim);
 
+
+  /**@brief add the counts of another extractor
+   *
+   * @param counts
+   */
+  void addOtherExtractorCounts(const ExtractionStator & counts);
 };
 
 }  // namespace njhseq

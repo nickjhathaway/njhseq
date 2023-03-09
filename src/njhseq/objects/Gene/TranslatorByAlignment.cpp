@@ -1351,7 +1351,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			size_t minPos_{std::numeric_limits<uint32_t>::max()};
 			size_t maxPos_{0};
 		};
-		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		std::unordered_map<std::string, MinMaxPos> minMaxPositionsPerChrom;
 		while (bReader.GetNextAlignment(bAln)) {
 			if (bAln.IsMapped() && bAln.IsPrimaryAlignment()) {
@@ -1407,18 +1407,23 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 					std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> translations;
 					try {
+//            std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
 						translations = translateBasedOnAlignment(results, *currentGene, currentGeneInfo, alignObj);
-						//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-
+//						std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//            std::cout << "translations.size(): " << translations.size() << std::endl;
 						for(const auto & trans : translations){
 							auto queryTransStart = trans.second.queryAlnTranslation_.seq_.find_first_not_of("-");
 							if('-' == trans.second.refAlnTranslation_.seq_[queryTransStart]){
 								//probably should do a more intensive check here fo
 								ret.filteredOffTranslations_[bAln.Name].emplace(trans);
+//                std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
 							}else if(countOccurences(trans.second.queryAlnTranslation_.seq_, "*") > pars_.allowableStopCodons_){
+//                trans.second.queryAlnTranslation_.outPutSeq(std::cout);
 								ret.filteredOffTranslations_[bAln.Name].emplace(trans);
+//                std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
 							}else{
 								ret.translations_[bAln.Name].emplace(trans);
+//                std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
 							}
 						}
 					} catch (std::exception & e) {

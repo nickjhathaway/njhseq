@@ -62,7 +62,8 @@ class consensusHelper {
   		uint32_t currentOffset = 1;
   		uint32_t start = 0;
   		//check to see if there is a gap at the beginning
-  		uint32_t readCnt = read.cnt_ < 1 ? 1 : std::round(read.cnt_);
+  		//uint32_t readCnt = read.cnt_ < 1 ? 1 : std::round(read.cnt_);
+      double readCnt = read.cnt_;
   		if (alignerObj.alignObjectA_.seqBase_.seq_.front() == '-') {
   			start = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
   			for (uint32_t i = 0; i < start; ++i) {

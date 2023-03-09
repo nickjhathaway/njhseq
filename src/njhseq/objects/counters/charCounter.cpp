@@ -90,7 +90,7 @@ void charCounter::increasePortion(const std::string & str, uint64_t len,
 
 ///charArray
 void charCounter::getBest(char &letter) const {
-	uint32_t bestCount = 0;
+	double bestCount = 0;
 	uint64_t bestQualSum = 0;
 	for (const auto & c : alphabet_) {
 		if (chars_[c] > bestCount) {
@@ -119,32 +119,32 @@ void charCounter::getBest(char &letter, uint32_t &quality) const {
 		//std::cout << "letCount  : " << chars_[letter] << std::endl;
 		//std::cout << "totalCount: " << totalCount << std::endl;
 		//not casting to double below for division because it is just being cast back anyways
-		quality = qualities_[letter] / chars_[letter];
+		quality = static_cast<uint32_t>(std::round(qualities_[letter] / chars_[letter]));
 		if(quality > totalCount - chars_[letter]){
-			quality-=(totalCount - chars_[letter]);
+			quality-=static_cast<uint32_t>(std::round(totalCount - chars_[letter]));
 		}
 	} else {
 		//quality = qualities_[letter] / totalCount;
-		quality = qualities_[letter] /  chars_[letter];
+		quality = static_cast<uint32_t>(std::round(qualities_[letter] /  chars_[letter]));
 	}
 }
 
 //for finding insertions
 void charCounter::getBest(char & base, uint32_t &quality, uint32_t size) const {
-	uint32_t totalCount = getTotalCount();
+	double totalCount = getTotalCount();
 	//due to rounding sometimes the total count is greater than size
 	//if this happens, we get overflow and size - totalCount becomes a gigantic number
-	uint32_t nonInsertingSize = totalCount > size ? 0 : size - totalCount;
+	double nonInsertingSize = totalCount > size ? 0 : size - totalCount;
 	if(totalCount > nonInsertingSize){
 		//find best base, if it's count is better than the non inserting reads then output that
 		char bestBase = outputBestLetter();
 		if(chars_[bestBase] > nonInsertingSize){
 			if(size < 5){
-				quality = qualities_[bestBase] / chars_[bestBase];
+				quality = qualities_[bestBase] / static_cast<uint32_t>(std::round(chars_[bestBase]));
 				//due to rounding sometimes the total count is greater than size
 				//if this happens, we get overflow and size - chars_[bestBase] becomes a gigantic number
 				if(chars_[bestBase] < size && quality > size - chars_[bestBase]){
-					quality-=(size - chars_[bestBase]);
+					quality-= static_cast<uint32_t>(std::round(size - chars_[bestBase]));
 				}
 			}else{
 				quality = qualities_[bestBase] / size;
@@ -269,7 +269,7 @@ char charCounter::getDegenativeBase() const {
 	}
 }
 int charCounter::getGcDifference() {
-	return chars_['G'] - chars_['C'];
+	return static_cast<int32_t>(std::round(chars_['G'] - chars_['C']));
 }
 
 void charCounter::reset() {
@@ -306,8 +306,8 @@ void charCounter::increaseCountOfBaseQual(const char &base, uint32_t qual) {
 void charCounter::increaseCountOfBaseQual(const char &base, uint32_t qual,
 		double cnt) {
 	chars_[base] += cnt;
-	qualities_[base] += qual * cnt;
-	addOtherVec(allQualities_[base], std::vector<uint32_t>(cnt, qual));
+	qualities_[base] += static_cast<uint32_t>(std::round(qual * cnt));
+	addOtherVec(allQualities_[base], std::vector<uint32_t>(static_cast<uint32_t>(std::round(cnt)), qual));
 }
 
 void charCounter::increaseCountByStringQual(const std::string &seq,
@@ -322,9 +322,9 @@ void charCounter::increaseCountByStringQual(const std::string &seq,
 		const std::vector<uint32_t> & qualities, double cnt) {
 	for (const auto pos : iter::range(seq.size())) {
 		chars_[seq[pos]] += cnt;
-		qualities_[seq[pos]] += qualities[pos] * cnt;
+		qualities_[seq[pos]] += static_cast<uint32_t>(std::round(qualities[pos] * cnt));
 		addOtherVec(allQualities_[seq[pos]],
-				std::vector<uint32_t>(cnt, qualities[pos]));
+				std::vector<uint32_t>(static_cast<uint32_t>(std::round(cnt)), qualities[pos]));
 	}
 }
 
@@ -342,7 +342,7 @@ double charCounter::getFracDifference(const charCounter & otherCounter,
 }
 
 void charCounter::setFractions(const std::vector<char>& alphabet) {
-	uint32_t total = 0;
+	double total = 0;
 	for (const auto & c : alphabet) {
 		total += chars_[c];
 	}
@@ -357,8 +357,8 @@ void charCounter::setFractions(const std::vector<char>& alphabet) {
 	}
 }
 
-uint32_t charCounter::getTotalCount() const {
-	uint32_t total = 0;
+double charCounter::getTotalCount() const {
+  double total = 0;
 	for (const auto & c : alphabet_) {
 		total += chars_[c];
 	}
@@ -407,7 +407,7 @@ void charCounter::addOtherCounts(const charCounter & otherCounter,
 
 void charCounter::increaseRates(substituteMatrix & mat, char refBase) const{
 	for(char let : alphabet_){
-		mat.mat_[refBase][let] += chars_[let];
+		mat.mat_[refBase][let] += static_cast<int32_t>(std::round(chars_[let]));
 	}
 }
 
