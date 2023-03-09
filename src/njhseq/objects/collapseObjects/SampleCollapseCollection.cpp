@@ -702,7 +702,7 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 
 
 //	std::cout << "size of sample Cluster" << sizeof(sampleCluster) << std::endl;
-
+//
 //	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return output;
 }
