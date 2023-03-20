@@ -32,7 +32,7 @@
 #include "njhseq/utils.h"
 #include "njhseq/readVectorManipulation/readVectorHelpers/readVecSorter.hpp"
 #include "njhseq/objects/helperObjects/probabilityProfile.hpp"
-#include "njhseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
+//#include "njhseq/objects/dataContainers/graphs/ReadCompGraph.hpp"
 
 
 #include "njhseq/objects/Meta/MetaDataInName.hpp"
@@ -49,74 +49,7 @@ void processRunCutoff(uint32_t& runCutOff, const std::string& runCutOffString,
 
 uint32_t processRunCutoff(const std::string& runCutOffString, uint64_t counter);
 
-template<typename T>
-Json::Value genDetailMinTreeData(const std::vector<T> & reads,
-		uint32_t numThreads) {
-	uint64_t maxSize = 0;
-	readVec::getMaxLength(reads, maxSize);
-	aligner alignerObj(maxSize, gapScoringParameters(5, 1),
-			substituteMatrix(2, -2));
-	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
-	std::mutex alignerLock;
-	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,
-			numThreads, comparison(), false, false, false);
-}
 
-template<typename T>
-Json::Value genDetailMinTreeData(const std::vector<T> & reads,
-		uint32_t numThreads,
-		const comparison &allowableErrors, bool settingEventsLimits) {
-	uint64_t maxSize = 0;
-	readVec::getMaxLength(reads, maxSize);
-	aligner alignerObj(maxSize, gapScoringParameters(5, 1),
-			substituteMatrix(2, -2));
-	std::unordered_map<std::string, std::unique_ptr<aligner>> aligners;
-	std::mutex alignerLock;
-	return genDetailMinTreeData(reads, alignerObj, aligners, alignerLock,
-			numThreads, allowableErrors, settingEventsLimits, false, false);
-}
-
-template<typename T>
-Json::Value genDetailMinTreeData(const std::vector<T> & reads,
-		aligner & alignerObj,
-		std::unordered_map<std::string, std::unique_ptr<aligner>>& aligners,
-		std::mutex & alignerLock, uint32_t numThreads,
-		const comparison &allowableErrors, bool settingEventsLimits,
-		bool justBest, bool doTies
-		){
-	auto graph = genReadComparisonGraph(reads, alignerObj, aligners, alignerLock,
-			numThreads);
-	std::vector<std::string> popNames;
-	for (const auto & n : graph.nodes_) {
-		if (n->on_) {
-			popNames.emplace_back(n->name_);
-		}
-	}
-	auto nameColors = getColorsForNames(popNames);
-
-	if(justBest){
-		if (settingEventsLimits) {
-			graph.turnOffEdgesWithComp(allowableErrors,
-					[](const comparison & comp1, const comparison & cutOff) {
-						//std::cout << comp1.toJson() << std::endl;
-						return comp1.distances_.getNumOfEvents(true) >= cutOff.distances_.overLappingEvents_;
-					});
-		}
-		graph.setJustBestConnection(doTies);
-	}else{
-		if(settingEventsLimits){
-			graph.turnOffEdgesWithComp(allowableErrors,
-					[](const comparison & comp1, const comparison & cutOff){
-				//std::cout << comp1.toJson() << std::endl;
-				return comp1.distances_.getNumOfEvents(true) >= cutOff.distances_.overLappingEvents_;
-			});
-		}else{
-			comparison maxEvents = graph.setMinimumEventConnections();
-		}
-	}
-	auto treeData = graph.toD3Json(njh::color("#000000"), nameColors);
-	return treeData;
-}
 
 template<typename T>
 uint32_t getMismatches(const T & read1,
