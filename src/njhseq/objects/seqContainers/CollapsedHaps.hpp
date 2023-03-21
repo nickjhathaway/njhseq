@@ -132,7 +132,7 @@ public:
 	void writeOutSeqsOrdCnt(const SeqIOOptions &seqOpts) const;
 	void writeNames(const OutOptions &outOpts) const;
   void writeNamesPerLine(const OutOptions &outOpts) const;
-  void writeLabIsolateNames(const OutOptions &outOpts) const;
+  void writeLabIsolateNames(const OutOptions &outOpts, bool addAllNames = false) const;
 	void writeOutMetaFields(const OutOptions &outOpts) const;
 
 	void writeOutAll(const bfs::path & outputDirectory, const std::string & namePrefix, bool overWrite = false) const;

@@ -537,13 +537,15 @@ void CollapsedHaps::writeOutMetaFields(const OutOptions &outOpts) const{
 
 
 
-void CollapsedHaps::writeLabIsolateNames(const OutOptions & outOpts) const {
+void CollapsedHaps::writeLabIsolateNames(const OutOptions & outOpts, bool addAllNames) const {
 	auto orderByCnt = getOrderByTopCnt();
 	OutputStream metaLabNamesOut(outOpts);
 	metaLabNamesOut << "name\tsamples" << std::endl;
 	for(const auto pos : orderByCnt){
 		std::set<std::string> nonFieldSampleNames = CollapsedHaps::getPossibleLabIsolateNames(names_[pos]);
-		metaLabNamesOut << seqs_[pos]->name_ << "\t" << njh::conToStr(nonFieldSampleNames, ",") << std::endl;
+		if(addAllNames || !nonFieldSampleNames.empty()){
+			metaLabNamesOut << seqs_[pos]->name_ << "\t" << njh::conToStr(nonFieldSampleNames, ",") << std::endl;
+		}
 	}
 }
 

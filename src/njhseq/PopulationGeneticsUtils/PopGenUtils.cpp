@@ -40,8 +40,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 
 	njh::files::checkExistenceThrow(pars.transPars.lzPars_.genomeFnp, __PRETTY_FUNCTION__);
 	njh::files::makeDirP(njh::files::MkdirPar(pars.outputDirectory.parent_path()));
-	//kinda silly but this will make so any parent directiores that need to exist will be made and then
-	//over write directory will take affect below
+	//kinda silly but this will make so any parent directories that need to exist will be made and then
+	//overwrite directory will take affect below
 	njh::files::makeDir(njh::files::MkdirPar(pars.outputDirectory, pars.overWriteDirectory));
 	//samples names
 	auto sampNamesPerSeq = inputSeqs.getSampleNamesPerSeqs();
