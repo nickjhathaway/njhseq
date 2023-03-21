@@ -24,6 +24,7 @@
 
 #include "njhseq/objects/kmer/kmerCalculator.hpp"
 #include "njhseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
+#include "njhseq/objects/dataContainers/graphs/readDistGraph.hpp"
 
 
 namespace njhseq {

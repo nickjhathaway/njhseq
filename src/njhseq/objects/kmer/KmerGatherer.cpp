@@ -284,7 +284,7 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getUniqueKmers
 		TwoBit::TwoBitFile tReader(twoBit);
 		auto seqNames = tReader.sequenceNames();
 		for (const auto &seqName : seqNames) {
-			pairs.emplace_back(TwobitFnpSeqNamePair(twoBit, seqName));
+			pairs.emplace_back(twoBit, seqName);
 		}
 	}
 	njh::concurrent::LockableQueue < TwobitFnpSeqNamePair > pairsQueue(pairs);

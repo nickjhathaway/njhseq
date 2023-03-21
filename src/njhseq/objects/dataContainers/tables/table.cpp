@@ -36,6 +36,20 @@ void table::addRows(const std::vector<VecStr> & rows){
 		addRow(row);
 	}
 }
+
+void table::addRowFill(VecStr row, const std::string & fill){
+  if(len(row) > nCol()){
+    std::stringstream ss;
+    ss << __PRETTY_FUNCTION__ << ", error " << "row length: " << len(row) << " is greater than number of columns: " << nCol() << "\n";
+    throw std::runtime_error { ss.str() };
+  }
+  if(len(row) < nCol()){
+    addOtherVec(row, std::vector<std::string>(nCol() - len(row), fill));
+  }
+  content_.emplace_back(row);
+}
+
+
 void table::addRow(const VecStr & row){
 	if(len(row) != nCol()){
 		std::stringstream ss;

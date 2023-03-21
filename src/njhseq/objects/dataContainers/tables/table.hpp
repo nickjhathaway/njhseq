@@ -173,7 +173,9 @@ public:
 	//adding rows
 	void addRows(const std::vector<VecStr> & rows);
 	void addRow(const VecStr & row);
-	template<typename... T>
+  void addRowFill(VecStr row, const std::string & fill);
+
+  template<typename... T>
 	void addRow(const T&... items){
 		if(sizeof...(items) != nCol()){
 			std::stringstream ss;
