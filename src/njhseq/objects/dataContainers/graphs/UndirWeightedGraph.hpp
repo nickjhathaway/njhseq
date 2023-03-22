@@ -878,6 +878,7 @@ public:
     bool HDBSCountSingletGroups{false};
     bool HDBSredetermineMaxEps{false};
     double HDBSmaxInitialEps{std::numeric_limits<double>::max()};
+    uint32_t groupDiffToReCalc = 20;
     //dbscanPars initialDbPars{2, 0.20};
   };
 
@@ -900,12 +901,23 @@ public:
     if(std::numeric_limits<uint32_t>::max() == proposedClusters){
       proposedClusters = nodes_.size()/minimum_minPts;
     }
+    if(pars.verbose){
+      std::cout << "using: " << proposedClusters << " proposed clusters" << std::endl;
+    }
     //HDBS
 
     uint32_t maximum_minPts = nodes_.size()/proposedClusters;
-
+    if(0 == maximum_minPts){
+      std::stringstream ss;
+      ss << __PRETTY_FUNCTION__ << ", error " << "maximum_minPts can't be 0" << "\n";
+      throw std::runtime_error { ss.str() };
+    }
+    if(pars.verbose){
+      std::cout << "using " << maximum_minPts << " for maximum min pts" << std::endl;
+    }
     DIST minEps = std::numeric_limits<DIST>::max();
     std::vector<DIST> neighbor2Dists;
+//    std::cout << __FILE__ << " : " << __LINE__ << " : " << __PRETTY_FUNCTION__ << std::endl;
     for(const auto & n : nodes_){
       //sort so edges are sorted from lowest dist to highest dist
       n->sortEdges([](const std::shared_ptr<edge> & e1,
@@ -930,19 +942,24 @@ public:
         }
       }
     }
+//    std::cout << __FILE__ << " : " << __LINE__ << " : " << __PRETTY_FUNCTION__ << std::endl;
     njh::sort(neighbor2Dists);
     std::vector<DIST> eps;
     auto sq = static_cast<uint32_t>(std::round(std::sqrt(nodes_.size())));
     for(uint32_t i = sq; i < nodes_.size(); i += sq){
       eps.emplace_back(neighbor2Dists[i]);
     }
+//    std::cout << __FILE__ << " : " << __LINE__ << " : " << __PRETTY_FUNCTION__ << std::endl;
     double maxEps = std::numeric_limits<DIST>::lowest();
     for(const auto & n : nodes_){
       //since all nodes are connected no need to check size edge
-      if(n->edges_[maximum_minPts]->dist_ > maxEps){
-        maxEps = n->edges_[maximum_minPts]->dist_;
+//      std::cout << "n->edges_.size(): " << n->edges_.size() << std::endl;
+      if(n->edges_.size() >= maximum_minPts && n->edges_[maximum_minPts -1]->dist_ > maxEps){
+        maxEps = n->edges_[maximum_minPts - 1]->dist_;
       }
     }
+//    exit(1);
+//    std::cout << __FILE__ << " : " << __LINE__ << " : " << __PRETTY_FUNCTION__ << std::endl;
     //std::cout << __FILE__ << " : " << __LINE__ << " : " << __PRETTY_FUNCTION__ << std::endl;
     if(pars.debug){
       std::cout << "Eps: " << std::endl;
@@ -1002,7 +1019,9 @@ public:
         }
       }
       auto newHDBSmaxInitialEps = vectorMean(notSameGroupDists) - 2 * vectorStandardDeviationPop(notSameGroupDists);
-
+      if(newHDBSmaxInitialEps < 0){
+        newHDBSmaxInitialEps = vectorMean(notSameGroupDists);
+      }
       if(pars.debug){
         std::cout << "medianNotSameGroupDists: " << vectorMedianRef(notSameGroupDists) << std::endl;
         std::cout << "meanNotSameGroupDists: " << vectorMean(notSameGroupDists) << std::endl;
@@ -1127,6 +1146,9 @@ public:
       if(pars.debug){
         double differentInitialGroupDists_mean = vectorMean(differentInitialGroupDists);
         double differentInitialGroupDists_sd = vectorStandardDeviationPop(differentInitialGroupDists);
+        std::cout << "differentInitialGroupDists_mean: " << differentInitialGroupDists_mean << std::endl;
+        std::cout << "differentInitialGroupDists_sd: " << differentInitialGroupDists_sd << std::endl;
+
         boost::math::normal_distribution diffDistr(differentInitialGroupDists_mean, differentInitialGroupDists_sd);
 
         for(const auto & group : groups){
@@ -1191,7 +1213,7 @@ public:
       std::cout << "Initial Number of Clusters: " << numberOfNonSingletClusters << std::endl;
       std::cout << "Proposed Clusters: " << proposedClusters << std::endl;
     }
-
+    auto groupCountsSinceLastReCalc = getGroupCounts();
     while(numberOfNonSingletClusters > proposedClusters){
       ++runCount;
       if(pars.verbose){
@@ -1237,18 +1259,27 @@ public:
         }
       }
       numberOfNonSingletClusters = 0;
-      {
-        auto groupCounts = getGroupCounts();
-        numberOfGroups_ = groupCounts.size();
-        for(const auto & count : groupCounts){
-          if(pars.HDBSCountSingletGroups || count.second > 1){
-            ++numberOfNonSingletClusters;
-          }
+      auto currentGroupCounts = getGroupCounts();
+      numberOfGroups_ = currentGroupCounts.size();
+
+      for(const auto & count : currentGroupCounts){
+        if(pars.HDBSCountSingletGroups || count.second > 1){
+          ++numberOfNonSingletClusters;
         }
       }
       //re-compute centroid distances now that clusters have been collapsed
-      {
-        uint32_t modifiedGroup = *groupsToCollapse.begin();
+      uint32_t modifiedGroup = *groupsToCollapse.begin();
+      if(pars.debug){
+        std::cout << "\tgroupCountsSinceLastReCalc[modifiedGroup]: " << groupCountsSinceLastReCalc[modifiedGroup] << std::endl;
+        std::cout << "\tpars.groupDiffToReCalc: " << pars.groupDiffToReCalc << std::endl;
+        std::cout << "\tcurrentGroupCounts[modifiedGroup]: " << currentGroupCounts[modifiedGroup] << std::endl;
+        std::cout << "\tgroupCountsSinceLastReCalc[modifiedGroup] + pars.groupDiffToReCalc > currentGroupCounts[modifiedGroup]: " << njh::colorBool(groupCountsSinceLastReCalc[modifiedGroup] + pars.groupDiffToReCalc > currentGroupCounts[modifiedGroup]) << std::endl;
+        std::cout << "\tcurrentGroupCounts[modifiedGroup] - groupCountsSinceLastReCalc[modifiedGroup] > pars.groupDiffToReCalc: " << njh::colorBool(currentGroupCounts[modifiedGroup] - groupCountsSinceLastReCalc[modifiedGroup] > pars.groupDiffToReCalc) << std::endl;
+        std::cout << "\tmodifiedGroup: " << modifiedGroup << std::endl;
+      }
+
+      if(currentGroupCounts[modifiedGroup] - groupCountsSinceLastReCalc[modifiedGroup] > pars.groupDiffToReCalc){
+        groupCountsSinceLastReCalc = currentGroupCounts;
         njh::concurrent::LockableQueue<uint32_t> groupsQueue(groups);
         uint32_t otherGroup = std::numeric_limits<uint32_t>::max();
         //std::vector<double> allCurrentDists;
@@ -1360,7 +1391,21 @@ public:
 //          }
 //        }
       }
+
       ret.hdbsRunInfo.addRow(runCount, numberOfNonSingletClusters, numberOfGroups_, lowestCentroidDist);
+    }
+    //regroup based on counts;
+    auto groupCounts = getGroupCounts();
+    std::vector<uint32_t> allGroups = getVectorOfMapKeys(groupCounts);
+    njh::sort(allGroups,[&groupCounts](uint32_t g1, uint32_t g2){
+      return groupCounts[g1] > groupCounts[g2];
+    });
+    std::unordered_map<uint32_t, uint32_t> reGroupingKey;
+    for(const auto & idx : iter::enumerate(allGroups)){
+      reGroupingKey[idx.element] = idx.index;
+    }
+    for(auto & n : nodes_){
+      n->group_ = reGroupingKey[n->group_];
     }
     //final centroid
     {
