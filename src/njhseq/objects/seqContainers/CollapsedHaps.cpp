@@ -183,11 +183,14 @@ std::unordered_map<std::string, CollapsedHaps> CollapsedHaps::splitOutSeqsByMeta
 			subNames[val].emplace(name);
 		}
 		for(const auto & field : subNames){
-			seqs[field.first].emplace_back(*seqs_[seqPos]);
+			//crete a new seq so we can manipulate it
+			auto outSeq = *seqs_[seqPos];
+			outSeq.cnt_ = field.second.size();
+			seqs[field.first].emplace_back(outSeq);
 			names[field.first].emplace_back(field.second);
 		}
 	}
-	for (const auto &field : seqs) {
+	for (auto &field : seqs) {
 		if (field.second.size() != names[field.first].size()) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", error " << "in processing field: "
@@ -196,6 +199,13 @@ std::unordered_map<std::string, CollapsedHaps> CollapsedHaps::splitOutSeqsByMeta
 					<< names[field.first].size() << "\n";
 			throw std::runtime_error { ss.str() };
 		}
+		//set fraction so the frequency is updated for within field
+		auto totalCountForField = std::accumulate(field.second.begin(), field.second.end(), 0.0, [](double init, const seqInfo & seq){
+			return init + seq.cnt_;
+		});
+		njh::for_each(field.second, [&totalCountForField](seqInfo & seq){
+			seq.frac_ = seq.cnt_/totalCountForField;
+		});
 		ret[field.first] = CollapsedHaps(field.second, names[field.first]);
 	}
 	return ret;

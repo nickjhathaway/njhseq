@@ -248,6 +248,14 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			divMeasuresOut << njh::conToStr(calcPopMeasuresPars.genHeader(), "\t") << std::endl;
 			auto splitSeqs = inputSeqs.splitOutSeqsByMeta(metaField);
 			for(const auto & subField : splitSeqs){
+//				std::cout << subField.first << std::endl;
+//				for(const auto & seqIter : iter::enumerate(subField.second.seqs_)){
+//					auto & seq = seqIter.element;
+//					std::cout << "\t" << seq->name_ << std::endl;
+//					std::cout << "\t" << seq->cnt_ << std::endl;
+//					std::cout << "\t" << seq->frac_ << std::endl;
+//					std::cout << "\t" << subField.second.names_[seqIter.index].size() << std::endl;
+//				}
 				auto divMeasures = subField.second.getGeneralMeasuresOfDiversity(calcPopMeasuresPars, alignerObj);
 				divMeasuresOut << njh::conToStr(divMeasures.getOut(subField.second, njh::pasteAsStr(pars.identifier, "::", subField.first), calcPopMeasuresPars), "\t") << std::endl;
 			}
