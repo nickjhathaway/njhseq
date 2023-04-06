@@ -54,6 +54,9 @@ njh::sys::RunOutput BioCmdsUtils::RunMakeblastdb(const bfs::path &genomeFnp) con
   checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
   njh::sys::requireExternalProgramThrow("makeblastdb");
   auto prefix = bfs::path(genomeFnp).replace_extension("").string();
+  if(njh::beginsWith(prefix, "./")){
+    prefix = prefix.substr(2);
+  }
   std::string templateCmd =
       "makeblastdb -in " + genomeFnp.string() + "  -dbtype nucl -out " + prefix + "_blastdb -title " + prefix;
   auto makeblastdbCheckFile = prefix + "_blastdb.ndb";
