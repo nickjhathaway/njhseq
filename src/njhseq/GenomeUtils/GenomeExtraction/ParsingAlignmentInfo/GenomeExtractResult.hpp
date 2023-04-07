@@ -24,18 +24,34 @@
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include "njhseq/GenomeUtils/GenomeExtraction/ParsingAlignmentInfo/AlignmentResults.hpp"
+#include "njhseq/BamToolsUtils/ReAlignedSeq.hpp"
 
 namespace njhseq {
 
 
 class GenomeExtractResult {
 public:
-	GenomeExtractResult(const std::shared_ptr<AlignmentResults> & ext,
-			const std::shared_ptr<AlignmentResults> & lig);
-	std::shared_ptr<AlignmentResults> ext_;
-	std::shared_ptr<AlignmentResults> lig_;
+	GenomeExtractResult(GenomicRegion extRegion,
+      comparison extComp,
+			GenomicRegion ligRegion,
+      comparison ligComp);
+  GenomeExtractResult(const std::shared_ptr<AlignmentResults> & ext,
+                      const std::shared_ptr<AlignmentResults> & lig);
+  GenomeExtractResult(const std::shared_ptr<ReAlignedSeq> & ext,
+                      const std::shared_ptr<ReAlignedSeq> & lig);
 
-	std::shared_ptr<GenomicRegion> gRegion_ ;//= nullptr; it's silly but this is due to eclipse for now, should be able to revert once cdt 9.3 is released june 28 2017
+  GenomeExtractResult(const AlignmentResults & ext,
+                      const AlignmentResults & lig);
+  GenomeExtractResult(const ReAlignedSeq & ext,
+                      const ReAlignedSeq & lig);
+  GenomicRegion extRegion_;
+  comparison extComp_;
+
+  GenomicRegion ligRegion_;
+  comparison ligComp_;
+
+
+  std::shared_ptr<GenomicRegion> gRegion_ ;//= nullptr; it's silly but this is due to eclipse for now, should be able to revert once cdt 9.3 is released june 28 2017
 	std::shared_ptr<GenomicRegion> gRegionInner_ ;
 
 	void setRegion();
@@ -43,12 +59,44 @@ public:
 };
 
 
-std::vector<GenomeExtractResult> getPossibleGenomeExtracts(const std::vector<std::shared_ptr<AlignmentResults>> & alnResultsExt,
-		const std::vector<std::shared_ptr<AlignmentResults>> & alnResultsLig, const size_t insertSizeCutOff = std::numeric_limits<size_t>::max());
+template<typename ALN_RESULTS>
+std::vector<GenomeExtractResult> getPossibleGenomeExtracts(const std::vector<ALN_RESULTS> & alnResultsExt,
+		const std::vector<ALN_RESULTS> & alnResultsLig, const size_t insertSizeCutOff = std::numeric_limits<size_t>::max()){
+  std::vector<GenomeExtractResult> ret;
+  //same chrom, opposite strands, less than the insert size
+  for (const auto & ext : alnResultsExt) {
+    for (const auto & lig : alnResultsLig) {
+      //need to be on the same chromosome
+      //need to be on opposite strands (should both should be in 5'->3' direction
+      //and they shouldn't overlap
+      if (getRef(ext).gRegion_.chrom_ == getRef(lig).gRegion_.chrom_
+          && getRef(ext).gRegion_.reverseSrand_ != getRef(lig).gRegion_.reverseSrand_
+          && !getRef(ext).gRegion_.overlaps(getRef(lig).gRegion_)
+          && getRef(ext).gRegion_.start_ != getRef(lig).gRegion_.end_
+          && getRef(ext).gRegion_.end_ != getRef(lig).gRegion_.start_ ) {
 
-
-
-
+        if(getRef(ext).gRegion_.reverseSrand_){
+          if(getRef(ext).gRegion_.start_ > getRef(lig).gRegion_.start_){
+            GenomeExtractResult extraction(ext, lig);
+            extraction.setRegion();
+            if (extraction.gRegion_->getLen() <= insertSizeCutOff) {
+              ret.emplace_back(extraction);
+            }
+          }
+        }else{
+          if(getRef(ext).gRegion_.start_ < getRef(lig).gRegion_.start_){
+            GenomeExtractResult extraction(ext, lig);
+            extraction.setRegion();
+            if (extraction.gRegion_->getLen() <= insertSizeCutOff) {
+              ret.emplace_back(extraction);
+            }
+          }
+        }
+      }
+    }
+  }
+  return ret;
+}
 
 }  // namespace njhseq
 

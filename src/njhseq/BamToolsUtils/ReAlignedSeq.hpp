@@ -10,7 +10,7 @@
 
 #include "njhseq/BamToolsUtils/BamToolsUtils.hpp"
 #include "njhseq/alignment/aligner.h"
-
+#include "njhseq/objects/BioDataObject/BLASTHitTabular.hpp"
 
 
 namespace njhseq {
@@ -36,13 +36,25 @@ public:
 	};
 
 
-	static ReAlignedSeq genRealignment(const BamTools::BamAlignment & bAln,
-			const BamTools::RefVector & refData,
-			aligner & alignerObj,
-			const std::unordered_map<std::string, uint32_t> & chromLengths,
-			TwoBit::TwoBitFile & tReader,
-		const genRealignmentPars & pars);
+  static ReAlignedSeq genRealignment(const BamTools::BamAlignment &bAln,
+                                     const BamTools::RefVector &refData,
+                                     aligner &alignerObj,
+                                     const std::unordered_map<std::string, uint32_t> &chromLengths,
+                                     TwoBit::TwoBitFile &tReader,
+                                     const genRealignmentPars &pars);
+
+  static ReAlignedSeq genRealignment(const BLASTHitTab & blastHit,
+                                     const std::string & originalQuery,
+                                     aligner & alignerObj,
+                                     const std::unordered_map<std::string, uint32_t> & chromLengths,
+                                     TwoBit::TwoBitFile & tReader,
+                                     const genRealignmentPars & pars);
+
+  static std::vector<std::shared_ptr<ReAlignedSeq>> getUniqueLocationResults(
+      std::vector<std::shared_ptr<ReAlignedSeq>> & alnResults);
 };
+
+
 
 
 
