@@ -434,6 +434,7 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 					sampleName + inputOptions_.getOutExtension()).string(),
 			inputOptions_.inFormat_, true);
 
+
 	auto excludedFileOpts = SeqIOOptions(
 			njh::files::make_path(sampleDir, "excluded/",
 					sampleName + inputOptions_.getOutExtension()).string(),

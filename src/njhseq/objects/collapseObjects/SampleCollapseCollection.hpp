@@ -99,6 +99,7 @@ private:
 public:
 	PopNamesInfo popNames_{"", VecStr{}, VecStr{}};
 	bool keepSampleInfoInMemory_{false};
+	bool development_{false};
 	VecStr passingSamples_;
 	VecStr lowRepCntSamples_;
 	PreFilteringCutOffs preFiltCutOffs_;
