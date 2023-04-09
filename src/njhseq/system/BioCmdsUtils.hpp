@@ -39,7 +39,8 @@ public:
 	std::string fastqDumpCmd_ = "fastq-dump";
 	std::string fasterqDumpCmd_ = "fasterq-dump";
 
-	njh::sys::RunOutput RunBowtie2Index(const bfs::path & genomeFnp) const;
+  njh::sys::RunOutput RunBowtie2Index(const bfs::path & genomeFnp) const;
+  njh::sys::RunOutput RunMakeblastdb(const bfs::path & genomeFnp) const;
 	njh::sys::RunOutput RunBwaIndex(const bfs::path & genomeFnp) const;
 	njh::sys::RunOutput RunSamtoolsFastaIndex(const bfs::path & genomeFnp) const;
 	njh::sys::RunOutput RunPicardFastaSeqDict(const bfs::path & genomeFnp) const;

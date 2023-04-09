@@ -192,7 +192,7 @@ void MultiGenomeMapper::setUpGenomes() {
 		while(queueGenome.getVal(genome)){
 			genomes_.at(genome)->createTwoBit();
 			genomes_.at(genome)->buildBowtie2Index();
-			//bioRunner.runAllPossibleIndexes(genomes_.at(genome)->fnp_);
+      bioRunner.runAllPossibleIndexes(genomes_.at(genome)->fnp_);
 		}
 	};
 	njh::concurrent::runVoidFunctionThreaded(setUpGenome, pars_.numThreads_);

@@ -49,6 +49,20 @@ void checkGenomeFnpExistsThrow(const bfs::path & genomeFnp,
 	}
 }
 
+
+njh::sys::RunOutput BioCmdsUtils::RunMakeblastdb(const bfs::path &genomeFnp) const {
+  checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
+  njh::sys::requireExternalProgramThrow("makeblastdb");
+  auto prefix = bfs::path(genomeFnp).replace_extension("").string();
+  if(njh::beginsWith(prefix, "./")){
+    prefix = prefix.substr(2);
+  }
+  std::string templateCmd =
+      "makeblastdb -in " + genomeFnp.string() + "  -dbtype nucl -out " + prefix + "_blastdb -title " + prefix;
+  auto makeblastdbCheckFile = prefix + "_blastdb.ndb";
+  return runCmdCheck(templateCmd, genomeFnp, makeblastdbCheckFile);
+}
+
 njh::sys::RunOutput BioCmdsUtils::RunBowtie2Index(const bfs::path & genomeFnp) const {
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	njh::sys::requireExternalProgramThrow("bowtie2-build");
@@ -130,6 +144,12 @@ std::unordered_map<std::string, njh::sys::RunOutput> BioCmdsUtils::runAllPossibl
 	}else	if(verbose_){
 		std::cerr << "Couldn't find " << "picard" << " skipping picard CreateSequenceDictionary" << std::endl;
 	}
+  if(njh::sys::hasSysCommand("makeblastdb")) {
+    outputs.emplace("picard", RunMakeblastdb(genomeFnp));
+  } else {
+    std::cerr << "Couldn't find " << "makeblastdb" << " skipping makeblastdb" << std::endl;
+  }
+
 	outputs.emplace("TwoBit", RunFaToTwoBit(genomeFnp));
 //	if (njh::sys::hasSysCommand("TwoBit")) {
 //		outputs.emplace("TwoBit", RunFaToTwoBit(genomeFnp));
