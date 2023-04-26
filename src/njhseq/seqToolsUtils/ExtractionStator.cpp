@@ -68,6 +68,14 @@ void ExtractionStator::increaseCounts(const std::string & midName, const std::st
 		++counts_[midName][rComp].bad_;
 		++counts_[midName][rComp].badReverse_;
 		break;
+	case extractCase::BADFORWARD:
+		++counts_[midName][rComp].bad_;
+		++counts_[midName][rComp].badForward_;
+		break;
+	case extractCase::FAILEDBOTHPRIMERS:
+		++counts_[midName][rComp].bad_;
+		++counts_[midName][rComp].failedBothPrimers_;
+		break;
 	case extractCase::CONTAINSNS:
 		++counts_[midName][rComp].bad_;
 		++counts_[midName][rComp].containsNs_;
@@ -171,6 +179,8 @@ void ExtractionStator::addOtherExtractorCounts(const ExtractionStator & otherCou
       counts_[count.first][dir.first].good_ += dir.second.good_;
       counts_[count.first][dir.first].bad_ += dir.second.bad_;
       counts_[count.first][dir.first].badReverse_ += dir.second.badReverse_;
+			counts_[count.first][dir.first].badForward_ += dir.second.badForward_;
+			counts_[count.first][dir.first].failedBothPrimers_ += dir.second.failedBothPrimers_;
       counts_[count.first][dir.first].mismatchPrimers_ += dir.second.mismatchPrimers_;
       counts_[count.first][dir.first].containsNs_ += dir.second.containsNs_;
       counts_[count.first][dir.first].minLenBad_ += dir.second.minLenBad_;

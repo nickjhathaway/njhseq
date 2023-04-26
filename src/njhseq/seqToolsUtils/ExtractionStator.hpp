@@ -38,6 +38,8 @@ public:
 		uint32_t bad_ = 0;
 
 		uint32_t badReverse_ = 0;
+		uint32_t badForward_ = 0;
+		uint32_t failedBothPrimers_ = 0;
 		uint32_t mismatchPrimers_ = 0;
 
 		uint32_t containsNs_ = 0;
@@ -53,6 +55,8 @@ public:
 	enum class extractCase {
 		GOOD,
 		BADREVERSE,
+		BADFORWARD,
+		FAILEDBOTHPRIMERS,
 		MISMATCHPRIMERS,
 		CONTAINSNS,
 		MINLENBAD,
