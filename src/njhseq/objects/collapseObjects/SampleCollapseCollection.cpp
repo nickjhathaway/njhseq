@@ -1430,7 +1430,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 	checkForPopCollapseThrow(__PRETTY_FUNCTION__);
 	std::string delim = "\t";
 	bool checkingExpected = true;
-	uint32_t maxRunCount = 0;
+	uint32_t maxRunCount = 1;
 	std::vector<VecStr> rows;
 	for (const auto& sampName : samples) {
 		if(!keepSampleInfoInMemory_){
