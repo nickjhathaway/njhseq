@@ -371,6 +371,7 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getUniqueKmers
 			TwoBit::TwoBitFile tReader(pair.twoBit_);
 			std::string buffer;
 			tReader[pair.seqName_]->getSequence(buffer);
+
 			for (uint32_t pos = 0; pos < len(buffer) - pars_.kmerLength_ + 1; ++pos) {
 				genomeKmersCurrent.emplace(
 						hasher.hash(buffer.substr(pos, pars_.kmerLength_)));
