@@ -234,13 +234,19 @@ std::vector<std::shared_ptr<ReAlignedSeq>> ReAlignedSeq::getUniqueLocationResult
                 return results1->gRegion_.createUidFromCoords() < results2->gRegion_.createUidFromCoords();
               }
             });
+//  std::cout << "alnResults.size(): " << alnResults.size() << std::endl;
   std::vector<std::shared_ptr<ReAlignedSeq>>  ret;
   ret.emplace_back(alnResults.front());
   for(const auto pos : iter::range<uint32_t>(1, alnResults.size())){
+//    std::cout << "ret.back()->gRegion_.createUidFromCoords(): " << ret.back()->gRegion_.createUidFromCoords() << std::endl;
+//    std::cout << "alnResults[pos]->gRegion_.createUidFromCoords(): " << alnResults[pos]->gRegion_.createUidFromCoords() << std::endl;
+
     if(ret.back()->gRegion_.createUidFromCoords() != alnResults[pos]->gRegion_.createUidFromCoords()){
       ret.emplace_back(alnResults[pos]);
     }
   }
+//  std::cout << "ret.size(): " << ret.size() << std::endl;
+//  std::cout << std::endl;
   return ret;
 }
 
