@@ -270,7 +270,7 @@ std::vector<std::shared_ptr<Primer3Runner::Primer3ResultsList>> Primer3Runner::P
 
 
 	InputStream in(input);
-	std::string line = "";
+	std::string line;
 	std::shared_ptr<Primer3Runner::Primer3ResultsList> currentResult = std::make_shared<Primer3Runner::Primer3ResultsList>();
 	std::shared_ptr<Primer> currentLeft = std::make_shared<Primer>();
 	std::shared_ptr<Primer> currentRight= std::make_shared<Primer>();
