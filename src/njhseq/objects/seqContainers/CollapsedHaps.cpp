@@ -497,7 +497,7 @@ void CollapsedHaps::writeNames(const OutOptions & outOpts) const {
 	for(const auto pos : orderByCnt){
 		nameOut << seqs_[pos]->name_
 				<< "\t" << seqs_[pos]->cnt_
-				<< "\t" << njh::conToStr(names_[pos], ",") << std::endl;
+				<< "\t" << njh::conToStr(names_[pos], ";;") << std::endl;
 	}
 }
 void CollapsedHaps::writeNamesPerLine(const OutOptions & outOpts) const {

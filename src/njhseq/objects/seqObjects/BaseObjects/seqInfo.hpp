@@ -117,7 +117,9 @@ public:
 
   //reverse complement read
   void reverseComplementRead(bool mark = false, bool regQualReverse = false);
-  void reverseHRunsQuals();
+	void complementRead();
+
+	void reverseHRunsQuals();
   //comparison
   bool degenCompare(const seqInfo & otherInfo,
 			const substituteMatrix & compareScores) const;
@@ -125,6 +127,7 @@ public:
 	void outPutFastq(std::ostream& fastqFile) const;
 	void outPutSeq(std::ostream& fastaFile) const;
 	void outPutSeqAnsi(std::ostream& fastaFile) const;
+	std::string getSeqAnsi() const;
 	void outPutQual(std::ostream& qualFile) const;
 	// description
 	Json::Value toJson() const;

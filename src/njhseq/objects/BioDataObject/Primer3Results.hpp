@@ -39,6 +39,7 @@ public:
 		uint32_t PRIMER_MIN_SIZE = 18;
 		uint32_t PRIMER_OPT_SIZE = 33;
 		uint32_t PRIMER_OPT_GC_PERCENT = 50;
+		uint32_t PRIMER_INTERNAL_MIN_GC = 10;
 		bfs::path primer3ConfigPath = "/usr/local/Cellar/primer3/2.4.0/share/primer3/primer3_config/";
 
 		uint32_t minSize = 175;
@@ -47,6 +48,7 @@ public:
 
 		std::string task = "generic";
 
+		std::unordered_map<std::string, std::string> additionalOpts;
 
 		//--PRIMER_MAX_SIZE,--PRIMER_MIN_SIZE,--PRIMER_OPT_SIZE
 		void setPrimerSizeOpts(seqSetUp & setUp);
@@ -60,6 +62,10 @@ public:
 		//--PRIMER_NUM_RETURN
 		void setReturnOptions(seqSetUp & setUp);
 
+
+		void loadAdditionalOptions(const bfs::path & jsonOpts);
+
+		Json::Value toJson()const;
 	};
 
 

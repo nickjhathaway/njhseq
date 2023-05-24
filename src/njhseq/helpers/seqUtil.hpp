@@ -41,6 +41,8 @@ class seqUtil {
   // reverse complement RNA or DNA strand
   static std::string reverseComplement(const std::string &seq,
                                        const std::string &seqType);
+	static std::string complement(const std::string &seq,
+																			 const std::string &seqType);
   static bool reversePalindrome(const std::string &seq,
                                 const std::string &seqType);
   static std::map<size_t, size_t> findReversePalindromes(

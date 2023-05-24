@@ -65,6 +65,9 @@ void Primer3Runner::Primer3Options::setInsertSizeOptions(seqSetUp & setUp){
 void Primer3Runner::Primer3Options::setPrimaryOptions(seqSetUp & setUp){
 	setUp.setOption(primer3ConfigPath, "--primer3ConfigPath", "primer3 Config Path for the thermodynamic data", true);
 	primer3ConfigPath = njh::appendAsNeededRet(primer3ConfigPath.string(), "/");
+
+	setUp.setOption(PRIMER_OPT_GC_PERCENT, "--PRIMER_OPT_GC_PERCENT", "optimal primer GC content");
+	setUp.setOption(PRIMER_INTERNAL_MIN_GC, "--PRIMER_INTERNAL_MIN_GC", "minimal internal GC content");
 }
 
 void Primer3Runner::Primer3Options::setReturnOptions(seqSetUp & setUp){
@@ -72,6 +75,29 @@ void Primer3Runner::Primer3Options::setReturnOptions(seqSetUp & setUp){
 }
 
 
+void Primer3Runner::Primer3Options::loadAdditionalOptions(const bfs::path & jsonOpts){
+	auto values =	njh::json::parseFile(jsonOpts.string());
+	additionalOpts = njh::json::JsonToOMap<std::string,std::string>(values);
+}
+
+
+Json::Value Primer3Runner::Primer3Options::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::typeStr(*this));
+	ret["PRIMER_MAX_SIZE"] = njh::json::toJson(PRIMER_MAX_SIZE);
+	ret["PRIMER_MIN_SIZE"] = njh::json::toJson(PRIMER_MIN_SIZE);
+	ret["PRIMER_OPT_SIZE"] = njh::json::toJson(PRIMER_OPT_SIZE);
+	ret["PRIMER_OPT_GC_PERCENT"] = njh::json::toJson(PRIMER_OPT_GC_PERCENT);
+	ret["PRIMER_INTERNAL_MIN_GC"] = njh::json::toJson(PRIMER_INTERNAL_MIN_GC);
+	ret["primer3ConfigPath"] = njh::json::toJson(primer3ConfigPath);
+	ret["minSize"] = njh::json::toJson(minSize);
+	ret["maxSize"] = njh::json::toJson(maxSize);
+	ret["PRIMER_NUM_RETURN"] = njh::json::toJson(PRIMER_NUM_RETURN);
+	ret["task"] = njh::json::toJson(task);
+
+	ret["additionalOpts"] = njh::json::toJson(additionalOpts);
+	return ret;
+}
 
 
 Json::Value Primer3Runner::region::toJson() const{

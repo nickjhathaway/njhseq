@@ -3,6 +3,8 @@
 #include "njhseq/IO/InputStream.hpp"
 #include "njhseq/IO/OutputStream.hpp"
 #include <njhcpp/bashUtils.h>
+
+#include <utility>
 #include "njhseq/objects/Meta/MetaDataInName.hpp"
 
 
@@ -620,6 +622,63 @@ void table::sortTable(const std::string &firstColumn,
 					}
 				}
 			});
+	}
+}
+void table::naturlSortTable(const std::string &byThisColumn, bool decending){
+	if (!vectorContains(columnNames_, byThisColumn)) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "Table does not contain " << byThisColumn
+			 << " not sorting table" << "\n";
+		ss << "options are: " << vectorToString(columnNames_, ",") << "\n";
+		printVector(columnNames_, ",", ss);
+		ss << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+
+	struct NameWithNameSplit {
+		explicit NameWithNameSplit(std::string  name):
+						name_(std::move(name)){
+			const std::regex regPat_{"([A-Za-z0-9\\.]+)" };
+			const std::regex subPat_ {"([A-Za-z]*)([0-9\\.]*)"};
+
+			nameToks_ = njh::tokStrOnMatchRegex(name_, regPat_);
+			for(const auto & nameTok : nameToks_) {
+				std::smatch nameMatch;
+				if(!std::regex_match(nameTok.begin(), nameTok.end(), nameMatch, subPat_)) {
+					//					std::stringstream ss;
+					//					ss << __PRETTY_FUNCTION__ << ", error " << nameTok << "nameTok didn't match pattern"<< "\n";
+					//					throw std::runtime_error{ss.str()};
+					subNameToks_.emplace_back(nameTok, std::numeric_limits<double>::min() );
+				} else {
+					subNameToks_.emplace_back(nameMatch[1], ("" == nameMatch[2] ? std::numeric_limits<double>::min() :std::stod(nameMatch[2]) ) );
+				}
+			}
+		}
+		std::string name_;
+
+		std::vector<std::string> nameToks_;
+		std::vector<std::pair<std::string, double>> subNameToks_;
+	};
+
+	auto colPos = getColPos(byThisColumn);
+
+	njh::sort(content_, [&colPos](const VecStr & row1, const VecStr & row2) {
+		const NameWithNameSplit seq1(row1[colPos]);
+		const NameWithNameSplit seq2(row2[colPos]);
+		auto smallest = std::min(seq1.nameToks_.size(), seq2.nameToks_.size());
+		for(uint32_t pos = 0; pos < smallest; ++pos) {
+			if(seq1.subNameToks_[pos].first == seq2.subNameToks_[pos].first) {
+				if(seq1.subNameToks_[pos].second != seq2.subNameToks_[pos].second) {
+					return seq1.subNameToks_[pos].second < seq2.subNameToks_[pos].second;
+				}
+			} else {
+				return seq1.subNameToks_[pos].first < seq2.subNameToks_[pos].first;
+			}
+		}
+		return seq1.subNameToks_.size() < seq2.subNameToks_.size();
+	});
+	if(decending){
+		njh::reverse(content_);
 	}
 }
 

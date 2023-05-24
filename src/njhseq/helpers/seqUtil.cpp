@@ -176,6 +176,13 @@ std::string seqUtil::reverseComplement(const std::string &seq,
   return outSeq;
 }
 
+std::string seqUtil::complement(const std::string &seq,
+																const std::string &seqType) {
+	auto ret = reverseComplement(seq, seqType);
+	std::reverse(ret.begin(), ret.end());
+	return ret;
+}
+
 bool seqUtil::reversePalindrome(const std::string &seq,
                                 const std::string &seqType) {
   if (seq.size() % 2 != 0 || seq.size() < 2) {

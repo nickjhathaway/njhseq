@@ -33,3 +33,4 @@
 
 #include "njhseq/PopulationGenetics.h"
 #include "njhseq/PopulationGeneticsUtils.h"
+#include "njhseq/PrimerIDUtils.h"

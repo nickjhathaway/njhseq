@@ -127,24 +127,45 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BLASTHitTab &blastHit,
 
 
   GenomicRegion gRegion = blastHit.genSubjectBed6();
+	auto originalRegion = gRegion;
   gRegion.meta_.meta_.clear();
 
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
+//	{
+//		auto rSeq = gRegion.extractSeq(tReader);
+//		rSeq.name_ = gRegion.createUidFromCoordsStrand();
+//		rSeq.outPutSeqAnsi(std::cout);
+//	}
   uint32_t extend = pars.extendAmount;
   gRegion.reverseSrand_ = false;
   uint32_t softClipLeft = 0;
   uint32_t softClipRight = 0;
   if(pars.adjustForSoftClipping){
-    softClipLeft += blastHit.qStart_ - 1;
-    softClipRight += originalQuery.size() - blastHit.qEnd_;
+		if(originalRegion.reverseSrand_){
+			softClipLeft += originalQuery.size() - blastHit.qEnd_;
+			softClipRight += blastHit.qStart_ - 1;
+		}else{
+			softClipLeft += blastHit.qStart_ - 1;
+			softClipRight += originalQuery.size() - blastHit.qEnd_;
+		}
   }
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
   BedUtility::extendLeftRight(gRegion, extend + softClipLeft, extend + softClipRight, chromLengths.at(gRegion.chrom_));
+//	std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
+
   auto rSeq = gRegion.extractSeq(tReader);
   rSeq.name_ = gRegion.createUidFromCoordsStrand();
+//	rSeq.outPutSeqAnsi(std::cout);
   auto qSeq = seqInfo(blastHit.queryName_, originalQuery);
   if(blastHit.reverseStrand()){
     qSeq.reverseComplementRead(false, true);
   }
-  uint64_t maxLen = alignerObj.parts_.maxSize_ - 1;
+//	qSeq.outPutSeqAnsi(std::cout);
+//	std::cout << std::endl;
+
+	uint64_t maxLen = alignerObj.parts_.maxSize_ - 1;
   readVec::getMaxLength(qSeq, maxLen);
   readVec::getMaxLength(rSeq, maxLen);
   alignerObj.parts_.setMaxSize(maxLen);
@@ -156,10 +177,10 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BLASTHitTab &blastHit,
   uint32_t realRefLastBase  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnLastBase);
   uint32_t realRefEnd = realRefLastBase + 1;
 
-  //
+
 //  alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
 //  alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
-  //
+
 
   seqInfo referenceAln = alignerObj.alignObjectA_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
   seqInfo queryAln = alignerObj.alignObjectB_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
@@ -170,9 +191,10 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BLASTHitTab &blastHit,
   gRegion.start_ = gRegion.start_ + realRefStart;
   gRegion.end_ = gRegion.start_ + realRefEnd - realRefStart;
   alignerObj.profileAlignment(rSeq, qSeq, false, false, false);
-  if('-' == alignerObj.alignObjectA_.seqBase_.seq_.front() || '-' == alignerObj.alignObjectA_.seqBase_.seq_.back()){
-    uint32_t extraExtendFront = 25;
-    uint32_t extraExtendEnd = 25;
+	if (pars.adjustForSoftClipping &&
+			('-' == alignerObj.alignObjectA_.seqBase_.seq_.front() || '-' == alignerObj.alignObjectA_.seqBase_.seq_.back())) {
+		uint32_t extraExtendFront = 25;
+		uint32_t extraExtendEnd = 25;
 
     if('-' == alignerObj.alignObjectA_.seqBase_.seq_.front()){
       extraExtendFront = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
@@ -218,6 +240,113 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BLASTHitTab &blastHit,
   ret.alnQuerySeq_ = queryAln;
   ret.comp_ = alignerObj.comp_;
   return ret;
+}
+
+ReAlignedSeq ReAlignedSeq::genRealignment(const BLASTHitTab &blastHit,
+																					const std::string &originalQuery,
+																					aligner &alignerObj,
+																					const seqInfo & seq,
+																					const genRealignmentPars &pars) {
+
+
+	GenomicRegion gRegion = blastHit.genSubjectBed6();
+	auto originalRegion = gRegion;
+	gRegion.meta_.meta_.clear();
+
+	uint32_t extend = pars.extendAmount;
+	gRegion.reverseSrand_ = false;
+	uint32_t softClipLeft = 0;
+	uint32_t softClipRight = 0;
+	if (pars.adjustForSoftClipping) {
+		if (originalRegion.reverseSrand_) {
+			softClipLeft += originalQuery.size() - blastHit.qEnd_;
+			softClipRight += blastHit.qStart_ - 1;
+		} else {
+			softClipLeft += blastHit.qStart_ - 1;
+			softClipRight += originalQuery.size() - blastHit.qEnd_;
+		}
+	}
+	BedUtility::extendLeftRight(gRegion, extend + softClipLeft, extend + softClipRight, seq.seq_.length());
+	auto rSeq = seq.getSubRead(gRegion.start_, gRegion.getLen());
+	rSeq.name_ = gRegion.createUidFromCoordsStrand();
+	auto qSeq = seqInfo(blastHit.queryName_, originalQuery);
+	if(blastHit.reverseStrand()){
+		qSeq.reverseComplementRead(false, true);
+	}
+	uint64_t maxLen = alignerObj.parts_.maxSize_ - 1;
+	readVec::getMaxLength(qSeq, maxLen);
+	readVec::getMaxLength(rSeq, maxLen);
+	alignerObj.parts_.setMaxSize(maxLen);
+	alignerObj.alignCacheGlobal(rSeq, qSeq);
+	uint32_t queryAlnStart = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
+	uint32_t queryAlnLastBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
+	uint32_t queryAlnEnd = queryAlnLastBase + 1;
+	uint32_t realRefStart  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnStart);
+	uint32_t realRefLastBase  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnLastBase);
+	uint32_t realRefEnd = realRefLastBase + 1;
+
+	//
+//  alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+//  alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+	//
+
+	seqInfo referenceAln = alignerObj.alignObjectA_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
+	seqInfo queryAln = alignerObj.alignObjectB_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
+	alignerObj.alignObjectA_.seqBase_ = referenceAln;
+	alignerObj.alignObjectB_.seqBase_ = queryAln;
+	seqInfo refSeq = referenceAln;
+	refSeq.removeGaps();
+	gRegion.start_ = gRegion.start_ + realRefStart;
+	gRegion.end_ = gRegion.start_ + realRefEnd - realRefStart;
+	alignerObj.profileAlignment(rSeq, qSeq, false, false, false);
+	if(pars.adjustForSoftClipping && ('-' == alignerObj.alignObjectA_.seqBase_.seq_.front() || '-' == alignerObj.alignObjectA_.seqBase_.seq_.back())){
+		uint32_t extraExtendFront = 25;
+		uint32_t extraExtendEnd = 25;
+
+		if('-' == alignerObj.alignObjectA_.seqBase_.seq_.front()){
+			extraExtendFront = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+		}
+		if('-' == alignerObj.alignObjectA_.seqBase_.seq_.back()){
+			extraExtendFront = alignerObj.alignObjectA_.seqBase_.seq_.size() - alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
+		}
+		BedUtility::extendLeftRight(gRegion, extraExtendFront, extraExtendEnd, len(seq));
+		rSeq = seq.getSubRead(gRegion.start_, gRegion.getLen());
+		rSeq.name_ = gRegion.createUidFromCoordsStrand();
+
+		readVec::getMaxLength(qSeq, maxLen);
+		readVec::getMaxLength(rSeq, maxLen);
+		alignerObj.parts_.setMaxSize(maxLen);
+		alignerObj.alignCacheGlobal(rSeq, qSeq);
+		queryAlnStart = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
+		queryAlnLastBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
+		queryAlnEnd = queryAlnLastBase + 1;
+		realRefStart  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnStart);
+		realRefLastBase  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnLastBase);
+		realRefEnd = realRefLastBase + 1;
+		referenceAln = alignerObj.alignObjectA_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
+		queryAln = alignerObj.alignObjectB_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
+		alignerObj.alignObjectA_.seqBase_ = referenceAln;
+		alignerObj.alignObjectB_.seqBase_ = queryAln;
+		refSeq = referenceAln;
+		refSeq.removeGaps();
+		gRegion.start_ = gRegion.start_ + realRefStart;
+		gRegion.end_ = gRegion.start_ + realRefEnd - realRefStart;
+
+		alignerObj.profileAlignment(rSeq, qSeq, false, false, false);
+	}
+
+	ReAlignedSeq ret;
+	//ret.bAln_ = bAln; /**@todo need to generate a bAln_ object */
+	ret.gRegion_ = gRegion;
+	if(blastHit.reverseStrand()){
+		ret.gRegion_.reverseSrand_ = true;
+	}
+	ret.refSeq_ = refSeq;
+	ret.querySeq_ = qSeq;
+	ret.alnRefSeq_ = referenceAln;
+	ret.alnQuerySeq_ = queryAln;
+	ret.comp_ = alignerObj.comp_;
+	return ret;
 }
 
 std::vector<std::shared_ptr<ReAlignedSeq>> ReAlignedSeq::getUniqueLocationResults(

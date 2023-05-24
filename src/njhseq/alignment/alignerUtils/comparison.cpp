@@ -248,6 +248,13 @@ bool comparison::passIdAndErrorThreshold(const comparison& generatedError) const
 }
 
 bool comparison::passErrorProfile(const comparison& generatedError) const {
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << "oneBaseIndel_ >= generatedError.oneBaseIndel_          : " << njh::colorBool(oneBaseIndel_ >= generatedError.oneBaseIndel_) << std::endl;
+//	std::cout << "twoBaseIndel_ >= generatedError.twoBaseIndel_          : " << njh::colorBool(twoBaseIndel_ >= generatedError.twoBaseIndel_) << std::endl;
+//	std::cout << "largeBaseIndel_ >= generatedError.largeBaseIndel_      : " << njh::colorBool(largeBaseIndel_ >= generatedError.largeBaseIndel_) << std::endl;
+//	std::cout << "hqMismatches_ >= generatedError.hqMismatches_          : " << njh::colorBool(hqMismatches_ >= generatedError.hqMismatches_) << std::endl;
+//	std::cout << "lqMismatches_ >= generatedError.lqMismatches_          : " << njh::colorBool(lqMismatches_ >= generatedError.lqMismatches_) << std::endl;
+//	std::cout << "lowKmerMismatches_ >= generatedError.lowKmerMismatches_: " << njh::colorBool(lowKmerMismatches_ >= generatedError.lowKmerMismatches_) << std::endl;
   return (oneBaseIndel_ >= generatedError.oneBaseIndel_ &&
           twoBaseIndel_ >= generatedError.twoBaseIndel_ &&
           largeBaseIndel_ >= generatedError.largeBaseIndel_ &&

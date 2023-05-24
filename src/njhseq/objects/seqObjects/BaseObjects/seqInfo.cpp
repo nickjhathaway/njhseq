@@ -210,6 +210,21 @@ const std::unordered_map<char, uint32_t> seqInfo::ansiBaseColor =
 				{ 'C', 83 }, { 'c', 83 }, { 'G', 227 }, { 'g', 227 }, { 'T', 69 }, {
 						't', 69 }, { 'n', 145 }, { 'N', 145 }, { '-', 102 } };
 
+std::string seqInfo::getSeqAnsi() const{
+	std::stringstream ss;
+	for (const auto & c : seq_) {
+		if(ansiBaseColor.find(c) == ansiBaseColor.end()){
+			ss << njh::bashCT::addBGColor(16) << c
+								<< njh::bashCT::reset;
+		}else{
+			ss << njh::bashCT::addBGColor(ansiBaseColor.at(c)) << c
+								<< njh::bashCT::reset;
+		}
+	}
+	ss << njh::bashCT::reset;
+	return ss.str();
+}
+
 void seqInfo::outPutSeqAnsi(std::ostream& fastaFile) const {
 	fastaFile << njh::bashCT::addBGColor(145) << ">" << name_
 			<< njh::bashCT::reset << "\n";
@@ -311,6 +326,11 @@ void seqInfo::reverseHRunsQuals() {
 	}
 }
 
+
+void seqInfo::complementRead() {
+	seq_ = seqUtil::complement(seq_, "DNA");
+}
+
 void seqInfo::reverseComplementRead(bool mark, bool regQualReverse) {
 	if (regQualReverse) {
 		njh::reverse(qual_);
@@ -344,6 +364,7 @@ void seqInfo::reverseComplementRead(bool mark, bool regQualReverse) {
 		}
 	}
 }
+
 void seqInfo::prepend(const std::string& seq,
 		const std::vector<uint8_t>& qual) {
 	if (qual.size() == 1) {

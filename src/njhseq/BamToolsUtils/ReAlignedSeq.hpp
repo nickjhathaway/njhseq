@@ -50,6 +50,12 @@ public:
                                      TwoBit::TwoBitFile & tReader,
                                      const genRealignmentPars & pars);
 
+	static ReAlignedSeq genRealignment(const BLASTHitTab & blastHit,
+																		 const std::string & originalQuery,
+																		 aligner & alignerObj,
+																		 const seqInfo & seq,
+																		 const genRealignmentPars & pars);
+
   static std::vector<std::shared_ptr<ReAlignedSeq>> getUniqueLocationResults(
       std::vector<std::shared_ptr<ReAlignedSeq>> & alnResults);
 };

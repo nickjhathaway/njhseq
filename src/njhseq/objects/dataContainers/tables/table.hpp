@@ -241,6 +241,7 @@ public:
 	// deleting a row
 	void deleteRow(size_t rowIndex);
 	// sort the table
+	void naturlSortTable(const std::string &byThisColumn, bool decending);
 	void sortTable(const std::string &byThisColumn, bool decending);
 	void sortTable(const std::string &firstColumn,
 			const std::string & secondColumn, bool decending);
