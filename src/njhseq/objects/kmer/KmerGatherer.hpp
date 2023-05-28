@@ -8,6 +8,8 @@
  */
 
 
+#include <utility>
+
 #include "njhseq/common.h"
 #include "njhseq/programUtils/seqSetUp.hpp"
 
@@ -29,30 +31,28 @@ public:
 		void setOptions(seqSetUp & setUp);
 	};
 
-	KmerGatherer(const KmerGathererPars & pars);
+	explicit KmerGatherer(KmerGathererPars pars);
 	KmerGathererPars pars_;
 
-	std::unordered_map<std::string, uint32_t> countGenomeKmers(const bfs::path & genomeFnp) const;
+	[[nodiscard]] std::unordered_map<std::string, uint32_t> countGenomeKmers(const bfs::path & genomeFnp) const;
 
-	std::unordered_set<std::string> getUniqueKmers(const bfs::path & genomeFnp) const;
-	std::set<std::string> getUniqueKmersSet(const bfs::path & genomeFnp) const;
+	[[nodiscard]] std::unordered_set<std::string> getUniqueKmers(const bfs::path & genomeFnp) const;
+	[[nodiscard]] std::set<std::string> getUniqueKmersSet(const bfs::path & genomeFnp) const;
 
 	struct TwobitFnpSeqNamePair{
-		TwobitFnpSeqNamePair(const bfs::path twoBit, const std::string & seqName):twoBit_(twoBit), seqName_(seqName){
+		TwobitFnpSeqNamePair(bfs::path twoBit, std::string seqName):twoBit_(std::move(twoBit)), seqName_(std::move(seqName)){
 
 		}
-		TwobitFnpSeqNamePair(){
-
-		}
+		TwobitFnpSeqNamePair()= default;
 		bfs::path twoBit_;
 		std::string seqName_;
 	};
-	std::unordered_map<std::string, std::set<std::string>> getUniqueKmersSet(const std::vector<bfs::path> & twobitFnps) const;
+	[[nodiscard]] std::unordered_map<std::string, std::set<std::string>> getUniqueKmersSet(const std::vector<bfs::path> & twobitFnps) const;
 
 
-	std::unordered_map<std::string, std::set<uint64_t>> getUniqueKmersSetHash(const std::vector<bfs::path> & twobitFnps) const;
-	std::unordered_map<std::string, std::set<uint64_t>> getUniqueKmersSetHashWithFilters(const std::vector<bfs::path> & twobitFnps) const;
-	std::unordered_map<std::string, std::set<uint64_t>> getUniqueKmersSetHashWithFiltersFromFastas(const std::vector<bfs::path> & fastaTwoBit) const;
+	[[nodiscard]] std::unordered_map<std::string, std::set<uint64_t>> getUniqueKmersSetHash(const std::vector<bfs::path> & twobitFnps) const;
+	[[nodiscard]] std::unordered_map<std::string, std::set<uint64_t>> getUniqueKmersSetHashWithFilters(const std::vector<bfs::path> & twobitFnps) const;
+	[[nodiscard]] std::unordered_map<std::string, std::set<uint64_t>> getUniqueKmersSetHashWithFiltersFromFastas(const std::vector<bfs::path> & fastaTwoBit) const;
 
 };
 

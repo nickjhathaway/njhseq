@@ -15,17 +15,17 @@
 #include "njhseq/objects/counters/DNABaseCounter.hpp"
 #include <TwoBit.h>
 
+#include <utility>
+
 namespace njhseq {
 
 KmerGatherer::KmerGathererPars::KmerGathererPars(uint32_t kmerLength,
 		bool noRevComp, uint32_t numThreads, std::set<char> allowableCharacters) :
-		kmerLength_(kmerLength), noRevComp_(noRevComp), numThreads_(numThreads), allowableCharacters_(
-				allowableCharacters) {
+		kmerLength_(kmerLength), noRevComp_(noRevComp), numThreads_(numThreads), allowableCharacters_(std::move(
+				allowableCharacters)) {
 
 }
-KmerGatherer::KmerGathererPars::KmerGathererPars() {
-
-}
+KmerGatherer::KmerGathererPars::KmerGathererPars() = default;
 
 void KmerGatherer::KmerGathererPars::setOptions(seqSetUp &setUp) {
 	setUp.setOption(kmerLength_, "--kmerLength", "kmer Length");
@@ -36,15 +36,20 @@ void KmerGatherer::KmerGathererPars::setOptions(seqSetUp &setUp) {
 	setUp.setOption(entropyFilter_, "--entropyFilter", "entropy Filter cut off, exclusive, will only keep kmers abovet this entropy level");
 }
 
-KmerGatherer::KmerGatherer(const KmerGathererPars &pars) :
-		pars_(pars) {
+KmerGatherer::KmerGatherer(KmerGathererPars pars) :
+		pars_(std::move(pars)) {
 
 }
 
 std::unordered_map<std::string, uint32_t> KmerGatherer::countGenomeKmers(
 		const bfs::path &genomeFnp) const {
 	std::unordered_map < std::string, uint32_t > ret;
-	SeqInput reader(SeqIOOptions::genFastaIn(genomeFnp));
+	auto fastaInOpts = SeqIOOptions::genFastaIn(genomeFnp);
+	//consider adding this as an optional thing,
+	// as filtering lower case regions could be
+	// beneficial as those tend to be masked regions
+	fastaInOpts.lowerCaseBases_ = "upper";
+	SeqInput reader(fastaInOpts);
 	reader.openIn();
 	std::mutex genomeCountsMut;
 	std::function < void() > countKmers =
@@ -82,7 +87,12 @@ std::unordered_map<std::string, uint32_t> KmerGatherer::countGenomeKmers(
 std::unordered_set<std::string> KmerGatherer::getUniqueKmers(
 		const bfs::path &genomeFnp) const {
 	std::unordered_set < std::string > ret;
-	SeqInput reader(SeqIOOptions::genFastaIn(genomeFnp));
+	auto fastaInOpts = SeqIOOptions::genFastaIn(genomeFnp);
+	//consider adding this as an optional thing,
+	// as filtering lower case regions could be
+	// beneficial as those tend to be masked regions
+	fastaInOpts.lowerCaseBases_ = "upper";
+	SeqInput reader(fastaInOpts);
 	reader.openIn();
 	std::mutex genomeKmersMut;
 	std::function < void() > gatherKmers =
@@ -118,7 +128,12 @@ std::unordered_set<std::string> KmerGatherer::getUniqueKmers(
 std::set<std::string> KmerGatherer::getUniqueKmersSet(
 		const bfs::path &genomeFnp) const {
 	std::set < std::string > ret;
-	SeqInput reader(SeqIOOptions::genFastaIn(genomeFnp));
+	auto fastaInOpts = SeqIOOptions::genFastaIn(genomeFnp);
+	//consider adding this as an optional thing,
+	// as filtering lower case regions could be
+	// beneficial as those tend to be masked regions
+	fastaInOpts.lowerCaseBases_ = "upper";
+	SeqInput reader(fastaInOpts);
 	reader.openIn();
 	std::mutex genomeKmersMut;
 	std::function < void() > gatherKmers =
@@ -159,7 +174,7 @@ std::unordered_map<std::string, std::set<std::string>> KmerGatherer::getUniqueKm
 		TwoBit::TwoBitFile tReader(twoBit);
 		auto seqNames = tReader.sequenceNames();
 		for (const auto &seqName : seqNames) {
-			pairs.emplace_back(TwobitFnpSeqNamePair(twoBit, seqName));
+			pairs.emplace_back(twoBit, seqName);
 		}
 	}
 	njh::concurrent::LockableQueue < TwobitFnpSeqNamePair > pairsQueue(pairs);
@@ -176,6 +191,10 @@ std::unordered_map<std::string, std::set<std::string>> KmerGatherer::getUniqueKm
 			TwoBit::TwoBitFile tReader(pair.twoBit_);
 			std::string buffer;
 			tReader[pair.seqName_]->getSequence(buffer);
+			//consider adding this as an optional thing,
+			// as filtering lower case regions could be
+			// beneficial as those tend to be masked regions
+			njh::strToUpper(buffer);
 			for (uint32_t pos = 0; pos < len(buffer) - pars_.kmerLength_ + 1; ++pos) {
 				genomeKmersCurrent.emplace(buffer.substr(pos, pars_.kmerLength_));
 			}
@@ -228,7 +247,12 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getUniqueKmers
 
 		while (fastaQueue.getVal(fasta)) {
 			seqInfo seq;
-			SeqInput reader(SeqIOOptions::genFastaIn(fasta));
+			auto fastaInOpts = SeqIOOptions::genFastaIn(fasta);
+			//consider adding this as an optional thing,
+			// as filtering lower case regions could be
+			// beneficial as those tend to be masked regions
+			fastaInOpts.lowerCaseBases_ = "upper";
+			SeqInput reader(fastaInOpts);
 			reader.openIn();
 			std::set < uint64_t > genomeKmersCurrent;
 //			uint32_t count = 0;
@@ -304,6 +328,10 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getUniqueKmers
 			TwoBit::TwoBitFile tReader(pair.twoBit_);
 			std::string buffer;
 			tReader[pair.seqName_]->getSequence(buffer);
+			//consider adding this as an optional thing,
+			// as filtering lower case regions could be
+			// beneficial as those tend to be masked regions
+			njh::strToUpper(buffer);
 			for (uint32_t pos = 0; pos < len(buffer) - pars_.kmerLength_ + 1; ++pos) {
 				auto k = buffer.substr(pos, pars_.kmerLength_);
 				if(seqCheck(k)){

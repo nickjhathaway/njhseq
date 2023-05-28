@@ -761,8 +761,8 @@ void BamExtractor::writeExtractReadsFromBam(const bfs::path & bamFnp,
 	}
 	//save the orphans;
 	if (len(alnCache) > 0) {
-		auto names = alnCache.getNames();
-		for (const auto & name : names) {
+		auto cacheNames = alnCache.getNames();
+		for (const auto & name : cacheNames) {
 			auto search = alnCache.get(name);
 			if(search->IsFirstMate()){
 				writer_R1Orphans.openWrite(bamAlnToSeqInfo(*search));

@@ -35,12 +35,19 @@ class seqSetUp : public njh::progutils::ProgramSetUp {
 
   SeqSetUpPars pars_;
   const static VecStr readInFormatsAvailable_;
-  void processQualityFiltering();
+	const static VecStr pairedReadInFormatsAvailable_;
+	const static VecStr singleInFormatsAvailable_;
+
+	void processQualityFiltering();
   bool processDefaultReader(bool readInNamesRequired = true);
   bool processDefaultReader(const VecStr & formats, bool readInNamesRequired = true);
   bool processReadInNames(bool required = true);
   bool processReadInNames(const VecStr & formats, bool required = true);
-  void processGap();
+
+	bool processJustReadInNames(SeqIOOptions & opts, const VecStr & formats, bool required = true);
+
+
+	void processGap();
   void processGapRef();
   void processQualThres();
 

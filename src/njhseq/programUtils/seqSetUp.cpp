@@ -25,13 +25,13 @@
 namespace njhseq {
 
 
-
-const VecStr seqSetUp::readInFormatsAvailable_ {"sff", "sffBin", "fasta", "fastq",
-	"bam", "fastqgz", "fastagz", "fastq1", "fastq2", "fastq1gz", "fastq2gz"};
-
+const VecStr seqSetUp::readInFormatsAvailable_{"sff", "sffBin", "fasta", "fastq",
+																							 "bam", "fastqgz", "fastagz", "fastq1", "fastq2", "fastq1gz", "fastq2gz"};
+const VecStr seqSetUp::pairedReadInFormatsAvailable_{"fastq1", "fastq2", "fastq1gz", "fastq2gz"};
+const VecStr seqSetUp::singleInFormatsAvailable_{"fasta", "fastq", "fastqgz", "fastagz"};
 
 void seqSetUp::processComparison(comparison & comp, std::string stub) {
-	if("" != stub && '-' != stub.back()){
+	if(!stub.empty() && '-' != stub.back()){
 		stub += "-";
 	}
 	setOption(comp.oneBaseIndel_, "--" + stub + "oneBaseIndel", "Allowable one base indels");
@@ -253,7 +253,231 @@ void seqSetUp::processAdjustHRuns(){
 bool seqSetUp::processReadInNames(bool required) {
 	return processReadInNames(readInFormatsAvailable_, required);
 }
+
+
+bool seqSetUp::processJustReadInNames(SeqIOOptions & opts, const VecStr & formats, bool required){
+
+	std::stringstream formatWarnings;
+	bool foundUnrecFormat = false;
+
+	auto formatChecker = [](const std::string & conVal, const std::string & inVal) {
+		return njh::strToLowerRet(njh::lstripRet(conVal, '-')) == njh::strToLowerRet(njh::lstripRet(inVal, '-'));
+	};
+
+	for (const auto & format : formats) {
+		if (!njh::has(readInFormatsAvailable_, format, formatChecker)) {
+			addWarning(
+							"Format: " + format + " is not an available sequence input format in "
+							+ std::string(__PRETTY_FUNCTION__));
+			foundUnrecFormat = true;
+		}
+	}
+	if (foundUnrecFormat) {
+		failed_ = true;
+		return false;
+	}
+	VecStr readInFormatsFound;
+	if (commands_.gettingFlags()
+			|| commands_.printingHelp()
+			|| commands_.gettingVersion()) {
+		njh::progutils::Flag sffFlagOptions(opts.firstName_, "--sff",
+																				"Input sequence filename, only need 1, sff text file", required, "Reading Sequence Input");
+		njh::progutils::Flag sffBinFlagOptions(opts.firstName_,
+																					 "--sffBin", "Input sequence filename, only need 1, sff binary file", required, "Reading Sequence Input");
+		njh::progutils::Flag fastaFlagOptions(opts.firstName_, "--fasta",
+																					"Input sequence filename, only need 1, fasta text file", required, "Reading Sequence Input");
+		njh::progutils::Flag fastqFlagOptions(opts.firstName_, "--fastq",
+																					"Input sequence filename, only need 1, fastq text file", required, "Reading Sequence Input");
+		njh::progutils::Flag fastqFirstMateFlagOptions(opts.firstName_, "--fastq1",
+																									 "Input sequence filename, only need 1, fastq first mate text file", required, "Reading Sequence Input");
+		njh::progutils::Flag fastqSecondMateFlagOptions(opts.firstName_, "--fastq2",
+																										"Input sequence filename, only needed with --fastq1, fastq second mate text file", required, "Reading Sequence Input");
+		njh::progutils::Flag fastqFirstMateGzFlagOptions(opts.firstName_, "--fastq1gz",
+																										 "Input sequence filename, only need 1, fastq first mate gzipped file", required, "Reading Sequence Input");
+		njh::progutils::Flag fastqSecondMateGzFlagOptions(opts.firstName_, "--fastq2gz",
+																											"Input sequence filename, only needed with --fastq1gz, fastq second mate gzipped file", required, "Reading Sequence Input");
+		/*njh::progutils::Flag fastqComplSecondMateFlagOptions(opts.revComplMate_, "--complementMate",
+						"Complement second mate in paired reads", false);
+		*/
+		njh::progutils::Flag fastqgzFlagOptions(opts.firstName_,
+																						"--fastqgz", "Input sequence filename, only need 1, fastq gzipped file", required, "Reading Sequence Input");
+		njh::progutils::Flag fastagzFlagOptions(opts.firstName_,
+																						"--fastagz", "Input sequence filename, only need 1, fasta gzipped file", required, "Reading Sequence Input");
+		njh::progutils::Flag bamFlagOptions(opts.firstName_, "--bam",
+																				"Input sequence filename, only need 1, bam file", required, "Reading Sequence Input");
+		njh::progutils::FlagHolder seqReadInFlags;
+		seqReadInFlags.addFlag(sffFlagOptions);
+		seqReadInFlags.addFlag(sffBinFlagOptions);
+		seqReadInFlags.addFlag(fastaFlagOptions);
+		seqReadInFlags.addFlag(fastqFlagOptions);
+		seqReadInFlags.addFlag(bamFlagOptions);
+		seqReadInFlags.addFlag(fastqgzFlagOptions);
+		seqReadInFlags.addFlag(fastagzFlagOptions);
+		seqReadInFlags.addFlag(fastqFirstMateFlagOptions);
+		seqReadInFlags.addFlag(fastqSecondMateFlagOptions);
+		seqReadInFlags.addFlag(fastqFirstMateGzFlagOptions);
+		seqReadInFlags.addFlag(fastqSecondMateGzFlagOptions);
+
+		for (const auto & formatFlag : seqReadInFlags.flags_) {
+			if (njh::has(formats, formatFlag.second.flags_.front(), formatChecker)) {
+				flags_.addFlag(formatFlag.second);
+			}
+		}
+		std::string fastq1Flag = "--fastq1";
+		std::string fastq2Flag = "--fastq2";
+
+		std::string fastq1GzFlag = "--fastq1gz";
+		std::string fastq2GzFlag = "--fastq2gz";
+
+		if(njh::has(formats, fastq1Flag, formatChecker) ){
+			//flags_.addFlag(fastqComplSecondMateFlagOptions);
+			if(!njh::has(formats, fastq2Flag, formatChecker)){
+				flags_.addFlag(fastqSecondMateFlagOptions);
+			}
+		}
+		if(njh::has(formats, fastq1GzFlag, formatChecker) ){
+			//flags_.addFlag(fastqComplSecondMateFlagOptions);
+			if(!njh::has(formats, fastq2GzFlag, formatChecker)){
+				flags_.addFlag(fastqSecondMateGzFlagOptions);
+			}
+		}
+	}
+	//compPerCutOff
+	//process format information
+	//hasFlagCaseInsen(
+	if(commands_.hasFlagCaseInsenNoDash("--fasta")){
+		if(njh::has(formats, "--fasta", formatChecker) ){
+			opts.inFormat_ = SeqIOOptions::inFormats::FASTA;
+			opts.outFormat_ = SeqIOOptions::outFormats::FASTA;
+			readInFormatsFound.emplace_back("--fasta");
+		}
+	}
+	if(commands_.hasFlagCaseInsenNoDash("--sff")){
+		if(njh::has(formats, "--sff", formatChecker) ) {
+			opts.inFormat_ = SeqIOOptions::inFormats::SFFTXT;
+			opts.outFormat_ = SeqIOOptions::outFormats::FASTQ;
+			readInFormatsFound.emplace_back("--sff");
+		}
+	}
+	if(commands_.hasFlagCaseInsenNoDash("--sffBin")){
+		if(njh::has(formats, "--sffBin", formatChecker) ) {
+			opts.inFormat_ = SeqIOOptions::inFormats::SFFBIN;
+			opts.outFormat_ = SeqIOOptions::outFormats::FASTQ;
+			readInFormatsFound.emplace_back("--sffBin");
+		}
+	}
+	if(commands_.hasFlagCaseInsenNoDash("--bam")){
+		if(njh::has(formats, "--bam", formatChecker) ) {
+			opts.inFormat_ = SeqIOOptions::inFormats::BAM;
+			opts.outFormat_ = SeqIOOptions::outFormats::FASTQGZ;
+			readInFormatsFound.emplace_back("--bam");
+		}
+	}
+	if(commands_.hasFlagCaseInsenNoDash("--fastq")){
+		if(njh::has(formats, "--fastq", formatChecker) ) {
+			opts.inFormat_ = SeqIOOptions::inFormats::FASTQ;
+			opts.outFormat_ = SeqIOOptions::outFormats::FASTQ;
+			readInFormatsFound.emplace_back("--fastq");
+		}
+	}
+	if(commands_.hasFlagCaseInsenNoDash("--fastq1")){
+		if(njh::has(formats, "--fastq1", formatChecker) ) {
+			opts.inFormat_ = SeqIOOptions::inFormats::FASTQPAIRED;
+			opts.outFormat_ = SeqIOOptions::outFormats::FASTQPAIRED;
+			readInFormatsFound.emplace_back("--fastq1");
+		}
+	}
+	if(commands_.hasFlagCaseInsenNoDash("--fastq1gz")){
+		if(njh::has(formats, "--fastq1gz", formatChecker) ) {
+			opts.inFormat_ = SeqIOOptions::inFormats::FASTQPAIREDGZ;
+			opts.outFormat_ = SeqIOOptions::outFormats::FASTQPAIREDGZ;
+			readInFormatsFound.emplace_back("--fastq1gz");
+		}
+	}
+	if(commands_.hasFlagCaseInsenNoDash("--fastqgz")){
+		if(njh::has(formats, "--fastqgz", formatChecker) ) {
+			opts.inFormat_ = SeqIOOptions::inFormats::FASTQGZ;
+			opts.outFormat_ = SeqIOOptions::outFormats::FASTQGZ;
+			readInFormatsFound.emplace_back("--fastqgz");
+		}
+	}
+	if(commands_.hasFlagCaseInsenNoDash("--fastagz")){
+		if(njh::has(formats, "--fastqgz", formatChecker) ) {
+			opts.inFormat_ = SeqIOOptions::inFormats::FASTAGZ;
+			opts.outFormat_ = SeqIOOptions::outFormats::FASTAGZ;
+			readInFormatsFound.emplace_back("--fastqgz");
+		}
+	}
+	if(readInFormatsFound.size() > 1){
+		std::stringstream tempOut;
+		tempOut << njh::bashCT::bold
+						<< "Found multiple read in options, should only have one"
+						<< std::endl;
+		tempOut << vectorToString(readInFormatsFound, ",") + njh::bashCT::reset;
+		tempOut << std::endl;
+		addOtherVec(warnings_, streamToVecStr(tempOut));
+		failed_ = true;
+		return false;
+	} else if (readInFormatsFound.empty()){
+		if(required){
+			std::stringstream tempOut;
+			tempOut << njh::bashCT::bold
+							<< "Did not find a recognizable read in option"
+							<< std::endl;
+			tempOut << "Options include: "
+							<< njh::bashCT::red << njh::conToStr(formats, ",")
+							<< njh::bashCT::reset << std::endl;
+			tempOut << "Command line arguments" << std::endl;
+			writeOutCommandLineArguments(commands_.arguments_, tempOut);
+			addOtherVec(warnings_, streamToVecStr(tempOut));
+			failed_ = true;
+		}
+		return false;
+	} else {
+		if (!commands_.gettingFlags()
+				&& !commands_.printingHelp()
+				&& !commands_.gettingVersion()){
+			setOption(opts.firstName_, readInFormatsFound.front(), "In Sequence Filename");
+		}
+		if(readInFormatsFound.front() == "--fasta"){
+			if(setOption(opts.secondName_, "--qual", "Name of the quality file")){
+				opts.inFormat_ = SeqIOOptions::inFormats::FASTAQUAL;
+				opts.outFormat_ = SeqIOOptions::outFormats::FASTQ;
+			}
+		}
+		if (readInFormatsFound.front() == "--fastq1" || readInFormatsFound.front() == "--fastq1gz") {
+			if(opts.revComplMate_){
+				bool noRComp = false;
+				setOption(noRComp, "--norCompMate",
+									"Whether to reverse complement the sequence in the mate file, default is to reverse complement");
+				opts.revComplMate_ = !noRComp;
+			}else{
+				setOption(opts.revComplMate_, "--rCompMate",
+									"Whether to reverse complement the sequence in the mate file, default is to not reverse complement");
+			}
+		}
+		if (readInFormatsFound.front() == "--fastq1") {
+			if (!setOption(opts.secondName_, "--fastq2",
+										 "Name of the mate file")) {
+				addWarning("If supplying -fastq1 need to also have -fastq2");
+				failed_ = true;
+			}
+		}
+		if (readInFormatsFound.front() == "--fastq1gz") {
+			if (!setOption(opts.secondName_, "--fastq2gz",
+										 "Name of the mate file")) {
+				addWarning("If supplying -fastq1gz need to also have -fastq2gz");
+				failed_ = true;
+			}
+		}
+		return true;
+	}
+}
+
+
+
 bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
+
 	setOption(pars_.ioOptions_.processed_, "--processed",
 			"Processed, Input Sequence Name has a suffix that contains abundance info", false, "Reading Sequence Input");
 	setOption(pars_.ioOptions_.lowerCaseBases_, "--lower",
@@ -355,49 +579,67 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 	//process format information
 	//hasFlagCaseInsen(
 	if(commands_.hasFlagCaseInsenNoDash("--fasta")){
-		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTA;
-		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTA;
-		readInFormatsFound.emplace_back("--fasta");
+		if(njh::has(formats, "--fasta", formatChecker) ){
+			pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTA;
+			pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTA;
+			readInFormatsFound.emplace_back("--fasta");
+		}
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--sff")){
-		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::SFFTXT;
-		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
-		readInFormatsFound.emplace_back("--sff");
+		if(njh::has(formats, "--sff", formatChecker) ) {
+			pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::SFFTXT;
+			pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
+			readInFormatsFound.emplace_back("--sff");
+		}
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--sffBin")){
-		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::SFFBIN;
-		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
-		readInFormatsFound.emplace_back("--sffBin");
+		if(njh::has(formats, "--sffBin", formatChecker) ) {
+			pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::SFFBIN;
+			pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
+			readInFormatsFound.emplace_back("--sffBin");
+		}
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--bam")){
-		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::BAM;
-		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
-		readInFormatsFound.emplace_back("--bam");
+		if(njh::has(formats, "--bam", formatChecker) ) {
+			pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::BAM;
+			pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQGZ;
+			readInFormatsFound.emplace_back("--bam");
+		}
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--fastq")){
-		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQ;
-		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
-		readInFormatsFound.emplace_back("--fastq");
+		if(njh::has(formats, "--fastq", formatChecker) ) {
+			pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQ;
+			pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQ;
+			readInFormatsFound.emplace_back("--fastq");
+		}
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--fastq1")){
-		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQPAIRED;
-		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQPAIRED;
-		readInFormatsFound.emplace_back("--fastq1");
+		if(njh::has(formats, "--fastq1", formatChecker) ) {
+			pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQPAIRED;
+			pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQPAIRED;
+			readInFormatsFound.emplace_back("--fastq1");
+		}
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--fastq1gz")){
-		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQPAIREDGZ;
-		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQPAIREDGZ;
-		readInFormatsFound.emplace_back("--fastq1gz");
+		if(njh::has(formats, "--fastq1gz", formatChecker) ) {
+			pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQPAIREDGZ;
+			pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQPAIREDGZ;
+			readInFormatsFound.emplace_back("--fastq1gz");
+		}
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--fastqgz")){
-		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQGZ;
-		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQGZ;
-		readInFormatsFound.emplace_back("--fastqgz");
+		if(njh::has(formats, "--fastqgz", formatChecker) ) {
+			pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTQGZ;
+			pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTQGZ;
+			readInFormatsFound.emplace_back("--fastqgz");
+		}
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--fastagz")){
-		pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTAGZ;
-		pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTAGZ;
-		readInFormatsFound.emplace_back("--fastagz");
+		if(njh::has(formats, "--fastqgz", formatChecker) ) {
+			pars_.ioOptions_.inFormat_ = SeqIOOptions::inFormats::FASTAGZ;
+			pars_.ioOptions_.outFormat_ = SeqIOOptions::outFormats::FASTAGZ;
+			readInFormatsFound.emplace_back("--fastqgz");
+		}
 	}
 	if(readInFormatsFound.size() > 1){
     std::stringstream tempOut;
@@ -461,7 +703,6 @@ bool seqSetUp::processReadInNames(const VecStr & formats, bool required) {
 				failed_ = true;
 			}
 		}
-		//setOption(pars_.ioOptions_.out_.outFilename_, "--out", "Name of the out sequence file");
 		return true;
 	}
 }
