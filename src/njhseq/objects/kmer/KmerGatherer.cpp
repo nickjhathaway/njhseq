@@ -33,7 +33,8 @@ void KmerGatherer::KmerGathererPars::setOptions(seqSetUp &setUp) {
 	setUp.setOption(allowableCharacters_, "--allowableCharacters",
 			"Only count kmers with these allowable Characters");
 	setUp.setOption(noRevComp_, "--noRevComp", "noRevComp");
-	setUp.setOption(entropyFilter_, "--entropyFilter", "entropy Filter cut off, exclusive, will only keep kmers abovet this entropy level");
+	setUp.setOption(entropyFilter_, "--entropyFilter", "entropy Filter cut off, exclusive, will only keep kmers above this entropy level");
+	setUp.setOption(allUpper_, "--changeSeqsToUpper", "change all sequences to upper case, otherwise they will filter off");
 }
 
 KmerGatherer::KmerGatherer(KmerGathererPars pars) :
@@ -48,7 +49,10 @@ std::unordered_map<std::string, uint32_t> KmerGatherer::countGenomeKmers(
 	//consider adding this as an optional thing,
 	// as filtering lower case regions could be
 	// beneficial as those tend to be masked regions
-	fastaInOpts.lowerCaseBases_ = "upper";
+	if(pars_.allUpper_){
+		fastaInOpts.lowerCaseBases_ = "upper";
+	}
+
 	SeqInput reader(fastaInOpts);
 	reader.openIn();
 	std::mutex genomeCountsMut;
@@ -91,7 +95,9 @@ std::unordered_set<std::string> KmerGatherer::getUniqueKmers(
 	//consider adding this as an optional thing,
 	// as filtering lower case regions could be
 	// beneficial as those tend to be masked regions
-	fastaInOpts.lowerCaseBases_ = "upper";
+	if(pars_.allUpper_){
+		fastaInOpts.lowerCaseBases_ = "upper";
+	}
 	SeqInput reader(fastaInOpts);
 	reader.openIn();
 	std::mutex genomeKmersMut;
@@ -132,7 +138,9 @@ std::set<std::string> KmerGatherer::getUniqueKmersSet(
 	//consider adding this as an optional thing,
 	// as filtering lower case regions could be
 	// beneficial as those tend to be masked regions
-	fastaInOpts.lowerCaseBases_ = "upper";
+	if(pars_.allUpper_){
+		fastaInOpts.lowerCaseBases_ = "upper";
+	}
 	SeqInput reader(fastaInOpts);
 	reader.openIn();
 	std::mutex genomeKmersMut;
@@ -194,7 +202,9 @@ std::unordered_map<std::string, std::set<std::string>> KmerGatherer::getUniqueKm
 			//consider adding this as an optional thing,
 			// as filtering lower case regions could be
 			// beneficial as those tend to be masked regions
-			njh::strToUpper(buffer);
+			if(pars_.allUpper_){
+				njh::strToUpper(buffer);
+			}
 			for (uint32_t pos = 0; pos < len(buffer) - pars_.kmerLength_ + 1; ++pos) {
 				genomeKmersCurrent.emplace(buffer.substr(pos, pars_.kmerLength_));
 			}
@@ -251,7 +261,9 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getUniqueKmers
 			//consider adding this as an optional thing,
 			// as filtering lower case regions could be
 			// beneficial as those tend to be masked regions
-			fastaInOpts.lowerCaseBases_ = "upper";
+			if(pars_.allUpper_){
+				fastaInOpts.lowerCaseBases_ = "upper";
+			}
 			SeqInput reader(fastaInOpts);
 			reader.openIn();
 			std::set < uint64_t > genomeKmersCurrent;
@@ -331,7 +343,9 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getUniqueKmers
 			//consider adding this as an optional thing,
 			// as filtering lower case regions could be
 			// beneficial as those tend to be masked regions
-			njh::strToUpper(buffer);
+			if(pars_.allUpper_){
+				njh::strToUpper(buffer);
+			}
 			for (uint32_t pos = 0; pos < len(buffer) - pars_.kmerLength_ + 1; ++pos) {
 				auto k = buffer.substr(pos, pars_.kmerLength_);
 				if(seqCheck(k)){
@@ -399,7 +413,9 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getUniqueKmers
 			TwoBit::TwoBitFile tReader(pair.twoBit_);
 			std::string buffer;
 			tReader[pair.seqName_]->getSequence(buffer);
-
+			if(pars_.allUpper_){
+				njh::strToUpper(buffer);
+			}
 			for (uint32_t pos = 0; pos < len(buffer) - pars_.kmerLength_ + 1; ++pos) {
 				genomeKmersCurrent.emplace(
 						hasher.hash(buffer.substr(pos, pars_.kmerLength_)));

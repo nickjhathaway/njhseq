@@ -28,6 +28,8 @@ public:
 		uint32_t numThreads_{1};
 		std::set<char> allowableCharacters_{'A', 'C', 'G', 'T'};
 		double entropyFilter_{1.95};
+		bool allUpper_ = false;
+
 		void setOptions(seqSetUp & setUp);
 	};
 
