@@ -24,6 +24,7 @@ public:
 				std::set<char> allowableCharacters);
 		KmerGathererPars();
 		uint32_t kmerLength_{19};
+		uint32_t kmerLengthForEntropyCalc_{1};
 		bool noRevComp_{false};
 		uint32_t numThreads_{1};
 		std::set<char> allowableCharacters_{'A', 'C', 'G', 'T'};

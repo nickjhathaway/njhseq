@@ -29,6 +29,11 @@ KmerGatherer::KmerGathererPars::KmerGathererPars() = default;
 
 void KmerGatherer::KmerGathererPars::setOptions(seqSetUp &setUp) {
 	setUp.setOption(kmerLength_, "--kmerLength", "kmer Length");
+	setUp.setOption(kmerLengthForEntropyCalc_, "--kmerLengthForEntropyCalc", "kmer Length For Entropy Calculation");
+	if(kmerLengthForEntropyCalc_ > kmerLength_){
+		setUp.failed_ = true;
+		setUp.addWarning(njh::pasteAsStr("--kmerLengthForEntropyCalc: ", kmerLengthForEntropyCalc_, " can't be longer than kmer length, --kmerLength, for table, ", kmerLength_));
+	}
 	setUp.setOption(numThreads_, "--numThreads", "number of threads");
 	setUp.setOption(allowableCharacters_, "--allowableCharacters",
 			"Only count kmers with these allowable Characters");
