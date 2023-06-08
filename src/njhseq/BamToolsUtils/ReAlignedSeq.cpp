@@ -173,8 +173,18 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BLASTHitTab &blastHit,
   uint32_t queryAlnStart = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
   uint32_t queryAlnLastBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
   uint32_t queryAlnEnd = queryAlnLastBase + 1;
+
+	uint32_t refAlnStart = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+	uint32_t refAlnLastBase = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
   uint32_t realRefStart  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnStart);
   uint32_t realRefLastBase  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnLastBase);
+	//have to do these checks if the reference is shorter than the query
+	if(refAlnStart > queryAlnStart){
+		realRefStart  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, refAlnStart);
+	}
+	if(refAlnLastBase < queryAlnLastBase){
+		realRefLastBase  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, refAlnLastBase);
+	}
   uint32_t realRefEnd = realRefLastBase + 1;
 
 
@@ -230,6 +240,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BLASTHitTab &blastHit,
 
   ReAlignedSeq ret;
   //ret.bAln_ = bAln; /**@todo need to generate a bAln_ object */
+
   ret.gRegion_ = gRegion;
   if(blastHit.reverseStrand()){
     ret.gRegion_.reverseSrand_ = true;
@@ -239,6 +250,8 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BLASTHitTab &blastHit,
   ret.alnRefSeq_ = referenceAln;
   ret.alnQuerySeq_ = queryAln;
   ret.comp_ = alignerObj.comp_;
+//	std::cout << originalRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+//	std::cout << ret.gRegion_.genBedRecordCore().toDelimStrWithExtra() << std::endl;
   return ret;
 }
 

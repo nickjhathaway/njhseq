@@ -105,12 +105,16 @@ Bed6RecordCore BLASTHitTab::genSubjectBed6() const{
 	meta.addMeta("queryEnd", qEnd_);
 	meta.addMeta("evalue", evalue_);
 	meta.addMeta("bitScore", bitScore_);
-
+	auto start = std::min(sStart_, sEnd_) - 1;
+	auto end = std::max(sStart_, sEnd_);
 	Bed6RecordCore ret(subjectName_,
-										 reverseStrand() ? sEnd_ -1 : sStart_ -1,
-										 reverseStrand() ? sStart_ : sEnd_,
+//										 reverseStrand() ? sEnd_ -1 : sStart_ -1,
+//										 reverseStrand() ? sStart_ : sEnd_,
+										 start,
+										 end,
 										 queryName_,
-										 uAbsdiff(sStart_, sEnd_) + 1,
+//										 uAbsdiff(sStart_, sEnd_) + 1,
+										 end - start,
 										 reverseStrand() ? '-' : '+');
 	ret.extraFields_.emplace_back(meta.createMetaName());
 
