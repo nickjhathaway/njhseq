@@ -4,6 +4,7 @@
 
 #include "PrimerDimerUtils.hpp"
 #include "njhseq/helpers/seqUtil.hpp"
+#include "njhseq/concurrency/PairwisePairFactory.hpp"
 
 namespace njhseq {
 PrimerDimerUtils::PrimerDimerUtils() {
@@ -231,14 +232,33 @@ std::unordered_map<std::string, double>PrimerDimerUtils::singleMismatchScores = 
 				{"TT/TC", 0.34},
 				{"TT/TA", 0.68}};
 
-std::vector<std::vector<double>> PrimerDimerUtils::computeFullScoreMatrix(const std::vector<seqInfo> & primers) const{
+std::vector<std::vector<double>> PrimerDimerUtils::computeFullScoreMatrix(const std::vector<seqInfo> & primers, uint32_t numThreads) const{
 	std::vector<std::vector<double>> scores(primers.size(), std::vector<double>(primers.size(), 0.0));
-	for(const auto i : iter::range(primers.size())){
-		for(const auto j : iter::range(i, primers.size())){
-			scores[i][j] = computeDimerScoreTop(primers[i].seq_, primers[j].seq_);
-			scores[j][i] = scores[i][j];
+	PairwisePairFactory pFac(primers.size());
+
+	std::function<void()> computeDim = [&pFac, &scores, this, &primers]() {
+		PairwisePairFactory::PairwisePairVec pairs;
+		while (pFac.setNextPairs(pairs, 300)) {
+			for(const auto & pair : pairs.pairs_){
+				scores[pair.row_][pair.col_] = computeDimerScoreTop(primers[pair.row_].seq_, primers[pair.col_].seq_);
+				scores[pair.col_][pair.row_] = scores[pair.row_][pair.col_];
+			}
 		}
+	};
+	njh::concurrent::runVoidFunctionThreaded(computeDim, numThreads);
+	//pair factory doesn't produce the self comparison so take a quick run through the diagonal
+	for (const auto i: iter::range(primers.size())) {
+		scores[i][i] = computeDimerScoreTop(primers[i].seq_, primers[i].seq_);
 	}
+//	for (const auto i: iter::range(primers.size())) {
+//		std::cout << "\ri:" << i << ", " << static_cast<double>(i) / primers.size() * 100.0;
+//		std::cout.flush();
+//		for (const auto j: iter::range(i, primers.size())) {
+//			scores[i][j] = computeDimerScoreTop(primers[i].seq_, primers[j].seq_);
+//			scores[j][i] = scores[i][j];
+//		}
+//	}
+//	std::cout << std::endl;
 	return scores;
 }
 

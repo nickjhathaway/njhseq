@@ -29,7 +29,7 @@ private:
 public:
 	[[nodiscard]] double computeDimerScoreTop(const std::string &str1, const std::string &str2) const;
 
-	[[nodiscard]] std::vector<std::vector<double>> computeFullScoreMatrix(const std::vector<seqInfo> & primers) const;
+	[[nodiscard]] std::vector<std::vector<double>> computeFullScoreMatrix(const std::vector<seqInfo> & primers, uint32_t numThreads = 1) const;
 
 	static void writeMatrix(const std::vector<std::vector<double>> & scores, std::ostream & out, const std::vector<seqInfo> & primers, bool outputRawMatrix = false);
 };
