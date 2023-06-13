@@ -820,6 +820,7 @@ void table::cbind(const table &otherTable, bool fill) {
     ++count;
   }
   addOtherVec(columnNames_, otherTable.columnNames_);
+	setColNamePositions();
 }
 
 table table::getColumnsLoose(const std::string &subStr) const{
@@ -1123,18 +1124,18 @@ table table::aggregateAdvance(const std::string &columnName,
 table table::cbind(const std::vector<table> &tables,
                    const std::string &columnForceMatch, bool addZeros) {
   table ans;
-  std::map<int, std::map<std::string, table>> splitTables;
-  int count = 0;
+  std::map<uint32_t, std::map<std::string, table>> splitTables;
+  uint32_t count = 0;
   VecStr names;
-  uint64_t numOfCols = 0;
   VecStr spNames;
   for (const auto &tab : tables) {
     splitTables[count] = tab.splitTableOnColumn(columnForceMatch);
     for (auto &secondTab : splitTables[count]) {
       secondTab.second.deleteColumn(columnForceMatch);
-      numOfCols = secondTab.second.columnNames_.size();
-      spNames = secondTab.second.columnNames_;
+      //numOfCols = secondTab.second.columnNames_.size();
+      //spNames = secondTab.second.columnNames_;
     }
+		addOtherVec(spNames, splitTables[count].begin()->second.columnNames_);
     addOtherVec(names, getVectorOfMapKeys(splitTables[count]));
     ++count;
   }
@@ -1145,13 +1146,15 @@ table table::cbind(const std::vector<table> &tables,
     ans.content_.emplace_back(VecStr{name});
   }
 
-  addOtherVec(ans.columnNames_, repeatVector(spNames, {splitTables.size()}));
+  //addOtherVec(ans.columnNames_, repeatVector(spNames, {splitTables.size()}));
+	addOtherVec(ans.columnNames_, spNames);
   for (auto &row : ans.content_) {
     for (auto &spTab : splitTables) {
       if (spTab.second.find(row[0]) != spTab.second.end()) {
+				//allowing only 1 match, consider allowing all matches
         addOtherVec(row, spTab.second[row[0]].content_[0]);
       } else {
-        addOtherVec(row, VecStr(numOfCols, ""));
+        addOtherVec(row, VecStr(spTab.second[row[0]].nCol(), ""));
       }
     }
   }
@@ -1159,6 +1162,7 @@ table table::cbind(const std::vector<table> &tables,
   if (addZeros) {
     ans.fillWithZeros();
   }
+	ans.setColNamePositions();
   return ans;
 }
 std::map<std::string, uint32_t> table::countColumn(
