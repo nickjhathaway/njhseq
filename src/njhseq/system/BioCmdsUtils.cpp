@@ -139,11 +139,11 @@ std::unordered_map<std::string, njh::sys::RunOutput> BioCmdsUtils::runAllPossibl
 		std::cerr << "Couldn't find " << "samtools" << " skipping samtools faidx" << std::endl;
 	}
 
-	if (njh::sys::hasSysCommand("picard")) {
-		outputs.emplace("picard", RunPicardFastaSeqDict(genomeFnp));
-	}else	if(verbose_){
-		std::cerr << "Couldn't find " << "picard" << " skipping picard CreateSequenceDictionary" << std::endl;
-	}
+//	if (njh::sys::hasSysCommand("picard")) {
+//		outputs.emplace("picard", RunPicardFastaSeqDict(genomeFnp));
+//	}else	if(verbose_){
+//		std::cerr << "Couldn't find " << "picard" << " skipping picard CreateSequenceDictionary" << std::endl;
+//	}
   if(njh::sys::hasSysCommand("makeblastdb")) {
     outputs.emplace("picard", RunMakeblastdb(genomeFnp));
   } else {
