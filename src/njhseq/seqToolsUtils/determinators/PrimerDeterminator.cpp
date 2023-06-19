@@ -318,8 +318,8 @@ std::string PrimerDeterminator::determineWithReversePrimer(seqInfo & info,
 					rev.info_, false, true, false);
 
 			std::pair<uint32_t, uint32_t> forwardPosition = std::make_pair(
-					alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-")) + pars.primerStart_,
-					alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-")) + pars.primerStart_);
+					alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-')) + pars.primerStart_,
+					alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-')) + pars.primerStart_);
 			double coverage = alignerObj.comp_.distances_.query_.coverage_;
 			if (0 == pars.primerStart_ && 1 == alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
 					&& ('T' == alignerObj.alignObjectB_.seqBase_.seq_.front()
@@ -420,8 +420,8 @@ PrimerDeterminator::PrimerPositionScore PrimerDeterminator::determineBestReverse
 					rev.info_, false, true, false);
 
 			std::pair<uint32_t, uint32_t> forwardPosition = std::make_pair(
-					alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-")) + pars.primerStart_,
-					alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-")) + pars.primerStart_);
+					alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-')) + pars.primerStart_,
+					alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-')) + pars.primerStart_);
 			double coverage = alignerObj.comp_.distances_.query_.coverage_;
 			if (0 == pars.primerStart_ && 1 == alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
 					&& ('T' == alignerObj.alignObjectB_.seqBase_.seq_.front()
@@ -635,8 +635,8 @@ std::string PrimerDeterminator::determineForwardPrimer(seqInfo & info,
       alignerObj.profileAlignment(readBegin, fwd.info_, false, true, false);
 
       std::pair<uint32_t, uint32_t> forwardPosition = std::make_pair(
-          alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-")) + pars.primerStart_,
-          alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-")) + pars.primerStart_);
+          alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-')) + pars.primerStart_,
+          alignerObj.getSeqPosForAlnAPos(alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-')) + pars.primerStart_);
       double coverage = alignerObj.comp_.distances_.query_.coverage_;
       if (0 == pars.primerStart_ && 1 == alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-')
           && ('T' == alignerObj.alignObjectB_.seqBase_.seq_.front()

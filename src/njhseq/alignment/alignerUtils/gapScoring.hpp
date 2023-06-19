@@ -46,6 +46,18 @@ public:
   gapScoringParameters(const std::string& gapAll) ;
   gapScoringParameters(const std::string& gap, const std::string& gapLeft,
                        const std::string& gapRight);
+
+	static gapScoringParameters genSemiGlobal(int32_t gOpen, int32_t gExtend) {
+		return gapScoringParameters(gOpen, gExtend, 0, 0, 0, 0, 0, 0, 0, 0);
+	}
+
+	static gapScoringParameters genSemiGlobalQueryOnly(int32_t gOpen, int32_t gExtend) {
+		return gapScoringParameters(gOpen, gExtend, 0, 0, gOpen, gExtend, 0, 0, gOpen, gExtend);
+	}
+
+	static gapScoringParameters genSemiGlobalRefOnly(int32_t gOpen, int32_t gExtend) {
+		return gapScoringParameters(gOpen, gExtend, gOpen, gExtend, 0, 0, gOpen, gExtend, 0, 0);
+	}
   // members
   int32_t gapOpen_;
   int32_t gapExtend_;

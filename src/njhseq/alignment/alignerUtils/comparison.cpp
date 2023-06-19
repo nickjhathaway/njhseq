@@ -280,6 +280,7 @@ bool comparison::passIdThresholdHq(const comparison& generatedError) const {
 Json::Value comparison::toJson() const{
 	Json::Value ret;
 	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["alnScore_"] = njh::json::toJson(alnScore_);
 	ret["oneBaseIndel_"] = njh::json::toJson(oneBaseIndel_);
 	ret["twoBaseIndel_"] = njh::json::toJson(twoBaseIndel_);
 	ret["largeBaseIndel_"] = njh::json::toJson(largeBaseIndel_);
