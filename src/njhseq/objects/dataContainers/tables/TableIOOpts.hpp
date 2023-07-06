@@ -45,6 +45,7 @@ public:
 	std::string outDelim_ = "\t";
 	bool outOrganized_ = false;
 	bool hasHeader_ = false;
+	std::string backgroundColorAltColumn_;
 
 	static TableIOOpts genTabFileOut(const bfs::path & outFilename, bool header = true);
 	static TableIOOpts genTabFileIn(const bfs::path & inFilename, bool header = true);

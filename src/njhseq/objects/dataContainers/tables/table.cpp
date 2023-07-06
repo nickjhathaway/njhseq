@@ -416,9 +416,13 @@ void table::outPutContents(TableIOOpts options) const {
   } else if ("whitespace" == options.outDelim_) {
     options.outDelim_ = " ";
   }
-  if ("" == options.out_.outFilename_) {
+  if (options.out_.outFilename_.empty()) {
     if (options.outOrganized_) {
-      outPutContentOrganized(std::cout);
+			if(!options.backgroundColorAltColumn_.empty()){
+				printTableOrganizedAlternatingBackground(content_, columnNames_, options.backgroundColorAltColumn_, std::cout);
+			}else{
+				outPutContentOrganized(std::cout);
+			}
     } else {
       outPutContents(std::cout, options.outDelim_);
     }
@@ -970,7 +974,6 @@ void table::outPutContentOrganized(std::ostream &out) const {
   } else {
     printTableOrganized(content_, out);
   }
-  return;
 }
 
 void table::printOutSplitTable(const std::map<std::string, table> &tabSplit,
@@ -984,21 +987,19 @@ void table::printOutSplitTable(const std::map<std::string, table> &tabSplit,
       iter.second.outPutContents(out, delim);
     }
   }
-  return;
 }
 
 void table::trimElementsAtFirstOccurenceOf(const std::string &trimAt) {
   for (auto &row : content_) {
     trimStringsAtFirstOccurence(row, trimAt);
   }
-  return;
 }
 
 table table::getStatsTable() const {
   table outTable;
   outTable.hasHeader_ = true;
   outTable.columnNames_.emplace_back("stat");
-  for (auto sIter : VecStr{"sum", "mean", "median", "min", "max", "std"}) {
+  for (const auto& sIter : VecStr{"sum", "mean", "median", "min", "max", "std"}) {
     outTable.content_.emplace_back(VecStr{sIter});
   }
   for (auto &colNameIter : columnNames_) {

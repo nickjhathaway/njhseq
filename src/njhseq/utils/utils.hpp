@@ -113,6 +113,13 @@ void printTableOrganized(const std::vector<VecStr>& content, std::ostream& out);
 void printTableOrganized(const std::vector<VecStr>& content,
                          const VecStr& header, std::ostream& out);
 
+void printTableOrganizedAlternatingBackground(const std::vector<VecStr> &content,
+																							const VecStr &header,
+																							const std::string &altColumnName,
+																							std::ostream &out,
+																							uint32_t firstCode = 59,
+																							uint32_t secondCode = 102);
+
 template <typename FIR, typename SEC>
 VecStr pairToVecStr(const std::pair<FIR, SEC>& p) {
   return VecStr{estd::to_string(p.first), estd::to_string(p.second)};

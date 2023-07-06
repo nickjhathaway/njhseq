@@ -109,6 +109,7 @@ void printTableOrganized(const std::vector<VecStr> &content,
       ++count;
     }
   }
+
   {
     int count = 0;
     for (const auto &lineIter : header) {
@@ -128,6 +129,83 @@ void printTableOrganized(const std::vector<VecStr> &content,
     out << std::endl;
   }
 }
+
+void printTableOrganizedAlternatingBackground(const std::vector<VecStr> &content,
+												 const VecStr &header,
+												 const std::string &altColumnName,
+												 std::ostream &out,
+												 uint32_t firstCode,
+												 uint32_t secondCode) {
+	if(!njh::in(altColumnName, header)){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << altColumnName << " not in header, options are: " << njh::conToStr(header, ",") << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	uint32_t colPos = std::find(header.begin(), header.end(), altColumnName) - header.begin();
+	std::map<int, size_t> sizeMap;
+	{
+		int count = 0;
+		for (const auto &lineIter : header) {
+			if (sizeMap.find(count) == sizeMap.end()) {
+				sizeMap.insert(std::make_pair(count, lineIter.size()));
+			} else {
+				if (sizeMap[count] < lineIter.size()) {
+					sizeMap[count] = lineIter.size();
+				}
+			}
+			++count;
+		}
+	}
+	for (const auto &contentIter : content) {
+		int count = 0;
+		for (const auto &lineIter : contentIter) {
+			if (sizeMap.find(count) == sizeMap.end()) {
+				sizeMap.insert(std::make_pair(count, lineIter.size()));
+			} else {
+				if (sizeMap[count] < lineIter.size()) {
+					sizeMap[count] = lineIter.size();
+				}
+			}
+			++count;
+		}
+	}
+
+	{
+		int count = 0;
+		out << njh::bashCT::addBGColor(firstCode);
+		for (const auto &lineIter: header) {
+			out << std::setw((int) sizeMap[count]) << std::left << lineIter;
+			out << "\t";
+			++count;
+		}
+		out << njh::bashCT::reset;
+		out << std::endl;
+	}
+	uint32_t currentColorCode = firstCode;
+	std::string lastColVal = "what are the chances the first column ends up being this exact string";
+	for (const auto &contentIter: content) {
+		int count = 0;
+		if (contentIter[colPos] != lastColVal) {
+			lastColVal = contentIter[colPos];
+			if (currentColorCode == firstCode) {
+				currentColorCode = secondCode;
+			} else {
+				currentColorCode = firstCode;
+			}
+			out << njh::bashCT::addBGColor(currentColorCode);
+		}
+		for (const auto &lineIter: contentIter) {
+			out << std::setw((int) sizeMap[count]) << std::left << lineIter;
+			out << "\t";
+			++count;
+		}
+		out << std::endl;
+	}
+	out << njh::bashCT::reset;
+}
+
+
+
 
 
 // from

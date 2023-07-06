@@ -359,6 +359,9 @@ void ManipulateTableSetUp::processWriteOutOptions() {
 //  setOption(ioOptions_.out_.exitOnFailureToWrite_, "-exitOnFailureToWrite",
 //            "ExitOnFailureToWrite");
   setOption(ioOptions_.out_.append_, "--append", "Append existing file or create new file if non exists, will not repeat header");
+	setOption(ioOptions_.backgroundColorAltColumn_, "--backgroundColorAltColumn", "a column to alternate the background color between");
+
+
 }
 
 bool ManipulateTableSetUp::processDefaultProgram(bool fileRequired) {

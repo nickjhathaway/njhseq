@@ -429,8 +429,7 @@ int ManipulateTableRunner::countColumn(
 	return 0;
 }
 
-int ManipulateTableRunner::catOrganized(
-		const njh::progutils::CmdArgs & inputCommands) {
+int ManipulateTableRunner::catOrganized(const njh::progutils::CmdArgs &inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.setUpCatOrganized();
 	table inTab(setUp.ioOptions_);

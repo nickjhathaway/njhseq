@@ -34,7 +34,7 @@ class ManipulateTableSetUp : public njh::progutils::ProgramSetUp {
  public:
   // constructors
   ManipulateTableSetUp(int argc, char *argv[]);
-  ManipulateTableSetUp(const njh::progutils::CmdArgs &inputCommands);
+  explicit ManipulateTableSetUp(const njh::progutils::CmdArgs &inputCommands);
   // common defaults defaults
 
   TableIOOpts ioOptions_;
