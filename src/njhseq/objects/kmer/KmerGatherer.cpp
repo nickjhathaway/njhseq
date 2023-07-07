@@ -9,10 +9,7 @@
 #include "njhseq/objects/kmer/SimpleKmerHash.hpp"
 #include "njhseq/objects/kmer/KmerUtils.hpp"
 #include "njhseq/objects/dataContainers.h"
-//#include "njhseq/simulation.h"
-#include "njhseq/objects/seqObjects/seqKmers.h"
 #include "njhseq/IO/SeqIO.h"
-#include "njhseq/objects/counters/DNABaseCounter.hpp"
 #include <TwoBit.h>
 
 #include <utility>
@@ -274,27 +271,23 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getUniqueKmers
 			std::set < uint64_t > genomeKmersCurrent;
 //			uint32_t count = 0;
 			while(reader.readNextRead(seq)){
+				if(len(seq) < pars_.kmerLength_){
+					continue;
+				}
 				for (uint32_t pos = 0; pos < len(seq) - pars_.kmerLength_ + 1; ++pos) {
 					auto k = seq.seq_.substr(pos, pars_.kmerLength_);
-					if(seqCheck(k)){
-						DNABaseCounter counter(pars_.allowableCharacters_);
-						counter.increase(k);
-						if(counter.computeEntrophy() > pars_.entropyFilter_){
-							genomeKmersCurrent.emplace(hasher.hash(k));
-						}
+					kmerInfo kinfo(k, pars_.kmerLengthForEntropyCalc_, false);
+					if(seqCheck(k) && kinfo.computeKmerEntropy() > pars_.entropyFilter_){
+						genomeKmersCurrent.emplace(hasher.hash(k));
 					}
 				}
 				if (!pars_.noRevComp_) {
 					//buffer = seqUtil::reverseComplement(buffer, "DNA");
-					for (uint32_t pos = 0; pos < len(seq) - pars_.kmerLength_ + 1;
-							++pos) {
+					for (uint32_t pos = 0; pos < len(seq) - pars_.kmerLength_ + 1; ++pos) {
 						auto k = seq.seq_.substr(pos, pars_.kmerLength_);
-						if(seqCheck(k)){
-							DNABaseCounter counter(pars_.allowableCharacters_);
-							counter.increase(k);
-							if(counter.computeEntrophy() > pars_.entropyFilter_){
-								genomeKmersCurrent.emplace(hasher.revCompHash(k));
-							}
+						kmerInfo kinfo(k, pars_.kmerLengthForEntropyCalc_, false);
+						if (seqCheck(k) && kinfo.computeKmerEntropy() > pars_.entropyFilter_) {
+							genomeKmersCurrent.emplace(hasher.revCompHash(k));
 						}
 					}
 				}
@@ -353,25 +346,21 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getUniqueKmers
 			}
 			for (uint32_t pos = 0; pos < len(buffer) - pars_.kmerLength_ + 1; ++pos) {
 				auto k = buffer.substr(pos, pars_.kmerLength_);
-				if(seqCheck(k)){
-					DNABaseCounter counter(pars_.allowableCharacters_);
-					counter.increase(k);
-					if(counter.computeEntrophy() > pars_.entropyFilter_){
-						genomeKmersCurrent.emplace(hasher.hash(k));
-					}
+				kmerInfo kinfo(k, pars_.kmerLengthForEntropyCalc_, false);
+				if (seqCheck(k) && kinfo.computeKmerEntropy() > pars_.entropyFilter_) {
+					genomeKmersCurrent.emplace(hasher.hash(k));
+
 				}
 			}
 			if (!pars_.noRevComp_) {
 				//buffer = seqUtil::reverseComplement(buffer, "DNA");
 				for (uint32_t pos = 0; pos < len(buffer) - pars_.kmerLength_ + 1;
-						++pos) {
+						 ++pos) {
 					auto k = buffer.substr(pos, pars_.kmerLength_);
-					if(seqCheck(k)){
-						DNABaseCounter counter(pars_.allowableCharacters_);
-						counter.increase(k);
-						if(counter.computeEntrophy() > pars_.entropyFilter_){
-							genomeKmersCurrent.emplace(hasher.revCompHash(k));
-						}
+					kmerInfo kinfo(k, pars_.kmerLengthForEntropyCalc_, false);
+					if (seqCheck(k) && kinfo.computeKmerEntropy() > pars_.entropyFilter_) {
+						genomeKmersCurrent.emplace(hasher.revCompHash(k));
+
 					}
 				}
 			}
@@ -401,7 +390,7 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getUniqueKmers
 		TwoBit::TwoBitFile tReader(twoBit);
 		auto seqNames = tReader.sequenceNames();
 		for (const auto &seqName : seqNames) {
-			pairs.emplace_back(TwobitFnpSeqNamePair(twoBit, seqName));
+			pairs.emplace_back(twoBit, seqName);
 		}
 	}
 	njh::concurrent::LockableQueue < TwobitFnpSeqNamePair > pairsQueue(pairs);
