@@ -23,6 +23,12 @@ class SimpleKmerHash{
 public:
 	SimpleKmerHash();
 
+	char hashBase(char base) const;
+	char reverseHashBase(char base) const;
+	char revCompHashBase(char base) const;
+	char revCompReverseHashBase(char base) const;
+
+
 	/**
 	 * @brief hash up to the first 19 characters of string, hash can only do 19 characters, no check on len is done but only up to the first 19 characters are hashed no matter the input size
 	 * @param str the string to hash

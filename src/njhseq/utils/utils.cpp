@@ -199,9 +199,10 @@ void printTableOrganizedAlternatingBackground(const std::vector<VecStr> &content
 			out << "\t";
 			++count;
 		}
+		out << njh::bashCT::reset;
 		out << std::endl;
 	}
-	out << njh::bashCT::reset;
+
 }
 
 
