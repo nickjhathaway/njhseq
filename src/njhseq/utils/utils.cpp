@@ -192,9 +192,9 @@ void printTableOrganizedAlternatingBackground(const std::vector<VecStr> &content
 			} else {
 				currentColorCode = firstCode;
 			}
-			out << njh::bashCT::addBGColor(currentColorCode);
 		}
 		for (const auto &lineIter: contentIter) {
+			out << njh::bashCT::addBGColor(currentColorCode);
 			out << std::setw((int) sizeMap[count]) << std::left << lineIter;
 			out << "\t";
 			++count;
