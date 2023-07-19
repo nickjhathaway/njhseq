@@ -894,7 +894,7 @@ void readVecTrimmer::trimBetweenSequences(seqInfo &seq, const seqInfo &forwardSe
 		const seqInfo &backSeq, aligner &alignObj, const comparison & allowableErrors,
 		const FullTrimReadsPars::trimSeqPars & tSeqPars) {
 	trimAtSequence(seq, backSeq, alignObj, allowableErrors, tSeqPars);
-	if(seq.on_){
+	if(seq.on_ || tSeqPars.alwaysTrim){
 		trimBeforeSequence(seq, forwardSeq, alignObj, allowableErrors, tSeqPars);
 	}
 }
