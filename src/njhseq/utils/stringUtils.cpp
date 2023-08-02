@@ -160,6 +160,18 @@ uint32_t countOccurences(const std::string& target, const std::string& subSeq) {
   return findOccurences(target, subSeq).size();
 }
 
+
+uint32_t countRegexOccurrences(const std::string& target, const std::regex & subPat){
+
+
+	std::ptrdiff_t const match_count(std::distance(
+					std::sregex_iterator(target.begin(), target.end(), subPat),
+					std::sregex_iterator()));
+	return match_count;
+}
+
+
+
 void translateStringWithKey(std::string& str, MapStrStr& key) {
 
   for (size_t i = 0; i < str.size(); ++i) {

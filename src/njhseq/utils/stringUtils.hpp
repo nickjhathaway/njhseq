@@ -53,6 +53,9 @@ std::vector<size_t> findOccurences(const std::string& target,
 
 uint32_t countOccurences(const std::string& target, const std::string& subSeq);
 
+uint32_t countRegexOccurrences(const std::string& target, const std::regex & subPat);
+
+
 void translateStringWithKey(std::string& str, MapStrStr& key);
 
 

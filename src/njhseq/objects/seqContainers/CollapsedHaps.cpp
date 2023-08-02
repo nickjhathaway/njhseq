@@ -241,7 +241,7 @@ std::unordered_map<std::string,
 CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(const GenPopMeasuresPar &pars,
 		const std::shared_ptr<aligner> &alignerObj) const {
 	GenPopMeasuresRes ret;
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (pars.getPairwiseComps) {
 		if(nullptr == alignerObj){
 			std::stringstream ss;
@@ -261,15 +261,15 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 			ret.avgPMeasures_.avgPercentId = 1;
 		}
 	}
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	//setFrequencies();
 	//set defaults;
 	ret.tajimaRes_.d_ = 0;
 	ret.tajimaRes_.pval_beta_ = 1;
 	ret.tajimaRes_.pval_normal_ = 1;
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	ret.divMeasures_ = PopGenCalculator::getGeneralMeasuresOfDiversity(seqs_);
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (pars.getPairwiseComps && size() > 1
 			&& std::numeric_limits < uint32_t > ::max() != pars.numSegSites_) {
 		if(pars.numSegSites_ == 0){
@@ -286,7 +286,7 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 			}
 		}
 	}
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return ret;
 }
 
@@ -698,12 +698,20 @@ std::vector<std::vector<comparison>> CollapsedHaps::getPairwiseCompsDiagAln(alig
 		auto currentAligner = alnPool.popAligner();
 		PairwisePairFactory::PairwisePair pair;
 		while(pFac.setNextPair(pair)){
+
 			uint32_t blockSize = 100 + uAbsdiff(len(*seqs_[pair.row_]), len(*seqs_[pair.col_]));
 			currentAligner->inputAlignmentBlockSize_ = std::max<uint32_t>(100, blockSize);
 			currentAligner->inputAlignmentBlockWalkbackSize_ = std::max<uint32_t>(100, blockSize);
-			if(blockSize *2 > std::min(len(*seqs_[pair.row_]), len(*seqs_[pair.col_]))){
+
+			if (len(*seqs_[pair.row_]) == 1 && len(*seqs_[pair.col_]) == 1) {
+				currentAligner->alignObjectA_ = *seqs_[pair.row_];
+				currentAligner->alignObjectB_ = *seqs_[pair.col_];
+				currentAligner->parts_.gHolder_ = alnInfoGlobal();
+				currentAligner->parts_.gHolder_.score_ = currentAligner->parts_.scoring_.mat_[seqs_[pair.row_]->seq_[0]][seqs_[pair.col_]->seq_[0]];
+				currentAligner->parts_.score_ = currentAligner->parts_.gHolder_.score_;
+			} else if (blockSize * 2 > std::min(len(*seqs_[pair.row_]), len(*seqs_[pair.col_]))) {
 				currentAligner->alignCacheGlobal(seqs_[pair.row_], seqs_[pair.col_]);
-			}else{
+			} else {
 				currentAligner->alignCacheGlobalDiag(seqs_[pair.row_], seqs_[pair.col_]);
 			}
 			currentAligner->profileAlignment(seqs_[pair.row_], seqs_[pair.col_], false, false, false);
