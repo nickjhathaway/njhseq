@@ -45,6 +45,8 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 			softClipRight += bAln.CigarData.front().Length;
 		}
 	}
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << gRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
 	BedUtility::extendLeftRight(gRegion, extend + softClipLeft, extend + softClipRight, chromLengths.at(gRegion.chrom_));
 	auto rSeq = gRegion.extractSeq(tReader);
 	rSeq.name_ = gRegion.createUidFromCoordsStrand();
@@ -56,18 +58,31 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 	alignerObj.alignCacheGlobal(rSeq, qSeq);
 	uint32_t queryAlnStart = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
 	uint32_t queryAlnLastBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
+	uint32_t refAlnStart = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+	uint32_t refAlnLastBase = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
 	uint32_t queryAlnEnd = queryAlnLastBase + 1;
 	uint32_t realRefStart  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnStart);
 	uint32_t realRefLastBase  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnLastBase);
+	if('-' == alignerObj.alignObjectA_.seqBase_.seq_[queryAlnLastBase] && refAlnLastBase > queryAlnLastBase){
+		--realRefLastBase;
+	}
 	uint32_t realRefEnd = realRefLastBase + 1;
+
+//	alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+//	alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
 	seqInfo referenceAln = alignerObj.alignObjectA_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
 	seqInfo queryAln = alignerObj.alignObjectB_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
 	alignerObj.alignObjectA_.seqBase_ = referenceAln;
 	alignerObj.alignObjectB_.seqBase_ = queryAln;
+//	alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+//	alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
 	seqInfo refSeq = referenceAln;
 	refSeq.removeGaps();
 	gRegion.start_ = gRegion.start_ + realRefStart;
 	gRegion.end_ = gRegion.start_ + realRefEnd - realRefStart;
+
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << gRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
 	alignerObj.profileAlignment(rSeq, qSeq, false, false, false);
 	if('-' == alignerObj.alignObjectA_.seqBase_.seq_.front() || '-' == alignerObj.alignObjectA_.seqBase_.seq_.back()){
 		uint32_t extraExtendFront = 25;
@@ -89,9 +104,14 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 		alignerObj.alignCacheGlobal(rSeq, qSeq);
 		queryAlnStart = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
 		queryAlnLastBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
+		refAlnStart = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+		refAlnLastBase = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
 		queryAlnEnd = queryAlnLastBase + 1;
 		realRefStart  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnStart);
 		realRefLastBase  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnLastBase);
+		if('-' == alignerObj.alignObjectA_.seqBase_.seq_[queryAlnLastBase] && refAlnLastBase > queryAlnLastBase){
+			--realRefLastBase;
+		}
 		realRefEnd = realRefLastBase + 1;
 		referenceAln = alignerObj.alignObjectA_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
 		queryAln = alignerObj.alignObjectB_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
@@ -104,7 +124,8 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 
 		alignerObj.profileAlignment(rSeq, qSeq, false, false, false);
 	}
-
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << gRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
 
 	ReAlignedSeq ret;
 	ret.bAln_ = bAln;

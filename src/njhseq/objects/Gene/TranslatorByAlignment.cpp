@@ -855,11 +855,22 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 			auto snpPositions = njh::getVecOfMapKeys(seqVariants_.at(aln.gRegion_.chrom_).snpsFinal);
 			VecStr snpTyped;
 			std::string currentType = aln.gRegion_.chrom_;
-			for(const auto snpPos : snpPositions){
+			for (const auto snpPos: snpPositions) {
 				auto snpPosRel = snpPos - aln.gRegion_.start_;
-				if(snpPos >= aln.gRegion_.start_ && snpPos < aln.gRegion_.end_){
-					snpTyped.emplace_back(njh::pasteAsStr(snpPos, aln.alnQuerySeq_.seq_[getAlnPosForRealPos(aln.alnRefSeq_.seq_, snpPosRel)]));
-				}else{
+				if (snpPos >= aln.gRegion_.start_ && snpPos < aln.gRegion_.end_) {
+//					aln.alnRefSeq_.outPutSeqAnsi(std::cout);
+//					aln.alnQuerySeq_.outPutSeqAnsi(std::cout);
+//					std::cout << "aln.alnRefSeq_.seq_.size(): " << aln.alnRefSeq_.seq_.size() << std::endl;
+//					std::cout << "aln.alnQuerySeq_.seq_.size(): " << aln.alnQuerySeq_.seq_.size() << std::endl;
+//					std::cout << "aln.alnRefSeq_.seq_.size(): " << aln.refSeq_.seq_.size() << std::endl;
+//					std::cout << "aln.alnQuerySeq_.seq_.size(): " << aln.querySeq_.seq_.size() << std::endl;
+//					std::cout << "snpPosRel: " << snpPosRel << std::endl;
+//					std::cout << "snpPos: " << snpPos << std::endl;
+//					std::cout << aln.gRegion_.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+					snpTyped.emplace_back(
+									njh::pasteAsStr(snpPos, aln.alnQuerySeq_.seq_[getAlnPosForRealPos(aln.alnRefSeq_.seq_, snpPosRel)]));
+//					std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				} else {
 					snpTyped.emplace_back(njh::pasteAsStr(snpPos, "N"));
 				}
 			}
@@ -1223,7 +1234,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			++pos;
 			writer.write(seq);
 		}
-		averageLen = vectorMean(allReadLens);
+		averageLen = static_cast<uint32_t>(std::round(vectorMean(allReadLens)));
 	}
 	seqMaxLen = seqMaxLen + rPars.realnPars.extendAmount * 2;
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -1388,6 +1399,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 //					std::cout << "alignObj.parts_.maxSize_: " << alignObj.parts_.maxSize_ << std::endl;
 //					std::cout << njh::bashCT::reset;
 					results = ReAlignedSeq::genRealignment(bAln, refData, alignObj, chromLengths, tReader, reAlignParsCopy);
+//					std::cout << results.gRegion_.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+//					if(bAln.Name == "Pf13-2840639-2840945.398[HapPopUIDCount=1]"){
+//						exit(1);
+//					}
 //					std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				}
 //				std::cout << __FILE__ << " " << __LINE__ << std::endl;
