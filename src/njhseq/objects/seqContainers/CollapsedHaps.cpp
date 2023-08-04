@@ -243,23 +243,36 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 	GenPopMeasuresRes ret;
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (pars.getPairwiseComps) {
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		if(nullptr == alignerObj){
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", error " << "getting paired wise comparisons but didn't supply an aligner" << "\n";
 			throw std::runtime_error{ss.str()};
 		}
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		if (size() > 1) {
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			if (pars.diagAlnPairwiseComps) {
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				ret.allComps_ = getPairwiseCompsDiagAln(*alignerObj, pars.numThreads);
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				ret.avgPMeasures_ = getAvgPairwiseMeasures(ret.allComps_);
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			} else {
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				ret.allComps_ = getPairwiseComps(*alignerObj, pars.numThreads);
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				ret.avgPMeasures_ = getAvgPairwiseMeasures(ret.allComps_);
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			}
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		} else {
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			ret.avgPMeasures_.avgNumOfDiffs = 0;
 			ret.avgPMeasures_.avgPercentId = 1;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	}
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	//setFrequencies();
@@ -281,8 +294,8 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 				ret.tajimaRes_ = PopGenCalculator::calcTajimaTest(getTotalHapCount(), pars.numSegSites_, ret.avgPMeasures_.avgNumOfDiffs);
 			} catch (std::exception &e) {
 				//currently doing nothing, some times due to frequency filtering etc the calc throw an exception;
-//				std::cout << "seqs_.size():" << seqs_.size() << std::endl;
-//				std::cout << e.what() << std::endl;
+//				//std::cout << "seqs_.size():" << seqs_.size() << std::endl;
+//				//std::cout << e.what() << std::endl;
 			}
 		}
 	}
@@ -689,43 +702,58 @@ std::vector<std::vector<comparison>> CollapsedHaps::getPairwiseCompsDiagAln(alig
 	for(const auto pos : iter::range(seqs_.size())){
 		ret.emplace_back(std::vector<comparison>(pos));
 	}
-
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	concurrent::AlignerPool alnPool(alignerObj, numThreads);
 	alnPool.initAligners();
 	njh::ProgressBar pBar(pFac.totalCompares_);
 	std::mutex mut;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	std::function<void()> alignComp = [this,&pFac,&alnPool,&ret,&mut,&alignerObj,&pBar](){
 		auto currentAligner = alnPool.popAligner();
 		PairwisePairFactory::PairwisePair pair;
 		while(pFac.setNextPair(pair)){
-
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			uint32_t blockSize = 100 + uAbsdiff(len(*seqs_[pair.row_]), len(*seqs_[pair.col_]));
 			currentAligner->inputAlignmentBlockSize_ = std::max<uint32_t>(100, blockSize);
 			currentAligner->inputAlignmentBlockWalkbackSize_ = std::max<uint32_t>(100, blockSize);
-
-			if (len(*seqs_[pair.row_]) == 1 && len(*seqs_[pair.col_]) == 1) {
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			if (len(*seqs_[pair.row_]) == 1 || len(*seqs_[pair.col_]) == 1) {
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				currentAligner->alignObjectA_ = *seqs_[pair.row_];
 				currentAligner->alignObjectB_ = *seqs_[pair.col_];
 				currentAligner->parts_.gHolder_ = alnInfoGlobal();
 				currentAligner->parts_.gHolder_.score_ = currentAligner->parts_.scoring_.mat_[seqs_[pair.row_]->seq_[0]][seqs_[pair.col_]->seq_[0]];
 				currentAligner->parts_.score_ = currentAligner->parts_.gHolder_.score_;
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			} else if (blockSize * 2 > std::min(len(*seqs_[pair.row_]), len(*seqs_[pair.col_]))) {
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				//std::cout << "seqs_[pair.row_]->seq_.size(): " << seqs_[pair.row_]->seq_.size() << std::endl;
+				//std::cout << "seqs_[pair.col_]->seq_.size(): " << seqs_[pair.col_]->seq_.size() << std::endl;
+				//std::cout << "currentAligner->parts_.maxSize_: " << currentAligner->parts_.maxSize_ << std::endl;
 				currentAligner->alignCacheGlobal(seqs_[pair.row_], seqs_[pair.col_]);
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			} else {
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				currentAligner->alignCacheGlobalDiag(seqs_[pair.row_], seqs_[pair.col_]);
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			}
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			currentAligner->profileAlignment(seqs_[pair.row_], seqs_[pair.col_], false, false, false);
 			ret[pair.row_][pair.col_] = currentAligner->comp_;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			if(verbose_){
 				pBar.outputProgAdd(std::cout, 1, true);
 			}
 		}
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		{
 			std::lock_guard<std::mutex> lock(mut);
 			alignerObj.alnHolder_.mergeOtherHolder(currentAligner->alnHolder_);
 		}
 	};
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	njh::concurrent::runVoidFunctionThreaded(alignComp, numThreads);
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return ret;
 }
 

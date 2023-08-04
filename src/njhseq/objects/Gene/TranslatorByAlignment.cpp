@@ -869,7 +869,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 //					std::cout << aln.gRegion_.genBedRecordCore().toDelimStrWithExtra() << std::endl;
 					snpTyped.emplace_back(
 									njh::pasteAsStr(snpPos, aln.alnQuerySeq_.seq_[getAlnPosForRealPos(aln.alnRefSeq_.seq_, snpPosRel)]));
-//					std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				} else {
 					snpTyped.emplace_back(njh::pasteAsStr(snpPos, "N"));
 				}
@@ -1362,39 +1362,39 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			size_t minPos_{std::numeric_limits<uint32_t>::max()};
 			size_t maxPos_{0};
 		};
-//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		std::unordered_map<std::string, MinMaxPos> minMaxPositionsPerChrom;
 		while (bReader.GetNextAlignment(bAln)) {
 			if (bAln.IsMapped() && bAln.IsPrimaryAlignment()) {
-//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				bAln.Name = names[njh::StrToNumConverter::stoToNum<uint32_t>(bAln.Name)];
 				auto balnGenomicRegion = GenomicRegion(bAln, refData);
-//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_ = std::min(minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_,balnGenomicRegion.start_);
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_ = std::max(minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_,balnGenomicRegion.end_);
-//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //				std::cout << "rPars.realnPars.extendAmount: " << rPars.realnPars.extendAmount << std::endl;
 //				std::cout << "averageLen: " << averageLen << std::endl;
 //				std::cout << "bAln.QueryBases.size(): " << bAln.QueryBases.size() << std::endl;
 //				std::cout << "bAln.GetEndPosition() - bAln.Position: " << bAln.GetEndPosition() - bAln.Position << std::endl;
 //				std::cout << "diff: " << uAbsdiff(averageLen, bAln.QueryBases.size()) << std::endl;
 //				std::cout << "diff with aln: " << uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) << std::endl;
-//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				auto reAlignParsCopy = rPars.realnPars;
 				if(uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) > reAlignParsCopy.extendAmount){
 					reAlignParsCopy.extendAmount = reAlignParsCopy.extendAmount + uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position);
 				}
-//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				ReAlignedSeq results;
-//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				if(uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) > 100){
-//					std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 					//adjust aligner giving more weight to matches to help with large deletions or insertions
 					aligner alignObjAdjusted(proteinMaxLen, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(10,-2));
 					results = ReAlignedSeq::genRealignment(bAln, refData, alignObjAdjusted, chromLengths, tReader, reAlignParsCopy);
-//					std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				}else{
-//					std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //					std::cout << njh::bashCT::red;
 //					std::cout << "alignObj.parts_.maxSize_: " << alignObj.parts_.maxSize_ << std::endl;
 //					std::cout << njh::bashCT::reset;
@@ -1403,9 +1403,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 //					if(bAln.Name == "Pf13-2840639-2840945.398[HapPopUIDCount=1]"){
 //						exit(1);
 //					}
-//					std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				}
-//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_ = std::min(minMaxPositionsPerChrom[results.gRegion_.chrom_].minPos_,results.gRegion_.start_);
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_ = std::max(minMaxPositionsPerChrom[results.gRegion_.chrom_].maxPos_,results.gRegion_.end_);
 				ret.seqAlns_[bAln.Name].emplace_back(results);
@@ -1424,7 +1424,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					try {
 //            std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
 						translations = translateBasedOnAlignment(results, *currentGene, currentGeneInfo, alignObj);
-//						std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//						//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //            std::cout << "translations.size(): " << translations.size() << std::endl;
 						for(const auto & trans : translations){
 							auto queryTransStart = trans.second.queryAlnTranslation_.seq_.find_first_not_of("-");
