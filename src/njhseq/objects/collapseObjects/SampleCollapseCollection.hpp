@@ -63,6 +63,9 @@ public:
 		RepSeqs(const std::string & repName, const std::vector<seqInfo> & repSeqs) :
 				repName_(repName), repSeqs_(repSeqs) {
 		}
+		RepSeqs(const std::string & repName, const std::vector<seqInfo> & repSeqs, bool reNameInput) :
+						repName_(repName), repSeqs_(repSeqs), reNameInput_(reNameInput){
+		}
 		std::string repName_;
 		std::vector<seqInfo> repSeqs_;
 		bool reNameInput_ = true;

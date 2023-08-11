@@ -315,7 +315,7 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 			ss << __PRETTY_FUNCTION__ << ", error " << "already have replicate name: " << repf.repName_ << "\n";
 			throw std::runtime_error{ss.str()};
 		}
-		allRepSeqs.emplace(repf.repName_,RepSeqs(repf.repName_, reader.readAllReads<seqInfo>()));
+		allRepSeqs.emplace(repf.repName_, RepSeqs(repf.repName_, reader.readAllReads<seqInfo>(), repf.reNameInput_));
 	}
 	return setUpSample(sampleName, allRepSeqs, alignerObj, collapserObj, chiOpts);
 }
