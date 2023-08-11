@@ -262,11 +262,11 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 		} else {
 			inputClusters.emplace_back(clusters);
 		}
-		std::cout << __FILE__ << " " << __LINE__ << std::endl;
-		for(const auto & clusters : inputClusters){
-			for(const auto cluster : clusters	){
-				std::cout << "cluster.seqBase_.name_: " << cluster.seqBase_.name_ << std::endl;
-			}
+	}
+	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	for(const auto & clusters : inputClusters){
+		for(const auto & cluster : clusters	){
+			std::cout << "cluster.seqBase_.name_: " << cluster.seqBase_.name_ << std::endl;
 		}
 	}
 	if(!inputClusters.empty()){
