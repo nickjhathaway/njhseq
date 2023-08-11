@@ -230,6 +230,7 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 
 		readVecSorter::sortReadVector(clusters, "totalCount");
 		// consider adding the sample name in the name as well
+		std::cout << "rep.second.reNameInput_: " << njh::colorBool(rep.second.reNameInput_) << std::endl;
 		if(rep.second.reNameInput_){
 			renameReadNamesNewClusters(clusters, rep.second.repName_, true, true, false);
 		}
