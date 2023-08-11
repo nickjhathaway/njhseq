@@ -217,14 +217,25 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 
 	std::vector<std::vector<cluster>> inputClusters;
 	std::vector<std::vector<cluster>> lowCntInputClusters;
-
+	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for (const auto & rep : seqsByRep) {
+		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 		std::vector<cluster> clusters = baseCluster::convertVectorToClusterVector<cluster>(rep.second.repSeqs_);
+
+		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		for(const auto & cluster : clusters){
+			std::cout << "cluster.seqBase_.name_: " << cluster.seqBase_.name_ << std::endl;
+		}
+
 		readVecSorter::sortReadVector(clusters, "totalCount");
 		// consider adding the sample name in the name as well
 		if(rep.second.reNameInput_){
 			renameReadNamesNewClusters(clusters, rep.second.repName_, true, true, false);
+		}
+		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		for(const auto & cluster : clusters){
+			std::cout << "cluster.seqBase_.name_: " << cluster.seqBase_.name_ << std::endl;
 		}
 		if (chiOpts.checkChimeras_) {
 			for(auto & clus : clusters){
@@ -232,10 +243,17 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 			}
 			collapserObj.markChimeras(clusters, alignerObj, chiOpts);
 		}
-
+		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		for(const auto & cluster : clusters){
+			std::cout << "cluster.seqBase_.name_: " << cluster.seqBase_.name_ << std::endl;
+		}
 		clusterVec::allSetFractionClusters(clusters);
 		if(rep.second.reNameInput_){
 			readVec::allUpdateName(clusters);
+		}
+		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		for(const auto & cluster : clusters){
+			std::cout << "cluster.seqBase_.name_: " << cluster.seqBase_.name_ << std::endl;
 		}
 		double totalCount = readVec::getTotalReadCount(clusters);
 		if (preFiltCutOffs_.replicateMinReadCount > 0
@@ -243,6 +261,12 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 			lowCntInputClusters.emplace_back(clusters);
 		} else {
 			inputClusters.emplace_back(clusters);
+		}
+		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		for(const auto & clusters : inputClusters){
+			for(const auto cluster : clusters	){
+				std::cout << "cluster.seqBase_.name_: " << cluster.seqBase_.name_ << std::endl;
+			}
 		}
 	}
 	if(!inputClusters.empty()){
@@ -254,6 +278,10 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 			sampleCollapses_.emplace(sampleName,
 					std::make_shared<sampleCollapse>(inputClusters, sampleName,
 							preFiltCutOffs_.clusterSizeCutOff));
+		}
+		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		for(const auto & cluster : sampleCollapses_.at(sampleName)->collapsed_.clusters_){
+			std::cout << "cluster.seqBase_.name_: " << cluster.seqBase_.name_ << std::endl;
 		}
 	} else {
 		std::lock_guard<std::mutex> lock(mut_);
