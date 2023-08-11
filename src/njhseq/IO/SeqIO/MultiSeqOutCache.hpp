@@ -60,7 +60,7 @@ public:
 		//std::unique_lock<std::shared_timed_mutex> lock(mut_,std::defer_lock);
 		cache_[uid].push_back(read);
 		++cacheSize_;
-		if (cacheSize_ == cacheLimit_) {
+		if (cacheSize_ >= cacheLimit_) {
 			writeCache();
 		}
 	}
@@ -78,7 +78,7 @@ public:
 		for (const auto & read : reads) {
 			cache_[uid].push_back(read);
 			++cacheSize_;
-			if (cacheSize_ == cacheLimit_) {
+			if (cacheSize_ >= cacheLimit_) {
 				writeCache();
 			}
 		}
