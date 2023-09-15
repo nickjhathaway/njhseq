@@ -171,7 +171,11 @@ public:
    */
   void trimBack(size_t fromPositionIncluding);
 
-  // get various information about the qualities with the sequence
+	void rstrip(char base);
+	void lstrip(char base);
+
+
+	// get various information about the qualities with the sequence
   double getAverageQual() const;
   double getAverageErrorRate() const;
   uint32_t getSumQual() const;
@@ -187,6 +191,9 @@ public:
 	void resetMetaInName(const MetaDataInName & meta);
 
 	void adjustHomopolymerRunQualities();
+
+
+
 
   using size_type = std::string::size_type;
 

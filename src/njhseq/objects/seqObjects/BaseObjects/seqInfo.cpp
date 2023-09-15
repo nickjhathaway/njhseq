@@ -720,6 +720,33 @@ void seqInfo::trimBack(size_t fromPositionIncluding) {
 	setClip(0, fromPositionIncluding - 1);
 }
 
+
+void seqInfo::rstrip(char base){
+	size_t pos = seq_.size();
+	while (pos != 0 && seq_[pos - 1] == base){
+		--pos;
+	}
+	if(pos != seq_.size()){
+		seq_.erase(seq_.begin() + static_cast<uint32_t>(pos), seq_.end());
+		qual_.erase(qual_.begin() + static_cast<uint32_t>(pos), qual_.end());
+	}
+}
+
+void seqInfo::lstrip(char base){
+	size_t pos = 0;
+	if(!seq_.empty()){
+		if(seq_[pos] == base){
+			while(pos != seq_.size() - 1 && seq_[pos + 1] == base){
+				++pos;
+			}
+			seq_.erase(seq_.begin(), seq_.begin() + static_cast<uint32_t>(pos) + 1);
+			qual_.erase(qual_.begin(), qual_.begin() + static_cast<uint32_t>(pos) + 1);
+		}
+	}
+}
+
+
+
 double seqInfo::getAverageQual() const {
 	return static_cast<double>(getSumQual()) / qual_.size();
 }
