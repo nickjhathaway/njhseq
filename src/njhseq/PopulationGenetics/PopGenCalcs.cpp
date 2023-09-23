@@ -40,7 +40,8 @@ PopGenCalculator::TajimaTestRes PopGenCalculator::calcTajimaTest(uint32_t nInput
 		ss << __PRETTY_FUNCTION__ << ", error " << "No segrating sites"<< "\n";
 		throw std::runtime_error{ss.str()};
   }
-  std::vector<uint32_t> tmp(n-1);njh::iota<uint32_t>(tmp, 1);
+  std::vector<uint32_t> tmp(static_cast<uint32_t>(n)-1);
+	njh::iota<uint32_t>(tmp, 1);
   double a1 = 0;
   double a2 = 0;
   for(const auto & t : tmp){
@@ -86,7 +87,7 @@ PopGenCalculator::TajimaTestRes PopGenCalculator::calcTajimaTest(uint32_t nInput
   return {D, Pval_normal, Pval_beta};
 }
 
-double PopGenCalculator::ExpectedPloidyInfo::getMaxExpPloidy() const{
+long double PopGenCalculator::ExpectedPloidyInfo::getMaxExpPloidy() const{
 	return expectedCOIForPloidy_.at(ploidy_);
 }
 
@@ -99,17 +100,19 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 		ss << __PRETTY_FUNCTION__ << ", error " << "ploidy can't be " << ploidy << "\n";
 		throw std::runtime_error{ss.str()};
 	}
+
 	if(ploidy > 5){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error " << "currently calculations for ploidy greater than 5 not implemented"<< "\n";
 		throw std::runtime_error{ss.str()};
 	}
+
 	//monoclonal
 	long double sumOfMonoSquareFreqs = 0;
 	for(const auto freq : freqs){
 		sumOfMonoSquareFreqs += std::pow(freq, ploidy);
 	}
-	ret.expectedPolyClonal_ = 1 - sumOfMonoSquareFreqs;
+	ret.expectedPolyClonal_ = 1.0 - sumOfMonoSquareFreqs;
 	ret.expectedCOIForPloidy_[1] = sumOfMonoSquareFreqs;
 
 	if (freqs.size() < ploidy){
@@ -119,9 +122,12 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 	}
 
 	if (2 == ploidy) {
+
 		//for 2 clones it's just expected heterozygosity
-		ret.expectedCOIForPloidy_[2] = 1 - sumOfMonoSquareFreqs;
+		ret.expectedCOIForPloidy_[2] = 1.0 - sumOfMonoSquareFreqs;
+
 	} else if (3 == ploidy) {
+
 		long double sumOfNotTroidy = 0;
 		long double sumTwoClones = 0;
 		for(const auto freq : freqs){
@@ -169,6 +175,7 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 			ret.expectedCOIForPloidy_[4] = 1 - sumOf3Clones - sumOf2Clones - sumOfMonoSquareFreqs;
 		}
 	} else if (5 == ploidy) {
+
 		long double sumOf2Clones = 0;
 		for(const auto freqPos : iter::range(freqs.size())){
 			for(const auto otherFreqPos : iter::range(freqs.size())){
@@ -179,17 +186,19 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 				}
 			}
 		}
+
 		long double sumOf3Clones = 0;
 		for (const auto freqPos : iter::range(freqs.size())) {
 			for (const auto qFreqPos : iter::range(freqs.size())) {
 				if(qFreqPos == freqPos){
 					continue;
 				}
-				double zFreq = 1 - freqs[freqPos] - freqs[qFreqPos];
+				long double zFreq = 1.0 - freqs[freqPos] - freqs[qFreqPos];
 				sumOf3Clones += std::pow(freqs[freqPos], 3.0) * std::pow(freqs[qFreqPos], 1.0) * zFreq * 10;
 				sumOf3Clones += std::pow(freqs[freqPos], 2.0) * std::pow(freqs[qFreqPos], 2.0) * zFreq * 15;
 			}
 		}
+
 		long double sumOf4Clones = 0;
 		for (const auto freqPos : iter::range(freqs.size())) {
 			for (const auto qFreqPos : iter::range(freqs.size())) {
@@ -200,11 +209,12 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 					if(rFreqPos == freqPos || rFreqPos == qFreqPos){
 						continue;
 					}
-					double zFreq = 1 - freqs[freqPos] - freqs[qFreqPos] - freqs[rFreqPos];
+					long double zFreq = 1.0 - freqs[freqPos] - freqs[qFreqPos] - freqs[rFreqPos];
 					sumOf4Clones += std::pow(freqs[freqPos], 2.0) * freqs[qFreqPos] * freqs[rFreqPos] * zFreq * 10;
 				}
 			}
 		}
+
 		if(freqs.size() > 1){
 			ret.expectedCOIForPloidy_[2] = sumOf2Clones;
 		}
@@ -224,7 +234,7 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 
 
 
-PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDiversity(const std::vector<PopHapInfo> & haps){
+PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDiversity(const std::vector<PopHapInfo> & haps, bool onlyPloidy2){
 	DiversityMeasures res;
 
 	res.alleleNumber_ = haps.size();
@@ -245,13 +255,14 @@ PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDivers
 		sumOfSquares += std::pow(prob, 2.0);
 		sumOfLogFreqTimesFreq += prob * std::log(prob);
 	}
+
 	res.heterozygostiy_ = 1 - sumOfSquares;
 	res.effectiveNumOfAlleles_ = std::pow(sumOfSquares, -1);
 	res.ShannonEntropyE_ = -sumOfLogFreqTimesFreq;
 	res.expShannonEntropy_ = std::exp(-sumOfLogFreqTimesFreq);
-	if(totalHaps > 1){
-		res.simpsonIndex_ = 1 - sumTopOfSimpson/(totalHaps * (totalHaps - 1));
-	}else{
+	if (totalHaps > 1) {
+		res.simpsonIndex_ = 1 - sumTopOfSimpson / (totalHaps * (totalHaps - 1));
+	} else {
 		res.simpsonIndex_ = 0;
 	}
 
@@ -261,16 +272,34 @@ PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDivers
 	res.ploidy2_ = ExpectedPloidyInfo::genPloidyInfo(2, freqs);
 	//ploidy of 2 is kind of unnecessary since it's just expected hetereozygosity
 
-	//ploidy 3
-	res.ploidy3_ = ExpectedPloidyInfo::genPloidyInfo(3, freqs);
+	if(!onlyPloidy2){
+		//ploidy 3
+		res.ploidy3_ = ExpectedPloidyInfo::genPloidyInfo(3, freqs);
 
-	//ploidy 4
-	res.ploidy4_ = ExpectedPloidyInfo::genPloidyInfo(4, freqs);
+		//ploidy 4
+		res.ploidy4_ = ExpectedPloidyInfo::genPloidyInfo(4, freqs);
 
-	//ploidy 5
-	res.ploidy5_ = ExpectedPloidyInfo::genPloidyInfo(5, freqs);
+		//ploidy 5
+		res.ploidy5_ = ExpectedPloidyInfo::genPloidyInfo(5, freqs);
+	} else {
+		//ploidy 3
+		res.ploidy3_ = ExpectedPloidyInfo();
+		res.ploidy3_.ploidy_ = 3;
+		res.ploidy3_.expectedCOIForPloidy_[3] = std::numeric_limits<long double>::max();
 
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//ploidy 4
+		res.ploidy4_ = ExpectedPloidyInfo();
+		res.ploidy4_.ploidy_ = 4;
+		res.ploidy4_.expectedCOIForPloidy_[4] = std::numeric_limits<long double>::max();
+
+		//ploidy 5
+		res.ploidy5_ = ExpectedPloidyInfo();
+		res.ploidy5_.ploidy_ = 5;
+		res.ploidy5_.expectedCOIForPloidy_[5] = std::numeric_limits<long double>::max();
+	}
+
+
+//
 //	for(const auto & freq : freqs){
 //		std::cout << freq << std::endl;
 //	}
@@ -320,7 +349,7 @@ PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff
 	//this only works if population identifier is set in a logical way e.g. ids with ranging from 0 to haplotype count
 	std::vector<PopHapInfo> acrossPopulationsHaps;
 	for(const auto pos : iter::range(maxHapId + 1)){
-		acrossPopulationsHaps.emplace_back(PopHapInfo(pos, 0));
+		acrossPopulationsHaps.emplace_back(pos, 0);
 	}
 	for(auto & hapsForPopulation : hapsForPopulations){
 		for(const auto & hap : hapsForPopulation.second){
@@ -344,7 +373,7 @@ PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff
 			double secondTerm = 0;
 			for( auto & freqWithPop : freqsForPopForHapSeq){
 				if(freqWithPop.second[popUid] > 0){
-					secondTerm += freqWithPop.second[popUid]/hapsForPopulations.size() * log(freqWithPop.second[popUid]);
+					secondTerm += freqWithPop.second[popUid]/static_cast<double>(hapsForPopulations.size()) * log(freqWithPop.second[popUid]);
 				}
 			}
 			ret.informativenessForAssignPerHap_[popUid] = firstTerm + secondTerm;
@@ -355,7 +384,7 @@ PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff
 		for(const auto & pop : freqsForPopForHapSeq){
 			for(const auto & hap : pop.second){
 				if(hap.second > 0){
-					ret.informativenessForAssignPerPopulation_[pop.first] += hap.second/hapsForPopulations.size() * log(hap.second/parametricProbsPerHap[hap.first]);
+					ret.informativenessForAssignPerPopulation_[pop.first] += hap.second/static_cast<double>(hapsForPopulations.size()) * log(hap.second/parametricProbsPerHap[hap.first]);
 				}
 			}
 		}
@@ -365,14 +394,14 @@ PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff
 	for(const auto & subPop : ret.hjsSample_){
 		sumOfHjsSample += subPop.second;
 	}
-	ret.hsSample_ = sumOfHjsSample/ret.hjsSample_.size();
+	ret.hsSample_ = sumOfHjsSample/static_cast<double>(ret.hjsSample_.size());
 	double jtSample = 0;
 	for(const auto & hapSeq : allHapSeqs){
 		double freqSum = 0;
 		for( auto & subPop : freqsForPopForHapSeq){
 			freqSum += subPop.second[hapSeq];
 		}
-		jtSample += std::pow(freqSum/hapsForPopulations.size(), 2.0);
+		jtSample += std::pow(freqSum/static_cast<double>(hapsForPopulations.size()), 2.0);
 	}
 	ret.htSample_ = 1 - jtSample;
 
@@ -383,16 +412,16 @@ PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff
 		totalHaps += popSize.second;
 		sumOfInverses += 1.0/popSize.second;
 	}
-	harmonicMean = subPopSizes.size()/sumOfInverses;
+	harmonicMean = static_cast<double>(subPopSizes.size())/sumOfInverses;
 
 	ret.hsEst_ = (harmonicMean/(harmonicMean - 1)) * ret.hsSample_;
-	ret.htEst_ = ret.htSample_ + (ret.hsEst_)/(harmonicMean * hapsForPopulations.size());
+	ret.htEst_ = ret.htSample_ + (ret.hsEst_)/(harmonicMean * static_cast<double>(hapsForPopulations.size()));
 
 	ret.gst_ = (ret.htSample_ - ret.hsSample_)/ret.htSample_;
-	ret.jostD_ = ((ret.htSample_ - ret.hsSample_)/(1 - ret.hsSample_)) * (hapsForPopulations.size()/(hapsForPopulations.size() - 1));
+	ret.jostD_ = ((ret.htSample_ - ret.hsSample_)/(1 - ret.hsSample_)) * (static_cast<double>(hapsForPopulations.size())/(static_cast<double>(hapsForPopulations.size()) - 1));
 
 	ret.gstEst_ =  (ret.htEst_ - ret.hsEst_)/ret.htEst_;
-	ret.jostDEst_ = ((ret.htEst_ - ret.hsEst_)/(1 - ret.hsEst_)) * (hapsForPopulations.size()/(hapsForPopulations.size() - 1));
+	ret.jostDEst_ = ((ret.htEst_ - ret.hsEst_)/(1 - ret.hsEst_)) * (static_cast<double>(hapsForPopulations.size())/(static_cast<double>(hapsForPopulations.size()) - 1));
 
 
 	double a = 0;
@@ -403,7 +432,7 @@ PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff
 			sumOfFreqs += subPop.second[hapSeq];
 			sumOfSqaureFreqs += std::pow(subPop.second[hapSeq], 2.0);
 		}
-		a += (std::pow(sumOfFreqs, 2.0) - sumOfSqaureFreqs)/(subPopSizes.size() - 1);
+		a += (std::pow(sumOfFreqs, 2.0) - sumOfSqaureFreqs)/(static_cast<double>(subPopSizes.size()) - 1);
 	}
 	ret.chaoA_ = a;
 	double b = 0;
@@ -514,7 +543,7 @@ PopGenCalculator::PopDifferentiationMeasuresPairWise PopGenCalculator::getPopDif
 		for(const auto & hap : allHaps){
 			sumOfSqaures += std::pow(pop1HapsFreqs[hap] - pop2HapsFreqs[hap], 2.0);
 		}
-		ret.RMSE_ = std::sqrt(sumOfSqaures/allHaps.size());
+		ret.RMSE_ = std::sqrt(sumOfSqaures/static_cast<double>(allHaps.size()));
 	}
 
 	//half R and matching coefficien

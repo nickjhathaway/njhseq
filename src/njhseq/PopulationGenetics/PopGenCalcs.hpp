@@ -30,6 +30,7 @@
 #include <boost/math/distributions/normal.hpp>
 #include <boost/math/distributions/beta.hpp>
 #include <boost/math/distributions.hpp>
+#include <utility>
 
 namespace njhseq {
 
@@ -42,9 +43,7 @@ public:
 				d_(d), pval_normal_(pvalnorm), pval_beta_(pvalbeta) {
 
 		}
-		TajimaTestRes() {
-
-		}
+		TajimaTestRes() = default;
 		double d_{std::numeric_limits<double>::max()};
 		double pval_normal_{std::numeric_limits<double>::max()};
 		double pval_beta_{std::numeric_limits<double>::max()};
@@ -65,11 +64,11 @@ public:
 
 		uint32_t ploidy_;
 
-		double expectedPolyClonal_; //!< the expected freq of polyclonal samples for given ploidy for given population frequencies
-		std::unordered_map<uint32_t, double> expectedCOIForPloidy_; //!< the expected COI or given ploidy for given population frequencies
+		long double expectedPolyClonal_; //!< the expected freq of polyclonal samples for given ploidy for given population frequencies
+		std::unordered_map<uint32_t, long double> expectedCOIForPloidy_; //!< the expected COI or given ploidy for given population frequencies
 
 
-		double getMaxExpPloidy() const;
+		[[nodiscard]] long double getMaxExpPloidy() const;
 
 		//currently only does ploidy up to and including 5, will throw otherwise
 		static ExpectedPloidyInfo genPloidyInfo(uint32_t ploidy, const std::vector<long double> & freqs);
@@ -197,16 +196,14 @@ public:
 
 	struct PopDifferentiationMeasuresPairWise{
 		PopDifferentiationMeasuresPairWise(
-				const PopDifferentiationMeasures & genDiffMeasures,
-				const std::string & pop1Name,
-				const std::string & pop2Name): genDiffMeasures_(genDiffMeasures),
-						pop1Name_(pop1Name),
-						pop2Name_(pop2Name){
+				PopDifferentiationMeasures  genDiffMeasures,
+				std::string  pop1Name,
+				std::string  pop2Name): genDiffMeasures_(std::move(genDiffMeasures)),
+						pop1Name_(std::move(pop1Name)),
+						pop2Name_(std::move(pop2Name)){
 
 		}
-		PopDifferentiationMeasuresPairWise(){
-			//here for convenience
-		}
+		PopDifferentiationMeasuresPairWise() = default;
 		PopDifferentiationMeasures genDiffMeasures_;
 		std::string pop1Name_;
 		std::string pop2Name_;
@@ -366,7 +363,7 @@ public:
 	};
 
 
-	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<PopHapInfo> & haps);
+	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<PopHapInfo> & haps, bool onlyPloidy2 = false);
 
 
 	static PopDifferentiationMeasures getOverallPopDiff(std::unordered_map<std::string, std::vector<PopHapInfo> > hapsForPopulations);

@@ -115,6 +115,8 @@ public:
 
 	IndexResults genIndexMeasures(bool verbose = false) const;
 
+	void writeAbsoluteHapSharedPerSamplePerTar(const OutOptions & outOptions, bool verbose = false) const;
+
 };
 
 

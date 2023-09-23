@@ -370,6 +370,37 @@ HapsEncodedMatrix::IndexResults::IndexResults(const uint64_t numOfSamps){
 	}
 }
 
+void HapsEncodedMatrix::writeAbsoluteHapSharedPerSamplePerTar(const OutOptions & outOptions, bool verbose) const{
+	OutputStream out(outOptions);
+	out << "target\tsample";
+	for(const auto & samp : sampNamesVec_){
+		out << "\t" << samp;
+	}
+	out << std::endl;
+
+	for(const auto tpos : iter::range(tarNamesVec_.size())){
+		for(const auto samp1Pos : iter::range(sampNamesVec_.size())){
+			out << tarNamesVec_[tpos] << "\t" << sampNamesVec_[samp1Pos];
+			for(const auto samp2Pos : iter::range(sampNamesVec_.size())){
+				uint8_t tarRes = targetsEncodeBySamp_[samp1Pos][tpos] + targetsEncodeBySamp_[samp2Pos][tpos];
+				//should be 2 if both samples have this target
+				uint32_t totalSharedForTar = 0;
+				if(2 == tarRes){
+					for(const auto hapPos : iter::range(numberOfHapsPerTarget_[tpos])){
+						//position in the encoded vector should be the target start ranged over the possible haplotypes for that target
+						uint8_t res = hapsEncodeBySamp_[samp1Pos][tarStart_[tpos] + hapPos] + hapsEncodeBySamp_[samp2Pos][tarStart_[tpos] + hapPos];
+						//if res is 2 then haps are shared
+						if(2 == res) {
+							++totalSharedForTar;
+						}
+					}
+				}
+				out << "\t" << totalSharedForTar;
+			}
+			out << std::endl;
+		}
+	}
+}
 
 
 HapsEncodedMatrix::IndexResults HapsEncodedMatrix::genIndexMeasures(bool verbose) const{
