@@ -150,25 +150,47 @@ void nhmmscanOutput::QueryResults::sortHitsByEvaluesScores(std::vector<Hit> &hit
 	});
 }
 
+//std::vector<nhmmscanOutput::Hit> nhmmscanOutput::QueryResults::getNonOverlapHits(const std::vector<Hit> &hits) {
+// 2023-10 Nick: this appears to be wrong below, not sure when this happened, does seem like it shoud be by query and not target
+//	std::unordered_map<std::string, std::vector<Hit>> retByChrom;
+//	for (const auto & region: hits) {
+//		bool overlap = false;
+//		for (const auto &outRegion: retByChrom[region.targetName_]) {
+//			if (region.overlaps_env(outRegion, 1)) {
+//				overlap = true;
+//				break;
+//			}
+//		}
+//		if (!overlap) {
+//			retByChrom[region.targetName_].emplace_back(region);
+//		}
+//	}
+//	std::vector<Hit> ret;
+//	for(const auto & byChrom : retByChrom){
+//		addOtherVec(ret, byChrom.second);
+//	}
+//	return ret;
+//}
+
 std::vector<nhmmscanOutput::Hit> nhmmscanOutput::QueryResults::getNonOverlapHits(const std::vector<Hit> &hits) {
-	std::unordered_map<std::string, std::vector<Hit>> retByChrom;
-	for (const auto & region: hits) {
-		bool overlap = false;
-		for (const auto &outRegion: retByChrom[region.targetName_]) {
-			if (region.overlaps_env(outRegion, 1)) {
-				overlap = true;
-				break;
-			}
-		}
-		if (!overlap) {
-			retByChrom[region.targetName_].emplace_back(region);
-		}
-	}
-	std::vector<Hit> ret;
-	for(const auto & byChrom : retByChrom){
-		addOtherVec(ret, byChrom.second);
-	}
-	return ret;
+  std::unordered_map<std::string, std::vector<Hit>> retByChrom;
+  for (const auto & region: hits) {
+    bool overlap = false;
+    for (const auto &outRegion: retByChrom[region.queryName_]) {
+      if (region.overlaps_env(outRegion, 1)) {
+        overlap = true;
+        break;
+      }
+    }
+    if (!overlap) {
+      retByChrom[region.queryName_].emplace_back(region);
+    }
+  }
+  std::vector<Hit> ret;
+  for(const auto & byChrom : retByChrom){
+    addOtherVec(ret, byChrom.second);
+  }
+  return ret;
 }
 
 std::vector<nhmmscanOutput::Hit> nhmmscanOutput::QueryResults::getNonOverlapHits(std::vector<Hit> &hits, const std::function<bool(const Hit&, const Hit&)> & sortFunc){
