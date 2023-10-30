@@ -116,6 +116,7 @@ public:
 
 
 	Json::Value toJson() const;
+  Json::Value toJsonLocationOnly() const;
 
 	std::string createUidFromCoords() const;
 	std::string createUidFromCoordsStrand() const;

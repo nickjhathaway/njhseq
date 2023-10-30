@@ -509,6 +509,17 @@ Json::Value GenomicRegion::toJson() const{
 	return ret;
 }
 
+Json::Value GenomicRegion::toJsonLocationOnly() const{
+  Json::Value ret;
+  ret["chrom"] = njh::json::toJson(chrom_);
+  ret["start"] = njh::json::toJson(start_);
+  ret["end"] = njh::json::toJson(end_);
+  ret["strand"] = njh::json::toJson(reverseSrand_ ? '-' : '+');
+  return ret;
+}
+
+
+
 std::vector<GenomicRegion> gatherRegions(const std::string & bedFile,
 		const std::string & gffFile, bool verbose){
 	std::vector<GenomicRegion> allRegions;
