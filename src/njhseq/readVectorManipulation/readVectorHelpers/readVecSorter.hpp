@@ -35,8 +35,7 @@ class readVecSorter {
   template <typename T>
   static void sort(std::vector<T>& vec, bool decending = true) {
     sortReadVector(vec, "totalCount", decending);
-    return;
-  }
+ }
 
 	template<typename T>
 	static void sortReadVector(std::vector<T>& vec, const std::string& sortBy,
