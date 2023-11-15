@@ -338,8 +338,26 @@ std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> GeneFromGffs::gene
 
 	for(const auto & transcript : mRNAs_){
 		GenomicRegion mRnaRegion(*transcript) ;
-		auto gDna = mRnaRegion.extractSeq(tReader);
+		auto full_gDna = mRnaRegion.extractSeq(tReader);
 		auto cdsRegions = gffPtrsToGenomicRegs(CDS_.at(transcript->getIDAttr() ));
+
+		uint32_t minStartCDSRegion = std::numeric_limits<uint32_t>::max();
+		uint32_t maxEndCDSRegion = 0;
+		for(const auto & CDS : CDS_.at(transcript->getIDAttr() )){
+			if(GenomicRegion(*CDS).start_ < minStartCDSRegion ){
+				minStartCDSRegion = GenomicRegion(*CDS).start_;
+			}
+			if(GenomicRegion(*CDS).end_ > maxEndCDSRegion  ){
+				maxEndCDSRegion = GenomicRegion(*CDS).end_;
+			}
+		}
+		GenomicRegion justCodingRegion = mRnaRegion;
+		justCodingRegion.start_ = minStartCDSRegion;
+		justCodingRegion.end_ = maxEndCDSRegion;
+		auto coding_gDna = justCodingRegion.extractSeq(tReader);
+//		std::cout << mRnaRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+//		std::cout << justCodingRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+
 		seqInfo cDna;
 		seqInfo cDnaAln;
 		if(cdsRegions.size() > 1){
@@ -375,8 +393,9 @@ std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> GeneFromGffs::gene
 		}
 		GeneSeqInfo::GeneSeqInfoPars giInfoPar;
 		giInfoPar.oneBasedPos_ = oneBased;
-		giInfoPar.region_ = mRnaRegion;
-		ret[transcript->getIDAttr()]  = std::make_shared<GeneSeqInfo>(cDna, gDna, giInfoPar);
+		giInfoPar.region_ = justCodingRegion;
+		giInfoPar.fullmRNARegion_ = mRnaRegion;
+		ret[transcript->getIDAttr()]  = std::make_shared<GeneSeqInfo>(cDna, coding_gDna, giInfoPar);
 		ret[transcript->getIDAttr()]->setCDnaAln(cDnaAln);
 		ret[transcript->getIDAttr()]->setTable();
 	}

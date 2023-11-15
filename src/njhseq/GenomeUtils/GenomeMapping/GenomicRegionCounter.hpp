@@ -52,7 +52,7 @@ public:
 	void increaseCounts(const std::vector<BamTools::BamAlignment> & bAlns,
 			const BamTools::RefVector & refData);
 
-	std::set<std::string> getIntersectingGffIds(const bfs::path & gffFnp, const VecStr & features = {"gene"})const ;
+	std::set<std::string> getIntersectingGffIds(const bfs::path &gffFnp, const VecStr &features = {"gene", "protein_coding_gene"}) const;
 
 	static GenomicRegionCounter countRegionsInBam(const bfs::path & bamFnp);
 };

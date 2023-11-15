@@ -25,6 +25,7 @@ public:
 	struct GeneSeqInfoPars {
 
 		GenomicRegion region_;
+		GenomicRegion fullmRNARegion_;
 		bool oneBasedPos_ = false;
 	};
 	struct GenePosInfo {
