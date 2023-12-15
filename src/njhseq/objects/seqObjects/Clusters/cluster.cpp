@@ -176,10 +176,10 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 				}
 				readVecSorter::sort(splitSeqs);
 //				std::cout << __FILE__ << " " << __LINE__ << std::endl;
-				OutOptions outOpts(bfs::path("first_name_of_first_splitSeqs.txt"));
-				outOpts.append_ = true;
-				OutputStream out(outOpts);
-				out << splitSeqs.front()->seqBase_.name_ << roundDecPlaces(splitSeqs.front()->averageErrorRate, 4)<< std::endl;
+				// OutOptions outOpts(bfs::path("first_name_of_first_splitSeqs.txt"));
+				// outOpts.append_ = true;
+				// OutputStream out(outOpts);
+				// out << splitSeqs.front()->seqBase_.name_ << roundDecPlaces(splitSeqs.front()->averageErrorRate, 4)<< std::endl;
 				ret.emplace_back(getConsensus(splitSeqs, alignerObj, splitSeqs.front()->seqBase_.name_));
 				ret.back().needToCalculateConsensus_ = true;
 				ret.back().calculateConsensus(alignerObj, true);;
