@@ -30,6 +30,7 @@
 
 #include "njhseq/objects/helperObjects/motif.hpp"
 #include "njhseq/objects/helperObjects/nucCompCluster.hpp"
+#include "njhseq/objects/helperObjects/AminoAcidPositionInfo.hpp"
 
 
 #include "njhseq/objects/helperObjects/sampInfo.hpp"

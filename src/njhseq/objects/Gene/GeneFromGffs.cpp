@@ -15,7 +15,7 @@ namespace njhseq {
 GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRecords){
 	VecStr alreadyAddedIDs;
 	//just from what i've seen from chado annotations
-	VecStr acceptableMrnaLikeRecords = {"mRNA", "ncRNA", "rRNA", "snoRNA", "tRNA", "snRNA", "transcript"};
+	VecStr acceptableMrnaLikeRecords = {"mRNA", "ncRNA", "rRNA", "snoRNA", "tRNA", "snRNA", "transcript", "pseudogenic_transcript"};
 	VecStr allowableGeneFeatures{"gene", "pseudogene", "protein_coding_gene"};
 	for(const auto & record : geneRecords){
 		if(record->hasAttr("ID") && njh::in(record->getAttr("ID"), alreadyAddedIDs)){
@@ -807,12 +807,15 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 
 
 void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars & pars){
+
 		if(pars.ids.empty()){
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", error no IDs read in" << "\n";
 			throw std::runtime_error{ss.str()};
 		}
+		// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
 		auto genes = GeneFromGffs::getGenesFromGffForIds(pars.inputFile, pars.ids);
+		// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
 		if(genes.empty()){
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", error no records found matching ids: " << njh::conToStr(pars.ids, ", ") << "\n";
@@ -835,11 +838,11 @@ void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars & par
 		}
 
 		for(const auto & gene : genes){
-			//std::cout << gene.first << "\t" << gene.second->getOneGeneDetailedName() << std::endl;
-	//		auto names = gene.second->getGeneDetailedName();
-	//		for(const auto & name : names){
-	//			std::cout << name.first << "\t" << name.second << std::endl;
-	//		}
+			// std::cout << gene.first << "\t" << gene.second->getOneGeneDetailedName() << std::endl;
+			// auto names = gene.second->getGeneDetailedName();
+			// for(const auto & name : names){
+			// 	std::cout << name.first << "\t" << name.second << std::endl;
+			// }
 			auto gsInfos = gene.second->generateGeneSeqInfo(tReader, false);
 			//gff
 			auto gffOpts = OutOptions(bfs::path(pars.outOpts.outFilename_.string() + "_" + gene.second->gene_->getAttr("ID") + ".gff"));
