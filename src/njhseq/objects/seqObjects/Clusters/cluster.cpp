@@ -137,12 +137,12 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 			alignerObj.profilePrimerAlignment(*this, subRead);
 			std::stringstream ss;
 			uint32_t snpCount = 0;
-			double freqSum = 0;
+			// double freqSum = 0;
 			for (const auto & m : alignerObj.comp_.distances_.mismatches_) {
 				if (njh::in(m.second.seqBase,
 						mismatchesAboveCutOff[m.second.refBasePos])) {
 					++snpCount;
-					freqSum +=  mismatchesAboveCutOff[m.second.refBasePos][m.second.seqBase]/seqBase_.cnt_;
+					// freqSum +=  mismatchesAboveCutOff[m.second.refBasePos][m.second.seqBase]/seqBase_.cnt_;
 					ss << m.second.refBasePos << ":" << m.second.seqBase << ";";
 				}
 			}

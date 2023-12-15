@@ -578,7 +578,7 @@ CollapsedHaps CollapsedHaps::readInReads(const SeqIOOptions & inOpts, const std:
 	SeqInput reader(inOpts);
 	reader.openIn();
 	seqInfo seq;
-	uint32_t seqCount = 0;
+	// uint32_t seqCount = 0;
 	std::unordered_set<std::string> allNames;
 
 	while(reader.readNextRead(seq)) {
@@ -611,7 +611,7 @@ CollapsedHaps CollapsedHaps::readInReads(const SeqIOOptions & inOpts, const std:
 		if(inOpts.removeGaps_){
 			seq.removeGaps();
 		}
-		seqCount+= std::round(seq.cnt_);
+		// seqCount+= std::round(seq.cnt_);
 		bool found = false;
 		for (const auto pos : iter::range(ret.seqs_.size())) {
 			const auto & otherSeq = ret.seqs_[pos];

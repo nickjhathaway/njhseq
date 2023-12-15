@@ -94,7 +94,7 @@ std::set<std::string> GenomicRegionCounter::getIntersectingGffIds(const bfs::pat
 	std::set<std::string> idsFromData;
 	BioDataFileIO<GFFCore> reader { IoOptions(InOptions(gffFnp)) };
 	reader.openIn();
-	uint32_t count = 0;
+	// uint32_t count = 0;
 	std::string line = "";
 	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
 	while (nullptr != gRecord) {
@@ -118,7 +118,7 @@ std::set<std::string> GenomicRegionCounter::getIntersectingGffIds(const bfs::pat
 			break;
 		}
 		gRecord = reader.readNextRecord();
-		++count;
+		// ++count;
 	}
 	return idsFromData;
 }

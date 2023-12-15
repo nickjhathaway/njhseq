@@ -100,10 +100,10 @@ Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(const uint32_t aaStart,
 				<< "\n";
 		throw std::runtime_error { ss.str() };
 	}
-	uint32_t posOffset = 0;
-	if (pars_.oneBasedPos_) {
-		posOffset = 1;
-	}
+	// uint32_t posOffset = 0;
+	// if (pars_.oneBasedPos_) {
+	// 	posOffset = 1;
+	// }
 	auto aaSplit = infoTab_.splitTableOnColumn("aaPos");
 
 	Bed6RecordCore ret;

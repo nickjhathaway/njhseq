@@ -86,7 +86,7 @@ Json::Value intersectBedLocsWtihGffRecords(
 
 	BioDataFileIO<GFFCore> reader { IoOptions(InOptions(pars.gffFnp_)) };
 	reader.openIn();
-	uint32_t count = 0;
+	// uint32_t count = 0;
 	std::string line = "";
 	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
 	for (const auto bPos : iter::range(beds.size())) {
@@ -135,7 +135,7 @@ Json::Value intersectBedLocsWtihGffRecords(
 			break;
 		}
 		gRecord = reader.readNextRecord();
-		++count;
+		// ++count;
 	}
 	return ret;
 }

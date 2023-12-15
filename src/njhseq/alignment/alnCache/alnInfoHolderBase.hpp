@@ -244,18 +244,18 @@ public:
 		indexFile.open(indexFilename.string(), std::ios::app);
 
 		// openTextFile(indexFile, , ".txt" ,false, true);
-		uint64_t alnCount = 0;
-		uint64_t alnAddFromFileCount = 0;
-		uint64_t alnFromThisCount = 0;
+		// uint64_t alnCount = 0;
+		// uint64_t alnAddFromFileCount = 0;
+		// uint64_t alnFromThisCount = 0;
 		for (const auto &infoMap : infos_) {
 			for (const auto &infoMapSub : infoMap.second) {
-				++alnCount;
+				// ++alnCount;
 				if (!infoMapSub.second.addFromFile_) {
 					infoMapSub.second.writeInfoSingleLine(indexFile, infoMap.first,
 																								infoMapSub.first);
-					++alnFromThisCount;
+					// ++alnFromThisCount;
 				} else {
-					++alnAddFromFileCount;
+					// ++alnAddFromFileCount;
 				}
 			}
 		}

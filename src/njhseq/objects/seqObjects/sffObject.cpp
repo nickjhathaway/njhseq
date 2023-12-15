@@ -397,17 +397,16 @@ int sffObject::clipToNinetyPercentOfFlows(size_t cutOff) {
 
 size_t sffObject::findFirstNoisyFlow(const std::vector<double>& inFlows) {
   int noise = 0;
-  int signal = 0;
+  // int signal = 0;
   int basesSinceSignal = 0;
   size_t pos = 0;
-  for (std::vector<double>::const_iterator fIter = inFlows.begin();
-       fIter != inFlows.end(); ++fIter) {
+  for (const double inFlow : inFlows) {
 
-    if (*fIter > 0.5) {
-      if (*fIter < 0.7) {
+    if (inFlow > 0.5) {
+      if (inFlow < 0.7) {
         ++noise;
       } else {
-        ++signal;
+        // ++signal;
         basesSinceSignal = 0;
       }
     } else {

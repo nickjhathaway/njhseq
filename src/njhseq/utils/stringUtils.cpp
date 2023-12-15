@@ -180,15 +180,15 @@ void translateStringWithKey(std::string& str, MapStrStr& key) {
 }
 
 std::string condenseSeqSimple(const std::string& seq) {
-  std::string condensedSeq = "";
-  uint32_t currentCount = 1;
+  std::string condensedSeq;
+  // uint32_t currentCount = 1;
   uint32_t i = 1;
   for (; i < seq.size(); i++) {
     if (seq[i] == seq[i - 1]) {
-      currentCount++;
+      // currentCount++;
     } else {
       condensedSeq.push_back(seq[i - 1]);
-      currentCount = 1;
+      // currentCount = 1;
     }
   }
   condensedSeq.push_back(seq[i - 1]);

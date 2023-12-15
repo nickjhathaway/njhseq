@@ -527,7 +527,7 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA,
 	uint32_t secondOffset = 0;
 	uint32_t gappedBasesInA = 0;
 	uint32_t gappedBasesInB = 0;
-	uint32_t numberOfGaps = 0;
+	// uint32_t numberOfGaps = 0;
   //if the start is the very beginning, need to calculate the offset
   if (start != 0) {
     for (uint32_t i = 0; i < start; ++i) {
@@ -578,12 +578,12 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA,
 			bool endGap = (newGap.startPos_ + newGap.size_ >= len(alignObjectA_)) || 0 == newGap.startPos_;
 			if (!endGap) {
 				gappedBasesInA += newGap.size_;
-				++numberOfGaps;
+				// ++numberOfGaps;
 				handleGapCountingInA(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 						std::make_pair(newGap.startPos_, newGap));
 			} else if (countEndGaps_) {
-				++numberOfGaps;
+				// ++numberOfGaps;
 				handleGapCountingInA(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 						std::make_pair(newGap.startPos_, newGap));
@@ -609,13 +609,13 @@ const comparison & aligner::profileAlignment(const seqInfo& objectA,
        *   or become a new function*/
       bool endGap = (newGap.startPos_ + newGap.size_ >= alignObjectB_.seqBase_.seq_.length()) || 0 == newGap.startPos_;
 			if (!endGap) {
-				++numberOfGaps;
+				// ++numberOfGaps;
 				gappedBasesInB += newGap.size_;
 				handleGapCountingInB(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 										std::make_pair(newGap.startPos_, newGap));
 			}else if (countEndGaps_) {
-				++numberOfGaps;
+				// ++numberOfGaps;
 				handleGapCountingInB(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 										std::make_pair(newGap.startPos_, newGap));
@@ -793,11 +793,11 @@ comparison aligner::compareAlignment(
 	uint32_t secondOffset = 0;
   uint32_t gappedBasesInA  = 0;
   uint32_t gappedBasesInB  = 0;
-  uint32_t numberOfGaps = 0;
+  // uint32_t numberOfGaps = 0;
   for (uint32_t i = 0; i < len(alignObjectA_); ++i) {
   	//gap in alignObjectA, normally reference sequence
     if (alignObjectA_.seqBase_.seq_[i] == '-') {
-    	++numberOfGaps;
+    	// ++numberOfGaps;
       ++firstOffset;
 			gap newGap = gap(i, getSeqPosForAlnAPos(i), getSeqPosForAlnBPos(i),
 					alignObjectB_.seqBase_.seq_.substr(i, 1),
@@ -813,12 +813,12 @@ comparison aligner::compareAlignment(
       bool endGap = (newGap.startPos_ + newGap.size_ >= len(alignObjectA_)) || 0 == newGap.startPos_;
 			if (!endGap) {
 				gappedBasesInA += newGap.size_;
-				++numberOfGaps;
+				// ++numberOfGaps;
 				handleGapCountingInA(newGap);
 				comp_.distances_.alignmentGaps_.insert(
 						std::make_pair(newGap.startPos_, newGap));
 			} else if (countEndGaps_) {
-				++numberOfGaps;
+				// ++numberOfGaps;
 				handleGapCountingInA(newGap);
 			}
       continue;
@@ -839,11 +839,11 @@ comparison aligner::compareAlignment(
       }
       bool endGap = (newGap.startPos_ + newGap.size_ >= alignObjectB_.seqBase_.seq_.length()) || 0 == newGap.startPos_;
 			if (!endGap) {
-				++numberOfGaps;
+				// ++numberOfGaps;
 				gappedBasesInB += newGap.size_;
 				handleGapCountingInB(newGap);
 			} else if (countEndGaps_) {
-				++numberOfGaps;
+				// ++numberOfGaps;
 				handleGapCountingInB(newGap);
 			}
       continue;

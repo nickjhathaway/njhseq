@@ -549,9 +549,9 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlap(const 
 				continue;
 			}
 			alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
-			double currentScore = 0;
+			// double currentScore = 0;
 			alignerObj.profileAlignment(ref, getSeqBase(seq), false, true, false);
-			currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
+			// currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
 			//getTrimFront
 			uint32_t trimFront = std::numeric_limits<uint32_t>::max();
 			bool partial = false;
@@ -719,9 +719,9 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 				continue;
 			}
 			alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
-			double currentScore = 0;
+			// double currentScore = 0;
 			alignerObj.profileAlignment(ref, getSeqBase(seq), false, true, false);
-			currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
+			// currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
 			//getTrimFront
 			uint32_t trimFront = std::numeric_limits<uint32_t>::max();
 			bool partial = false;
@@ -768,9 +768,9 @@ std::vector<seqInfo> readVecTrimmer::trimSeqToRefByGlobalAlnBestNoOverlapInclude
 				continue;
 			}
 			alignerObj.alignCacheGlobal(ref, getSeqBase(seq));
-			double currentScore = 0;
+			// double currentScore = 0;
 			alignerObj.profileAlignment(ref, getSeqBase(seq), false, true, false);
-			currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
+			// currentScore = alignerObj.comp_.distances_.eventBasedIdentity_;
 			//getTrimFront
 			uint32_t trimFront = std::numeric_limits<uint32_t>::max();
 			bool partial = false;

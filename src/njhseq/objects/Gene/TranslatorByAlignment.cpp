@@ -188,9 +188,9 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 			 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			vcfOut << getBaseForGenomicRegion(pos) << "\t";
 			if(njh::in(pos, snpsFinal)){
-				uint32_t snpCount = 0;
+				// uint32_t snpCount = 0;
 				for(const auto & b : snpsFinal.at(pos)){
-					snpCount+= b.second;
+					// snpCount+= b.second;
 					alts.emplace_back(std::string(1, b.first));
 					altsCounts.emplace_back(b.second);
 					altsFreqs.emplace_back(b.second/static_cast<double>(depthPerPosition.at(pos)));
@@ -558,7 +558,7 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		auto genePosInfoByGDna = currentTranscriptInfo->getInfosByGDNAPos();
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-		bool endsAtStopCodon = false;
+		// bool endsAtStopCodon = false;
 		uint32_t transStart = 0;
 		seqInfo balnSeq(realigned.querySeq_.name_);
 		std::vector<uint32_t> codons;
@@ -583,10 +583,10 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				balnSeq = realigned.querySeq_;
 				if (currentGene.gene_->isReverseStrand()) {
-					if (njh::mapAt(genePosInfoByGDna,realigned.gRegion_.start_).cDNAPos_
-							== currentTranscriptInfo->cDna_.seq_.size() - 1) {
-						endsAtStopCodon = true;
-					}
+					// if (njh::mapAt(genePosInfoByGDna,realigned.gRegion_.start_).cDNAPos_
+					// 		== currentTranscriptInfo->cDna_.seq_.size() - 1) {
+					// 	endsAtStopCodon = true;
+					// }
 					uint32_t gPos = realigned.gRegion_.end_ - 1;
 					auto codon = njh::mapAt(genePosInfoByGDna,gPos).codonPos_;
 					while (0 != codon) {
@@ -597,10 +597,10 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 					cdnaGenomicEndInconclusive = gPos;
 					cdnaGenomicStart = realigned.gRegion_.start_;
 				} else {
-					if (njh::mapAt(genePosInfoByGDna,realigned.gRegion_.end_ - 1).cDNAPos_
-							== currentTranscriptInfo->cDna_.seq_.size() - 1) {
-						endsAtStopCodon = true;
-					}
+					// if (njh::mapAt(genePosInfoByGDna,realigned.gRegion_.end_ - 1).cDNAPos_
+					// 		== currentTranscriptInfo->cDna_.seq_.size() - 1) {
+					// 	endsAtStopCodon = true;
+					// }
 					uint32_t gPos = realigned.gRegion_.start_;
 					uint32_t codon = njh::mapAt(genePosInfoByGDna, gPos).codonPos_;
 					while (0 != codon) {
@@ -683,17 +683,17 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 //				std::cout << "cdnaGenomicStart          :" << cdnaGenomicStart << std::endl;
 //				std::cout << "cdnaGenomicEndInconclusive:" << cdnaGenomicEndInconclusive << std::endl;
 
-				if (currentGene.gene_->isReverseStrand()) {
-					if (njh::mapAt(genePosInfoByGDna, cDnaStart).cDNAPos_
-							== currentTranscriptInfo->cDna_.seq_.size() - 1) {
-						endsAtStopCodon = true;
-					}
-				} else {
-					if (njh::mapAt(genePosInfoByGDna, cDnaStop - 1).cDNAPos_
-							== currentTranscriptInfo->cDna_.seq_.size() - 1) {
-						endsAtStopCodon = true;
-					}
-				}
+				// if (currentGene.gene_->isReverseStrand()) {
+				// 	if (njh::mapAt(genePosInfoByGDna, cDnaStart).cDNAPos_
+				// 			== currentTranscriptInfo->cDna_.seq_.size() - 1) {
+				// 		endsAtStopCodon = true;
+				// 	}
+				// } else {
+				// 	if (njh::mapAt(genePosInfoByGDna, cDnaStop - 1).cDNAPos_
+				// 			== currentTranscriptInfo->cDna_.seq_.size() - 1) {
+				// 		endsAtStopCodon = true;
+				// 	}
+				// }
 				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				balnSeq.removeGaps();
 				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;

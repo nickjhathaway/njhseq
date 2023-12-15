@@ -763,7 +763,7 @@ public:
 				double score = 0;
 				uint32_t spanningSpotsNoGaps = 0;
 				uint32_t nonZeroSpanningSpotsNoGaps = 0;
-				double scoreNoGaps = 0;
+				// double scoreNoGaps = 0;
 				for (const auto & streak : streaks) {
 					for(uint32_t pos : iter::range(streak.start_, streak.end_)){
 						if(pos>= allStartsStop[alnSeqPos].start_ && pos <= allStartsStop[alnSeqPos].stop_){
@@ -776,9 +776,9 @@ public:
 							score *= profiles[pos]->fractions_[allSeqs[alnSeqPos].seq_[pos]];
 							++spanningSpots;
 							if('-' != allSeqs[alnSeqPos].seq_[pos]){
-								if(0 == spanningSpotsNoGaps ){
-									scoreNoGaps = 1;
-								}
+								// if(0 == spanningSpotsNoGaps ){
+								// 	scoreNoGaps = 1;
+								// }
 								if(1 != profiles[pos]->chars_[allSeqs[alnSeqPos].seq_[pos]]){
 									++nonZeroSpanningSpotsNoGaps;
 								}

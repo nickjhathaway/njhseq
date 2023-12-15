@@ -407,9 +407,9 @@ PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff
 
 	double harmonicMean = 0;
 	double sumOfInverses = 0;
-	uint32_t totalHaps = 0;
+	// uint32_t totalHaps = 0;
 	for(const auto & popSize : subPopSizes){
-		totalHaps += popSize.second;
+		// totalHaps += popSize.second;
 		sumOfInverses += 1.0/popSize.second;
 	}
 	harmonicMean = static_cast<double>(subPopSizes.size())/sumOfInverses;

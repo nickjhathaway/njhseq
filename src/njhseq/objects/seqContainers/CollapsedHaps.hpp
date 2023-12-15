@@ -168,7 +168,7 @@ public:
 
 
 		CollapsedHaps ret;
-		uint32_t seqCount = 0;
+		// uint32_t seqCount = 0;
 		std::unordered_set<std::string> allNames;
 
 		for(const auto & seqObj : seqs) {
@@ -199,7 +199,7 @@ public:
 			}
 			allNames.emplace(seq.name_);
 
-			seqCount+= std::round(seq.cnt_);
+			// seqCount+= std::round(seq.cnt_);
 			bool found = false;
 			for (const auto  pos : iter::range(ret.seqs_.size())) {
 				const auto & otherSeq = ret.seqs_[pos];
@@ -235,7 +235,7 @@ public:
 		}
 
 		CollapsedHaps ret;
-		uint32_t seqCount = 0;
+		// uint32_t seqCount = 0;
 		std::unordered_set<std::string> allNames;
 		uint32_t seqIndex = 0;
 		for(const auto & seqObj : seqs) {
@@ -248,7 +248,7 @@ public:
 				throw std::runtime_error{ss.str()};
 			}
 			allNames.emplace(seq.name_);
-			seqCount+= std::round(seq.cnt_);
+			// seqCount+= std::round(seq.cnt_);
 			bool found = false;
 			for (const auto  pos : iter::range(ret.seqs_.size())) {
 				const auto & otherSeq = ret.seqs_[pos];

@@ -889,7 +889,7 @@ void profiler::getMapInfo(const std::vector<CLUSTER>& reads,
   outFile
       << "seqName\trefId\treadsMapped\tmappedFraction\tmeanErrors\tmedianErros"
       << std::endl;
-  int currentCluster = 0;
+  // int currentCluster = 0;
   //int totalReads = readVec::getTotalReadCount(reads);
   double totalReads = std::accumulate(reads.begin(), reads.end(),
   		0, [&](double res, const CLUSTER & read){return res+= read.seqBase_.cnt_;});
@@ -916,7 +916,7 @@ void profiler::getMapInfo(const std::vector<CLUSTER>& reads,
             << (double)clusIter.seqBase_.cnt_ / totalReads << "\t"
             << vectorMean(mismatches) << "\t" << vectorMedianRef(mismatches)
             << std::endl;
-    currentCluster++;
+    // currentCluster++;
   }
 }
 template <class CLUSTER>
@@ -930,7 +930,7 @@ void profiler::getMapInfo(const std::vector<CLUSTER>& reads,
   openTextFile(outFile, directory + filename, ".tab.txt", false, false);
   outFile << "seqName\tbarcode\texpected\trefId\treadsMapped\tmappedFraction\tm"
              "eanErrors\tmedianErros" << std::endl;
-  int currentCluster = 0;
+  // int currentCluster = 0;
   //int totalReads = readVec::getTotalReadCount(reads);
   double totalReads = std::accumulate(reads.begin(), reads.end(),
     		0, [&](double res, const CLUSTER & read){return res+= read.seqBase_.cnt_;});
@@ -951,7 +951,7 @@ void profiler::getMapInfo(const std::vector<CLUSTER>& reads,
             << (double)clusIter.seqBase_.cnt_ / totalReads << "\t"
             << vectorMedianRef(mismatches) << "\t" << vectorMedianRef(mismatches)
             << std::endl;
-    currentCluster++;
+    // currentCluster++;
   }
 }
 

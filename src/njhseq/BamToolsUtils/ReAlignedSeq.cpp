@@ -58,7 +58,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 	alignerObj.alignCacheGlobal(rSeq, qSeq);
 	uint32_t queryAlnStart = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
 	uint32_t queryAlnLastBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
-	uint32_t refAlnStart = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+	// uint32_t refAlnStart = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
 	uint32_t refAlnLastBase = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
 	uint32_t queryAlnEnd = queryAlnLastBase + 1;
 	uint32_t realRefStart  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnStart);
@@ -104,7 +104,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 		alignerObj.alignCacheGlobal(rSeq, qSeq);
 		queryAlnStart = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
 		queryAlnLastBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
-		refAlnStart = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+		// refAlnStart = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
 		refAlnLastBase = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
 		queryAlnEnd = queryAlnLastBase + 1;
 		realRefStart  = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnStart);

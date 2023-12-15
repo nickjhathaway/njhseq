@@ -33,7 +33,7 @@ namespace collapse {
 
 sampleCollapse::sampleCollapse(const std::vector<std::vector<njhseq::cluster>> &inputClusters,
                const std::string &sampName, uint32_t freqCutOff): sampName_(sampName) {
-  uint32_t lowFreqCount = 0;
+  // uint32_t lowFreqCount = 0;
   std::map<std::string, double> allSampCounts;
   for (auto &reads : inputClusters) {
   	//clusterVec::allSetFractionClusters(reads);
@@ -70,7 +70,7 @@ sampleCollapse::sampleCollapse(const std::vector<std::vector<njhseq::cluster>> &
 			}
 			seq.seqBase_.resetMetaInName(filteredMeta);
 			excluded_.clusters_.emplace_back(seq);
-			++lowFreqCount;
+			// ++lowFreqCount;
 		}
 	}
 	updateInitialInfos();
@@ -150,19 +150,19 @@ void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update,
 	}
 	if (sizeOfReadVector > 1) {
 		std::vector<uint32_t> toBeExcluded;
-		uint32_t clusterCounter = 0;
-		size_t amountAdded = 0;
+		// uint32_t clusterCounter = 0;
+		// size_t amountAdded = 0;
 		for (const auto &reverseReadPos : iter::reversed(positions)) {
 			auto & reverseRead = collapsed_.clusters_[reverseReadPos];
 			if (reverseRead.remove) {
 				continue;
 			} else {
-				++clusterCounter;
+				// ++clusterCounter;
 			}
 			if(skipChimeras && reverseRead.seqBase_.isChimeric()){
 				continue;
 			}
-			uint32_t count = 0;
+			// uint32_t count = 0;
 		  for (const auto &clusPos : positions) {
 		    if (collapsed_.clusters_[clusPos].remove) {
 		      continue;
@@ -175,7 +175,7 @@ void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update,
 		      continue;
 		    }
 
-		    ++count;
+		    // ++count;
 		    comparison comp = clus.getComparison(reverseRead, alignerObj, false);
 		    //can only get here if clus.seqBase_.frac >  reverseRead.seqBase_.frac_ * lowFreqMultiplier so can just check if only diffs by 1 mismatch
 	//	    bool matching = ((comp.hqMismatches_ + comp.lqMismatches_ + comp.lowKmerMismatches_) <=1
@@ -195,7 +195,7 @@ void sampleCollapse::sampleCollapse::excludeLowFreqOneOffs(bool update,
 		    	}
 		    }
 				if (matching) {
-	        ++amountAdded;
+	        // ++amountAdded;
 	        toBeExcluded.push_back(reverseReadPos);
 	        reverseRead.remove = true;
 	        break;

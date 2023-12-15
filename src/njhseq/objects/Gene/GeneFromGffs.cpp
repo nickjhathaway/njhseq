@@ -548,7 +548,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 	BioDataFileIO<GFFCore> reader{IoOptions(InOptions(gffFnp))};
 	std::vector<std::shared_ptr<GFFCore>> cache;
 	reader.openIn();
-	uint32_t count = 0;
+	// uint32_t count = 0;
 	std::string line = "";
 	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
 	while (nullptr != gRecord) {
@@ -602,7 +602,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 			break;
 		}
 		gRecord = reader.readNextRecord();
-		++count;
+		// ++count;
 	}
 
 	for(const auto & geneGffs : gffRecs){
@@ -656,7 +656,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 	BioDataFileIO<GFFCore> reader{IoOptions(InOptions(gffFnp))};
 	std::vector<std::shared_ptr<GFFCore>> cache;
 	reader.openIn();
-	uint32_t count = 0;
+	// uint32_t count = 0;
 	std::string line = "";
 	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
 	while (nullptr != gRecord) {
@@ -710,7 +710,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 			break;
 		}
 		gRecord = reader.readNextRecord();
-		++count;
+		// ++count;
 	}
 
 	for(const auto & geneGffs : gffRecs){
@@ -731,7 +731,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 	BioDataFileIO<GFFCore> reader{IoOptions(InOptions(gffFnp))};
 	std::vector<std::shared_ptr<GFFCore>> cache;
 	reader.openIn();
-	uint32_t count = 0;
+	// uint32_t count = 0;
 	std::string line = "";
 	VecStr deirvedFromRecordFeatures {"polypeptide"};
 	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
@@ -787,7 +787,7 @@ std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> GeneFromGffs::get
 			break;
 		}
 		gRecord = reader.readNextRecord();
-		++count;
+		// ++count;
 	}
 	VecStr  skipFeatures {"tRNA", "rRNA"};
 	for(const auto & geneGffs : gffRecs){

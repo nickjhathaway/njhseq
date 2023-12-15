@@ -62,11 +62,11 @@ void probabilityProfile::initCounts() {
 
 void probabilityProfile::updateProfile() {
   std::stringstream consensus;
-  uint32_t pos = 0;
+  // uint32_t pos = 0;
   for (auto &count : counts_) {
     consensus << count.outputBestLetter();
     count.setFractions();
-    ++pos;
+    // ++pos;
   }
   consensus_ = consensus.str();
 }

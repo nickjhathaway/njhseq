@@ -34,7 +34,7 @@ std::vector<std::shared_ptr<GFFCore>> getGFFs(const bfs::path & filename) {
 	std::vector<std::shared_ptr<GFFCore>> ret;
 	BioDataFileIO<GFFCore> reader{IoOptions(InOptions(filename))};
 	reader.openIn();
-	uint32_t count = 0;
+	// uint32_t count = 0;
 	std::string line = "";
 	std::shared_ptr<GFFCore> gff = reader.readNextRecord();
 	while (nullptr != gff) {
@@ -51,7 +51,7 @@ std::vector<std::shared_ptr<GFFCore>> getGFFs(const bfs::path & filename) {
 			break;
 		}
 		gff = reader.readNextRecord();
-		++count;
+		// ++count;
 	}
 	return ret;
 }

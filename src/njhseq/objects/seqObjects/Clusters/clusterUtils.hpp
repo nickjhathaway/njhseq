@@ -52,10 +52,10 @@ void allCalculateConsensus(std::vector<T> &reads, aligner &alignerObj,
 template<typename T>
 void allSetFractionClusters(std::vector<T> &reads) {
   size_t sizeOfRead = readVec::getTotalReadCount(reads);
-  int count = 0;
+  // int count = 0;
   for (auto &read : reads) {
     read.setFractionByCount(sizeOfRead);
-    ++count;
+    // ++count;
     for (auto &subSub : read.reads_) {
       subSub->setFractionByCount(sizeOfRead);
     }

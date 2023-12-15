@@ -270,14 +270,14 @@ public:
 		double maxReadCnt = std::numeric_limits<double>::lowest();
 		std::unordered_map<uint32_t, njh::color> groupColors;
 	  std::unordered_map<uint32_t, uint32_t> groupCounts;
-	  uint32_t numOfCutOffGroups = 0;
+	  // uint32_t numOfCutOffGroups = 0;
 	  for(const auto & n : this->nodes_){
 	  	++groupCounts[n->group_];
 	  }
 	  std::vector<uint32_t> groups;
 		for(const auto & g : groupCounts){
 			if(g.second >= groupCutOff){
-				++numOfCutOffGroups;
+				// ++numOfCutOffGroups;
 				groups.emplace_back(g.first);
 			}
 		}

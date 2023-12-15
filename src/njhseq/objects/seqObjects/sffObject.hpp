@@ -86,7 +86,7 @@ class sffObject : public readObject {
 
   uint32_t getNumberOfBasesFromFlow(const std::vector<double>& flows);
   int clipToNinetyPercentOfFlows(size_t cutOff);
-  size_t findFirstNoisyFlow(const std::vector<double>& flows);
+  static size_t findFirstNoisyFlow(const std::vector<double>& flows);
   bool flowNoiseProcess(size_t cutoff);
   void outPutFlows(std::ostream& flowsFile) const;
   void outPutFlowsRaw(std::ostream& flowdataFile) const;

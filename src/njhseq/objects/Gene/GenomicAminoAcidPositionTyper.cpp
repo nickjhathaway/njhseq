@@ -93,7 +93,7 @@ std::map<uint32_t, char> GenomicAminoAcidPositionTyper::typeAlignment(
 	results->setRefSeq(tReader);
 	results->setComparison(true);
 
-	bool endsAtStopCodon = false;
+	// bool endsAtStopCodon = false;
 	uint32_t transStart = 0;
 	std::unordered_map<size_t, alnInfoLocal> balnAlnInfo = bamAlnToAlnInfoLocal(bAln);
 	auto genePosInfoByGDna = currentGeneInfo.getInfosByGDNAPos();
@@ -110,10 +110,10 @@ std::map<uint32_t, char> GenomicAminoAcidPositionTyper::typeAlignment(
 			&& results->gRegion_.end_ <= cDNAIntersectedWith.front().end_) {
 		balnSeq = *(results->alnSeq_);
 		if (currentGene.gene_->isReverseStrand()) {
-			if (genePosInfoByGDna.at(results->gRegion_.start_).cDNAPos_
-					== currentGeneInfo.cDna_.seq_.size() - 1) {
-				endsAtStopCodon = true;
-			}
+			// if (genePosInfoByGDna.at(results->gRegion_.start_).cDNAPos_
+			// 		== currentGeneInfo.cDna_.seq_.size() - 1) {
+			// 	endsAtStopCodon = true;
+			// }
 			uint32_t gPos = results->gRegion_.end_ - 1;
 			auto codon = genePosInfoByGDna.at(gPos).codonPos_;
 			while (0 != codon) {
@@ -122,10 +122,10 @@ std::map<uint32_t, char> GenomicAminoAcidPositionTyper::typeAlignment(
 				++transStart;
 			}
 		} else {
-			if (genePosInfoByGDna.at(results->gRegion_.end_ - 1).cDNAPos_
-					== currentGeneInfo.cDna_.seq_.size() - 1) {
-				endsAtStopCodon = true;
-			}
+			// if (genePosInfoByGDna.at(results->gRegion_.end_ - 1).cDNAPos_
+			// 		== currentGeneInfo.cDna_.seq_.size() - 1) {
+			// 	endsAtStopCodon = true;
+			// }
 			uint32_t gPos = results->gRegion_.start_;
 			uint32_t codon = genePosInfoByGDna.at(gPos).codonPos_;
 			while (0 != codon) {
@@ -180,19 +180,19 @@ std::map<uint32_t, char> GenomicAminoAcidPositionTyper::typeAlignment(
 					results->alnSeqAligned_->getSubRead(alnStart,
 							alnStop - alnStart + 1));
 		}
-		uint32_t cDnaStart = *std::min_element(starts.begin(), starts.end());
-		uint32_t cDnaStop = *std::max_element(ends.begin(), ends.end());
-		if (currentGene.gene_->isReverseStrand()) {
-			if (genePosInfoByGDna.at(cDnaStart).cDNAPos_
-					== currentGeneInfo.cDna_.seq_.size() - 1) {
-				endsAtStopCodon = true;
-			}
-		} else {
-			if (genePosInfoByGDna.at(cDnaStop - 1).cDNAPos_
-					== currentGeneInfo.cDna_.seq_.size() - 1) {
-				endsAtStopCodon = true;
-			}
-		}
+		// uint32_t cDnaStart = *std::min_element(starts.begin(), starts.end());
+		// uint32_t cDnaStop = *std::max_element(ends.begin(), ends.end());
+		// if (currentGene.gene_->isReverseStrand()) {
+		// 	if (genePosInfoByGDna.at(cDnaStart).cDNAPos_
+		// 			== currentGeneInfo.cDna_.seq_.size() - 1) {
+		// 		endsAtStopCodon = true;
+		// 	}
+		// } else {
+		// 	if (genePosInfoByGDna.at(cDnaStop - 1).cDNAPos_
+		// 			== currentGeneInfo.cDna_.seq_.size() - 1) {
+		// 		endsAtStopCodon = true;
+		// 	}
+		// }
 		balnSeq.removeGaps();
 	}
 	if (currentGene.gene_->isReverseStrand()) {

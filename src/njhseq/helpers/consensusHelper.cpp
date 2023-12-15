@@ -68,10 +68,10 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 //		std::cout << count.first << std::endl;
 		auto search = insertions.find(count.first);
 		if (search != insertions.end()) {
-      double priorToHere = 0;
-      if(count.first != 0){
-        priorToHere = counters.at(count.first - 1).getTotalCount();
-      }
+      // double priorToHere = 0;
+      // if(count.first != 0){
+      //   priorToHere = counters.at(count.first - 1).getTotalCount();
+      // }
 //      std::cout << "count.first: " << count.first << std::endl;
 
       for (auto & counterInsert : search->second) {

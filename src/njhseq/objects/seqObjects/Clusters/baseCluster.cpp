@@ -742,13 +742,13 @@ bool baseCluster::isClusterCompletelyChimeric() {
 }
 
 bool baseCluster::isClusterAtLeastHalfChimeric() {
-	size_t chiCount = 0;
+	// size_t chiCount = 0;
 	uint32_t chiReadCnt = 0;
 	double total = readVec::getTotalReadCount(reads_);
 	for (const auto &read : reads_) {
 		//if (read->seqBase_.name_.find("CHI") != std::string::npos) {
 		if(read->seqBase_.isChimeric()){
-			++chiCount;
+			// ++chiCount;
 			chiReadCnt += read->seqBase_.cnt_;
 		}
 	}
@@ -759,13 +759,13 @@ bool baseCluster::isClusterAtLeastHalfChimeric() {
 }
 
 bool baseCluster::isClusterAtLeastChimericCutOff(double cutOff) {
-	size_t chiCount = 0;
+	// size_t chiCount = 0;
 	uint32_t chiReadCnt = 0;
 	double total = readVec::getTotalReadCount(reads_);
 	for (const auto &read : reads_) {
 		//if (read->seqBase_.name_.find("CHI") != std::string::npos) {
 		if(read->seqBase_.isChimeric()){
-			++chiCount;
+			// ++chiCount;
 			chiReadCnt += read->seqBase_.cnt_;
 		}
 	}
