@@ -45,16 +45,37 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 	njh::files::makeDir(njh::files::MkdirPar(pars.outputDirectory, pars.overWriteDirectory));
 	//samples names
 	auto sampNamesPerSeq = inputSeqs.getSampleNamesPerSeqs();
+
+
 	auto allSamples = inputSeqs.getAllSampleNames();
 	//rename based on freq
 	inputSeqs.renameBaseOnFreq(pars.identifier);
 	//write out seqs
 	auto uniqueSeqsOpts = SeqIOOptions::genFastaOutGz(njh::files::make_path(pars.outputDirectory, "uniqueSeqs.fasta.gz"));
 	inputSeqs.writeOutAll(pars.outputDirectory, "uniqueSeqs");
-
+	//key1 = sample, key2 = hap, value = readCount
+	std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> samplesToHapsWithReadCnts;
+	VecStr possibleCounts{"readCount", "barcodeCount"};
+	for(const auto & e: iter::enumerate(inputSeqs.names_)) {
+		for(const auto & name : e.second) {
+			auto samp = CollapsedHaps::getSampleNameFromSeqName(name);
+			uint32_t readCount = 1;
+			if(MetaDataInName::nameHasMetaData(name)) {
+				MetaDataInName nameMeta(name);
+				for(const auto & posCntField : possibleCounts ) {
+					if(nameMeta.containsMeta(posCntField)) {
+						readCount = nameMeta.getMeta<uint32_t>(posCntField);
+					}
+				}
+			}
+			samplesToHapsWithReadCnts[samp][inputSeqs.seqs_[e.index]->name_] = readCount;
+		}
+		// std::cout << e.index << std::endl;
+		// std::cout << "\t" << njh::conToStr(e.element, ",") << std::endl;
+	}
 	uint64_t maxLen = readVec::getMaxLength(inputSeqs.seqs_);
 
-	std::shared_ptr<aligner> alignerObj = std::make_shared<aligner>(maxLen, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2), false);
+	std::shared_ptr<aligner> alignerObj = std::make_shared<aligner>(maxLen, gapScoringParameters(7,1,0,0,0,0), substituteMatrix(2,-2), false);
 	alignerObj->weighHomopolymers_ = false;
 	alignerObj->processAlnInfoInput(pars.alnCacheDir.string(), false);
 
@@ -75,6 +96,34 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 
 	translator->pars_.additionalBowtieArguments_ = njh::pasteAsStr(translator->pars_.additionalBowtieArguments_, " -p ", pars.numThreads);
 	auto translatedRes = translator->run(SeqIOOptions::genFastaIn(uniqueSeqsOpts.out_.outName()), sampNamesForPopHaps, pars.variantCallerRunPars);
+	// std::cout << njh::bashCT::green;
+	// for(const auto & seqTransPerScript : translatedRes.translations_) {
+	// 	for(const auto & seqTrans : seqTransPerScript.second) {
+	// 		std::cout << seqTrans.first << std::endl;
+	// 		for(const auto & mis : seqTrans.second.comp_.distances_.mismatches_) {
+	// 			std::cout << "\t" << mis.first  << ":" << mis.second.seqBase << std::endl;
+	// 		}
+	// 		for(const auto & g : seqTrans.second.comp_.distances_.alignmentGaps_) {
+	// 			std::cout << "\t" << g.first  << ":" << g.second.gapedSequence_ << std::endl;
+	// 		}
+	// 	}
+	// }
+	// std::cout << njh::bashCT::red;
+	// for(const auto & seqAlns : translatedRes.seqAlns_) {
+	// 	for(const auto & seqAln : seqAlns.second) {
+	// 		std::cout << seqAln.refSeq_.name_ << ": " << seqAln.querySeq_.name_ << std::endl;
+	// 		seqAln.alnRefSeq_.outPutSeqAnsi(std::cout);
+	// 		seqAln.alnQuerySeq_.outPutSeqAnsi(std::cout);
+	// 		for(const auto & mis : seqAln.comp_.distances_.mismatches_) {
+	// 			std::cout << "\t" << seqAln.gRegion_.start_ + mis.first  << ":" << mis.second.seqBase << std::endl;
+	// 		}
+	// 		for(const auto & g : seqAln.comp_.distances_.alignmentGaps_) {
+	// 			std::cout << "\t" << seqAln.gRegion_.start_ + g.first  << ":" << g.second.gapedSequence_ << std::endl;
+	// 		}
+	// 	}
+	// }
+	// std::cout << njh::bashCT::reset;
+
 
   OutputStream popBedLocs(njh::files::make_path(variantInfoDir, "inputSeqs.bed"));
 	translatedRes.writeOutSeqAlnIndvVars(njh::files::make_path(variantInfoDir, "variantsPerSeqAln.tab.txt.gz"));
@@ -115,7 +164,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 		auto knownsTypedAAForTranslated = translatedRes.translated_genAATypedStrOnlyKnowns();
 		auto variableTypedAAForTranslated = translatedRes.translated_genAATypedStrOnlyPopVariant();
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-		///
+		//
 		for(const auto & translatedSeqs : translatedSeqsByTranscript){
 			auto inputTranslatedSeq = CollapsedHaps::collapseReads(translatedSeqs.second, translatedSeqInputNames[translatedSeqs.first]);
 			std::string identifierTranslated = njh::pasteAsStr(pars.identifier, "-translated");
@@ -161,7 +210,128 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			//protein
 			for(auto & varPerTrans : translatedRes.proteinVariants_){
 				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-				varPerTrans.second.writeVCF(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf")));
+
+				{
+					//writing vcfs
+					auto vcfOutputForTrans = varPerTrans.second.writeVCF(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf")));
+					//vcfOut << "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Read Depth for the ref and alt alleles in the order listed, a count of 0 means not detected\">" << std::endl;
+					vcfOutputForTrans.formatEntries_.emplace_back(
+						"AT", "1", "Integer",
+						"Total Read Depth for this sample, a count of 0 means no coverage in this sample"
+					);
+					vcfOutputForTrans.formatEntries_.emplace_back(
+						"AD", "R", "Integer",
+						"Read Depth for the ref and alt alleles in the order listed, a count of 0 means not detected"
+					);
+					vcfOutputForTrans.formatEntries_.emplace_back(
+						"AF", "R", "Float",
+						"Read Frequncy for the ref and alt alleles in the order listed, a freq of 0 means not detected"
+					);
+					std::unordered_set<std::string> chromPositions;
+					for(const auto & rec : vcfOutputForTrans.records) {
+						chromPositions.emplace(njh::pasteAsStr(rec.chrom_, "-", rec.pos_));
+					}
+					//key1 = haplotypeName, key2 = chrom, key3 = vcf-based positioning, value = ref,alt
+					std::unordered_map<std::string, std::map<std::string, std::map<uint32_t, std::pair<std::string, std::string>>>> vcfAlts;
+
+					for(auto & translatedSeqRes : translatedRes.translations_) {
+						if(!njh::in(varPerTrans.first, translatedSeqRes.second)) {
+							continue;
+						}
+						// std::cout << translatedSeqRes.first << std::endl;
+						//adding SNPs
+
+						for(const auto & mis : translatedSeqRes.second[varPerTrans.first].comp_.distances_.mismatches_) {
+							//adjust for genomic location and for the 1 based positioning of vcf
+							auto realTranslatedPos = mis.second.refBasePos;
+							auto vcfPosition = realTranslatedPos + 1;
+							auto currentVariantChromPos = njh::pasteAsStr(varPerTrans.first, "-", vcfPosition);
+							if(njh::in(currentVariantChromPos, chromPositions)) {
+								auto ref = varPerTrans.second.getBaseForGenomicRegion(realTranslatedPos);
+								auto alt = mis.second.seqBase;
+								vcfAlts[translatedSeqRes.first][varPerTrans.first][vcfPosition] = std::make_pair(std::string(1, ref), std::string(1,alt));
+							}
+						}
+						for(const auto & g : translatedSeqRes.second[varPerTrans.first].comp_.distances_.alignmentGaps_) {
+							if(g.second.ref_) {
+								//insertion
+								//substract 1 because vcf does insertions/deletions from the base directly proceding the actual INDEL
+								auto realGenomicPos = g.second.refPos_ - 1;
+								auto vcfPosition = realGenomicPos + 1;
+								auto currentVariantChromPos = njh::pasteAsStr(varPerTrans.first, "-", vcfPosition);
+								if(njh::in(currentVariantChromPos, chromPositions)) {
+									auto ref = varPerTrans.second.getBaseForGenomicRegion(realGenomicPos);
+									auto alt = njh::pasteAsStr(varPerTrans.second.getBaseForGenomicRegion(realGenomicPos), g.second.gapedSequence_);
+									vcfAlts[translatedSeqRes.first][varPerTrans.first][vcfPosition] = std::make_pair(std::string(1, ref), alt);
+								}
+							} else {
+								//deletion
+								//substract 1 because vcf does insertions/deletions from the base directly proceding the actual INDEL
+								auto realGenomicPos = g.second.refPos_ - 1;
+								auto vcfPosition = realGenomicPos + 1;
+								auto currentVariantChromPos = njh::pasteAsStr(varPerTrans.first, "-", vcfPosition);
+								if(njh::in(currentVariantChromPos, chromPositions)) {
+									auto ref = njh::pasteAsStr(varPerTrans.second.getBaseForGenomicRegion(realGenomicPos), g.second.gapedSequence_);
+									auto alt = varPerTrans.second.getBaseForGenomicRegion(realGenomicPos);
+									vcfAlts[translatedSeqRes.first][varPerTrans.first][vcfPosition] = std::make_pair(ref, std::string(1, alt));
+								}
+							}
+						}
+						// for(const auto & chrom : vcfAlts[translatedSeqRes.first]) {
+						// 	for(const auto & pos : chrom.second) {
+						// 		std::cout << chrom.first << "\t" << pos.first << "\t" << pos.second.first << "\t" << pos.second.second << std::endl;
+						// 	}
+						// }
+						// std::cout << std::endl;
+					}
+
+
+					for (auto&rec: vcfOutputForTrans.records) {
+						for (const auto&sample: allSamples) {
+							std::vector<uint32_t> dps(1 + rec.alts_.size(), 0);
+							// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
+							for(const auto & haps : njh::mapAt(samplesToHapsWithReadCnts, sample)) {
+								// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
+								bool foundAlt = false;
+								for(const auto & alt : iter::enumerate(rec.alts_)) {
+									if(njh::in(rec.pos_, vcfAlts[haps.first][rec.chrom_]) &&
+										rec.ref_ == vcfAlts[haps.first][rec.chrom_][rec.pos_].first &&
+										alt.second == vcfAlts[haps.first][rec.chrom_][rec.pos_].second){
+										dps[1 + alt.index] += haps.second;
+										foundAlt = true;
+									}
+								}
+								bool coveredByHap = false;
+								// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
+								if(njh::in(haps.first, translatedRes.translations_)  &&
+								  njh::in(varPerTrans.first, translatedRes.translations_.at(haps.first)) &&
+									translatedRes.translations_[haps.first].at(varPerTrans.first).genBedRec().chrom_ == rec.chrom_ &&
+									rec.pos_ + 1 >= translatedRes.translations_[haps.first].at(varPerTrans.first).genBedRec().chromStart_ &&
+									rec.pos_ + 1 < translatedRes.translations_[haps.first].at(varPerTrans.first).genBedRec().chromEnd_) {
+									coveredByHap = true;
+								}
+								if(!foundAlt && coveredByHap) {
+									//no alternative found, and referene for this position is covered by hap, increase depth for reference
+									dps[0] += haps.second;
+								}
+							}
+							auto dpsSum = vectorSum(dps);
+							std::vector<double> dpsFreq;
+							dpsFreq.reserve(dps.size());
+							for (const auto dp: dps) {
+								dpsFreq.emplace_back(dp / dpsSum);
+							}
+							rec.sampleFormatInfos_[sample].addMeta("AT", dpsSum);
+							rec.sampleFormatInfos_[sample].addMeta("AD", njh::conToStr(dps, ","));
+							rec.sampleFormatInfos_[sample].addMeta("AF", njh::conToStr(dpsFreq, ","));
+
+						}
+					}
+					{
+						OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-proteinWithSamples.vcf")));
+						vcfOutputForTrans.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
+					}
+				}
 				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				varPerTrans.second.writeOutSNPsFinalInfo(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein_aminoAcidVariable.tab.txt.gz")), varPerTrans.first, true);
 				std::set<uint32_t> knownMutationsLocationsZeroBased;
@@ -208,7 +378,131 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				calcPopMeasuresPars.numSegSites_ = varPerChrom.second.getFinalNumberOfSegratingSites();
 			}
 		}
-		varPerChrom.second.writeVCF(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf")));
+
+		{
+			//writing vcfs
+			auto vcfOutputForChrom = varPerChrom.second.writeVCF(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf")) );
+			//vcfOut << "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Read Depth for the ref and alt alleles in the order listed, a count of 0 means not detected\">" << std::endl;
+
+			vcfOutputForChrom.formatEntries_.emplace_back(
+				"AT", "1", "Integer",
+				"Total Read Depth for this sample, a count of 0 means no coverage in this sample"
+			);
+			vcfOutputForChrom.formatEntries_.emplace_back(
+				"AD", "R", "Integer",
+				"Read Depth for the ref and alt alleles in the order listed, a count of 0 means not detected"
+			);
+			vcfOutputForChrom.formatEntries_.emplace_back(
+				"AF", "R", "Float",
+				"Read Frequncy for the ref and alt alleles in the order listed, a freq of 0 means not detected"
+			);
+			std::unordered_set<std::string> chromPositions;
+			for(const auto & rec : vcfOutputForChrom.records) {
+				chromPositions.emplace(njh::pasteAsStr(rec.chrom_, "-", rec.pos_));
+			}
+			//key1 = haplotypeName, key2 = chrom, key3 = vcf-based positioning, value = ref,alt
+			std::unordered_map<std::string, std::map<std::string, std::map<uint32_t, std::pair<std::string, std::string>>>> vcfAlts;
+
+			for(const auto & seqAlns : translatedRes.seqAlns_) {
+				for(const auto & seqAln : seqAlns.second) {
+					// std::cout << seqAln.querySeq_.name_ << std::endl;
+					// seqAln.alnRefSeq_.outPutSeqAnsi(std::cout);
+					// seqAln.alnQuerySeq_.outPutSeqAnsi(std::cout);
+					//adding SNPs
+					for(const auto & mis : seqAln.comp_.distances_.mismatches_) {
+						//adjust for genomic location and for the 1 based positioning of vcf
+						auto realGenomicPos = seqAln.gRegion_.start_ + mis.second.refBasePos;
+						auto vcfPosition = realGenomicPos + 1;
+						auto currentVariantChromPos = njh::pasteAsStr(seqAln.gRegion_.chrom_, "-", vcfPosition);
+						if(njh::in(currentVariantChromPos, chromPositions)) {
+							auto ref = varPerChrom.second.getBaseForGenomicRegion(realGenomicPos);
+							auto alt = mis.second.seqBase;
+							vcfAlts[seqAlns.first][seqAln.gRegion_.chrom_][vcfPosition] = std::make_pair(std::string(1, ref), std::string(1,alt));
+						}
+					}
+					for(const auto & g : seqAln.comp_.distances_.alignmentGaps_) {
+						if(g.second.ref_) {
+							//insertion
+							//substract 1 because vcf does insertions/deletions from the base directly proceding the actual INDEL
+							auto realGenomicPos = seqAln.gRegion_.start_ + g.second.refPos_ - 1;
+							auto vcfPosition = realGenomicPos + 1;
+							auto currentVariantChromPos = njh::pasteAsStr(seqAln.gRegion_.chrom_, "-", vcfPosition);
+							if(njh::in(currentVariantChromPos, chromPositions)) {
+								auto ref = varPerChrom.second.getBaseForGenomicRegion(realGenomicPos);
+								auto alt = njh::pasteAsStr(varPerChrom.second.getBaseForGenomicRegion(realGenomicPos), g.second.gapedSequence_);
+								vcfAlts[seqAlns.first][seqAln.gRegion_.chrom_][vcfPosition] = std::make_pair(std::string(1, ref), alt);
+							}
+						} else {
+							//deletion
+							//substract 1 because vcf does insertions/deletions from the base directly proceding the actual INDEL
+							auto realGenomicPos = seqAln.gRegion_.start_ + g.second.refPos_ - 1;
+							auto vcfPosition = realGenomicPos + 1;
+							auto currentVariantChromPos = njh::pasteAsStr(seqAln.gRegion_.chrom_, "-", vcfPosition);
+							if(njh::in(currentVariantChromPos, chromPositions)) {
+								auto ref = njh::pasteAsStr(varPerChrom.second.getBaseForGenomicRegion(realGenomicPos), g.second.gapedSequence_);
+								auto alt = varPerChrom.second.getBaseForGenomicRegion(realGenomicPos);
+								vcfAlts[seqAlns.first][seqAln.gRegion_.chrom_][vcfPosition] = std::make_pair(ref, std::string(1, alt));
+							}
+						}
+					}
+					// for(const auto & chrom : vcfAlts[seqAlns.first]) {
+					// 	for(const auto & pos : chrom.second) {
+					// 		std::cout << chrom.first << "\t" << pos.first << "\t" << pos.second.first << "\t" << pos.second.second << std::endl;
+					// 	}
+					// }
+					// std::cout << std::endl;
+				}
+			}
+
+			for (auto&rec: vcfOutputForChrom.records) {
+				for (const auto&sample: allSamples) {
+					std::vector<uint32_t> dps(1 + rec.alts_.size(), 0);
+					// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
+					for(const auto & haps : njh::mapAt(samplesToHapsWithReadCnts, sample)) {
+						// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
+						bool foundAlt = false;
+						for(const auto & alt : iter::enumerate(rec.alts_)) {
+							if(njh::in(rec.pos_, vcfAlts[haps.first][rec.chrom_]) &&
+								rec.ref_ == vcfAlts[haps.first][rec.chrom_][rec.pos_].first &&
+								alt.second == vcfAlts[haps.first][rec.chrom_][rec.pos_].second){
+								dps[1 + alt.index] += haps.second;
+								foundAlt = true;
+							}
+						}
+						bool coveredByHap = false;
+						// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
+						if(njh::in(haps.first, translatedRes.seqAlns_)) {
+							for(const auto & seqAln : njh::mapAt(translatedRes.seqAlns_, haps.first)) {
+								// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
+								if(seqAln.gRegion_.chrom_ == rec.chrom_ && rec.pos_ +1 >= seqAln.gRegion_.start_ && rec.pos_ + 1 < seqAln.gRegion_.end_) {
+									coveredByHap = true;
+									break;
+								}
+							}
+						}
+						if(!foundAlt && coveredByHap) {
+							//no alternative found, and referene for this position is covered by hap, increase depth for reference
+							dps[0] += haps.second;
+						}
+					}
+
+					auto dpsSum = vectorSum(dps);
+					std::vector<double> dpsFreq;
+					dpsFreq.reserve(dps.size());
+					for (const auto dp: dps) {
+						dpsFreq.emplace_back(dp / dpsSum);
+					}
+					rec.sampleFormatInfos_[sample].addMeta("AT", dpsSum);
+					rec.sampleFormatInfos_[sample].addMeta("AD", njh::conToStr(dps, ","));
+					rec.sampleFormatInfos_[sample].addMeta("AF", njh::conToStr(dpsFreq, ","));
+
+				}
+			}
+			{
+				OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomicWithSamples.vcf")));
+				vcfOutputForChrom.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
+			}
+		}
 		varPerChrom.second.writeOutSNPsFinalInfo(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-SNPs.tab.txt.gz")), varPerChrom.first);
 		if(!knownAAMutsChromPositions[varPerChrom.first].empty()){
 			varPerChrom.second.writeOutSNPsInfo(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-knownAA_SNPs.tab.txt.gz")), varPerChrom.first, knownAAMutsChromPositions[varPerChrom.first]);

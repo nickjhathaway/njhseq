@@ -20,6 +20,62 @@
 
 namespace njhseq {
 
+class VCFOutput {
+public:
+	std::string vcfFormatVersion_{"VCFv4.0"};
+	struct FormatOrInfoEntry {
+		FormatOrInfoEntry() = default;
+		FormatOrInfoEntry(		std::string id,
+		std::string number,
+		std::string type,
+		std::string description): id_(std::move(id)),
+			number_(std::move(number)),
+			type_(std::move(type)),
+			description_(std::move(description)) {
+
+		}
+		std::string id_;
+		std::string number_;
+		std::string type_;
+		std::string description_;
+	};
+
+	std::vector<FormatOrInfoEntry> formatEntries_;
+	std::vector<FormatOrInfoEntry> infoEntries_;
+
+	class VCFRecord {
+	public:
+		VCFRecord() = default;
+		std::string chrom_;/**<chromosome name */
+		uint32_t pos_{std::numeric_limits<uint32_t>::max()};/**<position, 1-based to conform with VCF standards */
+		std::string id_{"."};/**<id for this variant */
+		std::string ref_;/**<reference sequence for this variant */
+		VecStr alts_;/**<all the alternative alleles */
+		uint32_t qual_{40};/**<the quality for this variant */
+		std::string filter_{"PASS"};/**<whether or not this variant passes QC checks */
+
+		MetaDataInName info_;/**<the info entry for this variant */
+		std::map<std::string, MetaDataInName> sampleFormatInfos_;/**<the sample info for this variant */
+	};
+
+	std::vector<VCFRecord> records;
+
+	void sortRecords();
+
+	/**
+	 * \brief write out the header and the CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO fields
+	 * \param out output stream
+	 */
+	void writeOutFixedOnly(std::ostream & out);
+
+	/**
+	 * \brief write out the header and the CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO fields and then also FORMAT column and the sample columns after that
+	 * \param out the output stream to write to
+	 */
+	void writeOutFixedAndSampleMeta(std::ostream & out);
+};
+
+
 class TranslatorByAlignment{
 public:
 
@@ -93,8 +149,10 @@ public:
 
 		char getBaseForGenomicRegion(const uint32_t pos) const;
 
-		void writeVCF(const OutOptions &vcfOutOpts) const;
-		void writeVCF(std::ostream & out) const;
+		VCFOutput createVCFOutputFixed() const;
+
+		VCFOutput writeVCF(const OutOptions &vcfOutOpts) const;
+		VCFOutput writeVCF(std::ostream & out) const;
 
 		void writeSNPTable(const OutOptions &snpTabOutOpts) const;
 

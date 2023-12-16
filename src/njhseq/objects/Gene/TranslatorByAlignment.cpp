@@ -129,13 +129,160 @@ char TranslatorByAlignment::VariantsInfo::getBaseForGenomicRegion(const uint32_t
 	return seqBase_.seq_[relativePos];
 }
 
-void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
+void VCFOutput::sortRecords() {
+	njh::sort(records, [](const VCFRecord & r1, const VCFRecord & r2) {
+		if(r1.chrom_ == r2.chrom_) {
+			if(r1.pos_ == r2.pos_) {
+				return r1.ref_ < r2.ref_;
+			} else {
+				return r1.pos_ < r2.pos_;
+			}
+		} else {
+			return r1.chrom_ < r2.chrom_;
+		}
+	});
+}
+
+void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) {
+	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
+	//write out infos
+	for (const auto&info: infoEntries_) {
+		vcfOut <<"##INFO=<"
+		<< "ID=" << info.id_ << ","
+		<< "Number=" << info.number_ << ","
+		<< "Type=" << info.type_ << ","
+		<< "Description=\"" << info.description_ << "\""
+		<< ">"
+		<< std::endl;
+	}
+	vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
+	for(const auto & rec : records) {
+		vcfOut << rec.chrom_
+		<< "\t" << rec.pos_
+		<< "\t" << rec.id_
+		<< "\t" << rec.ref_
+		<< "\t" << njh::conToStr(rec.alts_, ",")
+		<< "\t" << rec.qual_
+		<< "\t" << rec.filter_;
+		std::string infoOut;
+		for (const auto&info: infoEntries_) {
+			if(!infoOut.empty()) {
+				infoOut +=";";
+			}
+			infoOut += info.id_ + "=" + rec.info_.getMeta(info.id_);
+		}
+		vcfOut << "\t" << infoOut;
+		vcfOut << std::endl;
+	}
+}
+
+void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) {
+	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
+	//write out infos
+	for (const auto&info: infoEntries_) {
+		vcfOut <<"##INFO=<"
+		<< "ID=" << info.id_ << ","
+		<< "Number=" << info.number_ << ","
+		<< "Type=" << info.type_ << ","
+		<< "Description=\"" << info.description_ << "\""
+		<< ">"
+		<< std::endl;
+	}
+	//write out formats
+	for (const auto&info: formatEntries_) {
+		vcfOut <<"##FORMAT=<"
+		<< "ID=" << info.id_ << ","
+		<< "Number=" << info.number_ << ","
+		<< "Type=" << info.type_ << ","
+		<< "Description=\"" << info.description_ << "\""
+		<< ">"
+		<< std::endl;
+	}
+	//check samples
+
+	vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+	std::set<std::string> allSamples;
+	if(!records.empty()) {
+		auto firstSetOfSamples = njh::vecToSet(getVectorOfMapKeys(records.front().sampleFormatInfos_));
+		for(const auto & rec : records) {
+			auto currentSetOfSamples = njh::vecToSet(getVectorOfMapKeys(rec.sampleFormatInfos_));
+			if(firstSetOfSamples != currentSetOfSamples) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "samples different for record: " << rec.chrom_ << " " << rec.pos_ << " " << rec.ref_ << "\n";
+				ss << "first set of samples: " << njh::conToStr(firstSetOfSamples, ",") << "\n";
+				ss << "current set of samples: " << njh::conToStr(currentSetOfSamples, ",") << "\n";
+				throw std::runtime_error { ss.str() };
+			}
+		}
+		vcfOut << "\t" << njh::conToStr(firstSetOfSamples, "\t");
+		allSamples = firstSetOfSamples;
+	}
+	vcfOut << std::endl;
+	std::string formatOut;
+	for(const auto & format : formatEntries_) {
+		if(!formatOut.empty()) {
+			formatOut +=":";
+		}
+		formatOut += format.id_;
+	}
+	if(!records.empty()) {
+		for(const auto & rec : records) {
+			vcfOut << rec.chrom_
+			<< "\t" << rec.pos_
+			<< "\t" << rec.id_
+			<< "\t" << rec.ref_
+			<< "\t" << njh::conToStr(rec.alts_, ",")
+			<< "\t" << rec.qual_
+			<< "\t" << rec.filter_;
+			std::string infoOut;
+			for (const auto&info: infoEntries_) {
+				if(!infoOut.empty()) {
+					infoOut +=";";
+				}
+				infoOut += info.id_ + "=" + rec.info_.getMeta(info.id_);
+			}
+			vcfOut << "\t" << infoOut;
+			vcfOut << "\t" << formatOut;
+			for(const auto & sample : rec.sampleFormatInfos_) {
+				std::string formatOutForSample;
+				for(const auto & format : formatEntries_) {
+					if(!formatOutForSample.empty()) {
+						formatOutForSample +=":";
+					}
+					formatOutForSample += sample.second.getMeta(format.id_);
+				}
+				vcfOut << "\t" << formatOutForSample;
+			}
+			vcfOut << std::endl;
+		}
+	}
+}
+
+
+
+
+VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
+	VCFOutput ret;
+	ret.infoEntries_.emplace_back(
+		"DP", "1", "Integer", "Total Allele Depth, sum of AC with rest of depth being ref"
+	);
+	ret.infoEntries_.emplace_back(
+		"NS", "1", "Integer", "Number of Samples With Data"
+	);
+	ret.infoEntries_.emplace_back(
+		"AC", "A", "Integer", "Allele Count, number of microhaplotypes with variant"
+	);
+	ret.infoEntries_.emplace_back(
+		"AF", "A", "Float", "Allele Frequency, calulated AC/DP"
+	);
+	//vcfOut << "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Read Depth for for the ref and alt alleles in the order listed, a count of 0 means not detected\">" << std::endl;
+	//"FORMAT"
+	//std::string format = "AD";
 	std::unordered_set<uint32_t> positionsSet;
 	for(const auto & snps : snpsFinal){
 		positionsSet.emplace(snps.first);
 	}
-
-	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	std::map<uint32_t, std::map<std::string,uint32_t>> insertionsFinalForVCF;
 	std::map<uint32_t, std::map<std::string,uint32_t>> deletionsFinalForVCF;
 	for(const auto & ins : insertionsFinal){
@@ -149,7 +296,7 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 	for(const auto & del : deletionsFinal){
 		if(0 == del.first ){
 			std::stringstream ss;
-			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle insertion at position 0"<< "\n";
+			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle deltions at position 0"<< "\n";
 			throw std::runtime_error{ss.str()};
 		}
 		deletionsFinalForVCF[del.first - 1] = del.second;
@@ -164,92 +311,197 @@ void TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
 	}
 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
-	vcfOut << "##fileformat=VCFv4.0" << std::endl;
-	vcfOut << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Allele Depth\">" << std::endl;
-	vcfOut << "##INFO=<ID=NS,Number=1,Type=Integer,Description=\"Number of Samples With Data\">" << std::endl;
-	vcfOut << "##INFO=<ID=AF,Number=.,Type=Float,Description=\"Allele Frequency\">" << std::endl;
-	vcfOut << "##INFO=<ID=AC,Number=.,Type=Integer,Description=\"Allele Count\">" << std::endl;
-	vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
-
 	std::vector<uint32_t> positions(positionsSet.begin(), positionsSet.end());
 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	njh::sort(positions);
 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & pos : positions){
-		 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//add in SNPs and insertions since they have the same chrom,pos,ref
 		if (njh::in(pos, insertionsFinalForVCF) || njh::in(pos, snpsFinal)) {
-			vcfOut <<  region_.chrom_
-					<< "\t" << pos+ 1
-					<< "\t" << "."
-					<< "\t";
 			std::vector<std::string> alts;
 			std::vector<uint32_t> altsCounts;
 			std::vector<double> altsFreqs;
-			 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
-			vcfOut << getBaseForGenomicRegion(pos) << "\t";
 			if(njh::in(pos, snpsFinal)){
-				// uint32_t snpCount = 0;
 				for(const auto & b : snpsFinal.at(pos)){
-					// snpCount+= b.second;
 					alts.emplace_back(std::string(1, b.first));
 					altsCounts.emplace_back(b.second);
 					altsFreqs.emplace_back(b.second/static_cast<double>(depthPerPosition.at(pos)));
 				}
 			}
-			 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			if (njh::in(pos, insertionsFinalForVCF)) {
-				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				for (const auto & ins : insertionsFinalForVCF[pos]) {
-					 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//					std::cout << "pos: " << pos << std::endl;
-//					std::cout << vectorMinimum(getVectorOfMapKeys(depthPerPosition)) << std::endl;
-//					std::cout << vectorMaximum(getVectorOfMapKeys(depthPerPosition)) << std::endl;
-//					std::cout << "ins.second: " << ins.second << std::endl;
-//					std::cout << "ins.first: " << ins.first << std::endl;
 					alts.emplace_back(njh::pasteAsStr(getBaseForGenomicRegion(pos), ins.first));
 					altsCounts.emplace_back(ins.second);
 					altsFreqs.emplace_back(ins.second/static_cast<double>(depthPerPosition.at(pos)));
 				}
 			}
-			 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
-			vcfOut << njh::conToStr(alts, ",")
-			<< "\t40\tPASS\t";
-			vcfOut
-					<< "DP=" << depthPerPosition.at(pos) << ";"
-					<< "NS=" << samplesPerPosition.at(pos).size() << ";"
-					<< "AC=" << njh::conToStr(altsCounts, ",") << ";"
-					<< "AF=" << njh::conToStr(altsFreqs, ",")
-			<< std::endl;
+			VCFOutput::VCFRecord currentRecord;
+			currentRecord.chrom_ = region_.chrom_;
+			currentRecord.pos_ = pos + 1;
+			currentRecord.id_ = ".";
+			currentRecord.ref_ = getBaseForGenomicRegion(pos);
+			currentRecord.alts_ = alts;
+			currentRecord.qual_ = 40;
+			currentRecord.filter_ = "PASS";
+			currentRecord.info_.addMeta("DP", depthPerPosition.at(pos) );
+			currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
+			currentRecord.info_.addMeta("AC", njh::conToStr(altsCounts, ",") );
+			currentRecord.info_.addMeta("AF", njh::conToStr(altsFreqs, ",") );
+			ret.records.emplace_back(std::move(currentRecord));
 		}
-		 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//add in deletions
 		if (njh::in(pos, deletionsFinalForVCF)) {
 			for (const auto & d : deletionsFinalForVCF[pos]) {
-				vcfOut <<  region_.chrom_
-						<< "\t" << pos + 1
-						<< "\t" << "."
-						<< "\t";
-				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
-				vcfOut << getBaseForGenomicRegion(pos) << d.first
-				<< "\t" << getBaseForGenomicRegion(pos) << "\t";
-				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
-				vcfOut << "40\tPASS\t";
-				vcfOut
-						<< "DP=" << depthPerPosition.at(pos) << ";"
-						<< "NS=" << samplesPerPosition.at(pos).size() << ";"
-						<< "AC=" << d.second << ";"
-						<< "AF=" << d.second/static_cast<double>(depthPerPosition.at(pos))
-				<< std::endl;
-				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				VCFOutput::VCFRecord currentRecord;
+				currentRecord.chrom_ = region_.chrom_;
+				currentRecord.pos_ = pos + 1;
+				currentRecord.id_ = ".";
+				currentRecord.ref_ = std::string(1, getBaseForGenomicRegion(pos)) + d.first;
+				currentRecord.alts_ = VecStr{std::string(1, getBaseForGenomicRegion(pos))};
+				currentRecord.qual_ = 40;
+				currentRecord.filter_ = "PASS";
+				currentRecord.info_.addMeta("DP", depthPerPosition.at(pos) );
+				currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
+				currentRecord.info_.addMeta("AC", d.second );
+				currentRecord.info_.addMeta("AF", d.second/static_cast<double>(depthPerPosition.at(pos)) );
+				ret.records.emplace_back(std::move(currentRecord));
 			}
 		}
-		 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	}
-	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	return ret;
 }
 
-void TranslatorByAlignment::VariantsInfo::writeVCF(const OutOptions & vcfOutOpts) const {
+VCFOutput TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) const{
+	auto vcfOutputInfo = createVCFOutputFixed();
+	vcfOutputInfo.writeOutFixedOnly(vcfOut);
+	return vcfOutputInfo;
+// 	std::unordered_set<uint32_t> positionsSet;
+// 	for(const auto & snps : snpsFinal){
+// 		positionsSet.emplace(snps.first);
+// 	}
+// 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 	std::map<uint32_t, std::map<std::string,uint32_t>> insertionsFinalForVCF;
+// 	std::map<uint32_t, std::map<std::string,uint32_t>> deletionsFinalForVCF;
+// 	for(const auto & ins : insertionsFinal){
+// 		if(0 == ins.first ){
+// 			std::stringstream ss;
+// 			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle insertion at position 0"<< "\n";
+// 			throw std::runtime_error{ss.str()};
+// 		}
+// 		insertionsFinalForVCF[ins.first - 1] = ins.second;
+// 	}
+// 	for(const auto & del : deletionsFinal){
+// 		if(0 == del.first ){
+// 			std::stringstream ss;
+// 			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle deltions at position 0"<< "\n";
+// 			throw std::runtime_error{ss.str()};
+// 		}
+// 		deletionsFinalForVCF[del.first - 1] = del.second;
+// 	}
+// 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 	for(const auto & ins : insertionsFinalForVCF){
+// 		positionsSet.emplace(ins.first);
+// 	}
+// 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 	for(const auto & del : deletionsFinalForVCF){
+// 		positionsSet.emplace(del.first);
+// 	}
+// 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//
+// 	vcfOut << "##fileformat=VCFv4.0" << std::endl;
+// 	vcfOut << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Allele Depth, sum of AC with rest of depth being ref\">" << std::endl;
+// 	vcfOut << "##INFO=<ID=NS,Number=1,Type=Integer,Description=\"Number of Samples With Data\">" << std::endl;
+// 	vcfOut << "##INFO=<ID=AF,Number=A,Type=Float,Description=\"Allele Frequency\">" << std::endl;
+// 	vcfOut << "##INFO=<ID=AC,Number=A,Type=Integer,Description=\"Allele Count\">" << std::endl;
+//
+// 	//vcfOut << "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Read Depth for for the ref and alt alleles in the order listed, a count of 0 means not detected\">" << std::endl;
+//
+// 	vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
+// 	//"FORMAT"
+// 	//std::string format = "AD";
+//
+//
+// 	std::vector<uint32_t> positions(positionsSet.begin(), positionsSet.end());
+// 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 	njh::sort(positions);
+// 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 	for(const auto & pos : positions){
+// 		 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 		if (njh::in(pos, insertionsFinalForVCF) || njh::in(pos, snpsFinal)) {
+// 			vcfOut <<  region_.chrom_
+// 					<< "\t" << pos + 1
+// 					<< "\t" << "."
+// 					<< "\t";
+// 			std::vector<std::string> alts;
+// 			std::vector<uint32_t> altsCounts;
+// 			std::vector<double> altsFreqs;
+// 			 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 			vcfOut << getBaseForGenomicRegion(pos) << "\t";
+// 			if(njh::in(pos, snpsFinal)){
+// 				// uint32_t snpCount = 0;
+// 				for(const auto & b : snpsFinal.at(pos)){
+// 					// snpCount+= b.second;
+// 					alts.emplace_back(std::string(1, b.first));
+// 					altsCounts.emplace_back(b.second);
+// 					altsFreqs.emplace_back(b.second/static_cast<double>(depthPerPosition.at(pos)));
+// 				}
+// 			}
+// 			 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 			if (njh::in(pos, insertionsFinalForVCF)) {
+// 				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 				for (const auto & ins : insertionsFinalForVCF[pos]) {
+// 					 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// //					std::cout << "pos: " << pos << std::endl;
+// //					std::cout << vectorMinimum(getVectorOfMapKeys(depthPerPosition)) << std::endl;
+// //					std::cout << vectorMaximum(getVectorOfMapKeys(depthPerPosition)) << std::endl;
+// //					std::cout << "ins.second: " << ins.second << std::endl;
+// //					std::cout << "ins.first: " << ins.first << std::endl;
+// 					alts.emplace_back(njh::pasteAsStr(getBaseForGenomicRegion(pos), ins.first));
+// 					altsCounts.emplace_back(ins.second);
+// 					altsFreqs.emplace_back(ins.second/static_cast<double>(depthPerPosition.at(pos)));
+// 				}
+// 			}
+// 			 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 			vcfOut << njh::conToStr(alts, ",")
+// 			<< "\t40\tPASS\t";
+// 			vcfOut
+// 					<< "DP=" << depthPerPosition.at(pos) << ";"
+// 					<< "NS=" << samplesPerPosition.at(pos).size() << ";"
+// 					<< "AC=" << njh::conToStr(altsCounts, ",") << ";"
+// 					<< "AF=" << njh::conToStr(altsFreqs, ",")
+// 			<< std::endl;
+// 		}
+// 		 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 		if (njh::in(pos, deletionsFinalForVCF)) {
+// 			for (const auto & d : deletionsFinalForVCF[pos]) {
+// 				vcfOut <<  region_.chrom_
+// 						<< "\t" << pos + 1
+// 						<< "\t" << "."
+// 						<< "\t";
+// 				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 				vcfOut << getBaseForGenomicRegion(pos) << d.first
+// 				<< "\t" << getBaseForGenomicRegion(pos) << "\t";
+// 				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 				vcfOut << "40\tPASS\t";
+// 				vcfOut
+// 						<< "DP=" << depthPerPosition.at(pos) << ";"
+// 						<< "NS=" << samplesPerPosition.at(pos).size() << ";"
+// 						<< "AC=" << d.second << ";"
+// 						<< "AF=" << d.second/static_cast<double>(depthPerPosition.at(pos))
+// 				<< std::endl;
+// 				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 			}
+// 		}
+// 		 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 	}
+// 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+}
+
+
+
+VCFOutput TranslatorByAlignment::VariantsInfo::writeVCF(const OutOptions & vcfOutOpts) const {
 	OutputStream vcfOut(vcfOutOpts);
-	writeVCF(vcfOut);
+	return writeVCF(vcfOut);
 }
 
 
@@ -517,8 +769,8 @@ void TranslatorByAlignment::VariantsInfo::addVariantInfo(
 		const comparison & comp,
 		uint32_t offSetStart
 		){
-	uint32_t queryAlnStart = alignedQuerySeq.find_first_not_of("-");
-	uint32_t queryAlnEnd = alignedQuerySeq.find_last_not_of("-");
+	uint32_t queryAlnStart = alignedQuerySeq.find_first_not_of('-');
+	uint32_t queryAlnEnd = alignedQuerySeq.find_last_not_of('-');
 	for(const auto seqPos : iter::range(queryAlnStart, queryAlnEnd + 1)){
 		if('-' != alignedRefSeq[seqPos]){ //skip over insertions
 			uint32_t seqChromPosition = getRealPosForAlnPos(alignedRefSeq, seqPos) + offSetStart;
@@ -528,7 +780,6 @@ void TranslatorByAlignment::VariantsInfo::addVariantInfo(
 	}
 	for(const auto & m : comp.distances_.mismatches_){
 		snps[m.second.refBasePos + offSetStart][m.second.seqBase]+= querySeqCount;
-
 	}
 	for(const auto & gap : comp.distances_.alignmentGaps_){
 		if(gap.second.ref_){
@@ -1335,7 +1586,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			}
 		}
 		// //std::cout << __FILE__ << " " << __LINE__ << std::endl;
-		aligner alignObj(proteinMaxLen, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2));
+		aligner alignObj(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(2,-2));
 		//aligner alignObjSeq(seqMaxLen + rPars.realnPars.extendAmount * 2, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2));
 
 		std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> regionsToGeneIds;
@@ -1390,7 +1641,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				if(uAbsdiff(averageLen, bAln.GetEndPosition() - bAln.Position) > 100){
 //					 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 					//adjust aligner giving more weight to matches to help with large deletions or insertions
-					aligner alignObjAdjusted(proteinMaxLen, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(10,-2));
+					aligner alignObjAdjusted(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(10,-2));
 					results = ReAlignedSeq::genRealignment(bAln, refData, alignObjAdjusted, chromLengths, tReader, reAlignParsCopy);
 //					 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				}else{
