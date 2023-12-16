@@ -20,6 +20,7 @@ namespace njhseq {
  * @todo add utilty functions to access info like if queried for amino acid position to return cDna and genomic positions etc
  *
  */
+
 class GeneSeqInfo {
 public:
 	struct GeneSeqInfoPars {

@@ -9,6 +9,8 @@
 
 
 
+
+
 #include "njhseq/objects/BioDataObject.h"
 #include "njhseq/GenomeUtils.h"
 #include "njhseq/objects/Gene/GeneFromGffs.hpp"
@@ -39,9 +41,24 @@ public:
 		std::string type_;
 		std::string description_;
 	};
+	struct ContigEntry {
+		//contig=<ID=22,length=49691432,assembly=B36,md5=2041e6a0c914b48dd537922cca63acb8,species="Homo sapiens">
+		ContigEntry() = default;
+		ContigEntry(std::string id, uint32_t length): id_(std::move(id)), length_(length) {
+
+		}
+		std::string id_;/**<chromosome name */
+		uint32_t length_{std::numeric_limits<uint32_t>::max()};/**<length of chromosome */
+
+		std::string assembly_;/**<associated assembly name, can be left blank */
+		std::string md5_;/**<the md5 sum to check the sequence, can be left blank */
+		std::string species_;/**<sepcies name, can be left blank */
+
+	};
 
 	std::vector<FormatOrInfoEntry> formatEntries_;
 	std::vector<FormatOrInfoEntry> infoEntries_;
+	std::vector<ContigEntry> contigEntries_;
 
 	class VCFRecord {
 	public:
@@ -58,7 +75,7 @@ public:
 		std::map<std::string, MetaDataInName> sampleFormatInfos_;/**<the sample info for this variant */
 	};
 
-	std::vector<VCFRecord> records;
+	std::vector<VCFRecord> records_;
 
 	void sortRecords();
 

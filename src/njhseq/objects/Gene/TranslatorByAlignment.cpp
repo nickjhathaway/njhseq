@@ -134,7 +134,7 @@ char TranslatorByAlignment::VariantsInfo::getBaseForGenomicRegion(const uint32_t
 }
 
 void VCFOutput::sortRecords() {
-	njh::sort(records, [](const VCFRecord & r1, const VCFRecord & r2) {
+	njh::sort(records_, [](const VCFRecord & r1, const VCFRecord & r2) {
 		if(r1.chrom_ == r2.chrom_) {
 			if(r1.pos_ == r2.pos_) {
 				return r1.ref_ < r2.ref_;
@@ -149,6 +149,23 @@ void VCFOutput::sortRecords() {
 
 void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) const {
 	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
+
+	//write out contigs
+	for (const auto&info: contigEntries_) {
+		vcfOut <<"##contig=<"
+		<< "ID=" << info.id_ << ","
+		<< "length=" << info.length_;
+		if(!info.md5_.empty()) {
+			vcfOut << "," << "md5=" << info.md5_;
+		}
+		if(!info.assembly_.empty()) {
+			vcfOut << "," << "assembly=\"" << info.assembly_ << "\"";
+		}
+		if(!info.species_.empty()) {
+			vcfOut << "," << "species=\"" << info.species_ << "\"";
+		}
+		vcfOut << ">" << std::endl;
+	}
 	//write out infos
 	for (const auto&info: infoEntries_) {
 		vcfOut <<"##INFO=<"
@@ -160,7 +177,7 @@ void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) const {
 		<< std::endl;
 	}
 	vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
-	for(const auto & rec : records) {
+	for(const auto & rec : records_) {
 		vcfOut << rec.chrom_
 		<< "\t" << rec.pos_
 		<< "\t" << rec.id_
@@ -182,6 +199,22 @@ void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) const {
 
 void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
+	//write out contigs
+	for (const auto&info: contigEntries_) {
+		vcfOut <<"##contig=<"
+		<< "ID=" << info.id_ << ","
+		<< "length=" << info.length_;
+		if(!info.md5_.empty()) {
+			vcfOut << "," << "md5=" << info.md5_;
+		}
+		if(!info.assembly_.empty()) {
+			vcfOut << "," << "assembly=\"" << info.assembly_ << "\"";
+		}
+		if(!info.species_.empty()) {
+			vcfOut << "," << "species=\"" << info.species_ << "\"";
+		}
+		vcfOut << ">" << std::endl;
+	}
 	//write out infos
 	for (const auto&info: infoEntries_) {
 		vcfOut <<"##INFO=<"
@@ -206,9 +239,9 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 
 	vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 	std::set<std::string> allSamples;
-	if(!records.empty()) {
-		auto firstSetOfSamples = njh::vecToSet(getVectorOfMapKeys(records.front().sampleFormatInfos_));
-		for(const auto & rec : records) {
+	if(!records_.empty()) {
+		auto firstSetOfSamples = njh::vecToSet(getVectorOfMapKeys(records_.front().sampleFormatInfos_));
+		for(const auto & rec : records_) {
 			auto currentSetOfSamples = njh::vecToSet(getVectorOfMapKeys(rec.sampleFormatInfos_));
 			if(firstSetOfSamples != currentSetOfSamples) {
 				std::stringstream ss;
@@ -229,8 +262,8 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 		}
 		formatOut += format.id_;
 	}
-	if(!records.empty()) {
-		for(const auto & rec : records) {
+	if(!records_.empty()) {
+		for(const auto & rec : records_) {
 			vcfOut << rec.chrom_
 			<< "\t" << rec.pos_
 			<< "\t" << rec.id_
@@ -352,7 +385,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 			currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
 			currentRecord.info_.addMeta("AC", njh::conToStr(altsCounts, ",") );
 			currentRecord.info_.addMeta("AF", njh::conToStr(altsFreqs, ",") );
-			ret.records.emplace_back(std::move(currentRecord));
+			ret.records_.emplace_back(std::move(currentRecord));
 		}
 		//add in deletions
 		if (njh::in(pos, deletionsFinalForVCF)) {
@@ -369,7 +402,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 				currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
 				currentRecord.info_.addMeta("AC", d.second );
 				currentRecord.info_.addMeta("AF", d.second/static_cast<double>(depthPerPosition.at(pos)) );
-				ret.records.emplace_back(std::move(currentRecord));
+				ret.records_.emplace_back(std::move(currentRecord));
 			}
 		}
 	}
@@ -1390,10 +1423,17 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutTranslatedIndvV
 //			}
 //		}
 //	}
+	std::unordered_map<std::string, std::unordered_map<uint32_t, std::tuple<GeneSeqInfo::GenePosInfo,GeneSeqInfo::GenePosInfo,GeneSeqInfo::GenePosInfo>>> allCodonInfoByAAPos;
 
+	for(const auto & seqName : seqNames) {
+		for(const auto & transcript : translations_.at(seqName)) {
+			if(!njh::in(transcript.first, allCodonInfoByAAPos)) {
+				allCodonInfoByAAPos[transcript.first] = translationInfoForTranscirpt_.at(transcript.first)->getInfosByAAPos();
+			}
+		}
+	}
 	for(const auto & seqName : seqNames){
 		for(const auto & transcript : translations_.at(seqName)){
-			auto codonInfoByAAPos = translationInfoForTranscirpt_.at(transcript.first)->getInfosByAAPos();
 			auto gPos = njh::mapAt(proteinVariants_, transcript.first).region_;
 			uint32_t totalVariants = transcript.second.comp_.distances_.mismatches_.size() + transcript.second.comp_.distances_.alignmentGaps_.size();
 			//mismatches
@@ -1401,9 +1441,9 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutTranslatedIndvV
 
 				//getting reference codon info
 				std::string referenceCodonSeq = njh::pasteAsStr(
-					std::get<0>(codonInfoByAAPos[m.second.refBasePos]).base_,
-					std::get<1>(codonInfoByAAPos[m.second.refBasePos]).base_,
-					std::get<2>(codonInfoByAAPos[m.second.refBasePos]).base_);
+					std::get<0>(allCodonInfoByAAPos[transcript.first][m.second.refBasePos]).base_,
+					std::get<1>(allCodonInfoByAAPos[transcript.first][m.second.refBasePos]).base_,
+					std::get<2>(allCodonInfoByAAPos[transcript.first][m.second.refBasePos]).base_);
 
 				//getting reference genomic info
 				auto genomicLocation = translationInfoForTranscirpt_.at(transcript.first)->genBedFromAAPositions(m.second.refBasePos, m.second.refBasePos + 1);
@@ -1468,9 +1508,9 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutTranslatedIndvV
 					for (const auto aaPos: iter::range<uint32_t>(indel.second.refPos_,
 					                                             indel.second.refPos_ + indel.second.gapedSequence_.size())) {
 						referenceCodonSeq += njh::pasteAsStr(
-							std::get<0>(codonInfoByAAPos[aaPos]).base_,
-							std::get<1>(codonInfoByAAPos[aaPos]).base_,
-							std::get<2>(codonInfoByAAPos[aaPos]).base_);
+							std::get<0>(allCodonInfoByAAPos[transcript.first][aaPos]).base_,
+							std::get<1>(allCodonInfoByAAPos[transcript.first][aaPos]).base_,
+							std::get<2>(allCodonInfoByAAPos[transcript.first][aaPos]).base_);
 					}
 
 

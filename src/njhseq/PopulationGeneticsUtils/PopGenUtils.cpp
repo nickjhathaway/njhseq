@@ -96,6 +96,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 
 	translator->pars_.additionalBowtieArguments_ = njh::pasteAsStr(translator->pars_.additionalBowtieArguments_, " -p ", pars.numThreads);
 	auto translatedRes = translator->run(SeqIOOptions::genFastaIn(uniqueSeqsOpts.out_.outName()), sampNamesForPopHaps, pars.variantCallerRunPars);
+	auto gprefix = bfs::path(translator->pars_.lzPars_.genomeFnp).replace_extension("");
+	auto twoBitFnp = gprefix.string() + ".2bit";
+	TwoBit::TwoBitFile tReader(twoBitFnp);
+	auto contigLengths = tReader.getSeqLens();
+
 	// std::cout << njh::bashCT::green;
 	// for(const auto & seqTransPerScript : translatedRes.translations_) {
 	// 	for(const auto & seqTrans : seqTransPerScript.second) {
@@ -213,8 +218,14 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 
 				{
 					//writing vcfs
-					auto vcfOutputForTrans = varPerTrans.second.writeVCF(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf")));
-					//vcfOut << "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Read Depth for the ref and alt alleles in the order listed, a count of 0 means not detected\">" << std::endl;
+					auto vcfOutputForTrans = varPerTrans.second.createVCFOutputFixed();
+					vcfOutputForTrans.contigEntries_.emplace_back(varPerTrans.first, translatedRes.translationInfoForTranscirpt_[varPerTrans.first]->protein_.seq_.length());
+					{
+						//auto vcfOutputForTrans = varPerTrans.second.writeVCF(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf")));
+						OutputStream vcfOut(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf")));
+						vcfOutputForTrans.writeOutFixedOnly(vcfOut);
+					}
+
 					vcfOutputForTrans.formatEntries_.emplace_back(
 						"AT", "1", "Integer",
 						"Total Read Depth for this sample, a count of 0 means no coverage in this sample"
@@ -228,7 +239,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						"Read Frequncy for the ref and alt alleles in the order listed, a freq of 0 means not detected"
 					);
 					std::unordered_set<std::string> chromPositions;
-					for(const auto & rec : vcfOutputForTrans.records) {
+					for(const auto & rec : vcfOutputForTrans.records_) {
 						chromPositions.emplace(njh::pasteAsStr(rec.chrom_, "-", rec.pos_));
 					}
 					//key1 = haplotypeName, key2 = chrom, key3 = vcf-based positioning, value = ref,alt
@@ -286,7 +297,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 					}
 
 
-					for (auto&rec: vcfOutputForTrans.records) {
+					for (auto&rec: vcfOutputForTrans.records_) {
 						for (const auto&sample: allSamples) {
 							std::vector<uint32_t> dps(1 + rec.alts_.size(), 0);
 							// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
@@ -381,9 +392,13 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 
 		{
 			//writing vcfs
-			auto vcfOutputForChrom = varPerChrom.second.writeVCF(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf")) );
-			//vcfOut << "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Read Depth for the ref and alt alleles in the order listed, a count of 0 means not detected\">" << std::endl;
-
+			auto vcfOutputForChrom = varPerChrom.second.createVCFOutputFixed();
+			vcfOutputForChrom.contigEntries_.emplace_back(varPerChrom.first, contigLengths[varPerChrom.first]);
+			{
+				//auto vcfOutputForChrom = varPerChrom.second.writeVCF(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf")) );
+				OutputStream vcfOut(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf")));
+				vcfOutputForChrom.writeOutFixedOnly(vcfOut);
+			}
 			vcfOutputForChrom.formatEntries_.emplace_back(
 				"AT", "1", "Integer",
 				"Total Read Depth for this sample, a count of 0 means no coverage in this sample"
@@ -397,7 +412,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				"Read Frequncy for the ref and alt alleles in the order listed, a freq of 0 means not detected"
 			);
 			std::unordered_set<std::string> chromPositions;
-			for(const auto & rec : vcfOutputForChrom.records) {
+			for(const auto & rec : vcfOutputForChrom.records_) {
 				chromPositions.emplace(njh::pasteAsStr(rec.chrom_, "-", rec.pos_));
 			}
 			//key1 = haplotypeName, key2 = chrom, key3 = vcf-based positioning, value = ref,alt
@@ -454,7 +469,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				}
 			}
 
-			for (auto&rec: vcfOutputForChrom.records) {
+			for (auto&rec: vcfOutputForChrom.records_) {
 				for (const auto&sample: allSamples) {
 					std::vector<uint32_t> dps(1 + rec.alts_.size(), 0);
 					// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
