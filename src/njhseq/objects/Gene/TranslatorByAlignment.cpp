@@ -9,6 +9,10 @@
 #include "TranslatorByAlignment.hpp"
 
 
+
+
+
+
 namespace njhseq {
 
 
@@ -23,9 +27,9 @@ void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & set
 	setUp.setOption(knownAminoAcidMutationsFnp_, "--knownAminoAcidChangesFnp",
 			"Known Amino Acid Changes, must have at least 2 columns, positions are 1-postion-based (first position is 1), 1)TranscriptID, 2)AAPosition ", false, "Translation Output");
 	setUp.setOption(gffFnp_, "--gff,--gffFnp",
-			"Gff file to intersect the final haplotypes with genes to get translations", requireGenome || "" != knownAminoAcidMutationsFnp_, "Translation Output");
+			"Gff file to intersect the final haplotypes with genes to get translations", requireGenome || !knownAminoAcidMutationsFnp_.empty(), "Translation Output");
 	setUp.setOption(lzPars_.genomeFnp, "--genome,--genomeFnp",
-			"Genome file so final haplotypes can be mapped to a genome", requireGenome || "" != gffFnp_ || "" != knownAminoAcidMutationsFnp_, "Translation Output");
+			"Genome file so final haplotypes can be mapped to a genome", requireGenome || !gffFnp_.empty() || !knownAminoAcidMutationsFnp_.empty(), "Translation Output");
 	if(njh::endsWith(lzPars_.genomeFnp.string(), ".2bit")){
 		lzPars_.genomeFnp.replace_extension("fasta");
 	}
@@ -104,8 +108,8 @@ TranslatorByAlignment::RunPars::RunPars(){
 	realnPars.extendAmount = 100;
 }
 
-TranslatorByAlignment::VariantsInfo::VariantsInfo(const Bed3RecordCore & region, const seqInfo & refSeq) : region_(region),
-		seqBase_(refSeq){
+TranslatorByAlignment::VariantsInfo::VariantsInfo(const Bed3RecordCore & region, seqInfo  refSeq) : region_(region),
+		seqBase_(std::move(refSeq)){
 
 }
 
@@ -143,7 +147,7 @@ void VCFOutput::sortRecords() {
 	});
 }
 
-void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) {
+void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) const {
 	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
 	//write out infos
 	for (const auto&info: infoEntries_) {
@@ -176,7 +180,7 @@ void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) {
 	}
 }
 
-void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) {
+void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
 	//write out infos
 	for (const auto&info: infoEntries_) {
@@ -243,13 +247,14 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) {
 			}
 			vcfOut << "\t" << infoOut;
 			vcfOut << "\t" << formatOut;
-			for(const auto & sample : rec.sampleFormatInfos_) {
+			for(const auto & sampleName : allSamples) {
+				const auto & sample = rec.sampleFormatInfos_.at(sampleName);
 				std::string formatOutForSample;
 				for(const auto & format : formatEntries_) {
 					if(!formatOutForSample.empty()) {
 						formatOutForSample +=":";
 					}
-					formatOutForSample += sample.second.getMeta(format.id_);
+					formatOutForSample += sample.getMeta(format.id_);
 				}
 				vcfOut << "\t" << formatOutForSample;
 			}
@@ -800,7 +805,7 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 			const ReAlignedSeq & realigned,
 			const GeneFromGffs & currentGene,
 			const std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> & transcriptInfosForGene,
-			aligner & alignerObj){
+			aligner & alignerObj) const{
 	std::unordered_map<std::string, TranslateSeqRes> ret;
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & transcript : currentGene.mRNAs_){
@@ -825,7 +830,7 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 		uint32_t cdnaGenomicStart = std::numeric_limits<uint32_t>::max();
 		uint32_t cdnaGenomicEndInconclusive = std::numeric_limits<uint32_t>::max();
 
-		if(cDNAIntersectedWith.size() == 0){
+		if(cDNAIntersectedWith.empty()){
 			continue;
 		} else {
 			if (cDNAIntersectedWith.size() == 1
@@ -996,8 +1001,8 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 			TranslateSeqRes tRes;
 			uint32_t cDnaLenRaw = len(balnSeq) - transStart;
 			uint32_t cDnaLen = cDnaLenRaw - (cDnaLenRaw %3);
-			uint32_t firstAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of("-"));
-			uint32_t lastAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of("-"));
+			uint32_t firstAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-'));
+			uint32_t lastAmino = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-'));
 			 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //			std::cout << "firstAmino: " << firstAmino << std::endl;
 //			std::cout << "lastAmino : " << lastAmino << std::endl;
@@ -1020,7 +1025,7 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 	return ret;
 }
 
-TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & pars): pars_(pars){
+TranslatorByAlignment::TranslatorByAlignment(TranslatorByAlignmentPars  pars): pars_(std::move(pars)){
 	njh::sys::requireExternalProgramThrow("samtools");
 	if(!pars_.useLastz_){
 		njh::sys::requireExternalProgramThrow("bowtie2");
@@ -1028,9 +1033,9 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 		njh::sys::requireExternalProgramThrow("lastz");
 	}
 	VecStr warnings;
-	if("" != pars_.knownAminoAcidMutationsFnp_){
-		if("" != pars_.knownAminoAcidMutationsFnp_){
-			if("" == pars_.gffFnp_){
+	if(!pars_.knownAminoAcidMutationsFnp_.empty()){
+		if(!pars_.knownAminoAcidMutationsFnp_.empty()){
+			if(pars_.gffFnp_.empty()){
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error " << "if supplying known amino acid positions than must also supply --gffFnp file"<< "\n";
 				warnings.emplace_back(ss.str());
@@ -1047,7 +1052,7 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 		if(knownAminoAcidChanges.nRow() > 0){
 			for(const auto & row : knownAminoAcidChanges){
 				if(std::all_of(row.begin(), row.end(), [](const std::string & element){
-					return "" == element;
+					return element.empty();
 				})){
 					continue;
 				}
@@ -1081,12 +1086,73 @@ TranslatorByAlignment::TranslatorByAlignment(const TranslatorByAlignmentPars & p
 
 void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutSeqAlnIndvVars(const OutOptions & outopts) const{
 	OutputStream individualAlnedVariantInfoOut(outopts);
-	individualAlnedVariantInfoOut << njh::conToStr(DistanceComp::BasicInfoHeader(), "\t") << std::endl;
+	individualAlnedVariantInfoOut << njh::conToStr(concatVecs(DistanceComp::BasicInfoHeader(), VecStr{"variantInPopulation"}), "\t") << std::endl;
 	auto seqAlnNames = getVectorOfMapKeys(seqAlns_);
 	njh::sort(seqAlnNames);
 	for(const auto & seqAlnName : seqAlnNames){
 		for(const auto & alns : seqAlns_.at(seqAlnName)){
-			alns.comp_.distances_.writeBasicInfo(individualAlnedVariantInfoOut, alns.gRegion_.genBed3RecordCore(), seqAlnName);
+			// alns.comp_.distances_.writeBasicInfo(individualAlnedVariantInfoOut, alns.gRegion_.genBed3RecordCore(), seqAlnName);
+			const auto gPos = alns.gRegion_.genBed3RecordCore();
+			uint32_t totalVariants = alns.comp_.distances_.mismatches_.size() + alns.comp_.distances_.alignmentGaps_.size();
+			//mismatches
+			for(const auto & m : alns.comp_.distances_.mismatches_){
+				bool variantInPop = false;
+				if(njh::in(gPos.chrom_, seqVariants_)) {
+					variantInPop = njh::in(gPos.chromStart_ + m.second.refBasePos, seqVariants_.at(gPos.chrom_).snpsFinal) &&
+						njh::in(m.second.seqBase, seqVariants_.at(gPos.chrom_).snpsFinal.at(gPos.chromStart_ + m.second.refBasePos)) &&
+						seqVariants_.at(gPos.chrom_).snpsFinal.at(gPos.chromStart_ + m.second.refBasePos).at(m.second.seqBase) > 0;
+				}
+				individualAlnedVariantInfoOut << njh::conToStr(toVecStr(
+						gPos.chrom_,
+						gPos.chromStart_ + m.second.refBasePos,
+						gPos.chromStart_ + m.second.refBasePos + 1,
+						seqAlnName,
+						"SNP",
+						m.second.refBase,
+						m.second.seqBase,
+						totalVariants,
+						variantInPop), "\t") << "\n";
+			}
+			//INDELs
+			for(const auto & indel: alns.comp_.distances_.alignmentGaps_){
+				if(indel.second.ref_){
+					//gap is in reference so a insertion
+					bool variantInPop = false;
+					if(njh::in(gPos.chrom_, seqVariants_)) {
+						variantInPop = njh::in(gPos.chromStart_ + indel.second.refPos_, seqVariants_.at(gPos.chrom_).insertionsFinal) &&
+							njh::in(indel.second.gapedSequence_, seqVariants_.at(gPos.chrom_).insertionsFinal.at(gPos.chromStart_ + indel.second.refPos_)) &&
+							seqVariants_.at(gPos.chrom_).insertionsFinal.at(gPos.chromStart_ + indel.second.refPos_).at(indel.second.gapedSequence_) > 0;
+					}
+					individualAlnedVariantInfoOut << njh::conToStr(toVecStr(
+							gPos.chrom_,
+							gPos.chromStart_ + indel.second.refPos_,
+							gPos.chromStart_ + indel.second.refPos_ + 1,
+							seqAlnName,
+							"insertion",
+							std::string(indel.second.gapedSequence_.size(), '-'),
+							indel.second.gapedSequence_,
+							totalVariants,
+							variantInPop), "\t") << "\n";
+				} else {
+					//gap is in query so a deletion
+					bool variantInPop = false;
+					if(njh::in(gPos.chrom_, seqVariants_)) {
+						variantInPop = njh::in(gPos.chromStart_ + indel.second.refPos_, seqVariants_.at(gPos.chrom_).deletionsFinal) &&
+							njh::in(indel.second.gapedSequence_, seqVariants_.at(gPos.chrom_).deletionsFinal.at(gPos.chromStart_ + indel.second.refPos_)) &&
+							seqVariants_.at(gPos.chrom_).deletionsFinal.at(gPos.chromStart_ + indel.second.refPos_).at(indel.second.gapedSequence_) > 0;
+					}
+					individualAlnedVariantInfoOut << njh::conToStr(toVecStr(
+							gPos.chrom_,
+							gPos.chromStart_ + indel.second.refPos_,
+							gPos.chromStart_ + indel.second.refPos_ + indel.second.gapedSequence_.size(),
+							seqAlnName,
+							"deletion",
+							indel.second.gapedSequence_,
+							std::string(indel.second.gapedSequence_.size(), '-'),
+							totalVariants,
+							variantInPop), "\t") << "\n";
+				}
+			}
 		}
 	}
 }
@@ -1103,7 +1169,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 	for(const auto & seqAln : seqAlns_){
 		std::string typed;
 		for(const auto & aln : seqAln.second){
-			if("" != typed){
+			if(!typed.empty()){
 				typed += ";";
 			}
 			auto snpPositions = njh::getVecOfMapKeys(seqVariants_.at(aln.gRegion_.chrom_).snpsFinal);
@@ -1148,7 +1214,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 		}
 		std::string typed;
 		for(const auto & trans : perTranscript){
-			if("" != typed){
+			if(!typed.empty()){
 				typed += ";";
 			}
 			typed = njh::pasteAsStr(trans.first, "--", njh::conToStr(trans.second, ":"));
@@ -1171,7 +1237,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 		}
 		std::string typed;
 		for(const auto & trans : perTranscript){
-			if("" != typed){
+			if(!typed.empty()){
 				typed += ";";
 			}
 			typed = njh::pasteAsStr(trans.first, "--", njh::conToStr(trans.second, ":"));
@@ -1190,7 +1256,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 		}
 		std::string typed;
 		for(const auto & trans : perTranscript){
-			if("" != typed){
+			if(!typed.empty()){
 				typed += ";";
 			}
 			typed = njh::pasteAsStr(trans.first, "--", njh::conToStr(trans.second, ":"));
@@ -1211,7 +1277,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 		}
 		std::string typed;
 		for(const auto & trans : perTranscript){
-			if("" != typed){
+			if(!typed.empty()){
 				typed += ";";
 			}
 			typed = njh::pasteAsStr(trans.first, "--", njh::conToStr(trans.second, ":"));
@@ -1239,7 +1305,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 		}
 		std::string typed;
 		for(const auto & trans : perTranscript){
-			if("" != typed){
+			if(!typed.empty()){
 				typed += ";";
 			}
 			typed = njh::pasteAsStr(trans.first, "--", njh::conToStr(trans.second, ":"));
@@ -1264,7 +1330,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 		}
 		std::string typed;
 		for(const auto & trans : perTranscript){
-			if("" != typed){
+			if(!typed.empty()){
 				typed += ";";
 			}
 			typed = njh::pasteAsStr(trans.first, "--", njh::conToStr(trans.second, ":"));
@@ -1298,7 +1364,7 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutAATypedInfo(con
 
 void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutTranslatedIndvVars(const OutOptions & outOpts, const std::unordered_map<std::string, std::set<uint32_t>> & knownAminoAcidPositions1Based) const {
 	OutputStream individualVariantInfoOut(outOpts);
-	individualVariantInfoOut << njh::conToStr(VecStr{"chrom", "start", "end", "queryName", "type", "refSeq", "querySeq", "queryCodonSeq", "knownAAChange", "variantTotal"}, "\t") << std::endl;
+	individualVariantInfoOut << njh::conToStr(VecStr{"chrom", "start", "end", "queryName", "type", "refSeq", "querySeq", "refCodonSeq", "queryCodonSeq", "knownAAChange", "variantTotal", "genomicID", "variantInPopulation"}, "\t") << std::endl;
 	auto seqNames = njh::getVecOfMapKeys(translations_);
 	njh::sort(seqNames);
 	std::unordered_map<std::string, std::set<uint32_t>> knownMutationsLocationsZeroBased;
@@ -1327,13 +1393,30 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutTranslatedIndvV
 
 	for(const auto & seqName : seqNames){
 		for(const auto & transcript : translations_.at(seqName)){
+			auto codonInfoByAAPos = translationInfoForTranscirpt_.at(transcript.first)->getInfosByAAPos();
 			auto gPos = njh::mapAt(proteinVariants_, transcript.first).region_;
 			uint32_t totalVariants = transcript.second.comp_.distances_.mismatches_.size() + transcript.second.comp_.distances_.alignmentGaps_.size();
 			//mismatches
 			for(const auto & m : transcript.second.comp_.distances_.mismatches_){
 
+				//getting reference codon info
+				std::string referenceCodonSeq = njh::pasteAsStr(
+					std::get<0>(codonInfoByAAPos[m.second.refBasePos]).base_,
+					std::get<1>(codonInfoByAAPos[m.second.refBasePos]).base_,
+					std::get<2>(codonInfoByAAPos[m.second.refBasePos]).base_);
+
+				//getting reference genomic info
+				auto genomicLocation = translationInfoForTranscirpt_.at(transcript.first)->genBedFromAAPositions(m.second.refBasePos, m.second.refBasePos + 1);
+
+				//getting query codon seq info
 				auto codon = translations_.at(seqName).at(transcript.first).getCodonForAARefPos(m.second.refBasePos);
 				std::string codonSeq = njh::pasteAsStr(std::get<0>(codon.bases_), std::get<1>(codon.bases_), std::get<2>(codon.bases_));
+				bool variantInPop = false;
+				if(njh::in(gPos.chrom_, proteinVariants_)) {
+					variantInPop = njh::in(gPos.chromStart_ + m.second.refBasePos, proteinVariants_.at(gPos.chrom_).snpsFinal) &&
+						njh::in(m.second.seqBase, proteinVariants_.at(gPos.chrom_).snpsFinal.at(gPos.chromStart_ + m.second.refBasePos)) &&
+						proteinVariants_.at(gPos.chrom_).snpsFinal.at(gPos.chromStart_ + m.second.refBasePos).at(m.second.seqBase) > 0;
+				}
 				individualVariantInfoOut << njh::conToStr(toVecStr(
 						gPos.chrom_,
 						gPos.chromStart_ + m.second.refBasePos + 1,
@@ -1342,14 +1425,28 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutTranslatedIndvV
 						"SNP",
 						m.second.refBase,
 						m.second.seqBase,
+						referenceCodonSeq,
 						codonSeq,
 						njh::boolToStr(njh::in(m.second.refBasePos, knownMutationsLocationsZeroBased[transcript.first])),
-						totalVariants), "\t") << "\n";
+						totalVariants,
+						genomicLocation.genUIDFromCoords(),
+						variantInPop), "\t") << "\n";
 			}
 			//INDELs
 			for(const auto & indel: transcript.second.comp_.distances_.alignmentGaps_){
 				if(indel.second.ref_){
 					//gap is in reference so a insertion
+					//getting reference codon info
+					std::string referenceCodonSeq = std::string(indel.second.gapedSequence_.size()*3, '-');
+
+					//getting reference genomic info
+					auto genomicLocation = translationInfoForTranscirpt_.at(transcript.first)->genBedFromAAPositions(indel.second.refPos_, indel.second.refPos_ + 1);
+					bool variantInPop = false;
+					if(njh::in(gPos.chrom_, proteinVariants_)) {
+						variantInPop = njh::in(gPos.chromStart_ + indel.second.refPos_, proteinVariants_.at(gPos.chrom_).insertionsFinal) &&
+							njh::in(indel.second.gapedSequence_, proteinVariants_.at(gPos.chrom_).insertionsFinal.at(gPos.chromStart_ + indel.second.refPos_)) &&
+							proteinVariants_.at(gPos.chrom_).insertionsFinal.at(gPos.chromStart_ + indel.second.refPos_).at(indel.second.gapedSequence_) > 0;
+					}
 					individualVariantInfoOut << njh::conToStr(toVecStr(
 							gPos.chrom_,
 							gPos.chromStart_ + indel.second.refPos_ + 1,
@@ -1358,11 +1455,33 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutTranslatedIndvV
 							"insertion",
 							std::string(indel.second.gapedSequence_.size(), '-'),
 							indel.second.gapedSequence_,
+							referenceCodonSeq,
 							translations_.at(seqName).at(transcript.first).cDna_.seq_.substr(indel.second.seqPos_ *3,indel.second.gapedSequence_.size() * 3),
 							njh::boolToStr(false),
-							totalVariants), "\t") << "\n";
-				}else{
+							totalVariants,
+						  genomicLocation.genUIDFromCoords(),
+						  variantInPop), "\t") << "\n";
+				} else {
 					//gap is in query so a deletion
+					//getting reference codon info
+					std::string referenceCodonSeq;
+					for (const auto aaPos: iter::range<uint32_t>(indel.second.refPos_,
+					                                             indel.second.refPos_ + indel.second.gapedSequence_.size())) {
+						referenceCodonSeq += njh::pasteAsStr(
+							std::get<0>(codonInfoByAAPos[aaPos]).base_,
+							std::get<1>(codonInfoByAAPos[aaPos]).base_,
+							std::get<2>(codonInfoByAAPos[aaPos]).base_);
+					}
+
+
+					//getting reference genomic info
+					auto genomicLocation = translationInfoForTranscirpt_.at(transcript.first)->genBedFromAAPositions(indel.second.refPos_, indel.second.refPos_ + indel.second.gapedSequence_.size());
+					bool variantInPop = false;
+					if(njh::in(gPos.chrom_, proteinVariants_)) {
+						variantInPop = njh::in(gPos.chromStart_ + indel.second.refPos_, proteinVariants_.at(gPos.chrom_).deletionsFinal) &&
+							njh::in(indel.second.gapedSequence_, proteinVariants_.at(gPos.chrom_).deletionsFinal.at(gPos.chromStart_ + indel.second.refPos_)) &&
+							proteinVariants_.at(gPos.chrom_).deletionsFinal.at(gPos.chromStart_ + indel.second.refPos_).at(indel.second.gapedSequence_) > 0;
+					}
 					individualVariantInfoOut << njh::conToStr(toVecStr(
 							gPos.chrom_,
 							gPos.chromStart_ + indel.second.refPos_ + 1,
@@ -1371,9 +1490,12 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutTranslatedIndvV
 							"deletion",
 							indel.second.gapedSequence_,
 							std::string(indel.second.gapedSequence_.size(), '-'),
+							referenceCodonSeq,
 							std::string(indel.second.gapedSequence_.size()*3, '-'),
 							njh::boolToStr(false),
-							totalVariants), "\t") << "\n";
+							totalVariants,
+							genomicLocation.genUIDFromCoords(),
+							variantInPop), "\t") << "\n";
 				}
 			}
 		}
@@ -1494,9 +1616,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 	BioCmdsUtils bRunner(false);
-	bRunner.RunFaToTwoBit(pars_.lzPars_.genomeFnp);
+	auto twoBitConversionOutput = bRunner.RunFaToTwoBit(pars_.lzPars_.genomeFnp);
+	// BioCmdsUtils::checkRunOutThrow(twoBitConversionOutput, __PRETTY_FUNCTION__);
 	if(!pars_.useLastz_){
-		bRunner.RunBowtie2Index(pars_.lzPars_.genomeFnp);
+		auto bowtie2RunOutput = bRunner.RunBowtie2Index(pars_.lzPars_.genomeFnp);
+		// BioCmdsUtils::checkRunOutThrow(bowtie2RunOutput, __PRETTY_FUNCTION__);
 	}
 
 	auto gprefix = bfs::path(pars_.lzPars_.genomeFnp).replace_extension("");

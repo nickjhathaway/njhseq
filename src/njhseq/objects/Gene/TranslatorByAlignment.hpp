@@ -66,13 +66,13 @@ public:
 	 * \brief write out the header and the CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO fields
 	 * \param out output stream
 	 */
-	void writeOutFixedOnly(std::ostream & out);
+	void writeOutFixedOnly(std::ostream & out) const;
 
 	/**
 	 * \brief write out the header and the CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO fields and then also FORMAT column and the sample columns after that
 	 * \param out the output stream to write to
 	 */
-	void writeOutFixedAndSampleMeta(std::ostream & out);
+	void writeOutFixedAndSampleMeta(std::ostream & out) const;
 };
 
 
@@ -112,7 +112,7 @@ public:
 
 	struct VariantsInfo {
 
-		VariantsInfo(const Bed3RecordCore & region, const seqInfo & refSeq);
+		VariantsInfo(const Bed3RecordCore & region, seqInfo  refSeq);
 		Bed3RecordCore region_;//!< the reference region being compared to
 		seqInfo seqBase_;
 
@@ -321,7 +321,7 @@ public:
 			const ReAlignedSeq & realigned,
 			const GeneFromGffs & currentGene,
 			const std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> & transcriptInfosForGene,
-			aligner & alignerObj);
+			aligner & alignerObj) const;
 
 
 	TranslatorByAlignmentPars pars_;
@@ -329,7 +329,7 @@ public:
 	std::unordered_map<std::string, std::set<uint32_t>> knownAminoAcidPositions_;
 	std::unordered_map<std::string, std::unordered_map<uint32_t, MetaDataInName>> metaDataAssociatedWithAminoacidPosition_;
 
-	TranslatorByAlignment(const TranslatorByAlignmentPars & pars);
+	TranslatorByAlignment(TranslatorByAlignmentPars  pars);
 
 	std::set<uint32_t> getAllInterestingAAPosZeroBased(const std::string & transcript, const TranslatorByAlignmentResult & results);
 

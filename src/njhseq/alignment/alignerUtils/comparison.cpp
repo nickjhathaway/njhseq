@@ -41,8 +41,7 @@ Json::Value DistanceMet::toJson()const{
 VecStr DistanceComp::BasicInfoHeader(){
 	return VecStr{"chrom", "start", "end", "queryName", "type", "refSeq", "querySeq", "variantTotal"};
 }
-void DistanceComp::writeBasicInfo(std::ostream &out, const Bed3RecordCore &gPos,
-		const std::string &queryName) const {
+void DistanceComp::writeBasicInfo(std::ostream &out, const Bed3RecordCore &gPos,const std::string &queryName) const {
 	uint32_t totalVariants = mismatches_.size() + alignmentGaps_.size();
 	//mismatches
 	for(const auto & m : mismatches_){

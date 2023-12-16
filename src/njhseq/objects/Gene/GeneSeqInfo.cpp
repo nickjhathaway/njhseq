@@ -9,11 +9,12 @@
 #include "GeneSeqInfo.hpp"
 
 
+
 namespace njhseq {
 
-GeneSeqInfo::GeneSeqInfo(const seqInfo & cDna, const seqInfo & gDna,
+GeneSeqInfo::GeneSeqInfo(const seqInfo & cDna, seqInfo  gDna,
 		GeneSeqInfoPars pars) :
-		cDna_(cDna), gDna_(gDna), pars_(pars), infoTab_(VecStr { "cDnaPos", "chrom",
+		cDna_(cDna), gDna_(std::move(gDna)), pars_(std::move(pars)), infoTab_(VecStr { "cDnaPos", "chrom",
 				"gDnaPos", "aaPos", "codonPos", "base", "aminoAcid" }) {
 
 	protein_ = cDna.translateRet(false, false, 0, true);
@@ -27,7 +28,7 @@ void GeneSeqInfo::setCDnaAln(const seqInfo & cDnaAln) {
 void GeneSeqInfo::setCDnaAlnByAligning(aligner & alignerObj){
 	alignerObj.alignCacheGlobal(gDna_, cDna_);
 	//check to see if alignment went ok
-	for (auto pos : iter::range(len(alignerObj.alignObjectA_))) {
+	for (const auto pos : iter::range(len(alignerObj.alignObjectA_))) {
 		if (alignerObj.alignObjectA_.seqBase_.seq_[pos] != '-'
 				&& alignerObj.alignObjectB_.seqBase_.seq_[pos] != '-') {
 			if (alignerObj.alignObjectA_.seqBase_.seq_[pos]
@@ -57,7 +58,7 @@ void GeneSeqInfo::setTable(){
 	if (pars_.oneBasedPos_) {
 		posOffset = 1;
 	}
-	for (auto pos : iter::range(len(cDna_))) {
+	for (const auto pos : iter::range(len(cDna_))) {
 		if(pars_.region_.reverseSrand_){
 			infoTab_.addRow(pos + posOffset,
 					pars_.region_.chrom_,
@@ -200,7 +201,7 @@ GeneSeqInfo::GenePosInfo rowToGenePosInfo(const table & infoTab, const VecStr & 
 	info.codonPos_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infoTab.getColPos("codonPos")]);
 
 	info.base_ = row[infoTab.getColPos("base")].front();
-	info.base_ = row[infoTab.getColPos("aminoAcid")].front();
+	info.aa_ = row[infoTab.getColPos("aminoAcid")].front();
 	return info;
 }
 
