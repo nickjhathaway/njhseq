@@ -328,7 +328,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						}
 					}
 					{
-						OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-proteinWithSamples.vcf")));
+						OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-proteinWithSampleInfo.vcf")));
 						vcfOutputForTrans.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 					}
 				}
@@ -499,7 +499,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				}
 			}
 			{
-				OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomicWithSamples.vcf")));
+				OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomicWithSampleInfo.vcf")));
 				vcfOutputForChrom.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 			}
 		}

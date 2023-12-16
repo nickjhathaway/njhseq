@@ -310,7 +310,11 @@ void GeneFromGffs::writeOutGeneInfo(TwoBit::TwoBitFile & tReader, const OutOptio
 		transcriptBedOpts.transferOverwriteOpts(outPrefix);
 		tableOpts.out_.transferOverwriteOpts(outPrefix);
 		OutputStream transcriptBedOut(transcriptBedOpts);
-		transcriptBedOut << GenomicRegion(*transcript).genBedRecordCore().toDelimStrWithExtra() <<std::endl;
+		auto transcriptGenomicOutRec = GenomicRegion(*transcript);
+		transcriptGenomicOutRec.meta_.addMeta("geneID", gene_->getAttr("ID"));
+		transcriptGenomicOutRec.meta_.addMeta("transcriptID", transcript->getAttr("ID"));
+		transcriptGenomicOutRec.meta_.addMeta("geneName", getGeneDetailedName()[transcript->getAttr("ID")]);
+		transcriptBedOut << transcriptGenomicOutRec.genBedRecordCore().toDelimStrWithExtra() <<std::endl;
 		auto exonIntronPositions = getIntronExonTables();
 		auto exonIntronBeds = getIntronExonBedLocs();
 		exonIntronPositions[transcript->getIDAttr()].outPutContents(tableOpts);
