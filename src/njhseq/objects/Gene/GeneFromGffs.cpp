@@ -188,9 +188,12 @@ std::string GeneFromGffs::getOneGeneDetailedName() const{
 
 std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName() const {
 	std::unordered_map<std::string, std::string> ret;
+	VecStr sourcesWithDescription{"VEuPathDB", "EuPathDB", "PlasmoDB", "pf3k"};
+
 	for (const auto & m : mRNAs_) {
 		std::string name;
-		if ("EuPathDB" == gene_->source_ || "PlasmoDB" == gene_->source_ || "pf3k" == gene_->source_) {
+
+		if (njh::in(gene_->source_, sourcesWithDescription)){
 			if (gene_->hasAttr("description")) {
 				if(!name.empty()){
 					name += ", ";
@@ -243,7 +246,7 @@ std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName()
 						}
 					}
 				}
-			} else if ("EuPathDB" == gene_->source_ || "PlasmoDB" == gene_->source_ || "pf3k" == gene_->source_) {
+			} else if (njh::in(gene_->source_, sourcesWithDescription)){
 				if (gene_->hasAttr("description")) {
 					name = gene_->getAttr("description");
 				}
