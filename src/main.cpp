@@ -28,6 +28,13 @@
 
 int main(int argc, char* argv[]) {
 	try {
+		// auto header = njhseq::VCFOutput::readInHeader(argv[1]);
+		// njh::InputStream in{njh::files::bfs::path(argv[1])};
+		//header.addInRecordsFromFile(in);
+		// header.addInRecordsFixedDataFromFile(in);
+		// header.writeOutFixedOnly(std::cout);
+		// std::cout << njh::json::toJson(header.contigEntries_) << std::endl;
+		// return 0;
 	  std::cout << "Hello njhseq" << std::endl;
 	  return 0;
 	} catch (std::exception & e) {

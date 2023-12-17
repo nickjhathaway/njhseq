@@ -8,9 +8,7 @@
 
 #include "TranslatorByAlignment.hpp"
 
-
-
-
+#include <njhseq/objects/helperObjects/AminoAcidPositionInfo.hpp>
 
 
 namespace njhseq {
@@ -133,6 +131,76 @@ char TranslatorByAlignment::VariantsInfo::getBaseForGenomicRegion(const uint32_t
 	return seqBase_.seq_[relativePos];
 }
 
+
+uint32_t VCFOutput::VCFRecord::getNumberOfAlleles() const {
+	return 1 + alts_.size();
+}
+
+
+
+
+
+Json::Value VCFOutput::InfoEntry::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["id_"] = njh::json::toJson(id_);
+	ret["number_"] = njh::json::toJson(number_);
+	ret["type_"] = njh::json::toJson(type_);
+	ret["description_"] = njh::json::toJson(description_);
+	ret["source_"] = njh::json::toJson(source_);
+	ret["version_"] = njh::json::toJson(version_);
+
+	return ret;
+}
+
+Json::Value VCFOutput::FormatEntry::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["id_"] = njh::json::toJson(id_);
+	ret["number_"] = njh::json::toJson(number_);
+	ret["type_"] = njh::json::toJson(type_);
+	ret["description_"] = njh::json::toJson(description_);
+	return ret;
+}
+
+Json::Value VCFOutput::FilterEntry::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["id_"] = njh::json::toJson(id_);
+	ret["description_"] = njh::json::toJson(description_);
+	return ret;
+}
+
+Json::Value VCFOutput::ContigEntry::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["id_"] = njh::json::toJson(id_);
+	ret["length_"] = njh::json::toJson(length_);
+	ret["assembly_"] = njh::json::toJson(assembly_);
+	ret["md5_"] = njh::json::toJson(md5_);
+	ret["species_"] = njh::json::toJson(species_);
+	ret["otherKeysValues_"] = njh::json::toJson(otherKeysValues_);
+
+	return ret;
+}
+
+
+Json::Value VCFOutput::VCFRecord::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["chrom_"] = njh::json::toJson(chrom_);
+	ret["pos_"] = njh::json::toJson(pos_);
+	ret["id_"] = njh::json::toJson(id_);
+	ret["ref_"] = njh::json::toJson(ref_);
+	ret["alts_"] = njh::json::toJson(alts_);
+	ret["qual_"] = njh::json::toJson(qual_);
+	ret["filter_"] = njh::json::toJson(filter_);
+	ret["info_"] = njh::json::toJson(info_);
+	ret["sampleFormatInfos_"] = njh::json::toJson(sampleFormatInfos_);
+	return ret;
+}
+
+
 void VCFOutput::sortRecords() {
 	njh::sort(records_, [](const VCFRecord & r1, const VCFRecord & r2) {
 		if(r1.chrom_ == r2.chrom_) {
@@ -147,36 +215,118 @@ void VCFOutput::sortRecords() {
 	});
 }
 
-void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) const {
-	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
-
+void VCFOutput::writeOutHeaderFieldsOtherThanFormat(std::ostream & vcfOut) const {
 	//write out contigs
-	for (const auto&info: contigEntries_) {
+	for (const auto&contigKey: contigEntries_) {
+		const auto & contig = contigKey.second;
 		vcfOut <<"##contig=<"
-		<< "ID=" << info.id_ << ","
-		<< "length=" << info.length_;
-		if(!info.md5_.empty()) {
-			vcfOut << "," << "md5=" << info.md5_;
+		<< "ID=" << contig.id_ << ","
+		<< "length=" << contig.length_;
+		if(!contig.md5_.empty()) {
+			vcfOut << "," << "md5=" << contig.md5_;
 		}
-		if(!info.assembly_.empty()) {
-			vcfOut << "," << "assembly=\"" << info.assembly_ << "\"";
+		if(!contig.assembly_.empty()) {
+			if(contig.assembly_.front() == '"' && contig.assembly_.back() == '"') {
+				vcfOut << "," << "assembly=" << contig.assembly_ << "";
+			}else {
+				vcfOut << "," << "assembly=\"" << contig.assembly_ << "\"";
+			}
 		}
-		if(!info.species_.empty()) {
-			vcfOut << "," << "species=\"" << info.species_ << "\"";
+		if(!contig.species_.empty()) {
+			if(contig.species_.front() == '"' && contig.species_.back() == '"') {
+				vcfOut << "," << "species=" << contig.species_ << "";
+			} else {
+				vcfOut << "," << "species=\"" << contig.species_ << "\"";
+			}
+		}
+		for(const auto & others : contig.otherKeysValues_) {
+			if((std::string::npos != others.second.find(',') || njh::strHasWhitesapce(others.second)) && !(others.second.front() == '"' && others.second.back() == '"') ) {
+				vcfOut << "," << others.first << "=" << "\"" << others.second << "\"";
+			} else {
+				vcfOut << "," << others.first << "=" << others.second;
+			}
 		}
 		vcfOut << ">" << std::endl;
 	}
 	//write out infos
-	for (const auto&info: infoEntries_) {
+	for (const auto&infoKey: infoEntries_) {
+		const auto & info  = infoKey.second;
 		vcfOut <<"##INFO=<"
-		<< "ID=" << info.id_ << ","
-		<< "Number=" << info.number_ << ","
-		<< "Type=" << info.type_ << ","
-		<< "Description=\"" << info.description_ << "\""
-		<< ">"
+		<< "ID=" << info.id_
+		<< ","<< "Number=" << info.number_
+		<< "," << "Type=" << info.type_;
+		if(info.description_.front() == '"' && info.description_.back() == '"') {
+			vcfOut << "," << "Description=" << info.description_ << "";
+		} else {
+			vcfOut << "," << "Description=\"" << info.description_ << "\"";
+		}
+		if(!info.source_.empty()) {
+			if(info.source_.front() == '"' && info.source_.back() == '"') {
+				vcfOut << "," << "Source=" << info.source_ << "";
+			} else {
+				vcfOut << "," << "Source=\"" << info.source_ << "\"";
+			}
+		}
+		if(!info.version_.empty()) {
+			if(info.version_.front() == '"' && info.version_.back() == '"') {
+				vcfOut << "," << "Version=" << info.version_ << "";
+			} else {
+				vcfOut << "," << "Version=\"" << info.version_ << "\"";
+			}
+		}
+		vcfOut << ">"
 		<< std::endl;
 	}
-	vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
+	//write out filters
+	for (const auto& info: filterEntries_) {
+		vcfOut << "##FILTER=<"
+				<< "ID=" << info.id_;
+		if (info.description_.front() == '"' && info.description_.back() == '"') {
+			vcfOut << "," << "Description=" << info.description_ << "";
+		} else {
+			vcfOut << "," << "Description=\"" << info.description_ << "\"";
+		}
+		vcfOut << ">" << std::endl;
+	}
+
+	//write out other metas
+	for(const auto & otherMeta : otherHeaderMetaFields_) {
+		vcfOut << "##" << otherMeta.first << "=<";
+		bool first = true;
+		if(otherMeta.second.containsMeta("ID")) {
+			first = false;
+			vcfOut << "ID" << "=" << otherMeta.second.getMeta("ID");
+		}
+		for(const auto & valuePairs : otherMeta.second.meta_) {
+			if(valuePairs.first == "ID") {
+				continue;
+			}
+			if(!first) {
+				vcfOut << ",";
+			}
+			if((std::string::npos != valuePairs.second.find(',') || njh::strHasWhitesapce(valuePairs.second)) && !(valuePairs.second.front() == '"' && valuePairs.second.back() == '"') ) {
+				vcfOut << valuePairs.first << "=" << "\"" << valuePairs.second << "\"";
+			} else {
+				vcfOut << valuePairs.first << "=" << valuePairs.second;
+			}
+			first = false;
+		}
+		vcfOut << ">" << std::endl;
+	}
+
+	//write out key=value pairs
+	for(const auto & other : otherHeaderValuePairs_) {
+		vcfOut << "##" << other.first << "=" << other.second << std::endl;
+	}
+}
+
+
+void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) const {
+	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
+	writeOutHeaderFieldsOtherThanFormat(vcfOut);
+	//write out
+	//vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
+	vcfOut << njh::conToStr(getSubVector(headerNonSampleFields_,0, 8), "\t") << std::endl;
 	for(const auto & rec : records_) {
 		vcfOut << rec.chrom_
 		<< "\t" << rec.pos_
@@ -186,7 +336,8 @@ void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) const {
 		<< "\t" << rec.qual_
 		<< "\t" << rec.filter_;
 		std::string infoOut;
-		for (const auto&info: infoEntries_) {
+		for (const auto & infoKey: infoEntries_) {
+			const auto & info = infoKey.second;
 			if(!infoOut.empty()) {
 				infoOut +=";";
 			}
@@ -197,50 +348,40 @@ void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) const {
 	}
 }
 
+
+
 void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
-	//write out contigs
-	for (const auto&info: contigEntries_) {
-		vcfOut <<"##contig=<"
-		<< "ID=" << info.id_ << ","
-		<< "length=" << info.length_;
-		if(!info.md5_.empty()) {
-			vcfOut << "," << "md5=" << info.md5_;
-		}
-		if(!info.assembly_.empty()) {
-			vcfOut << "," << "assembly=\"" << info.assembly_ << "\"";
-		}
-		if(!info.species_.empty()) {
-			vcfOut << "," << "species=\"" << info.species_ << "\"";
+	writeOutHeaderFieldsOtherThanFormat(vcfOut);
+	//write out formats
+	for (const auto & infoKey: formatEntries_) {
+		const auto & info = infoKey.second;
+		vcfOut <<"##FORMAT=<"
+		<< "ID=" << info.id_
+		<< ","<< "Number=" << info.number_
+		<< "," << "Type=" << info.type_;
+		if(info.description_.front() == '"' && info.description_.back() == '"') {
+			vcfOut << "," << "Description=" << info.description_ << "";
+		} else {
+			vcfOut << "," << "Description=\"" << info.description_ << "\"";
 		}
 		vcfOut << ">" << std::endl;
 	}
-	//write out infos
-	for (const auto&info: infoEntries_) {
-		vcfOut <<"##INFO=<"
-		<< "ID=" << info.id_ << ","
-		<< "Number=" << info.number_ << ","
-		<< "Type=" << info.type_ << ","
-		<< "Description=\"" << info.description_ << "\""
-		<< ">"
-		<< std::endl;
-	}
-	//write out formats
-	for (const auto&info: formatEntries_) {
-		vcfOut <<"##FORMAT=<"
-		<< "ID=" << info.id_ << ","
-		<< "Number=" << info.number_ << ","
-		<< "Type=" << info.type_ << ","
-		<< "Description=\"" << info.description_ << "\""
-		<< ">"
-		<< std::endl;
-	}
 	//check samples
 
-	vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-	std::set<std::string> allSamples;
+	//vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+	vcfOut << njh::conToStr(headerNonSampleFields_, "\t") << "\t" << njh::conToStr(samples_, "\t") << std::endl;
 	if(!records_.empty()) {
-		auto firstSetOfSamples = njh::vecToSet(getVectorOfMapKeys(records_.front().sampleFormatInfos_));
+		const auto firstSetOfSamples = njh::vecToSet(getVectorOfMapKeys(records_.front().sampleFormatInfos_));
+		const auto firstSetOfSamplesVec = VecStr(firstSetOfSamples.begin(), firstSetOfSamples.end());
+		std::set<std::string> headerSamplesSet(samples_.begin(), samples_.end());
+		if(firstSetOfSamples != headerSamplesSet) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "samples in records don't match the header samples"  << "\n";
+			ss << "header samples: " << njh::conToStr(headerSamplesSet, "\t") << "\n";
+			ss << "record samples: " << njh::conToStr(firstSetOfSamplesVec, "\t") << "\n";
+			throw std::runtime_error{ss.str()};
+		}
 		for(const auto & rec : records_) {
 			auto currentSetOfSamples = njh::vecToSet(getVectorOfMapKeys(rec.sampleFormatInfos_));
 			if(firstSetOfSamples != currentSetOfSamples) {
@@ -251,12 +392,10 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 				throw std::runtime_error { ss.str() };
 			}
 		}
-		vcfOut << "\t" << njh::conToStr(firstSetOfSamples, "\t");
-		allSamples = firstSetOfSamples;
 	}
-	vcfOut << std::endl;
 	std::string formatOut;
-	for(const auto & format : formatEntries_) {
+	for (const auto & formatKey: formatEntries_) {
+		const auto & format = formatKey.second;
 		if(!formatOut.empty()) {
 			formatOut +=":";
 		}
@@ -272,7 +411,8 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 			<< "\t" << rec.qual_
 			<< "\t" << rec.filter_;
 			std::string infoOut;
-			for (const auto&info: infoEntries_) {
+			for (const auto & infoKey: infoEntries_) {
+				const auto & info = infoKey.second;
 				if(!infoOut.empty()) {
 					infoOut +=";";
 				}
@@ -280,10 +420,11 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 			}
 			vcfOut << "\t" << infoOut;
 			vcfOut << "\t" << formatOut;
-			for(const auto & sampleName : allSamples) {
+			for(const auto & sampleName : samples_) {
 				const auto & sample = rec.sampleFormatInfos_.at(sampleName);
 				std::string formatOutForSample;
-				for(const auto & format : formatEntries_) {
+				for (const auto & formatKey: formatEntries_) {
+					const auto & format = formatKey.second;
 					if(!formatOutForSample.empty()) {
 						formatOutForSample +=":";
 					}
@@ -295,24 +436,551 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 		}
 	}
 }
+size_t VCFOutput::expectedColumnNumber() const {
+	return samples_.size() + headerNonSampleFields_.size();
+}
+
+Json::Value VCFOutput::headerToJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["otherHeaderValuePairs_"] = njh::json::toJson(otherHeaderValuePairs_);
+	ret["otherHeaderMetaFields_"] = njh::json::toJson(otherHeaderMetaFields_);
+
+	ret["contigEntries_"] = njh::json::toJson(contigEntries_);
+	ret["filterEntries_"] = njh::json::toJson(filterEntries_);
+	ret["formatEntries_"] = njh::json::toJson(formatEntries_);
+	ret["infoEntries_"] = njh::json::toJson(infoEntries_);
+	ret["vcfFormatVersion_"] = njh::json::toJson(vcfFormatVersion_);
+
+	ret["headerNonSampleFields_"] = njh::json::toJson(headerNonSampleFields_);
+	ret["samples_"] = njh::json::toJson(samples_);
+
+
+	return ret;
+}
+
+void VCFOutput::addInBlnaksForAnyMissingSamples(const std::set<std::string>& samples) {
+	std::set<std::string> missingSamples;
+	for(auto & record : records_) {
+		for(const auto & samp : samples) {
+			if(njh::notIn(samp, record.sampleFormatInfos_)) {
+				MetaDataInName emptyMeta;
+				for(const auto & format : formatEntries_) {
+					uint32_t numberOfVals = 1;
+					if(njh::strAllDigits(format.second.number_)) {
+						numberOfVals = njh::StrToNumConverter::stoToNum<uint32_t>(format.second.number_);
+					}else if(format.second.number_ == "R") {
+						numberOfVals = record.getNumberOfAlleles();
+					}else if(format.second.number_ == "A") {
+						numberOfVals = record.alts_.size();
+					}
+					emptyMeta.addMeta(format.first, njh::conToStr(VecStr{numberOfVals, "."}, ",") );
+				}
+				record.sampleFormatInfos_.emplace(samp, emptyMeta);
+				missingSamples.emplace(samp);
+			}
+		}
+	}
+	njh::addVecToSet(samples_, missingSamples);
+	samples_ = VecStr(missingSamples.begin(), missingSamples.end());
+}
+
+
+
+
+VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedData(const std::string & line) const {
+	VCFRecord rec;
+	auto toks = tokenizeString(line, "\t");
+	if(toks.size() != expectedColumnNumber()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "expected " << expectedColumnNumber() <<" not " << toks.size() << "\n";
+		ss << "error for line: " << line << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	if(toks.size() < 8) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "line should be at least 8 columns, not: " << toks.size() << "\n";
+		ss << "error for line: " << line << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	rec.chrom_ = toks[0];
+	rec.pos_ = njh::StrToNumConverter::stoToNum<uint32_t>(toks[1]);
+	rec.id_ = toks[2];
+	rec.ref_ = toks[3];
+	rec.alts_ = tokenizeString(toks[4], ",");
+	rec.qual_ = njh::StrToNumConverter::stoToNum<uint32_t>(toks[5]);
+	rec.filter_ = toks[6];
+
+	//info field
+	VecStr warningsInfoField;
+
+	if(std::string::npos != toks[7].find(':')) {
+		warningsInfoField.emplace_back("info field can't have :");
+	}
+	if(njh::strHasWhitesapce( toks[7])) {
+		warningsInfoField.emplace_back("info field can't whitespace");
+	}
+	if(!warningsInfoField.empty()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "encoutner the following errors when processing info field for line: " << "\n";
+		ss << "errors: " << njh::conToStr(warningsInfoField, ",") << "\n";
+		ss << line << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+
+	auto infoToks = tokenizeString(toks[7], ";");
+	for(const auto & infoTok : infoToks) {
+		const auto equalSignPos = infoTok.find("=");
+		if(equalSignPos == std::string::npos || equalSignPos == 0 || equalSignPos +1 >= infoTok.size()) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "info toks should have an equal sign separating values" << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		auto key = infoTok.substr(0, equalSignPos);
+		auto val = infoTok.substr(equalSignPos + 1);
+
+		if(!njh::in(key, infoEntries_)) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "no info entry to define " << key  << " options are " << njh::conToStr(njh::getVecOfMapKeys(infoEntries_)) << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		auto valCount = 1 + countOccurences(val, ",");
+		if(infoEntries_.at(key).number_ == "A") {
+			if(valCount != rec.alts_.size()) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "info entry " << key << " should have " << rec.alts_.size() << " but has " << valCount << " instead " << "\n";
+				ss << "key: " << key << "\n";
+				ss << "val: " << val << "\n";
+				ss << "line: " << line << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+		} else if (infoEntries_.at(key).number_ == "R") {
+			if(valCount != rec.alts_.size() + 1) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "info entry " << key << " should have " << rec.alts_.size() + 1 << " but has " << valCount << " instead " << "\n";
+				ss << "key: " << key << "\n";
+				ss << "val: " << val << "\n";
+				ss << "line: " << line << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+		} else if (njh::strAllDigits(infoEntries_.at(key).number_)) {
+			if(njh::pasteAsStr(valCount) != infoEntries_.at(key).number_) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "info entry " << key << " should have " << infoEntries_.at(key).number_ << " but has " << valCount << " instead " << "\n";
+				ss << "key: " << key << "\n";
+				ss << "val: " << val << "\n";
+				ss << "line: " << line << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+		}
+		rec.info_.addMeta(key, val);
+	}
+	return rec;
+}
+
+VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedDataAndSampleMetaData(const std::string & line) const {
+
+
+	auto rec = processRecordLineForFixedData(line);
+	auto toks = tokenizeString(line, "\t");
+	//safety checks already done above
+	//format
+	if(toks.size() > 8) {
+		auto formatToks = tokenizeString(toks[8], ":");
+		VecStr missingFormat;
+		for(const auto & f : formatToks) {
+			if(!njh::in(f, formatEntries_)) {
+				missingFormat.emplace_back(f);
+			}
+		}
+		if(!missingFormat.empty()) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << " missing format info on the following formats in this line: " << njh::conToStr(missingFormat, ",") << ", options: " << njh::conToStr(njh::getVecOfMapKeys(formatEntries_))<< "\n";
+			ss << "line: " << line << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+
+		if(toks.size() > 9) {
+			//process samples
+			for(const auto pos : iter::range(9UL, toks.size())) {
+				auto sampleToks = tokenizeString(toks[pos], ":");
+				if(sampleToks.size() != formatToks.size()) {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << "sample info size, " <<  sampleToks.size() << ", doesn't match the expected number of " << formatToks.size() << "\n";
+					ss << "sample info: " << toks[pos] << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+				auto sampleName = samples_[pos - 9];
+				MetaDataInName sampleInfo;
+				for(const auto & e : iter::enumerate(sampleToks)) {
+					auto valCount = 1 + countOccurences(e.element, ",");
+					const auto & key = formatToks[e.index];
+					const auto & val = e.element;
+					if(formatEntries_.at(key).number_ == "A") {
+						if(valCount != rec.alts_.size()) {
+							std::stringstream ss;
+							ss << __PRETTY_FUNCTION__ << ", error " << "info entry " << key << " should have " << rec.alts_.size() << " but has " << valCount << " instead " << "\n";
+							ss << "key: " << key << "\n";
+							ss << "val: " << val << "\n";
+							ss << "line: " << line << "\n";
+							throw std::runtime_error{ss.str()};
+						}
+					} else if (formatEntries_.at(key).number_ == "R") {
+						if(valCount != rec.alts_.size() + 1) {
+							std::stringstream ss;
+							ss << __PRETTY_FUNCTION__ << ", error " << "info entry " << key << " should have " << rec.alts_.size() + 1 << " but has " << valCount << " instead " << "\n";
+							ss << "key: " << key << "\n";
+							ss << "val: " << val << "\n";
+							ss << "line: " << line << "\n";
+							throw std::runtime_error{ss.str()};
+						}
+					} else if (njh::strAllDigits(formatEntries_.at(key).number_)) {
+						if(njh::pasteAsStr(valCount) != formatEntries_.at(key).number_) {
+							std::stringstream ss;
+							ss << __PRETTY_FUNCTION__ << ", error " << "info entry " << key << " should have " << formatEntries_.at(key).number_ << " but has " << valCount << " instead " << "\n";
+							ss << "key: " << key << "\n";
+							ss << "val: " << val << "\n";
+							ss << "line: " << line << "\n";
+							throw std::runtime_error{ss.str()};
+						}
+					}
+					sampleInfo.addMeta(formatToks[e.index], e.element);
+				}
+				rec.sampleFormatInfos_.emplace(sampleName, sampleInfo);
+			}
+		}
+	}
+
+	return rec;
+}
+
+
+void VCFOutput::addInRecordsFixedDataFromFile(std::istream & in) {
+	std::string line;
+	// uint32_t count = 0;
+	while(njh::files::crossPlatGetline(in, line)) {
+		if(line.front() != '#') {
+			// std::cout << count++ << std::endl;
+			records_.emplace_back(processRecordLineForFixedData(line));
+		}
+	}
+}
+
+void VCFOutput::addInRecordsFromFile(std::istream & in) {
+	std::string line;
+	// uint32_t count = 0;
+	while(njh::files::crossPlatGetline(in, line)) {
+		if(line.front() != '#') {
+			// std::cout << count++ << std::endl;
+			records_.emplace_back(processRecordLineForFixedDataAndSampleMetaData(line));
+		}
+	}
+}
+
+
+
+VCFOutput VCFOutput::readInHeader(const bfs::path & fnp) {
+	njh::files::checkExistenceThrow(fnp, __PRETTY_FUNCTION__);
+	if(njh::files::isFileEmpty(fnp)) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << fnp << " is empty" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	auto firstLine = njh::files::getFirstLine(fnp);
+	std::string fileFormatCheck = "##fileformat=VCFv";
+	if(!njh::beginsWith(firstLine, fileFormatCheck)) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << fnp << " should start with " << fileFormatCheck << "\n";
+		throw std::runtime_error{ss.str()};
+	} else if(firstLine.size() <= fileFormatCheck.size()){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "should have more than just: " << firstLine << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	auto version = firstLine.substr(firstLine.find_first_not_of("##fileformat="));
+	VCFOutput ret;
+	ret.vcfFormatVersion_ = version;
+	InputStream input(fnp);
+	std::string line;
+	while(njh::files::crossPlatGetline(input, line)) {
+		if(!njh::beginsWith(line, "##")) {
+			if(njh::beginsWith(line, "#CHROM")) {
+				//header file
+				auto toks = tokenizeString(line, "\t");
+				if(toks.size() < 8) {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << " header fields must at least be 8 fields, not: " << toks.size() << ", error in line: "  << "\n";
+					ss << line << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+				//strict checking
+				VecStr warnings;
+				if("#CHROM" != toks[0]) {
+					warnings.emplace_back("Field 1 must be #CHROM");
+				}
+				if("POS" != toks[1]) {
+					warnings.emplace_back("Field 2 must be POS");
+				}
+				if("ID" != toks[2]) {
+					warnings.emplace_back("Field 3 must be ID");
+				}
+				if("REF" != toks[3]) {
+					warnings.emplace_back("Field 4 must be REF");
+				}
+				if("ALT" != toks[4]) {
+					warnings.emplace_back("Field 5 must be ALT");
+				}
+				if("QUAL" != toks[5]) {
+					warnings.emplace_back("Field 6 must be QUAL");
+				}
+				if("FILTER" != toks[6]) {
+					warnings.emplace_back("Field 7 must be FILTER");
+				}
+				if("INFO" != toks[7]) {
+					warnings.emplace_back("Field 8 must be INFO");
+				}
+				if(toks.size() >8) {
+					if("FORMAT" != toks[8]) {
+						warnings.emplace_back("Field 9 must be FORMAT");
+					}
+					ret.headerNonSampleFields_ = getSubVector(toks, 0, 9);
+				} else {
+					ret.headerNonSampleFields_ = getSubVector(toks, 0, 8);
+				}
+
+				if(toks.size() >9) {
+					ret.samples_ = getSubVector(toks, 9);
+					std::unordered_map<std::string, uint32_t> counts;
+					for(const auto & sample : ret.samples_) {
+						++counts[sample];
+					}
+					for(const auto & c : counts) {
+						if(c.second > 1) {
+							warnings.emplace_back(njh::pasteAsStr("can't duplicate sample names, sample ", c.first, "were found with counts: ", c.second));
+						}
+					}
+				}
+				if(!warnings.empty()) {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << "error, found the following warnings when processing header line: " << "\n";
+					ss << line << "\n";
+					ss << njh::conToStr(warnings, "\n") << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+			}
+			break;
+		}
+		if(!njh::beginsWith(line, "##fileformat=VCFv")) {
+			if(std::string::npos == line.find('=')) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "every line in header should have at least one =, error for line: "  << "\n";
+				ss << line << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+			if(std::string::npos == line.find("=<")) {
+				//not a meta filed, just a key=value pair
+				//split at first found equal sign
+				auto pos = line.find_first_of('=');
+				if(pos + 1 == line.size()) {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << " = shouldn't be at the very end of the line, error for line: " << "\n";
+					ss << line << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+				std::string key = line.substr(2, pos -2);
+				std::string value = line.substr(pos + 1);
+				ret.otherHeaderValuePairs_.emplace(key, value);
+			} else {
+				auto pos =  line.find("=<");
+				if(2 == pos) {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << "=< shouldn't come right after the ##, error for line: " << "\n";
+					ss << line << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+				if(line.back() != '>') {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << "in metafield headers line should always end with >, error for line: " << "\n";
+					ss << line << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+				const auto metaField = line.substr(2, pos - 2);
+				auto restStart = pos + 2;
+				auto restEnd = line.size() - 1;
+				auto rest = line.substr(restStart, restEnd - restStart);
+
+				//process for quotation marks
+				auto numberOfQuotes = countOccurences(rest, "\"");
+				if(numberOfQuotes % 2 != 0) {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << "there should be an even number of \", error for line: "  << "\n";
+					ss << "line: " << line << "\n";
+					ss << "processed_portion: " << rest << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+				if(numberOfQuotes > 0 ) {
+					auto allCommaPositions = findOccurences(rest, ",");
+					std::vector<size_t> commaInQuotesPositions;
+					auto currentQuote = rest.find_first_of('"');
+					bool inbetweenQuote = true;
+					auto nextQuote = rest.find_first_of('"', currentQuote + 1);
+					while(std::string::npos != nextQuote) {
+						if(inbetweenQuote) {
+							//process if inbetween quotes
+							for(const auto commaPos : allCommaPositions) {
+								if(commaPos > currentQuote && commaPos < nextQuote) {
+									commaInQuotesPositions.emplace_back(commaPos);
+								}
+							}
+						}
+						inbetweenQuote = !inbetweenQuote; //toggle inbetween quote;
+						currentQuote = nextQuote;
+						if(nextQuote + 1 >= rest.size()) {
+							nextQuote = std::string::npos;
+						} else {
+							nextQuote = rest.find_first_of('"', nextQuote + 1);
+						}
+					}
+					for(auto commaPos : iter::reversed(commaInQuotesPositions)) {
+						rest.replace(commaPos, 1, std::string("COMMA_IN_BETWEEN_QUOTES"));
+					}
+				}
+				auto toks = njh::tokenizeString(rest, ",");
+				std::unordered_map<std::string, std::string> valuePairs;
+				for(const auto & tok : toks) {
+					auto equalPos = tok.find_first_of('=');
+					auto key = tok.substr(0, equalPos	);
+					auto value = tok.substr(equalPos + 1);
+					value = njh::replaceString(value, "COMMA_IN_BETWEEN_QUOTES", ",");
+					if(njh::in(key, valuePairs)) {
+						std::stringstream ss;
+						ss << __PRETTY_FUNCTION__ << ", error " << "error, already have key: " << key << ", error for line: "  << "\n";
+						ss << line << "\n";
+						throw std::runtime_error{ss.str()};
+					}
+					valuePairs[key] = value;
+				}
+				MetaDataInName currentMeta;
+				for(const auto & keyVal : valuePairs) {
+					if(currentMeta.containsMeta(keyVal.first)) {
+						std::stringstream ss;
+						ss << __PRETTY_FUNCTION__ << ", error " << "error, already have field: " << keyVal.first << " for meta field: " << metaField <<", error in line: " << "\n";
+						ss << line << "\n";
+						throw std::runtime_error{ss.str()};
+					}
+					currentMeta.addMeta(keyVal.first, keyVal.second);
+				}
+				if(!currentMeta.containsMeta("ID")) {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << "all metafields should have at least ID field, error for meta: " << metaField << ", error on line: " << "\n";
+					ss << line << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+				auto checkForRequiredField = [&line,&currentMeta](const VecStr & requiredFields, const std::string & metafield, const std::string & funcName) {
+					VecStr missingFields;
+					for(const auto & f : requiredFields) {
+						if(!currentMeta.containsMeta(f)) {
+							missingFields.emplace_back(f);
+						}
+					}
+					if(!missingFields.empty()) {
+						std::stringstream ss;
+						ss << funcName << ", error " << "error in processing metafield " << metafield << "was missing the following required fields:" << njh::conToStr(missingFields, ",") << ", only found the following: " << njh::conToStr(njh::getVecOfMapKeys(currentMeta.meta_), ",")  << " error for line:"<< "\n";
+						ss << line << "\n";
+						throw std::runtime_error{ss.str()};
+					}
+				};
+
+				if(metaField == "INFO") {
+					VecStr requiredMetaFields{"ID", "Number", "Type", "Description"};
+					checkForRequiredField(requiredMetaFields, metaField, __PRETTY_FUNCTION__);
+					InfoEntry info_entry(currentMeta.getMeta("ID"), currentMeta.getMeta("Number"), currentMeta.getMeta("Type"), currentMeta.getMeta("Description"));
+					if(currentMeta.containsMeta("Source")) {
+						info_entry.source_ = currentMeta.getMeta("Source");
+					}
+					if(currentMeta.containsMeta("Version")) {
+						info_entry.version_ = currentMeta.getMeta("Version");
+					}
+					if(njh::in(info_entry.id_, ret.infoEntries_)) {
+						std::stringstream ss;
+						ss << __PRETTY_FUNCTION__ << ", error " << " already have entry on INFO: " << info_entry.id_ << "\n";
+						throw std::runtime_error{ss.str()};
+					}
+					ret.infoEntries_.emplace(info_entry.id_, info_entry);
+				} else if (metaField == "FILTER") {
+					VecStr requiredMetaFields{"ID", "Description"};
+					checkForRequiredField(requiredMetaFields, metaField, __PRETTY_FUNCTION__);
+					ret.filterEntries_.emplace_back(currentMeta.getMeta("ID"), currentMeta.getMeta("Description"));
+				} else if (metaField == "FORMAT") {
+					VecStr requiredMetaFields{"ID", "Number", "Type", "Description"};
+					checkForRequiredField(requiredMetaFields, metaField, __PRETTY_FUNCTION__);
+					FormatEntry format_entry(currentMeta.getMeta("ID"), currentMeta.getMeta("Number"), currentMeta.getMeta("Type"), currentMeta.getMeta("Description"));
+					if(njh::in(format_entry.id_, ret.formatEntries_)) {
+						std::stringstream ss;
+						ss << __PRETTY_FUNCTION__ << ", error " << " already have entry on FORMAT: " << format_entry.id_ << "\n";
+						throw std::runtime_error{ss.str()};
+					}
+					ret.formatEntries_.emplace(format_entry.id_, format_entry);
+				} else if (metaField == "contig") {
+					VecStr requiredMetaFields{"ID", "length"};
+					checkForRequiredField(requiredMetaFields, metaField, __PRETTY_FUNCTION__);
+					ContigEntry contig_entry(currentMeta.getMeta("ID"), currentMeta.getMeta<uint32_t>("length"));
+					if(currentMeta.containsMeta("assembly")) {
+						contig_entry.assembly_ = currentMeta.getMeta("assembly");
+					}
+					if(currentMeta.containsMeta("md5")) {
+						contig_entry.md5_ = currentMeta.getMeta("md5");
+					}
+					if(currentMeta.containsMeta("species")) {
+						contig_entry.species_ = currentMeta.getMeta("species");
+					}
+					VecStr knownFields{"ID", "length", "assembly", "md5", "species"};
+					for(const auto & otherMetas : currentMeta.meta_) {
+						if(!njh::in(otherMetas.first, knownFields)) {
+							if(njh::in(otherMetas.first, contig_entry.otherKeysValues_)) {
+								std::stringstream ss;
+								ss << __PRETTY_FUNCTION__ << ", error " << "already have meta for contig meta field, " << otherMetas.first << ", error on line:" << "\n";
+								ss << line << "\n";
+								throw std::runtime_error{ss.str()};
+							}
+							contig_entry.otherKeysValues_[otherMetas.first] = otherMetas.second;
+						}
+					}
+					if(njh::in(contig_entry.id_, ret.contigEntries_)) {
+						std::stringstream ss;
+						ss << __PRETTY_FUNCTION__ << ", error " << " already have entry on contig: " << contig_entry.id_ << "\n";
+						throw std::runtime_error{ss.str()};
+					}
+					ret.contigEntries_.emplace(contig_entry.id_, contig_entry);
+				} else {
+					ret.otherHeaderMetaFields_.emplace(metaField, currentMeta);
+				}
+			}
+		}
+	}
+
+
+	return ret;
+}
 
 
 
 
 VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 	VCFOutput ret;
-	ret.infoEntries_.emplace_back(
-		"DP", "1", "Integer", "Total Allele Depth, sum of AC with rest of depth being ref"
+	ret.headerNonSampleFields_ = VecStr{"#CHROM", "POS","ID","REF","ALT","QUAL","FILTER","INFO"};
+	ret.infoEntries_.emplace("AN",VCFOutput::InfoEntry(
+		"AN", "1", "Integer", "Total Allele Depth, sum of AC with rest of depth being ref")
 	);
-	ret.infoEntries_.emplace_back(
+	ret.infoEntries_.emplace("NS",VCFOutput::InfoEntry(
 		"NS", "1", "Integer", "Number of Samples With Data"
-	);
-	ret.infoEntries_.emplace_back(
+	));
+	ret.infoEntries_.emplace("AC",VCFOutput::InfoEntry(
 		"AC", "A", "Integer", "Allele Count, number of microhaplotypes with variant"
-	);
-	ret.infoEntries_.emplace_back(
-		"AF", "A", "Float", "Allele Frequency, calulated AC/DP"
-	);
+	));
+	ret.infoEntries_.emplace("AF",VCFOutput::InfoEntry(
+		"AF", "A", "Float", "Allele Frequency, calulated AC/AN"
+	));
 	//vcfOut << "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Read Depth for for the ref and alt alleles in the order listed, a count of 0 means not detected\">" << std::endl;
 	//"FORMAT"
 	//std::string format = "AD";
@@ -381,7 +1049,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 			currentRecord.alts_ = alts;
 			currentRecord.qual_ = 40;
 			currentRecord.filter_ = "PASS";
-			currentRecord.info_.addMeta("DP", depthPerPosition.at(pos) );
+			currentRecord.info_.addMeta("AN", depthPerPosition.at(pos) );
 			currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
 			currentRecord.info_.addMeta("AC", njh::conToStr(altsCounts, ",") );
 			currentRecord.info_.addMeta("AF", njh::conToStr(altsFreqs, ",") );
@@ -398,7 +1066,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 				currentRecord.alts_ = VecStr{std::string(1, getBaseForGenomicRegion(pos))};
 				currentRecord.qual_ = 40;
 				currentRecord.filter_ = "PASS";
-				currentRecord.info_.addMeta("DP", depthPerPosition.at(pos) );
+				currentRecord.info_.addMeta("AN", depthPerPosition.at(pos) );
 				currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
 				currentRecord.info_.addMeta("AC", d.second );
 				currentRecord.info_.addMeta("AF", d.second/static_cast<double>(depthPerPosition.at(pos)) );
@@ -447,7 +1115,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) c
 // 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //
 // 	vcfOut << "##fileformat=VCFv4.0" << std::endl;
-// 	vcfOut << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Allele Depth, sum of AC with rest of depth being ref\">" << std::endl;
+// 	vcfOut << "##INFO=<ID=AN,Number=1,Type=Integer,Description=\"Total Allele Depth, sum of AC with rest of depth being ref\">" << std::endl;
 // 	vcfOut << "##INFO=<ID=NS,Number=1,Type=Integer,Description=\"Number of Samples With Data\">" << std::endl;
 // 	vcfOut << "##INFO=<ID=AF,Number=A,Type=Float,Description=\"Allele Frequency\">" << std::endl;
 // 	vcfOut << "##INFO=<ID=AC,Number=A,Type=Integer,Description=\"Allele Count\">" << std::endl;
@@ -503,7 +1171,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) c
 // 			vcfOut << njh::conToStr(alts, ",")
 // 			<< "\t40\tPASS\t";
 // 			vcfOut
-// 					<< "DP=" << depthPerPosition.at(pos) << ";"
+// 					<< "AN=" << depthPerPosition.at(pos) << ";"
 // 					<< "NS=" << samplesPerPosition.at(pos).size() << ";"
 // 					<< "AC=" << njh::conToStr(altsCounts, ",") << ";"
 // 					<< "AF=" << njh::conToStr(altsFreqs, ",")
@@ -522,7 +1190,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) c
 // 				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 // 				vcfOut << "40\tPASS\t";
 // 				vcfOut
-// 						<< "DP=" << depthPerPosition.at(pos) << ";"
+// 						<< "AN=" << depthPerPosition.at(pos) << ";"
 // 						<< "NS=" << samplesPerPosition.at(pos).size() << ";"
 // 						<< "AC=" << d.second << ";"
 // 						<< "AF=" << d.second/static_cast<double>(depthPerPosition.at(pos))
@@ -588,9 +1256,9 @@ void TranslatorByAlignment::VariantsInfo::writeSNPTable(const OutOptions &snpTab
 	njh::sort(positions);
 	for(const auto & pos : positions){
 		if (njh::in(pos, insertionsFinalForVCF) || njh::in(pos, snpsFinal)) {
-			std::vector<std::string> alts;
-			std::vector<uint32_t> altsCounts;
-			std::vector<double> altsFreqs;
+			// std::vector<std::string> alts;
+			// std::vector<uint32_t> altsCounts;
+			// std::vector<double> altsFreqs;
 
 
 			if(njh::in(pos, snpsFinal)){
@@ -605,9 +1273,9 @@ void TranslatorByAlignment::VariantsInfo::writeSNPTable(const OutOptions &snpTab
 							<< "\t" << depthPerPosition.at(pos)
 							<< "\t" << samplesPerPosition.at(pos).size() << std::endl;
 					snpCount+= b.second;
-					alts.emplace_back(std::string(1, b.first));
-					altsCounts.emplace_back(b.second);
-					altsFreqs.emplace_back(b.second/static_cast<double>(depthPerPosition.at(pos)));
+					// alts.emplace_back(std::string(1, b.first));
+					// altsCounts.emplace_back(b.second);
+					// altsFreqs.emplace_back(b.second/static_cast<double>(depthPerPosition.at(pos)));
 				}
 				snpTabOut << region_.chrom_
 						<< "\t" << pos
@@ -807,11 +1475,11 @@ void TranslatorByAlignment::VariantsInfo::addVariantInfo(
 		const comparison & comp,
 		uint32_t offSetStart
 		){
-	uint32_t queryAlnStart = alignedQuerySeq.find_first_not_of('-');
-	uint32_t queryAlnEnd = alignedQuerySeq.find_last_not_of('-');
+	const uint32_t queryAlnStart = alignedQuerySeq.find_first_not_of('-');
+	const uint32_t queryAlnEnd = alignedQuerySeq.find_last_not_of('-');
 	for(const auto seqPos : iter::range(queryAlnStart, queryAlnEnd + 1)){
 		if('-' != alignedRefSeq[seqPos]){ //skip over insertions
-			uint32_t seqChromPosition = getRealPosForAlnPos(alignedRefSeq, seqPos) + offSetStart;
+			const uint32_t seqChromPosition = getRealPosForAlnPos(alignedRefSeq, seqPos) + offSetStart;
 			allBases[seqChromPosition][alignedQuerySeq[seqPos]] += querySeqCount;
 			samplesPerPosition[seqChromPosition].insert(samples.begin(), samples.end());
 		}
@@ -848,7 +1516,7 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 		auto genePosInfoByGDna = currentTranscriptInfo->getInfosByGDNAPos();
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		// bool endsAtStopCodon = false;
-		uint32_t transStart = 0;
+
 		seqInfo balnSeq(realigned.querySeq_.name_);
 		std::vector<uint32_t> codons;
 		std::vector<GFFCore> cDNAIntersectedWith;
@@ -866,6 +1534,7 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 		if(cDNAIntersectedWith.empty()){
 			continue;
 		} else {
+			uint32_t transStart = 0;
 			if (cDNAIntersectedWith.size() == 1
 					&& realigned.gRegion_.start_ >= cDNAIntersectedWith.front().start_ - 1
 					&& realigned.gRegion_.end_ <= cDNAIntersectedWith.front().end_) {
@@ -1209,7 +1878,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 			VecStr snpTyped;
 			std::string currentType = aln.gRegion_.chrom_;
 			for (const auto snpPos: snpPositions) {
-				auto snpPosRel = snpPos - aln.gRegion_.start_;
+				const auto snpPosRel = snpPos - aln.gRegion_.start_;
 				if (snpPos >= aln.gRegion_.start_ && snpPos < aln.gRegion_.end_) {
 //					aln.alnRefSeq_.outPutSeqAnsi(std::cout);
 //					aln.alnQuerySeq_.outPutSeqAnsi(std::cout);
@@ -1397,7 +2066,7 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutAATypedInfo(con
 
 void TranslatorByAlignment::TranslatorByAlignmentResult::writeOutTranslatedIndvVars(const OutOptions & outOpts, const std::unordered_map<std::string, std::set<uint32_t>> & knownAminoAcidPositions1Based) const {
 	OutputStream individualVariantInfoOut(outOpts);
-	individualVariantInfoOut << njh::conToStr(VecStr{"chrom", "start", "end", "queryName", "type", "refSeq", "querySeq", "refCodonSeq", "queryCodonSeq", "knownAAChange", "variantTotal", "genomicID", "variantInPopulation"}, "\t") << std::endl;
+	individualVariantInfoOut << njh::conToStr(VecStr{"chrom", "start", "end", "queryName", "type", "refAA", "queryAA", "refCodonSeq", "queryCodonSeq", "knownAAChange", "variantTotal", "genomicID", "variantInPopulation"}, "\t") << std::endl;
 	auto seqNames = njh::getVecOfMapKeys(translations_);
 	njh::sort(seqNames);
 	std::unordered_map<std::string, std::set<uint32_t>> knownMutationsLocationsZeroBased;
@@ -1663,14 +2332,16 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		// BioCmdsUtils::checkRunOutThrow(bowtie2RunOutput, __PRETTY_FUNCTION__);
 	}
 
-	auto gprefix = bfs::path(pars_.lzPars_.genomeFnp).replace_extension("");
-	auto twoBitFnp = gprefix.string() + ".2bit";
 
-	TwoBit::TwoBitFile tReader(twoBitFnp);
 
-	auto uniqueSeqInOpts = SeqIOOptions::genFastaIn(seqInputFnp);
 
 	{
+		auto gprefix = bfs::path(pars_.lzPars_.genomeFnp).replace_extension("");
+		auto twoBitFnp = gprefix.string() + ".2bit";
+
+		TwoBit::TwoBitFile tReader(twoBitFnp);
+
+		auto uniqueSeqInOpts = SeqIOOptions::genFastaIn(seqInputFnp);
 
 		uniqueSeqInOpts.out_.outFilename_ = njh::files::make_path(pars_.workingDirtory_, "aligned_inputSeqs.sorted.bam");
 		uniqueSeqInOpts.out_.outExtention_ = ".sorted.bam";
@@ -1835,23 +2506,20 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 					const auto & currentGeneInfo = njh::mapAt(ret.transcriptInfosForGene_, g);
 					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-					std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> translations;
+
 					try {
+						std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> translations;
 //            std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
 						translations = translateBasedOnAlignment(results, *currentGene, currentGeneInfo, alignObj);
 						//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //            std::cout << "translations.size(): " << translations.size() << std::endl;
 						for(const auto & trans : translations){
 							auto queryTransStart = trans.second.queryAlnTranslation_.seq_.find_first_not_of('-');
-							if('-' == trans.second.refAlnTranslation_.seq_[queryTransStart]){
+							if('-' == trans.second.refAlnTranslation_.seq_[queryTransStart] || countOccurences(trans.second.queryAlnTranslation_.seq_, "*") > pars_.allowableStopCodons_){
 								//probably should do a more intensive check here fo
 								ret.filteredOffTranslations_[bAln.Name].emplace(trans);
 //                std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
-							}else if(countOccurences(trans.second.queryAlnTranslation_.seq_, "*") > pars_.allowableStopCodons_){
-//                trans.second.queryAlnTranslation_.outPutSeq(std::cout);
-								ret.filteredOffTranslations_[bAln.Name].emplace(trans);
-//                std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
-							}else{
+							} else{
 								ret.translations_[bAln.Name].emplace(trans);
 //                std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
 							}
@@ -1864,7 +2532,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 						}
 					}
 				}
-			}else if(!bAln.IsMapped()){
+			} else if(!bAln.IsMapped()){
 				ret.seqsUnableToBeMapped_.emplace_back(names[njh::StrToNumConverter::stoToNum<uint32_t>(bAln.Name)]);
 			}
 		}
@@ -2014,7 +2682,7 @@ std::unordered_map<std::string, std::set<uint32_t>> TranslatorByAlignment::readI
 	if(knownAminoAcidChanges.nRow() > 0){
 		for(const auto & row : knownAminoAcidChanges){
 			if(std::all_of(row.begin(), row.end(), [](const std::string & element){
-				return "" ==element;
+				return element.empty();
 			})){
 				continue;
 			}
@@ -2025,5 +2693,244 @@ std::unordered_map<std::string, std::set<uint32_t>> TranslatorByAlignment::readI
 }
 
 
+std::vector<Bed6RecordCore> TranslatorByAlignment::getGenomicLocationsForAminoAcidPositions(const GetGenomicLocationsForAminoAcidPositionsPars & pars) {
+
+	std::vector<Bed6RecordCore> ret;
+	OutputStream out(pars.outOpts);
+	AminoAcidPositionInfo aaInfos(pars.proteinMutantTypingFnp, pars.zeroBased);
+
+	auto genes = GeneFromGffs::getGenesFromGffForGuessedTranscriptOrGeneIds(pars.gffFnp, aaInfos.ids_);
+
+	TwoBit::TwoBitFile tReader(pars.twoBitFnp);
+
+	if(aaInfos.byRange()){
+
+		for(const auto & row : aaInfos.infoTab_){
+			std::string idColName = "id";
+			if(njh::in(std::string("transcriptid"), aaInfos.infoTab_.columnNames_)){
+				idColName = "transcriptid";
+			}
+			bool byTranscript = false;
+			auto idName = row[aaInfos.infoTab_.getColPos(idColName)];
+			std::string geneID = idName;
+			for(const auto & gene : genes){
+				for(const auto & mRNA : gene.second->mRNAs_){
+					if(mRNA->getIDAttr() == idName){
+						byTranscript = true;
+						geneID = gene.first;
+						break;
+					}
+				}
+			}
+
+			auto gsInfos = njh::mapAt(genes, geneID)->generateGeneSeqInfo(tReader, false);
+			MetaDataInName metaForCollapse;
+			auto aaStart =
+							aaInfos.zeroBased_ ?
+							njh::StrToNumConverter::stoToNum<uint32_t>(
+											row[aaInfos.infoTab_.getColPos("aastart")]) :
+							njh::StrToNumConverter::stoToNum<uint32_t>(
+											row[aaInfos.infoTab_.getColPos("aastart")]) - 1;
+			auto aastop =njh::StrToNumConverter::stoToNum<uint32_t>(
+											row[aaInfos.infoTab_.getColPos("aastop")]);
+			// auto aastop =
+			// 				aaInfos.zeroBased_ ?
+			// 				njh::StrToNumConverter::stoToNum<uint32_t>(
+			// 								row[aaInfos.infoTab_.getColPos("aastop")]) :
+			// 				njh::StrToNumConverter::stoToNum<uint32_t>(
+			// 								row[aaInfos.infoTab_.getColPos("aastop")]);
+
+			std::vector<uint32_t> aaPositions(aastop - aaStart);
+			njh::iota(aaPositions, aaStart);
+
+			std::unordered_map<std::string, VecStr> combinedMeta;
+			std::unordered_map<std::string, std::unordered_set<std::string>> combinedMetaCollapsed;
+			for(const auto & pos : aaPositions){
+				for(const auto & metaFields : aaInfos.metaDataForAAPos_[idName][pos].meta_){
+					combinedMetaCollapsed[metaFields.first].emplace(metaFields.second);
+					combinedMeta[metaFields.first].emplace_back(njh::pasteAsStr(pos, "-", metaFields.second));
+				}
+			}
+			for(const auto & field : combinedMeta){
+				if(combinedMetaCollapsed[field.first].size() == 1){
+					std::string metaField = *combinedMetaCollapsed[field.first].begin();
+					metaForCollapse.addMeta(field.first,metaField);
+				}else{
+					metaForCollapse.addMeta(field.first, njh::conToStr(field.second, ","));
+				}
+			}
+			metaForCollapse.addMeta("GeneID", geneID);
+			if(byTranscript){
+				auto gsInfo = njh::mapAt(gsInfos, idName);
+				metaForCollapse.addMeta("transcript", idName);
+				std::vector<uint32_t> posVec(aaPositions.begin(),
+																		 aaPositions.end());
+				auto minAAPos = vectorMinimum(posVec);
+				auto maxAAPos = vectorMaximum(posVec);
+				auto posBed = gsInfo->genBedFromAAPositions(minAAPos, maxAAPos + 1);
+				posBed.extraFields_.emplace_back(metaForCollapse.createMetaName());
+				if (pars.zeroBased) {
+					posBed.name_ = njh::pasteAsStr(idName, "-", "[AA", minAAPos,
+																				 "-", maxAAPos + 1, ")");
+				} else {
+					posBed.name_ = njh::pasteAsStr(idName, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
+				}
+				out << posBed.toDelimStrWithExtra() << std::endl;
+				ret.emplace_back(posBed);
+			}else{
+				for(const auto & gsInfo : gsInfos){
+					std::vector<uint32_t> posVec(aaPositions.begin(),
+																			 aaPositions.end());
+					auto minAAPos = vectorMinimum(posVec);
+					auto maxAAPos = vectorMaximum(posVec);
+					metaForCollapse.addMeta("transcript", gsInfo.first);
+					auto posBed = gsInfo.second->genBedFromAAPositions(minAAPos, maxAAPos + 1);
+					posBed.extraFields_.emplace_back(metaForCollapse.createMetaName());
+
+					if (pars.zeroBased) {
+						posBed.name_ = njh::pasteAsStr(gsInfo.first, "-", "[AA", minAAPos,
+																					 "-", maxAAPos + 1, ")");
+					} else {
+						posBed.name_ = njh::pasteAsStr(gsInfo.first, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
+					}
+					out << posBed.toDelimStrWithExtra() << std::endl;
+					ret.emplace_back(posBed);
+				}
+			}
+		}
+
+		for (const auto & positions : aaInfos.aminoPositionsPerId_) {
+			// bool byTranscript = false;
+			// std::string geneID = positions.first;
+			for(const auto & gene : genes){
+				for(const auto & mRNA : gene.second->mRNAs_){
+					if(mRNA->getIDAttr() == positions.first){
+						// byTranscript = true;
+						// geneID = gene.first;
+						break;
+					}
+				}
+			}
+		}
+	} else {
+		for (const auto & positions : aaInfos.aminoPositionsPerId_) {
+			bool byTranscript = false;
+			std::string geneID = positions.first;
+			for(const auto & gene : genes){
+				for(const auto & mRNA : gene.second->mRNAs_){
+					if(mRNA->getIDAttr() == positions.first){
+						byTranscript = true;
+						geneID = gene.first;
+						break;
+					}
+				}
+			}
+
+			auto gsInfos = njh::mapAt(genes, geneID)->generateGeneSeqInfo(tReader, false);
+			MetaDataInName metaForCollapse;
+			if (pars.collapsePerId && positions.second.size() > 1) {
+				std::unordered_map<std::string, VecStr> combinedMeta;
+				std::unordered_map<std::string, std::unordered_set<std::string>> combinedMetaCollapsed;
+				for(const auto & pos : positions.second){
+					for(const auto & metaFields : aaInfos.metaDataForAAPos_[positions.first][pos].meta_){
+						combinedMetaCollapsed[metaFields.first].emplace(metaFields.second);
+						combinedMeta[metaFields.first].emplace_back(njh::pasteAsStr(pos, "-", metaFields.second));
+					}
+				}
+				for(const auto & field : combinedMeta){
+					if(combinedMetaCollapsed[field.first].size() == 1){
+						std::string metaField = *combinedMetaCollapsed[field.first].begin();
+						metaForCollapse.addMeta(field.first,metaField);
+					}else{
+						metaForCollapse.addMeta(field.first, njh::conToStr(field.second, ","));
+					}
+				}
+				metaForCollapse.addMeta("GeneID", geneID);
+			}
+			if(byTranscript){
+				auto gsInfo = njh::mapAt(gsInfos, positions.first);
+				if (pars.collapsePerId && positions.second.size() > 1) {
+					metaForCollapse.addMeta("transcript", positions.first);
+					std::vector<uint32_t> posVec(positions.second.begin(),
+																			 positions.second.end());
+					auto minAAPos = vectorMinimum(posVec);
+					auto maxAAPos = vectorMaximum(posVec);
+					auto posBed = gsInfo->genBedFromAAPositions(minAAPos, maxAAPos + 1);
+					posBed.extraFields_.emplace_back(metaForCollapse.createMetaName());
+					if (pars.zeroBased) {
+						posBed.name_ = njh::pasteAsStr(positions.first, "-", "[AA", minAAPos,
+																					 "-", maxAAPos + 1, ")");
+					} else {
+						posBed.name_ = njh::pasteAsStr(positions.first, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
+					}
+					out << posBed.toDelimStrWithExtra() << std::endl;
+					ret.emplace_back(posBed);
+				} else {
+					for (const auto & pos : positions.second) {
+						MetaDataInName meta = aaInfos.metaDataForAAPos_[positions.first][pos];
+						meta.addMeta("transcript", positions.first);
+						meta.addMeta("GeneID", geneID);
+
+						auto posBed = gsInfo->genBedFromAAPositions(pos, pos + 1);
+						posBed.extraFields_.emplace_back(meta.createMetaName());
+						std::string add;
+						if(!pars.addMetaField.empty() && meta.containsMeta(pars.addMetaField)){
+							add = "-" + meta.getMeta(pars.addMetaField);
+						}
+						if (pars.zeroBased) {
+							posBed.name_ = njh::pasteAsStr(positions.first, add, "-", "AA", pos);
+						} else {
+							posBed.name_ = njh::pasteAsStr(positions.first, add, "-", "AA", pos + 1);
+						}
+						out << posBed.toDelimStrWithExtra() << std::endl;
+						ret.emplace_back(posBed);
+					}
+				}
+			}else{
+				for(const auto & gsInfo : gsInfos){
+					if (pars.collapsePerId && positions.second.size() > 1) {
+						std::vector<uint32_t> posVec(positions.second.begin(),
+																				 positions.second.end());
+						auto minAAPos = vectorMinimum(posVec);
+						auto maxAAPos = vectorMaximum(posVec);
+						metaForCollapse.addMeta("transcript", gsInfo.first);
+						auto posBed = gsInfo.second->genBedFromAAPositions(minAAPos, maxAAPos + 1);
+						posBed.extraFields_.emplace_back(metaForCollapse.createMetaName());
+
+						if (pars.zeroBased) {
+							posBed.name_ = njh::pasteAsStr(gsInfo.first, "-", "[AA", minAAPos,
+																						 "-", maxAAPos + 1, ")");
+						} else {
+							posBed.name_ = njh::pasteAsStr(gsInfo.first, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
+						}
+						out << posBed.toDelimStrWithExtra() << std::endl;
+						ret.emplace_back(posBed);
+					} else {
+						for (const auto & pos : positions.second) {
+							MetaDataInName meta = aaInfos.metaDataForAAPos_[positions.first][pos];
+							meta.addMeta("transcript", gsInfo.first);
+							meta.addMeta("GeneID", geneID);
+
+							auto posBed = gsInfo.second->genBedFromAAPositions(pos, pos + 1);
+							posBed.extraFields_.emplace_back(meta.createMetaName());
+							std::string add;
+							if(!pars.addMetaField.empty() && meta.containsMeta(pars.addMetaField)){
+								add = "-" + meta.getMeta(pars.addMetaField);
+							}
+							if (pars.zeroBased) {
+								posBed.name_ = njh::pasteAsStr(gsInfo.first, add, "-", "AA", pos);
+							} else {
+								posBed.name_ = njh::pasteAsStr(gsInfo.first, add, "-", "AA", pos + 1);
+							}
+							out << posBed.toDelimStrWithExtra() << std::endl;
+							ret.emplace_back(posBed);
+						}
+					}
+				}
+			}
+		}
+	}
+	return ret;
+}
 
 }  // namespace njhseq

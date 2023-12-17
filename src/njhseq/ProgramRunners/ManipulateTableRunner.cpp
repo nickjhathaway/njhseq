@@ -815,6 +815,7 @@ int ManipulateTableRunner::rBind(
 
 
 	if(!fill){
+
 		njh::files::bfs::path firstFileFnp;
 		for (const auto &file : allFiles) {
 			if (njh::files::bfs::is_directory(file.first)) {
@@ -832,12 +833,14 @@ int ManipulateTableRunner::rBind(
 
 		TableReader firstTable(TableIOOpts(InOptions(firstFileFnp), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_));
 		OutputStream out(setUp.ioOptions_.out_);
-		VecStr row;
-		if(setUp.ioOptions_.hasHeader_){
-			out << njh::conToStr(firstTable.header_.columnNames_, setUp.ioOptions_.outDelim_) << '\n';
-		}
-		while(firstTable.getNextRow(row)){
-			out << njh::conToStr(row, setUp.ioOptions_.outDelim_) << '\n';
+		{
+			VecStr row;
+			if(setUp.ioOptions_.hasHeader_){
+				out << njh::conToStr(firstTable.header_.columnNames_, setUp.ioOptions_.outDelim_) << '\n';
+			}
+			while(firstTable.getNextRow(row)){
+				out << njh::conToStr(row, setUp.ioOptions_.outDelim_) << '\n';
+			}
 		}
 		for (const auto &file : allFiles) {
 			if (verbose) {

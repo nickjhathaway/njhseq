@@ -219,25 +219,25 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				{
 					//writing vcfs
 					auto vcfOutputForTrans = varPerTrans.second.createVCFOutputFixed();
-					vcfOutputForTrans.contigEntries_.emplace_back(varPerTrans.first, translatedRes.translationInfoForTranscirpt_[varPerTrans.first]->protein_.seq_.length());
+					vcfOutputForTrans.contigEntries_.emplace(varPerTrans.first, VCFOutput::ContigEntry(varPerTrans.first, translatedRes.translationInfoForTranscirpt_[varPerTrans.first]->protein_.seq_.length()));
 					{
 						//auto vcfOutputForTrans = varPerTrans.second.writeVCF(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf")));
-						OutputStream vcfOut(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf")));
-						vcfOutputForTrans.writeOutFixedOnly(vcfOut);
+						// OutputStream vcfOut(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf")));
+						// vcfOutputForTrans.writeOutFixedOnly(vcfOut);
 					}
-
-					vcfOutputForTrans.formatEntries_.emplace_back(
-						"AT", "1", "Integer",
+					vcfOutputForTrans.headerNonSampleFields_.emplace_back("FORMAT");
+					vcfOutputForTrans.formatEntries_.emplace("DP", VCFOutput::FormatEntry(
+						"DP", "1", "Integer",
 						"Total Read Depth for this sample, a count of 0 means no coverage in this sample"
-					);
-					vcfOutputForTrans.formatEntries_.emplace_back(
+					));
+					vcfOutputForTrans.formatEntries_.emplace("AD", VCFOutput::FormatEntry(
 						"AD", "R", "Integer",
 						"Read Depth for the ref and alt alleles in the order listed, a count of 0 means not detected"
-					);
-					vcfOutputForTrans.formatEntries_.emplace_back(
+					));
+					vcfOutputForTrans.formatEntries_.emplace("AF", VCFOutput::FormatEntry(
 						"AF", "R", "Float",
 						"Read Frequncy for the ref and alt alleles in the order listed, a freq of 0 means not detected"
-					);
+					));
 					std::unordered_set<std::string> chromPositions;
 					for(const auto & rec : vcfOutputForTrans.records_) {
 						chromPositions.emplace(njh::pasteAsStr(rec.chrom_, "-", rec.pos_));
@@ -296,7 +296,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						// std::cout << std::endl;
 					}
 
-
+					//add in sample names
+					vcfOutputForTrans.samples_ = VecStr(allSamples.begin(), allSamples.end());
 					for (auto&rec: vcfOutputForTrans.records_) {
 						for (const auto&sample: allSamples) {
 							std::vector<uint32_t> dps(1 + rec.alts_.size(), 0);
@@ -317,8 +318,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 								if(njh::in(haps.first, translatedRes.translations_)  &&
 								  njh::in(varPerTrans.first, translatedRes.translations_.at(haps.first)) &&
 									translatedRes.translations_[haps.first].at(varPerTrans.first).genBedRec().chrom_ == rec.chrom_ &&
-									rec.pos_ + 1 >= translatedRes.translations_[haps.first].at(varPerTrans.first).genBedRec().chromStart_ &&
-									rec.pos_ + 1 < translatedRes.translations_[haps.first].at(varPerTrans.first).genBedRec().chromEnd_) {
+									rec.pos_ - 1 >= translatedRes.translations_[haps.first].at(varPerTrans.first).genBedRec().chromStart_ &&
+									rec.pos_ - 1 < translatedRes.translations_[haps.first].at(varPerTrans.first).genBedRec().chromEnd_) {
 									coveredByHap = true;
 								}
 								if(!foundAlt && coveredByHap) {
@@ -330,16 +331,16 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 							std::vector<double> dpsFreq;
 							dpsFreq.reserve(dps.size());
 							for (const auto dp: dps) {
-								dpsFreq.emplace_back(dp / dpsSum);
+								dpsFreq.emplace_back(dpsSum > 0 ? dp / dpsSum : 0.0);
 							}
-							rec.sampleFormatInfos_[sample].addMeta("AT", dpsSum);
+							rec.sampleFormatInfos_[sample].addMeta("DP", dpsSum);
 							rec.sampleFormatInfos_[sample].addMeta("AD", njh::conToStr(dps, ","));
 							rec.sampleFormatInfos_[sample].addMeta("AF", njh::conToStr(dpsFreq, ","));
-
 						}
 					}
 					{
-						OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-proteinWithSampleInfo.vcf")));
+						// OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-proteinWithSampleInfo.vcf")));
+						OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf")));
 						vcfOutputForTrans.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 					}
 				}
@@ -393,24 +394,26 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 		{
 			//writing vcfs
 			auto vcfOutputForChrom = varPerChrom.second.createVCFOutputFixed();
-			vcfOutputForChrom.contigEntries_.emplace_back(varPerChrom.first, contigLengths[varPerChrom.first]);
+			vcfOutputForChrom.contigEntries_.emplace(varPerChrom.first, VCFOutput::ContigEntry(varPerChrom.first, contigLengths[varPerChrom.first]));
 			{
 				//auto vcfOutputForChrom = varPerChrom.second.writeVCF(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf")) );
-				OutputStream vcfOut(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf")));
-				vcfOutputForChrom.writeOutFixedOnly(vcfOut);
+				// OutputStream vcfOut(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf")));
+				// vcfOutputForChrom.writeOutFixedOnly(vcfOut);
 			}
-			vcfOutputForChrom.formatEntries_.emplace_back(
-				"AT", "1", "Integer",
-				"Total Read Depth for this sample, a count of 0 means no coverage in this sample"
-			);
-			vcfOutputForChrom.formatEntries_.emplace_back(
-				"AD", "R", "Integer",
-				"Read Depth for the ref and alt alleles in the order listed, a count of 0 means not detected"
-			);
-			vcfOutputForChrom.formatEntries_.emplace_back(
-				"AF", "R", "Float",
-				"Read Frequncy for the ref and alt alleles in the order listed, a freq of 0 means not detected"
-			);
+			vcfOutputForChrom.headerNonSampleFields_.emplace_back("FORMAT");
+
+			vcfOutputForChrom.formatEntries_.emplace("DP", VCFOutput::FormatEntry(
+				                                         "DP", "1", "Integer",
+				                                         "Total Read Depth for this sample, a count of 0 means no coverage in this sample"
+			                                         ));
+			vcfOutputForChrom.formatEntries_.emplace("AD", VCFOutput::FormatEntry(
+				                                         "AD", "R", "Integer",
+				                                         "Read Depth for the ref and alt alleles in the order listed, a count of 0 means not detected"
+			                                         ));
+			vcfOutputForChrom.formatEntries_.emplace("AF", VCFOutput::FormatEntry(
+				                                         "AF", "R", "Float",
+				                                         "Read Frequncy for the ref and alt alleles in the order listed, a freq of 0 means not detected"
+			                                         ));
 			std::unordered_set<std::string> chromPositions;
 			for(const auto & rec : vcfOutputForChrom.records_) {
 				chromPositions.emplace(njh::pasteAsStr(rec.chrom_, "-", rec.pos_));
@@ -468,8 +471,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 					// std::cout << std::endl;
 				}
 			}
-
+			//add in sample names
+			vcfOutputForChrom.samples_ = VecStr(allSamples.begin(), allSamples.end());
 			for (auto&rec: vcfOutputForChrom.records_) {
+
 				for (const auto&sample: allSamples) {
 					std::vector<uint32_t> dps(1 + rec.alts_.size(), 0);
 					// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
@@ -489,7 +494,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						if(njh::in(haps.first, translatedRes.seqAlns_)) {
 							for(const auto & seqAln : njh::mapAt(translatedRes.seqAlns_, haps.first)) {
 								// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
-								if(seqAln.gRegion_.chrom_ == rec.chrom_ && rec.pos_ +1 >= seqAln.gRegion_.start_ && rec.pos_ + 1 < seqAln.gRegion_.end_) {
+								if(seqAln.gRegion_.chrom_ == rec.chrom_ && rec.pos_ - 1 >= seqAln.gRegion_.start_ && rec.pos_ - 1 < seqAln.gRegion_.end_) {
 									coveredByHap = true;
 									break;
 								}
@@ -505,16 +510,17 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 					std::vector<double> dpsFreq;
 					dpsFreq.reserve(dps.size());
 					for (const auto dp: dps) {
-						dpsFreq.emplace_back(dp / dpsSum);
+						dpsFreq.emplace_back(dpsSum > 0 ? dp / dpsSum : 0.0);
 					}
-					rec.sampleFormatInfos_[sample].addMeta("AT", dpsSum);
+					rec.sampleFormatInfos_[sample].addMeta("DP", dpsSum);
 					rec.sampleFormatInfos_[sample].addMeta("AD", njh::conToStr(dps, ","));
 					rec.sampleFormatInfos_[sample].addMeta("AF", njh::conToStr(dpsFreq, ","));
 
 				}
 			}
 			{
-				OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomicWithSampleInfo.vcf")));
+				// OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomicWithSampleInfo.vcf")));
+				OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf")));
 				vcfOutputForChrom.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 			}
 		}

@@ -123,6 +123,12 @@ public:
 
 	//sample names
 	static std::string getSampleNameFromSeqName(const std::string & name, const std::vector<std::string> & possibleSampleMetaFields=VecStr{"sample", "BiologicalSample"});
+
+	/**
+	 * \brief will determine lab isolates if the following meta fields requirements of having a sample field, field of IsFieldSample == true, field of site == LabIsolate
+	 * \param names input names of sequences with possible metadata in them
+	 * \return the names of possible lab isolates
+	 */
 	static std::set<std::string> getPossibleLabIsolateNames(const std::unordered_set<std::string> & names);
 
 	std::set<std::string> getAllSampleNames();
