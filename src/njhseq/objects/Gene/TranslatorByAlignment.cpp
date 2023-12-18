@@ -184,6 +184,32 @@ Json::Value VCFOutput::ContigEntry::toJson() const {
 	return ret;
 }
 
+GenomicRegion VCFOutput::VCFRecord::genRegion() const {
+	uint32_t start = pos_ - 1;
+	uint32_t end = pos_;
+	if (ref_.size() == 1 && !std::all_of(alts_.begin(), alts_.end(), [](const std::string& alt) {
+		return alt.size() == 1;
+	})) {
+		//insertion, will give the region right before and right after the insertion
+		end += 1;
+	} else if (ref_.size() > 1) {
+		//should only be deletions
+		start += 1; //increase start to go actual deleted base
+		end = start - 1 + ref_.size();
+	}
+	std::string uid = njh::pasteAsStr(chrom_, "-", start, "-", end);
+	if(id_ != ".") {
+		uid = id_;
+	}
+	GenomicRegion ret(uid,chrom_,start, end, false);
+	ret.meta_ = info_;
+	ret.meta_.addMeta("ref", ref_);
+	ret.meta_.addMeta("alts", njh::conToStr(alts_, ","));
+	ret.meta_.addMeta("qual", qual_);
+	ret.meta_.addMeta("filter", filter_);
+
+	return ret;
+}
 
 Json::Value VCFOutput::VCFRecord::toJson() const {
 	Json::Value ret;
@@ -321,13 +347,32 @@ void VCFOutput::writeOutHeaderFieldsOtherThanFormat(std::ostream & vcfOut) const
 }
 
 
-void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) const {
+void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut, const std::vector<GenomicRegion> & selectRegions) const {
 	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
 	writeOutHeaderFieldsOtherThanFormat(vcfOut);
 	//write out
 	//vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
 	vcfOut << njh::conToStr(getSubVector(headerNonSampleFields_,0, 8), "\t") << std::endl;
 	for(const auto & rec : records_) {
+		// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		if(!selectRegions.empty()) {
+			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			bool overlaps = false;
+			for(const auto & reg : selectRegions) {
+				if(reg.overlaps(rec.genRegion())) {
+					overlaps = true;
+					break;
+				}
+			}
+			// std::cout << "overlaps: " << njh::colorBool(overlaps) << std::endl;
+			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			if(!overlaps) {
+				// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				continue;
+			}
+			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		}
+		// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		vcfOut << rec.chrom_
 		<< "\t" << rec.pos_
 		<< "\t" << rec.id_
@@ -349,8 +394,7 @@ void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut) const {
 }
 
 
-
-void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
+void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vector<GenomicRegion>& selectRegions) const {
 	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
 	writeOutHeaderFieldsOtherThanFormat(vcfOut);
 	//write out formats
@@ -395,6 +439,7 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 			throw std::runtime_error{ss.str()};
 		}
 		for(const auto & rec : records_) {
+
 			auto currentSetOfSamples = njh::vecToSet(getVectorOfMapKeys(rec.sampleFormatInfos_));
 			if(firstSetOfSamples != currentSetOfSamples) {
 				std::vector<std::string> uniqueTo1;
@@ -426,6 +471,18 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 	}
 	if(!records_.empty()) {
 		for(const auto & rec : records_) {
+			if(!selectRegions.empty()) {
+				bool overlaps = false;
+				for(const auto & reg : selectRegions) {
+					if(reg.overlaps(rec.genRegion())) {
+						overlaps = true;
+						break;
+					}
+				}
+				if(!overlaps) {
+					continue;
+				}
+			}
 			vcfOut << rec.chrom_
 			<< "\t" << rec.pos_
 			<< "\t" << rec.id_
@@ -2716,9 +2773,10 @@ std::unordered_map<std::string, std::set<uint32_t>> TranslatorByAlignment::readI
 }
 
 
-std::vector<Bed6RecordCore> TranslatorByAlignment::getGenomicLocationsForAminoAcidPositions(const GetGenomicLocationsForAminoAcidPositionsPars & pars) {
+TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByAlignment::getGenomicLocationsForAminoAcidPositions(const GetGenomicLocationsForAminoAcidPositionsPars & pars) {
 
-	std::vector<Bed6RecordCore> ret;
+	GetGenomicLocationsForAminoAcidPositionsRet ret;
+
 	OutputStream out(pars.outOpts);
 	AminoAcidPositionInfo aaInfos(pars.proteinMutantTypingFnp, pars.zeroBased);
 
@@ -2727,7 +2785,6 @@ std::vector<Bed6RecordCore> TranslatorByAlignment::getGenomicLocationsForAminoAc
 	TwoBit::TwoBitFile tReader(pars.twoBitFnp);
 
 	if(aaInfos.byRange()){
-
 		for(const auto & row : aaInfos.infoTab_){
 			std::string idColName = "id";
 			if(njh::in(std::string("transcriptid"), aaInfos.infoTab_.columnNames_)){
@@ -2799,7 +2856,16 @@ std::vector<Bed6RecordCore> TranslatorByAlignment::getGenomicLocationsForAminoAc
 					posBed.name_ = njh::pasteAsStr(idName, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
 				}
 				out << posBed.toDelimStrWithExtra() << std::endl;
-				ret.emplace_back(posBed);
+				auto metaForCollapseForTranscript = metaForCollapse;
+				metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
+				metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);
+				metaForCollapseForTranscript.addMeta("chromEnd", posBed.chromEnd_);
+				metaForCollapseForTranscript.addMeta("genomicID", posBed.genUIDFromCoords());
+
+				Bed6RecordCore transcriptLoc(idName,minAAPos, maxAAPos +1,posBed.name_,maxAAPos + 1 - minAAPos, '+');
+				transcriptLoc.extraFields_.emplace_back(metaForCollapseForTranscript.createMetaName());
+				ret.transcriptLocs.emplace_back(transcriptLoc);
+				ret.genomicLocs.emplace_back(posBed);
 			}else{
 				for(const auto & gsInfo : gsInfos){
 					std::vector<uint32_t> posVec(aaPositions.begin(),
@@ -2817,7 +2883,17 @@ std::vector<Bed6RecordCore> TranslatorByAlignment::getGenomicLocationsForAminoAc
 						posBed.name_ = njh::pasteAsStr(gsInfo.first, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
 					}
 					out << posBed.toDelimStrWithExtra() << std::endl;
-					ret.emplace_back(posBed);
+
+					auto metaForCollapseForTranscript = metaForCollapse;
+					metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
+					metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);
+					metaForCollapseForTranscript.addMeta("chromEnd", posBed.chromEnd_);
+					metaForCollapseForTranscript.addMeta("genomicID", posBed.genUIDFromCoords());
+
+					Bed6RecordCore transcriptLoc(gsInfo.first,minAAPos, maxAAPos +1,posBed.name_,maxAAPos + 1 - minAAPos, '+');
+					transcriptLoc.extraFields_.emplace_back(metaForCollapseForTranscript.createMetaName());
+					ret.transcriptLocs.emplace_back(transcriptLoc);
+					ret.genomicLocs.emplace_back(posBed);
 				}
 			}
 		}
@@ -2887,7 +2963,17 @@ std::vector<Bed6RecordCore> TranslatorByAlignment::getGenomicLocationsForAminoAc
 						posBed.name_ = njh::pasteAsStr(positions.first, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
 					}
 					out << posBed.toDelimStrWithExtra() << std::endl;
-					ret.emplace_back(posBed);
+
+					auto metaForCollapseForTranscript = metaForCollapse;
+					metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
+					metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);
+					metaForCollapseForTranscript.addMeta("chromEnd", posBed.chromEnd_);
+					metaForCollapseForTranscript.addMeta("genomicID", posBed.genUIDFromCoords());
+
+					Bed6RecordCore transcriptLoc(positions.first,minAAPos, maxAAPos +1,posBed.name_,maxAAPos + 1 - minAAPos, '+');
+					transcriptLoc.extraFields_.emplace_back(metaForCollapseForTranscript.createMetaName());
+					ret.transcriptLocs.emplace_back(transcriptLoc);
+					ret.genomicLocs.emplace_back(posBed);
 				} else {
 					for (const auto & pos : positions.second) {
 						MetaDataInName meta = aaInfos.metaDataForAAPos_[positions.first][pos];
@@ -2906,7 +2992,17 @@ std::vector<Bed6RecordCore> TranslatorByAlignment::getGenomicLocationsForAminoAc
 							posBed.name_ = njh::pasteAsStr(positions.first, add, "-", "AA", pos + 1);
 						}
 						out << posBed.toDelimStrWithExtra() << std::endl;
-						ret.emplace_back(posBed);
+
+						auto metaForCollapseForTranscript = meta;
+						metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
+						metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);
+						metaForCollapseForTranscript.addMeta("chromEnd", posBed.chromEnd_);
+						metaForCollapseForTranscript.addMeta("genomicID", posBed.genUIDFromCoords());
+
+						Bed6RecordCore transcriptLoc(positions.first,pos, pos +1,posBed.name_,1, '+');
+						transcriptLoc.extraFields_.emplace_back(metaForCollapseForTranscript.createMetaName());
+						ret.transcriptLocs.emplace_back(transcriptLoc);
+						ret.genomicLocs.emplace_back(posBed);
 					}
 				}
 			}else{
@@ -2927,7 +3023,17 @@ std::vector<Bed6RecordCore> TranslatorByAlignment::getGenomicLocationsForAminoAc
 							posBed.name_ = njh::pasteAsStr(gsInfo.first, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
 						}
 						out << posBed.toDelimStrWithExtra() << std::endl;
-						ret.emplace_back(posBed);
+
+						auto metaForCollapseForTranscript = metaForCollapse;
+						metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
+						metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);
+						metaForCollapseForTranscript.addMeta("chromEnd", posBed.chromEnd_);
+						metaForCollapseForTranscript.addMeta("genomicID", posBed.genUIDFromCoords());
+
+						Bed6RecordCore transcriptLoc(gsInfo.first,minAAPos, maxAAPos +1,posBed.name_,maxAAPos + 1 - minAAPos, '+');
+						transcriptLoc.extraFields_.emplace_back(metaForCollapseForTranscript.createMetaName());
+						ret.transcriptLocs.emplace_back(transcriptLoc);
+						ret.genomicLocs.emplace_back(posBed);
 					} else {
 						for (const auto & pos : positions.second) {
 							MetaDataInName meta = aaInfos.metaDataForAAPos_[positions.first][pos];
@@ -2946,7 +3052,17 @@ std::vector<Bed6RecordCore> TranslatorByAlignment::getGenomicLocationsForAminoAc
 								posBed.name_ = njh::pasteAsStr(gsInfo.first, add, "-", "AA", pos + 1);
 							}
 							out << posBed.toDelimStrWithExtra() << std::endl;
-							ret.emplace_back(posBed);
+
+							auto metaForCollapseForTranscript = meta;
+							metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
+							metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);
+							metaForCollapseForTranscript.addMeta("chromEnd", posBed.chromEnd_);
+							metaForCollapseForTranscript.addMeta("genomicID", posBed.genUIDFromCoords());
+
+							Bed6RecordCore transcriptLoc(gsInfo.first,pos, pos +1,posBed.name_,1, '+');
+							transcriptLoc.extraFields_.emplace_back(metaForCollapseForTranscript.createMetaName());
+							ret.transcriptLocs.emplace_back(transcriptLoc);
+							ret.genomicLocs.emplace_back(posBed);
 						}
 					}
 				}

@@ -183,6 +183,12 @@ public:
 		[[nodiscard]] uint32_t getNumberOfAlleles() const ;
 
 		[[nodiscard]] Json::Value toJson() const ;
+
+		/**
+		 * \brief Generate a genomic region for this record, will only have the genomic region info, none of the sample info if loaded
+		 * \return a genomic region that covers this variant, will be zero-based positioning
+		 */
+		GenomicRegion genRegion() const;
 	};
 
 	std::vector<VCFRecord> records_;/**< the variant records*/
@@ -200,15 +206,19 @@ public:
 	/**
 	 * \brief write out the header and the CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO fields
 	 * \param out output stream
+	 * \param selectRegions if supplied, will only output regions that intersect with these regions
 	 */
-	void writeOutFixedOnly(std::ostream & out) const;
+	void writeOutFixedOnly(std::ostream & out, const std::vector<GenomicRegion> & selectRegions = {}) const;
+
+
 
 
 	/**
 	 * \brief write out the header and the CHROM,POS,ID,REF,ALT,QUAL,FILTER,INFO fields and then also FORMAT column and the sample columns after that
 	 * \param out the output stream to write to
+	 * \param selectRegions if supplied, will only output regions that intersect with these regions
 	 */
-	void writeOutFixedAndSampleMeta(std::ostream & out) const;
+	void writeOutFixedAndSampleMeta(std::ostream & out, const std::vector<GenomicRegion> & selectRegions = {}) const;
 
 
 	/**
@@ -516,7 +526,12 @@ public:
 		OutOptions outOpts{bfs::path(""), ".bed"};
 	};
 
-	static std::vector<Bed6RecordCore> getGenomicLocationsForAminoAcidPositions(const GetGenomicLocationsForAminoAcidPositionsPars & pars);
+	struct GetGenomicLocationsForAminoAcidPositionsRet{
+		std::vector<Bed6RecordCore> genomicLocs;
+		std::vector<Bed6RecordCore> transcriptLocs;
+	};
+
+	static GetGenomicLocationsForAminoAcidPositionsRet getGenomicLocationsForAminoAcidPositions(const GetGenomicLocationsForAminoAcidPositionsPars & pars);
 
 };
 
