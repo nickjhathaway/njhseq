@@ -376,19 +376,42 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream&vcfOut) const {
 		const auto firstSetOfSamplesVec = VecStr(firstSetOfSamples.begin(), firstSetOfSamples.end());
 		std::set<std::string> headerSamplesSet(samples_.begin(), samples_.end());
 		if(firstSetOfSamples != headerSamplesSet) {
+			std::vector<std::string> uniqueTo1;
+			std::vector<std::string> uniqueTo2;
+			std::vector<std::string> inBoth;
+
+			njh::decompose_sets(
+				headerSamplesSet.begin(), headerSamplesSet.end(),
+				firstSetOfSamples.begin(), firstSetOfSamples.end(),
+				std::back_inserter(uniqueTo1),
+				std::back_inserter(uniqueTo2),
+				std::back_inserter(inBoth));
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", error " << "samples in records don't match the header samples"  << "\n";
 			ss << "header samples: " << njh::conToStr(headerSamplesSet, "\t") << "\n";
 			ss << "record samples: " << njh::conToStr(firstSetOfSamplesVec, "\t") << "\n";
+			ss << "samples only in header: " << njh::conToStr(uniqueTo1, "\t") << "\n";
+			ss << "samples only in record: " << njh::conToStr(uniqueTo2, "\t") << "\n";
 			throw std::runtime_error{ss.str()};
 		}
 		for(const auto & rec : records_) {
 			auto currentSetOfSamples = njh::vecToSet(getVectorOfMapKeys(rec.sampleFormatInfos_));
 			if(firstSetOfSamples != currentSetOfSamples) {
+				std::vector<std::string> uniqueTo1;
+				std::vector<std::string> uniqueTo2;
+				std::vector<std::string> inBoth;
+
+				njh::decompose_sets(firstSetOfSamples.begin(), firstSetOfSamples.end(),
+					currentSetOfSamples.begin(), currentSetOfSamples.end(),
+					std::back_inserter(uniqueTo1),
+					std::back_inserter(uniqueTo2),
+					std::back_inserter(inBoth));
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error " << "samples different for record: " << rec.chrom_ << " " << rec.pos_ << " " << rec.ref_ << "\n";
 				ss << "first set of samples: " << njh::conToStr(firstSetOfSamples, ",") << "\n";
 				ss << "current set of samples: " << njh::conToStr(currentSetOfSamples, ",") << "\n";
+				ss << "samples only in first set  : " << njh::conToStr(uniqueTo1, "\t") << "\n";
+				ss << "samples only in current set: " << njh::conToStr(uniqueTo2, "\t") << "\n";
 				throw std::runtime_error { ss.str() };
 			}
 		}
