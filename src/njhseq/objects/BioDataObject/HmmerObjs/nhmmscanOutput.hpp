@@ -172,7 +172,7 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 		double hardScoreNormCutOff = 0;/**< a hard cut off for scoreNorm, must be above this cut off regardless of other measures */
 
 		uint32_t hmmStartFilter = std::numeric_limits<uint32_t>::max();
-
+		uint32_t minOverlapFilt_ {1};/**< the minimum amount of overlap to count as overlapping regions  */
 		QueryResults::mergeOverlapingHitsPars mergePars_;
 	};
 	struct PostProcessHitsRes{

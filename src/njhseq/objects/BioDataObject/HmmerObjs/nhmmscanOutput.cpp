@@ -695,6 +695,7 @@ VecStr nhmmscanOutput::Hit::getOutputDetHeader(){
 					,"hmm_From"
 					,"hmm_to"
 					,"hmm_edges"
+		      ,"hmm_covered"
 					,"model_len"
 					,"aln_from"
 					,"aln_to"
@@ -719,15 +720,18 @@ VecStr nhmmscanOutput::Hit::getOutputDet() const{
 														,hmmFrom_
 														,hmmTo_
 														,hmmEdgeInfo_
+														,modelCoverage()
 														,modelLen_
 														,alignFrom_
 														,alignTo_
 														,alignLen()
 														,aliEdgeInfo_
+														// ,queryCoverageAln(queryLen)
 														,envFrom_
 														,envTo_
 														,envLen()
 														,envEdgeInfo_
+														// ,queryCoverageEnv(queryLen)
 														,strand_
 														,modelEvalue_
 														,modelScore_
@@ -847,7 +851,7 @@ nhmmscanOutput::PostProcessHitsRes nhmmscanOutput::postProcessHits(const PostPro
 		for(const auto & hitGroup : ret.filteredHitsMergedByQuery_[filteredHits.first]){
 			bool overlapping = false;
 			for(const auto & otherGroup : nonOverlappingByChrom[hitGroup.region_.chrom_]){
-				if(otherGroup.region_.overlaps(hitGroup.region_)){
+				if(otherGroup.region_.overlaps(hitGroup.region_, pars.minOverlapFilt_)){
 					overlapping = true;
 					break;
 				}

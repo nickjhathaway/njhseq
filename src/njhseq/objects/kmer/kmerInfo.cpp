@@ -25,20 +25,20 @@ namespace njhseq {
 double kmerInfo::DetailedKmerDist::getDistTotalShared() const {
 	/*@todo rename these functions, they are not getting distance, they are getting similarity metrics*/
 	//the total shared is the minnumber when the kmer appears in both so double here for the metric
-	return static_cast<double>(totalShared_ + totalShared_) / (totalKmersIn1_ + totalKmersIn2_);
+	return (totalKmersIn1_ + totalKmersIn2_) == 0 ? 0.0 : static_cast<double>(totalShared_ + totalShared_) / (totalKmersIn1_ + totalKmersIn2_);
 }
 
 double kmerInfo::DetailedKmerDist::getDistTotalSharedLenAdjusted() const {
-	return static_cast<double>(totalShared_)
+	return std::min(totalKmersIn1_, totalKmersIn2_) == 0 ? 0 : static_cast<double>(totalShared_)
 			/ (std::min(totalKmersIn1_, totalKmersIn2_));
 }
 
 double kmerInfo::DetailedKmerDist::getDistUniqueShared() const {
-	return static_cast<double>(totalUniqShared_) / totalUniqBetween_;
+	return totalUniqBetween_ == 0 ? 0 : static_cast<double>(totalUniqShared_) / totalUniqBetween_;
 }
 
 double kmerInfo::DetailedKmerDist::getDistUniqueSharedLenAdjusted() const {
-	return static_cast<double>(totalUniqShared_)
+	return std::min(totalUniqKmersIn1_, totalUniqKmersIn2_) == 0 ? 0 : static_cast<double>(totalUniqShared_)
 			/ (std::min(totalUniqKmersIn1_, totalUniqKmersIn2_));
 }
 
