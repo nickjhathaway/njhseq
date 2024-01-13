@@ -206,8 +206,8 @@ intersectBedLocsWtihGffRecordsPars::intersectBedLocsWtihGffRecordsPars(const bfs
 		gffFnp_(gffFnp), extraAttributes_(extraAttributes), selectFeatures_(
 				selectFeatures) {
   extraAttributes_.emplace_back("description");
-  selectFeatures_.emplace_back("gene");
-  selectFeatures_.emplace_back("protein_coding_gene");
+  // selectFeatures_.emplace_back("gene");
+  // selectFeatures_.emplace_back("protein_coding_gene");
 }
 
 

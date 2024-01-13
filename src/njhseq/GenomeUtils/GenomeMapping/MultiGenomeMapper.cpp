@@ -103,13 +103,13 @@ Json::Value MultiGenomeMapper::Genome::toJson() const{
 
 
 MultiGenomeMapper::inputParameters::inputParameters() {
-	gffIntersectPars_.selectFeatures_ = {"gene", "pseudogene"};
+	gffIntersectPars_.selectFeatures_ = {"gene", "pseudogene", "protein_coding_gene"};
 	gffIntersectPars_.extraAttributes_ = {"description"};
 }
 
 MultiGenomeMapper::inputParameters::inputParameters(const bfs::path & genomeDir, const std::string & primaryGenome):genomeDir_(genomeDir),
 		primaryGenome_(primaryGenome){
-	gffIntersectPars_.selectFeatures_ = {"gene", "pseudogene"};
+	gffIntersectPars_.selectFeatures_ = {"gene", "pseudogene", "protein_coding_gene"};
 	gffIntersectPars_.extraAttributes_ = {"description"};
 }
 
