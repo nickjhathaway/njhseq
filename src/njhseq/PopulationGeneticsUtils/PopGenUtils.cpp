@@ -208,7 +208,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		OutputStream transBedLocs(njh::files::make_path(variantInfoDir, "translatedInput.bed"));
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		translatedRes.writeSeqLocationsTranslation(transBedLocs);
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		translatedRes.writeOutTranslatedIndvVars(njh::files::make_path(variantInfoDir, "variantsPerTranslatedSeq.tab.txt.gz"), translator->knownAminoAcidPositions_);
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		{

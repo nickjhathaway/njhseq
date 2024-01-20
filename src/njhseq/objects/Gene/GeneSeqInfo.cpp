@@ -82,6 +82,7 @@ void GeneSeqInfo::setTable(){
 
 Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(const uint32_t aaStart,
 		const uint32_t aaStop) const {
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if(infoTab_.empty()){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error table hasn't been set yet"  << "\n";
@@ -90,7 +91,7 @@ Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(const uint32_t aaStart,
 	if (aaStart >= aaStop) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error aaStart, " << aaStart
-				<< " is larger than aaStop, " << aaStop << "\n";
+				<< " is larger than or equal to aaStop, " << aaStop << "\n";
 		throw std::runtime_error { ss.str() };
 	}
 
@@ -101,12 +102,14 @@ Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(const uint32_t aaStart,
 				<< "\n";
 		throw std::runtime_error { ss.str() };
 	}
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	// uint32_t posOffset = 0;
 	// if (pars_.oneBasedPos_) {
 	// 	posOffset = 1;
 	// }
-	auto aaSplit = infoTab_.splitTableOnColumn("aaPos");
 
+	auto aaSplit = infoTab_.splitTableOnColumn("aaPos");
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	Bed6RecordCore ret;
 	ret.chrom_ = pars_.region_.chrom_;
 	ret.strand_ = pars_.region_.reverseSrand_ ? '-' : '+';
@@ -115,26 +118,41 @@ Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(const uint32_t aaStart,
 	}else{
 		ret.name_ = njh::pasteAsStr("[AA", aaStart, "-", "AA", aaStop, ")");
 	}
+
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if(pars_.oneBasedPos_){
 		/** @todo the one base does not currently work*/
 		if(pars_.region_.reverseSrand_){
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos"))) + 1 - 1;
 			ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos"))) - 1;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}else{
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos"))) - 1;
 			ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos"))) + 1 - 1;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}
 	}else{
 		if(pars_.region_.reverseSrand_){
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos"))) + 1;
-			ret.chromStart_ = vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos"))) + 1;
+			//if in the reverse strand get the minimum location of the location prior to the amino acid stop
+			ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop - 1)).getColumn("gDnaPos")));
+			//ret.chromStart_ = vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos"))) + 1;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}else{
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos")));
-			ret.chromEnd_ =   vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos")));
+			//get the max gDNA pos of the amino acid prior to stop and then add one to get the non-inclusive genomic stop position
+			ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop - 1)).getColumn("gDnaPos"))) + 1;
+			//ret.chromEnd_ =   vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos")));
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}
 	}
-
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	ret.score_ = ret.length();
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return ret;
 }
 
