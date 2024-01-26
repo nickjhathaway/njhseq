@@ -391,6 +391,8 @@ public:
 		static VecStr SNPHeaderGenomic(){
 			return VecStr{"transcript","position(0-based)","ref","base","count","freq","alleleDepth","samples"};
 		}
+
+		std::set<std::string> getAllSamples() const;
 	};
 
 	struct TranslatorByAlignmentPars{

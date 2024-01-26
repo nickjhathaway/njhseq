@@ -47,7 +47,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 	auto sampNamesPerSeq = inputSeqs.getSampleNamesPerSeqs();
 
 
-	auto allSamples = inputSeqs.getAllSampleNames();
+	// auto allSamples = inputSeqs.getAllSampleNames();
 	//rename based on freq
 	inputSeqs.renameBaseOnFreq(pars.identifier);
 	//write out seqs
@@ -299,9 +299,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 					}
 
 					//add in sample names
-					vcfOutputForTrans.samples_ = VecStr(allSamples.begin(), allSamples.end());
+					auto allSamplesForVariants = varPerTrans.second.getAllSamples();
+					vcfOutputForTrans.samples_ = VecStr(allSamplesForVariants.begin(), allSamplesForVariants.end());
 					for (auto&rec: vcfOutputForTrans.records_) {
-						for (const auto&sample: allSamples) {
+						for (const auto&sample: allSamplesForVariants) {
 							std::vector<uint32_t> dps(1 + rec.alts_.size(), 0);
 							// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
 							for(const auto & haps : njh::mapAt(samplesToHapsWithReadCnts, sample)) {
@@ -335,9 +336,19 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 							for (const auto dp: dps) {
 								dpsFreq.emplace_back(dpsSum > 0 ? dp / dpsSum : 0.0);
 							}
-							rec.sampleFormatInfos_[sample].addMeta("DP", dpsSum);
-							rec.sampleFormatInfos_[sample].addMeta("AD", njh::conToStr(dps, ","));
-							rec.sampleFormatInfos_[sample].addMeta("AF", njh::conToStr(dpsFreq, ","));
+							if(0 == dpsSum) {
+								//if dpsSum equals 0 that most likely means that the sample either had a haplotype that didn't cover
+								//this location and/or a haplotype that didn't map
+								//if the sample had a mapping haplotype that didn't cover then it either ended before this location or
+								//it started after it, either way it's ok to mark as no info for this loc
+								rec.sampleFormatInfos_[sample].addMeta("DP", ".");
+								rec.sampleFormatInfos_[sample].addMeta("AD", njh::conToStr(std::vector<std::string>(dps.size(), "."), ","));
+								rec.sampleFormatInfos_[sample].addMeta("AF", njh::conToStr(std::vector<std::string>(dpsFreq.size(), "."), ","));
+							} else {
+								rec.sampleFormatInfos_[sample].addMeta("DP", dpsSum);
+								rec.sampleFormatInfos_[sample].addMeta("AD", njh::conToStr(dps, ","));
+								rec.sampleFormatInfos_[sample].addMeta("AF", njh::conToStr(dpsFreq, ","));
+							}
 						}
 					}
 					{
@@ -474,10 +485,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				}
 			}
 			//add in sample names
-			vcfOutputForChrom.samples_ = VecStr(allSamples.begin(), allSamples.end());
+			auto allSamplesForVariant = varPerChrom.second.getAllSamples();
+			vcfOutputForChrom.samples_ = VecStr(allSamplesForVariant.begin(), allSamplesForVariant.end());
 			for (auto&rec: vcfOutputForChrom.records_) {
 
-				for (const auto&sample: allSamples) {
+				for (const auto&sample: allSamplesForVariant) {
 					std::vector<uint32_t> dps(1 + rec.alts_.size(), 0);
 					// std::cout << __FILE__ << " : " << __LINE__ << std::endl;
 					for(const auto & haps : njh::mapAt(samplesToHapsWithReadCnts, sample)) {
@@ -514,10 +526,19 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 					for (const auto dp: dps) {
 						dpsFreq.emplace_back(dpsSum > 0 ? dp / dpsSum : 0.0);
 					}
-					rec.sampleFormatInfos_[sample].addMeta("DP", dpsSum);
-					rec.sampleFormatInfos_[sample].addMeta("AD", njh::conToStr(dps, ","));
-					rec.sampleFormatInfos_[sample].addMeta("AF", njh::conToStr(dpsFreq, ","));
-
+					if(0 == dpsSum) {
+						//if dpsSum equals 0 that most likely means that the sample either had a haplotype that didn't cover
+						//this location and/or a haplotype that didn't map
+						//if the sample had a mapping haplotype that didn't cover then it either ended before this location or
+						//it started after it, either way it's ok to mark as no info for this loc
+						rec.sampleFormatInfos_[sample].addMeta("DP", ".");
+						rec.sampleFormatInfos_[sample].addMeta("AD", njh::conToStr(std::vector<std::string>(dps.size(), "."), ","));
+						rec.sampleFormatInfos_[sample].addMeta("AF", njh::conToStr(std::vector<std::string>(dpsFreq.size(), "."), ","));
+					} else {
+						rec.sampleFormatInfos_[sample].addMeta("DP", dpsSum);
+						rec.sampleFormatInfos_[sample].addMeta("AD", njh::conToStr(dps, ","));
+						rec.sampleFormatInfos_[sample].addMeta("AF", njh::conToStr(dpsFreq, ","));
+					}
 				}
 			}
 			{

@@ -1521,6 +1521,16 @@ void TranslatorByAlignment::VariantsInfo::writeOutSNPsAllInfo(std::ostream & out
 		bool oneBased){
 	writeOutSNPsInfo(out, name, njh::getSetOfMapKeys(allBases), oneBased);
 }
+
+std::set<std::string> TranslatorByAlignment::VariantsInfo::getAllSamples() const {
+	std::set<std::string> ret;
+	for(const auto & sampsForPos : samplesPerPosition) {
+		ret.insert(sampsForPos.second.begin(), sampsForPos.second.end());
+	}
+	return ret;
+}
+
+
 void TranslatorByAlignment::VariantsInfo::writeOutSNPsAllInfo(
 		const OutOptions & outOpts,
 		const std::string & name,
