@@ -34,13 +34,15 @@ public:
 	struct extractCounts {
 		//good, bad, and contamination should add up to total
 		uint32_t good_ = 0;
-		//badReverse_, containsNs, minLenBad_, maxLenBad_, qualityFailed_ should add up to bad
+		//badReverse_, badForward_, failedBothPrimers_, mismatchPrimers_, containsNs_, minLenBad_, maxLenBad_, qualityFailed_ should add up to bad
 		uint32_t bad_ = 0;
 
 		uint32_t badReverse_ = 0;
 		uint32_t badForward_ = 0;
 		uint32_t failedBothPrimers_ = 0;
 		uint32_t mismatchPrimers_ = 0;
+
+		uint32_t badmid_ = 0;
 
 		uint32_t containsNs_ = 0;
 		uint32_t minLenBad_ = 0;
@@ -49,11 +51,12 @@ public:
 
 		uint32_t contamination_ = 0;
 
-		uint32_t getTotal() const ;
+		[[nodiscard]] uint32_t getTotal() const ;
 	};
 
 	enum class extractCase {
 		GOOD,
+		BADMID,
 		BADREVERSE,
 		BADFORWARD,
 		FAILEDBOTHPRIMERS,

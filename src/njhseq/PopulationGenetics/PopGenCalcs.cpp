@@ -236,12 +236,13 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 
 PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDiversity(const std::vector<PopHapInfo> & haps, bool onlyPloidy2){
 	DiversityMeasures res;
-
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	res.alleleNumber_ = haps.size();
 	double sumOfSquares = 0;
 	double sumOfLogFreqTimesFreq = 0;
 	double totalHaps = PopHapInfo::getTotalPopCount(haps);
 	double sumTopOfSimpson = 0;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	std::vector<long double> freqs;
 	for (const auto & hap : haps) {
 		freqs.emplace_back(hap.count_/totalHaps);
@@ -255,7 +256,7 @@ PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDivers
 		sumOfSquares += std::pow(prob, 2.0);
 		sumOfLogFreqTimesFreq += prob * std::log(prob);
 	}
-
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	res.heterozygostiy_ = 1 - sumOfSquares;
 	res.effectiveNumOfAlleles_ = std::pow(sumOfSquares, -1);
 	res.ShannonEntropyE_ = -sumOfLogFreqTimesFreq;
@@ -266,12 +267,12 @@ PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDivers
 		res.simpsonIndex_ = 0;
 	}
 
-
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 	//ploidy 2
 	res.ploidy2_ = ExpectedPloidyInfo::genPloidyInfo(2, freqs);
 	//ploidy of 2 is kind of unnecessary since it's just expected hetereozygosity
-
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if(!onlyPloidy2){
 		//ploidy 3
 		res.ploidy3_ = ExpectedPloidyInfo::genPloidyInfo(3, freqs);
@@ -298,7 +299,7 @@ PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDivers
 		res.ploidy5_.expectedCOIForPloidy_[5] = std::numeric_limits<long double>::max();
 	}
 
-
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //
 //	for(const auto & freq : freqs){
 //		std::cout << freq << std::endl;

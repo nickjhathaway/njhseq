@@ -92,6 +92,10 @@ void ExtractionStator::increaseCounts(const std::string & midName, const std::st
 		++counts_[midName][rComp].bad_;
 		++counts_[midName][rComp].qualityFailed_;
 		break;
+	case extractCase::BADMID:
+			++counts_[midName][rComp].bad_;
+		++counts_[midName][rComp].badmid_;
+		break;
 	case extractCase::CONTAMINATION:
 		++counts_[midName][rComp].contamination_;
 		break;
@@ -187,6 +191,8 @@ void ExtractionStator::addOtherExtractorCounts(const ExtractionStator & otherCou
       counts_[count.first][dir.first].maxLenBad_ += dir.second.maxLenBad_;
       counts_[count.first][dir.first].qualityFailed_ += dir.second.qualityFailed_;
       counts_[count.first][dir.first].contamination_ += dir.second.contamination_;
+    	counts_[count.first][dir.first].badmid_ += dir.second.badmid_;
+
     }
   }
 

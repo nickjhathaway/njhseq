@@ -37,7 +37,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 
 
 TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const CollapseAndCallVariantsPars & pars, CollapsedHaps & inputSeqs){
-
+	njh::stopWatch watch;
+	watch.setLapName("start");
 	njh::files::checkExistenceThrow(pars.transPars.lzPars_.genomeFnp, __PRETTY_FUNCTION__);
 	njh::files::makeDirP(njh::files::MkdirPar(pars.outputDirectory.parent_path()));
 	//kinda silly but this will make so any parent directories that need to exist will be made and then
@@ -74,14 +75,14 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 		// std::cout << "\t" << njh::conToStr(e.element, ",") << std::endl;
 	}
 	uint64_t maxLen = readVec::getMaxLength(inputSeqs.seqs_);
-
+	watch.startNewLap("set up for variant calling");
 	std::shared_ptr<aligner> alignerObj = std::make_shared<aligner>(maxLen, gapScoringParameters(7,1,0,0,0,0), substituteMatrix(2,-2), false);
 	alignerObj->weighHomopolymers_ = false;
 	alignerObj->processAlnInfoInput(pars.alnCacheDir.string(), false);
 
 	std::unordered_map<std::string, uint32_t> seqNameKey = inputSeqs.genSeqNameKey();
 
-
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	auto variantInfoDir =  njh::files::make_path(pars.outputDirectory, "variantCalls");
 	njh::files::makeDir(njh::files::MkdirPar{variantInfoDir});
 	std::unique_ptr<TranslatorByAlignment> translator = std::make_unique<TranslatorByAlignment>(pars.transPars);
@@ -91,11 +92,27 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 	for(const auto pos : iter::range(inputSeqs.size())){
 		sampNamesForPopHaps[inputSeqs.seqs_[pos]->name_] = sampNamesPerSeq[pos];
 	}
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	//pars.transPars.
 	//pars.transPars.additionalBowtieArguments_
-
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	translator->pars_.additionalBowtieArguments_ = njh::pasteAsStr(translator->pars_.additionalBowtieArguments_, " -p ", pars.numThreads);
-	auto translatedRes = translator->run(SeqIOOptions::genFastaIn(uniqueSeqsOpts.out_.outName()), sampNamesForPopHaps, pars.variantCallerRunPars);
+	TranslatorByAlignment::TranslatorByAlignmentResult translatedRes;
+	watch.startNewLap("run variant calling and translation");
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//if a specific region is supplied, force alignment to that region
+	if(!pars.refSeqRegion.chrom_.empty()) {
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		translatedRes = translator->run(SeqIOOptions::genFastaIn(uniqueSeqsOpts.out_.outName()), sampNamesForPopHaps, pars.refSeqRegion, pars.variantCallerRunPars);
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	} else {
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		translatedRes = translator->run(SeqIOOptions::genFastaIn(uniqueSeqsOpts.out_.outName()), sampNamesForPopHaps, pars.variantCallerRunPars);
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	}
+
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	watch.startNewLap("set up for writing output");
 	auto gprefix = bfs::path(translator->pars_.lzPars_.genomeFnp).replace_extension("");
 	auto twoBitFnp = gprefix.string() + ".2bit";
 	TwoBit::TwoBitFile tReader(twoBitFnp);
@@ -129,11 +146,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 	// }
 	// std::cout << njh::bashCT::reset;
 
-
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
   OutputStream popBedLocs(njh::files::make_path(variantInfoDir, "inputSeqs.bed"));
 	translatedRes.writeOutSeqAlnIndvVars(njh::files::make_path(variantInfoDir, "variantsPerSeqAln.tab.txt.gz"));
 	translatedRes.writeSeqLocations(popBedLocs);
-
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	std::unordered_map<std::string, std::set<uint32_t>> knownAAMutsChromPositions;
 
 	OutputStream seqsUnableToBeMappedOut(njh::files::make_path(variantInfoDir, "seqsUnableToBeMapped.txt"));
@@ -143,6 +160,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if(!translatedRes.translations_.empty()){
+		watch.startNewLap("writing translation output - initial");
 		SeqOutput transwriter(SeqIOOptions::genFastaOutGz(njh::files::make_path(variantInfoDir, "translatedInput.fasta.gz")));
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		std::unordered_map<std::string, std::vector<seqInfo>> translatedSeqsByTranscript;
@@ -161,6 +179,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
 		OutputStream divMeasuresOut(njh::files::make_path(variantInfoDir, "translatedDivMeasures.tab.txt"));
 		divMeasuresOut << njh::conToStr(pars.calcPopMeasuresPars.genHeader(), "\t") << std::endl;
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -171,6 +190,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//
 		for(const auto & translatedSeqs : translatedSeqsByTranscript){
+			watch.startNewLap(njh::pasteAsStr("writing translation output - ", translatedSeqs.first, " - collapse seq"));
 			auto inputTranslatedSeq = CollapsedHaps::collapseReads(translatedSeqs.second, translatedSeqInputNames[translatedSeqs.first]);
 			std::string identifierTranslated = njh::pasteAsStr(pars.identifier, "-translated");
 			if(translatedSeqsByTranscript.size() > 1){
@@ -183,19 +203,27 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 //				std::cout << seq->name_ << std::endl;
 //				std::cout << "\tfullTypedAAForTranslated: " << fullTypedAAForTranslated[seq->name_] << std::endl;
 //			}
+			watch.startNewLap(njh::pasteAsStr("writing translation output - ", translatedSeqs.first, " - rename"));
 			auto renameRes = inputTranslatedSeq.renameBaseOnFreq(identifierTranslated);
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 			//write out seqs
+			watch.startNewLap(njh::pasteAsStr("writing translation output - ", translatedSeqs.first, " - write out seqs"));
 			inputTranslatedSeq.writeOutAll(variantInfoDir, njh::pasteAsStr(translatedSeqs.first, "-", "uniqueTranslatedSeqs"));
 			//get div measures
+			watch.startNewLap(njh::pasteAsStr("writing translation output - ", translatedSeqs.first, " - get div measures"));
+
 			auto calcPopMeasuresPars =  pars.calcPopMeasuresPars;
+			if(inputTranslatedSeq.size() > pars.calcPopMeasuresPars.seqCountCutOffPloidyCalc_) {
+				calcPopMeasuresPars.onlyPloidy2_ = true;
+			}
 			calcPopMeasuresPars.numSegSites_ = njh::mapAt(translatedRes.proteinVariants_, translatedSeqs.first).getFinalNumberOfSegratingSites();
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			auto divMeasures = inputTranslatedSeq.getGeneralMeasuresOfDiversity(calcPopMeasuresPars, alignerObj);
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			divMeasuresOut << njh::conToStr(divMeasures.getOut(inputTranslatedSeq, identifierTranslated, calcPopMeasuresPars), "\t")  << std::endl;
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			watch.startNewLap(njh::pasteAsStr("writing translation output - ", translatedSeqs.first, " - translatedSeqsAATyped"));
 			OutputStream outAATyped(njh::files::make_path(variantInfoDir, njh::pasteAsStr(translatedSeqs.first, "-", "translatedSeqsAATyped.tab.txt.gz") ) );
 			outAATyped << "name\tfullTyped\tknownTyped\tvariantTyped" << std::endl;
 			for(const auto & seq : inputTranslatedSeq.seqs_){
@@ -205,22 +233,28 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						<< "\t" << variableTypedAAForTranslated[renameRes.newNameToOldNameKey_[seq->name_]] << std::endl;
 			}
 		}
+
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		watch.startNewLap(njh::pasteAsStr("writing translation output - ", "writeSeqLocationsTranslation"));
 		OutputStream transBedLocs(njh::files::make_path(variantInfoDir, "translatedInput.bed"));
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		translatedRes.writeSeqLocationsTranslation(transBedLocs);
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		watch.startNewLap(njh::pasteAsStr("writing translation output - ", "writeOutTranslatedIndvVars"));
 		translatedRes.writeOutTranslatedIndvVars(njh::files::make_path(variantInfoDir, "variantsPerTranslatedSeq.tab.txt.gz"), translator->knownAminoAcidPositions_);
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		{
+			watch.startNewLap(njh::pasteAsStr("writing translation output - prior to - write out vcf fixed info"));
 			//protein
 			for(auto & varPerTrans : translatedRes.proteinVariants_){
 				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 				{
+					watch.startNewLap(njh::pasteAsStr("writing translation output - ", varPerTrans.first, " - write out vcf fixed info"));
 					//writing vcfs
 					auto vcfOutputForTrans = varPerTrans.second.createVCFOutputFixed();
+					watch.startNewLap(njh::pasteAsStr("writing translation output - ", varPerTrans.first, " - write out vcf sample info gather"));
 					vcfOutputForTrans.contigEntries_.emplace(varPerTrans.first, VCFOutput::ContigEntry(varPerTrans.first, translatedRes.translationInfoForTranscirpt_[varPerTrans.first]->protein_.seq_.length()));
 					{
 						//auto vcfOutputForTrans = varPerTrans.second.writeVCF(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf")));
@@ -297,7 +331,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						// }
 						// std::cout << std::endl;
 					}
-
+					watch.startNewLap(njh::pasteAsStr("writing translation output - ", varPerTrans.first, " - write out vcf sample info add"));
 					//add in sample names
 					auto allSamplesForVariants = varPerTrans.second.getAllSamples();
 					vcfOutputForTrans.samples_ = VecStr(allSamplesForVariants.begin(), allSamplesForVariants.end());
@@ -352,12 +386,14 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						}
 					}
 					{
+						watch.startNewLap(njh::pasteAsStr("writing translation output - ", varPerTrans.first, " - write out vcf actual writing"));
 						// OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-proteinWithSampleInfo.vcf")));
-						OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf")));
+						OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf.gz")));
 						vcfOutputForTrans.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 					}
 				}
 				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				watch.startNewLap(njh::pasteAsStr("writing translation output - ", varPerTrans.first, " - writeOutSNPsFinalInfo"));
 				varPerTrans.second.writeOutSNPsFinalInfo(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein_aminoAcidVariable.tab.txt.gz")), varPerTrans.first, true);
 				std::set<uint32_t> knownMutationsLocationsZeroBased;
 				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -386,15 +422,19 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				}
 			}
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			watch.startNewLap(njh::pasteAsStr("writing translation output - writeOutAATypedInfo"));
 			translatedRes.writeOutAATypedInfo(njh::files::make_path(variantInfoDir, "seqsAATyped.tab.txt.gz"));
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}
 	}
 
-
+	watch.startNewLap("writing seq output");
 	//snps
 	uint32_t maxSeqCount = 0;
 	auto calcPopMeasuresPars =  pars.calcPopMeasuresPars;
+	if(inputSeqs.size() > pars.calcPopMeasuresPars.seqCountCutOffPloidyCalc_) {
+		calcPopMeasuresPars.onlyPloidy2_ = true;
+	}
 	for(auto & varPerChrom : translatedRes.seqVariants_){
 		for(const auto & count : varPerChrom.second.depthPerPosition){
 			if(count.second > maxSeqCount){
@@ -543,7 +583,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			}
 			{
 				// OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomicWithSampleInfo.vcf")));
-				OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf")));
+				OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf.gz")));
 				vcfOutputForChrom.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 			}
 		}
@@ -603,9 +643,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			}
 		}
 	}
-
 	alignerObj->processAlnInfoOutput(pars.alnCacheDir.string(), false);
-
+	OutputStream timeLog(njh::files::make_path(pars.outputDirectory, "timeLog.txt"));
+	watch.logLapTimes(timeLog,true, 6, true);
 	return translatedRes;
 }
 

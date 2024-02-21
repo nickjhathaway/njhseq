@@ -6,7 +6,6 @@
  */
 
 #include "KmerGatherer.hpp"
-#include "njhseq/objects/kmer/SimpleKmerHash.hpp"
 #include "njhseq/objects/kmer/KmerUtils.hpp"
 #include "njhseq/objects/dataContainers.h"
 #include "njhseq/IO/SeqIO.h"

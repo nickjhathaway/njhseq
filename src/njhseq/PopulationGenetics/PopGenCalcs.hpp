@@ -104,7 +104,7 @@ public:
 	 * @return a struct with several diversity measurements
 	 */
 	template<typename T>
-	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<T> & haps){
+	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<T> & haps, bool onlyPloidy2 = false){
 
 		std::unordered_map<std::string, uint32_t> popCounts;
 		for(const auto & seq : haps){
@@ -116,7 +116,7 @@ public:
 			popHapInfos.emplace_back(count, popCount.second);
 			++count;
 		}
-		return getGeneralMeasuresOfDiversity(popHapInfos);
+		return getGeneralMeasuresOfDiversity(popHapInfos, onlyPloidy2);
 //
 //
 //		DiversityMeasures res;

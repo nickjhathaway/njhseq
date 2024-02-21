@@ -72,6 +72,15 @@ uint32_t getReadVectorSize(const std::vector<T>& reads, bool countRemove = false
   return count;
 }
 
+template <typename T>
+double getAvgLength(const std::vector<T>& reads) {
+	uint64_t sum = 0;
+	for (const auto& read : reads) {
+		sum += getSeqBase(read).seq_.size();
+	}
+	return static_cast<double>(sum)/static_cast<double>(reads.size());
+}
+
 
 template <typename T>
 void getMaxLength(const T& read, uint64_t & compare) {

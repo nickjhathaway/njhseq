@@ -78,6 +78,8 @@ public:
 		bool getPairwiseComps {false};
 		bool diagAlnPairwiseComps {true};
 
+		bool onlyPloidy2_ {false};
+		uint32_t seqCountCutOffPloidyCalc_{8000};
 		uint32_t numSegSites_{std::numeric_limits<uint32_t>::max()};
 		uint32_t numThreads = 1;
 		double lowVarFreq = 0;

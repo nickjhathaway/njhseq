@@ -1,3 +1,4 @@
+#pragma once
 /*
  * Gene.h
  *
@@ -10,3 +11,4 @@
 #include "njhseq/objects/Gene/GeneFromGffs.hpp"
 #include "njhseq/objects/Gene/GenomicAminoAcidPositionTyper.hpp"
 #include "njhseq/objects/Gene/TranslatorByAlignment.hpp"
+#include "njhseq/objects/Gene/VCFOutput.hpp"

@@ -41,14 +41,14 @@ class MidDeterminator {
 public:
 	struct midPos {
 		midPos();
-		midPos(const std::string & midName, uint64_t midPos, uint64_t barcodeSize, uint32_t barcodeScore);
+		midPos(std::string  midName, uint64_t midPos, uint64_t barcodeSize, uint32_t barcodeScore);
 		std::string midName_;
 		uint64_t midPos_;
 		uint64_t barcodeSize_;
 		uint32_t barcodeScore_;
 		bool inRevComp_ = false;
 		bool failure_ = false;
-		std::string altName_ = "";
+		std::string altName_;
 
 		enum class FailureCase{
 			NONE,
@@ -64,11 +64,11 @@ public:
 		static std::string getFailureCaseName(FailureCase fCase);
 		static VecStr getFailureCaseNames();
 
-		double normalizeScoreByLen() const;
+		[[nodiscard]] double normalizeScoreByLen() const;
 
 		explicit operator bool() const;
 
-		Json::Value toJson() const;
+		[[nodiscard]] Json::Value toJson() const;
 		static const uint64_t npos = std::numeric_limits<uint64_t>::max();
 	};
 
@@ -91,7 +91,7 @@ public:
 	};
 
 	struct MID{
-		MID(const std::string & name);
+		explicit MID(std::string  name);
 
 		MID(const std::string & name, const std::string & forwardBar);
 
@@ -107,7 +107,7 @@ public:
 		bool forSameAsRev_ { false };
 		bool forSameAsRevShorten_ { false };
 
-		bool dualBarcoded() const;
+		[[nodiscard]] bool dualBarcoded() const;
 
 	};
 
@@ -151,17 +151,17 @@ public:
 	MidDeterminator(const bfs::path & idFileFnp, const MidDeterminePars & searchPars);
 
 	std::unordered_map<std::string, MID> mids_;
-	MidDeterminePars searchPars_;
-	MidDeterminePars shortenSearchPars_;
+	MidDeterminePars defualtSearchPars_;
+	MidDeterminePars defaultShortenSearchPars_;
 
 private:
 public:
 
 	void containsMidByNameThrow(const std::string & name, const std::string & funcName) const;
-	bool containsMidByName(const std::string & name) const;
-	bool containsMidByBarcode(const std::string & barcode) const;
+	[[nodiscard]] bool containsMidByName(const std::string & name) const;
+	[[nodiscard]] bool containsMidByBarcode(const std::string & barcode) const;
 
-	std::string getMidName(const std::string & barcode) const;
+	[[nodiscard]] std::string getMidName(const std::string & barcode) const;
 
 	void addForwardReverseBarcode(const std::string & name, const std::string & forward, const std::string & reverse);
 	void addForwardBarcode(const std::string & name, const std::string & forward);
@@ -183,10 +183,14 @@ public:
 
 
 
-	MidSearchRes searchPairedEndRead(const PairedRead & seq) const;
+	[[nodiscard]] MidSearchRes searchPairedEndRead(const PairedRead & seq) const;
+	[[nodiscard]] MidSearchRes searchPairedEndRead(const PairedRead & seq, const MidDeterminePars & searchPars, const MidDeterminePars & shortenSearchPars) const;
+
 	ProcessedRes processSearchPairedEndRead(PairedRead & seq, const MidSearchRes & res) const;
 
-	MidSearchRes searchRead(const seqInfo & seq) const;
+	[[nodiscard]] MidSearchRes searchRead(const seqInfo & seq) const;
+	[[nodiscard]] MidSearchRes searchRead(const seqInfo & seq, const MidDeterminePars & searchPars, const MidDeterminePars & shortenSearchPars) const;
+
 	ProcessedRes processSearchRead(seqInfo & seq, const MidSearchRes & res) const;
 
 };

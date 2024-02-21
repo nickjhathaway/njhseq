@@ -331,5 +331,46 @@ void checkPositionSortedNoOverlapsBedThrow(const bfs::path & bedFnp,
 //	return ret;
 //}
 
+
+std::set<std::string> getFeatureIdsFromOverlappingRegions(const std::vector<GenomicRegion> & regions,
+	//std::function<const GenomicRegion&(const T &)> regionGetterFunc,
+	const bfs::path & gffFnp,
+	const VecStr & features) {
+	std::set<std::string> idsFromData;
+	BioDataFileIO<GFFCore> reader { IoOptions(InOptions(gffFnp)) };
+	reader.openIn();
+	// uint32_t count = 0;
+	std::string line;
+	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
+	while (nullptr != gRecord) {
+		if (njh::in(gRecord->type_, features) ) {
+			for (const auto & region : regions) {
+				if (region.overlaps(*gRecord)) {
+					// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+					// std::cout << GenomicRegion(*gRecord).genBedRecordCore().toDelimStrWithExtra() << std::endl;
+					// std::cout << region.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+					idsFromData.emplace(gRecord->getIDAttr());
+					break;
+				}
+			}
+		}
+		bool end = false;
+		while ('#' == reader.inFile_->peek()) {
+			if (njh::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+				end = true;
+				break;
+			}
+			njh::files::crossPlatGetline(*reader.inFile_, line);
+		}
+		if (end) {
+			break;
+		}
+		gRecord = reader.readNextRecord();
+		// ++count;
+	}
+	return idsFromData;
+}
+
+
 }  // namespace njhseq
 

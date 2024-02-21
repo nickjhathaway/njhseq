@@ -140,7 +140,11 @@ Json::Value intersectBedLocsWtihGffRecords(
 	return ret;
 }
 
-
+// template <typename T>
+std::set<std::string> getFeatureIdsFromOverlappingRegions(const std::vector<GenomicRegion> & regions,
+	//std::function<const GenomicRegion&(const T &)> regionGetterFunc,
+	const bfs::path & gffFnp,
+	const VecStr & features ={"gene", "protein_coding_gene"});
 
 }  // namespace njhseq
 

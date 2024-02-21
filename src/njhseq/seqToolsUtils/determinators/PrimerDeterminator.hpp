@@ -24,6 +24,8 @@
 // You should have received a copy of the GNU General Public License
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
+#include <utility>
+
 #include "njhseq/objects/dataContainers/tables/table.hpp"
 #include "njhseq/alignment/aligner.h"
 #include "njhseq/objects/seqObjects/Paired/PairedRead.hpp"
@@ -33,19 +35,20 @@ namespace njhseq {
 
 class PrimerDeterminator {
 public:
-
 	struct PrimerPositionScore {
-		PrimerPositionScore() {
-		}
+		PrimerPositionScore() = default;
+
 		PrimerPositionScore(const uint32_t start, const uint32_t end,
-				const std::string & primerName, const comparison & comp) :
-				start_(start), end_(end), primerName_(primerName), comp_(comp) {
+		                    std::string  primerName, comparison  comp) : start_(start), end_(end),
+			primerName_(std::move(primerName)), comp_(std::move(comp)) {
 		}
-		uint32_t start_ { std::numeric_limits<uint32_t>::max()-1 };
-		uint32_t end_ { std::numeric_limits<uint32_t>::max() };
+
+		uint32_t start_{std::numeric_limits<uint32_t>::max() - 1};
+		uint32_t end_{std::numeric_limits<uint32_t>::max()};
 		std::string primerName_;
 		comparison comp_;
-		double getNormalizedScore() {
+
+		[[nodiscard]] double getNormalizedScore() const {
 			return comp_.alnScore_ / (end_ - start_);
 		}
 	};
@@ -71,7 +74,7 @@ public:
 		std::string reversePrimerRaw_;
 
 		struct PrimerSeq {
-			PrimerSeq(const seqInfo & primer);
+			explicit PrimerSeq(const seqInfo & primer);
 			std::string primer_;
 			seqInfo info_;  /**< input direction */
 			seqInfo infoRC_;/**< reverse complement of input */
@@ -109,62 +112,61 @@ public:
 //	void addPrimerInfo(const std::string & primerName,
 //			const std::string & forwardPrimer, const std::string & reversePrimer);
 
-	bool containsTarget(const std::string & targetName) const;
-	bool containsPrimerSeq(const std::string & primer) const;
+	[[nodiscard]] bool containsTarget(const std::string & targetName) const;
+	[[nodiscard]] bool containsPrimerSeq(const std::string & primer) const;
 
 
 	std::map<std::string, primerInfo> primers_;
 
-	size_t getMaxPrimerSize() const;
-	size_t getMinPrimerSize() const;
+	[[nodiscard]] size_t getMaxPrimerSize() const;
+	[[nodiscard]] size_t getMinPrimerSize() const;
 
 
 
 	template<typename T>
-	std::string determineForwardPrimer(T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
+	std::string determineForwardPrimer(T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj) const{
 		return determineForwardPrimer(getSeqBase(read), pars, alignerObj);
 	}
-	std::string determineForwardPrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
-  std::string determineForwardPrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj, const VecStr & primers);
+	std::string determineForwardPrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj) const;
+  std::string determineForwardPrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj, const VecStr & primers) const;
 
 	template<typename T>
-	std::string determineWithReversePrimer(T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
+	std::string determineWithReversePrimer(T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj) const{
 		return determineWithReversePrimer(getSeqBase(read), pars, alignerObj);
 	}
-	std::string determineWithReversePrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
-  std::string determineWithReversePrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj, const VecStr & primers);
+	std::string determineWithReversePrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj) const;
+  std::string determineWithReversePrimer(seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj, const VecStr & primers) const;
 
 
 	template<typename T>
-	bool checkForReversePrimer(T & read, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj) {
+	bool checkForReversePrimer(T & read, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj) const {
 		return checkForReversePrimer(getSeqBase(read), primerName,pars, alignObj);
 	}
-	bool checkForReversePrimer(seqInfo & info, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj);
+	bool checkForReversePrimer(seqInfo & info, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj) const;
 
 	template<typename T>
-	bool checkForForwardPrimerInRev(T & read, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj) {
+	bool checkForForwardPrimerInRev(T & read, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj) const{
 		return checkForForwardPrimerInRev(getSeqBase(read), primerName, pars, alignObj);
 	}
 
-	bool checkForForwardPrimerInRev(seqInfo & info, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj);
+	bool checkForForwardPrimerInRev(seqInfo & info, const std::string & primerName, const PrimerDeterminatorPars & pars, aligner & alignObj)const;
 
 
 	//just getting positions
 	template<typename T>
-	PrimerPositionScore determineBestForwardPrimerPosFront(const T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
+	PrimerPositionScore determineBestForwardPrimerPosFront(const T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj) const{
 		return determineBestForwardPrimerPosFront(getSeqBase(read), pars, alignerObj);
 	}
-	PrimerPositionScore determineBestForwardPrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
+	PrimerPositionScore determineBestForwardPrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj) const;
+	PrimerPositionScore determineBestForwardPrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj, const VecStr & primers) const;
 
 
 	template<typename T>
-	PrimerPositionScore determineBestReversePrimerPosFront(const T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj){
+	PrimerPositionScore determineBestReversePrimerPosFront(const T & read, const PrimerDeterminatorPars & pars, aligner & alignerObj) const{
 		return determineBestReversePrimerPosFront(getSeqBase(read), pars, alignerObj);
 	}
-	PrimerPositionScore determineBestReversePrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj);
-
-
-
+	PrimerPositionScore determineBestReversePrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj) const;
+	PrimerPositionScore determineBestReversePrimerPosFront(const seqInfo & info, const PrimerDeterminatorPars & pars, aligner & alignerObj, const VecStr & primers) const;
 
 };
 

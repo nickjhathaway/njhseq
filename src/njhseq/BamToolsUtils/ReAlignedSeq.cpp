@@ -139,6 +139,134 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 }
 
 
+ReAlignedSeq ReAlignedSeq::genRealignment(seqInfo querySeq,
+                                          const GenomicRegion& refSeqRegion,
+                                          aligner& alignerObj,
+                                          const std::unordered_map<std::string, uint32_t>& chromLengths,
+                                          TwoBit::TwoBitFile& tReader,
+                                          const genRealignmentPars& pars) {
+
+	auto gRegion = refSeqRegion;
+	//gRegion.meta_.meta_.clear();
+
+	//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//	std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
+	//	{
+	//		auto rSeq = gRegion.extractSeq(tReader);
+	//		rSeq.name_ = gRegion.createUidFromCoordsStrand();
+	//		rSeq.outPutSeqAnsi(std::cout);
+	//	}
+	uint32_t extend = pars.extendAmount;
+	gRegion.reverseSrand_ = false;
+
+	//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//	std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
+	BedUtility::extendLeftRight(gRegion, extend , extend , chromLengths.at(gRegion.chrom_));
+	//	std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
+
+	auto rSeq = gRegion.extractSeq(tReader);
+	rSeq.name_ = gRegion.createUidFromCoordsStrand();
+	//	rSeq.outPutSeqAnsi(std::cout);
+	//auto qSeq = seqInfo(blastHit.queryName_, originalQuery);
+	if (refSeqRegion.reverseSrand_) {
+		querySeq.reverseComplementRead(false, true);
+	}
+	//	qSeq.outPutSeqAnsi(std::cout);
+	//	std::cout << std::endl;
+
+	uint64_t maxLen = alignerObj.parts_.maxSize_ - 1;
+	readVec::getMaxLength(querySeq, maxLen);
+	readVec::getMaxLength(rSeq, maxLen);
+	alignerObj.parts_.setMaxSize(maxLen);
+	alignerObj.alignCacheGlobal(rSeq, querySeq);
+	uint32_t queryAlnStart = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
+	uint32_t queryAlnLastBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
+	uint32_t queryAlnEnd = queryAlnLastBase + 1;
+
+	uint32_t refAlnStart = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+	uint32_t refAlnLastBase = alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
+	uint32_t realRefStart = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnStart);
+	uint32_t realRefLastBase = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnLastBase);
+	//have to do these checks if the reference is shorter than the query
+	if (refAlnStart > queryAlnStart) {
+		realRefStart = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, refAlnStart);
+	}
+	if (refAlnLastBase < queryAlnLastBase) {
+		realRefLastBase = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, refAlnLastBase);
+	}
+	uint32_t realRefEnd = realRefLastBase + 1;
+
+
+	//  alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+	//  alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+
+
+	seqInfo referenceAln = alignerObj.alignObjectA_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
+	seqInfo queryAln = alignerObj.alignObjectB_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
+	alignerObj.alignObjectA_.seqBase_ = referenceAln;
+	alignerObj.alignObjectB_.seqBase_ = queryAln;
+	seqInfo refSeq = referenceAln;
+	refSeq.removeGaps();
+	gRegion.start_ = gRegion.start_ + realRefStart;
+	gRegion.end_ = gRegion.start_ + realRefEnd - realRefStart;
+	alignerObj.profileAlignment(rSeq, querySeq, false, false, false);
+	if (pars.adjustForSoftClipping &&
+	    ('-' == alignerObj.alignObjectA_.seqBase_.seq_.front() || '-' == alignerObj.alignObjectA_.seqBase_.seq_.back())) {
+		uint32_t extraExtendFront = 25;
+		uint32_t extraExtendEnd = 25;
+
+		if ('-' == alignerObj.alignObjectA_.seqBase_.seq_.front()) {
+			extraExtendFront = alignerObj.alignObjectA_.seqBase_.seq_.find_first_not_of('-');
+		}
+		if ('-' == alignerObj.alignObjectA_.seqBase_.seq_.back()) {
+			extraExtendFront = alignerObj.alignObjectA_.seqBase_.seq_.size() - alignerObj.alignObjectA_.seqBase_.seq_.
+			                   find_last_not_of('-');
+		}
+		BedUtility::extendLeftRight(gRegion, extraExtendFront, extraExtendEnd, chromLengths.at(gRegion.chrom_));
+		rSeq = gRegion.extractSeq(tReader);
+		rSeq.name_ = gRegion.createUidFromCoordsStrand();
+
+		readVec::getMaxLength(querySeq, maxLen);
+		readVec::getMaxLength(rSeq, maxLen);
+		alignerObj.parts_.setMaxSize(maxLen);
+		alignerObj.alignCacheGlobal(rSeq, querySeq);
+		queryAlnStart = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
+		queryAlnLastBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
+		queryAlnEnd = queryAlnLastBase + 1;
+		realRefStart = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnStart);
+		realRefLastBase = getRealPosForAlnPos(alignerObj.alignObjectA_.seqBase_.seq_, queryAlnLastBase);
+		realRefEnd = realRefLastBase + 1;
+		referenceAln = alignerObj.alignObjectA_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
+		queryAln = alignerObj.alignObjectB_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
+		alignerObj.alignObjectA_.seqBase_ = referenceAln;
+		alignerObj.alignObjectB_.seqBase_ = queryAln;
+		refSeq = referenceAln;
+		refSeq.removeGaps();
+		gRegion.start_ = gRegion.start_ + realRefStart;
+		gRegion.end_ = gRegion.start_ + realRefEnd - realRefStart;
+
+		alignerObj.profileAlignment(rSeq, querySeq, false, false, false);
+	}
+
+	ReAlignedSeq ret;
+	//ret.bAln_ = bAln; /**@todo need to generate a bAln_ object */
+
+	ret.gRegion_ = gRegion;
+	if (refSeqRegion.reverseSrand_) {
+		ret.gRegion_.reverseSrand_ = true;
+	}
+	ret.refSeq_ = refSeq;
+	ret.querySeq_ = querySeq;
+	ret.alnRefSeq_ = referenceAln;
+	ret.alnQuerySeq_ = queryAln;
+	ret.comp_ = alignerObj.comp_;
+	//	std::cout << originalRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+	//	std::cout << ret.gRegion_.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+	return ret;
+}
+
+
+
 ReAlignedSeq ReAlignedSeq::genRealignment(const BLASTHitTab &blastHit,
                                           const std::string &originalQuery,
                                           aligner &alignerObj,

@@ -36,7 +36,7 @@ struct CollapseAndCallVariantsPars{
 
 
 	std::string identifier = "";
-
+	GenomicRegion refSeqRegion;
 
 	uint32_t numThreads = 1;
 	bool noDiagAlnPairwiseComps = false;

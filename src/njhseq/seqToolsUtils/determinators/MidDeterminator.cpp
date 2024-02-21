@@ -34,9 +34,9 @@ MidDeterminator::midPos::midPos() :
 				0) {
 }
 
-MidDeterminator::midPos::midPos(const std::string & midName, uint64_t midPos,
+MidDeterminator::midPos::midPos(std::string  midName, uint64_t midPos,
 		uint64_t barcodeSize, uint32_t barcodeScore) :
-		midName_(midName), midPos_(midPos), barcodeSize_(barcodeSize), barcodeScore_(
+		midName_(std::move(midName)), midPos_(midPos), barcodeSize_(barcodeSize), barcodeScore_(
 				barcodeScore) {
 }
 
@@ -56,35 +56,33 @@ MidDeterminator::midPos::operator bool() const {
 }
 
 
-
-
-std::string MidDeterminator::ProcessedRes::getProcessedCaseName(PROCESSED_CASE pCase){
-	std::string pCaseStr = "unhandledCase";
+std::string MidDeterminator::ProcessedRes::getProcessedCaseName(const PROCESSED_CASE pCase) {
+	std::string pCaseStr;
 	switch (pCase) {
-	case MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_DIRECTION:
-		pCaseStr = "MISMATCHING_DIRECTION";
-		break;
-	case MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_MIDS:
-		pCaseStr = "MISMATCHING_MIDS";
-		break;
-	case MidDeterminator::ProcessedRes::PROCESSED_CASE::NONE:
-		pCaseStr = "NONE";
-		break;
-	case MidDeterminator::ProcessedRes::PROCESSED_CASE::NO_MATCHING:
-		pCaseStr = "NO_MATCHING";
-		break;
-	case MidDeterminator::ProcessedRes::PROCESSED_CASE::TOO_MANY_MATCHING:
-		pCaseStr = "TOO_MANY_MATCHING";
-		break;
-	case MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL:
-		pCaseStr = "PARTIALDUAL";
-		break;
-	case MidDeterminator::ProcessedRes::PROCESSED_CASE::MATCH:
-		pCaseStr = "MATCH";
-		break;
-	default:
-		pCaseStr = "unhandledCase";
-		break;
+		case PROCESSED_CASE::MISMATCHING_DIRECTION:
+			pCaseStr = "MISMATCHING_DIRECTION";
+			break;
+		case PROCESSED_CASE::MISMATCHING_MIDS:
+			pCaseStr = "MISMATCHING_MIDS";
+			break;
+		case PROCESSED_CASE::NONE:
+			pCaseStr = "NONE";
+			break;
+		case PROCESSED_CASE::NO_MATCHING:
+			pCaseStr = "NO_MATCHING";
+			break;
+		case PROCESSED_CASE::TOO_MANY_MATCHING:
+			pCaseStr = "TOO_MANY_MATCHING";
+			break;
+		case PROCESSED_CASE::PARTIALDUAL:
+			pCaseStr = "PARTIALDUAL";
+			break;
+		case PROCESSED_CASE::MATCH:
+			pCaseStr = "MATCH";
+			break;
+		default:
+			pCaseStr = "unhandledCase";
+			break;
 	}
 	return pCaseStr;
 }
@@ -94,30 +92,30 @@ VecStr MidDeterminator::ProcessedRes::getProcessedCaseNames() {
 			"NONE", "NO_MATCHING", "TOO_MANY_MATCHING", "PARTIALDUAL", "MATCH" };
 }
 
-std::string MidDeterminator::midPos::getFailureCaseName(FailureCase fCase){
-	std::string fCaseStr = "unhandledCase";
+std::string MidDeterminator::midPos::getFailureCaseName(FailureCase fCase) {
+	std::string fCaseStr;
 	switch (fCase) {
-	case MidDeterminator::midPos::FailureCase::MISMATCHING_DIRECTION:
-		fCaseStr = "MISMATCHING_DIRECTION";
-		break;
-	case MidDeterminator::midPos::FailureCase::MISMATCHING_MIDS:
-		fCaseStr = "MISMATCHING_MIDS";
-		break;
-	case MidDeterminator::midPos::FailureCase::NONE:
-		fCaseStr = "NONE";
-		break;
-	case MidDeterminator::midPos::FailureCase::NO_MATCHING:
-		fCaseStr = "NO_MATCHING";
-		break;
-	case MidDeterminator::midPos::FailureCase::TOO_MANY_MATCHING:
-		fCaseStr = "TOO_MANY_MATCHING";
-		break;
-	case MidDeterminator::midPos::FailureCase::PARTIAL:
-		fCaseStr = "PARTIAL";
-		break;
-	default:
-		fCaseStr = "unhandledCase";
-		break;
+		case FailureCase::MISMATCHING_DIRECTION:
+			fCaseStr = "MISMATCHING_DIRECTION";
+			break;
+		case FailureCase::MISMATCHING_MIDS:
+			fCaseStr = "MISMATCHING_MIDS";
+			break;
+		case FailureCase::NONE:
+			fCaseStr = "NONE";
+			break;
+		case FailureCase::NO_MATCHING:
+			fCaseStr = "NO_MATCHING";
+			break;
+		case FailureCase::TOO_MANY_MATCHING:
+			fCaseStr = "TOO_MANY_MATCHING";
+			break;
+		case FailureCase::PARTIAL:
+			fCaseStr = "PARTIAL";
+			break;
+		default:
+			fCaseStr = "unhandledCase";
+			break;
 	}
 	return fCaseStr;
 }
@@ -129,7 +127,7 @@ VecStr MidDeterminator::midPos::getFailureCaseNames() {
 
 
 double MidDeterminator::midPos::normalizeScoreByLen() const{
-	return static_cast<double>(barcodeScore_)/barcodeSize_;
+	return static_cast<double>(barcodeScore_)/static_cast<double>(barcodeSize_);
 }
 
 MidDeterminator::MidInfo::MidInfo(const std::string & midName,
@@ -154,8 +152,8 @@ MidDeterminator::MidInfo::MidInfo(const std::string & midName,
 
 }
 
-MidDeterminator::MID::MID(const std::string & name):
-	name_(name) {
+MidDeterminator::MID::MID(std::string  name):
+	name_(std::move(name)) {
 
 }
 
@@ -170,7 +168,7 @@ MidDeterminator::MID::MID(const std::string & name,
 		const std::string & reverseBar):
 	name_(name),
 	reverseBar_(std::make_unique<MidInfo>(name, reverseBar)) {
-	if("" != forwardBar){
+	if(!forwardBar.empty()){
 		forwardBar_ = std::make_unique<MidInfo>(name, forwardBar);
 		forSameAsRev_ = forwardBar == reverseBar;
 		forSameAsRevShorten_ = forwardBar_->shortenFrontBar_->motifOriginal_ == reverseBar_->shortenFrontBar_->motifOriginal_;
@@ -183,10 +181,10 @@ bool MidDeterminator::MID::dualBarcoded() const {
 
 
 MidDeterminator::MidDeterminator(const table & mids, const MidDeterminePars & searchPars):
-		searchPars_(searchPars),
-		shortenSearchPars_(searchPars) {
-	shortenSearchPars_.searchStart_ = 0;
-	shortenSearchPars_.searchStop_ = 0;
+		defualtSearchPars_(searchPars),
+		defaultShortenSearchPars_(searchPars) {
+	defaultShortenSearchPars_.searchStart_ = 0;
+	defaultShortenSearchPars_.searchStop_ = 0;
 	mids.checkForColumnsThrow(VecStr { "id", "barcode" }, __PRETTY_FUNCTION__);
 	bool containsSecondBarCodeColumn = mids.containsColumn("barcode2");
 	if (containsSecondBarCodeColumn) {
@@ -197,7 +195,7 @@ MidDeterminator::MidDeterminator(const table & mids, const MidDeterminePars & se
 		}
 	} else {
 		for (const auto & row : mids.content_) {
-			if("" == row[mids.getColPos("barcode2")]){
+			if(row[mids.getColPos("barcode2")].empty()){
 				addForwardBarcode(
 						row[mids.getColPos("id")],
 						row[mids.getColPos("barcode")]);
@@ -213,9 +211,9 @@ MidDeterminator::MidDeterminator(const table & mids, const MidDeterminePars & se
 
 MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
 		const MidDeterminePars & searchPars) :
-		searchPars_(searchPars), shortenSearchPars_(searchPars) {
-	shortenSearchPars_.searchStart_ = 0;
-	shortenSearchPars_.searchStop_ = 0;
+		defualtSearchPars_(searchPars), defaultShortenSearchPars_(searchPars) {
+	defaultShortenSearchPars_.searchStart_ = 0;
+	defaultShortenSearchPars_.searchStop_ = 0;
 	if (searchPars.searchStop_ < searchPars.searchStart_) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__
@@ -246,7 +244,7 @@ MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
 	bool readingPrimers = false;
 	bool readingMids = false;
 	InputStream idFile { InOptions { idFileFnp } };
-	std::string line = "";
+	std::string line;
 
 	while (njh::files::crossPlatGetline(idFile, line)) {
 		if (njh::beginsWith(line, "#") || njh::allWhiteSpaceStr(line)) {
@@ -301,12 +299,12 @@ void MidDeterminator::addForwardReverseBarcode(const std::string & name,
 		const std::string & forward, const std::string & reverse) {
 	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	containsMidByNameThrow(name,__PRETTY_FUNCTION__);
-	if("" == forward){
+	if(forward.empty()){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << " error for MID: " << name << " forward can't be blank" << "\n";
 		throw std::runtime_error{ss.str()};
 	}
-	if("" == reverse){
+	if(reverse.empty()){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << " error for MID: " << name << " reverse can't be blank" << "\n";
 		throw std::runtime_error{ss.str()};
@@ -341,7 +339,7 @@ void MidDeterminator::addForwardBarcode(const std::string & name,
 		const std::string & forward) {
 	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	containsMidByNameThrow(name, __PRETTY_FUNCTION__);
-	if ("" == forward) {
+	if (forward.empty()) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << " error for MID: " << name
 				<< " forward can't be blank" << "\n";
@@ -364,7 +362,7 @@ void MidDeterminator::addForwardBarcode(const std::string & name,
 void MidDeterminator::addReverseBarcode(const std::string & name,
 		const std::string & reverse) {
 	containsMidByNameThrow(name,__PRETTY_FUNCTION__);
-	if("" == reverse){
+	if(reverse.empty()){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << " error for MID: " << name << " reverse can't be blank" << "\n";
 		throw std::runtime_error{ss.str()};
@@ -480,19 +478,19 @@ std::vector<MidDeterminator::midPos> MidDeterminator::backDeterminePosMIDPos(
 MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 		 PairedRead & seq, const MidSearchRes & res) const {
 
-	MidDeterminator::ProcessedRes ret;
+	ProcessedRes ret;
 	if(res.forward_.empty()){
 		//currently requiring forward
 		if(1 == res.reverse_.size() && mids_.at(res.reverse_.front().midName_).dualBarcoded()){
 			//partial match, failed to find forward barcode of a dual barcoded sample
-			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
+			ret.case_ = ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
 			MetaDataInName meta;
 			meta.addMeta("PartialReverseMID", njh::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
 			seq.seqBase_.name_.append(meta.createMetaName());
 			seq.mateSeqBase_.name_.append(meta.createMetaName());
 		}else{
 			//no match
-			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::NO_MATCHING;
+			ret.case_ = ProcessedRes::PROCESSED_CASE::NO_MATCHING;
 		}
 	}else{
 		if(res.forward_.size() == 1 && res.reverse_.size() < 2){
@@ -501,7 +499,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 					if(res.forward_.front().inRevComp_ == res.reverse_.front().inRevComp_){
 						//match
 						ret.midName_ = res.forward_.front().midName_;
-						ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MATCH;
+						ret.case_ = ProcessedRes::PROCESSED_CASE::MATCH;
 						ret.rcomplement_ = res.forward_.front().inRevComp_;
 						if(res.forward_.front().inRevComp_){
 							//process
@@ -521,7 +519,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 					}else{
 						//mismatching directions
 						ret.midName_ = res.forward_.front().midName_;
-						ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_DIRECTION;
+						ret.case_ = ProcessedRes::PROCESSED_CASE::MISMATCHING_DIRECTION;
 						ret.rcomplement_ = res.forward_.front().inRevComp_;
 						MetaDataInName meta;
 						meta.addMeta("ReverseMID", njh::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
@@ -532,7 +530,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 				}else{
 					//mismatch
 					ret.midName_ = res.forward_.front().midName_;
-					ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_MIDS;
+					ret.case_ = ProcessedRes::PROCESSED_CASE::MISMATCHING_MIDS;
 					ret.rcomplement_ = res.forward_.front().inRevComp_;
 					MetaDataInName meta;
 					meta.addMeta("ReverseMID", njh::pasteAsStr(res.reverse_.front().midName_, ":", res.reverse_.front().midPos_, ":", (res.reverse_.front().inRevComp_ ? "InRComp": "InFor")));
@@ -544,7 +542,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 				if(mids_.at(res.forward_.front().midName_).dualBarcoded()){
 					//partial match, failed to find reverse barcode of a dual barcoded sample
 
-					ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
+					ret.case_ = ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
 					MetaDataInName meta;
 					meta.addMeta("PartialForwardMID", njh::pasteAsStr(res.forward_.front().midName_, ":", res.forward_.front().midPos_, ":", (res.forward_.front().inRevComp_ ? "InRComp": "InFor")));
 					seq.seqBase_.name_.append(meta.createMetaName());
@@ -553,7 +551,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 				}else{
 					//match
 					ret.midName_ = res.forward_.front().midName_;
-					ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MATCH;
+					ret.case_ = ProcessedRes::PROCESSED_CASE::MATCH;
 					ret.rcomplement_ = res.forward_.front().inRevComp_;
 					if(res.forward_.front().inRevComp_){
 						//process
@@ -572,28 +570,28 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 			}
 		}else{
 			//indeterminate
-			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::TOO_MANY_MATCHING;
+			ret.case_ = ProcessedRes::PROCESSED_CASE::TOO_MANY_MATCHING;
 			MetaDataInName meta;
-			std::string forwardMids = "";
-			std::string reverseMids = "";
+			std::string forwardMids;
+			std::string reverseMids;
 			for(const auto & forMid : res.forward_){
-				if("" != forwardMids){
+				if(!forwardMids.empty()){
 					forwardMids.append(",");
 				}
 				forwardMids.append(njh::pasteAsStr(forMid.midName_, ":", forMid.midPos_, ":", (forMid.inRevComp_ ? "InRComp": "InFor")));
 			}
 
 			for(const auto & revMid : res.reverse_){
-				if("" != forwardMids){
+				if(!forwardMids.empty()){
 					reverseMids.append(",");
 				}
 				reverseMids.append(njh::pasteAsStr(revMid.midName_, ":", revMid.midPos_, ":", (revMid.inRevComp_ ? "InRComp": "InFor")));
 			}
 
-			if ("" != forwardMids) {
+			if (!forwardMids.empty()) {
 				meta.addMeta("ForwardMIDs", forwardMids);
 			}
-			if ("" != reverseMids) {
+			if (!reverseMids.empty()) {
 				meta.addMeta("ReverseMIDs", reverseMids);
 			}
 			seq.seqBase_.name_.append(meta.createMetaName());
@@ -604,9 +602,8 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchPairedEndRead(
 	return ret;
 }
 
+MidDeterminator::MidSearchRes MidDeterminator::searchRead(const seqInfo & seq, const MidDeterminePars & searchPars, const MidDeterminePars & shortenSearchPars) const {
 
-MidDeterminator::MidSearchRes MidDeterminator::searchRead(
-		const seqInfo & seq) const {
 	std::vector<MidDeterminator::midPos> forwardBarMatches;
 	std::vector<MidDeterminator::midPos> reverseBarMatches;
 
@@ -614,36 +611,36 @@ MidDeterminator::MidSearchRes MidDeterminator::searchRead(
 		if (nullptr != mid.second.forwardBar_) {
 			auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
 					seq.seq_, *(mid.second.forwardBar_->bar_), mid.second.name_,
-					searchPars_);
+					searchPars);
 			addOtherVec(forwardBarMatches, midPositions);
 		}
 		if (nullptr != mid.second.reverseBar_) {
 			auto midPositions = MidDeterminator::backDeterminePosMIDPos(
 					seq.seq_, *(mid.second.reverseBar_->rcompBar_),
-					mid.second.name_, searchPars_);
+					mid.second.name_, searchPars);
 			addOtherVec(reverseBarMatches, midPositions);
 		}
 	}
 
-	if (searchPars_.checkForShorten_) {
+	if (searchPars.checkForShorten_) {
 		for (const auto & mid : mids_) {
 			if (nullptr != mid.second.forwardBar_) {
 				auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
 						seq.seq_, *(mid.second.forwardBar_->shortenFrontBar_),
-						mid.second.name_, shortenSearchPars_);
+						mid.second.name_, shortenSearchPars);
 				addOtherVec(forwardBarMatches, midPositions);
 			}
 			if (nullptr != mid.second.reverseBar_) {
 				////std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 				auto midPositions = MidDeterminator::backDeterminePosMIDPos(
 						seq.seq_, *(mid.second.reverseBar_->shortenBackRCompBar_),
-						mid.second.name_, shortenSearchPars_);
+						mid.second.name_, shortenSearchPars);
 				addOtherVec(reverseBarMatches, midPositions);
 			}
 		}
 	}
 
-	if (searchPars_.checkComplement_) {
+	if (searchPars.checkComplement_) {
 		//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 
 		for (const auto & mid : mids_) {
@@ -656,7 +653,7 @@ MidDeterminator::MidSearchRes MidDeterminator::searchRead(
 				//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 				auto midPositions = MidDeterminator::backDeterminePosMIDPos(
 						seq.seq_, *(mid.second.forwardBar_->rcompBar_),
-						mid.second.name_, searchPars_);
+						mid.second.name_, searchPars);
 				for (auto & m : midPositions) {
 					m.inRevComp_ = true;
 				}
@@ -666,14 +663,14 @@ MidDeterminator::MidSearchRes MidDeterminator::searchRead(
 				//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 				auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
 						seq.seq_, *(mid.second.reverseBar_->bar_),
-						mid.second.name_, searchPars_);
+						mid.second.name_, searchPars);
 				for (auto & m : midPositions) {
 					m.inRevComp_ = true;
 				}
 				addOtherVec(reverseBarMatches, midPositions);
 			}
 		}
-		if (searchPars_.checkForShorten_) {
+		if (searchPars.checkForShorten_) {
 			for (const auto & mid : mids_) {
 				if (mid.second.forSameAsRevShorten_) {
 					continue;
@@ -682,7 +679,7 @@ MidDeterminator::MidSearchRes MidDeterminator::searchRead(
 					auto midPositions = MidDeterminator::backDeterminePosMIDPos(
 							seq.seq_,
 							*(mid.second.forwardBar_->shortenBackRCompBar_), mid.second.name_,
-							shortenSearchPars_);
+							shortenSearchPars);
 					for (auto & m : midPositions) {
 						m.inRevComp_ = true;
 					}
@@ -693,7 +690,7 @@ MidDeterminator::MidSearchRes MidDeterminator::searchRead(
 
 					auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
 							seq.seq_, *(mid.second.reverseBar_->shortenFrontBar_),
-							mid.second.name_, shortenSearchPars_);
+							mid.second.name_, shortenSearchPars);
 					for (auto & m : midPositions) {
 						m.inRevComp_ = true;
 					}
@@ -817,15 +814,21 @@ MidDeterminator::MidSearchRes MidDeterminator::searchRead(
 
 	return res;
 }
+
+MidDeterminator::MidSearchRes MidDeterminator::searchRead(
+		const seqInfo & seq) const {
+	return searchRead(seq, defualtSearchPars_, defaultShortenSearchPars_);
+}
+
 MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 		const MidDeterminator::MidSearchRes & res) const {
-	MidDeterminator::ProcessedRes ret;
+	ProcessedRes ret;
 	if (res.forward_.empty()) {
 		//currently requiring forward
 		if (1 == res.reverse_.size()
 				&& mids_.at(res.reverse_.front().midName_).dualBarcoded()) {
 			//partial match, failed to find forward barcode of a dual barcoded sample
-			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
+			ret.case_ = ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
 			MetaDataInName meta;
 			meta.addMeta("PartialReverseMID",
 					njh::pasteAsStr(res.reverse_.front().midName_, ":",
@@ -834,7 +837,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 			seq.name_.append(meta.createMetaName());
 		} else {
 			//no match
-			ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::NO_MATCHING;
+			ret.case_ = ProcessedRes::PROCESSED_CASE::NO_MATCHING;
 		}
 	} else {
 		if (res.forward_.size() == 1 && res.reverse_.size() < 2) {
@@ -844,7 +847,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 							== res.reverse_.front().inRevComp_) {
 						//match
 						ret.midName_ = res.forward_.front().midName_;
-						ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MATCH;
+						ret.case_ = ProcessedRes::PROCESSED_CASE::MATCH;
 						ret.rcomplement_ = res.forward_.front().inRevComp_;
 						if (res.forward_.front().inRevComp_) {
 							//process
@@ -869,7 +872,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 						//mismatching directions
 						ret.midName_ = res.forward_.front().midName_;
 						ret.case_ =
-								MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_DIRECTION;
+								ProcessedRes::PROCESSED_CASE::MISMATCHING_DIRECTION;
 						ret.rcomplement_ = res.forward_.front().inRevComp_;
 						MetaDataInName meta;
 						meta.addMeta("ReverseMID",
@@ -886,7 +889,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 					//mismatch
 					ret.midName_ = res.forward_.front().midName_;
 					ret.case_ =
-							MidDeterminator::ProcessedRes::PROCESSED_CASE::MISMATCHING_MIDS;
+							ProcessedRes::PROCESSED_CASE::MISMATCHING_MIDS;
 					ret.rcomplement_ = res.forward_.front().inRevComp_;
 					MetaDataInName meta;
 					meta.addMeta("ReverseMID",
@@ -904,7 +907,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 					//partial match, failed to find reverse barcode of a dual barcoded sample
 
 					ret.case_ =
-							MidDeterminator::ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
+							ProcessedRes::PROCESSED_CASE::PARTIALDUAL;
 					MetaDataInName meta;
 					meta.addMeta("PartialForwardMID",
 							njh::pasteAsStr(res.forward_.front().midName_, ":",
@@ -918,7 +921,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 //					}
 					//match
 					ret.midName_ = res.forward_.front().midName_;
-					ret.case_ = MidDeterminator::ProcessedRes::PROCESSED_CASE::MATCH;
+					ret.case_ = ProcessedRes::PROCESSED_CASE::MATCH;
 					ret.rcomplement_ = res.forward_.front().inRevComp_;
 					if (res.forward_.front().inRevComp_) {
 						//process
@@ -938,12 +941,12 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 		} else {
 			//indeterminate
 			ret.case_ =
-					MidDeterminator::ProcessedRes::PROCESSED_CASE::TOO_MANY_MATCHING;
+					ProcessedRes::PROCESSED_CASE::TOO_MANY_MATCHING;
 			MetaDataInName meta;
-			std::string forwardMids = "";
-			std::string reverseMids = "";
+			std::string forwardMids;
+			std::string reverseMids;
 			for (const auto & forMid : res.forward_) {
-				if ("" != forwardMids) {
+				if (!forwardMids.empty()) {
 					forwardMids.append(",");
 				}
 				forwardMids.append(
@@ -952,7 +955,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 			}
 
 			for (const auto & revMid : res.reverse_) {
-				if ("" != forwardMids) {
+				if (!forwardMids.empty()) {
 					reverseMids.append(",");
 				}
 				reverseMids.append(
@@ -960,10 +963,10 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 								(revMid.inRevComp_ ? "InRComp" : "InFor")));
 			}
 
-			if ("" != forwardMids) {
+			if (!forwardMids.empty()) {
 				meta.addMeta("ForwardMIDs", forwardMids);
 			}
-			if ("" != reverseMids) {
+			if (!reverseMids.empty()) {
 				meta.addMeta("ReverseMIDs", reverseMids);
 			}
 			seq.name_.append(meta.createMetaName());
@@ -972,7 +975,7 @@ MidDeterminator::ProcessedRes MidDeterminator::processSearchRead(seqInfo & seq,
 	return ret;
 }
 
-MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedRead & seq) const{
+MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedRead & seq, const MidDeterminePars & searchPars, const MidDeterminePars & shortenSearchPars) const{
 	std::vector<MidDeterminator::midPos> forwardBarMatches;
 	std::vector<MidDeterminator::midPos> reverseBarMatches;
 
@@ -980,24 +983,24 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 		if (nullptr != mid.second.forwardBar_) {
 			auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
 					seq.seqBase_.seq_, *(mid.second.forwardBar_->bar_),
-					mid.second.name_, searchPars_);
+					mid.second.name_, searchPars);
 			addOtherVec(forwardBarMatches, midPositions);
 		}
 		if (nullptr != mid.second.reverseBar_) {
 			auto midPositions =
 					MidDeterminator::frontDeterminePosMIDPos(
 					seq.mateSeqBase_.seq_, *(mid.second.reverseBar_->bar_),
-					mid.second.name_, searchPars_);
+					mid.second.name_, searchPars);
 			addOtherVec(reverseBarMatches, midPositions);
 		}
 	}
 
-	if(searchPars_.checkForShorten_){
+	if(searchPars.checkForShorten_){
 		for (const auto & mid : mids_) {
 			if (nullptr != mid.second.forwardBar_) {
 				auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
 						seq.seqBase_.seq_, *(mid.second.forwardBar_->shortenFrontBar_),
-						mid.second.name_, shortenSearchPars_);
+						mid.second.name_, shortenSearchPars);
 				addOtherVec(forwardBarMatches, midPositions);
 			}
 			if (nullptr != mid.second.reverseBar_) {
@@ -1005,13 +1008,13 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 				auto midPositions =
 						MidDeterminator::frontDeterminePosMIDPos(
 						seq.mateSeqBase_.seq_, *(mid.second.reverseBar_->shortenFrontBar_),
-						mid.second.name_, shortenSearchPars_);
+						mid.second.name_, shortenSearchPars);
 				addOtherVec(reverseBarMatches, midPositions);
 			}
 		}
 	}
 
-	if(searchPars_.checkComplement_){
+	if(searchPars.checkComplement_){
 		//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 
 		for (const auto & mid : mids_) {
@@ -1024,7 +1027,7 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 				//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 				auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
 						seq.mateSeqBase_.seq_, *(mid.second.forwardBar_->bar_),
-						mid.second.name_, searchPars_);
+						mid.second.name_, searchPars);
 				for(auto & m : midPositions){
 					m.inRevComp_ = true;
 				}
@@ -1035,14 +1038,14 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 				auto midPositions =
 						MidDeterminator::frontDeterminePosMIDPos(
 						seq.seqBase_.seq_, *(mid.second.reverseBar_->bar_),
-						mid.second.name_, searchPars_);
+						mid.second.name_, searchPars);
 				for(auto & m : midPositions){
 					m.inRevComp_ = true;
 				}
 				addOtherVec(reverseBarMatches, midPositions);
 			}
 		}
-		if(searchPars_.checkForShorten_){
+		if(searchPars.checkForShorten_){
 			for (const auto & mid : mids_) {
 				if (mid.second.forSameAsRevShorten_){
 					continue;
@@ -1050,7 +1053,7 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 				if (nullptr != mid.second.forwardBar_) {
 					auto midPositions = MidDeterminator::frontDeterminePosMIDPos(
 							seq.mateSeqBase_.seq_, *(mid.second.forwardBar_->shortenFrontBar_),
-							mid.second.name_, shortenSearchPars_);
+							mid.second.name_, shortenSearchPars);
 					for(auto & m : midPositions){
 						m.inRevComp_ = true;
 					}
@@ -1062,7 +1065,7 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 					auto midPositions =
 							MidDeterminator::frontDeterminePosMIDPos(
 							seq.seqBase_.seq_, *(mid.second.reverseBar_->shortenFrontBar_),
-							mid.second.name_, shortenSearchPars_);
+							mid.second.name_, shortenSearchPars);
 					for(auto & m : midPositions){
 						m.inRevComp_ = true;
 					}
@@ -1220,6 +1223,10 @@ MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedR
 	res.reverse_ = bestReverseBarMatches;
 
 	return res;
+}
+
+MidDeterminator::MidSearchRes MidDeterminator::searchPairedEndRead(const PairedRead & seq) const {
+	return searchPairedEndRead(seq, defualtSearchPars_, defaultShortenSearchPars_);
 }
 
 } /* namespace njhseq */

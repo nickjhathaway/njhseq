@@ -137,9 +137,9 @@ VecStr CollapsedHaps::GenPopMeasuresRes::getOut(const CollapsedHaps & inputSeqs,
 			divMeasures_.effectiveNumOfAlleles_,
 			divMeasures_.simpsonIndex_,
 			divMeasures_.heterozygostiy_,
-			divMeasures_.ploidy3_.expectedCOIForPloidy_.at(3),
-			divMeasures_.ploidy4_.expectedCOIForPloidy_.at(4),
-			divMeasures_.ploidy5_.expectedCOIForPloidy_.at(5),
+			std::numeric_limits<long double>::max() == divMeasures_.ploidy3_.expectedCOIForPloidy_.at(3) ? std::string("NA") : estd::to_string(divMeasures_.ploidy3_.expectedCOIForPloidy_.at(3)),
+			std::numeric_limits<long double>::max() == divMeasures_.ploidy4_.expectedCOIForPloidy_.at(4) ? std::string("NA") : estd::to_string(divMeasures_.ploidy4_.expectedCOIForPloidy_.at(4)),
+			std::numeric_limits<long double>::max() == divMeasures_.ploidy5_.expectedCOIForPloidy_.at(5) ? std::string("NA") : estd::to_string(divMeasures_.ploidy5_.expectedCOIForPloidy_.at(5)),
 
 			njh::boolToStr(inputSeqs.hasLengthVariation(pars.lowVarFreq))
 			);
@@ -281,7 +281,7 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 	ret.tajimaRes_.pval_beta_ = 1;
 	ret.tajimaRes_.pval_normal_ = 1;
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	ret.divMeasures_ = PopGenCalculator::getGeneralMeasuresOfDiversity(seqs_);
+	ret.divMeasures_ = PopGenCalculator::getGeneralMeasuresOfDiversity(seqs_, pars.onlyPloidy2_);
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (pars.getPairwiseComps && size() > 1
 			&& std::numeric_limits < uint32_t > ::max() != pars.numSegSites_) {

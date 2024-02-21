@@ -108,7 +108,7 @@ Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(const uint32_t aaStart,
 	// 	posOffset = 1;
 	// }
 
-	auto aaSplit = infoTab_.splitTableOnColumn("aaPos");
+	// auto aaSplit = infoTab_.splitTableOnColumn("aaPos");
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	Bed6RecordCore ret;
 	ret.chrom_ = pars_.region_.chrom_;
@@ -124,29 +124,48 @@ Bed6RecordCore GeneSeqInfo::genBedFromAAPositions(const uint32_t aaStart,
 		/** @todo the one base does not currently work*/
 		if(pars_.region_.reverseSrand_){
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-			ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos"))) + 1 - 1;
-			ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos"))) - 1;
+			;
+			ret.chromEnd_ =   vectorMaximum(std::vector<uint32_t>{std::get<0>(infosByAAPos_.at(aaStart)).gDNAPos_, std::get<1>(infosByAAPos_.at(aaStart)).gDNAPos_, std::get<2>(infosByAAPos_.at(aaStart)).gDNAPos_}) + 1 - 1;
+			ret.chromStart_ = vectorMinimum(std::vector<uint32_t>{std::get<0>(infosByAAPos_.at(aaStop)).gDNAPos_, std::get<1>(infosByAAPos_.at(aaStop)).gDNAPos_, std::get<2>(infosByAAPos_.at(aaStop)).gDNAPos_}) - 1;
+
+			// ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos"))) + 1 - 1;
+			// ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos"))) - 1;
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}else{
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-			ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos"))) - 1;
-			ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos"))) + 1 - 1;
+			ret.chromStart_ = vectorMinimum(std::vector<uint32_t>{std::get<0>(infosByAAPos_.at(aaStart)).gDNAPos_, std::get<1>(infosByAAPos_.at(aaStart)).gDNAPos_, std::get<2>(infosByAAPos_.at(aaStart)).gDNAPos_}) - 1;
+			ret.chromEnd_ =   vectorMaximum(std::vector<uint32_t>{std::get<0>(infosByAAPos_.at(aaStop)).gDNAPos_, std::get<1>(infosByAAPos_.at(aaStop)).gDNAPos_, std::get<2>(infosByAAPos_.at(aaStop)).gDNAPos_}) + 1 - 1;
+
+			// ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos"))) - 1;
+			// ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos"))) + 1 - 1;
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}
 	}else{
 		if(pars_.region_.reverseSrand_){
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-			ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos"))) + 1;
+			ret.chromEnd_ =   vectorMaximum(std::vector<uint32_t>{std::get<0>(infosByAAPos_.at(aaStart)).gDNAPos_, std::get<1>(infosByAAPos_.at(aaStart)).gDNAPos_, std::get<2>(infosByAAPos_.at(aaStart)).gDNAPos_}) + 1;
 			//if in the reverse strand get the minimum location of the location prior to the amino acid stop
-			ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop - 1)).getColumn("gDnaPos")));
+			ret.chromStart_ = vectorMinimum(std::vector<uint32_t>{std::get<0>(infosByAAPos_.at(aaStop - 1)).gDNAPos_, std::get<1>(infosByAAPos_.at(aaStop - 1)).gDNAPos_, std::get<2>(infosByAAPos_.at(aaStop - 1)).gDNAPos_});
+
+
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			// ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos"))) + 1;
+			// //if in the reverse strand get the minimum location of the location prior to the amino acid stop
+			// ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop - 1)).getColumn("gDnaPos")));
 			//ret.chromStart_ = vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos"))) + 1;
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}else{
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-			ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos")));
+			ret.chromStart_ = vectorMinimum(std::vector<uint32_t>{std::get<0>(infosByAAPos_.at(aaStart)).gDNAPos_, std::get<1>(infosByAAPos_.at(aaStart)).gDNAPos_, std::get<2>(infosByAAPos_.at(aaStart)).gDNAPos_});
 			//get the max gDNA pos of the amino acid prior to stop and then add one to get the non-inclusive genomic stop position
-			ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop - 1)).getColumn("gDnaPos"))) + 1;
+			ret.chromEnd_ =   vectorMaximum(std::vector<uint32_t>{std::get<0>(infosByAAPos_.at(aaStop - 1)).gDNAPos_, std::get<1>(infosByAAPos_.at(aaStop - 1)).gDNAPos_, std::get<2>(infosByAAPos_.at(aaStop - 1)).gDNAPos_}) + 1;
 			//ret.chromEnd_ =   vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos")));
+
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			// ret.chromStart_ = vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStart)).getColumn("gDnaPos")));
+			// //get the max gDNA pos of the amino acid prior to stop and then add one to get the non-inclusive genomic stop position
+			// ret.chromEnd_ =   vectorMaximum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop - 1)).getColumn("gDnaPos"))) + 1;
+			// //ret.chromEnd_ =   vectorMinimum(vecStrToVecNum<uint32_t>(aaSplit.at(estd::to_string(aaStop)).getColumn("gDnaPos")));
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}
 	}

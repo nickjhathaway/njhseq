@@ -50,6 +50,23 @@ public:
                                      TwoBit::TwoBitFile & tReader,
                                      const genRealignmentPars & pars);
 
+	/**
+	 * \brief Realign a query sequence to reference sequence, all output sequences will be in the reference forward strand orientation
+	 * \param querySeq query sequence, if the input region is the reerse strand will be reverse complement for the output
+	 * \param refSeqRegion the region to re-align to,
+	 * \param alignerObj the aligner object to use
+	 * \param chromLengths the chromosome lengths
+	 * \param tReader the twobit reader to extract the region
+	 * \param pars the realignemnt parameters
+	 * \return the realigned seq
+	 */
+	static ReAlignedSeq genRealignment(seqInfo querySeq,
+	                                   const GenomicRegion& refSeqRegion,
+	                                   aligner& alignerObj,
+	                                   const std::unordered_map<std::string, uint32_t>& chromLengths,
+	                                   TwoBit::TwoBitFile& tReader,
+	                                   const genRealignmentPars& pars);
+
 	static ReAlignedSeq genRealignment(const BLASTHitTab & blastHit,
 																		 const std::string & originalQuery,
 																		 aligner & alignerObj,
