@@ -90,6 +90,8 @@ public:
 	 */
 	Json::Value toJson() const;
 
+	void writeOutMetaFile(const OutOptions & outOpts) const;
+	void writeOutMetaFile(const OutOptions & outOpts, const std::set<std::string> & samples) const;
 
 	/**@brief create a MultipleGroupMetaData object from json
 	 *

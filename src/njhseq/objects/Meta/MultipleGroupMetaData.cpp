@@ -25,6 +25,8 @@
 
 #include "MultipleGroupMetaData.hpp"
 
+#include <njhseq/IO/OutputStream.hpp>
+
 namespace njhseq {
 
 void MultipleGroupMetaData::setInfoWithTable(const table & groupsTab,
@@ -212,6 +214,42 @@ Json::Value MultipleGroupMetaData::toJson() const {
 	ret["groupData_"] = njh::json::toJson(groupData_);
 	return ret;
 }
+
+
+void MultipleGroupMetaData::writeOutMetaFile(const OutOptions & outOpts, const std::set<std::string> & samples) const {
+	OutputStream out(outOpts);
+	auto metaFields = getVectorOfMapKeys(groupData_);
+	njh::sort(metaFields);
+
+	VecStr missingSamples;
+	for(const auto & samp : samples) {
+		if(njh::notIn(samp, samples_)) {
+			missingSamples.emplace_back(samp);
+		}
+	}
+
+	if(!missingSamples.empty()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "missing the following samples when writing: " << njh::conToStr(missingSamples, ",") << "\n";
+		ss << "options are: " << njh::conToStr(samples_, ",") << "\n";
+		throw std::runtime_error { ss.str() };
+	}
+
+	out << "samples" << "\t" << njh::conToStr(metaFields, "\t") << std::endl;
+	for(const auto & samp : samples) {
+		out << samp;
+		for(const auto & meta : metaFields) {
+			out << "\t" << groupData_.at(meta)->sampleToSubGroup_.at(samp);
+		}
+		out << std::endl;
+	}
+}
+
+void MultipleGroupMetaData::writeOutMetaFile(const OutOptions & outOpts) const {
+	writeOutMetaFile(outOpts, samples_);
+}
+
+
 
 MultipleGroupMetaData MultipleGroupMetaData::fromJson(
 		const Json::Value & jsonValue) {
