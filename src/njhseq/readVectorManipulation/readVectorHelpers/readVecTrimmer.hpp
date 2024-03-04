@@ -103,6 +103,12 @@ public:
   static void trimToMaxLength(T &read, size_t maxLength);
   static void trimToMaxLength(seqInfo &read, size_t maxLength);
 
+	template <class T>
+	static void rtrimToMaxLength(std::vector<T> &reads, size_t maxLength);
+	template <class T>
+	static void rtrimToMaxLength(T &read, size_t maxLength);
+	static void rtrimToMaxLength(seqInfo &read, size_t maxLength);
+
 
   template <class T>
   static void trimAtFirstQualScore(std::vector<T> &reads, const uint32_t qualCutOff);
@@ -1036,6 +1042,16 @@ void readVecTrimmer::trimToMaxLength(std::vector<T> &reads, size_t maxLength) {
 template <class T>
 void readVecTrimmer::trimToMaxLength(T &read, size_t maxLength) {
 	trimToMaxLength(getSeqBase(read), maxLength);
+}
+
+template <class T>
+void readVecTrimmer::rtrimToMaxLength(std::vector<T> &reads, size_t maxLength) {
+	njh::for_each(reads, [&](T & read){ rtrimToMaxLength(read, maxLength);} );
+}
+
+template <class T>
+void readVecTrimmer::rtrimToMaxLength(T &read, size_t maxLength) {
+	rtrimToMaxLength(getSeqBase(read), maxLength);
 }
 
 template <class T>

@@ -60,16 +60,20 @@ ManipulateTableRunner::ManipulateTableRunner() :
 //
 
 
-
 int ManipulateTableRunner::splitColumnContainingMeta(
-		const njh::progutils::CmdArgs & inputCommands) {
-
+	const njh::progutils::CmdArgs&inputCommands) {
+	VecStr replacementHeader;
 	table::splitColWithMetaPars splitingColsPars;
 	ManipulateTableSetUp setUp(inputCommands);
-	setUp.setOption(splitingColsPars.column_, "--column", "Column to split which contains meta with the following formating [key1=val1;key2=val2;]", true);
+	setUp.setOption(splitingColsPars.column_, "--column",
+	                "Column to split which contains meta with the following formating [key1=val1;key2=val2;]", true);
 	setUp.setOption(splitingColsPars.keepMetaInColumn_, "--keepMetaInColumn", "Keep meta in the original column");
-	setUp.setOption(splitingColsPars.removeEmptyColumn_, "--removeEmptyColumn", "remove original column if it becomes an empty column");
-	setUp.setOption(splitingColsPars.prefixWithColName_, "--prefixWithColName", "Prefix new columns with column name");
+	setUp.setOption(splitingColsPars.removeEmptyColumn_, "--removeEmptyColumn",
+	                "remove original column if it becomes an empty column");
+	setUp.setOption(splitingColsPars.prefixWithColName_, "--prefixWithColName", "Prefix new columns with column name");
+	setUp.setOption(replacementHeader, "--replacementHeader",
+	                "Give a new header, will replace starting at first column, will done after splitting");
+
 	setUp.processFileName(true);
 	setUp.processNonRquiredDefaults();
 	splitingColsPars.sorting_ = setUp.processSorting();
@@ -81,6 +85,13 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 	table outTab = table::splitColWithMeta(inTab, splitingColsPars);
 	outTab.hasHeader_ = setUp.addHeader_;
 	setUp.ioOptions_.hasHeader_ = setUp.addHeader_;
+	if (replacementHeader.size() > outTab.columnNames_.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << "can't replace with longer header than the table, current header size: "
+				<< outTab.columnNames_.size() << " replacement header: " << replacementHeader.size() << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	std::copy_n(replacementHeader.begin(), replacementHeader.size(), outTab.columnNames_.begin());
 	outTab.outPutContents(setUp.ioOptions_);
 	return 0;
 }

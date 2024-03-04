@@ -821,6 +821,21 @@ nhmmscanOutput::PostProcessHitsRes nhmmscanOutput::postProcessHits(const PostPro
 			auto loc = hit.genBed6_env();
 			uint32_t hmmFromBack = hit.modelLen_ - hit.hmmTo_;
 			uint32_t hmmFromFront = hit.zeroBasedHmmFrom();
+			// if(hit.queryName_ == "PfSN01_070016500.1_GenomicDNA") {
+			// 	std::cout << "pars.softModelCovergeCutOff: " << pars.softModelCovergeCutOff << std::endl;
+			// 	std::cout << "pars.accCutOff             : " << pars.accCutOff << std::endl;
+			// 	std::cout << "pars.scoreCutOff           : " << pars.scoreCutOff << std::endl;
+			// 	std::cout << "pars.evalueCutOff          : " << pars.evalueCutOff << std::endl;
+			// 	std::cout << "pars.scoreNormCutOff       : " << pars.scoreNormCutOff << std::endl;
+			//
+			// 	std::cout << "hit.targetName_: " << hit.targetName_ << std::endl;
+			// 	std::cout << "hit.modelCoverage() >= pars.softModelCovergeCutOff: " << njh::colorBool(hit.modelCoverage() >= pars.softModelCovergeCutOff) << std::endl;
+			// 	std::cout << "hit.acc_ >=  pars.accCutOff: " << njh::colorBool(hit.acc_ >=  pars.accCutOff) << std::endl;
+			// 	std::cout << "hit.modelScore_ >=  pars.scoreCutOff: " << njh::colorBool(hit.modelScore_ >=  pars.scoreCutOff) << std::endl;
+			// 	std::cout << "hit.modelEvalue_ <= pars.evalueCutOff: " << njh::colorBool(hit.modelEvalue_ <= pars.evalueCutOff) << std::endl;
+			// 	std::cout << "hit.modelScore_/hit.envLen() >= pars.scoreNormCutOff: " << njh::colorBool(hit.modelScore_/hit.envLen() >= pars.scoreNormCutOff) << std::endl;
+			// 	std::cout << std::endl;
+			// }
 			if(
 							hmmFromBack <= pars.hmmStartFilter &&
 							hmmFromFront <= pars.hmmStartFilter &&
@@ -828,8 +843,13 @@ nhmmscanOutput::PostProcessHitsRes nhmmscanOutput::postProcessHits(const PostPro
 							hit.acc_ >= pars.hardAccCutOff &&
 							hit.modelScore_ >= pars.hardScoreCutOff &&
 							hit.modelEvalue_ <= pars.hardEvalueCutOff &&
-							(hit.modelScore_/hit.envLen()) >= pars.hardScoreNormCutOff  &&
-							( hit.acc_ >=  pars.accCutOff || hit.modelScore_ >=  pars.scoreCutOff || hit.modelEvalue_ <= pars.evalueCutOff || (hit.modelScore_/hit.envLen()) >= pars.scoreNormCutOff )){
+							hit.modelCoverage() >= pars.hardModelCovergeCutOff &&
+							hit.modelScore_/hit.envLen() >= pars.hardScoreNormCutOff  &&
+									(hit.modelCoverage() >= pars.softModelCovergeCutOff ||
+									 hit.acc_ >=  pars.accCutOff ||
+									 hit.modelScore_ >=  pars.scoreCutOff ||
+									 hit.modelEvalue_ <= pars.evalueCutOff ||
+									 hit.modelScore_/hit.envLen() >= pars.scoreNormCutOff )){
 				ret.filteredHitsByQuery_[hit.queryName_].emplace_back(hit);
 			}
 		}

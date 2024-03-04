@@ -603,6 +603,15 @@ void readVecTrimmer::trimToMaxLength(seqInfo &seq, size_t maxLength) {
 	}
 }
 
+void readVecTrimmer::rtrimToMaxLength(seqInfo&seq, size_t maxLength) {
+	if (maxLength != 0 && len(seq) > maxLength - 1) {
+		seq.clipOut(0, seq.seq_.size() - maxLength);
+	} else if (len(seq) < maxLength) {
+		seq.on_ = false;
+	}
+}
+
+
 void readVecTrimmer::trimAtFirstQualScore(seqInfo &seq,
 		const uint32_t qualCutOff) {
 	auto iter = std::find_if(seq.qual_.begin(), seq.qual_.end(),

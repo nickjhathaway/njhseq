@@ -161,15 +161,17 @@ CATTTTTATtgtTATTCTTATATTATTTTA---TGATTATACATATAATTAATTTAAAATA 3007
 
 	struct PostProcessHitsPars{
 		uint32_t minLength = 0;
-		double accCutOff = 0;/**< a soft cut off for accuracy, must be above this unless the scoreNorm/score/evalue is above the scoreCutOff */
-		double scoreCutOff = 0;/**< a soft cut off for score, must be above this unless the scoreNorm/accuracy/evalue is above the accCutOff */
-		double evalueCutOff = std::numeric_limits<double>::max();/**< a soft cut off for evalue, must be above this unless the scoreNorm/accuracy/score is above the accCutOff */
-		double scoreNormCutOff = 0;/**< a soft cut off for scoreNorm, must be above this unless the accuracy/evalue/score is above the accCutOff */
+		double accCutOff = 0;/**< a soft cut off for accuracy, must be above this unless the modCov/evalue/score/scoreNorm is above their cut offs */
+		double scoreCutOff = 0;/**< a soft cut off for score, must be above this unless the accuracy/evalue/modCov/scoreNorm is above their cut offs */
+		double evalueCutOff = std::numeric_limits<double>::max();/**< a soft cut off for evalue, must be above this unless the accuracy/modCov/score/scoreNorm is above their cut offs */
+		double scoreNormCutOff = 0;/**< a soft cut off for scoreNorm, must be above this unless the accuracy/evalue/score/modCov is above their cut offs */
+		double softModelCovergeCutOff = 0;/**< a soft cut off for model coverage, must be above this unless the accuracy/evalue/score/scoreNorm is above their cut offs */
 
 		double hardAccCutOff = 0;/**< a hard cut off for accuracy, must be above this cut off regardless of other measures */
 		double hardScoreCutOff = 0;/**< a hard cut off for score, must be above this cut off regardless of other measures */
 		double hardEvalueCutOff = std::numeric_limits<double>::max();/**< a hard cut off for evalue, must be above this cut off regardless of other measures */
 		double hardScoreNormCutOff = 0;/**< a hard cut off for scoreNorm, must be above this cut off regardless of other measures */
+		double hardModelCovergeCutOff = 0;/**< a hard cut off for the model coverage, must be above this cut off regardless of other measures */
 
 		uint32_t hmmStartFilter = std::numeric_limits<uint32_t>::max();
 		uint32_t minOverlapFilt_ {1};/**< the minimum amount of overlap to count as overlapping regions  */
