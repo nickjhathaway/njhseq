@@ -57,9 +57,19 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 			for(const auto & parent : currentParents){
 				exons_[parent].emplace_back(record);
 			}
-		}else if("polypeptide" == record->type_){
+		} else if("polypeptide" == record->type_){
 			polypeptides_[record->getAttr("Derives_from")].emplace_back(record);
-		}else {
+		} else if("three_prime_UTR" == record->type_){
+      auto currentParents = tokenizeString(record->getAttr("Parent"), ",");
+      for(const auto & parent : currentParents){
+        three_prime_UTRs_[parent].emplace_back(record);
+      }
+    } else if("five_prime_UTR" == record->type_){
+      auto currentParents = tokenizeString(record->getAttr("Parent"), ",");
+      for(const auto & parent : currentParents){
+        five_prime_UTRs_[parent].emplace_back(record);
+      }
+    } else {
 			auto currentParents = tokenizeString(record->getAttr("Parent"), ",");
 			for(const auto & parent : currentParents){
 				others_[parent].emplace_back(record);
@@ -121,6 +131,40 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 				failed = true;
 			}
 		}
+
+    for(const auto & three_prime_UTR : three_prime_UTRs_){
+      bool found = false;
+      for(const auto & mRNA : mRNAs_){
+        if(mRNA->getAttr("ID") == three_prime_UTR.first){
+          found = true;
+          break;
+        }
+      }
+      if(!found){
+        missingMessage << "three_prime_UTRs_ has records for " << three_prime_UTR.first << " but not fond in mRNAs_" << "\n";
+        missingMessage << "options: " << njh::conToStr(njh::convert<std::shared_ptr<GFFCore>,std::string>(mRNAs_, [](const std::shared_ptr<GFFCore> & gffRecord){
+          return gffRecord->getAttr("ID");
+        }), ",") << "\n";
+        failed = true;
+      }
+    }
+
+    for(const auto & five_prime_UTR : five_prime_UTRs_){
+      bool found = false;
+      for(const auto & mRNA : mRNAs_){
+        if(mRNA->getAttr("ID") == five_prime_UTR.first){
+          found = true;
+          break;
+        }
+      }
+      if(!found){
+        missingMessage << "exons_ has records for " << five_prime_UTR.first << " but not fond in mRNAs_" << "\n";
+        missingMessage << "options: " << njh::conToStr(njh::convert<std::shared_ptr<GFFCore>,std::string>(mRNAs_, [](const std::shared_ptr<GFFCore> & gffRecord){
+          return gffRecord->getAttr("ID");
+        }), ",") << "\n";
+        failed = true;
+      }
+    }
 		//check to see that mRNAs have CDS and exon records
 		//if there are no exons, then create them from the CDS
 		for(const auto & mRNA : mRNAs_){
@@ -157,20 +201,46 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 
 void GeneFromGffs::writeGffRecords(std::ostream & out) const{
 	gene_->writeGffRecord(out);
-	auto writeOutRecs = [&out](const std::unordered_map<std::string, std::vector<std::shared_ptr<GFFCore>>> & records, const std::string & id){
+	// auto writeOutRecs = [&out](const std::unordered_map<std::string, std::vector<std::shared_ptr<GFFCore>>> & records, const std::string & id){
+	// 	if(njh::in(id, records)){
+	// 		for(const auto & rec : records.at(id) ){
+	// 			rec->writeGffRecord(out);
+	// 		}
+	// 	}
+	// };
+
+	auto addRecs = [](std::vector<std::shared_ptr<GFFCore>> &addToRecords, const std::unordered_map<std::string, std::vector<std::shared_ptr<GFFCore>>> & records, const std::string & id){
 		if(njh::in(id, records)){
-			for(const auto & rec : records.at(id) ){
-				rec->writeGffRecord(out);
-			}
+			addOtherVec(addToRecords, records.at(id));
 		}
 	};
 	for(const auto & rna : mRNAs_){
 		rna->writeGffRecord(out);
 		auto rnaID = rna->getIDAttr();
-		writeOutRecs(CDS_, rnaID);
-		writeOutRecs(exons_, rnaID);
-		writeOutRecs(polypeptides_, rnaID);
-		writeOutRecs(others_, rnaID);
+		std::vector<std::shared_ptr<GFFCore>> allRecords;
+		addRecs(allRecords, CDS_, rnaID);
+		addRecs(allRecords, exons_, rnaID);
+		addRecs(allRecords, polypeptides_, rnaID);
+		addRecs(allRecords, others_, rnaID);
+		addRecs(allRecords, three_prime_UTRs_, rnaID);
+		addRecs(allRecords, five_prime_UTRs_, rnaID);
+		njh::sort(allRecords, [](const std::shared_ptr<GFFCore> &  rec1,
+			const std::shared_ptr<GFFCore> & rec2) {
+			if(rec1->seqid_ == rec2->seqid_) {
+				if(rec1->start_ == rec2->start_) {
+					return rec1->end_ < rec2->end_;
+				}
+				return rec1->start_ < rec2->start_;
+			}
+			return rec1->seqid_ < rec2->seqid_;
+		});
+		for(const auto & rec : allRecords){
+			rec->writeGffRecord(out);
+		}
+		// writeOutRecs(CDS_, rnaID);
+		// writeOutRecs(exons_, rnaID);
+		// writeOutRecs(polypeptides_, rnaID);
+		// writeOutRecs(others_, rnaID);
 	}
 }
 
@@ -192,7 +262,6 @@ std::unordered_map<std::string, std::string> GeneFromGffs::getGeneDetailedName()
 
 	for (const auto & m : mRNAs_) {
 		std::string name;
-
 		if (njh::in(gene_->source_, sourcesWithDescription)){
 			if (gene_->hasAttr("description")) {
 				if(!name.empty()){
@@ -874,14 +943,17 @@ void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars & par
 				auto proteinOpts = SeqIOOptions::genFastaOut( pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_protein");
 				auto tableOpts = TableIOOpts::genTabFileOut(  pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_exonIntronPositions", true);
 				auto bedOpts = OutOptions(bfs::path(          pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_exonIntronPositions.bed"));
-				auto transcriptBedOpts = OutOptions(bfs::path(pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + ".bed"));
+				auto transcriptBedOpts = OutOptions(bfs::path(pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_withUTR.bed"));
+				auto transcriptJustCodingBedOpts = OutOptions(bfs::path(pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + ".bed"));
 
 				bedOpts.transferOverwriteOpts(pars.outOpts);
 				transcriptBedOpts.transferOverwriteOpts(pars.outOpts);
+				transcriptJustCodingBedOpts.transferOverwriteOpts(pars.outOpts);
 				tableOpts.out_.transferOverwriteOpts(pars.outOpts);
 
 				// transcript
 				OutputStream transcriptBedOut(transcriptBedOpts);
+
 				auto transcriptBedRecord = GenomicRegion(*transcript).genBedRecordCore();
 				MetaDataInName transcriptMeta;
 				transcriptMeta.addMeta("TranscriptID", transcript->getAttr("ID"));
@@ -891,8 +963,7 @@ void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars & par
 
 
 				transcriptBedRecord.extraFields_.emplace_back(transcriptMeta.createMetaName());
-				transcriptBedOut << GenomicRegion(*transcript).genBedRecordCore().toDelimStrWithExtra() <<std::endl;
-				allTranscriptRecords.emplace_back(transcriptBedRecord);
+				transcriptBedOut << transcriptBedRecord.toDelimStrWithExtra() <<std::endl;
 
 				//exon and introns
 				auto exonIntronPositions = gene.second->getIntronExonTables();
@@ -902,6 +973,34 @@ void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars & par
 				reader.openWrite(exonIntronBeds[transcript->getIDAttr()], [](const Bed6RecordCore & record, std::ostream & out){
 					out << record.toDelimStrWithExtra() << std::endl;
 				});
+
+				//get just the coding region of the transcript, which will be the transcript but just start and end
+				//modified to be the min start of the CDs_ and the max end of the CDS_
+				OutputStream transcriptJustCodingBedOut(transcriptJustCodingBedOpts);
+				// std::vector<Bed6RecordCore> cdsRecs;
+				uint32_t minCD = std::numeric_limits<uint32_t>::max();
+				uint32_t maxCD = 0;
+				for(const auto & cd : gene.second->CDS_.at(transcript->getIDAttr())) {
+					auto cdBedRec = GenomicRegion(*cd).genBedRecordCore();
+					if(cdBedRec.chromStart_ < minCD) {
+						minCD = cdBedRec.chromStart_;
+					}
+					if(cdBedRec.chromEnd_ > maxCD) {
+						maxCD = cdBedRec.chromEnd_;
+					}
+				}
+
+				auto transcriptBedRecordJustCoding = transcriptBedRecord;
+
+				transcriptBedRecordJustCoding.chromStart_ = minCD;
+				transcriptBedRecordJustCoding.chromEnd_ = maxCD;
+				transcriptBedRecordJustCoding.score_ = maxCD - minCD;
+				transcriptBedRecordJustCoding.name_ = njh::pasteAsStr(transcriptBedRecordJustCoding.genUIDFromCoords(), "_", transcript->getAttr("ID"));
+				// allTranscriptRecords.emplace_back(transcriptBedRecord);
+				transcriptJustCodingBedOut << transcriptBedRecordJustCoding.toDelimStrWithExtra() <<std::endl;
+
+				allTranscriptRecords.emplace_back(transcriptBedRecordJustCoding);
+
 
 				//gDNA and cDNA
 				gDNAOpts.out_.transferOverwriteOpts(pars.outOpts);

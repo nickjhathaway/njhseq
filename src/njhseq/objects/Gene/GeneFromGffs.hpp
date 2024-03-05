@@ -23,6 +23,9 @@ public:
 	std::unordered_map<std::string, std::vector<std::shared_ptr<GFFCore>>> exons_;
 	std::unordered_map<std::string, std::vector<std::shared_ptr<GFFCore>>> polypeptides_;
 
+  std::unordered_map<std::string, std::vector<std::shared_ptr<GFFCore>>> three_prime_UTRs_;
+	std::unordered_map<std::string, std::vector<std::shared_ptr<GFFCore>>> five_prime_UTRs_;
+
 	std::unordered_map<std::string, std::vector<std::shared_ptr<GFFCore>>> others_;
 
 	std::unordered_map<std::string, std::string> getGeneDetailedName() const;
