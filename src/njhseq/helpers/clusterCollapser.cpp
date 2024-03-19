@@ -22,10 +22,8 @@
 namespace njhseq {
 
 void clusterCollapser::collapseTandems(std::vector<cluster> &processedReads,
-                                       aligner &alignerObj, int runCutOff,
-                                       int kLength, bool kMersByPosition,
-                                       double freqCutoff, bool local,
-                                       bool weighHomopolyer) {
+                                       aligner &alignerObj,
+                                       const collapseTandemsPars & pars) {
 
   int counter = 0;
   //auto kMaps = kmerCalculator::indexKmerMpas(processedReads, kLength, runCutOff,
@@ -34,28 +32,41 @@ void clusterCollapser::collapseTandems(std::vector<cluster> &processedReads,
   //alignerObj.setKmerMpas(kMaps);
   for (auto &clusIter : iter::reversed(processedReads)) {
     ++counter;
-    if (counter % 20 == 0) {
+    if (pars.verbose && counter % 20 == 0) {
       std::cout << counter << " out of " << processedReads.size() << std::endl;
     }
+    //assumes this is sorted by counts, so will skip if the second cluster doesn't even meet cluster freq difference multiplier
     for (auto &clusIterSecond : processedReads) {
-      if (clusIter.seqBase_.name_ == clusIterSecond.seqBase_.name_) {
+      if (clusIter.seqBase_.name_ == clusIterSecond.seqBase_.name_ ||
+        clusIterSecond.seqBase_.cnt_ < (pars.freqCutoff * clusIter.seqBase_.cnt_) ||
+              clusIterSecond.remove) {
         continue;
       }
-      alignerObj.alignCache(clusIterSecond, clusIter, local);
+      alignerObj.alignCacheGlobal(clusIterSecond, clusIter);
       alignerObj.profileAlignment(clusIterSecond, clusIter, true, true, false);
-      // alignerObj.outPutParameterInfo(std::cout);
-      if (alignerObj.checkForTandemRepeatGap() &&
-          alignerObj.comp_.hqMismatches_ < 1 &&
-          alignerObj.comp_.lqMismatches_ < 1 &&
-          clusIterSecond.seqBase_.cnt_ >
-              (freqCutoff * clusIter.seqBase_.cnt_)) {
+      // alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+      // alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+      // std::cout << "alignerObj.checkForTandemRepeatGap(): " << njh::colorBool(alignerObj.checkForTandemRepeatGap()) << std::endl;
+
+      auto tandems = alignerObj.getTandemRepeatGapsForCurrentAlignment();
+      // std::cout << "tandems.size() : " << tandems.size()<< std::endl;
+      // std::cout << "alignerObj.comp_.distances_.alignmentGaps_.size(): " << alignerObj.comp_.distances_.alignmentGaps_.size() << std::endl;
+      // //alignerObj.checkForTandemRepeatGap()
+      // std::cout << "tandems.size() <= pars.allowableTandems : " << njh::colorBool(tandems.size() <= pars.allowableTandems)<< std::endl;
+      // std::cout << "alignerObj.comp_.distances_.alignmentGaps_.size() == tandems.size() : " << njh::colorBool(alignerObj.comp_.distances_.alignmentGaps_.size() == tandems.size())<< std::endl;
+      // std::cout << "alignerObj.comp_.hqMismatches_ <= pars.allowableMismatches.hqMismatches_ : " << njh::colorBool(alignerObj.comp_.hqMismatches_ <= pars.allowableMismatches.hqMismatches_)<< std::endl;
+      // std::cout << "alignerObj.comp_.lqMismatches_ <= pars.allowableMismatches.lqMismatches_ : " << njh::colorBool(alignerObj.comp_.lqMismatches_ <= pars.allowableMismatches.lqMismatches_)<< std::endl;
+
+      if (tandems.size() <= pars.allowableTandems &&
+          alignerObj.comp_.distances_.alignmentGaps_.size() == tandems.size() &&
+          alignerObj.comp_.hqMismatches_ <= pars.allowableMismatches.hqMismatches_ &&
+          alignerObj.comp_.lqMismatches_ <= pars.allowableMismatches.lqMismatches_ &&
+          clusIterSecond.seqBase_.cnt_ >= (pars.freqCutoff * clusIter.seqBase_.cnt_)) {
         clusIter.remove = true;
         clusIterSecond.addRead(clusIter);
         break;
       }
     }
   }
-  //alignerObj.setKmerMpas(currentKMaps);
-  return;
 }
 }  // namespace njh

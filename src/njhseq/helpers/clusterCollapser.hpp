@@ -75,10 +75,18 @@ class clusterCollapser {
   }
 
   // cluster down on tandems
+	struct collapseTandemsPars {
+  	collapseTandemsPars() {
+  		allowableMismatches.hqMismatches_ = 0;
+  		allowableMismatches.lqMismatches_ = 0;
+  	}
+  	double freqCutoff{6};
+  	comparison allowableMismatches;
+  	uint32_t allowableTandems{1};
+  	bool verbose{false};
+  };
   static void collapseTandems(std::vector<cluster> &processedReads,
-                              aligner &alignerObj, int runCutOff, int kLength,
-                              bool kMersByPosition, double freqCutoff,
-                              bool local, bool weighHomopolyer);
+                              aligner &alignerObj, const collapseTandemsPars & pars);
 };
 template<typename T>
 std::vector<identicalCluster> clusterCollapser::collapseToUniqueReads(

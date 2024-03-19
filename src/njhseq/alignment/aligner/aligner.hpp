@@ -259,7 +259,19 @@ class aligner {
   void setDefaultQualities();
 	void resetCounts();
 	void resetAlignmentInfo();
-	bool checkForTandemRepeatGap();
+
+  struct checkForTandemRepeatGapPars {
+	  checkForTandemRepeatGapPars() {
+
+	  }
+	  int32_t match{2};
+	  int32_t mismatch{-2};
+	  int32_t gap{-7};
+	  int32_t minimumAlignScore{16};
+  };
+
+	bool checkForTandemRepeatGap(const checkForTandemRepeatGapPars & pars = checkForTandemRepeatGapPars() ) const;
+	std::map<uint32_t, gap> getTandemRepeatGapsForCurrentAlignment(const checkForTandemRepeatGapPars & pars = checkForTandemRepeatGapPars() ) const;
 
 	static bool checkTwoEqualSeqs(const std::string& seq1,
 			const std::string& seq2, int allowableMismatches);

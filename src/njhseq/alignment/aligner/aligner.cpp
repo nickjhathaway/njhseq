@@ -1399,40 +1399,147 @@ void aligner::outPutParameterInfo(std::ostream& out) const {
       << " lowKmerMismatch:" << comp_.lowKmerMismatches_ << std::endl;
 }
 
+
+std::map<uint32_t, gap> aligner::getTandemRepeatGapsForCurrentAlignment(const checkForTandemRepeatGapPars & pars) const {
+	std::map<uint32_t, gap> ret;
+	for (const auto & gapIter : comp_.distances_.alignmentGaps_) {
+		if (gapIter.second.size_ >= 2) {
+			std::string search;
+			std::vector<TandemRepeat> gapTand =
+					findTandemRepeatsInSequence(gapIter.second.gapedSequence_,
+						pars.match, pars.mismatch, pars.gap, pars.minimumAlignScore);
+			if (gapTand.empty()) {
+				search = gapIter.second.gapedSequence_;
+			} else {
+				// the first tandem is the smallest repeating unit so just ick the first one
+				search = gapTand[0].repeat_;
+			}
+			// std::cout << "search: " << search << std::endl;
+			if (search.size() %2 == 0 && search.size() > 2) {
+				bool isSmallerRepeat = true;
+				for(const auto pos : iter::range(2UL, search.size(), 2UL)) {
+					if(!std::equal(search.begin(), search.begin() + 2, search.begin() + pos)) {
+						isSmallerRepeat = false;
+					}
+				}
+				if(isSmallerRepeat) {
+					search = search.substr(0, 2);
+				}
+			} else if (search.size() %3 == 0 && search.size() > 3) {
+				bool isSmallerRepeat = true;
+				for(const auto pos : iter::range(3UL, search.size(), 3UL)) {
+					if(!std::equal(search.begin(), search.begin() + 3, search.begin() + pos)) {
+						isSmallerRepeat = false;
+					}
+				}
+				if(isSmallerRepeat) {
+					search = search.substr(0, 3);
+				}
+			} else if (search.size() %4 == 0 && search.size() > 4) {
+				bool isSmallerRepeat = true;
+				for(const auto pos : iter::range(4UL, search.size(), 4UL)) {
+					if(!std::equal(search.begin(), search.begin() + 4, search.begin() + pos)) {
+						isSmallerRepeat = false;
+					}
+				}
+				if(isSmallerRepeat) {
+					search = search.substr(0, 4);
+				}
+			}
+			// std::cout << "search: " << search << std::endl;
+			//if gap is in A sequence find tandems in B
+			if (alignObjectA_.seqBase_.seq_[gapIter.second.startPos_] == '-') {
+				TandemRepeat firstTandems = findTandemRepeatOfStrInSequence(
+					alignObjectA_.seqBase_.seq_, search,
+					pars.match, pars.mismatch, pars.gap, pars.minimumAlignScore);
+
+				TandemRepeat secondTandems = findTandemRepeatOfStrInSequence(
+					alignObjectB_.seqBase_.seq_, search,
+					pars.match, pars.mismatch, pars.gap, pars.minimumAlignScore);
+				// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				// std::cout << "gapIter.second.startPos_ >= secondTandems.startPos_: " << njh::colorBool(gapIter.second.startPos_ >= secondTandems.startPos_) << std::endl;
+				// std::cout << "gapIter.second.startPos_ + gapIter.second.size_ - 1 <= secondTandems.stopPos_: " << njh::colorBool(gapIter.second.startPos_ + gapIter.second.size_ - 1 <= secondTandems.stopPos_) << std::endl;
+				// std::cout << "gapIter.second.startPos_ == firstTandems.stopPos_ : " << njh::colorBool(gapIter.second.startPos_ == firstTandems.stopPos_) << std::endl;
+				// std::cout << "gapIter.second.startPos_: " << gapIter.second.startPos_ << std::endl;
+				// std::cout << "firstTandems.stopPos_: " << firstTandems.stopPos_ << std::endl;
+				// std::cout << std::endl;
+				if (gapIter.second.startPos_ >= secondTandems.startPos_ &&
+						gapIter.second.startPos_ + gapIter.second.size_ - 1 <= secondTandems.stopPos_ &&
+						gapIter.second.startPos_ == firstTandems.stopPos_ ) {
+					ret.emplace(gapIter);
+				}
+			} else if (alignObjectB_.seqBase_.seq_[gapIter.second.startPos_] == '-') {
+				TandemRepeat firstTandems = findTandemRepeatOfStrInSequence(
+					alignObjectB_.seqBase_.seq_, search,
+					pars.match, pars.mismatch, pars.gap, pars.minimumAlignScore);
+
+				TandemRepeat secondTandems = findTandemRepeatOfStrInSequence(
+					alignObjectA_.seqBase_.seq_, search,
+					pars.match, pars.mismatch, pars.gap, pars.minimumAlignScore);
+				// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				// std::cout << "gapIter.second.startPos_ >= secondTandems.startPos_: " << njh::colorBool(gapIter.second.startPos_ >= secondTandems.startPos_) << std::endl;
+				// std::cout << "gapIter.second.startPos_ + gapIter.second.size_ - 1 <= secondTandems.stopPos_: " << njh::colorBool(gapIter.second.startPos_ + gapIter.second.size_ - 1 <= secondTandems.stopPos_) << std::endl;
+				// std::cout << "gapIter.second.startPos_ == firstTandems.stopPos_ : " << njh::colorBool(gapIter.second.startPos_ == firstTandems.stopPos_) << std::endl;
+				// std::cout << "gapIter.second.startPos_: " << gapIter.second.startPos_ << std::endl;
+				// std::cout << "firstTandems.stopPos_: " << firstTandems.stopPos_ << std::endl;
+				// std::cout << std::endl;
+				if (gapIter.second.startPos_ >= secondTandems.startPos_ &&
+				    gapIter.second.startPos_ + gapIter.second.size_ - 1 <= secondTandems.stopPos_ &&
+				    gapIter.second.startPos_ == firstTandems.stopPos_) {
+					ret.emplace(gapIter);
+				}
+				// TandemRepeat secondTandems = findTandemRepeatOfStrInSequence(
+				// 	alignObjectA_.seqBase_.seq_, search,
+				// 	pars.match, pars.mismatch, pars.gap, pars.minimumAlignScore);
+				// if (gapIter.second.startPos_ >= secondTandems.startPos_ &&
+				//     gapIter.second.startPos_ + gapIter.second.size_ - 1 <=
+				//     secondTandems.stopPos_) {
+				// }
+			}
+		}
+	}
+	return ret;
+}
+
+
+
 // check for tandem repeat gaps
-bool aligner::checkForTandemRepeatGap() {
+bool aligner::checkForTandemRepeatGap(const checkForTandemRepeatGapPars & pars ) const{
   bool check = false;
   if (comp_.largeBaseIndel_ == 1) {
-    std::map<uint32_t, gap>::iterator gapIter;
-    for (gapIter = comp_.distances_.alignmentGaps_.begin(); gapIter != comp_.distances_.alignmentGaps_.end();
-         ++gapIter) {
-      if (gapIter->second.size_ >= 3) {
+
+    for (const auto & gapIter : comp_.distances_.alignmentGaps_) {
+      if (gapIter.second.size_ >= 2) {
         std::string search;
         std::vector<TandemRepeat> gapTand =
-            findTandemRepeatsInSequence(gapIter->second.gapedSequence_);
+            findTandemRepeatsInSequence(gapIter.second.gapedSequence_,
+            	pars.match, pars.mismatch, pars.gap, pars.minimumAlignScore);
         if (gapTand.empty()) {
-          search = gapIter->second.gapedSequence_;
+          search = gapIter.second.gapedSequence_;
         } else {
+        	// the first tandem is the smallest repeating unit so just ick the first one
           search = gapTand[0].repeat_;
         }
         bool gapWithinTandem = false;
-        if (alignObjectA_.seqBase_.seq_[gapIter->second.startPos_] == '-') {
+        if (alignObjectA_.seqBase_.seq_[gapIter.second.startPos_] == '-') {
           TandemRepeat secondTandems = findTandemRepeatOfStrInSequence(
-              alignObjectB_.seqBase_.seq_, search);
-          if (gapIter->second.startPos_ >= secondTandems.startPos_ &&
-              gapIter->second.startPos_ + gapIter->second.size_ - 1 <=
+              alignObjectB_.seqBase_.seq_, search,
+              pars.match, pars.mismatch, pars.gap, pars.minimumAlignScore);
+          if (gapIter.second.startPos_ >= secondTandems.startPos_ &&
+              gapIter.second.startPos_ + gapIter.second.size_ - 1 <=
                   secondTandems.stopPos_) {
             gapWithinTandem = true;
           }
           if (gapWithinTandem) {
             check = true;
           }
-        } else if (alignObjectB_.seqBase_.seq_[gapIter->second.startPos_] ==
+        } else if (alignObjectB_.seqBase_.seq_[gapIter.second.startPos_] ==
                    '-') {
           TandemRepeat secondTandems = findTandemRepeatOfStrInSequence(
-              alignObjectA_.seqBase_.seq_, search);
-          if (gapIter->second.startPos_ >= secondTandems.startPos_ &&
-              gapIter->second.startPos_ + gapIter->second.size_ - 1 <=
+          alignObjectA_.seqBase_.seq_, search,
+					pars.match, pars.mismatch, pars.gap, pars.minimumAlignScore);
+          if (gapIter.second.startPos_ >= secondTandems.startPos_ &&
+              gapIter.second.startPos_ + gapIter.second.size_ - 1 <=
                   secondTandems.stopPos_) {
             gapWithinTandem = true;
           }
