@@ -11,8 +11,34 @@
 
 namespace njhseq {
 
+SimpleTandemRepeatFinder::RepeatStartLenRepeats SimpleTandemRepeatFinder::getRepeatInfo(
+	const std::string& seq, const motif& m) {
+	auto locs = m.findPositionsFull(seq, 0);
+	njh::sort(locs);
+	uint32_t maxRepeatNumber = 0;
+	uint32_t start = std::numeric_limits<uint32_t>::max();
+	if (!locs.empty()) {
+		uint32_t length = 1;
+		start = locs.front();
+		for (const auto pos: iter::range<uint32_t>(1, locs.size())) {
+			if (locs[pos] == locs[pos - 1] + m.size()) {
+				++length;
+			} else {
+				if (length > maxRepeatNumber) {
+					maxRepeatNumber = length;
+				}
+				length = 1;
+				start = locs[pos];
+			}
+		}
+		if (length > maxRepeatNumber) {
+			maxRepeatNumber = length;
+		}
+	}
+	return RepeatStartLenRepeats{start, static_cast<uint32_t>(maxRepeatNumber * m.size()), maxRepeatNumber};
+}
 
-void SimpleTRFinderLocsPars::setDefaultOpts(seqSetUp & setUp){
+void SimpleTandemRepeatFinder::SimpleTRFinderLocsPars::setDefaultOpts(seqSetUp & setUp){
 	setUp.setOption(numThreads, "--numThreads", "Number of CPUs to use", njh::progutils::ProgramSetUp::CheckCase::NONZERO);
 	setUp.setOption(lengthCutOff, "--lengthCutOff", "The minimum length to report(inclusive)");
 	setUp.setOption(minNumRepeats, "--minNumRepeats", "The minimum number of repeated units(inclusive)");
@@ -33,31 +59,21 @@ void SimpleTRFinderLocsPars::setDefaultOpts(seqSetUp & setUp){
 }
 
 
-void runSimpleTRFinderLocsPars(const SeqIOOptions & seqInput, const SimpleTRFinderLocsPars & pars){
+SimpleTandemRepeatFinder::SimpleTandemRepeatFinder(SimpleTRFinderLocsPars pars): pars_(std::move(pars)){
 
-	//first create tandems that will be searched for
-	std::vector<std::string> allUnits;
-	for(uint32_t repeatUnitSize = pars.minRepeatUnitSize; repeatUnitSize < pars.maxRepeatUnitSize + 1; ++repeatUnitSize){
-		auto units = permuteVector(pars.alphabet, repeatUnitSize);
-		for(const auto & unit : units){
-			allUnits.emplace_back(njh::pasteAsStr(unit));
-		}
-	}
-//	auto isHomopolymer =
-//			[](const std::string & k) {
-//				return std::all_of(k.begin(), k.end(),[&k](const char c) {return k.front() == c;});
-//			};
-	std::unordered_map<std::string, std::vector<motif>> altMots;
-	if(!pars.searchAllUnits){
-		std::vector<std::string> toBeAllUnits;
+}
+
+SimpleTandemRepeatFinder::MinimalUnitsAndAltMotifs SimpleTandemRepeatFinder::genMinimalUnitsNeededForSearch() const {
+	MinimalUnitsAndAltMotifs ret;
+	auto allUnits = genAllUnitsPossible();
 		for(const auto & unit : allUnits){
 			bool add = true;
 			if(unit.size() > 1){
-				for(const auto & otherUnit : toBeAllUnits){
+				for(const auto & otherUnit : *ret.allUnits){
 					//check rotating if the same size
 					if(otherUnit.size() == unit.size()){
-						if(checkTwoRotatingStrings(unit, otherUnit, 0).size() > 0){
-							altMots[otherUnit].emplace_back(motif(unit));
+						if(!checkTwoRotatingStrings(unit, otherUnit, 0).empty()){
+							ret.altMots[otherUnit].emplace_back(unit);
 							add = false;
 							break;
 						}
@@ -117,62 +133,47 @@ void runSimpleTRFinderLocsPars(const SeqIOOptions & seqInput, const SimpleTRFind
 				}
 			}
 			if(add){
-				toBeAllUnits.emplace_back(unit);
+				ret.allUnits->emplace_back(unit);
 			}
 		}
-		allUnits = toBeAllUnits;
+	return ret;
+}
+VecStr SimpleTandemRepeatFinder::genAllUnitsPossible() const {
+	VecStr allUnits;
+	for(uint32_t repeatUnitSize = pars_.minRepeatUnitSize; repeatUnitSize < pars_.maxRepeatUnitSize + 1; ++repeatUnitSize){
+		auto units = permuteVector(pars_.alphabet, repeatUnitSize);
+		for(const auto & unit : units){
+			allUnits.emplace_back(njh::pasteAsStr(unit));
+		}
+	}
+	return allUnits;
+}
+
+void SimpleTandemRepeatFinder::runSimpleTRFinderLocs(const SeqIOOptions & seqInput) const{
+
+	//first create tandems that will be searched for
+	MinimalUnitsAndAltMotifs minimalUnits;
+	if (pars_.searchAllUnits) {
+		minimalUnits.allUnits = std::make_shared<VecStr>(genAllUnitsPossible());
+	} else {
+		minimalUnits = genMinimalUnitsNeededForSearch();
 	}
 
-	if(pars.debug){
+	if(pars_.debug){
 		std::cout << "Searching for: " << std::endl;
-		printVector(allUnits,"\n");
+		printVector(*minimalUnits.allUnits,"\n");
 	}
-
-	struct RepeatStartLenRepeats{
-		RepeatStartLenRepeats(const uint32_t start, const uint32_t len, const uint32_t repeats): start_(start), len_(len), repeats_(repeats){
-
-		}
-		uint32_t start_;
-		uint32_t len_;
-		uint32_t repeats_;
-
-	};
-	auto getRepeatInfo = [](const std::string & seq, const motif & m){
-		auto locs = m.findPositionsFull(seq, 0);
-		njh::sort(locs);
-		uint32_t maxRepeatNumber = 0;
-		uint32_t start = std::numeric_limits<uint32_t>::max();
-		if(!locs.empty()){
-			uint32_t length = 1;
-			start = locs.front();
-			for(const auto pos : iter::range<uint32_t>(1, locs.size())){
-				if(locs[pos] == locs[pos - 1] + m.size() ){
-					++length;
-				}else{
-					if(length > maxRepeatNumber){
-						maxRepeatNumber = length;
-					}
-					length = 1;
-					start = locs[pos];
-				}
-			}
-			if(length > maxRepeatNumber){
-				maxRepeatNumber = length;
-			}
-		}
-		return RepeatStartLenRepeats{start, static_cast<uint32_t>(maxRepeatNumber * m.size()), maxRepeatNumber};
-	};
 
 
 	seqInfo seq;
 	SeqInput reader(seqInput);
 	reader.openIn();
-	OutputStream out(pars.outOpts);
+	OutputStream out(pars_.outOpts);
 	std::mutex outMut;
 	while(reader.readNextRead(seq)){
-		njh::concurrent::LockableQueue<std::string> unitQueue(allUnits);
-		std::function<void()> findTandems = [&unitQueue,&seq,&pars,&out,&outMut,
-																				 &altMots,&getRepeatInfo](){
+		njh::concurrent::LockableQueue<std::string> unitQueue(*minimalUnits.allUnits);
+		std::function<void()> findTandems = [&unitQueue,&seq,this,&out,&outMut,
+																				 &minimalUnits](){
 			std::string motifstr;
 			std::vector<Bed6RecordCore> repeatUnitLocs;
 			std::stringstream currentOut;
@@ -190,7 +191,7 @@ void runSimpleTRFinderLocsPars(const SeqIOOptions & seqInput, const SimpleTRFind
 						} else {
 							uint32_t outputStart = start;
 							uint32_t outputEnd = start + mot.size() * length;
-							if(!pars.doNotAddFlankingSeq){
+							if(!pars_.doNotAddFlankingSeq){
 								if(start > 0){
 									uint32_t walkbackPos = 0;
 									while(outputStart > 0 && walkbackPos + 1 < mot.size()){
@@ -229,10 +230,10 @@ void runSimpleTRFinderLocsPars(const SeqIOOptions & seqInput, const SimpleTRFind
 							//							}
 							//						}
 							//					}
-							if(outputEnd - outputStart >=pars.lengthCutOff && njh::in(motifstr, altMots)){
+							if(outputEnd - outputStart >=pars_.lengthCutOff && njh::in(motifstr, minimalUnits.altMots) ){
 								auto subSeq = seq.seq_.substr(outputStart, outputEnd - outputStart);
 								auto minStart = start;
-								for(const auto & altMot : altMots.at(motifstr)){
+								for(const auto & altMot : minimalUnits.altMots.at(motifstr)){
 									auto altRepeatInfo = getRepeatInfo(subSeq, altMot);
 									if (altRepeatInfo.repeats_ > repeatNumber) {
 										repeatNumber = altRepeatInfo.repeats_;
@@ -244,14 +245,14 @@ void runSimpleTRFinderLocsPars(const SeqIOOptions & seqInput, const SimpleTRFind
 								}
 							}
 
-							if(repeatNumber >= pars.minNumRepeats && outputEnd - outputStart >=pars.lengthCutOff){
+							if(repeatNumber >= pars_.minNumRepeats && outputEnd - outputStart >=pars_.lengthCutOff){
 								currentOut << seq.name_
 										<< "\t" << outputStart
 										<< "\t" << outputEnd
-										<< "\t" << njh::pasteAsStr(seq.name_,"-", outputStart, "-", outputEnd) << "__" << outMotifstr << "_x" << static_cast<double>(outputEnd - outputStart)/mot.size()
+										<< "\t" << njh::pasteAsStr(seq.name_,"-", outputStart, "-", outputEnd) << "__" << outMotifstr << "_x" << static_cast<double>(outputEnd - outputStart)/static_cast<double>(mot.size())
 										<< "\t" << outputEnd - outputStart
 										<< "\t" << "+";
-								if(pars.addFullSeqToOuput){
+								if(pars_.addFullSeqToOuput){
 									currentOut << "\t" << seq.seq_.substr(outputStart, outputEnd - outputStart);
 								}
 								currentOut << '\n';
@@ -262,7 +263,7 @@ void runSimpleTRFinderLocsPars(const SeqIOOptions & seqInput, const SimpleTRFind
 					}
 					uint32_t outputStart = start;
 					uint32_t outputEnd = start + mot.size() * length;
-					if(!pars.doNotAddFlankingSeq){
+					if(!pars_.doNotAddFlankingSeq){
 						if(start > 0){
 							uint32_t walkbackPos = 0;
 							while(outputStart > 0 && walkbackPos + 1 < mot.size()){
@@ -301,10 +302,10 @@ void runSimpleTRFinderLocsPars(const SeqIOOptions & seqInput, const SimpleTRFind
 //							}
 //						}
 //					}
-					if(outputEnd - outputStart >=pars.lengthCutOff && njh::in(motifstr, altMots)){
+					if(outputEnd - outputStart >=pars_.lengthCutOff && njh::in(motifstr, minimalUnits.altMots)){
 						auto subSeq = seq.seq_.substr(outputStart, outputEnd - outputStart);
 						auto minStart = start;
-						for(const auto & altMot : altMots.at(motifstr)){
+						for(const auto & altMot : minimalUnits.altMots.at(motifstr)){
 							auto altRepeatInfo = getRepeatInfo(subSeq, altMot);
 							if (altRepeatInfo.repeats_ > repeatNumber) {
 								repeatNumber = altRepeatInfo.repeats_;
@@ -315,14 +316,14 @@ void runSimpleTRFinderLocsPars(const SeqIOOptions & seqInput, const SimpleTRFind
 							}
 						}
 					}
-					if(repeatNumber >= pars.minNumRepeats && outputEnd - outputStart >=pars.lengthCutOff){
+					if(repeatNumber >= pars_.minNumRepeats && outputEnd - outputStart >=pars_.lengthCutOff){
 						currentOut << seq.name_
 								<< "\t" << outputStart
 								<< "\t" << outputEnd
-								<< "\t" << njh::pasteAsStr(seq.name_,"-", outputStart, "-", outputEnd) << "__" << outMotifstr << "_x" << static_cast<double>(outputEnd - outputStart)/mot.size()
+								<< "\t" << njh::pasteAsStr(seq.name_,"-", outputStart, "-", outputEnd) << "__" << outMotifstr << "_x" << static_cast<double>(outputEnd - outputStart)/static_cast<double>(mot.size())
 								<< "\t" << outputEnd - outputStart
 								<< "\t" << "+";
-						if(pars.addFullSeqToOuput){
+						if(pars_.addFullSeqToOuput){
 							currentOut << "\t" << seq.seq_.substr(outputStart, outputEnd - outputStart);
 						}
 						currentOut << '\n';
@@ -334,7 +335,7 @@ void runSimpleTRFinderLocsPars(const SeqIOOptions & seqInput, const SimpleTRFind
 				out << currentOut.str();
 			}
 		};
-		njh::concurrent::runVoidFunctionThreaded(findTandems, pars.numThreads);
+		njh::concurrent::runVoidFunctionThreaded(findTandems, pars_.numThreads);
 	}
 }
 
