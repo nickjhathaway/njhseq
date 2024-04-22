@@ -152,13 +152,16 @@ int ManipulateTableRunner::countRowLengths(
 		}
 		if (setUp.ioOptions_.hasHeader_ || (rowNumber > 0)) {
 			uint32_t index = 0;
-			if (setUp.ioOptions_.inDelim_ == "") {
+			if (setUp.ioOptions_.inDelim_.empty() || "whitespace" == njh::strToLowerRet(setUp.ioOptions_.inDelim_)) {
 				std::stringstream ss(line);
 				std::string out;
 				while (!ss.eof()) {
 					ss >> out;
 					++index;
 				}
+			} else if ("tab" == njh::strToLowerRet(setUp.ioOptions_.inDelim_)) {
+				auto toks = tokenizeString(line, "\t");
+				index = toks.size();
 			} else {
 				auto toks = tokenizeString(line, setUp.ioOptions_.inDelim_);
 				index = toks.size();
