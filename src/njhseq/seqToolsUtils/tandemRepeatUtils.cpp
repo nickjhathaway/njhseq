@@ -65,6 +65,7 @@ SimpleTandemRepeatFinder::SimpleTandemRepeatFinder(SimpleTRFinderLocsPars pars):
 
 SimpleTandemRepeatFinder::MinimalUnitsAndAltMotifs SimpleTandemRepeatFinder::genMinimalUnitsNeededForSearch() const {
 	MinimalUnitsAndAltMotifs ret;
+
 	auto allUnits = genAllUnitsPossible();
 		for(const auto & unit : allUnits){
 			bool add = true;
@@ -136,6 +137,7 @@ SimpleTandemRepeatFinder::MinimalUnitsAndAltMotifs SimpleTandemRepeatFinder::gen
 				ret.allUnits->emplace_back(unit);
 			}
 		}
+
 	return ret;
 }
 VecStr SimpleTandemRepeatFinder::genAllUnitsPossible() const {
@@ -153,10 +155,15 @@ void SimpleTandemRepeatFinder::runSimpleTRFinderLocs(const SeqIOOptions & seqInp
 
 	//first create tandems that will be searched for
 	MinimalUnitsAndAltMotifs minimalUnits;
+
 	if (pars_.searchAllUnits) {
+
 		minimalUnits.allUnits = std::make_shared<VecStr>(genAllUnitsPossible());
+
 	} else {
+
 		minimalUnits = genMinimalUnitsNeededForSearch();
+
 	}
 
 	if(pars_.debug){
@@ -170,6 +177,7 @@ void SimpleTandemRepeatFinder::runSimpleTRFinderLocs(const SeqIOOptions & seqInp
 	reader.openIn();
 	OutputStream out(pars_.outOpts);
 	std::mutex outMut;
+
 	while(reader.readNextRead(seq)){
 		njh::concurrent::LockableQueue<std::string> unitQueue(*minimalUnits.allUnits);
 		std::function<void()> findTandems = [&unitQueue,&seq,this,&out,&outMut,

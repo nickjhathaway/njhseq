@@ -57,6 +57,9 @@ public:
 
 	[[nodiscard]] VecStr genAllUnitsPossible() const;
 	struct MinimalUnitsAndAltMotifs {
+		MinimalUnitsAndAltMotifs() {
+			allUnits =std::make_shared<VecStr>();
+		}
 		std::shared_ptr<VecStr> allUnits;
 		std::unordered_map<std::string, std::vector<motif>> altMots;
 	};
