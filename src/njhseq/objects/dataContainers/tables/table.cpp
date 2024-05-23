@@ -761,7 +761,7 @@ void table::rbind(const table &addingTable, bool fill) {
 	if (fill &&
 	    !hasHeader_ &&
 	    !otherTableCopy.hasHeader_ &&
-	    std::round(std::log10(columnNames_.size())) != std::round(std::log10(otherTableCopy.columnNames_.size()))) {
+	    std::floor(std::log10(columnNames_.size())) != std::floor(std::log10(otherTableCopy.columnNames_.size()))) {
 		if (columnNames_.size() > otherTableCopy.columnNames_.size()) {
 			otherTableCopy.columnNames_ = getSubVector(columnNames_, 0, otherTableCopy.columnNames_.size());
 			otherTableCopy.setColNamePositions();
