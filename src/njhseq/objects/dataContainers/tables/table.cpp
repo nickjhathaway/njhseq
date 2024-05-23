@@ -764,8 +764,10 @@ void table::rbind(const table &otherTable, bool fill) {
 	    std::round(std::log10(columnNames_.size())) != std::round(std::log10(otherTable.columnNames_.size()))) {
 		if (columnNames_.size() > otherTable.columnNames_.size()) {
 			otherTableCopy.columnNames_ = getSubVector(columnNames_, 0, otherTableCopy.columnNames_.size());
+			otherTableCopy.setColNamePositions();
 		} else {
 			columnNames_ = getSubVector(otherTableCopy.columnNames_, 0, columnNames_.size());
+			setColNamePositions();
 		}
 	}
 
