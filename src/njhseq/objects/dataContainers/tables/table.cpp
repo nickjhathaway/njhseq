@@ -754,45 +754,45 @@ std::map<std::string, table> table::splitTableOnColumnLoose(
   return splitTableOnColumnLoose(colName, names);
 }
 
-void table::rbind(const table &otherTable, bool fill) {
+void table::rbind(const table &addingTable, bool fill) {
 	VecStr missingColsFromThis;
 	VecStr missingColsFromOther;
-	auto otherTableCopy = otherTable;
+	auto otherTableCopy = addingTable;
 	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (fill &&
 	    !hasHeader_ &&
-	    !otherTable.hasHeader_ &&
-	    std::round(std::log10(columnNames_.size())) != std::round(std::log10(otherTable.columnNames_.size()))) {
-		if (columnNames_.size() > otherTable.columnNames_.size()) {
+	    !otherTableCopy.hasHeader_ &&
+	    std::round(std::log10(columnNames_.size())) != std::round(std::log10(otherTableCopy.columnNames_.size()))) {
+		if (columnNames_.size() > otherTableCopy.columnNames_.size()) {
 			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			std::cout << "columnNames_.size(): " << columnNames_.size() << std::endl;
-			std::cout << "otherTable.columnNames_.size() " << otherTable.columnNames_.size() << std::endl;
+			std::cout << "otherTable.columnNames_.size() " << otherTableCopy.columnNames_.size() << std::endl;
 
 			otherTableCopy.columnNames_ = getSubVector(columnNames_, 0, otherTableCopy.columnNames_.size());
 			otherTableCopy.setColNamePositions();
 			std::cout << "columnNames_.size(): " << columnNames_.size() << std::endl;
-			std::cout << "otherTable.columnNames_.size() " << otherTable.columnNames_.size() << std::endl;
+			std::cout << "otherTable.columnNames_.size() " << otherTableCopy.columnNames_.size() << std::endl;
 			std::cout << "columnNames_: " << njh::conToStr(columnNames_, ",") << std::endl;
-			std::cout << "otherTable.columnNames_: " << njh::conToStr(otherTable.columnNames_, ",") << std::endl;
+			std::cout << "otherTable.columnNames_: " << njh::conToStr(otherTableCopy.columnNames_, ",") << std::endl;
 
 		} else {
 			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			std::cout << "columnNames_.size(): " << columnNames_.size() << std::endl;
-			std::cout << "otherTable.columnNames_.size() " << otherTable.columnNames_.size() << std::endl;
+			std::cout << "otherTable.columnNames_.size() " << otherTableCopy.columnNames_.size() << std::endl;
 			columnNames_ = getSubVector(otherTableCopy.columnNames_, 0, columnNames_.size());
 			setColNamePositions();
 		}
 	}
 	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	std::cout << std::endl;
-	for(const auto & col : otherTable.columnNames_){
+	for(const auto & col : otherTableCopy.columnNames_){
 		if(!njh::in(col, columnNames_)){
 			missingColsFromThis.emplace_back(col);
 		}
 	}
 
 	for(const auto & col : columnNames_){
-		if(!njh::in(col, otherTable.columnNames_)){
+		if(!njh::in(col, otherTableCopy.columnNames_)){
 			missingColsFromOther.emplace_back(col);
 		}
 	}
