@@ -770,6 +770,11 @@ void table::rbind(const table &otherTable, bool fill) {
 
 			otherTableCopy.columnNames_ = getSubVector(columnNames_, 0, otherTableCopy.columnNames_.size());
 			otherTableCopy.setColNamePositions();
+			std::cout << "columnNames_.size(): " << columnNames_.size() << std::endl;
+			std::cout << "otherTable.columnNames_.size() " << otherTable.columnNames_.size() << std::endl;
+			std::cout << "columnNames_: " << njh::conToStr(columnNames_, ",") << std::endl;
+			std::cout << "otherTable.columnNames_: " << njh::conToStr(otherTable.columnNames_, ",") << std::endl;
+
 		} else {
 			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			std::cout << "columnNames_.size(): " << columnNames_.size() << std::endl;
@@ -792,7 +797,7 @@ void table::rbind(const table &otherTable, bool fill) {
 		}
 	}
 
-
+	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (!missingColsFromOther.empty() || !missingColsFromThis.empty()) {
 		if (fill) {
 			if (!missingColsFromOther.empty()) {
@@ -819,7 +824,9 @@ void table::rbind(const table &otherTable, bool fill) {
 			throw std::runtime_error{ss.str()};
 		}
 	}
+	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	otherTableCopy = otherTableCopy.getColumns(columnNames_);
+	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & row : otherTableCopy){
 		addRow(row);
 	}
