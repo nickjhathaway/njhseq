@@ -757,6 +757,18 @@ std::map<std::string, table> table::splitTableOnColumnLoose(
 void table::rbind(const table &otherTable, bool fill) {
 	VecStr missingColsFromThis;
 	VecStr missingColsFromOther;
+	auto otherTableCopy = otherTable;
+	if (fill &&
+	    !hasHeader_ &&
+	    !otherTable.hasHeader_ &&
+	    std::round(std::log10(columnNames_.size())) != std::round(std::log10(otherTable.columnNames_.size()))) {
+		if (columnNames_.size() > otherTable.columnNames_.size()) {
+			otherTableCopy.columnNames_ = getSubVector(columnNames_, 0, otherTableCopy.columnNames_.size());
+		} else {
+			columnNames_ = getSubVector(otherTableCopy.columnNames_, 0, columnNames_.size());
+		}
+	}
+
 	for(const auto & col : otherTable.columnNames_){
 		if(!njh::in(col, columnNames_)){
 			missingColsFromThis.emplace_back(col);
@@ -768,28 +780,30 @@ void table::rbind(const table &otherTable, bool fill) {
 			missingColsFromOther.emplace_back(col);
 		}
 	}
-	auto otherTableCopy = otherTable;
 
-	if(!missingColsFromOther.empty() || !missingColsFromThis.empty()){
-		if(fill){
-			if(!missingColsFromOther.empty()){
-				for(const auto & col : missingColsFromOther){
+
+	if (!missingColsFromOther.empty() || !missingColsFromThis.empty()) {
+		if (fill) {
+			if (!missingColsFromOther.empty()) {
+				for (const auto& col: missingColsFromOther) {
 					otherTableCopy.addColumn({"NA"}, col);
 				}
 			}
-			if(!missingColsFromThis.empty()){
-				for(const auto & col : missingColsFromThis){
+			if (!missingColsFromThis.empty()) {
+				for (const auto& col: missingColsFromThis) {
 					addColumn({"NA"}, col);
 				}
 			}
-		}else{
+		} else {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", error" << "\n";
-			if(!missingColsFromOther.empty()){
-				ss << "Missing the following columns from adding table: " << njh::conToStrEndSpecial(missingColsFromOther, ", ", " and ") << "\n";
+			if (!missingColsFromOther.empty()) {
+				ss << "Missing the following columns from adding table: " << njh::conToStrEndSpecial(
+					missingColsFromOther, ", ", " and ") << "\n";
 			}
-			if(!missingColsFromThis.empty()){
-				ss << "Missing the following columns from this table  : " << njh::conToStrEndSpecial(missingColsFromThis, ", ", " and ") << "\n";
+			if (!missingColsFromThis.empty()) {
+				ss << "Missing the following columns from this table  : " << njh::conToStrEndSpecial(
+					missingColsFromThis, ", ", " and ") << "\n";
 			}
 			throw std::runtime_error{ss.str()};
 		}

@@ -891,10 +891,10 @@ int ManipulateTableRunner::rBind(
 				}
 			}
 		}
-	}else{
+	} else {
 		table mainTable;
 		uint32_t count = 0;
-		for (const auto &file : allFiles) {
+		for (const auto& file: allFiles) {
 			if (verbose) {
 				std::cout << file.first.string() << std::endl;
 			}
@@ -904,7 +904,7 @@ int ManipulateTableRunner::rBind(
 				}
 				continue;
 			}
-			if (skipNonExistFiles && !bfs::exists(file.first)){
+			if (skipNonExistFiles && !bfs::exists(file.first)) {
 				continue;
 			}
 			if (0 == njh::files::bfs::file_size(file.first)) {
@@ -920,7 +920,7 @@ int ManipulateTableRunner::rBind(
 				table inTab(file.first.string(), setUp.ioOptions_.inDelim_, setUp.ioOptions_.hasHeader_);
 				try {
 					mainTable.rbind(inTab, fill);
-				}catch (std::exception & e) {
+				} catch (std::exception& e) {
 					std::stringstream ss;
 					ss << __PRETTY_FUNCTION__ << ", failed to add table from " << file.first << "\n";
 					ss << e.what();
