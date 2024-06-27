@@ -502,24 +502,25 @@ bool SeqInput::readNextFastaStream(std::istream & fastaFile, seqInfo& read,
 	if (!fastaFile.good()) {
 		return false;
 	}
-	std::string name = "";
-	std::string buildingSeq = "";
-	std::string line = "";
+	std::string name;
+	std::string buildingSeq;
+	std::string line;
 	if ('>' == fastaFile.peek()) {
 		njh::files::crossPlatGetline(fastaFile, name);
 		while (fastaFile.peek() != std::ifstream::eofbit && fastaFile.good() && fastaFile.peek() != '>') {
 			njh::files::crossPlatGetline(fastaFile, line);
 			buildingSeq.append(line);
 		}
-		if (!ioOptions_.includeWhiteSpaceInName_ && name.find(" ") != std::string::npos) {
+		if (!ioOptions_.includeWhiteSpaceInName_ && name.find(' ') != std::string::npos) {
 			//not really safe if name starts with space but hopefully no would do that
-			read = seqInfo(name.substr(1, name.find(" ") - 1), buildingSeq);
+			read = seqInfo(name.substr(1, name.find(' ') - 1), buildingSeq);
 		} else {
 			read = seqInfo(name.substr(1), buildingSeq);
 		}
 		if (processed) {
 			read.processRead(processed);
 		}
+		readVec::handelLowerCaseBases(read, ioOptions_.lowerCaseBases_);
 		return true;
 	} else {
 		std::stringstream ss;

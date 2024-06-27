@@ -89,9 +89,14 @@ GeneFromGffs::GeneFromGffs(const std::vector<std::shared_ptr<GFFCore>> & geneRec
 		mRNAs_.emplace_back(gene_);
 	}
 
-	//this is a dirty fix for bacteria gff since they won't have mRNA
+	//to trick out things annotated by EMBL, from what i've seen they don't always have an m-RNA
+	if(mRNAs_.empty() && gene_->source_ == "EMBL") {
+		mRNAs_.emplace_back(gene_);
+	}
+
 
 	if(mRNAs_.empty() && 1 == CDS_.size() && 1 == CDS_.begin()->second.size()){
+		//this is a dirty fix for bacteria gff since they won't have mRNA
 		for(const auto & cds : CDS_){
 			//again very hacky, should do a more formal fix than this
 			mRNAs_.emplace_back(cds.second.front());
