@@ -228,11 +228,19 @@ double sampleCluster::getReadWeightedAveragedFrac()const{
 //this should only be called during sample collaping and never during population collapsing, that would turn things into read weighted averages
 void sampleCluster::update(const std::map<std::string, sampInfo>& infos) {
   // clear and update it all
-	for(const auto & info : infos){
+	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	// std::cout <<"sampInfos_ names: " << njh::conToStr(njh::getVecOfMapKeys(sampInfos_), ", ") << std::endl;
+	// std::cout <<"infos names: " << njh::conToStr(njh::getVecOfMapKeys(infos), ", ") << std::endl;
 
-		sampInfos_.at(info.first).updateRunReadCnt(info.second.readCnt_);
+	for(const auto & info : infos){
+		// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+		// sampInfos_.at(info.first).updateRunReadCnt(info.second.readCnt_);
+		njh::mapAt(sampInfos_,info.first).updateRunReadCnt(info.second.readCnt_);
+		// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	}
+  // std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
   updateFractionInfo();
+	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 }
 void sampleCluster::updateSampInfosFracs(){
 	for(auto & sampInfo : sampInfos_){

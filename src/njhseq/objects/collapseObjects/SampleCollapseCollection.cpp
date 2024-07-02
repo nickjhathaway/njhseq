@@ -360,7 +360,7 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 			MetaDataInName seqMeta(seq.name_);
 			auto topClusterName = seqMeta.getMeta("TopClusterName");
 			seqMeta.removeMeta("TopClusterName");
-			if(seqMeta.meta_.size() == 0){
+			if(seqMeta.meta_.empty()){
 				MetaDataInName::removeMetaDataInName(seq.name_);
 			}else{
 				seqMeta.resetMetaInName(seq.name_);
@@ -408,7 +408,7 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 			MetaDataInName seqMeta(seq.name_);
 			auto topClusterName = seqMeta.getMeta("TopClusterName");
 			seqMeta.removeMeta("TopClusterName");
-			if(seqMeta.meta_.size() == 0){
+			if(seqMeta.meta_.empty()){
 //				std::cout << seq.name_ << std::endl;
 				MetaDataInName::removeMetaDataInName(seq.name_);
 //				std::cout << seq.name_ << std::endl;
@@ -430,6 +430,18 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 	for (const auto & sCount : finalSampCounts) {
 		finalSampInfos[sCount.first] = sampInfo(sCount.first, sCount.second);
 	}
+
+	//add in the total counts for any of the runs that did not make it into the final counts
+	// this happens for instance if you have 3 replicates and are accepting only 2 replicates and one of those replicates
+	// all end up in excluded
+	for(const auto & info : allSampInfos) {
+		if(njh::notIn(info.first, finalSampInfos)) {
+			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+			finalSampInfos[info.first] = sampInfo(info.first, info.second.runReadCnt_);
+		}
+	}
+
+
 	auto finalFileOpts = SeqIOOptions(
 			njh::files::make_path(sampleDir, "final/",
 					sampleName + inputOptions_.getOutExtension()).string(),
@@ -482,9 +494,20 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 			}
 		}
 	}
+
+	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	// std::cout << "samp.collapsed_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.collapsed_.info_.infos_), ", ") << std::endl;
+	// std::cout << "samp.excluded_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.excluded_.info_.infos_), ", ") << std::endl;
+	// std::cout << "samp.input_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.input_.info_.infos_), ", ") << std::endl;
+
+
 	samp.updateExclusionInfos();
 	samp.updateInitialInfos();
 	samp.updateCollapsedInfos();
+	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+	// std::cout << "samp.collapsed_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.collapsed_.info_.infos_), ", ") << std::endl;
+	// std::cout << "samp.excluded_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.excluded_.info_.infos_), ", ") << std::endl;
+	// std::cout << "samp.input_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.input_.info_.infos_), ", ") << std::endl;
 
 	sampleCollapses_[sampleName] = sampPtr;
 

@@ -53,6 +53,9 @@ void clusterSet::setSubClustersPositions() {
 
 void clusterSet::setSetInfo() {
 	info_.clear();
+	// for(auto & subInfo : info_.infos_) {
+	// 	subInfo.second.resetBasicInfo();
+	// }
 	for (const auto& read : clusters_) {
 		info_.updateInfo(read.reads_);
 	}

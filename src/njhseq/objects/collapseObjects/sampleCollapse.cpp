@@ -78,23 +78,29 @@ sampleCollapse::sampleCollapse(const std::vector<std::vector<njhseq::cluster>> &
 }
 
 void sampleCollapse::updateExclusionInfos() {
-	  excluded_.setSetInfo();
-    sampleCluster::updateAllClusters(excluded_.clusters_, input_.info_.infos_);
-  }
+	excluded_.setSetInfo();
+	sampleCluster::updateAllClusters(excluded_.clusters_, input_.info_.infos_);
+}
 // update the initial infos
 void sampleCollapse::updateInitialInfos() {
   input_.setSetInfo();
 }
 // update the collapsed infos
 void sampleCollapse::updateCollapsedInfos() {
+	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
   collapsed_.setSetInfo();
-
+  // std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
   sampleCluster::updateAllClusters(collapsed_.clusters_, collapsed_.info_.infos_);
+	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 }
 
 void sampleCollapse::updateAfterExclustion() {
+	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	updateExclusionInfos();
+	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	updateCollapsedInfos();
+	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+
 }
 
 

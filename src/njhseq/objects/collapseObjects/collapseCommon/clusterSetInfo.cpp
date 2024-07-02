@@ -29,8 +29,7 @@ namespace njhseq {
 namespace collapse {
 
 
-clusterSetInfo::clusterSetInfo() {
-}
+clusterSetInfo::clusterSetInfo() = default;
 
 void clusterSetInfo::updateInfo(const seqInfo & read) {
 	auto search = infos_.find(read.getOwnSampName());
@@ -47,6 +46,7 @@ void clusterSetInfo::clear() {
 	std::map<std::string, sampInfo>().swap(infos_);
 	totalReadCount_ = 0;
 	numberOfClusters_ = 0;
+	cois_.clear();
 }
 
 void clusterSetInfo::resetRunReadCnt() {
