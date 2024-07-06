@@ -65,7 +65,7 @@ public:
 	std::vector<uint32_t> positions_; /**< The positions the kmer is found at*/
 	std::unordered_map<std::string, uint32_t> names_; /**< map to hold the number of times the kmer appears in one read, key is name, value is occurences */
 	uint32_t readCnt_; /**< The number of reads the kmer appears in, so if found multiple times in one read will one count once*/
-
+	bool on_{true}; /**< gives ability to turn kmer on or off*/
 	/**@brief add another position of the kmer
 	 *
 	 * @param pos A position this kmer appears at
@@ -98,7 +98,7 @@ public:
 	 *
 	 * @return Json::Value object
 	 */
-	Json::Value toJson() const;
+	[[nodiscard]] Json::Value toJson() const;
 };
 
 

@@ -64,7 +64,9 @@ class seqSetUp : public njh::progutils::ProgramSetUp {
   void processWritingOptions();
   void processWritingOptions(OutOptions & opts);
   bool processRefFilename(bool required = false);
-  bool processSeq(bool required = false);
+	bool processSeqIoFilename(SeqIOOptions & ioOpts, const std::string & flagPrefix, bool required);
+
+	bool processSeq(bool required = false);
   bool processSeq(std::string& inputSeq, const std::string& flag,
                   const std::string& parName, bool required = false,
 								 const std::string & flagGrouping = "Misc");

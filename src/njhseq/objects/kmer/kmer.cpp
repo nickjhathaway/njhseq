@@ -46,6 +46,7 @@ Json::Value kmer::toJson() const {
 	ret["names_"] = njh::json::toJson(names_);
 	ret["positions_"] = njh::json::toJson(positions_);
 	ret["readCnt_"] = njh::json::toJson(readCnt_);
+	ret["on_"] = njh::json::toJson(on_);
 	return ret;
 }
 

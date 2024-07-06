@@ -803,6 +803,32 @@ void seqSetUp::processWritingOptions(OutOptions & opts) {
 	}
 }
 
+
+bool seqSetUp::processSeqIoFilename(SeqIOOptions & ioOpts, const std::string & flagPrefix, bool required) {
+	setOption(ioOpts.processed_, njh::pasteAsStr("--", flagPrefix, "Processed"),
+		njh::pasteAsStr(flagPrefix, " Name Has Abundance Info"));
+	setOption(ioOpts.lowerCaseBases_, njh::pasteAsStr("--", flagPrefix, "Lower"),
+			njh::pasteAsStr("What to do about lower case bases in ", flagPrefix, " seqs"));
+	bool removeWhiteSpaceFromName = false;
+	setOption(removeWhiteSpaceFromName, njh::pasteAsStr("--", flagPrefix, "TrimNameWhiteSpace"),
+			njh::pasteAsStr("What to do about lower case bases in ", flagPrefix, " seqs"));
+	ioOpts.includeWhiteSpaceInName_ = !removeWhiteSpaceFromName;
+	bool hasNameSet = setOption(ioOpts.firstName_,
+		njh::pasteAsStr("--", flagPrefix, "Fasta,--", flagPrefix, "Fastq"), njh::pasteAsStr("", flagPrefix, " Fasta or Fastq File Name"), required);
+
+	if (commands_.hasFlagCaseInsenNoDash(njh::pasteAsStr("--", flagPrefix, "Fastq"))) {
+		ioOpts.inFormat_ = SeqIOOptions::inFormats::FASTQ;
+		ioOpts.outFormat_ = SeqIOOptions::outFormats::FASTQ;
+	} else if (commands_.hasFlagCaseInsenNoDash(njh::pasteAsStr("--", flagPrefix, "Fasta"))) {
+		ioOpts.inFormat_ = SeqIOOptions::inFormats::FASTA;
+		ioOpts.outFormat_ = SeqIOOptions::outFormats::FASTA;
+	}
+
+	return hasNameSet;
+}
+
+
+
 bool seqSetUp::processRefFilename(bool required) {
 	setOption(pars_.refIoOptions_.processed_, "--refProcessed",
 			"Reference Name Has Abundance Info");
