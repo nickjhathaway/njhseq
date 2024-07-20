@@ -468,9 +468,9 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedData(const std::string 
 	//info field
 	VecStr warningsInfoField;
 
-	if(std::string::npos != toks[7].find(':')) {
-		warningsInfoField.emplace_back("info field can't have :");
-	}
+	// if(std::string::npos != toks[7].find(':')) {
+	// 	warningsInfoField.emplace_back("info field can't have :");
+	// }
 	if(njh::strHasWhitesapce( toks[7])) {
 		warningsInfoField.emplace_back("info field can't whitespace");
 	}
@@ -918,10 +918,9 @@ VCFOutput VCFOutput::readInHeader(const bfs::path & fnp) {
 }
 
 
-
-VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> & vcfsFnps,
-		const std::set<std::string> & sampleNamesSet,
-		bool doNotRescueVariantCallsAccrossTargets){
+VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
+                                  const std::set<std::string> &sampleNamesSet,
+                                  const comnbineVCFsPars &pars) {
 	const auto& firstVcfFnp = vcfsFnps.front();
 	auto firstVcf = VCFOutput::readInHeader(firstVcfFnp);
 	{
@@ -975,7 +974,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> & vcfsFnps,
 			std::set<uint32_t> positionsToErase;
 			std::set<uint32_t> currentPositionsToComp;
 			auto compSamePositions = [&currentPositionsToComp,&firstVcf,&positionsToErase,
-				&doNotRescueVariantCallsAccrossTargets]() {
+				&pars]() {
 				if(currentPositionsToComp.size() > 1) {
 					uint32_t bestPos = std::numeric_limits<uint32_t>::max();
 					uint32_t bestNS = 0;
@@ -991,8 +990,656 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> & vcfsFnps,
 							positionsToErase.emplace(checkPos);
 						}
 					}
-					if(!doNotRescueVariantCallsAccrossTargets) {
+					// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+					if(pars.combinedOverlappingCallsAcrossTargets) {
+						// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+						std::regex blankDataPattern("\\.(,\\.)*");
+						for(const auto & bestSampInfo : firstVcf.records_[bestPos].sampleFormatInfos_) {
+							bool allBlanks = true;
+							for(const auto & checkPos : currentPositionsToComp) {
+								if(!std::all_of(firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].meta_.begin(),
+								firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].meta_.end(),
+								[&blankDataPattern](const auto & meta) {
+									return std::regex_match(meta.second, blankDataPattern);
+								})) {
+									allBlanks = false;
+									break;
+								}
+							}
+							// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+							if(!allBlanks) {
+								// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+								std::vector<uint32_t> rowPositionsWithNonBlankSamples;
+								for(const auto & checkPos : currentPositionsToComp) {
+									//check to see if this blank sample has data for the overlapping variant call
+									if (!std::all_of(firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].meta_.begin(),
+																	firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].meta_.end(),
+																	[&blankDataPattern](const auto& meta) {
+																		return std::regex_match(meta.second, blankDataPattern);
+																	}) &&
+																	"." != firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].getMeta("DP") &&
+																	"0" != firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].getMeta("DP")) {
 
+										rowPositionsWithNonBlankSamples.emplace_back(checkPos);
+																	}
+								}
+								// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+								if(rowPositionsWithNonBlankSamples.size() == 1 && rowPositionsWithNonBlankSamples.front() != bestPos) {
+									firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first] = firstVcf.records_[rowPositionsWithNonBlankSamples.front()].sampleFormatInfos_[bestSampInfo.first];
+									//add to bestRefPos the NS, AN, AC
+									//// NS will increase by 1 (though have to investigate that it's possible a sample is blank from the first initial call becauase it might already be counted)
+									firstVcf.records_[bestPos].info_.addMeta("NS",firstVcf.records_[bestPos].info_.getMeta<uint32_t>("NS") + 1,true);
+
+									// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+									//have to check to see if the same variants are present
+									if(firstVcf.records_[rowPositionsWithNonBlankSamples.front()].alts_ != firstVcf.records_[bestPos].alts_) {
+										VecStr altsNotInBestPos;
+										for(const auto & alt : firstVcf.records_[rowPositionsWithNonBlankSamples.front()].alts_) {
+											if(njh::notIn(alt, firstVcf.records_[bestPos].alts_)) {
+												altsNotInBestPos.emplace_back(alt);
+											}
+										}
+										VecStr altsNotInBestPosWithData;
+										for(const auto & alt : firstVcf.records_[bestPos].alts_) {
+											if(njh::notIn(alt, firstVcf.records_[rowPositionsWithNonBlankSamples.front()].alts_)) {
+												altsNotInBestPosWithData.emplace_back(alt);
+											}
+										}
+										if(!altsNotInBestPosWithData.empty() && altsNotInBestPos.empty()){
+										   //replacement has to add the missing alt alleles
+											auto AD = firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AD");
+											auto AD_toks = tokenizeString(AD, ",");
+											auto AF = firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AF");
+											auto AF_toks = tokenizeString(AF, ",");
+
+											std::string AD_replacement = AD_toks.front();
+											std::string AF_replacement = AF_toks.front();
+											std::unordered_map<std::string, uint32_t> altsInBestPosWithDataKey;
+											for(const auto & idx : iter::enumerate(firstVcf.records_[rowPositionsWithNonBlankSamples.front()].alts_)) {
+												altsInBestPosWithDataKey[idx.element] = idx.index;
+											}
+											for(const auto & alt : firstVcf.records_[bestPos].alts_) {
+												if(!AD_replacement.empty()) {
+													AD_replacement += ",";
+													AF_replacement += ",";
+												}
+												if(njh::in(alt, altsInBestPosWithDataKey)) {
+													AD_replacement += AD_toks[altsInBestPosWithDataKey[alt] + 1];
+													AF_replacement += AF_toks[altsInBestPosWithDataKey[alt] + 1];
+												} else {
+													AD_replacement += "0";
+													AF_replacement += "0";
+												}
+											}
+											firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AD", AD_replacement, true);
+											firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AF", AF_replacement, true);
+										} else if(!altsNotInBestPos.empty()){
+											//all other samples have to add the missing alts from the replacement
+											//if the replacement is also missing the original alts this will handle that as well
+											auto newAltsSet = njh::vecToSet(concatVecs(firstVcf.records_[rowPositionsWithNonBlankSamples.front()].alts_, firstVcf.records_[bestPos].alts_));
+											VecStr newAlts(newAltsSet.begin(), newAltsSet.end());
+											njh::sort(newAlts);
+											std::unordered_map<std::string, uint32_t> altsInBestPosKey;
+											for(const auto & idx : iter::enumerate(firstVcf.records_[bestPos].alts_)) {
+												altsInBestPosKey[idx.element] = idx.index;
+											}
+											for(const auto & currentSample : firstVcf.samples_) {
+												if(bestSampInfo.first == currentSample) {
+													continue;
+												}
+												//replacement has to add the missing alt alleles
+												auto AD = firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].getMeta("AD");
+												auto AD_toks = tokenizeString(AD, ",");
+												auto AF = firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].getMeta("AF");
+												auto AF_toks = tokenizeString(AF, ",");
+
+												std::string AD_replacement = AD_toks.front();
+												std::string AF_replacement = AF_toks.front();
+												for(const auto & alt : newAlts) {
+													if(!AD_replacement.empty()) {
+														AD_replacement += ",";
+														AF_replacement += ",";
+													}
+													if(njh::in(alt, altsInBestPosKey)) {
+														AD_replacement += AD_toks[altsInBestPosKey[alt] + 1];
+														AF_replacement += AF_toks[altsInBestPosKey[alt] + 1];
+													} else {
+														AD_replacement += "0";
+														AF_replacement += "0";
+													}
+												}
+												firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].addMeta("AD", AD_replacement, true);
+												firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].addMeta("AF", AF_replacement, true);
+											}
+
+											//
+											if(!altsNotInBestPosWithData.empty()) {
+												//replacement has to add the missing alt alleles
+												auto AD = firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AD");
+												auto AD_toks = tokenizeString(AD, ",");
+												auto AF = firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AF");
+												auto AF_toks = tokenizeString(AF, ",");
+
+												std::string AD_replacement = AD_toks.front();
+												std::string AF_replacement = AF_toks.front();
+												std::unordered_map<std::string, uint32_t> altsInBestPosWithDataKey;
+												for(const auto & idx : iter::enumerate(firstVcf.records_[rowPositionsWithNonBlankSamples.front()].alts_)) {
+													altsInBestPosWithDataKey[idx.element] = idx.index;
+												}
+												for(const auto & alt : newAlts) {
+													if(!AD_replacement.empty()) {
+														AD_replacement += ",";
+														AF_replacement += ",";
+													}
+													if(njh::in(alt, altsInBestPosWithDataKey)) {
+														AD_replacement += AD_toks[altsInBestPosWithDataKey[alt] + 1];
+														AF_replacement += AF_toks[altsInBestPosWithDataKey[alt] + 1];
+													} else {
+														AD_replacement += "0";
+														AF_replacement += "0";
+													}
+												}
+												firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AD", AD_replacement, true);
+												firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AF", AF_replacement, true);
+											}
+
+											//replace current alts
+											//replace AC and AF with zeros so that underneath they get properly modified
+											auto AC = firstVcf.records_[bestPos].info_.getMeta("AC");
+											auto AC_toks = tokenizeString(AC, ",");
+											auto AF = firstVcf.records_[bestPos].info_.getMeta("AF");
+											auto AF_toks = tokenizeString(AF, ",");
+											auto SC = firstVcf.records_[bestPos].info_.getMeta("SC");
+											auto SC_toks = tokenizeString(SC, ",");
+											auto PREV = firstVcf.records_[bestPos].info_.getMeta("PREV");
+											auto PREV_toks = tokenizeString(PREV, ",");
+											std::string AC_replacement;
+											std::string AF_replacement;
+											std::string SC_replacement;
+											std::string PREV_replacement;
+											for(const auto & alt : newAlts) {
+												if(!AC_replacement.empty()) {
+													AC_replacement += ",";
+													AF_replacement += ",";
+													SC_replacement += ",";
+													PREV_replacement += ",";
+												}
+												if(njh::in(alt, altsInBestPosKey)) {
+													AC_replacement += AC_toks[altsInBestPosKey[alt]];
+													AF_replacement += AF_toks[altsInBestPosKey[alt]];
+													SC_replacement += SC_toks[altsInBestPosKey[alt]];
+													PREV_replacement += PREV_toks[altsInBestPosKey[alt]];
+												} else {
+													AC_replacement += "0";
+													AF_replacement += "0";
+													SC_replacement += "0";
+													PREV_replacement += "0";
+												}
+											}
+											firstVcf.records_[bestPos].info_.addMeta("AC", AC_replacement, true);
+											firstVcf.records_[bestPos].info_.addMeta("AF", AF_replacement, true);
+											firstVcf.records_[bestPos].info_.addMeta("SC", SC_replacement, true);
+											firstVcf.records_[bestPos].info_.addMeta("PREV", PREV_replacement, true);
+											firstVcf.records_[bestPos].alts_ = newAlts;
+										}
+									}
+									// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+
+									//// AN will increase by the number non-zero allele calls for the sample
+									auto ADs = tokenizeString(firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AD"), ",");
+									auto ANcount = std::count_if(ADs.begin(), ADs.end(), [](const std::string & str){ return "0" != str;});
+									firstVcf.records_[bestPos].info_.addMeta("AN",firstVcf.records_[bestPos].info_.getMeta<uint32_t>("AN") + ANcount,true);
+									//// AC will increase the counts of allele that arent' 0 (and since we are adding samples with data there shouldn't be .)
+									//// subsequently AF will also have to re-calculated
+									////// will have to reconstruct the AC/AF for the best ref pos
+
+									////// AC
+									auto AC = firstVcf.records_[bestPos].info_.getMeta("AC");
+									auto AC_toks = tokenizeString(AC, ",");
+									//the ADs go ref, variant1, variant2 etc
+									if(AC_toks.size() + 1 != ADs.size()) {
+										std::stringstream ss;
+										ss << __PRETTY_FUNCTION__ << ", error " << "AC_toks.size() + 1 should equal ADs.size()" << "\n";
+										ss << "AC_toks.size() + 1: " << AC_toks.size() + 1 << ", " << "ADs.size(): " << ADs.size() << "\n";
+										ss << "AC_toks: " << njh::conToStr(AC_toks, ",") << "; " << "ADs: " << njh::conToStr(ADs, ",") << "\n";
+										ss << "firstVcf.records_[bestPos].alts_                : " << njh::conToStr(firstVcf.records_[bestPos].alts_, ",") << "\n";
+										ss << "firstVcf.records_[bestRowPositionWithData].alts_: " << njh::conToStr(firstVcf.records_[rowPositionsWithNonBlankSamples.front()].alts_, ",") << "\n";
+										throw std::runtime_error{ss.str()};
+									}
+									//ADs_tok includes the reference as it's first tok so skip it and adjust index by 1
+									for (const auto& ADs_tok: iter::enumerate(ADs)) {
+										//skip reference
+										if (ADs_tok.index != 0) {
+											//if ADs_tok.element does not equal 0 then add 1
+											if (ADs_tok.element != "0") {
+												AC_toks[ADs_tok.index - 1] = estd::to_string(
+													njh::StrToNumConverter::stoToNum<uint32_t>(AC_toks[ADs_tok.index - 1]) + 1);
+											}
+										}
+									}
+									//replace the updated AC
+									firstVcf.records_[bestPos].info_.addMeta("AC", njh::conToStr(AC_toks, ","), true);
+									//////// AF
+									// re-calculate the AFs based on the new AC and AN
+									double AN = firstVcf.records_[bestPos].info_.getMeta<uint32_t>("AN");
+									VecStr AFs;
+									for(const auto & AC_tok : AC_toks) {
+										AFs.emplace_back(estd::to_string(njh::StrToNumConverter::stoToNum<uint32_t>(AC_tok)/AN));
+									}
+									//replace the updated AF
+									firstVcf.records_[bestPos].info_.addMeta("AF", njh::conToStr(AFs, ","), true);
+
+
+									////// SC
+									auto SC = firstVcf.records_[bestPos].info_.getMeta("SC");
+									auto SC_toks = tokenizeString(SC, ",");
+									//the ADs go ref, variant1, variant2 etc
+									if(SC_toks.size() + 1 != ADs.size()) {
+										std::stringstream ss;
+										ss << __PRETTY_FUNCTION__ << ", error " << "SC_toks.size() + 1 should equal ADs.size()" << "\n";
+										ss << "SC_toks.size() + 1: " << SC_toks.size() + 1 << ", " << "ADs.size(): " << ADs.size() << "\n";
+										ss << "SC_toks: " << njh::conToStr(SC_toks, ",") << "; " << "ADs: " << njh::conToStr(ADs, ",") << "\n";
+										ss << "firstVcf.records_[bestPos].alts_                : " << njh::conToStr(firstVcf.records_[bestPos].alts_, ",") << "\n";
+										ss << "firstVcf.records_[bestRowPositionWithData].alts_: " << njh::conToStr(firstVcf.records_[rowPositionsWithNonBlankSamples.front()].alts_, ",") << "\n";
+										throw std::runtime_error{ss.str()};
+									}
+									//ADs_tok includes the reference as it's first tok so skip it and adjust index by 1
+									for (const auto& ADs_tok: iter::enumerate(ADs)) {
+										//skip reference
+										if (ADs_tok.index != 0) {
+											//if ADs_tok.element does not equal 0 then add 1
+											if (ADs_tok.element != "0") {
+												SC_toks[ADs_tok.index - 1] = estd::to_string(
+													njh::StrToNumConverter::stoToNum<uint32_t>(SC_toks[ADs_tok.index - 1]) + 1);
+											}
+										}
+									}
+									//////// PREV
+									/// re-calculate PREV based on the new SC and NS
+									double NS = firstVcf.records_[bestPos].info_.getMeta<uint32_t>("NS");
+									VecStr PREVs;
+									for(const auto & SC_tok : SC_toks) {
+										PREVs.emplace_back(estd::to_string(njh::StrToNumConverter::stoToNum<uint32_t>(SC_tok)/NS));
+									}
+									//replace the updated PREV
+									firstVcf.records_[bestPos].info_.addMeta("PREV", njh::conToStr(PREVs, ","), true);
+
+
+								} else if(rowPositionsWithNonBlankSamples.size() > 1) {
+									// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+
+									//check each position that's going to be added has the same variants
+									for(const auto checkPos : rowPositionsWithNonBlankSamples){
+										//have to check to see if the same variants are present
+										// std::cout << "firstVcf.records_[checkPos].alts_ != firstVcf.records_[bestPos].alts_: " << njh::colorBool(firstVcf.records_[checkPos].alts_ != firstVcf.records_[bestPos].alts_) << std::endl;
+										if(firstVcf.records_[checkPos].alts_ != firstVcf.records_[bestPos].alts_) {
+											// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+											// std::cout << "checkPos: " << checkPos << std::endl;
+											// std::cout << "bestPos: " << bestPos << std::endl;
+											// std::cout << "checkPos info: " << njh::json::toJson(firstVcf.records_[checkPos].info_.meta_) << std::endl;
+											// std::cout << "bestPos info: " << njh::json::toJson(firstVcf.records_[bestPos].info_.meta_) << std::endl;
+											//
+											// std::cout << "firstVcf.records_[checkPos].alts_: " << njh::conToStr(firstVcf.records_[checkPos].alts_, ",") << std::endl;
+											// std::cout << "firstVcf.records_[bestPos].alts_: " << njh::conToStr(firstVcf.records_[bestPos].alts_, ",") << std::endl;
+
+											VecStr altsNotInBestPos;
+											for(const auto & alt : firstVcf.records_[checkPos].alts_) {
+												if(njh::notIn(alt, firstVcf.records_[bestPos].alts_)) {
+													altsNotInBestPos.emplace_back(alt);
+												}
+											}
+											VecStr altsNotInBestPosWithData;
+											for(const auto & alt : firstVcf.records_[bestPos].alts_) {
+												if(njh::notIn(alt, firstVcf.records_[checkPos].alts_)) {
+													altsNotInBestPosWithData.emplace_back(alt);
+												}
+											}
+											if(!altsNotInBestPosWithData.empty() && altsNotInBestPos.empty()){
+												// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+											   //replacement has to add the missing alt alleles
+												auto AD = firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AD");
+												auto AD_toks = tokenizeString(AD, ",");
+												auto AF = firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AF");
+												auto AF_toks = tokenizeString(AF, ",");
+													// std::cout << njh::bashCT::red;
+													//
+													// std::cout << "currentSample: " << bestSampInfo.first << std::endl;
+													// std::cout << "AD: " << AD << std::endl;
+													// std::cout << njh::bashCT::reset;
+												std::string AD_replacement = AD_toks.front();
+												std::string AF_replacement = AF_toks.front();
+												std::unordered_map<std::string, uint32_t> altsInBestPosWithDataKey;
+												for(const auto & idx : iter::enumerate(firstVcf.records_[checkPos].alts_)) {
+													altsInBestPosWithDataKey[idx.element] = idx.index;
+												}
+												for(const auto & alt : firstVcf.records_[bestPos].alts_) {
+													if(!AD_replacement.empty()) {
+														AD_replacement += ",";
+														AF_replacement += ",";
+													}
+													if(njh::in(alt, altsInBestPosWithDataKey)) {
+														AD_replacement += AD_toks[altsInBestPosWithDataKey[alt] + 1];
+														AF_replacement += AF_toks[altsInBestPosWithDataKey[alt] + 1];
+													} else {
+														AD_replacement += "0";
+														AF_replacement += "0";
+													}
+												}
+												firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AD", AD_replacement, true);
+												firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AF", AF_replacement, true);
+												// std::cout << njh::bashCT::red;
+												//
+												// std::cout << "AD_replacement: " << AD_replacement << std::endl;
+												// std::cout << njh::bashCT::reset;
+
+											} else if(!altsNotInBestPos.empty()){
+												// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+												//all other samples have to add the missing alts from the replacement
+												//if the replacement is also missing the original alts this will handle that as well
+												auto newAltsSet = njh::vecToSet(concatVecs(firstVcf.records_[checkPos].alts_, firstVcf.records_[bestPos].alts_));
+												VecStr newAlts(newAltsSet.begin(), newAltsSet.end());
+												njh::sort(newAlts);
+												std::unordered_map<std::string, uint32_t> altsInBestPosKey;
+												for(const auto & idx : iter::enumerate(firstVcf.records_[bestPos].alts_)) {
+													altsInBestPosKey[idx.element] = idx.index;
+												}
+												// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+												// std::cout << "checkPos: " << checkPos << std::endl;
+												// std::cout << "bestPos: " << bestPos << std::endl;
+												// std::cout << "checkPos info: " << njh::json::toJson(firstVcf.records_[checkPos].info_.meta_) << std::endl;
+												// std::cout << "bestPos info: " << njh::json::toJson(firstVcf.records_[bestPos].info_.meta_) << std::endl;
+												//
+												// std::cout << "firstVcf.records_[checkPos].alts_: " << njh::conToStr(firstVcf.records_[checkPos].alts_, ",") << std::endl;
+												// std::cout << "firstVcf.records_[bestPos].alts_: " << njh::conToStr(firstVcf.records_[bestPos].alts_, ",") << std::endl;
+
+												for(const auto & currentSample : firstVcf.samples_) {
+													// if(bestSampInfo.first == currentSample) {
+													// this was copied over from when the bestPos had a blank sample so you didn't modify it but now we have to for when summing
+													// 	std::cout << njh::bashCT::red;
+													// 	auto AD = firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].getMeta("AD");
+													// 	auto AD_toks = tokenizeString(AD, ",");
+													// 	auto AF = firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].getMeta("AF");
+													// 	auto AF_toks = tokenizeString(AF, ",");
+													// 	std::cout << "currentSample: " << currentSample << std::endl;
+													// 	std::cout << "AD: " << AD << std::endl;
+													// 	std::cout << njh::bashCT::reset;
+													// 	continue;
+													// }
+													//replacement has to add the missing alt alleles
+
+													auto AD = firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].getMeta("AD");
+													auto AD_toks = tokenizeString(AD, ",");
+													auto AF = firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].getMeta("AF");
+													auto AF_toks = tokenizeString(AF, ",");
+													// std::cout << "currentSample: " << currentSample << std::endl;
+													// std::cout << "AD: " << AD << std::endl;
+													std::string AD_replacement = AD_toks.front();
+													std::string AF_replacement = AF_toks.front();
+													for(const auto & alt : newAlts) {
+														if(!AD_replacement.empty()) {
+															AD_replacement += ",";
+															AF_replacement += ",";
+														}
+														if(njh::in(alt, altsInBestPosKey)) {
+															AD_replacement += AD_toks[altsInBestPosKey[alt] + 1];
+															AF_replacement += AF_toks[altsInBestPosKey[alt] + 1];
+														} else {
+															AD_replacement += "0";
+															AF_replacement += "0";
+														}
+													}
+													firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].addMeta("AD", AD_replacement, true);
+													firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].addMeta("AF", AF_replacement, true);
+												}
+
+												//
+												if(!altsNotInBestPosWithData.empty()) {
+													//replacement has to add the missing alt alleles
+													auto AD = firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AD");
+													auto AD_toks = tokenizeString(AD, ",");
+													auto AF = firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AF");
+													auto AF_toks = tokenizeString(AF, ",");
+
+													std::string AD_replacement = AD_toks.front();
+													std::string AF_replacement = AF_toks.front();
+													std::unordered_map<std::string, uint32_t> altsInBestPosWithDataKey;
+													for(const auto & idx : iter::enumerate(firstVcf.records_[checkPos].alts_)) {
+														altsInBestPosWithDataKey[idx.element] = idx.index;
+													}
+													for(const auto & alt : newAlts) {
+														if(!AD_replacement.empty()) {
+															AD_replacement += ",";
+															AF_replacement += ",";
+														}
+														if(njh::in(alt, altsInBestPosWithDataKey)) {
+															AD_replacement += AD_toks[altsInBestPosWithDataKey[alt] + 1];
+															AF_replacement += AF_toks[altsInBestPosWithDataKey[alt] + 1];
+														} else {
+															AD_replacement += "0";
+															AF_replacement += "0";
+														}
+													}
+													firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AD", AD_replacement, true);
+													firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AF", AF_replacement, true);
+												}
+
+												//replace current alts
+												//replace AC and AF with zeros so that underneath they get properly modified
+												auto AC = firstVcf.records_[bestPos].info_.getMeta("AC");
+												auto AC_toks = tokenizeString(AC, ",");
+												auto AF = firstVcf.records_[bestPos].info_.getMeta("AF");
+												auto AF_toks = tokenizeString(AF, ",");
+												auto SC = firstVcf.records_[bestPos].info_.getMeta("SC");
+												auto SC_toks = tokenizeString(SC, ",");
+												auto PREV = firstVcf.records_[bestPos].info_.getMeta("PREV");
+												auto PREV_toks = tokenizeString(PREV, ",");
+												std::string AC_replacement;
+												std::string AF_replacement;
+												std::string SC_replacement;
+												std::string PREV_replacement;
+												for(const auto & alt : newAlts) {
+													if(!AC_replacement.empty()) {
+														AC_replacement += ",";
+														AF_replacement += ",";
+														SC_replacement += ",";
+														PREV_replacement += ",";
+													}
+													if(njh::in(alt, altsInBestPosKey)) {
+														AC_replacement += AC_toks[altsInBestPosKey[alt]];
+														AF_replacement += AF_toks[altsInBestPosKey[alt]];
+														SC_replacement += SC_toks[altsInBestPosKey[alt]];
+														PREV_replacement += PREV_toks[altsInBestPosKey[alt]];
+													} else {
+														AC_replacement += "0";
+														AF_replacement += "0";
+														SC_replacement += "0";
+														PREV_replacement += "0";
+													}
+												}
+												firstVcf.records_[bestPos].info_.addMeta("AC", AC_replacement, true);
+												firstVcf.records_[bestPos].info_.addMeta("AF", AF_replacement, true);
+												firstVcf.records_[bestPos].info_.addMeta("SC", SC_replacement, true);
+												firstVcf.records_[bestPos].info_.addMeta("PREV", PREV_replacement, true);
+												firstVcf.records_[bestPos].alts_ = newAlts;
+											}
+										}
+									}
+									// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+									//use sample with best depth as the base
+									// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+									uint32_t bestReadDepth = 0;
+									uint32_t bestRowPositionWithData = std::numeric_limits<uint32_t>::max();
+									for(const auto currentPos : rowPositionsWithNonBlankSamples) {
+										auto readDepth = firstVcf.records_[currentPos].sampleFormatInfos_[bestSampInfo.first].getMeta<uint32_t>("DP");
+										if(readDepth > bestReadDepth) {
+											bestReadDepth = readDepth;
+											bestRowPositionWithData = currentPos;
+										}
+									}
+									// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+									auto bestSampInfoWithData = firstVcf.records_[bestRowPositionWithData].sampleFormatInfos_[bestSampInfo.first];
+									// std::cout << "bestSampInfoWithData.getMeta(\"AD\"): " << bestSampInfoWithData.getMeta("AD") << std::endl;
+									// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+									//add in AD and DP
+									for(const auto & currentPos : rowPositionsWithNonBlankSamples) {
+										if(currentPos != bestRowPositionWithData) {
+											//update DP
+											bestSampInfoWithData.addMeta(
+												"DP", firstVcf.records_[currentPos].sampleFormatInfos_[bestSampInfo.first].getMeta<
+													      uint32_t>("DP") +
+												      bestSampInfoWithData.getMeta<uint32_t>("DP"), true);
+											// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+											//update AD
+											//should be same size as above normalized all alts
+											auto AD_toks = tokenizeString(bestSampInfoWithData.getMeta("AD"), ",");
+											auto adding_AD_toks = tokenizeString(firstVcf.records_[currentPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AD"), ",");
+											// std::cout << " njh::conToStr(AD_toks): " <<  njh::conToStr(AD_toks, ",") << std::endl;
+											// std::cout << " njh::conToStr(adding_AD_toks): " <<  njh::conToStr(adding_AD_toks, ",") << std::endl;
+											if(AD_toks.size()  != adding_AD_toks.size()) {
+												std::stringstream ss;
+												ss << __PRETTY_FUNCTION__ << ", error " << "AD_toks.size() should equal adding_AD_toks.size()" << "\n";
+												ss << "AD_toks.size(): " << AD_toks.size() << ", " << "adding_AD_toks.size(): " << adding_AD_toks.size() << "\n";
+												ss << "AD_toks: " << njh::conToStr(AD_toks, ",") << "; " << "adding_AD_toks: " << njh::conToStr(adding_AD_toks, ",") << "\n";
+												ss << "bestPos: " <<bestPos << "\n";
+												ss << "currentPos: " <<currentPos << "\n";
+												ss << "bestRowPositionWithData: " <<bestRowPositionWithData << "\n";
+
+												ss << "firstVcf.records_[bestPos].alts_                : " << njh::conToStr(firstVcf.records_[bestPos].alts_, ",") << "\n";
+												ss << "firstVcf.records_[currentPos].alts_             : " << njh::conToStr(firstVcf.records_[currentPos].alts_, ",") << "\n";
+												ss << "firstVcf.records_[bestRowPositionWithData].alts_: " << njh::conToStr(firstVcf.records_[bestRowPositionWithData].alts_, ",") << "\n";
+												throw std::runtime_error{ss.str()};
+											}
+											for(const auto & AD_tok_enum : iter::enumerate(AD_toks)) {
+												AD_toks[AD_tok_enum.index] = estd::to_string(
+													njh::StrToNumConverter::stoToNum<uint32_t>(AD_toks[AD_tok_enum.index]) +
+													njh::StrToNumConverter::stoToNum<uint32_t>(adding_AD_toks[AD_tok_enum.index])
+												);
+											}
+											bestSampInfoWithData.addMeta("AD", njh::conToStr(AD_toks, ","), true);
+											// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+											//update AF
+											auto newDP = bestSampInfoWithData.getMeta<double>("DP");
+											VecStr AF_toks;
+											for(const auto & AD_tok : AD_toks) {
+												AF_toks.emplace_back(estd::to_string(njh::StrToNumConverter::stoToNum<uint32_t>(AD_tok)/newDP));
+											}
+											bestSampInfoWithData.addMeta("AF", njh::conToStr(AF_toks, ","), true);
+											// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+										}
+									}
+
+									// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+									// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+									////// SC
+									auto SC = firstVcf.records_[bestPos].info_.getMeta("SC");
+									auto SC_toks = tokenizeString(SC, ",");
+									////// AC
+									auto AC = firstVcf.records_[bestPos].info_.getMeta("AC");
+									auto AC_toks = tokenizeString(AC, ",");
+									//the ADs go ref, variant1, variant2 etc
+									//whereas the SC goes variant1, variant2
+									auto best_ADs = tokenizeString(firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AD"), ",");
+
+									//the ADs go ref, variant1, variant2 etc
+									if(SC_toks.size() + 1 != best_ADs.size()) {
+										std::stringstream ss;
+										ss << __PRETTY_FUNCTION__ << ", error " << "SC_toks.size() + 1 should equal ADs.size()" << "\n";
+										ss << "SC_toks.size() + 1: " << SC_toks.size() + 1 << ", " << "ADs.size(): " << best_ADs.size() << "\n";
+										ss << "SC_toks: " << njh::conToStr(SC_toks, ",") << "; " << "ADs: " << njh::conToStr(best_ADs, ",") << "\n";
+										ss << "firstVcf.records_[bestPos].alts_                : " << njh::conToStr(firstVcf.records_[bestPos].alts_, ",") << "\n";
+										ss << "firstVcf.records_[bestRowPositionWithData].alts_: " << njh::conToStr(firstVcf.records_[bestRowPositionWithData].alts_, ",") << "\n";
+										throw std::runtime_error{ss.str()};
+									}
+
+									auto best_DP = firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].getMeta("DP");
+									// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+									//// NS will increase by 1 if bestPos did not have data for it
+									if("." == best_DP ) {
+										firstVcf.records_[bestPos].info_.addMeta("NS",firstVcf.records_[bestPos].info_.getMeta<uint32_t>("NS") + 1,true);
+									}
+
+									// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+									std::vector<uint32_t> newAdditions(SC_toks.size(), 0);
+									for(const auto & currentPos : rowPositionsWithNonBlankSamples) {
+										if(currentPos != bestPos) {
+											auto currentPos_ADs = tokenizeString(firstVcf.records_[currentPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AD"), ",");
+											//the ADs go ref, variant1, variant2 etc
+											if(SC_toks.size() + 1 != currentPos_ADs.size()) {
+												std::stringstream ss;
+												ss << __PRETTY_FUNCTION__ << ", error " << "SC_toks.size() + 1 should equal ADs.size()" << "\n";
+												ss << "SC_toks.size() + 1: " << SC_toks.size() + 1 << ", " << "ADs.size(): " << currentPos_ADs.size() << "\n";
+												ss << "SC_toks: " << njh::conToStr(SC_toks, ",") << "; " << "ADs: " << njh::conToStr(currentPos_ADs, ",") << "\n";
+												ss << "firstVcf.records_[bestPos].alts_                : " << njh::conToStr(firstVcf.records_[bestPos].alts_, ",") << "\n";
+												ss << "firstVcf.records_[currentPos].alts_: " << njh::conToStr(firstVcf.records_[currentPos].alts_, ",") << "\n";
+												throw std::runtime_error{ss.str()};
+											}
+
+
+											for(const auto & currentPos_ADs_enum : iter::enumerate(currentPos_ADs)) {
+												if((best_ADs[currentPos_ADs_enum.index] == "0" ||
+													  best_ADs[currentPos_ADs_enum.index] == "." ) &&
+													 (currentPos_ADs_enum.element != "0" ||
+													 	currentPos_ADs_enum.element == ".")) {
+													newAdditions[currentPos_ADs_enum.index - 1] = 1;
+												}
+											}
+										}
+									}
+
+									// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+									// std::cout << "newAdditions: " << njh::conToStr(newAdditions) << std::endl;
+									// std::cout << "SC_toks: " << njh::conToStr(SC_toks, ",") << std::endl;
+									// std::cout << "AC_toks: " << njh::conToStr(AC_toks, ",") << std::endl;
+									for(const auto & addEnum : iter::enumerate(newAdditions)) {
+										SC_toks[addEnum.index] = estd::to_string(njh::StrToNumConverter::stoToNum<uint32_t>(SC_toks[addEnum.index]) + addEnum.element);
+										AC_toks[addEnum.index] = estd::to_string(njh::StrToNumConverter::stoToNum<uint32_t>(AC_toks[addEnum.index]) + addEnum.element);
+									}
+
+									// for(const auto & addPos : iter::range(newAdditions.size())) {
+									// 	SC_toks[addPos] = estd::to_string(njh::StrToNumConverter::stoToNum<uint32_t>(SC_toks[addPos]) + newAdditions[addPos]);
+									// 	AC_toks[addPos] = estd::to_string(njh::StrToNumConverter::stoToNum<uint32_t>(AC_toks[addPos]) + newAdditions[addPos]);
+									// }
+
+									//// AN will increase by the number non-zero allele calls for the sample that are new
+									auto ANcount = static_cast<uint32_t>(vectorSum(newAdditions));
+									firstVcf.records_[bestPos].info_.addMeta("AN",firstVcf.records_[bestPos].info_.getMeta<uint32_t>("AN") + ANcount,true);
+									// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+									//replace the updated AC
+									firstVcf.records_[bestPos].info_.addMeta("AC", njh::conToStr(AC_toks, ","), true);
+									//////// AF
+									// re-calculate the AFs based on the new AC and AN
+									double AN = firstVcf.records_[bestPos].info_.getMeta<uint32_t>("AN");
+									VecStr AFs;
+									for(const auto & AC_tok : AC_toks) {
+										AFs.emplace_back(estd::to_string(njh::StrToNumConverter::stoToNum<uint32_t>(AC_tok)/AN));
+									}
+									// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+									//replace the updated AF
+									firstVcf.records_[bestPos].info_.addMeta("AF", njh::conToStr(AFs, ","), true);
+
+									//update the SC
+									firstVcf.records_[bestPos].info_.addMeta("SC", njh::conToStr(SC_toks, ","), true);
+									// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+									//////// PREV
+									/// re-calculate PREV based on the new SC and NS
+									double NS = firstVcf.records_[bestPos].info_.getMeta<uint32_t>("NS");
+									VecStr PREVs;
+									for(const auto & SC_tok : SC_toks) {
+										PREVs.emplace_back(estd::to_string(njh::StrToNumConverter::stoToNum<uint32_t>(SC_tok)/NS));
+									}
+									// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+									//replace the updated PREV
+									firstVcf.records_[bestPos].info_.addMeta("PREV", njh::conToStr(PREVs, ","), true);
+
+									//update the bestPos info and add in the summed up counts
+									firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first] = bestSampInfoWithData;
+									// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+									// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+								}
+							}
+						}
+						// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+					} else if(!pars.doNotRescueVariantCallsAcrossTargets) {
 						std::set<std::string> blankSamples;
 						std::regex blankDataPattern("\\.(,\\.)*");
 						for(const auto & sampInfo : firstVcf.records_[bestPos].sampleFormatInfos_) {
@@ -1035,11 +1682,12 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> & vcfsFnps,
 										bestRowPositionWithData = currentPos;
 									}
 								}
+
 								firstVcf.records_[bestPos].sampleFormatInfos_[samp] = firstVcf.records_[bestRowPositionWithData].sampleFormatInfos_[samp];
 								//add to bestRefPos the NS, AN, AC
 								//// NS will increase by 1 (though have to investigate that it's possible a sample is blank from the first initial call becauase it might already be counted)
 								firstVcf.records_[bestPos].info_.addMeta("NS",firstVcf.records_[bestPos].info_.getMeta<uint32_t>("NS") + 1,true);
-																	//have to check to see if the same variants are present
+								//have to check to see if the same variants are present
 								if(firstVcf.records_[bestRowPositionWithData].alts_ != firstVcf.records_[bestPos].alts_) {
 									VecStr altsNotInBestPos;
 									for(const auto & alt : firstVcf.records_[bestRowPositionWithData].alts_) {
@@ -1260,6 +1908,9 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> & vcfsFnps,
 										}
 									}
 								}
+								//update the SC
+								firstVcf.records_[bestPos].info_.addMeta("SC", njh::conToStr(SC_toks, ","), true);
+
 								//////// PREV
 								/// re-calculate PREV based on the new SC and NS
 								double NS = firstVcf.records_[bestPos].info_.getMeta<uint32_t>("NS");
@@ -1272,25 +1923,33 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> & vcfsFnps,
 							}
 						}
 					}
+					// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 				}
 				currentPositionsToComp.clear();
 			};
+			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			for(uint32_t pos = 1; pos < firstVcf.records_.size(); ++pos) {
 				if(firstVcf.records_[pos].pos_ == firstVcf.records_[pos-1].pos_ &&
 					firstVcf.records_[pos].ref_ == firstVcf.records_[pos-1].ref_) {
 					currentPositionsToComp.emplace(pos);
 					currentPositionsToComp.emplace(pos-1);
 					} else {
+						// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 						compSamePositions();
+						// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 					}
 			}
+			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			compSamePositions();
+			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			// std::cout << njh::conToStr(positionsToErase, ",") << std::endl;
 			for(const auto posToErase : iter::reversed(positionsToErase)) {
 				firstVcf.records_.erase(firstVcf.records_.begin() + posToErase);
 			}
+			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 		}
 	}
+	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
   return firstVcf;
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 }

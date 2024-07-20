@@ -298,7 +298,7 @@ uint32_t countSeqs(const SeqIOOptions & opts, bool verbose) {
 			ss << opts.toJson() << std::endl;
 			throw std::runtime_error{ss.str()};
 		}
-		if(SeqIOOptions::inFormats::FASTQPAIRED == opts.inFormat_){
+		if(opts.isPairedIn()){
 			PairedRead read;
 			while (reader.readNextRead(read)) {
 				ret += ::round(read.seqBase_.cnt_);

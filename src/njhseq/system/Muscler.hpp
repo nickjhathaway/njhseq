@@ -80,12 +80,28 @@ public:
 		bfs::path tmpnameStr = njh::files::make_path(workingPath_, "tmpfileXXXXXX").string();
 		char * tmpname = strdup(tmpnameStr.c_str());
 		auto mkTempRet = mkstemp(tmpname);
+
 		if(-1 == mkTempRet){
 			std::stringstream sErr;
 			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << tmpname << "\n";
 			throw std::runtime_error{sErr.str()};
 		}
 		close(mkTempRet);
+
+		//create temporary file, the last 6 xs will be randomized characters
+		bfs::path output_tmpnameStr = njh::files::make_path(workingPath_, "tmpfileXXXXXX").string();
+		char * output_tmpname = strdup(output_tmpnameStr.c_str());
+		auto output_mkTempRet = mkstemp(output_tmpname);
+
+		if(-1 == output_mkTempRet){
+			std::stringstream sErr;
+			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << output_tmpname << "\n";
+			throw std::runtime_error{sErr.str()};
+		}
+		close(output_mkTempRet);
+
+
+
 		uint32_t seqsWritten = 0;
 		std::vector<uint32_t> seqsWithStopCodonEndings;
 		{
@@ -121,21 +137,29 @@ public:
 		if(seqsWritten > 0){
 			std::vector<readObject> tempObjs;
 			try {
-				std::vector<std::string> cmds { musclePath_.string(), "-quiet", "-in", tmpname };
+				std::vector<std::string> cmds { musclePath_.string(), "-quiet", "-in", tmpname, "-out", output_tmpname };
 				auto rOut = njh::sys::run(cmds);
 				if(!rOut.success_){
-					std::stringstream sErr;
-					sErr << rOut.stdOut_ << std::endl;
-					sErr << njh::bashCT::red << "failure:" << std::endl;
-					sErr << rOut.stdErr_ << std::endl;
-					sErr << njh::bashCT::reset << std::endl;
-					throw std::runtime_error{sErr.str()};
+					std::vector<std::string> newVersionCmds { musclePath_.string(), "-quiet", "-align", tmpname, " -output ",  output_tmpname};
+					auto rOut_newVersion = njh::sys::run(newVersionCmds);
+					if(!rOut_newVersion.success_) {
+						std::stringstream sErr;
+						// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+						sErr << __PRETTY_FUNCTION__ << ", error running " << "\n";
+						sErr << rOut_newVersion.cmd_ << "\n";
+						sErr << rOut_newVersion.stdOut_ << std::endl;
+						sErr << njh::bashCT::red << "failure:" << std::endl;
+						sErr << rOut_newVersion.stdErr_ << std::endl;
+						sErr << njh::bashCT::reset << std::endl;
+						throw std::runtime_error{sErr.str()};
+					}
 				}
-				std::stringstream ss(rOut.stdOut_);
-				SeqIOOptions opts;
+
+				SeqIOOptions opts = SeqIOOptions::genFastaIn(output_tmpname);
 				SeqInput reader(opts);
+				reader.openIn();
 				seqInfo seq;
-				while(reader.readNextFastaStream(ss, seq,false)){
+				while(reader.readNextRead(seq)){
 					auto & currentRead = getSeqBase(seqs[std::stoul(seq.name_)]);
 					auto gAlnInfo = genGlobalAlnInfo(seq.seq_);
 					alignCalc::rearrangeGlobalQueryOnly(currentRead.seq_, '-', gAlnInfo );
@@ -155,11 +179,13 @@ public:
 				std::cerr << e.what() << std::endl;
 				if(!keepTemp_){
 					njh::files::bfs::remove(tmpname);
+					njh::files::bfs::remove(output_tmpname);
 				}
 				throw e;
 			}
 			if(!keepTemp_){
 				njh::files::bfs::remove(tmpname);
+				njh::files::bfs::remove(output_tmpname);
 			}
 		}
 	}
@@ -196,6 +222,19 @@ public:
 	//			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << tmpname << "\n";
 	//			throw std::runtime_error{sErr.str()};
 	//		}
+
+		//create temporary file, the last 6 xs will be randomized characters
+		bfs::path output_tmpnameStr = njh::files::make_path(workingPath_, "tmpfileXXXXXX").string();
+		char * output_tmpname = strdup(output_tmpnameStr.c_str());
+		auto output_mkTempRet = mkstemp(output_tmpname);
+
+		if(-1 == output_mkTempRet){
+			std::stringstream sErr;
+			sErr << __PRETTY_FUNCTION__ << ", error in creating file name from template " << output_tmpname << "\n";
+			throw std::runtime_error{sErr.str()};
+		}
+		close(output_mkTempRet);
+
 		uint32_t seqsWritten = 0;
 		std::unordered_map<uint32_t, std::shared_ptr<seqInfo>> subInfos;
 		std::vector<uint32_t> seqsWithStopCodonEndings;
@@ -249,23 +288,28 @@ public:
 		if(seqsWritten > 0){
 			std::vector<readObject> tempObjs;
 			try {
-				std::vector<std::string> cmds { musclePath_.string(), "-quiet", "-in", tmpname };
+				std::vector<std::string> cmds { musclePath_.string(), "-quiet", "-in", tmpname, "-out", output_tmpname };
 				auto rOut = njh::sys::run(cmds);
 				if(!rOut.success_){
-					std::stringstream sErr;
-					sErr << __PRETTY_FUNCTION__ << ", error " << "\n";
-					sErr << rOut.stdOut_ << std::endl;
-					sErr << njh::bashCT::red << "failure:" << std::endl;
-					sErr << rOut.stdErr_ << std::endl;
-					sErr << njh::bashCT::reset << std::endl;
-					throw std::runtime_error{sErr.str()};
+					std::vector<std::string> newVersionCmds { musclePath_.string(), "-quiet", "-align", tmpname, " -output ",  output_tmpname};
+					auto rOut_newVersion = njh::sys::run(newVersionCmds);
+					if(!rOut_newVersion.success_) {
+						std::stringstream sErr;
+						sErr << __PRETTY_FUNCTION__ << ", error running" << "\n";
+						sErr << rOut_newVersion.cmd_ << "\n";
+						sErr << rOut_newVersion.stdOut_ << std::endl;
+						sErr << njh::bashCT::red << "failure:" << std::endl;
+						sErr << rOut_newVersion.stdErr_ << std::endl;
+						sErr << njh::bashCT::reset << std::endl;
+						throw std::runtime_error{sErr.str()};
+					}
 				}
-				std::stringstream ss(rOut.stdOut_);
-				SeqIOOptions opts;
+				SeqIOOptions opts = SeqIOOptions::genFastaIn(output_tmpname);
 				SeqInput reader(opts);
+				reader.openIn();
 				seqInfo seq;
 				uint64_t maxLen = 0;
-				while(reader.readNextFastaStream(ss, seq,false)){
+				while(reader.readNextRead(seq)){
 					readVec::getMaxLength(seq, maxLen);
 					uint32_t pos = estd::stou(seq.name_);
 					auto gAlnInfo = genGlobalAlnInfo(seq.seq_);
@@ -298,12 +342,14 @@ public:
 				std::cerr << e.what() << std::endl;
 				if(!keepTemp_){
 					njh::files::bfs::remove(tmpname);
+					njh::files::bfs::remove(output_tmpname);
 				}
 				throw std::runtime_error{e.what()};
 			}
 		}
 		if(!keepTemp_){
 			njh::files::bfs::remove(tmpname);
+			njh::files::bfs::remove(output_tmpname);
 		}
 	}
 

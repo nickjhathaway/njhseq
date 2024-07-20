@@ -236,10 +236,13 @@ public:
 	[[nodiscard]] Json::Value headerToJson() const;
 
 
-
+	struct comnbineVCFsPars{
+		bool doNotRescueVariantCallsAcrossTargets{false};
+		bool combinedOverlappingCallsAcrossTargets{false};
+	};
 	static VCFOutput comnbineVCFs(const std::vector<bfs::path> & vcfsFnps,
 		const std::set<std::string> & sampleNamesSet,
-		bool doNotRescueVariantCallsAccrossTargets);
+		const comnbineVCFsPars & pars);
 
 };
 
