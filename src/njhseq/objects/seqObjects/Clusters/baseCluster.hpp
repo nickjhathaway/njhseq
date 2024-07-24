@@ -129,6 +129,9 @@ class baseCluster : public readObject {
     }
     return ans;
   }
+
+	virtual Json::Value toJson() const;
+
 };
 }  // namespace njhseq
 

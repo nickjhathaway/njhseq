@@ -155,7 +155,8 @@ double sampleCluster::getAveragedFrac() const {
   for(const auto frac : fracs){
   	fracSum +=frac;
   }
-  return fracSum/std::min<uint32_t>(totalRepNumberInAnalysis_, sampInfos_.size());
+	return fracSum/std::min<uint32_t>(totalRepNumberInAnalysis_, sampInfos_.size());
+  // return fracSum/std::min<uint32_t>(totalRepNumberInAnalysis_, numberOfRuns());
 }
 
 double sampleCluster::getAveragedFrac(const VecStr & forClusters)const{
@@ -370,7 +371,7 @@ std::string sampleCluster::getRepsInfo(
 		}
 		++infoCount;
 		auto search = sampInfos_.find(info.first);
-		if (search->second.readCnt_ == 0) {
+		if (search == sampInfos_.end() || search->second.readCnt_ == 0) {
 			currentInfo << repeatString(delim, emptyRepAmount);
 		} else {
 			currentInfo << info.first;
@@ -392,14 +393,17 @@ std::string sampleCluster::getRepsInfo(
 			currentInfo << delim << info.second.readCnt_;
 		}
 	}
-	if (checkingExpected) {
-		if(sampInfos_.size() < maxRepCount){
-			for(uint32_t i = 0; i < maxRepCount - sampInfos_.size(); ++i){
-				currentInfo << delim << repeatString(delim, emptyRepAmount);
-			}
+
+	// if(numberOfRuns() < maxRepCount){
+	if(collapsed.size() < maxRepCount){
+		for(uint32_t i = 0; i < maxRepCount - numberOfRuns(); ++i){
+			currentInfo << delim << repeatString(delim, emptyRepAmount);
 		}
+	}
+	if (checkingExpected) {
 		currentInfo << delim << expectsString;
 	}
+
 	return currentInfo.str();
 }
 
@@ -518,6 +522,19 @@ std::vector<uint32_t> sampleCluster::getReadPositions(const VecStr & forClusters
 			ret.emplace_back(readPos);
 		}
 	}
+	return ret;
+}
+
+
+
+Json::Value sampleCluster::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["super"] = cluster::toJson();
+	ret["sampleClusters_"] = njh::json::toJson(sampleClusters_);
+	ret["sampInfos_"] = njh::json::toJson(sampInfos_);
+	ret["totalRepNumberInAnalysis_"] = njh::json::toJson(totalRepNumberInAnalysis_);
+
 	return ret;
 }
 

@@ -177,6 +177,10 @@ public:
     }
   }
   using size_type = baseReadObject::size_type;
+
+	virtual Json::Value toJson() const;
+
+
 };
 
 

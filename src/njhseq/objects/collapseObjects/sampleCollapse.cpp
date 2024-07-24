@@ -518,6 +518,17 @@ void sampleCollapse::writeFinalOrignalClusters(const std::string &outDirectory,
 }
 
 
+Json::Value sampleCollapse::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+
+	ret["sampName_"] = njh::json::toJson(sampName_);
+	ret["input_"] = njh::json::toJson(input_);
+	ret["excluded_"] = njh::json::toJson(excluded_);
+	ret["collapsed_"] = njh::json::toJson(collapsed_);
+
+	return ret;
+}
 
 }  // napsace collapse
 }  // namespace njh

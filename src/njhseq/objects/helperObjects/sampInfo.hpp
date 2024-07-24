@@ -95,6 +95,11 @@ public:
    * @return A sting with chimeric fraction, total chimera read cnt, and chimera cluster number delimited
    */
   std::string getChimeraInfo(uint32_t cnt, const std::string& delim = "\t") const;
+
+
+ Json::Value toJson() const;
+
+
 };
 
 

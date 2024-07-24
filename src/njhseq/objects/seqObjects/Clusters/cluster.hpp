@@ -153,6 +153,10 @@ class cluster : public baseCluster {
   std::vector<cluster> breakoutClustersBasedOnSnps(aligner & alignerObj, const snpBreakoutPars& pars );
 
 	using size_type = baseReadObject::size_type;
+
+	virtual Json::Value toJson() const;
+
+
 };
 
 template<>

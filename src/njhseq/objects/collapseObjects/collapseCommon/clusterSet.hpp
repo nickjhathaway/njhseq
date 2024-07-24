@@ -70,6 +70,10 @@ public:
 	table getReplicateInfo() const;
 
 	double getRMSE() const;
+
+	Json::Value toJson() const;
+
+
 };
 
 } // namespace collapse

@@ -108,6 +108,7 @@ public:
 			bool checkingExpected, const std::string &delim = "\t",
 			uint32_t maxRepCount = 0) const;
 
+	[[nodiscard]] Json::Value toJson() const;
 };
 }  // namespace collpase
 }  // namespace njhseq

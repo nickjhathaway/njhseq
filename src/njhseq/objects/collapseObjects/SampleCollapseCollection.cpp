@@ -1474,6 +1474,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 			clearSample(sampName);
 		}
 	}
+
 	for (const auto& sampName : samples) {
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampName);
@@ -1485,8 +1486,12 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 		}
 		for (const auto clusPos : iter::range(
 				sampleCollapses_.at(sampName)->collapsed_.clusters_.size())) {
+
 			const auto & clus =
 					sampleCollapses_.at(sampName)->collapsed_.clusters_[clusPos];
+
+
+
 			std::stringstream rowStream;
 			rowStream  << sampName
 					<< delim << popCollapse_->populationName_
@@ -1501,6 +1506,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 					rowStream << delim << group.second->getGroupForSample(sampName);
 				}
 			}
+
 			rowStream << delim << clusPos
 							<< delim << clus.seqBase_.name_
 							<< delim << clus.getClusterInfo(delim)
@@ -1510,6 +1516,9 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 							sampleCollapses_.at(sampName)->collapsed_.info_.infos_,
 							maxRunCount,
 							checkingExpected, delim);
+			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
+			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			rows.emplace_back(tokenizeString(rowStream.str(), delim, true));
 		}
 		if(!keepSampleInfoInMemory_){
@@ -1530,8 +1539,10 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 			<< delim << "c_name"
 			<< delim << sampleCluster::getClusterInfoHeader(delim) << delim
 			<< sampleCluster::getRepsInfoHeader(maxRunCount, checkingExpected, delim);
+
+
 	table ret(tokenizeString(headerStream.str(), delim));
-	//std::cout << headerStream.str() << std::endl;
+
 	ret.addRows(rows);
 	return ret;
 }

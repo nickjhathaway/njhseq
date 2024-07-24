@@ -86,4 +86,21 @@ std::string sampInfo::getChimeraInfo(uint32_t cnt,
 			+ estd::to_string(chiNumberOfClusters_);
 }
 
+
+
+Json::Value sampInfo::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+
+	ret["runName_"] = njh::json::toJson(runName_);
+	ret["runReadCnt_"] = njh::json::toJson(runReadCnt_);
+	ret["readCnt_"] = njh::json::toJson(readCnt_);
+	ret["fraction_"] = njh::json::toJson(fraction_);
+	ret["numberOfClusters_"] = njh::json::toJson(numberOfClusters_);
+	ret["chiReadCnt_"] = njh::json::toJson(chiReadCnt_);
+	ret["chiNumberOfClusters_"] = njh::json::toJson(chiNumberOfClusters_);
+
+	return ret;
+}
+
 }  // namespace njhseq

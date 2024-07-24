@@ -105,5 +105,17 @@ double clusterSet::getRMSE() const {
 	return std::sqrt(sumSquares / clusters_.size());
 }
 
+
+Json::Value clusterSet::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+
+	ret["clusters_"] = njh::json::toJson(clusters_);
+	ret["subClustersPositions_"] = njh::json::toJson(subClustersPositions_);
+	return ret;
+}
+
+
+
 } // namespace collapse
 } // namespace njhseq

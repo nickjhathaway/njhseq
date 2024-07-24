@@ -249,6 +249,15 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 	return ret;
 }
 
-
+Json::Value cluster::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["super"] = baseCluster::toJson();
+	ret["rejected_"] = njh::json::toJson(rejected_);
+	ret["chimeras"] = njh::json::toJson(chimeras);
+	ret["endChimeras"] = njh::json::toJson(endChimeras);
+	ret["allInputClusters"] = njh::json::toJson(allInputClusters);
+	return ret;
+}
 
 }  // namespace njh

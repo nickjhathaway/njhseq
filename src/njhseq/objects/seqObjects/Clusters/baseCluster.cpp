@@ -819,4 +819,21 @@ void baseCluster::removeRead(const std::string & stubName){
 	removeRead(readPos);
 }
 
+
+
+Json::Value baseCluster::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::json::toJson(njh::getTypeName(*this));
+	ret["super"] = readObject::toJson();
+	ret["firstReadName_"] = njh::json::toJson(firstReadName_);
+	ret["firstReadCount_"] = njh::json::toJson(firstReadCount_);
+	ret["reads_"] = njh::json::toJson(reads_);
+	ret["previousErrorChecks_"] = njh::json::toJson(previousErrorChecks_);
+	ret["noWeightConsensus_"] = njh::json::toJson(noWeightConsensus_);
+	ret["calcConsensusInfo_"] = njh::json::toJson(calcConsensusInfo_);
+
+	return ret;
+}
+
+
 }  // namespace njh

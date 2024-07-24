@@ -55,9 +55,18 @@ void table::addRowFill(VecStr row, const std::string & fill){
 void table::addRow(const VecStr & row){
 	if(len(row) != nCol()){
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": Error size of adding row doesn't match column number" << std::endl;
-		ss << "Row size: " << len(row) << std::endl;
-		ss << "Number of columns " << nCol() << std::endl;
+		ss << __PRETTY_FUNCTION__ << ": Error size of adding row doesn't match column number" <<  "\n";
+		ss << "Row size: " << len(row) <<  "\n";
+		ss << "Number of columns " << nCol() <<  "\n";
+		ss << "Current number of rows: " << content_.size() << "\n";
+		ss << "header: " << "\n";
+		ss << njh::conToStr(columnNames_, "\t") << "\n";
+		ss << "last row: " << "\n";
+		if(!content_.empty()) {
+			ss << njh::conToStr(content_.back(), "\t") << "\n";
+		}
+		ss << "adding row: " << "\n";
+		ss << njh::conToStr(row, "\t") << "\n";
 		throw std::runtime_error{ss.str()};
 	}
 	content_.emplace_back(row);
