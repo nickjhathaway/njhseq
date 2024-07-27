@@ -265,6 +265,36 @@ public:
 		return ret;
 	}
 
+	template<typename T>
+	static std::vector<GenomicRegion> mergeAndSort(std::vector<T> &beds) {
+		BedUtility::coordSort(beds, false);
+		std::vector<GenomicRegion> ret;
+		if (beds.size() > 1) {
+			ret.emplace_back(GenomicRegion(getRef(beds.front())));
+			for (const auto regPos: iter::range<uint32_t>(1, beds.size())) {
+				//merge if they overlap or start where the last region starts
+				if (ret.back().overlaps(getRef(beds[regPos])) || ret.back().end_ == getRef(beds[regPos]).chromStart_) {
+					ret.back().end_ = getRef(beds[regPos]).chromEnd_;
+				} else {
+					ret.emplace_back(GenomicRegion(getRef(beds[regPos])));
+				}
+			}
+		} else if (1 == beds.size()) {
+			ret.emplace_back(GenomicRegion(getRef(beds.front())));
+		} else {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "no regions read in input" << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		return ret;
+	}
+
+
+
+
+	static std::vector<GenomicRegion> createWindowsWithinRegion(
+			const GenomicRegion & region, uint32_t windowSize, uint32_t windowStep,
+			bool includeRemainer = false);
 };
 
 } /* namespace njhseq */

@@ -25,6 +25,8 @@
  */
 
 #include "reading.hpp"
+
+#include "BioRecordsUtils/BedUtility.hpp"
 #include "njhseq/objects/BioDataObject/BioDataFileIO.hpp"
 #include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 
@@ -371,6 +373,10 @@ std::set<std::string> getFeatureIdsFromOverlappingRegions(const std::vector<Geno
 	return idsFromData;
 }
 
+std::vector<GenomicRegion> readInBedsMergeAndSort(const bfs::path & bedFile) {
+	auto inRegions = getBed3s(bedFile);
+	return BedUtility::mergeAndSort(inRegions);
+}
 
 }  // namespace njhseq
 
