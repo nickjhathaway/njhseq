@@ -82,7 +82,33 @@ GenomicRegion::GenomicRegion(const TandemRepeatFinderRecord & trfRecord):Genomic
 		false) {
 
 }
+bool GenomicRegion::operator <(const GenomicRegion & otherRegion) const {
+	if(chrom_ == otherRegion.chrom_) {
+		if(start_ == otherRegion.start_) {
+			return end_ < otherRegion.end_;
+		}
+		return start_ < otherRegion.start_;
+	}
+	return chrom_ < otherRegion.chrom_;
+}
 
+bool GenomicRegion::operator ==(const GenomicRegion &otherRegion) const {
+	return
+				 chrom_ == otherRegion.chrom_ &&
+				 start_ == otherRegion.start_ &&
+				 end_ == otherRegion.end_ &&
+				 reverseSrand_ == otherRegion.reverseSrand_;
+}
+
+bool GenomicRegion::operator >(const GenomicRegion & otherRegion) const {
+	if(chrom_ == otherRegion.chrom_) {
+		if(start_ == otherRegion.start_) {
+			return end_ > otherRegion.end_;
+		}
+		return start_ > otherRegion.start_;
+	}
+	return chrom_ > otherRegion.chrom_;
+}
 
 GenomicRegion::GenomicRegion(const GFFCore & gff) :
 		GenomicRegion(
