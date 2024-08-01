@@ -1568,6 +1568,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		const SeqIOOptions & seqOpts,
 		const std::unordered_map<std::string, std::unordered_set<std::string>> & sampCountsForHaps,
 		const RunPars & rPars){
+	//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 
 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	TranslatorByAlignmentResult ret;
@@ -1577,6 +1578,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	uint64_t seqMaxLen = 500;
 	uint32_t averageLen = 0;
 	VecStr names;
+	//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 
 	{
 
@@ -1643,20 +1645,23 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		ret.geneIds_ = ids;
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //		std::cout << "ids.size() : " << ids.size() << std::endl;
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 
 		// get gene information
 		auto geneInfoDir = njh::files::make_path(pars_.workingDirtory_, "geneInfos");
 		if(pars_.keepTemporaryFiles_ || pars_.writeOutGeneInfos_){
 			njh::files::makeDir(njh::files::MkdirPar{geneInfoDir});
 		}
-		OutOptions outOpts(njh::files::make_path(geneInfoDir, "gene"));
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 
+		OutOptions outOpts(njh::files::make_path(geneInfoDir, "gene"));
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		std::unordered_map<std::string, VecStr> idToTranscriptName;
 		std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> rawGenes = GeneFromGffs::getGenesFromGffForIds(pars_.gffFnp_, ids);
-//		std::cout << "rawGenes.size(): " << rawGenes.size() << std::endl;
+		// std::cout << "rawGenes.size(): " << rawGenes.size() << std::endl;
 
 		std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> genes;
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 
 		for(const auto & gene : rawGenes){
 			bool failFilter = false;
@@ -1675,7 +1680,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			}
 		}
 //		std::cout << "genes.size(): " << genes.size() << std::endl;
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		//std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>> geneTranscriptInfos;
 		uint64_t proteinMaxLen = seqMaxLen;
 		std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>>> genesByChrom;
@@ -1697,10 +1702,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				gene.second->writeOutGeneInfo(tReader, outOpts);
 			}
 		}
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		// //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		aligner alignObj(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(2,-2));
 		//aligner alignObjSeq(seqMaxLen + rPars.realnPars.extendAmount * 2, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2));
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> regionsToGeneIds;
 		//targetName, GeneID, AA Position
 		std::unordered_map<std::string, std::vector<std::string>> alnRegionToGeneIds;
@@ -1719,7 +1725,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		auto refData = bReader.GetReferenceData();
 		BamTools::BamAlignment bAln;
 		auto chromLengths = tReader.getSeqLens();
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		struct MinMaxPos{
 			MinMaxPos()= default;
 			size_t minPos_{std::numeric_limits<uint32_t>::max()};
@@ -1728,7 +1734,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 //		 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		std::unordered_map<std::string, MinMaxPos> minMaxPositionsPerChrom;
 		aligner alignObjAdjusted(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(10,-2));
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		while (bReader.GetNextAlignment(bAln)) {
 			if (bAln.IsMapped() && bAln.IsPrimaryAlignment()) {
 //				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;cDNAIntersectedWith.size
@@ -1913,7 +1919,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				}
 			}
 		}
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> translated_fullAATypedWithCodonInfo_;
 		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> translated_variantAATypedWithCodonInfo_;
 
@@ -1928,6 +1934,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			});
 		}
 	}
+	//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	fnpsToRemove.emplace_back(seqInputFnp);
 	//remove the temporary files
 	if(!pars_.keepTemporaryFiles_){

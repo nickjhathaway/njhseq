@@ -370,7 +370,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	const RunPars& rPars) {
 	njh::stopWatch watch;
 	watch.setLapName("initial set up for variant calling");
-	////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	TranslatorByAlignmentResult ret;
 
 	//get some length stats on input seqs
@@ -378,16 +378,17 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	seqMaxLen = seqMaxLen + rPars.realnPars.extendAmount * 2;
 	uint32_t averageLen = static_cast<uint32_t>(readVec::getAvgLength(seqs));
 
-
+	//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	{
 		watch.startNewLap("set up for aligning");
 		auto gprefix = bfs::path(pars_.lzPars_.genomeFnp).replace_extension("");
 		auto twoBitFnp = gprefix.string() + ".2bit";
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		TwoBit::TwoBitFile tReader(twoBitFnp);
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		//get overlaping geneinfo
 		auto ids = getFeatureIdsFromOverlappingRegions({refSeqRegion}, pars_.gffFnp_);
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		ret.geneIds_ = ids;
 		// get gene information
 		auto geneInfoDir = njh::files::make_path(pars_.workingDirtory_, "geneInfos");
@@ -395,13 +396,13 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			njh::files::makeDir(njh::files::MkdirPar{geneInfoDir});
 		}
 		OutOptions outOpts(njh::files::make_path(geneInfoDir, "gene"));
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		std::unordered_map<std::string, VecStr> idToTranscriptName;
 		std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> rawGenes = GeneFromGffs::getGenesFromGffForIds(pars_.gffFnp_, ids);
-//		std::cout << "rawGenes.size(): " << rawGenes.size() << std::endl;
+		// std::cout << "rawGenes.size(): " << rawGenes.size() << std::endl;
 
 		std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> genes;
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 
 		for(const auto & gene : rawGenes){
 			bool failFilter = false;
@@ -413,18 +414,18 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					break;
 				}
 			}
-
+			//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 			if(!failFilter){
-				 ////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				genes[gene.first] = gene.second;
 			}
 		}
-//		std::cout << "genes.size(): " << genes.size() << std::endl;
-
+		// std::cout << "genes.size(): " << genes.size() << std::endl;
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		//std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>> geneTranscriptInfos;
 		uint64_t proteinMaxLen = seqMaxLen;
 		std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>>> genesByChrom;
-		// ////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		for(const auto & gene : genes){
 			genesByChrom[gene.second->gene_->seqid_].emplace(gene.first, gene.second);
 			for(const auto & transcript : gene.second->mRNAs_){
@@ -442,18 +443,18 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				gene.second->writeOutGeneInfo(tReader, outOpts);
 			}
 		}
-		// ////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		aligner alignObj(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(2,-2));
 		//aligner alignObjSeq(seqMaxLen + rPars.realnPars.extendAmount * 2, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2));
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		auto chromLengths = tReader.getSeqLens();
-
+		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		struct MinMaxPos{
 			MinMaxPos()= default;
 			size_t minPos_{std::numeric_limits<uint32_t>::max()};
 			size_t maxPos_{0};
 		};
-//		 ////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 		std::unordered_map<std::string, MinMaxPos> minMaxPositionsPerChrom;
 		aligner alignObjAdjusted(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(10,-2));
@@ -463,32 +464,34 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			if(uAbsdiff(averageLen, getSeqBase(seq).seq_.size()) > reAlignParsCopy.extendAmount){
 				reAlignParsCopy.extendAmount = reAlignParsCopy.extendAmount + uAbsdiff(averageLen, getSeqBase(seq).seq_.size());
 			}
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			std::shared_ptr<ReAlignedSeq> initialResults;
 			if(uAbsdiff(averageLen, getSeqBase(seq).seq_.size()) > 100){
 				initialResults = std::make_shared<ReAlignedSeq>(ReAlignedSeq::genRealignment(seq, refSeqRegion, alignObjAdjusted, chromLengths, tReader, rPars.realnPars));
 			} else {
 				initialResults = std::make_shared<ReAlignedSeq>(ReAlignedSeq::genRealignment(seq, refSeqRegion, alignObj, chromLengths, tReader, rPars.realnPars));
 			}
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			if(initialResults->alnRefSeq_.seq_.front() != '-' && initialResults->alnRefSeq_.seq_.back() != '-') {
-
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				minMaxPositionsPerChrom[initialResults->gRegion_.chrom_].minPos_ = std::min(minMaxPositionsPerChrom[initialResults->gRegion_.chrom_].minPos_,initialResults->gRegion_.start_);
 				minMaxPositionsPerChrom[initialResults->gRegion_.chrom_].maxPos_ = std::max(minMaxPositionsPerChrom[initialResults->gRegion_.chrom_].maxPos_,initialResults->gRegion_.end_);
 
 				ret.seqAlns_[getSeqBase(seq).name_].emplace_back(*initialResults);
 
-				////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				for (const auto & g : ret.geneIds_) {
-					////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 					const auto & currentGene = njh::mapAt(genes, g);
-					////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 					const auto & currentGeneInfo = njh::mapAt(ret.transcriptInfosForGene_, g);
-					////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 					try {
 						std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> translations;
 //            std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
 						translations = translateBasedOnAlignment(*initialResults, *currentGene, currentGeneInfo, alignObj, pars_);
-						////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+						//////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //            std::cout << "translations.size(): " << translations.size() << std::endl;
 						for(const auto & trans : translations){
 							auto queryTransStart = trans.second.queryAlnTranslation_.seq_.find_first_not_of('-');
@@ -513,8 +516,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				ret.seqsUnableToBeMapped_.emplace_back(getSeqBase(seq).name_);
 			}
 		}
-
-		 ////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		 //////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//list the seqs no tran
 		for(const auto & filteredOff : ret.filteredOffTranslations_){
 			if(!njh::in(filteredOff.first, ret.translations_)){
@@ -522,9 +525,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			}
 		}
 
-
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		watch.startNewLap("set up for variant calling");
-		 ////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//index snps
 		for(const auto & positons : minMaxPositionsPerChrom){
 			Bed3RecordCore chromRegion(
@@ -537,7 +540,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	//			ret.baseForPosition_[chromRegion.chrom_][chromRegion.chromStart_ + seqPos] = refSeq.seq_[seqPos];
 	//		}
 		}
-		 ////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		watch.startNewLap("seq variant calling");
 		for(const auto & seqName : ret.seqAlns_){
 			for(const auto & aln : seqName.second){
@@ -551,13 +554,13 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 						aln.gRegion_.start_);
 			}
 		}
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//set finals for the snps
 		for(auto & varPerChrom : ret.seqVariants_){
 			varPerChrom.second.setFinals(rPars);
 		}
 
-
-		 ////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//index amino acid changes per transcript
 		watch.startNewLap("protein variant calling");
 		for(const auto & seqName : ret.translations_){
@@ -576,7 +579,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				}
 			}
 		}
-		 ////std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		for(auto & varPerTrans : ret.proteinVariants_){
 			varPerTrans.second.setFinals(rPars);
 		}
@@ -616,9 +619,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				}
 			}
 		}
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> translated_fullAATypedWithCodonInfo_;
 		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> translated_variantAATypedWithCodonInfo_;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 		//sort
 		for(auto & seqName : ret.fullAATypedWithCodonInfo_){
@@ -631,6 +636,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			});
 		}
 	}
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 	OutputStream timeLogOut(njh::files::make_path(pars_.workingDirtory_, "timeLog.txt"));
 	watch.logLapTimes(timeLogOut, true, 6, true);
