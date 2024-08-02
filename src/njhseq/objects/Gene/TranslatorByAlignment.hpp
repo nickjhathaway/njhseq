@@ -72,6 +72,8 @@ public:
 			posAlleleCountSamples() = default;
 			uint32_t alleleCount_ = 0;
 			std::unordered_set<std::string> samples_;
+
+			[[nodiscard]] Json::Value toJson() const;
 		};
 
 		std::map<uint32_t, std::map<char, posAlleleCountSamples>> snps;
