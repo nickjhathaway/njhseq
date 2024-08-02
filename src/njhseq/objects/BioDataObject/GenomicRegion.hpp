@@ -114,6 +114,9 @@ public:
 	bool fallsInThisRegion(const std::string & chrom, uint32_t start,
 			uint32_t end) const; //no check for if start is less than end
 
+	bool operator <(const GenomicRegion & otherRegion) const;
+	bool operator ==(const GenomicRegion &otherRegion) const;
+	bool operator >(const GenomicRegion & otherRegion) const;
 
 	Json::Value toJson() const;
   Json::Value toJsonLocationOnly() const;

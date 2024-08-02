@@ -148,6 +148,30 @@ Bed6RecordCore BedUtility::SubRegionCombo::genSubEnd(uint32_t maximumToInclude) 
 	return endReg;
 }
 
+std::vector<GenomicRegion> BedUtility::createWindowsWithinRegion(
+		const GenomicRegion & region, uint32_t windowSize, uint32_t windowStep,
+		bool includeRemainer) {
+	std::vector<GenomicRegion> ret;
+	if (region.getLen() >= windowSize) {
+		uint32_t start = 0;
+		while (start + windowSize <= region.getLen()) {
+			ret.emplace_back("", region.chrom_, region.start_ + start,
+					region.start_ + start + windowSize, region.reverseSrand_);
+			ret.back().setUidWtihCoordsStrand();
+			start += windowStep;
+		}
+		if (start < region.getLen() && region.getLen() - start > 0
+				&& includeRemainer) {
+			ret.emplace_back("", region.chrom_, region.start_ + start, region.end_,
+					region.reverseSrand_);
+			ret.back().setUidWtihCoordsStrand();
+				}
+	} else if (includeRemainer) {
+		ret.emplace_back(region);
+		ret.back().setUidWtihCoordsStrand();
+	}
+	return ret;
+}
 
 
 } /* namespace njhseq */

@@ -146,5 +146,9 @@ std::set<std::string> getFeatureIdsFromOverlappingRegions(const std::vector<Geno
 	const bfs::path & gffFnp,
 	const VecStr & features ={"gene", "protein_coding_gene"});
 
+
+std::vector<GenomicRegion> readInBedsMergeAndSort(const bfs::path & bedFile);
+
+
 }  // namespace njhseq
 

@@ -47,7 +47,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 	}
 //	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //	std::cout << gRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
-	BedUtility::extendLeftRight(gRegion, extend + softClipLeft, extend + softClipRight, chromLengths.at(gRegion.chrom_));
+	BedUtility::extendLeftRight(gRegion, extend + softClipLeft, extend + softClipRight, njh::mapAt(chromLengths,gRegion.chrom_));
 	auto rSeq = gRegion.extractSeq(tReader);
 	rSeq.name_ = gRegion.createUidFromCoordsStrand();
 	auto qSeq = bamAlnToSeqInfo(bAln, true);
@@ -94,7 +94,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 		if('-' == alignerObj.alignObjectA_.seqBase_.seq_.back()){
 			extraExtendFront = alignerObj.alignObjectA_.seqBase_.seq_.size() - alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
 		}
-		BedUtility::extendLeftRight(gRegion, extraExtendFront, extraExtendEnd, chromLengths.at(gRegion.chrom_));
+		BedUtility::extendLeftRight(gRegion, extraExtendFront, extraExtendEnd, njh::mapAt(chromLengths,gRegion.chrom_));
     rSeq = gRegion.extractSeq(tReader);
 		rSeq.name_ = gRegion.createUidFromCoordsStrand();
 
@@ -149,30 +149,30 @@ ReAlignedSeq ReAlignedSeq::genRealignment(seqInfo querySeq,
 	auto gRegion = refSeqRegion;
 	//gRegion.meta_.meta_.clear();
 
-	//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	//	std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
-	//	{
-	//		auto rSeq = gRegion.extractSeq(tReader);
-	//		rSeq.name_ = gRegion.createUidFromCoordsStrand();
-	//		rSeq.outPutSeqAnsi(std::cout);
-	//	}
+		// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		// std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
+		// {
+		// 	auto rSeq = gRegion.extractSeq(tReader);
+		// 	rSeq.name_ = gRegion.createUidFromCoordsStrand();
+		// 	rSeq.outPutSeqAnsi(std::cout);
+		// }
 	uint32_t extend = pars.extendAmount;
 	gRegion.reverseSrand_ = false;
 
-	//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	//	std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
-	BedUtility::extendLeftRight(gRegion, extend , extend , chromLengths.at(gRegion.chrom_));
-	//	std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
+		// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		// std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
+	BedUtility::extendLeftRight(gRegion, extend , extend , njh::mapAt(chromLengths,gRegion.chrom_));
+		// std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
 
 	auto rSeq = gRegion.extractSeq(tReader);
 	rSeq.name_ = gRegion.createUidFromCoordsStrand();
-	//	rSeq.outPutSeqAnsi(std::cout);
+		// rSeq.outPutSeqAnsi(std::cout);
 	//auto qSeq = seqInfo(blastHit.queryName_, originalQuery);
 	if (refSeqRegion.reverseSrand_) {
 		querySeq.reverseComplementRead(false, true);
 	}
-	//	qSeq.outPutSeqAnsi(std::cout);
-	//	std::cout << std::endl;
+		// querySeq.outPutSeqAnsi(std::cout);
+		// std::cout << std::endl;
 
 	uint64_t maxLen = alignerObj.parts_.maxSize_ - 1;
 	readVec::getMaxLength(querySeq, maxLen);
@@ -197,8 +197,8 @@ ReAlignedSeq ReAlignedSeq::genRealignment(seqInfo querySeq,
 	uint32_t realRefEnd = realRefLastBase + 1;
 
 
-	//  alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
-	//  alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+	// alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+	// alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
 
 
 	seqInfo referenceAln = alignerObj.alignObjectA_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
@@ -222,7 +222,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(seqInfo querySeq,
 			extraExtendFront = alignerObj.alignObjectA_.seqBase_.seq_.size() - alignerObj.alignObjectA_.seqBase_.seq_.
 			                   find_last_not_of('-');
 		}
-		BedUtility::extendLeftRight(gRegion, extraExtendFront, extraExtendEnd, chromLengths.at(gRegion.chrom_));
+		BedUtility::extendLeftRight(gRegion, extraExtendFront, extraExtendEnd, njh::mapAt(chromLengths,gRegion.chrom_));
 		rSeq = gRegion.extractSeq(tReader);
 		rSeq.name_ = gRegion.createUidFromCoordsStrand();
 
@@ -260,8 +260,8 @@ ReAlignedSeq ReAlignedSeq::genRealignment(seqInfo querySeq,
 	ret.alnRefSeq_ = referenceAln;
 	ret.alnQuerySeq_ = queryAln;
 	ret.comp_ = alignerObj.comp_;
-	//	std::cout << originalRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
-	//	std::cout << ret.gRegion_.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+		// std::cout << refSeqRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+		// std::cout << ret.gRegion_.genBedRecordCore().toDelimStrWithExtra() << std::endl;
 	return ret;
 }
 
@@ -301,7 +301,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BLASTHitTab &blastHit,
   }
 //	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //	std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
-  BedUtility::extendLeftRight(gRegion, extend + softClipLeft, extend + softClipRight, chromLengths.at(gRegion.chrom_));
+  BedUtility::extendLeftRight(gRegion, extend + softClipLeft, extend + softClipRight, njh::mapAt(chromLengths,gRegion.chrom_));
 //	std::cout << gRegion.genBedRecordCore().toDelimStr() << std::endl;
 
   auto rSeq = gRegion.extractSeq(tReader);
@@ -361,7 +361,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BLASTHitTab &blastHit,
     if('-' == alignerObj.alignObjectA_.seqBase_.seq_.back()){
       extraExtendFront = alignerObj.alignObjectA_.seqBase_.seq_.size() - alignerObj.alignObjectA_.seqBase_.seq_.find_last_not_of('-');
     }
-    BedUtility::extendLeftRight(gRegion, extraExtendFront, extraExtendEnd, chromLengths.at(gRegion.chrom_));
+    BedUtility::extendLeftRight(gRegion, extraExtendFront, extraExtendEnd, njh::mapAt(chromLengths,gRegion.chrom_));
     rSeq = gRegion.extractSeq(tReader);
     rSeq.name_ = gRegion.createUidFromCoordsStrand();
 
