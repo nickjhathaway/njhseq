@@ -446,7 +446,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			}
 		}
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-		aligner alignObj(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(2,-2));
+		aligner alignObj(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix::createDegenScoreMatrixLessN(2,-2));
+		aligner protein_alignObj(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(2,-2));
+
 		//aligner alignObjSeq(seqMaxLen + rPars.realnPars.extendAmount * 2, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2));
 		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		auto chromLengths = tReader.getSeqLens();
@@ -459,7 +461,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 		std::unordered_map<std::string, MinMaxPos> minMaxPositionsPerChrom;
-		aligner alignObjAdjusted(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(10,-2));
+		aligner alignObjAdjusted(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix::createDegenScoreMatrixLessN(10, -2));
 		watch.startNewLap("aligning");
 		for (const auto & seq : seqs) {
 			auto reAlignParsCopy = rPars.realnPars;
@@ -492,7 +494,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					try {
 						std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> translations;
 //            std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
-						translations = translateBasedOnAlignment(*initialResults, *currentGene, currentGeneInfo, alignObj, pars_);
+						translations = translateBasedOnAlignment(*initialResults, *currentGene, currentGeneInfo, protein_alignObj, pars_);
 						//////std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //            std::cout << "translations.size(): " << translations.size() << std::endl;
 						for(const auto & trans : translations){

@@ -227,7 +227,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 					altsSamplePrevs.emplace_back(static_cast<double>(b.second.samples_.size())/static_cast<double>(samplesPerPosition.at(pos).size()));
 				}
 			}
-			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			if (njh::in(pos, insertionsFinalForVCF)) {
 				for (const auto & ins : insertionsFinalForVCF[pos]) {
 					alts.emplace_back(njh::pasteAsStr(getBaseForGenomicRegion(pos), ins.first));
@@ -238,7 +238,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 					altsSamplePrevs.emplace_back(static_cast<double>(ins.second.samples_.size())/static_cast<double>(samplesPerPosition.at(pos).size()));
 				}
 			}
-			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			VCFOutput::VCFRecord currentRecord;
 			currentRecord.chrom_ = region_.chrom_;
 			currentRecord.pos_ = pos + 1;
@@ -255,15 +255,15 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 			currentRecord.info_.addMeta("SC", njh::conToStr(altsSampleCounts, ",") );
 			currentRecord.info_.addMeta("PREV", njh::conToStr(altsSamplePrevs, ",") );
 
-			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			ret.records_.emplace_back(std::move(currentRecord));
 		}
 
 		//add in deletions
 		if (njh::in(pos, deletionsFinalForVCF)) {
-			std::cout << __FILE__ << " " << __LINE__ << std::endl;
-			std::cout << "pos: " << pos << std::endl;
-			std::cout << "deletionsFinalForVCF[pos]: " << njh::json::toJson(deletionsFinalForVCF[pos]) << std::endl;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			// std::cout << "pos: " << pos << std::endl;
+			// std::cout << "deletionsFinalForVCF[pos]: " << njh::json::toJson(deletionsFinalForVCF[pos]) << std::endl;
 			for (const auto & d : deletionsFinalForVCF[pos]) {
 				VCFOutput::VCFRecord currentRecord;
 				currentRecord.chrom_ = region_.chrom_;
@@ -283,9 +283,9 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 				ret.records_.emplace_back(std::move(currentRecord));
 			}
 		}
-		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	}
-	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return ret;
 }
 
@@ -474,7 +474,7 @@ void TranslatorByAlignment::VariantsInfo::writeSNPTable(const OutOptions &snpTab
 			// std::vector<uint32_t> altsCounts;
 			// std::vector<double> altsFreqs;
 
-			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			if(njh::in(pos, snpsFinal)){
 				uint32_t snpCount = 0;
 				for(const auto & b : snpsFinal.at(pos)){
@@ -500,7 +500,7 @@ void TranslatorByAlignment::VariantsInfo::writeSNPTable(const OutOptions &snpTab
 						<< "\t" << depthPerPosition.at(pos)
 						<< "\t" << samplesPerPosition.at(pos).size() << std::endl;
 			}
-			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		}
 	}
 }
@@ -619,7 +619,7 @@ void TranslatorByAlignment::VariantsInfo::writeOutSNPsInfo(std::ostream & out,
 			ss << __PRETTY_FUNCTION__ << ", error " << "no info for snp position: " << snpPos << "\n";
 			throw std::runtime_error{ss.str()};
 		}
-		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		for(const auto & aa : allBases[snpPos]){
 			out << name
 					<< "\t" << (oneBased ? snpPos +1 : snpPos)
@@ -630,7 +630,7 @@ void TranslatorByAlignment::VariantsInfo::writeOutSNPsInfo(std::ostream & out,
 					<< "\t" << depthPerPosition[snpPos]
 					<< "\t" << samplesPerPosition[snpPos].size() << std::endl;
 		}
-		std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	}
 }
 
@@ -702,6 +702,10 @@ void TranslatorByAlignment::VariantsInfo::addVariantInfo(
 		const comparison & comp,
 		uint32_t offSetStart
 		){
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	// seqInfo("", alignedRefSeq).outPutSeqAnsi(std::cout);
+	// seqInfo("", alignedQuerySeq).outPutSeqAnsi(std::cout);
+
 	const uint32_t queryAlnStart = alignedQuerySeq.find_first_not_of('-');
 	const uint32_t queryAlnEnd = alignedQuerySeq.find_last_not_of('-');
 	for(const auto seqPos : iter::range(queryAlnStart, queryAlnEnd + 1)){
@@ -1723,7 +1727,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		}
 		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		// //std::cout << __FILE__ << " " << __LINE__ << std::endl;
-		aligner alignObj(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(2,-2));
+		aligner alignObj(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix::createDegenScoreMatrixLessN(2,-2));
+		aligner protein_alignObj(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(2,-2));
+
+
 		//aligner alignObjSeq(seqMaxLen + rPars.realnPars.extendAmount * 2, gapScoringParameters(5,1,0,0,0,0), substituteMatrix(2,-2));
 		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> regionsToGeneIds;
@@ -1752,7 +1759,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		};
 //		 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		std::unordered_map<std::string, MinMaxPos> minMaxPositionsPerChrom;
-		aligner alignObjAdjusted(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix(10,-2));
+		aligner alignObjAdjusted(proteinMaxLen, gapScoringParameters(6,1,0,0,0,0), substituteMatrix::createDegenScoreMatrixLessN(10,-2));
 		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		while (bReader.GetNextAlignment(bAln)) {
 			if (bAln.IsMapped() && bAln.IsPrimaryAlignment()) {
@@ -1813,7 +1820,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					try {
 						std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> translations;
 //            std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
-						translations = translateBasedOnAlignment(results, *currentGene, currentGeneInfo, alignObj, pars_);
+						translations = translateBasedOnAlignment(results, *currentGene, currentGeneInfo, protein_alignObj, pars_);
 						//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 //            std::cout << "translations.size(): " << translations.size() << std::endl;
 						for(const auto & trans : translations){
