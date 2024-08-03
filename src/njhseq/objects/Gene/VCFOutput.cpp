@@ -369,8 +369,18 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
 	writeOutHeaderFieldsOtherThanFormat(vcfOut);
 	//write out formats
+	VecStr formatOutputOrder;
+	//force GT to be first field
+	if(njh::in(std::string("GT"), formatEntries_)) {
+		formatOutputOrder.emplace_back("GT");
+	}
 	for (const auto & infoKey: formatEntries_) {
-		const auto & info = infoKey.second;
+		if(infoKey.first != "GT") {
+			formatOutputOrder.emplace_back(infoKey.first);
+		}
+	}
+	for (const auto & infoKey: formatOutputOrder) {
+		const auto & info = formatEntries_.at(infoKey);
 		vcfOut <<"##FORMAT=<"
 		<< "ID=" << info.id_
 		<< ","<< "Number=" << info.number_
@@ -433,8 +443,8 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 		}
 	}
 	std::string formatOut;
-	for (const auto & formatKey: formatEntries_) {
-		const auto & format = formatKey.second;
+	for (const auto & infoKey: formatOutputOrder) {
+		const auto & format = formatEntries_.at(infoKey);
 		if(!formatOut.empty()) {
 			formatOut +=":";
 		}
@@ -474,8 +484,8 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 			for(const auto & sampleName : samples_) {
 				const auto & sample = rec.sampleFormatInfos_.at(sampleName);
 				std::string formatOutForSample;
-				for (const auto & formatKey: formatEntries_) {
-					const auto & format = formatKey.second;
+				for (const auto & infoKey: formatOutputOrder) {
+					const auto & format = formatEntries_.at(infoKey);
 					if(!formatOutForSample.empty()) {
 						formatOutForSample +=":";
 					}
