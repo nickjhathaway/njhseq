@@ -166,6 +166,13 @@ public:
 		MetaDataInName info_;/**<the info entry for this variant */
 		std::map<std::string, MetaDataInName> sampleFormatInfos_;/**<the sample info for this variant */
 
+		void addGTField(uint32_t ploidy = 2);
+
+		template<typename T>
+		void addFiledDefaultValue(const std::string & field, const T & defaultValue, bool replace = true) {
+			info_.addMeta(field, defaultValue, replace);
+		}
+
 		[[nodiscard]] uint32_t getNumberOfAlleles() const ;
 
 		[[nodiscard]] Json::Value toJson() const ;
@@ -174,8 +181,13 @@ public:
 		 * \brief Generate a genomic region for this record, will only have the genomic region info, none of the sample info if loaded
 		 * \return a genomic region that covers this variant, will be zero-based positioning
 		 */
-		GenomicRegion genRegion() const;
+		[[nodiscard]] GenomicRegion genRegion() const;
 	};
+
+	/**@brief this will override and re-determine the GT based on the read depths
+	 * @param ploidy the ploidy to set the GT to
+	 */
+	void allAddGTFields(uint32_t ploidy=2);
 
 	std::vector<VCFRecord> records_;/**< the variant records*/
 
@@ -239,6 +251,8 @@ public:
 	struct comnbineVCFsPars{
 		bool doNotRescueVariantCallsAcrossTargets{false};
 		bool combinedOverlappingCallsAcrossTargets{false};
+
+		uint32_t ploidy{2};
 	};
 	static VCFOutput comnbineVCFs(const std::vector<bfs::path> & vcfsFnps,
 		const std::set<std::string> & sampleNamesSet,

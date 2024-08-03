@@ -11,6 +11,98 @@ uint32_t VCFOutput::VCFRecord::getNumberOfAlleles() const {
 }
 
 
+void VCFOutput::VCFRecord::addGTField(uint32_t ploidy) {
+	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+	std::regex blankDataPattern("\\.(,\\.)*");
+	for (auto &samp: sampleFormatInfos_) {
+		if (!samp.second.containsMeta("AD")) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " <<
+					" need to have field AD in field if going too add GT field " << "\n";
+			ss << "Current fields are : " << njh::conToStr(njh::getVecOfMapKeys(samp.second.meta_), ",") << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		auto raw_AD = samp.second.getMeta("AD");
+		if (std::regex_match(raw_AD, blankDataPattern)) {
+			samp.second.addMeta("GT", ".", true);
+		} else {
+			std::vector<uint32_t> depths(1 + alts_.size());
+			auto ADs = tokenizeString(raw_AD, ",");
+			// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+			// std::cout << "ADs: " << raw_AD << std::endl;
+			std::transform(ADs.begin(), ADs.end(), depths.begin(), [](const auto &p) {
+				return njh::StrToNumConverter::stoToNum<uint32_t>(p);
+			});
+			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+			std::vector<uint32_t> rank(ADs.size());
+			njh::iota(rank, 0U);
+			njh::sort(rank, [&depths](const auto &pos1, const auto &pos2) {
+				return depths[pos1] > depths[pos2];
+			});
+
+			//count alleles with depth
+			uint32_t allelesWithDepth = std::count_if(depths.begin(), depths.end(), [](const auto d) { return d > 0; });
+			// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+			// std::cout << "sample: " << samp.first << std::endl;
+			// std::cout << "ploidy: " << ploidy << std::endl;
+			// std::cout << "depths: " << njh::conToStr(depths, ",") << std::endl;
+			// std::cout << "allelesWithDepth: " << allelesWithDepth << std::endl;
+			// std::cout << "rank: " << njh::conToStr(rank, ",") << std::endl;
+			//
+			// std::cout << "ploidy <= allelesWithDepth: " << njh::colorBool(ploidy <= allelesWithDepth) << std::endl;
+
+			std::vector<uint32_t> gts;
+			if (ploidy <= allelesWithDepth) {
+				for (uint32_t pos = 0; pos < ploidy; ++pos) {
+					gts.emplace_back(rank[pos]);
+				}
+			} else {
+				//fill what you can at first
+				for (const auto pos: iter::range(rank.size())) {
+					if(depths[rank[pos]] > 0) {
+						gts.emplace_back(rank[pos]);
+					}
+				}
+				auto sum = vectorSum(depths);
+				std::vector<double> freqs(ADs.size());
+				std::transform(depths.begin(), depths.end(), freqs.begin(), [&sum](const auto &p) { return p / sum; });
+				uint32_t diff = ploidy - allelesWithDepth;
+				// std::cout << "diff: " << diff << std::endl;
+				// std::cout << "gts: " << njh::conToStr(gts, ",") << std::endl;
+				// std::cout << "gts.size(): " << gts.size()<< std::endl;
+				for (const auto pos: iter::range(rank.size())) {
+					// std::cout << "\tdiff: " << diff << std::endl;
+					// std::cout << "\tfreqs[rank[pos]]: " << freqs[rank[pos]] << std::endl;
+					// std::cout << "\tstd::round(freqs[rank[pos]] * diff)): " << std::round(freqs[rank[pos]] * diff) << std::endl;
+					auto add = std::min(diff, static_cast<uint32_t>(std::round(freqs[rank[pos]] * diff)));
+					// std::cout << "\tadd: " << add << std::endl;
+					addOtherVec(gts, std::vector(add, rank[pos]));
+					diff -= add;
+					if (diff == 0) {
+						break;
+					}
+				}
+				if (diff != 0) {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " <<
+							" diff should be zero, not:  " << diff << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+			}
+
+			njh::sort(gts);
+			auto GT = njh::conToStr(gts, "/");
+			samp.second.addMeta("GT", GT, true);
+			// std::cout << "GT: " << GT << std::endl;
+			// std::cout << std::endl;
+			// if(1 == gts.size()) {
+			// 	exit(1);
+			// }
+		}
+	}
+}
+
+
 
 
 
@@ -98,6 +190,11 @@ Json::Value VCFOutput::VCFRecord::toJson() const {
 	ret["info_"] = njh::json::toJson(info_);
 	ret["sampleFormatInfos_"] = njh::json::toJson(sampleFormatInfos_);
 	return ret;
+}
+
+void VCFOutput::allAddGTFields(uint32_t ploidy) {
+	njh::for_each(
+		records_, [&](auto &rec) { rec.addGTField(ploidy); });
 }
 
 
@@ -921,6 +1018,7 @@ VCFOutput VCFOutput::readInHeader(const bfs::path & fnp) {
 VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
                                   const std::set<std::string> &sampleNamesSet,
                                   const comnbineVCFsPars &pars) {
+	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	const auto& firstVcfFnp = vcfsFnps.front();
 	auto firstVcf = VCFOutput::readInHeader(firstVcfFnp);
 	{
@@ -1046,7 +1144,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 											}
 										}
 										if(!altsNotInBestPosWithData.empty() && altsNotInBestPos.empty()){
-										   //replacement has to add the missing alt alleles
+											//replacement has to add the missing alt alleles
 											auto AD = firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AD");
 											auto AD_toks = tokenizeString(AD, ",");
 											auto AF = firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].getMeta("AF");
@@ -1067,8 +1165,13 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 													AD_replacement += AD_toks[altsInBestPosWithDataKey[alt] + 1];
 													AF_replacement += AF_toks[altsInBestPosWithDataKey[alt] + 1];
 												} else {
-													AD_replacement += "0";
-													AF_replacement += "0";
+													if(std::regex_match(AD, blankDataPattern)) {
+														AD_replacement += ".";
+														AF_replacement += ".";
+													} else {
+														AD_replacement += "0";
+														AF_replacement += "0";
+													}
 												}
 											}
 											firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AD", AD_replacement, true);
@@ -1095,6 +1198,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 
 												std::string AD_replacement = AD_toks.front();
 												std::string AF_replacement = AF_toks.front();
+
 												for(const auto & alt : newAlts) {
 													if(!AD_replacement.empty()) {
 														AD_replacement += ",";
@@ -1104,8 +1208,13 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 														AD_replacement += AD_toks[altsInBestPosKey[alt] + 1];
 														AF_replacement += AF_toks[altsInBestPosKey[alt] + 1];
 													} else {
-														AD_replacement += "0";
-														AF_replacement += "0";
+														if(std::regex_match(AD, blankDataPattern)) {
+															AD_replacement += ".";
+															AF_replacement += ".";
+														} else {
+															AD_replacement += "0";
+															AF_replacement += "0";
+														}
 													}
 												}
 												firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].addMeta("AD", AD_replacement, true);
@@ -1135,8 +1244,13 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 														AD_replacement += AD_toks[altsInBestPosWithDataKey[alt] + 1];
 														AF_replacement += AF_toks[altsInBestPosWithDataKey[alt] + 1];
 													} else {
-														AD_replacement += "0";
-														AF_replacement += "0";
+														if(std::regex_match(AD, blankDataPattern)) {
+															AD_replacement += ".";
+															AF_replacement += ".";
+														} else {
+															AD_replacement += "0";
+															AF_replacement += "0";
+														}
 													}
 												}
 												firstVcf.records_[bestPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AD", AD_replacement, true);
@@ -1321,8 +1435,13 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 														AD_replacement += AD_toks[altsInBestPosWithDataKey[alt] + 1];
 														AF_replacement += AF_toks[altsInBestPosWithDataKey[alt] + 1];
 													} else {
-														AD_replacement += "0";
-														AF_replacement += "0";
+														if(std::regex_match(AD, blankDataPattern)) {
+															AD_replacement += ".";
+															AF_replacement += ".";
+														} else {
+															AD_replacement += "0";
+															AF_replacement += "0";
+														}
 													}
 												}
 												firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AD", AD_replacement, true);
@@ -1384,8 +1503,13 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 															AD_replacement += AD_toks[altsInBestPosKey[alt] + 1];
 															AF_replacement += AF_toks[altsInBestPosKey[alt] + 1];
 														} else {
-															AD_replacement += "0";
-															AF_replacement += "0";
+															if(std::regex_match(AD, blankDataPattern)) {
+																AD_replacement += ".";
+																AF_replacement += ".";
+															} else {
+																AD_replacement += "0";
+																AF_replacement += "0";
+															}
 														}
 													}
 													firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].addMeta("AD", AD_replacement, true);
@@ -1415,8 +1539,13 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 															AD_replacement += AD_toks[altsInBestPosWithDataKey[alt] + 1];
 															AF_replacement += AF_toks[altsInBestPosWithDataKey[alt] + 1];
 														} else {
-															AD_replacement += "0";
-															AF_replacement += "0";
+															if(std::regex_match(AD, blankDataPattern)) {
+																AD_replacement += ".";
+																AF_replacement += ".";
+															} else {
+																AD_replacement += "0";
+																AF_replacement += "0";
+															}
 														}
 													}
 													firstVcf.records_[checkPos].sampleFormatInfos_[bestSampInfo.first].addMeta("AD", AD_replacement, true);
@@ -1723,8 +1852,13 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 												AD_replacement += AD_toks[altsInBestPosWithDataKey[alt] + 1];
 												AF_replacement += AF_toks[altsInBestPosWithDataKey[alt] + 1];
 											} else {
-												AD_replacement += "0";
-												AF_replacement += "0";
+												if(std::regex_match(AD, blankDataPattern)) {
+													AD_replacement += ".";
+													AF_replacement += ".";
+												} else {
+													AD_replacement += "0";
+													AF_replacement += "0";
+												}
 											}
 										}
 										firstVcf.records_[bestPos].sampleFormatInfos_[samp].addMeta("AD", AD_replacement, true);
@@ -1760,8 +1894,13 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 													AD_replacement += AD_toks[altsInBestPosKey[alt] + 1];
 													AF_replacement += AF_toks[altsInBestPosKey[alt] + 1];
 												} else {
-													AD_replacement += "0";
-													AF_replacement += "0";
+													if(std::regex_match(AD, blankDataPattern)) {
+														AD_replacement += ".";
+														AF_replacement += ".";
+													} else {
+														AD_replacement += "0";
+														AF_replacement += "0";
+													}
 												}
 											}
 											firstVcf.records_[bestPos].sampleFormatInfos_[currentSample].addMeta("AD", AD_replacement, true);
@@ -1791,8 +1930,13 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 													AD_replacement += AD_toks[altsInBestPosWithDataKey[alt] + 1];
 													AF_replacement += AF_toks[altsInBestPosWithDataKey[alt] + 1];
 												} else {
-													AD_replacement += "0";
-													AF_replacement += "0";
+													if(std::regex_match(AD, blankDataPattern)) {
+														AD_replacement += ".";
+														AF_replacement += ".";
+													} else {
+														AD_replacement += "0";
+														AF_replacement += "0";
+													}
 												}
 											}
 											firstVcf.records_[bestPos].sampleFormatInfos_[samp].addMeta("AD", AD_replacement, true);
@@ -1949,8 +2093,19 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 		}
 	}
+	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+	//redetermine GT since when combining counts the GT could have changed
+	if (njh::notIn("GT", firstVcf.formatEntries_)) {
+		firstVcf.formatEntries_.emplace("GT", VCFOutput::FormatEntry(
+			                                "GT", "1", "String",
+			                                "Genotype"
+		                                ));
+	}
+	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+	firstVcf.allAddGTFields(pars.ploidy);
+	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-  return firstVcf;
+	return firstVcf;
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 }
 } // namespace njhseq

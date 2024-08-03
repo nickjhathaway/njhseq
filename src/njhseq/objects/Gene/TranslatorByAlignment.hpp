@@ -55,7 +55,7 @@ public:
 		uint32_t occurrenceCutOff = 2;
 		double lowVariantCutOff = 0.005;
 		ReAlignedSeq::genRealignmentPars realnPars;
-
+		uint32_t ploidy{2};
 	};
 
 	struct VariantsInfo {

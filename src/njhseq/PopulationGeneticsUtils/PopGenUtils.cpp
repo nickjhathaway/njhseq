@@ -262,6 +262,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						// vcfOutputForTrans.writeOutFixedOnly(vcfOut);
 					}
 					vcfOutputForTrans.headerNonSampleFields_.emplace_back("FORMAT");
+					vcfOutputForTrans.formatEntries_.emplace("GT", VCFOutput::FormatEntry(
+						"GT", "1", "String",
+						"Genotype"
+					));
 					vcfOutputForTrans.formatEntries_.emplace("DP", VCFOutput::FormatEntry(
 						"DP", "1", "Integer",
 						"Total Read Depth for this sample, a count of 0 means no coverage in this sample"
@@ -274,6 +278,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						"AF", "R", "Float",
 						"Read Frequncy for the ref and alt alleles in the order listed, a freq of 0 means not detected"
 					));
+
+
 					std::unordered_set<std::string> chromPositions;
 					for(const auto & rec : vcfOutputForTrans.records_) {
 						chromPositions.emplace(njh::pasteAsStr(rec.chrom_, "-", rec.pos_));
@@ -389,6 +395,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						watch.startNewLap(njh::pasteAsStr("writing translation output - ", varPerTrans.first, " - write out vcf actual writing"));
 						// OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-proteinWithSampleInfo.vcf")));
 						OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf.gz")));
+						vcfOutputForTrans.allAddGTFields(pars.variantCallerRunPars.ploidy);
 						vcfOutputForTrans.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 					}
 				}
@@ -454,7 +461,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				// vcfOutputForChrom.writeOutFixedOnly(vcfOut);
 			}
 			vcfOutputForChrom.headerNonSampleFields_.emplace_back("FORMAT");
-
+			vcfOutputForChrom.formatEntries_.emplace("GT", VCFOutput::FormatEntry(
+				"GT", "1", "String",
+				"Genotype"
+			));
 			vcfOutputForChrom.formatEntries_.emplace("DP", VCFOutput::FormatEntry(
 				                                         "DP", "1", "Integer",
 				                                         "Total Read Depth for this sample, a count of 0 means no coverage in this sample"
@@ -584,6 +594,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			{
 				// OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomicWithSampleInfo.vcf")));
 				OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf.gz")));
+				vcfOutputForChrom.allAddGTFields(pars.variantCallerRunPars.ploidy);
 				vcfOutputForChrom.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 			}
 		}
