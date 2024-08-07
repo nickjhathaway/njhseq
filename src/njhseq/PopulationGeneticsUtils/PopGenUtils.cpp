@@ -396,6 +396,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						// OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-proteinWithSampleInfo.vcf")));
 						OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerTrans.first +  "-protein.vcf.gz")));
 						vcfOutputForTrans.allAddGTFields(pars.variantCallerRunPars.ploidy);
+						vcfOutputForTrans.allAutoAddDPFields();
+						vcfOutputForTrans.allAutoAddTYPEFields();
+						vcfOutputForTrans.allAddDefaultFormatField("GQ", 40, VCFOutput::FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 						vcfOutputForTrans.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 					}
 				}
@@ -595,6 +598,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				// OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomicWithSampleInfo.vcf")));
 				OutputStream genomeVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-genomic.vcf.gz")));
 				vcfOutputForChrom.allAddGTFields(pars.variantCallerRunPars.ploidy);
+				vcfOutputForChrom.allAutoAddDPFields();
+				vcfOutputForChrom.allAutoAddTYPEFields();
+				vcfOutputForChrom.allAddDefaultFormatField("GQ", 40, VCFOutput::FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 				vcfOutputForChrom.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 			}
 		}

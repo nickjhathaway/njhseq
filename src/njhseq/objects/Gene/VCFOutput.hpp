@@ -30,7 +30,7 @@ Info field: - additional information: (String, no whitespace, semicolons, or equ
 
 	*/
 public:
-	std::string vcfFormatVersion_{"VCFv4.0"};
+	std::string vcfFormatVersion_{"VCFv4.4"};
 	struct InfoEntry {
 		InfoEntry() = default;
 		InfoEntry(		std::string id,
@@ -46,7 +46,7 @@ public:
 		/**
 		 * \brief description of the number of elements in this entry
 		 *
-		 * per VCR 4.2 standards
+		 * per VCR 4.4 standards
 		 * • If the field has one value per alternate allele then this value should be ‘A’.
        • If the field has one value for each possible allele (including the reference), then this value should be ‘R’.
        • If the field has one value for each possible genotype (more relevant to the FORMAT tags) then this value should be ‘G’.
@@ -167,10 +167,27 @@ public:
 		std::map<std::string, MetaDataInName> sampleFormatInfos_;/**<the sample info for this variant */
 
 		void addGTField(uint32_t ploidy = 2);
+		void autoAddTYPEField();
+		void autoAddTotalDP_RO_AO_InfoFields();
 
 		template<typename T>
 		void addFiledDefaultValue(const std::string & field, const T & defaultValue, bool replace = true) {
-			info_.addMeta(field, defaultValue, replace);
+			std::regex blankDataPattern("\\.(,\\.)*");
+			for(auto & rec : sampleFormatInfos_) {
+				//check if all other fields are empty, then replace with an empty value
+				bool allBlanks = true;
+				for(const auto & otherFormat : rec.second.meta_) {
+					if(!std::regex_match(otherFormat.second, blankDataPattern)) {
+						allBlanks = false;
+						break;
+					}
+				}
+				if(allBlanks) {
+					rec.second.addMeta(field, ".", replace);
+				} else {
+					rec.second.addMeta(field, defaultValue, replace);
+				}
+			}
 		}
 
 		[[nodiscard]] uint32_t getNumberOfAlleles() const ;
@@ -188,6 +205,18 @@ public:
 	 * @param ploidy the ploidy to set the GT to
 	 */
 	void allAddGTFields(uint32_t ploidy=2);
+
+	void allAutoAddDPFields();
+	void allAutoAddTYPEFields();
+
+	template<typename T>
+	void allAddDefaultFormatField(const std::string & field, const T & defaultValue, const FormatEntry & formatEntry, bool replace = true) {
+		if(njh::notIn(field, infoEntries_)) {
+			formatEntries_[field] = formatEntry;
+		}
+		njh::for_each(
+	records_, [&field,&defaultValue,&replace](auto &rec) { rec.addFiledDefaultValue(field, defaultValue, replace); });
+	}
 
 	std::vector<VCFRecord> records_;/**< the variant records*/
 

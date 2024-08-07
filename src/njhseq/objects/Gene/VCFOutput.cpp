@@ -11,6 +11,81 @@ uint32_t VCFOutput::VCFRecord::getNumberOfAlleles() const {
 }
 
 
+void VCFOutput::VCFRecord::autoAddTYPEField() {
+	std::string TYPE;
+
+	for(const auto & alt : alts_) {
+		if(!TYPE.empty()) {
+			TYPE +=",";
+		}
+		if(ref_.size() == 1 && alt.size() == 1) {
+			TYPE += "snp";
+		}else if(ref_.size() > 1 && alt.size() == ref_.size()) {
+			//if all bases don't equal each other than it's a multiple snp TYPE, if some equal each other then it's a 'complex' TYPE
+			if(std::all_of(ref_.begin(), ref_.end(), [&alt](char c, size_t i = 0) mutable {
+							return c != alt[i++];
+					})) {
+				TYPE += "mnp";
+			} else {
+				TYPE += "complex";
+			}
+		} else if(ref_.size() > 1) {
+			TYPE += "del";
+		} else if (ref_.size() == 1 && alt.size() > 1) {
+			TYPE += "ins";
+		} else {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << " did not determine TYPE" << "\n";
+			ss << "ref_: " << ref_ << "\n";
+			ss << "alt: " << alt << "\n";
+			throw std::runtime_error{ss.str()};
+
+
+		}
+	}
+
+	info_.addMeta("TYPE", TYPE, true);
+
+}
+
+
+void VCFOutput::VCFRecord::autoAddTotalDP_RO_AO_InfoFields() {
+	uint32_t totalDP = 0;
+	uint32_t totalRO = 0; //total reads for reference
+	std::vector<uint32_t> totalAOs(alts_.size(), 0); //total read per each alt observation
+	std::regex blankDataPattern("\\.(,\\.)*");
+	for (auto &samp: sampleFormatInfos_) {
+		if (!samp.second.containsMeta("DP") || !samp.second.containsMeta("AD")) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " <<
+					" need to have field DP and AD in field if going too add total DP, RO, and AO fields " << "\n";
+			ss << "Current fields are : " << njh::conToStr(njh::getVecOfMapKeys(samp.second.meta_), ",") << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		if("." != samp.second.getMeta("DP")) {
+			totalDP += samp.second.getMeta<uint32_t>("DP");
+			auto AD_toks = tokenizeString(samp.second.getMeta("AD"), ",");
+			if(AD_toks.size() != 1 + alts_.size()) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "AD_toks.size(): " << AD_toks.size() << " does not equal the alts_ and ref size: " << 1 + alts_.size() << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+			totalRO += njh::StrToNumConverter::stoToNum<uint32_t>(AD_toks[0]);
+			for(const auto & e : iter::enumerate(AD_toks)) {
+				if(e.index != 0) {
+					totalAOs[e.index - 1] += njh::StrToNumConverter::stoToNum<uint32_t>(AD_toks[e.index]);
+				}
+			}
+		}
+	}
+
+	info_.addMeta("DP", totalDP, true);
+	info_.addMeta("RO", totalRO, true);
+	info_.addMeta("AO", njh::conToStr(totalAOs, ","), true);
+}
+
+
+
 void VCFOutput::VCFRecord::addGTField(uint32_t ploidy) {
 	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	std::regex blankDataPattern("\\.(,\\.)*");
@@ -193,8 +268,41 @@ Json::Value VCFOutput::VCFRecord::toJson() const {
 }
 
 void VCFOutput::allAddGTFields(uint32_t ploidy) {
+	if (njh::notIn("GT", formatEntries_)) {
+		formatEntries_.emplace("GT", FormatEntry(
+			                       "GT", "1", "String",
+			                       "Genotype"
+		                       ));
+	}
 	njh::for_each(
-		records_, [&](auto &rec) { rec.addGTField(ploidy); });
+		records_, [&ploidy](auto &rec) { rec.addGTField(ploidy); });
+}
+
+
+void VCFOutput::allAutoAddDPFields() {
+	if(njh::notIn("DP", infoEntries_)) {
+		infoEntries_["DP"] =
+			InfoEntry("DP", "1", "Integer", "Total read depth at the locus");
+	}
+	if(njh::notIn("RO", infoEntries_)) {
+		infoEntries_["RO"] =
+			InfoEntry("RO", "1", "Integer", "Read Count of full observations of the reference haplotype.");
+	}
+	if(njh::notIn("AO", infoEntries_)) {
+		infoEntries_["AO"] =
+			InfoEntry("AO", "A", "Integer", "Read Count of full observations of this alternate haplotype.");
+	}
+	njh::for_each(
+	records_, [](auto &rec) { rec.autoAddTotalDP_RO_AO_InfoFields(); });
+}
+
+void VCFOutput::allAutoAddTYPEFields() {
+	if(njh::notIn("TYPE", infoEntries_)) {
+		infoEntries_["TYPE"] =
+			InfoEntry("TYPE", "A", "String", "The type of allele, either snp, mnp, ins, del, or complex");
+	}
+	njh::for_each(
+records_, [](auto &rec) { rec.autoAddTYPEField(); });
 }
 
 
@@ -583,7 +691,7 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedData(const std::string 
 	}
 	if(!warningsInfoField.empty()) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ", error " << "encoutner the following errors when processing info field for line: " << "\n";
+		ss << __PRETTY_FUNCTION__ << ", error " << "encountered the following errors when processing info field for line: " << "\n";
 		ss << "errors: " << njh::conToStr(warningsInfoField, ",") << "\n";
 		ss << line << "\n";
 		throw std::runtime_error{ss.str()};
@@ -595,6 +703,7 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedData(const std::string 
 		if(equalSignPos == std::string::npos || equalSignPos == 0 || equalSignPos +1 >= infoTok.size()) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", error " << "info toks should have an equal sign separating values" << "\n";
+			ss << "infoTok: " << infoTok << "\n";
 			throw std::runtime_error{ss.str()};
 		}
 		auto key = infoTok.substr(0, equalSignPos);
@@ -2105,14 +2214,11 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 	}
 	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	//redetermine GT since when combining counts the GT could have changed
-	if (njh::notIn("GT", firstVcf.formatEntries_)) {
-		firstVcf.formatEntries_.emplace("GT", VCFOutput::FormatEntry(
-			                                "GT", "1", "String",
-			                                "Genotype"
-		                                ));
-	}
 	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	firstVcf.allAddGTFields(pars.ploidy);
+	firstVcf.allAutoAddDPFields();
+	firstVcf.allAutoAddTYPEFields();
+	firstVcf.allAddDefaultFormatField("GQ", 40, FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	return firstVcf;
