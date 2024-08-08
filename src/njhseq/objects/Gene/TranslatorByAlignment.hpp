@@ -11,6 +11,8 @@
 
 
 
+#include <utility>
+
 #include "njhseq/objects/BioDataObject.h"
 #include "njhseq/GenomeUtils.h"
 #include "njhseq/objects/Gene/GeneFromGffs.hpp"
@@ -37,15 +39,18 @@ public:
 
 	struct AAInfo {
 		AAInfo(std::string transcriptName,
-				uint32_t zeroBasedPos,
-				Codon cod,
-				bool knownMut) : transcriptName_(transcriptName),
-				 zeroBasedPos_(zeroBasedPos), cod_(cod), knownMut_(
-						knownMut) {
+		       uint32_t zeroBasedPos,
+		       Codon cod,
+		       bool knownMut,
+		       Codon refCod) : transcriptName_(std::move(transcriptName)),
+		                       zeroBasedPos_(zeroBasedPos), cod_(std::move(cod)), refCod_(std::move(refCod)),
+		                       knownMut_(
+			                       knownMut) {
 		}
 		std::string transcriptName_;
 		uint32_t zeroBasedPos_;
 		Codon cod_;
+		Codon refCod_;
 		bool knownMut_;
 	};
 
@@ -587,6 +592,15 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		for(auto & varPerTrans : ret.proteinVariants_){
 			varPerTrans.second.setFinals(rPars);
 		}
+		std::unordered_map<std::string, std::unordered_map<uint32_t, std::tuple<GeneSeqInfo::GenePosInfo,GeneSeqInfo::GenePosInfo,GeneSeqInfo::GenePosInfo>>> allCodonInfoByAAPos;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		for(const auto & seqName : ret.translations_) {
+			for(const auto & transcript : seqName.second) {
+				if(!njh::in(transcript.first, allCodonInfoByAAPos)) {
+					allCodonInfoByAAPos[transcript.first] = ret.translationInfoForTranscirpt_.at(transcript.first)->getInfosByAAPos();
+				}
+			}
+		}
 		//type sequences for significant protein variation including codon info
 		watch.startNewLap("type sequences for significant protein variation including codon info");
 		for(auto & varPerTrans : ret.proteinVariants_){
@@ -605,19 +619,23 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 							continue;
 						}
 						auto codon = seqName.second[varPerTrans.first].getCodonForAARefPos(loc);
+						const auto & refCodonInfo = allCodonInfoByAAPos[varPerTrans.first].at(loc);
+						Codon refCodon(std::get<0>(refCodonInfo).aa_,
+						std::make_tuple(std::get<0>(refCodonInfo).base_,std::get<1>(refCodonInfo).base_, std::get<2>(refCodonInfo).base_));
+
 						ret.fullAATypedWithCodonInfo_[seqName.first].emplace_back(
 								TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
-										njh::in(loc, knownMutationsLocationsZeroBased)));
+										njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
 						ret.translated_fullAATypedWithCodonInfo_[njh::pasteAsStr(seqName.first, "[transcript=", varPerTrans.first, "]")].emplace_back(
 								TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
-										njh::in(loc, knownMutationsLocationsZeroBased)));
+										njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
 						if(njh::in(loc, varPerTrans.second.snpsFinal)){
 							ret.variantAATypedWithCodonInfo_[seqName.first].emplace_back(
 									TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
-											njh::in(loc, knownMutationsLocationsZeroBased)));
+											njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
 							ret.translated_variantAATypedWithCodonInfo_[njh::pasteAsStr(seqName.first, "[transcript=", varPerTrans.first, "]")].emplace_back(
 									TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
-											njh::in(loc, knownMutationsLocationsZeroBased)));
+											njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
 						}
 					}
 				}

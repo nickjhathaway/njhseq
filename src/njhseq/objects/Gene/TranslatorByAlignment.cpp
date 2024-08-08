@@ -139,27 +139,31 @@ char TranslatorByAlignment::VariantsInfo::getBaseForGenomicRegion(const uint32_t
 	return seqBase_.seq_[relativePos];
 }
 
+
+
+
 VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 	VCFOutput ret;
 	ret.headerNonSampleFields_ = VecStr{"#CHROM", "POS","ID","REF","ALT","QUAL","FILTER","INFO"};
-	ret.infoEntries_.emplace("AN", VCFOutput::InfoEntry(
-		                         "AN", "1", "Integer", "Total Allele Depth, sum of AC with rest of depth being ref")
+	ret.infoEntries_.emplace("AN_REAL", VCFOutput::InfoEntry(
+		                         "AN_REAL", "1", "Integer",
+		                         "Real Total Allele Depth not dependent on ploidy, sum of AC with rest of depth being ref")
 	);
+	ret.infoEntries_.emplace("AC_REAL", VCFOutput::InfoEntry(
+														 "AC_REAL", "A", "Integer", "Allele Count not dependent on ploidy, number of microhaplotypes with variant"
+													 ));
+	ret.infoEntries_.emplace("AF_REAL", VCFOutput::InfoEntry(
+														 "AF_REAL", "A", "Float", "Allele Frequency not dependent on ploidy, calculated AC/AN"
+													 ));
+
 	ret.infoEntries_.emplace("NS", VCFOutput::InfoEntry(
 		                         "NS", "1", "Integer", "Number of Samples With Data for this variant position"
 	                         ));
-	ret.infoEntries_.emplace("AC", VCFOutput::InfoEntry(
-		                         "AC", "A", "Integer", "Allele Count, number of microhaplotypes with variant"
-	                         ));
-	ret.infoEntries_.emplace("AF", VCFOutput::InfoEntry(
-		                         "AF", "A", "Float", "Allele Frequency, calulated AC/AN"
-	                         ));
-
 	ret.infoEntries_.emplace("SC", VCFOutput::InfoEntry(
 		                         "SC", "A", "Integer", "Sample Count for this variant"
 	                         ));
 	ret.infoEntries_.emplace("PREV", VCFOutput::InfoEntry(
-		                         "PREV", "A", "Float", "Sample Prevalence, calulated SC/NS"
+		                         "PREV", "A", "Float", "Sample Prevalence, calculated SC/NS"
 	                         ));
 
 
@@ -187,7 +191,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 	for(const auto & del : deletionsFinal){
 		if(0 == del.first ){
 			std::stringstream ss;
-			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle deltions at position 0"<< "\n";
+			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle deletions at position 0"<< "\n";
 			throw std::runtime_error{ss.str()};
 		}
 		deletionsFinalForVCF[del.first - 1] = del.second;
@@ -247,11 +251,11 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 			currentRecord.alts_ = alts;
 			currentRecord.qual_ = 40;
 			currentRecord.filter_ = "PASS";
-			currentRecord.info_.addMeta("AN", depthPerPosition.at(pos) );
-			currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
-			currentRecord.info_.addMeta("AC", njh::conToStr(altsCounts, ",") );
-			currentRecord.info_.addMeta("AF", njh::conToStr(altsFreqs, ",") );
+			currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(pos) );
+			currentRecord.info_.addMeta("AC_REAL", njh::conToStr(altsCounts, ",") );
+			currentRecord.info_.addMeta("AF_REAL", njh::conToStr(altsFreqs, ",") );
 
+			currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
 			currentRecord.info_.addMeta("SC", njh::conToStr(altsSampleCounts, ",") );
 			currentRecord.info_.addMeta("PREV", njh::conToStr(altsSamplePrevs, ",") );
 
@@ -273,11 +277,10 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 				currentRecord.alts_ = VecStr{std::string(1, getBaseForGenomicRegion(pos))};
 				currentRecord.qual_ = 40;
 				currentRecord.filter_ = "PASS";
-				currentRecord.info_.addMeta("AN", depthPerPosition.at(pos) );
+				currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(pos) );
+				currentRecord.info_.addMeta("AC_REAL", d.second.alleleCount_ );
+				currentRecord.info_.addMeta("AF_REAL", d.second.alleleCount_/static_cast<double>(depthPerPosition.at(pos)) );
 				currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
-				currentRecord.info_.addMeta("AC", d.second.alleleCount_ );
-				currentRecord.info_.addMeta("AF", d.second.alleleCount_/static_cast<double>(depthPerPosition.at(pos)) );
-
 				currentRecord.info_.addMeta("SC", d.second.samples_.size() );
 				currentRecord.info_.addMeta("PREV", static_cast<double>(d.second.samples_.size())/static_cast<double>(samplesPerPosition.at(pos).size()) );
 				ret.records_.emplace_back(std::move(currentRecord));
@@ -311,7 +314,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::writeVCF(std::ostream & vcfOut) c
 // 	for(const auto & del : deletionsFinal){
 // 		if(0 == del.first ){
 // 			std::stringstream ss;
-// 			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle deltions at position 0"<< "\n";
+// 			ss << __PRETTY_FUNCTION__ << ", error " << "can't handle deletions at position 0"<< "\n";
 // 			throw std::runtime_error{ss.str()};
 // 		}
 // 		deletionsFinalForVCF[del.first - 1] = del.second;
@@ -1166,7 +1169,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 	for(const auto & seqName : translated_fullAATypedWithCodonInfo_){
 		std::unordered_map<std::string, VecStr> perTranscript;
 		for(const auto & type : seqName.second){
-			perTranscript[type.transcriptName_].emplace_back(njh::pasteAsStr(type.zeroBasedPos_ + 1, type.cod_.aa_));
+			perTranscript[type.transcriptName_].emplace_back(njh::pasteAsStr(type.refCod_.aa_, type.zeroBasedPos_ + 1, type.cod_.aa_));
 		}
 		std::string typed;
 		for(const auto & trans : perTranscript){
@@ -1229,7 +1232,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 	for(const auto & seqName : fullAATypedWithCodonInfo_){
 		std::unordered_map<std::string, VecStr> perTranscript;
 		for(const auto & type : seqName.second){
-			perTranscript[type.transcriptName_].emplace_back(njh::pasteAsStr(type.zeroBasedPos_ + 1, type.cod_.aa_));
+			perTranscript[type.transcriptName_].emplace_back(njh::pasteAsStr(type.refCod_.aa_, type.zeroBasedPos_ + 1, type.cod_.aa_));
 		}
 		std::string typed;
 		for(const auto & trans : perTranscript){
@@ -1256,7 +1259,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 		std::unordered_map<std::string, VecStr> perTranscript;
 		for(const auto & type : seqName.second){
 			if(type.knownMut_){
-				perTranscript[type.transcriptName_].emplace_back(njh::pasteAsStr(type.zeroBasedPos_ + 1, type.cod_.aa_));
+				perTranscript[type.transcriptName_].emplace_back(njh::pasteAsStr(type.refCod_.aa_, type.zeroBasedPos_ + 1, type.cod_.aa_));
 			}
 		}
 		std::string typed;
@@ -1282,7 +1285,7 @@ std::map<std::string, std::string> TranslatorByAlignment::TranslatorByAlignmentR
 	for(const auto & seqName : variantAATypedWithCodonInfo_){
 		std::unordered_map<std::string, VecStr> perTranscript;
 		for(const auto & type : seqName.second){
-			perTranscript[type.transcriptName_].emplace_back(njh::pasteAsStr(type.zeroBasedPos_ + 1, type.cod_.aa_));
+			perTranscript[type.transcriptName_].emplace_back(njh::pasteAsStr(type.refCod_.aa_, type.zeroBasedPos_ + 1, type.cod_.aa_));
 		}
 		std::string typed;
 		for(const auto & trans : perTranscript){
@@ -1818,7 +1821,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 					try {
-						std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> translations;
+						std::unordered_map<std::string, TranslateSeqRes> translations;
 //            std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
 						translations = translateBasedOnAlignment(results, *currentGene, currentGeneInfo, protein_alignObj, pars_);
 						//std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -1910,6 +1913,17 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		for(auto & varPerTrans : ret.proteinVariants_){
 			varPerTrans.second.setFinals(rPars);
 		}
+
+		std::unordered_map<std::string, std::unordered_map<uint32_t, std::tuple<GeneSeqInfo::GenePosInfo,GeneSeqInfo::GenePosInfo,GeneSeqInfo::GenePosInfo>>> allCodonInfoByAAPos;
+		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		for(const auto & seqName : ret.translations_) {
+			for(const auto & transcript : seqName.second) {
+				if(!njh::in(transcript.first, allCodonInfoByAAPos)) {
+					allCodonInfoByAAPos[transcript.first] = ret.translationInfoForTranscirpt_.at(transcript.first)->getInfosByAAPos();
+				}
+			}
+		}
+
 		//type sequences for significant protein variation including codon info
 		for(auto & varPerTrans : ret.proteinVariants_){
 
@@ -1927,19 +1941,23 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 							continue;
 						}
 						auto codon = seqName.second[varPerTrans.first].getCodonForAARefPos(loc);
+						const auto & refCodonInfo = allCodonInfoByAAPos[varPerTrans.first].at(loc);
+						Codon refCodon(std::get<0>(refCodonInfo).aa_,
+						std::make_tuple(std::get<0>(refCodonInfo).base_,std::get<1>(refCodonInfo).base_, std::get<2>(refCodonInfo).base_));
+
 						ret.fullAATypedWithCodonInfo_[seqName.first].emplace_back(
 								TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
-										njh::in(loc, knownMutationsLocationsZeroBased)));
+										njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
 						ret.translated_fullAATypedWithCodonInfo_[njh::pasteAsStr(seqName.first, "[transcript=", varPerTrans.first, "]")].emplace_back(
 								TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
-										njh::in(loc, knownMutationsLocationsZeroBased)));
+										njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
 						if(njh::in(loc, varPerTrans.second.snpsFinal)){
 							ret.variantAATypedWithCodonInfo_[seqName.first].emplace_back(
 									TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
-											njh::in(loc, knownMutationsLocationsZeroBased)));
+											njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
 							ret.translated_variantAATypedWithCodonInfo_[njh::pasteAsStr(seqName.first, "[transcript=", varPerTrans.first, "]")].emplace_back(
 									TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
-											njh::in(loc, knownMutationsLocationsZeroBased)));
+											njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
 						}
 					}
 				}

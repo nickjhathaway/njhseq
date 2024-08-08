@@ -1520,6 +1520,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 
 			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			rows.emplace_back(tokenizeString(rowStream.str(), delim, true));
+			// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		}
 		if(!keepSampleInfoInMemory_){
 			clearSample(sampName);
@@ -1540,10 +1541,13 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 			<< delim << sampleCluster::getClusterInfoHeader(delim) << delim
 			<< sampleCluster::getRepsInfoHeader(maxRunCount, checkingExpected, delim);
 
-
+	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	table ret(tokenizeString(headerStream.str(), delim));
+	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 
 	ret.addRows(rows);
+	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
+
 	return ret;
 }
 

@@ -276,7 +276,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 					));
 					vcfOutputForTrans.formatEntries_.emplace("AF", VCFOutput::FormatEntry(
 						"AF", "R", "Float",
-						"Read Frequncy for the ref and alt alleles in the order listed, a freq of 0 means not detected"
+						"Read Frequency for the ref and alt alleles in the order listed, a freq of 0 means not detected"
 					));
 
 
@@ -398,6 +398,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						vcfOutputForTrans.allAddGTFields(pars.variantCallerRunPars.ploidy);
 						vcfOutputForTrans.allAutoAddDPFields();
 						vcfOutputForTrans.allAutoAddTYPEFields();
+						vcfOutputForTrans.allAutoAdd_AC_AC_AF_InfoFields();
 						vcfOutputForTrans.allAddDefaultFormatField("GQ", 40, VCFOutput::FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 						vcfOutputForTrans.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 					}
@@ -600,6 +601,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				vcfOutputForChrom.allAddGTFields(pars.variantCallerRunPars.ploidy);
 				vcfOutputForChrom.allAutoAddDPFields();
 				vcfOutputForChrom.allAutoAddTYPEFields();
+				vcfOutputForChrom.allAutoAdd_AC_AC_AF_InfoFields();
 				vcfOutputForChrom.allAddDefaultFormatField("GQ", 40, VCFOutput::FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 				vcfOutputForChrom.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 			}

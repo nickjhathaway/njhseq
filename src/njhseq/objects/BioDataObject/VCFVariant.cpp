@@ -36,7 +36,7 @@ std::vector<VCFVariant> VCFVariant::readVCFLine(const std::string line){
 				ss << __PRETTY_FUNCTION__ << ", error " << "info toks should be size 2, not " << subToks.size() << " for " << info << "\n";
 				throw std::runtime_error{ss.str()};
 			}
-			if(subToks.front() == "AF"){
+			if(subToks.front() == "AF_REAL"){
 				freq = njh::StrToNumConverter::stoToNum<double>(subToks.back());
 			}
 		}
@@ -55,7 +55,7 @@ std::vector<VCFVariant> VCFVariant::readVCFLine(const std::string line){
 				ss << __PRETTY_FUNCTION__ << ", error " << "info toks should be size 2, not " << subToks.size() << " for " << info << "\n";
 				throw std::runtime_error{ss.str()};
 			}
-			if(subToks.front() == "AF"){
+			if(subToks.front() == "AF_REAL"){
 				auto freqToks = tokenizeString(subToks.back(), ",");
 				if(freqToks.size() != seqToks.size()){
 					std::stringstream ss;

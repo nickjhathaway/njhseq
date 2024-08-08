@@ -396,7 +396,8 @@ std::string sampleCluster::getRepsInfo(
 
 	// if(numberOfRuns() < maxRepCount){
 	if(collapsed.size() < maxRepCount){
-		for(uint32_t i = 0; i < maxRepCount - numberOfRuns(); ++i){
+		// for(uint32_t i = 0; i < maxRepCount - numberOfRuns(); ++i){
+		for(uint32_t i = 0; i < maxRepCount - collapsed.size(); ++i){
 			currentInfo << delim << repeatString(delim, emptyRepAmount);
 		}
 	}
