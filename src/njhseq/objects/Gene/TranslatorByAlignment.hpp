@@ -89,13 +89,10 @@ public:
 		std::map<uint32_t, std::map<std::string, posAlleleCountSamples>> insertionsFinal;
 		std::map<uint32_t, std::map<std::string, posAlleleCountSamples>> deletionsFinal;
 
-		// std::map<uint32_t, std::map<char, uint32_t>> snps;
-		// std::map<uint32_t, std::map<std::string,uint32_t>> insertions;
-		// std::map<uint32_t, std::map<std::string,uint32_t>> deletions;
-		//
-		// std::map<uint32_t, std::map<char, uint32_t>> snpsFinal;
-		// std::map<uint32_t, std::map<std::string,uint32_t>> insertionsFinal;
-		// std::map<uint32_t, std::map<std::string,uint32_t>> deletionsFinal;
+		//for complex need to have both the reference and the alt
+		//this will hold not only the complex variants but also the snps, indels so there can be one final collection to carry them all
+		std::map<uint32_t, std::map<std::string, std::map<std::string, posAlleleCountSamples>>> complexFinal;
+
 
 		std::set<uint32_t> variablePositons_;
 
@@ -112,6 +109,13 @@ public:
 
 		void setFinals(const RunPars & rPars);
 		//void setFinals(const RunPars & rPars, uint32_t totalPopCount);
+		struct PosStartSize {
+			PosStartSize() = default;
+			PosStartSize(uint32_t start, uint32_t size):start_(start), size_(size){}
+			uint32_t start_{std::numeric_limits<uint32_t>::max()};
+			uint32_t size_{std::numeric_limits<uint32_t>::max()};
+		};
+		std::vector<PosStartSize> getComplexPositions(uint32_t withinDist = 15);
 
 		char getBaseForGenomicRegionNoCheck(const uint32_t pos) const;
 
@@ -383,7 +387,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	//get some length stats on input seqs
 	uint64_t seqMaxLen = readVec::getMaxLength(seqs);
 	seqMaxLen = seqMaxLen + rPars.realnPars.extendAmount * 2;
-	uint32_t averageLen = static_cast<uint32_t>(readVec::getAvgLength(seqs));
+	auto averageLen = static_cast<uint32_t>(readVec::getAvgLength(seqs));
 
 	//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	{
@@ -508,7 +512,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 								//probably should do a more intensive check here fo
 								ret.filteredOffTranslations_[getSeqBase(seq).name_].emplace(trans);
 //                std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
-							} else{
+							} else {
 								ret.translations_[getSeqBase(seq).name_].emplace(trans);
 //                std::cout << __PRETTY_FUNCTION__  << " " << __LINE__ << std::endl;
 							}

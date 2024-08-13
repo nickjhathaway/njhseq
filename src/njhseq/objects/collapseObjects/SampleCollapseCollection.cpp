@@ -255,7 +255,6 @@ void SampleCollapseCollection::setUpSample(const std::string & sampleName,
 					std::make_shared<sampleCollapse>(inputClusters, sampleName,
 							preFiltCutOffs_.clusterSizeCutOff));
 		}
-
 	} else {
 		std::lock_guard<std::mutex> lock(mut_);
 		if (njh::in(sampleName, sampleCollapses_)) {
