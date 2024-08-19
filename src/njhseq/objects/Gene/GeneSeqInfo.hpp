@@ -57,6 +57,10 @@ public:
 	table infoTab_;
 	std::unordered_map<uint32_t, std::tuple<GenePosInfo,GenePosInfo,GenePosInfo>> infosByAAPos_;
 
+	std::string geneID_;
+	std::string transcriptID_;
+	std::string geneName_;
+
 	[[nodiscard]] std::unordered_map<uint32_t, GenePosInfo> getInfosByGDNAPos() const;
 	[[nodiscard]] std::unordered_map<uint32_t, GenePosInfo> getInfosByCDNAPos() const;
 	[[nodiscard]] std::unordered_map<uint32_t, std::tuple<GenePosInfo,GenePosInfo,GenePosInfo>> getInfosByAAPos() const;

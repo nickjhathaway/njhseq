@@ -264,6 +264,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 					vcfOutputForTrans.otherHeaderValuePairs_.emplace("reference", pars.transPars.lzPars_.genomeFnp.string());
 
 					vcfOutputForTrans.addDefaultInfoField("TARGET", pars.identifier,VCFOutput::InfoEntry("TARGET", "1", "String", "the target that covers this variant"));
+					vcfOutputForTrans.addDefaultInfoField("GeneID", njh::mapAt(translatedRes.translationInfoForTranscirpt_, varPerTrans.first)->geneID_, VCFOutput::InfoEntry("GeneID", "1", "String", "The Standardized Gene ID"));
+					vcfOutputForTrans.addDefaultInfoField("GeneName", njh::mapAt(translatedRes.translationInfoForTranscirpt_, varPerTrans.first)->geneName_, VCFOutput::InfoEntry("GeneName", "1", "String", "A name for the Gene"));
+					vcfOutputForTrans.addDefaultInfoField("TranscriptID", njh::mapAt(translatedRes.translationInfoForTranscirpt_, varPerTrans.first)->transcriptID_, VCFOutput::InfoEntry("TranscriptID", "1", "String", "The Transcript ID"));
+
+
 					watch.startNewLap(njh::pasteAsStr("writing translation output - ", varPerTrans.first, " - write out vcf sample info gather"));
 
 					vcfOutputForTrans.contigEntries_.emplace(varPerTrans.first, VCFOutput::ContigEntry(varPerTrans.first, translatedRes.translationInfoForTranscirpt_[varPerTrans.first]->protein_.seq_.length()));

@@ -479,6 +479,13 @@ std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> GeneFromGffs::gene
 		ret[transcript->getIDAttr()]  = std::make_shared<GeneSeqInfo>(cDna, coding_gDna, giInfoPar);
 		ret[transcript->getIDAttr()]->setCDnaAln(cDnaAln);
 		ret[transcript->getIDAttr()]->setTable();
+		ret[transcript->getIDAttr()]->geneID_ = gene_->getIDAttr();
+		ret[transcript->getIDAttr()]->transcriptID_ = transcript->getIDAttr();
+		ret[transcript->getIDAttr()]->geneName_ = gene_->getIDAttr();
+	  if(gene_->hasAttr("Name")) {
+	  	ret[transcript->getIDAttr()]->geneName_ = gene_->getAttr("Name");
+	  }
+
 	}
 	return ret;
 }
