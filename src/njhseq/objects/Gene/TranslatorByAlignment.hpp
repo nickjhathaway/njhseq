@@ -54,13 +54,22 @@ public:
 		bool knownMut_;
 	};
 
+	struct getComplexPositionsPars{
+		uint32_t withinDist = 15;
+		double fractionOfCoveredSamples = 0.95;
+	};
+
 	struct RunPars {
 
 		RunPars();
-		uint32_t occurrenceCutOff = 2;
-		double lowVariantCutOff = 0.005;
+		uint32_t occurrenceCutOff = 2;/**<The cutoff for the number of samples to appear in */
+		double lowVariantCutOff = 0.005;/**<The allele frequency cut off(not to be confused with sample prevalence) */
+		uint32_t totalReadDepthCutOff = 0;/**<The total read depth summed across all samples the haplotype appears in */
+
+		// uint32_t withinDistComplexVariant = 15;/**<the distance within to collapse complex variants */
+		getComplexPositionsPars complexVarPars;
 		ReAlignedSeq::genRealignmentPars realnPars;
-		uint32_t ploidy{2};
+		uint32_t ploidy{2};/**<The set ploidy to use for vcf output */
 	};
 
 	struct VariantsInfo {
@@ -70,14 +79,15 @@ public:
 		seqInfo seqBase_;
 
 
-		std::map<uint32_t, std::map<char, uint32_t>> allBases;
-		std::map<uint32_t, uint32_t> depthPerPosition;
-		std::map<uint32_t, std::unordered_set<std::string>> samplesPerPosition;
+		std::map<uint32_t, std::map<char, uint32_t>> allBases;//!< the allele depth per base at position
+		std::map<uint32_t, uint32_t> depthPerPosition;//!< the allele depth per position
+		std::map<uint32_t, std::unordered_map<std::string, uint32_t>> samplesPerPosition;//!< the samples depth per position
 		struct posAlleleCountSamples{
 			posAlleleCountSamples() = default;
 			uint32_t alleleCount_ = 0;
-			std::unordered_set<std::string> samples_;
 
+			std::unordered_map<std::string, uint32_t> sampleReadCnts_;
+			[[nodiscard]] uint32_t getTotalReadDepth() const;
 			[[nodiscard]] Json::Value toJson() const;
 		};
 
@@ -91,44 +101,90 @@ public:
 
 		//for complex need to have both the reference and the alt
 		//this will hold not only the complex variants but also the snps, indels so there can be one final collection to carry them all
+		std::map<uint32_t, std::map<std::string, std::map<std::string, posAlleleCountSamples>>> complex;
+		std::map<uint32_t, std::map<std::string, posAlleleCountSamples>> complexRefCount;
+
+		//after re-applying filters after determining complex variants
 		std::map<uint32_t, std::map<std::string, std::map<std::string, posAlleleCountSamples>>> complexFinal;
 
 
 		std::set<uint32_t> variablePositons_;
 
 		Bed3RecordCore getVariableRegion();
-
-
-		void addVariantInfo(const std::string & alignedRefSeq,
-				const std::string & alignedQuerySeq,
-				uint32_t querySeqCount,
-				const std::unordered_set<std::string> & samples,
-				const comparison & comp,
-				uint32_t offSetStart);
-
-
-		void setFinals(const RunPars & rPars);
 		//void setFinals(const RunPars & rPars, uint32_t totalPopCount);
 		struct PosStartSize {
 			PosStartSize() = default;
-			PosStartSize(uint32_t start, uint32_t size):start_(start), size_(size){}
+
+			PosStartSize(uint32_t start, uint32_t size): start_(start), size_(size) {
+			}
+
 			uint32_t start_{std::numeric_limits<uint32_t>::max()};
 			uint32_t size_{std::numeric_limits<uint32_t>::max()};
+			uint32_t count_{1};
+
+			[[nodiscard]] uint32_t end() const {
+				return start_ + size_;
+			}
+
+			[[nodiscard]] bool overlaps(const PosStartSize& other) const {
+				return (other.end() > start_ && other.end() <= end()) || (other.start_ >= start_ && other.start_ < end());
+			}
+
+			[[nodiscard]] bool withinDist(const PosStartSize& other, uint32_t dist) const {
+				//overlap handles if there is any overlap between the two,
+				//if not either the other start is within the distance to the start (other region is after this region) or
+				//the end of the other region is within the start of this region (other region is before this region)
+				return overlaps(other) || uAbsdiff(other.start_, end()) < dist || uAbsdiff(other.end(), start_) < dist;
+			}
+
+			static void sortComplexPositions(std::vector<PosStartSize>& complexPositions) {
+				njh::sort(complexPositions, [](const PosStartSize& a, const PosStartSize& b) {
+					if (a.start_ == b.start_) {
+						return a.end() < b.end();
+					}
+					return a.start_ < b.start_;
+				});
+			}
 		};
-		std::vector<PosStartSize> getComplexPositions(uint32_t withinDist = 15);
 
-		char getBaseForGenomicRegionNoCheck(const uint32_t pos) const;
+		std::vector<PosStartSize> getComplexPositions(const getComplexPositionsPars & pars);
 
-		char getBaseForGenomicRegion(const uint32_t pos) const;
 
-		VCFOutput createVCFOutputFixed() const;
+		void addVariantInfo(const std::string& alignedRefSeq,
+		                    const std::string& alignedQuerySeq,
+		                    uint32_t querySeqCount,
+		                    const std::unordered_map<std::string, uint32_t>& sampleReadCnts,
+		                    const comparison& comp,
+		                    uint32_t offSetStart);
 
-		VCFOutput writeVCF(const OutOptions &vcfOutOpts) const;
+		void addComplexVariantInfo(const std::string& alignedRefSeq,
+		                           const std::string& alignedQuerySeq,
+		                           uint32_t querySeqCount,
+		                           const std::unordered_map<std::string, uint32_t>& sampleReadCnts,
+		                           const comparison& comp,
+		                           uint32_t offSetStart,
+		                           std::vector<PosStartSize> complexPositions);
+
+
+		void setFinals(const RunPars& rPars);
+		void setComplexFinals(const RunPars& rPars);
+
+
+		[[nodiscard]] char getBaseForGenomicRegionNoCheck(const uint32_t pos) const;
+
+		[[nodiscard]] char getBaseForGenomicRegion(const uint32_t pos) const;
+
+		[[nodiscard]] VCFOutput createVCFOutputFixed() const;
+		[[nodiscard]] VCFOutput createVCFOutputComplexFixed() const;
+		[[nodiscard]] VCFOutput createVCFOutputComplexFixedWithSampleInfo(uint32_t ploidy, const std::string & chrom, uint32_t chromLength) const;
+
+
+		[[nodiscard]] VCFOutput writeVCF(const OutOptions &vcfOutOpts) const;
 		VCFOutput writeVCF(std::ostream & out) const;
 
 		void writeSNPTable(const OutOptions &snpTabOutOpts) const;
 
-		uint32_t getFinalNumberOfSegratingSites() const;
+		[[nodiscard]] uint32_t getFinalNumberOfSegratingSites() const;
 
 		/**@brief write out info for positions, will throw if no info present
 		 *
@@ -189,8 +245,9 @@ public:
 			return VecStr{"transcript","position(0-based)","ref","base","count","freq","alleleDepth","samples"};
 		}
 
-		std::set<std::string> getAllSamples() const;
+		[[nodiscard]] std::set<std::string> getAllSamples() const;
 	};
+
 
 	struct TranslatorByAlignmentPars{
 		TranslatorByAlignmentPars();
@@ -249,27 +306,27 @@ public:
 		std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>>  transcriptInfosForGene_;
 		std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>  translationInfoForTranscirpt_;
 
-		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> fullAATypedWithCodonInfo_;
-		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> variantAATypedWithCodonInfo_;
+		std::map<std::string, std::vector<AAInfo>> fullAATypedWithCodonInfo_;
+		std::map<std::string, std::vector<AAInfo>> variantAATypedWithCodonInfo_;
 
-		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> translated_fullAATypedWithCodonInfo_;
-		std::map<std::string, std::vector<TranslatorByAlignment::AAInfo>> translated_variantAATypedWithCodonInfo_;
+		std::map<std::string, std::vector<AAInfo>> translated_fullAATypedWithCodonInfo_;
+		std::map<std::string, std::vector<AAInfo>> translated_variantAATypedWithCodonInfo_;
 
-		std::map<std::string, std::string> genSeqSNPTypedStr() const;
+		[[nodiscard]] std::map<std::string, std::string> genSeqSNPTypedStr() const;
 
 
-		std::map<std::string, std::string> genAATypedStr() const;
-		std::map<std::string, std::string> genAATypedStrOnlyKnowns() const;
-		std::map<std::string, std::string> genAATypedStrOnlyPopVariant() const;
+		[[nodiscard]] std::map<std::string, std::string> genAATypedStr() const;
+		[[nodiscard]] std::map<std::string, std::string> genAATypedStrOnlyKnowns() const;
+		[[nodiscard]] std::map<std::string, std::string> genAATypedStrOnlyPopVariant() const;
 
-		std::map<std::string, std::string> translated_genAATypedStr() const;
-		std::map<std::string, std::string> translated_genAATypedStrOnlyKnowns() const;
-		std::map<std::string, std::string> translated_genAATypedStrOnlyPopVariant() const;
+		[[nodiscard]] std::map<std::string, std::string> translated_genAATypedStr() const;
+		[[nodiscard]] std::map<std::string, std::string> translated_genAATypedStrOnlyKnowns() const;
+		[[nodiscard]] std::map<std::string, std::string> translated_genAATypedStrOnlyPopVariant() const;
 
 		VecStr seqsUnableToBeMapped_;
 		VecStr seqsTranslationFiltered_;
 
-		std::set<std::string> getAllSeqNames() const;
+		[[nodiscard]] std::set<std::string> getAllSeqNames() const;
 
 		void writeSeqLocations(std::ostream & out) const;
 		void writeSeqLocationsTranslation(std::ostream & out) const;
@@ -312,24 +369,24 @@ public:
 	/**
 	 * \brief align sequences to the genome with an gff file and translate and get variant calls for protein and sequence
 	 * \param seqOpts input sequence option to read seqs from
-	 * \param sampCountsForHaps the sample counts per seq in input file
+	 * \param sampReadCountsForHaps the sample read counts per seq in input file
 	 * \param rPars the parameters for this run, has variant freq/occurrence cut offs
 	 * \return the alignment/translation results
 	 */
 	TranslatorByAlignmentResult run(const SeqIOOptions & seqOpts,
-	                                const std::unordered_map<std::string, std::unordered_set<std::string>> & sampCountsForHaps,
+	                                const std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> & sampReadCountsForHaps,
 	                                const RunPars & rPars);
 
 	/**
 	* \brief align sequences to a speicific genomic region and translate and get variant calls for protein and sequence
 	 * \param seqOpts input sequence option to read seqs from
-	 * \param sampCountsForHaps the sample counts per seq in input file
+	 * \param sampReadCountsForHaps the sample read counts per seq in input file
 	 * \param refSeqRegion the genomic region to force alignment to
 	 * \param rPars the parameters for this run, has variant freq/occurrence cut offs
 	 * \return the alignment/translation results
 	 */
 	TranslatorByAlignmentResult run(const SeqIOOptions & seqOpts,
-	                                const std::unordered_map<std::string, std::unordered_set<std::string>> & sampCountsForHaps,
+	                                const std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> & sampReadCountsForHaps,
 	                                const GenomicRegion & refSeqRegion,
 	                                const RunPars & rPars);
 
@@ -343,7 +400,7 @@ public:
 	TranslatorByAlignmentResult run(
 		const std::vector<T>& seqs,
 		//const std::vector<seqInfo> & seqs,
-		const std::unordered_map<std::string, std::unordered_set<std::string>>& sampCountsForHaps,
+		const std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> & sampReadCountsForHaps,
 		const GenomicRegion& refSeqRegion,
 		const RunPars& rPars);
 
@@ -376,7 +433,7 @@ template<typename T>
 TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 	const std::vector<T>& seqs,
 	//const std::vector<seqInfo> & seqs,
-	const std::unordered_map<std::string, std::unordered_set<std::string>>& sampCountsForHaps,
+	const std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> & sampReadCountsForHaps,
 	const GenomicRegion& refSeqRegion,
 	const RunPars& rPars) {
 	njh::stopWatch watch;
@@ -557,22 +614,50 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		watch.startNewLap("seq variant calling");
 		for(const auto & seqName : ret.seqAlns_){
 			for(const auto & aln : seqName.second){
-				uint32_t popCount = njh::mapAt(sampCountsForHaps, aln.querySeq_.name_).size();
+				uint32_t popCount = njh::mapAt(sampReadCountsForHaps, aln.querySeq_.name_).size();
 				ret.seqVariants_.at(aln.gRegion_.chrom_).addVariantInfo(
 						aln.alnRefSeq_.seq_,
 						aln.alnQuerySeq_.seq_,
 						popCount,
-						njh::mapAt(sampCountsForHaps, aln.querySeq_.name_),
+						njh::mapAt(sampReadCountsForHaps, aln.querySeq_.name_),
 						aln.comp_,
 						aln.gRegion_.start_);
 			}
 		}
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//set finals for the snps
-		for(auto & varPerChrom : ret.seqVariants_){
+		std::unordered_map<std::string, std::vector<VariantsInfo::PosStartSize>> complexPositionsPerChrom;
+		for (auto& varPerChrom: ret.seqVariants_) {
 			varPerChrom.second.setFinals(rPars);
+			{
+				auto complex_positions = varPerChrom.second.getComplexPositions(rPars.complexVarPars);
+				complexPositionsPerChrom[varPerChrom.first] = complex_positions;
+				std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				std::cout << varPerChrom.first << std::endl;
+				for (const auto& pos: complex_positions) {
+					std::cout << "\t" << pos.start_ << "\t" << pos.size_ << "\t" << pos.count_ << std::endl;
+				}
+
+			}
+
+		}
+		for(const auto & seqName : ret.seqAlns_){
+			for(const auto & aln : seqName.second){
+				uint32_t popCount = njh::mapAt(sampReadCountsForHaps, aln.querySeq_.name_).size();
+				ret.seqVariants_.at(aln.gRegion_.chrom_).addComplexVariantInfo(
+						aln.alnRefSeq_.seq_,
+						aln.alnQuerySeq_.seq_,
+						popCount,
+						njh::mapAt(sampReadCountsForHaps, aln.querySeq_.name_),
+						aln.comp_,
+						aln.gRegion_.start_,
+						complexPositionsPerChrom.at(aln.gRegion_.chrom_));
+			}
 		}
 
+		for (auto& varPerChrom: ret.seqVariants_) {
+			varPerChrom.second.setComplexFinals(rPars);
+		}
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//index amino acid changes per transcript
 		watch.startNewLap("protein variant calling");
@@ -581,12 +666,12 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				if(countOccurences(transcript.second.queryAlnTranslation_.seq_, "*") > 1){
 					//should log which ones have messed up translations
 				}else{
-					auto popCount = njh::mapAt(sampCountsForHaps, seqName.first).size();
+					auto popCount = njh::mapAt(sampReadCountsForHaps, seqName.first).size();
 					ret.proteinVariants_.at(transcript.first).addVariantInfo(
 							transcript.second.refAlnTranslation_.seq_,
 							transcript.second.queryAlnTranslation_.seq_,
 							popCount,
-							njh::mapAt(sampCountsForHaps, seqName.first),
+							njh::mapAt(sampReadCountsForHaps, seqName.first),
 							transcript.second.comp_,
 							0);
 				}

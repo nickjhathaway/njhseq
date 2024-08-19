@@ -33,6 +33,8 @@ public:
 	struct genRealignmentPars{
 		bool adjustForSoftClipping = true;
 		uint32_t extendAmount = 20;
+
+		bool adjustLongDinucleotideRepeats = false;
 	};
 
 

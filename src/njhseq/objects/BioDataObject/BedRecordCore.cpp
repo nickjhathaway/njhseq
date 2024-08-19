@@ -44,11 +44,13 @@ Bed6RecordCore::Bed6RecordCore(const std::string & line) {
 	chromStart_ = "*" == toks[1] ? std::numeric_limits<uint32_t>::max() : estd::stou(toks[1]);
 	chromEnd_ = "*" == toks[2] ? std::numeric_limits<uint32_t>::max() : estd::stou(toks[2]);
 	name_ = toks[3];
-	score_ = njh::lexical_cast<double>(toks[4]);
+	score_ =  "*" == toks[2] ? std::numeric_limits<double>::max() : njh::lexical_cast<double>(toks[4]);
 	if (toks[5] == "-") {
 		strand_ = '-';
 	} else if (toks[5] == "+") {
 		strand_ = '+';
+	} else if (toks[5] == "*") {
+		strand_ = '*';
 	} else {
 		std::stringstream ss;
 		ss << "Error in parsing strand field: " << toks[5] << "\n";

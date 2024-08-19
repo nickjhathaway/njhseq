@@ -360,4 +360,26 @@ size_t motif::size() const {
 	return motifUnits_.size();
 }
 
+
+
+Json::Value motif::motifSubUnit::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::getTypeName(*this);
+	ret["aas_"] = njh::json::toJson(aas_);
+	ret["inclusive_"] = njh::json::toJson(inclusive_);
+	ret["score_"] = njh::json::toJson(score_);
+	ret["otherScore_"] = njh::json::toJson(otherScore_);
+	return ret;
+}
+
+
+
+Json::Value motif::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::getTypeName(*this);
+	ret["motifOriginal_"] = njh::json::toJson(motifOriginal_);
+	ret["motifUnits_"] = njh::json::toJson(motifUnits_);
+	return ret;
+}
+
 } /* namespace njhseq */

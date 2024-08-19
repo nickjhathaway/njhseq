@@ -663,7 +663,7 @@ void table::naturlSortTable(const std::string &byThisColumn, bool decending){
 					//					throw std::runtime_error{ss.str()};
 					subNameToks_.emplace_back(nameTok, std::numeric_limits<double>::min() );
 				} else {
-					subNameToks_.emplace_back(nameMatch[1], ("" == nameMatch[2] ? std::numeric_limits<double>::min() :std::stod(nameMatch[2]) ) );
+					subNameToks_.emplace_back(nameMatch[1], "" == nameMatch[2] ? std::numeric_limits<double>::min() :std::stod(nameMatch[2]) );
 				}
 			}
 		}
@@ -678,18 +678,36 @@ void table::naturlSortTable(const std::string &byThisColumn, bool decending){
 	njh::sort(content_, [&colPos](const VecStr & row1, const VecStr & row2) {
 		const NameWithNameSplit seq1(row1[colPos]);
 		const NameWithNameSplit seq2(row2[colPos]);
+		// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		// std::cout << "seq1.name_: " << seq1.name_  << std::endl;
+		// std::cout << "seq1.nameToks_: " << njh::conToStr(seq1.nameToks_, ",")  << std::endl;
+		// std::cout << "seq1.subNameToks_: "   << std::endl;
+		// for(const auto & subNameTok : seq1.subNameToks_) {
+		// 	std::cout << subNameTok.first << " " << subNameTok.second << std::endl;
+		// }
+		//
+		// std::cout << "seq2.name_: " << seq2.name_ << std::endl;
+		// std::cout << "seq2.nameToks_: " << njh::conToStr(seq2.nameToks_, ",") << std::endl;
+		// std::cout << "seq2.subNameToks_: " << std::endl;
+		// for (const auto& subNameTok: seq2.subNameToks_) {
+		// 	std::cout << subNameTok.first << " " << subNameTok.second << std::endl;
+		// }
 		auto smallest = std::min(seq1.nameToks_.size(), seq2.nameToks_.size());
 		for(uint32_t pos = 0; pos < smallest; ++pos) {
 			if(seq1.subNameToks_[pos].first == seq2.subNameToks_[pos].first) {
 				if(seq1.subNameToks_[pos].second != seq2.subNameToks_[pos].second) {
+					// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 					return seq1.subNameToks_[pos].second < seq2.subNameToks_[pos].second;
 				}
 			} else {
+				// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				return seq1.subNameToks_[pos].first < seq2.subNameToks_[pos].first;
 			}
 		}
+		// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		return seq1.subNameToks_.size() < seq2.subNameToks_.size();
 	});
+
 	if(decending){
 		njh::reverse(content_);
 	}
@@ -1298,6 +1316,33 @@ table table::countColumn(const std::vector<uint32_t> & colPositions){
 	}
 	return ret;
 }
+
+table table::countGroupColumns(const VecStr & subColumns, const std::string & countColumnName) const {
+	checkForColumnsThrow(subColumns, __PRETTY_FUNCTION__);
+	table ret(concatVecs(subColumns, {countColumnName}));
+	std::unordered_map<std::string, uint32_t> counts;
+	for(const auto & row : content_) {
+		std::string rowID;
+		for(const auto & col : subColumns) {
+			if(!rowID.empty()) {
+				rowID += "SPLITONTHIS";
+			}
+			rowID += row[getColPos(col)];
+		}
+		++counts[rowID];
+	}
+	auto keys = getVectorOfMapKeys(counts);
+	njh::naturalSortNameSet(keys);
+	for(const auto & key : keys) {
+		auto toks = tokenizeString(key, "SPLITONTHIS");
+		toks.emplace_back(estd::to_string(counts[key]));
+		ret.addRow(toks);
+	}
+	return ret;
+}
+
+
+
 
 table table::extractNumColGreater(const std::string & colName, double cutOff)const{
   auto comp = [&cutOff](const std::string & str){

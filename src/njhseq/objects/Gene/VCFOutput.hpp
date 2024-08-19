@@ -213,12 +213,25 @@ public:
 	void allAutoAddTYPEFields();
 
 	template<typename T>
-	void allAddDefaultFormatField(const std::string & field, const T & defaultValue, const FormatEntry & formatEntry, bool replace = true) {
-		if(njh::notIn(field, infoEntries_)) {
+	void allAddDefaultFormatField(const std::string& field, const T& defaultValue, const FormatEntry& formatEntry,
+	                              bool replace = true) {
+		if (njh::notIn(field, formatEntries_)|| replace) {
 			formatEntries_[field] = formatEntry;
 		}
 		njh::for_each(
-	records_, [&field,&defaultValue,&replace](auto &rec) { rec.addFiledDefaultValue(field, defaultValue, replace); });
+			records_, [&field,&defaultValue,&replace](auto& rec) { rec.addFiledDefaultValue(field, defaultValue, replace); });
+	}
+
+	template<typename T>
+	void addDefaultInfoField(const std::string& field, const T& defaultValue, const InfoEntry& infoEntry,
+	                            bool replace = true) {
+		if (njh::notIn(field, infoEntries_) || replace) {
+			infoEntries_[field] = infoEntry;
+		}
+		njh::for_each(
+			records_, [&field,&defaultValue,&replace](VCFRecord& rec) {
+				rec.info_.addMeta(field, defaultValue, replace);
+			});
 	}
 
 	std::vector<VCFRecord> records_;/**< the variant records*/

@@ -43,14 +43,18 @@ class motif {
 		std::vector<char> aas_;
 		bool inclusive_;
 		std::array<uint32_t, 26> score_;
-		//functions
-		void setScoreArray();
 		uint32_t otherScore_{std::numeric_limits<uint32_t>::max()};
 
+		//functions
+		void setScoreArray();
+
 	public:
-		uint32_t scoreCharNoCheck(char c) const;
-		uint32_t scoreCharCheck(char c) const;
+		[[nodiscard]] uint32_t scoreCharNoCheck(char c) const;
+		[[nodiscard]] uint32_t scoreCharCheck(char c) const;
 		friend class motif;
+		[[nodiscard]] Json::Value toJson() const;
+
+
 	};
 public:
 	/**@brief Constructor, in string should be a format similar to  N{P}[ST]{P},
@@ -58,7 +62,7 @@ public:
 	 *
 	 * @param inMotif In protein string
 	 */
-	motif(const std::string & inMotif);
+	explicit motif(const std::string & inMotif);
 
 	//members
 	std::string motifOriginal_;
@@ -69,17 +73,17 @@ private:
 	motifSubUnit processInclusion(uint32_t start, uint32_t stop);
 	motifSubUnit processExclusion(uint32_t start, uint32_t stop);
 public:
-	uint32_t scoreMotif(const std::string & possibleMotif)const;
-	uint32_t scoreMotif(const std::string::const_iterator & targetBegin,
+	[[nodiscard]] uint32_t scoreMotif(const std::string & possibleMotif)const;
+	[[nodiscard]] uint32_t scoreMotif(const std::string::const_iterator & targetBegin,
 			const std::string::const_iterator & targetEnd )const;
 
-	bool passMotifParameter(const std::string & possibleMotif,
+	[[nodiscard]] bool passMotifParameter(const std::string & possibleMotif,
 			uint32_t scoreCutOff) const;
 
-	std::vector<size_t> findPositions(const std::string & wholeProtein,
+	[[nodiscard]] std::vector<size_t> findPositions(const std::string & wholeProtein,
 			uint32_t scoreCutOff) const;
 
-	std::vector<size_t> findPositionsFull(const std::string & wholeProtein,
+	[[nodiscard]] std::vector<size_t> findPositionsFull(const std::string & wholeProtein,
 			uint32_t allowableErrors) const;
 	/**@brief Look for motif between these positions
 	 *
@@ -89,25 +93,28 @@ public:
 	 * @param stop The end position to stop searching in, the whole motif should come before this postion
 	 * @return All the positions the motif was found within
 	 */
-	std::vector<size_t> findPositionsFull(const std::string & wholeProtein,
+	[[nodiscard]] std::vector<size_t> findPositionsFull(const std::string & wholeProtein,
 			uint32_t allowableErrors, size_t start, size_t stop) const;
 
-	bool frontPassNoCheck(const std::string & wholeProtein,
+	[[nodiscard]] bool frontPassNoCheck(const std::string & wholeProtein,
 			uint32_t allowableErrors) const;
 
-	std::vector<size_t> findPositionsSubSets(
+	[[nodiscard]] std::vector<size_t> findPositionsSubSets(
 			const std::string & wholeProtein,
 			uint32_t allowableErrors,
 			size_t start, size_t stop,
 			uint32_t motifStart, uint32_t motifEnd) const;
 
-	std::vector<size_t> findPositionsSubSetsBest(
+	[[nodiscard]] std::vector<size_t> findPositionsSubSetsBest(
 			const std::string & wholeProtein,
 			uint32_t allowableErrors,
 			size_t start, size_t stop,
 			uint32_t motifStart, uint32_t motifEnd) const;
 
-	size_t size()const;
+	[[nodiscard]] size_t size()const;
+
+	[[nodiscard]] Json::Value toJson() const;
+
 };
 
 } /* namespace njhseq */

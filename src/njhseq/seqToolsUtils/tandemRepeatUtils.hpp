@@ -31,6 +31,19 @@ public:
 		uint32_t len_;
 		uint32_t repeats_;
 	};
+
+	struct FinalRepeatInfo {
+
+		std::string repeatSeq_;
+		std::string outRepeatSeq_;
+		std::vector<motif> altRepeats_;
+		std::string fullRepeatSeq_;
+
+		uint32_t start_{std::numeric_limits<uint32_t>::max()};
+		uint32_t len_{std::numeric_limits<uint32_t>::max()};
+		double repeatNumber_{std::numeric_limits<double>::max()};
+		[[nodiscard]] Json::Value toJson() const;
+	};
 	static RepeatStartLenRepeats getRepeatInfo(const std::string & seq, const motif & m);
 
 	struct SimpleTRFinderLocsPars {
@@ -54,11 +67,12 @@ public:
 	SimpleTRFinderLocsPars pars_;
 
 	void runSimpleTRFinderLocs(const SeqIOOptions& seqInput) const;
+	[[nodiscard]] std::vector<FinalRepeatInfo> getSimpleTRFinderLocs(const std::string & seq) const;
 
 	[[nodiscard]] VecStr genAllUnitsPossible() const;
 	struct MinimalUnitsAndAltMotifs {
 		MinimalUnitsAndAltMotifs() {
-			allUnits =std::make_shared<VecStr>();
+			allUnits = std::make_shared<VecStr>();
 		}
 		std::shared_ptr<VecStr> allUnits;
 		std::unordered_map<std::string, std::vector<motif>> altMots;

@@ -36,6 +36,7 @@ public:
 	std::vector<std::shared_ptr<seqInfo>> seqs_;
 	std::vector<std::unordered_set<std::string>> names_;
 	std::vector<std::string> possibleSampleMetaFields_{"sample", "BiologicalSample"};
+	std::vector<std::string> possibleReadCountMetaFields_{"readCount", "reads", "readCnt", "barcodeCount", "barcodeCnt"};
 
 	std::unordered_map<std::string, uint32_t> subNamesToMainSeqPos_; /**< The position of the sub seqs in the collapsed unique seq vector */
 
@@ -124,7 +125,15 @@ public:
 	std::vector<uint32_t> getOrderByTopCnt() const;
 
 	//sample names
-	static std::string getSampleNameFromSeqName(const std::string & name, const std::vector<std::string> & possibleSampleMetaFields=VecStr{"sample", "BiologicalSample"});
+	static std::string getSampleNameFromSeqName(const std::string& name,
+	                                            const std::vector<std::string>& possibleSampleMetaFields = VecStr{
+		                                            "sample", "BiologicalSample"
+	                                            });
+
+	static uint32_t getReadCountFromSeqName(const std::string& name,
+	                                        const std::vector<std::string>& possibleReadCountMetaFields = VecStr{
+		                                        "readCount", "reads", "readCnt", "barcodeCount", "barcodeCnt"
+	                                        });
 
 	/**
 	 * \brief will determine lab isolates if the following meta fields requirements of having a sample field, field of IsFieldSample == true, field of site == LabIsolate
@@ -133,8 +142,9 @@ public:
 	 */
 	static std::set<std::string> getPossibleLabIsolateNames(const std::unordered_set<std::string> & names);
 
-	std::set<std::string> getAllSampleNames();
-	std::vector<std::unordered_set<std::string>> getSampleNamesPerSeqs();
+	std::set<std::string> getAllSampleNames() const;
+	std::vector<std::unordered_set<std::string>> getSampleNamesPerSeqs() const;
+	std::vector<std::unordered_map<std::string, uint32_t>> getSampleReadCntsPerSeqs() const;
 
 	//writing out info
 	void writeOutSeqsOrdCnt(const SeqIOOptions &seqOpts) const;
@@ -142,6 +152,7 @@ public:
   void writeNamesPerLine(const OutOptions &outOpts) const;
   void writeLabIsolateNames(const OutOptions &outOpts, bool addAllNames = false) const;
 	void writeOutMetaFields(const OutOptions &outOpts) const;
+	table createMetaFieldsTable(bool addSeq = false) const;
 
 	void writeOutAll(const bfs::path & outputDirectory, const std::string & namePrefix, bool overWrite = false) const;
 

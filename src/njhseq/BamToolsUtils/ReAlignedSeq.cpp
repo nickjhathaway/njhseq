@@ -7,11 +7,14 @@
 
 #include "ReAlignedSeq.hpp"
 
+#include "njhseq/seqToolsUtils/tandemRepeatUtils.hpp"
+
 #include "njhseq/BamToolsUtils/BamToolsUtils.hpp"
 #include "njhseq/objects/BioDataObject/BioRecordsUtils/BedUtility.hpp"
 #include "njhseq/readVectorManipulation/readVectorOperations/massGetters.hpp"
 #include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 #include "njhseq/BamToolsUtils/BamToolsUtils.hpp"
+
 
 namespace njhseq {
 
@@ -45,8 +48,22 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 			softClipRight += bAln.CigarData.front().Length;
 		}
 	}
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	std::cout << gRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	// {
+	// 	auto localAlnInfo = bamAlnToAlnInfoLocal(bAln);
+	// 	alignerObj.parts_.lHolder_ = localAlnInfo.begin()->second;
+	// 	auto rSeq = gRegion.extractSeq(tReader);
+	// 	rSeq.name_ = gRegion.createUidFromCoordsStrand();
+	// 	auto qSeq = bamAlnToSeqInfo(bAln, true);
+	//
+	// 	alignerObj.rearrangeObjsLocal(rSeq, qSeq);
+	// 	alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+	// 	alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+	// }
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	// std::cout << gRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+	// std::cout << alignerObj.parts_.gapScores_.toJson().toStyledString() << std::endl;
+	// std::cout << njh::json::JsonConversion::toJson(alignerObj.parts_.scoring_).toStyledString() << std::endl;
 	BedUtility::extendLeftRight(gRegion, extend + softClipLeft, extend + softClipRight, njh::mapAt(chromLengths,gRegion.chrom_));
 	auto rSeq = gRegion.extractSeq(tReader);
 	rSeq.name_ = gRegion.createUidFromCoordsStrand();
@@ -55,6 +72,29 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 	readVec::getMaxLength(qSeq, maxLen);
 	readVec::getMaxLength(rSeq, maxLen);
 	alignerObj.parts_.setMaxSize(maxLen);
+	// if(pars.adjustLongDinucleotideRepeats) {
+	// 	SimpleTandemRepeatFinder::SimpleTRFinderLocsPars repeatPars;
+	// 	repeatPars.minRepeatUnitSize = 2;
+	// 	repeatPars.maxRepeatUnitSize = 2;
+	// 	SimpleTandemRepeatFinder finder(repeatPars);
+	// 	auto refSeqTandems = finder.getSimpleTRFinderLocs(rSeq.seq_);
+	// 	auto querySeqTandems = finder.getSimpleTRFinderLocs(qSeq.seq_);
+	//
+	// 	std::cout << "ref seqs Tandems: " << std::endl;
+	// 	for(const auto & rSeqTandem : refSeqTandems) {
+	// 		std::cout << "\trSeqTandem.repeatSeq_ " <<  rSeqTandem.repeatSeq_ << std::endl;
+	// 		std::cout << "\trSeqTandem.repeatNumber_ " <<  rSeqTandem.repeatNumber_ << std::endl;
+	// 		std::cout << "\trSeqTandem.fullRepeatSeq_ " <<  rSeqTandem.fullRepeatSeq_ << std::endl;
+	// 		std::cout << "\trSeqTandem.len_ " <<  rSeqTandem.len_ << std::endl;
+	// 	}
+	// 	std::cout << "query seqs Tandems : " << std::endl;
+	// 	for(const auto & qSeqTandem : querySeqTandems) {
+	// 		std::cout << "\tqSeqTandem.repeatSeq_ " <<  qSeqTandem.repeatSeq_ << std::endl;
+	// 		std::cout << "\tqSeqTandem.repeatNumber_ " <<  qSeqTandem.repeatNumber_ << std::endl;
+	// 		std::cout << "\tqSeqTandem.fullRepeatSeq_ " <<  qSeqTandem.fullRepeatSeq_ << std::endl;
+	// 		std::cout << "\tqSeqTandem.len_ " <<  qSeqTandem.len_ << std::endl;
+	// 	}
+	// }
 	alignerObj.alignCacheGlobal(rSeq, qSeq);
 	uint32_t queryAlnStart = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
 	uint32_t queryAlnLastBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');
@@ -68,23 +108,24 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 	}
 	uint32_t realRefEnd = realRefLastBase + 1;
 
-//	alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
-//	alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+	// alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+	// alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
 	seqInfo referenceAln = alignerObj.alignObjectA_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
 	seqInfo queryAln = alignerObj.alignObjectB_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
 	alignerObj.alignObjectA_.seqBase_ = referenceAln;
 	alignerObj.alignObjectB_.seqBase_ = queryAln;
-//	alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
-//	alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+	// alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+	// alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
 	seqInfo refSeq = referenceAln;
 	refSeq.removeGaps();
 	gRegion.start_ = gRegion.start_ + realRefStart;
 	gRegion.end_ = gRegion.start_ + realRefEnd - realRefStart;
 
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	std::cout << gRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	// std::cout << gRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
 	alignerObj.profileAlignment(rSeq, qSeq, false, false, false);
 	if('-' == alignerObj.alignObjectA_.seqBase_.seq_.front() || '-' == alignerObj.alignObjectA_.seqBase_.seq_.back()){
+		// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		uint32_t extraExtendFront = 25;
 		uint32_t extraExtendEnd = 25;
 
@@ -117,6 +158,8 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 		queryAln = alignerObj.alignObjectB_.seqBase_.getSubRead(queryAlnStart, queryAlnEnd - queryAlnStart);
 		alignerObj.alignObjectA_.seqBase_ = referenceAln;
 		alignerObj.alignObjectB_.seqBase_ = queryAln;
+		// alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+		// alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
 		refSeq = referenceAln;
 		refSeq.removeGaps();
 		gRegion.start_ = gRegion.start_ + realRefStart;
@@ -124,8 +167,8 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 
 		alignerObj.profileAlignment(rSeq, qSeq, false, false, false);
 	}
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	std::cout << gRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	// std::cout << gRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
 
 	ReAlignedSeq ret;
 	ret.bAln_ = bAln;

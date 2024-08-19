@@ -282,6 +282,8 @@ public:
 	table countColumn(const VecStr &columnNames);
 	table countColumn(const std::vector<uint32_t> & colPositions);
 
+	[[nodiscard]] table countGroupColumns(const VecStr & subColumns, const std::string & countColumnName = "n") const;
+
 	table getStatsTable() const;
 	table aggregateSimple(const std::string &columnName,
 			const std::string &function, bool addZeros = true);

@@ -12,6 +12,7 @@ uint32_t VCFOutput::VCFRecord::getNumberOfAlleles() const {
 
 
 void VCFOutput::VCFRecord::autoAddTYPEField() {
+	//going to need a better determination of TYPE to be able to determine complex types better
 	std::string TYPE;
 
 	for(const auto & alt : alts_) {
@@ -20,18 +21,29 @@ void VCFOutput::VCFRecord::autoAddTYPEField() {
 		}
 		if(ref_.size() == 1 && alt.size() == 1) {
 			TYPE += "snp";
-		}else if(ref_.size() > 1 && alt.size() == ref_.size()) {
-			//if all bases don't equal each other than it's a multiple snp TYPE, if some equal each other then it's a 'complex' TYPE
-			if(std::all_of(ref_.begin(), ref_.end(), [&alt](char c, size_t i = 0) mutable {
-							return c != alt[i++];
-					})) {
-				TYPE += "mnp";
-			} else {
-				TYPE += "complex";
+		} else if(ref_.size() > 1 && alt.size() == ref_.size()) {
+			uint32_t snpCount = 0;
+			for(const auto pos : iter::range(ref_.size())) {
+				if(ref_[pos] != alt[pos]) {
+						++snpCount;
+				}
 			}
-		} else if(ref_.size() > 1) {
+			if(snpCount == 1) {
+				TYPE += "snp";
+			} else {
+				TYPE += "mnp";
+			}
+			// //if all bases don't equal each other than it's a multiple snp TYPE, if some equal each other then it's a 'complex' TYPE
+			// if(std::all_of(ref_.begin(), ref_.end(), [&alt](char c, size_t i = 0) mutable {
+			// 				return c != alt[i++];
+			// 		})) {
+			// 	TYPE += "mnp";
+			// } else {
+			// 	TYPE += "complex";
+			// }
+		} else if(ref_.size() > alt.size()) {
 			TYPE += "del";
-		} else if (ref_.size() == 1 && alt.size() > 1) {
+		} else if (ref_.size() < alt.size()) {
 			TYPE += "ins";
 		} else {
 			std::stringstream ss;
@@ -39,8 +51,6 @@ void VCFOutput::VCFRecord::autoAddTYPEField() {
 			ss << "ref_: " << ref_ << "\n";
 			ss << "alt: " << alt << "\n";
 			throw std::runtime_error{ss.str()};
-
-
 		}
 	}
 
@@ -399,12 +409,12 @@ void VCFOutput::sortRecords() {
 
 void VCFOutput::writeOutHeaderFieldsOtherThanFormat(std::ostream & vcfOut) const {
 	//write out contigs
-	for (const auto&contigKey: contigEntries_) {
-		const auto & contig = contigKey.second;
-		vcfOut <<"##contig=<"
-		<< "ID=" << contig.id_ << ","
-		<< "length=" << contig.length_;
-		if(!contig.md5_.empty()) {
+	for (const auto& contigKey: contigEntries_) {
+		const auto& contig = contigKey.second;
+		vcfOut << "##contig=<"
+				<< "ID=" << contig.id_ << ","
+				<< "length=" << contig.length_;
+		if (!contig.md5_.empty()) {
 			vcfOut << "," << "md5=" << contig.md5_;
 		}
 		if(!contig.assembly_.empty()) {
@@ -1279,8 +1289,14 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 							bestPos = checkPos;
 						}
 					}
-					for(const auto & checkPos : currentPositionsToComp) {
-						if(bestPos != checkPos) {
+					for (const auto& checkPos: currentPositionsToComp) {
+						if (bestPos != checkPos) {
+							if (firstVcf.records_[bestPos].info_.containsMeta("TARGET") &&
+								  firstVcf.records_[checkPos].info_.containsMeta("TARGET") ) {
+								auto tarToks = njh::vecToSet(tokenizeString(firstVcf.records_[bestPos].info_.getMeta("TARGET"), ","));
+								njh::addVecToSet(tokenizeString(firstVcf.records_[checkPos].info_.getMeta("TARGET"), "::"), tarToks);
+								firstVcf.records_[bestPos].info_.addMeta("TARGET", njh::conToStr(tarToks, "::"), true);
+							}
 							positionsToErase.emplace(checkPos);
 						}
 					}
@@ -2265,6 +2281,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 					}
 					// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 				}
+
 				currentPositionsToComp.clear();
 			};
 			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
@@ -2283,6 +2300,9 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 			compSamePositions();
 			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			// std::cout << njh::conToStr(positionsToErase, ",") << std::endl;
+
+			//add in target info fields to each other
+
 			for(const auto posToErase : iter::reversed(positionsToErase)) {
 				firstVcf.records_.erase(firstVcf.records_.begin() + posToErase);
 			}

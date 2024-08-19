@@ -433,6 +433,24 @@ std::string CollapsedHaps::getSampleNameFromSeqName(const std::string &name,
 	return sample;
 }
 
+uint32_t CollapsedHaps::getReadCountFromSeqName(const std::string &name,
+		const std::vector<std::string> &possibleReadCountMetaFields) {
+	uint32_t readCount = 1;
+	if (MetaDataInName::nameHasMetaData(name)) {
+		MetaDataInName seqMeta(name);
+		for (const auto &metaField : possibleReadCountMetaFields) {
+			if (seqMeta.containsMeta(metaField)) {
+				readCount = seqMeta.getMeta<uint32_t>(metaField);
+				break;
+			}
+		}
+	}
+	return readCount;
+}
+
+
+
+
 std::set<std::string> CollapsedHaps::getPossibleLabIsolateNames(const std::unordered_set<std::string> & names){
 	std::set<std::string> nonFieldSampleNames;
 	for(const auto & name : names){
@@ -452,7 +470,7 @@ std::set<std::string> CollapsedHaps::getPossibleLabIsolateNames(const std::unord
 	return nonFieldSampleNames;
 }
 
-std::set<std::string> CollapsedHaps::getAllSampleNames(){
+std::set<std::string> CollapsedHaps::getAllSampleNames() const {
 	std::set<std::string> ret;
 	for(const auto & subNames : names_){
 		for(const auto & name : subNames){
@@ -462,7 +480,20 @@ std::set<std::string> CollapsedHaps::getAllSampleNames(){
 	return ret;
 }
 
-std::vector<std::unordered_set<std::string>> CollapsedHaps::getSampleNamesPerSeqs(){
+std::vector<std::unordered_map<std::string, uint32_t>> CollapsedHaps::getSampleReadCntsPerSeqs() const {
+	std::vector<std::unordered_map<std::string, uint32_t>> ret;
+	for(const auto & subNames : names_){
+		std::unordered_map<std::string, uint32_t> sampsReadCounts;
+		for(const auto & name : subNames){
+			sampsReadCounts[getSampleNameFromSeqName(name, possibleSampleMetaFields_)] = getReadCountFromSeqName(name, possibleReadCountMetaFields_);
+		}
+		ret.emplace_back(sampsReadCounts);
+	}
+	return ret;
+}
+
+
+std::vector<std::unordered_set<std::string>> CollapsedHaps::getSampleNamesPerSeqs() const {
 	std::vector<std::unordered_set<std::string>> ret;
 	for(const auto & subNames : names_){
 		std::unordered_set<std::string> samps;
@@ -524,6 +555,53 @@ void CollapsedHaps::writeNamesPerLine(const OutOptions & outOpts) const {
     }
   }
 }
+
+
+table CollapsedHaps::createMetaFieldsTable(bool addSeq) const {
+	std::set<std::string> allMetaFields;
+	for(const auto & inputNamesPerSeq : names_){
+		for(const auto & name : inputNamesPerSeq){
+			if(MetaDataInName::nameHasMetaData(name)){
+				MetaDataInName meta(name);
+				njh::addVecToSet(njh::getVecOfMapKeys(meta.meta_), allMetaFields);
+			}
+		}
+	}
+
+	VecStr header{"CollapsedName"};
+	if(addSeq) {
+		header.emplace_back("seq");
+	}
+	for(const auto & meta : allMetaFields) {
+		header.emplace_back(meta);
+	}
+
+	table ret(header);
+	for(const auto pos : iter::range(names_.size())){
+		for(const auto & name : names_[pos]){
+			VecStr row;
+			row.emplace_back(seqs_[pos]->name_);
+			if(addSeq) {
+				row.emplace_back(seqs_[pos]->seq_);
+			}
+			MetaDataInName seqMeta;
+			if(MetaDataInName::nameHasMetaData(name)){
+				seqMeta = MetaDataInName(name);
+			}
+			for(const auto & field : allMetaFields){
+				std::string val = "NA";
+				if(seqMeta.containsMeta(field)){
+					val = seqMeta.getMeta(field);
+				}
+				row.emplace_back(val);
+			}
+			ret.addRow(row);
+		}
+	}
+
+	return ret;
+}
+
 
 
 void CollapsedHaps::writeOutMetaFields(const OutOptions &outOpts) const{

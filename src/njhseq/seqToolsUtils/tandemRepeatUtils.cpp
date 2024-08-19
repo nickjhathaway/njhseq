@@ -151,6 +151,215 @@ VecStr SimpleTandemRepeatFinder::genAllUnitsPossible() const {
 	return allUnits;
 }
 
+
+[[nodiscard]] std::vector<SimpleTandemRepeatFinder::FinalRepeatInfo> SimpleTandemRepeatFinder::getSimpleTRFinderLocs(const std::string & seq) const {
+	//first create tandems that will be searched for
+	MinimalUnitsAndAltMotifs minimalUnits;
+	std::vector<FinalRepeatInfo> ret;
+	std::mutex retMut;
+	if (pars_.searchAllUnits) {
+
+		minimalUnits.allUnits = std::make_shared<VecStr>(genAllUnitsPossible());
+
+	} else {
+
+		minimalUnits = genMinimalUnitsNeededForSearch();
+
+	}
+
+	if(pars_.debug){
+		std::cout << "Searching for: " << std::endl;
+		printVector(*minimalUnits.allUnits,"\n");
+	}
+
+	
+		njh::concurrent::LockableQueue<std::string> unitQueue(*minimalUnits.allUnits);
+		std::function<void()> findTandems = [&unitQueue,&seq,this,&ret,&retMut,
+																				 &minimalUnits](){
+			std::string motifstr;
+			std::vector<FinalRepeatInfo> currentRepeatInfos;
+
+			while(unitQueue.getVal(motifstr)){
+
+				motif mot(motifstr);
+				uint32_t currentAllowableError = 0;
+				auto locs = mot.findPositionsFull(seq, currentAllowableError);
+				njh::sort(locs);
+				if(!locs.empty()){
+					uint32_t length = 1;
+					size_t start = locs.front();
+					for(const auto pos : iter::range<uint32_t>(1, locs.size())){
+						if(locs[pos] == locs[pos - 1] + mot.size() ){
+							++length;
+						} else {
+							uint32_t outputStart = start;
+							uint32_t outputEnd = start + mot.size() * length;
+							if(!pars_.doNotAddFlankingSeq){
+								if(start > 0){
+									uint32_t walkbackPos = 0;
+									while(outputStart > 0 && walkbackPos + 1 < mot.size()){
+										if(seq[outputStart - 1] == motifstr[mot.size() - walkbackPos - 1] ){
+											++walkbackPos;
+											--outputStart;
+										}else{
+											break;
+										}
+									}
+								}
+								if(outputEnd != seq.size()){
+									uint32_t walkforwardPos = 0;
+									while(outputEnd < seq.size() && walkforwardPos < motifstr.size()){
+										if(seq[outputEnd] == motifstr[walkforwardPos]){
+											++outputEnd;
+											++walkforwardPos;
+										}else{
+											break;
+										}
+									}
+								}
+							}
+							//check to see that there is at least one alt tandem that equals the min number of required repeats
+							uint32_t repeatNumber = length;
+							std::string outMotifstr = motifstr;
+							//					if(repeatNumber < minNumRepeats && (outputEnd - outputStart)/mot.size() >= minNumRepeats && njh::in(motifstr, altMots)){
+							//						auto subSeq = seq.substr(outputStart, outputEnd - outputStart);
+							//						for(const auto & altMot : altMots.at(motifstr)){
+							//							auto altRepeatInfo = getRepeatInfo(subSeq, altMot);
+							//							if (altRepeatInfo.repeats_ > repeatNumber) {
+							//								repeatNumber = altRepeatInfo.repeats_;
+							//								outMotifstr = altMot.motifOriginal_;
+							//							} else if (altRepeatInfo.repeats_ == repeatNumber && outputStart + altRepeatInfo.start_ < start) {
+							//								outMotifstr = altMot.motifOriginal_;
+							//							}
+							//						}
+							//					}
+							if(outputEnd - outputStart >=pars_.lengthCutOff && njh::in(motifstr, minimalUnits.altMots) ){
+								auto subSeq = seq.substr(outputStart, outputEnd - outputStart);
+								auto minStart = start;
+								for(const auto & altMot : minimalUnits.altMots.at(motifstr)){
+									auto altRepeatInfo = getRepeatInfo(subSeq, altMot);
+									if (altRepeatInfo.repeats_ > repeatNumber) {
+										repeatNumber = altRepeatInfo.repeats_;
+										outMotifstr = altMot.motifOriginal_;
+									} else if (altRepeatInfo.repeats_ == repeatNumber && outputStart + altRepeatInfo.start_ < minStart) {
+										outMotifstr = altMot.motifOriginal_;
+										minStart = outputStart + altRepeatInfo.start_;
+									}
+								}
+							}
+
+							if(repeatNumber >= pars_.minNumRepeats && outputEnd - outputStart >=pars_.lengthCutOff){
+								FinalRepeatInfo repeatInfo;
+								repeatInfo.repeatSeq_ = motifstr;
+								repeatInfo.outRepeatSeq_ = outMotifstr;
+								if( njh::in(motifstr, minimalUnits.altMots)) {
+									repeatInfo.altRepeats_ = minimalUnits.altMots.at(motifstr);
+								}
+								repeatInfo.fullRepeatSeq_ = seq.substr(outputStart, outputEnd - outputStart);
+								repeatInfo.start_ = outputStart;
+								repeatInfo. len_ = outputEnd - outputStart;
+								repeatInfo.repeatNumber_ = static_cast<double>(outputEnd - outputStart)/static_cast<double>(mot.size());
+								
+								currentRepeatInfos.emplace_back(repeatInfo);
+							}
+							length = 1;
+							start = locs[pos];
+						}
+					}
+					uint32_t outputStart = start;
+					uint32_t outputEnd = start + mot.size() * length;
+					if(!pars_.doNotAddFlankingSeq){
+						if(start > 0){
+							uint32_t walkbackPos = 0;
+							while(outputStart > 0 && walkbackPos + 1 < mot.size()){
+								if(seq[outputStart - 1] == motifstr[mot.size() - walkbackPos - 1] ){
+									++walkbackPos;
+									--outputStart;
+								}else{
+									break;
+								}
+							}
+						}
+						if(outputEnd != seq.size()){
+							uint32_t walkforwardPos = 0;
+							while(outputEnd < seq.size() && walkforwardPos < motifstr.size()){
+								if(seq[outputEnd] == motifstr[walkforwardPos]){
+									++outputEnd;
+									++walkforwardPos;
+								}else{
+									break;
+								}
+							}
+						}
+					}
+					//check to see that there is at least one alt tandem that equals the min number of required repeats
+					uint32_t repeatNumber = length;
+					std::string outMotifstr = motifstr;
+//					if(repeatNumber < minNumRepeats && (outputEnd - outputStart)/mot.size() >= minNumRepeats && njh::in(motifstr, altMots)){
+//						auto subSeq = seq.substr(outputStart, outputEnd - outputStart);
+//						for(const auto & altMot : altMots.at(motifstr)){
+//							auto altRepeatInfo = getRepeatInfo(subSeq, altMot);
+//							if (altRepeatInfo.repeats_ > repeatNumber) {
+//								repeatNumber = altRepeatInfo.repeats_;
+//								outMotifstr = altMot.motifOriginal_;
+//							} else if (altRepeatInfo.repeats_ == repeatNumber && outputStart + altRepeatInfo.start_ < start) {
+//								outMotifstr = altMot.motifOriginal_;
+//							}
+//						}
+//					}
+					if(outputEnd - outputStart >=pars_.lengthCutOff && njh::in(motifstr, minimalUnits.altMots)){
+						auto subSeq = seq.substr(outputStart, outputEnd - outputStart);
+						auto minStart = start;
+						for(const auto & altMot : minimalUnits.altMots.at(motifstr)){
+							auto altRepeatInfo = getRepeatInfo(subSeq, altMot);
+							if (altRepeatInfo.repeats_ > repeatNumber) {
+								repeatNumber = altRepeatInfo.repeats_;
+								outMotifstr = altMot.motifOriginal_;
+							} else if (altRepeatInfo.repeats_ == repeatNumber && outputStart + altRepeatInfo.start_ < minStart) {
+								outMotifstr = altMot.motifOriginal_;
+								minStart = outputStart + altRepeatInfo.start_;
+							}
+						}
+					}
+
+					if(repeatNumber >= pars_.minNumRepeats && outputEnd - outputStart >=pars_.lengthCutOff){
+						FinalRepeatInfo repeatInfo;
+						repeatInfo.repeatSeq_ = motifstr;
+						repeatInfo.outRepeatSeq_ = outMotifstr;
+						if( njh::in(motifstr, minimalUnits.altMots)) {
+							repeatInfo.altRepeats_ = minimalUnits.altMots.at(motifstr);
+						}
+						repeatInfo.fullRepeatSeq_ = seq.substr(outputStart, outputEnd - outputStart);
+						repeatInfo.start_ = outputStart;
+						repeatInfo. len_ = outputEnd - outputStart;
+						repeatInfo.repeatNumber_ = static_cast<double>(outputEnd - outputStart)/static_cast<double>(mot.size());
+								
+						currentRepeatInfos.emplace_back(repeatInfo);
+					}
+				}
+			}
+			{
+				std::lock_guard<std::mutex> lock(retMut);
+				addOtherVec(ret, currentRepeatInfos);
+			}
+		};
+		njh::concurrent::runVoidFunctionThreaded(findTandems, pars_.numThreads);
+	return ret;
+}
+
+Json::Value SimpleTandemRepeatFinder::FinalRepeatInfo::toJson() const {
+	Json::Value ret;
+	ret["class"] = njh::getTypeName(*this);
+	ret["repeatSeq"] = njh::json::toJson(repeatSeq_);
+	ret["outRepeatSeq_"] = njh::json::toJson(outRepeatSeq_);
+	ret["altRepeats_"] = njh::json::toJson(altRepeats_);
+	ret["fullRepeatSeq_"] = njh::json::toJson(fullRepeatSeq_);
+	ret["start_"] = njh::json::toJson(start_);
+	ret["len_"] = njh::json::toJson(len_);
+	ret["repeatNumber_"] = njh::json::toJson(repeatNumber_);
+	return ret;
+}
+
 void SimpleTandemRepeatFinder::runSimpleTRFinderLocs(const SeqIOOptions & seqInput) const{
 
 	//first create tandems that will be searched for
@@ -179,6 +388,7 @@ void SimpleTandemRepeatFinder::runSimpleTRFinderLocs(const SeqIOOptions & seqInp
 	std::mutex outMut;
 
 	while(reader.readNextRead(seq)){
+		
 		njh::concurrent::LockableQueue<std::string> unitQueue(*minimalUnits.allUnits);
 		std::function<void()> findTandems = [&unitQueue,&seq,this,&out,&outMut,
 																				 &minimalUnits](){
@@ -186,6 +396,7 @@ void SimpleTandemRepeatFinder::runSimpleTRFinderLocs(const SeqIOOptions & seqInp
 			std::vector<Bed6RecordCore> repeatUnitLocs;
 			std::stringstream currentOut;
 			while(unitQueue.getVal(motifstr)){
+
 				motif mot(motifstr);
 				uint32_t currentAllowableError = 0;
 				auto locs = mot.findPositionsFull(seq.seq_, currentAllowableError);
@@ -324,6 +535,7 @@ void SimpleTandemRepeatFinder::runSimpleTRFinderLocs(const SeqIOOptions & seqInp
 							}
 						}
 					}
+
 					if(repeatNumber >= pars_.minNumRepeats && outputEnd - outputStart >=pars_.lengthCutOff){
 						currentOut << seq.name_
 								<< "\t" << outputStart
