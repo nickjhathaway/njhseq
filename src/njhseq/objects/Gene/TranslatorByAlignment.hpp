@@ -632,11 +632,11 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			{
 				auto complex_positions = varPerChrom.second.getComplexPositions(rPars.complexVarPars);
 				complexPositionsPerChrom[varPerChrom.first] = complex_positions;
-				std::cout << __FILE__ << " " << __LINE__ << std::endl;
-				std::cout << varPerChrom.first << std::endl;
-				for (const auto& pos: complex_positions) {
-					std::cout << "\t" << pos.start_ << "\t" << pos.size_ << "\t" << pos.count_ << std::endl;
-				}
+				// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				// std::cout << varPerChrom.first << std::endl;
+				// for (const auto& pos: complex_positions) {
+				// 	std::cout << "\t" << pos.start_ << "\t" << pos.size_ << "\t" << pos.count_ << std::endl;
+				// }
 
 			}
 

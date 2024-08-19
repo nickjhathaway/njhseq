@@ -190,6 +190,7 @@ ReAlignedSeq ReAlignedSeq::genRealignment(seqInfo querySeq,
                                           const genRealignmentPars& pars) {
 
 	auto gRegion = refSeqRegion;
+	gRegion.uid_ = querySeq.name_;
 	//gRegion.meta_.meta_.clear();
 
 		// std::cout << __FILE__ << " " << __LINE__ << std::endl;
