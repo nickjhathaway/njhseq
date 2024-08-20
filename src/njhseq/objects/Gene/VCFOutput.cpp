@@ -288,7 +288,11 @@ Json::Value VCFOutput::ContigEntry::toJson() const {
 GenomicRegion VCFOutput::VCFRecord::genRegion() const {
 	uint32_t start = pos_ - 1;
 	uint32_t end = pos_;
-	if (ref_.size() == 1 && !std::all_of(alts_.begin(), alts_.end(), [](const std::string& alt) {
+	if(std::all_of(alts_.begin(), alts_.end(), [this](const std::string& alt) {
+		return ref_.size() == alt.size();
+	})) {
+		end = start + ref_.size();
+	} else if (ref_.size() == 1 && !std::all_of(alts_.begin(), alts_.end(), [](const std::string& alt) {
 		return alt.size() == 1;
 	})) {
 		//insertion, will give the region right before and right after the insertion
@@ -544,7 +548,7 @@ void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut, const std::vector<Genomic
 		<< "\t" << rec.id_
 		<< "\t" << rec.ref_
 		<< "\t" << njh::conToStr(rec.alts_, ",")
-		<< "\t" << rec.qual_
+		<< "\t" << (rec.qual_ == std::numeric_limits<uint32_t>::max() ? "." : estd::to_string(rec.qual_))
 		<< "\t" << rec.filter_;
 		std::string infoOut;
 		for (const auto & infoKey: infoEntries_) {
@@ -664,7 +668,7 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 			<< "\t" << rec.id_
 			<< "\t" << rec.ref_
 			<< "\t" << njh::conToStr(rec.alts_, ",")
-			<< "\t" << rec.qual_
+			<< "\t" << (rec.qual_ == std::numeric_limits<uint32_t>::max() ? "." : estd::to_string(rec.qual_))
 			<< "\t" << rec.filter_;
 			std::string infoOut;
 			for (const auto & infoKey: infoEntries_) {
@@ -764,7 +768,7 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedData(const std::string 
 	rec.id_ = toks[2];
 	rec.ref_ = toks[3];
 	rec.alts_ = tokenizeString(toks[4], ",");
-	rec.qual_ = njh::StrToNumConverter::stoToNum<uint32_t>(toks[5]);
+	rec.qual_ = toks[5] == "." ? std::numeric_limits<uint32_t>::max() : njh::StrToNumConverter::stoToNum<uint32_t>(toks[5]);
 	rec.filter_ = toks[6];
 
 	//info field
