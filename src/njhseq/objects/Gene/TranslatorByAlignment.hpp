@@ -78,6 +78,8 @@ public:
 		Bed3RecordCore region_;//!< the reference region being compared to
 		seqInfo seqBase_;
 
+		std::set<uint32_t> alwaysReportLocations_{};//!< always report these positions no matter the count
+		std::unordered_map<uint32_t, std::vector<std::string>> forcedAltCalls_{};//!< always report these alts if not detected, will default to zero
 
 		std::map<uint32_t, std::map<char, uint32_t>> allBases;//!< the allele depth per base at position
 		std::map<uint32_t, uint32_t> depthPerPosition;//!< the allele depth per position
@@ -94,6 +96,7 @@ public:
 		std::map<uint32_t, std::map<char, posAlleleCountSamples>> snps;
 		std::map<uint32_t, std::map<std::string, posAlleleCountSamples>> insertions;
 		std::map<uint32_t, std::map<std::string, posAlleleCountSamples>> deletions;
+		std::map<uint32_t, posAlleleCountSamples> refForSnps;
 
 		std::map<uint32_t, std::map<char, posAlleleCountSamples>> snpsFinal;
 		std::map<uint32_t, std::map<std::string, posAlleleCountSamples>> insertionsFinal;
@@ -167,7 +170,7 @@ public:
 
 
 		void setFinals(const RunPars& rPars);
-		void setComplexFinals(const RunPars& rPars);
+		void setComplexFinals(const RunPars& rPars, std::vector<PosStartSize> complexPositions);
 
 
 		[[nodiscard]] char getBaseForGenomicRegionNoCheck(const uint32_t pos) const;
@@ -175,8 +178,13 @@ public:
 		[[nodiscard]] char getBaseForGenomicRegion(const uint32_t pos) const;
 
 		[[nodiscard]] VCFOutput createVCFOutputFixed() const;
-		[[nodiscard]] VCFOutput createVCFOutputComplexFixed() const;
-		[[nodiscard]] VCFOutput createVCFOutputComplexFixedWithSampleInfo(uint32_t ploidy, const std::string & chrom, uint32_t chromLength) const;
+
+		[[nodiscard]] VCFOutput createVCFOutputComplexFixed(const std::vector<PosStartSize>& complexPositions) const;
+
+		[[nodiscard]] VCFOutput createVCFOutputComplexFixedWithSampleInfo(uint32_t ploidy, const std::string& chrom,
+		                                                                  uint32_t chromLength,
+		                                                                  const std::vector<PosStartSize>& complexPositions)
+		const;
 
 
 		[[nodiscard]] VCFOutput writeVCF(const OutOptions &vcfOutOpts) const;
@@ -417,6 +425,7 @@ public:
 		bool collapsePerId = false;
 		std::string addMetaField;
 		OutOptions outOpts{bfs::path(""), ".bed"};
+		bool doNotWrite = false;
 	};
 
 	struct GetGenomicLocationsForAminoAcidPositionsRet{
@@ -462,6 +471,16 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		auto geneInfoDir = njh::files::make_path(pars_.workingDirtory_, "geneInfos");
 		if(pars_.keepTemporaryFiles_ || pars_.writeOutGeneInfos_){
 			njh::files::makeDir(njh::files::MkdirPar{geneInfoDir});
+		}
+		GetGenomicLocationsForAminoAcidPositionsRet locs;
+		if(!pars_.knownAminoAcidMutationsFnp_.empty()) {
+			//add known to bed files
+			GetGenomicLocationsForAminoAcidPositionsPars parsForBedFileGen;
+			parsForBedFileGen.gffFnp = pars_.gffFnp_;
+			parsForBedFileGen.twoBitFnp = twoBitFnp;
+			parsForBedFileGen.doNotWrite = true;
+			parsForBedFileGen.proteinMutantTypingFnp = pars_.knownAminoAcidMutationsFnp_;
+			locs = getGenomicLocationsForAminoAcidPositions(parsForBedFileGen);
 		}
 		OutOptions outOpts(njh::files::make_path(geneInfoDir, "gene"));
 		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
@@ -625,6 +644,20 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			}
 		}
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		for (auto& varPerChrom: ret.seqVariants_) {
+			for(const auto & knowLocs : locs.genomicLocs) {
+				if(knowLocs.chrom_ == varPerChrom.first) {
+					auto coveredPositions = getVectorOfMapKeys(varPerChrom.second.allBases);
+					auto minLocs = vectorMinimum(coveredPositions);
+					auto maxLocs = vectorMaximum(coveredPositions);
+					for(const auto forcePositon : iter::range(knowLocs.chromStart_, knowLocs.chromEnd_)) {
+						if(forcePositon >= minLocs && forcePositon <= maxLocs) {
+							varPerChrom.second.alwaysReportLocations_.emplace(forcePositon);
+						}
+					}
+				}
+			}
+		}
 		//set finals for the snps
 		std::unordered_map<std::string, std::vector<VariantsInfo::PosStartSize>> complexPositionsPerChrom;
 		for (auto& varPerChrom: ret.seqVariants_) {
@@ -656,7 +689,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		}
 
 		for (auto& varPerChrom: ret.seqVariants_) {
-			varPerChrom.second.setComplexFinals(rPars);
+			varPerChrom.second.setComplexFinals(rPars, complexPositionsPerChrom.at(varPerChrom.first));
 		}
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//index amino acid changes per transcript
@@ -678,6 +711,23 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			}
 		}
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		for (auto& varPerTrans : ret.proteinVariants_) {
+			for(const auto & knowLocs : locs.transcriptLocs) {
+				if(knowLocs.chrom_ == varPerTrans.first) {
+					auto coveredPositions = getVectorOfMapKeys(varPerTrans.second.allBases);
+					auto minLocs = vectorMinimum(coveredPositions);
+					auto maxLocs = vectorMaximum(coveredPositions);
+					if(knowLocs.chromStart_ >= minLocs && knowLocs.chromStart_ <= maxLocs) {
+						varPerTrans.second.alwaysReportLocations_.emplace(knowLocs.chromStart_);
+						MetaDataInName meta(knowLocs.extraFields_[0]);
+						if(meta.containsMeta("KnownAlts")) {
+							auto alts = tokenizeString(meta.getMeta("KnownAlts"), ",");
+							varPerTrans.second.forcedAltCalls_[knowLocs.chromStart_] = alts;
+						}
+					}
+				}
+			}
+		}
 		for(auto & varPerTrans : ret.proteinVariants_){
 			varPerTrans.second.setFinals(rPars);
 		}

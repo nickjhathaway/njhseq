@@ -59,7 +59,7 @@ void VCFOutput::VCFRecord::autoAddTYPEField() {
 }
 
 
-void VCFOutput::VCFRecord::autoAdd_AC_AC_AF_InfoFields() {
+void VCFOutput::VCFRecord::autoAdd_AN_AC_AF_InfoFields() {
 	std::unordered_map<std::string, uint32_t> alleleCounts;
 	uint32_t AN = 0;
 	std::regex blankDataPattern("\\.(,\\.)*");
@@ -362,7 +362,7 @@ void VCFOutput::allAutoAddDPFields() {
 
 
 
-void VCFOutput::allAutoAdd_AC_AC_AF_InfoFields() {
+void VCFOutput::allAutoAdd_AN_AC_AF_InfoFields() {
 	if(njh::notIn("AN", infoEntries_)) {
 		infoEntries_.emplace("AN", InfoEntry(
 													 "AN", "1", "Integer",
@@ -381,7 +381,7 @@ void VCFOutput::allAutoAdd_AC_AC_AF_InfoFields() {
 	}
 
 	njh::for_each(
-	records_, [](auto &rec) { rec.autoAdd_AC_AC_AF_InfoFields(); });
+	records_, [](auto &rec) { rec.autoAdd_AN_AC_AF_InfoFields(); });
 
 }
 
@@ -1288,6 +1288,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 					uint32_t bestNS = 0;
 					for(const auto & checkPos : currentPositionsToComp) {
 						auto currentNS = firstVcf.records_[checkPos].info_.getMeta<uint32_t>("NS");
+						/**@todo need to adjust for when forcing a positioning with <*> and one overlapping things calls a variant and the other one does not */
 						if(currentNS > bestNS) {
 							bestNS = currentNS;
 							bestPos = checkPos;
@@ -2319,7 +2320,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 	firstVcf.allAddGTFields(pars.ploidy);
 	firstVcf.allAutoAddDPFields();
 	firstVcf.allAutoAddTYPEFields();
-	firstVcf.allAutoAdd_AC_AC_AF_InfoFields();
+	firstVcf.allAutoAdd_AN_AC_AF_InfoFields();
 	firstVcf.allAddDefaultFormatField("GQ", 40, FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;

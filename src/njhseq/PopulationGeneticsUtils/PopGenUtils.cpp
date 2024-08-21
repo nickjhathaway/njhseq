@@ -419,7 +419,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						vcfOutputForTrans.allAddGTFields(pars.variantCallerRunPars.ploidy);
 						vcfOutputForTrans.allAutoAddDPFields();
 						vcfOutputForTrans.allAutoAddTYPEFields();
-						vcfOutputForTrans.allAutoAdd_AC_AC_AF_InfoFields();
+						vcfOutputForTrans.allAutoAdd_AN_AC_AF_InfoFields();
 						vcfOutputForTrans.allAddDefaultFormatField("GQ", 40, VCFOutput::FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 						vcfOutputForTrans.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 					}
@@ -641,12 +641,13 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				vcfOutputForChrom.allAddGTFields(pars.variantCallerRunPars.ploidy);
 				vcfOutputForChrom.allAutoAddDPFields();
 				vcfOutputForChrom.allAutoAddTYPEFields();
-				vcfOutputForChrom.allAutoAdd_AC_AC_AF_InfoFields();
+				vcfOutputForChrom.allAutoAdd_AN_AC_AF_InfoFields();
 				vcfOutputForChrom.allAddDefaultFormatField("GQ", 40, VCFOutput::FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 				vcfOutputForChrom.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 
 				OutputStream genomeComplexVcfWithSamples(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-complex-genomic.vcf.gz")));
-				auto vcfComplexOuptutForChrom = varPerChrom.second.createVCFOutputComplexFixedWithSampleInfo(pars.variantCallerRunPars.ploidy, varPerChrom.first, contigLengths[varPerChrom.first]);
+
+				auto vcfComplexOuptutForChrom = varPerChrom.second.createVCFOutputComplexFixedWithSampleInfo(pars.variantCallerRunPars.ploidy, varPerChrom.first, contigLengths[varPerChrom.first], varPerChrom.second.getComplexPositions(pars.variantCallerRunPars.complexVarPars));
 				vcfComplexOuptutForChrom.otherHeaderValuePairs_.emplace("reference", pars.transPars.lzPars_.genomeFnp.string());
 				vcfComplexOuptutForChrom.addDefaultInfoField("TARGET", pars.identifier,VCFOutput::InfoEntry("TARGET", "1", "String", "the target that covers this variant"));
 				vcfComplexOuptutForChrom.writeOutFixedAndSampleMeta(genomeComplexVcfWithSamples);

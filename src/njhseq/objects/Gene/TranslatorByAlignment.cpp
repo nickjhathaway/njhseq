@@ -151,7 +151,7 @@ char TranslatorByAlignment::VariantsInfo::getBaseForGenomicRegion(const uint32_t
 }
 
 
-VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixed() const {
+VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixed(const std::vector<PosStartSize> & complexPositions) const {
 	VCFOutput ret;
 	ret.headerNonSampleFields_ = VecStr{"#CHROM", "POS","ID","REF","ALT","QUAL","FILTER","INFO"};
 	ret.infoEntries_.emplace("AN_REAL", VCFOutput::InfoEntry(
@@ -177,7 +177,33 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixed() con
 	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	// std::cout << "complex.size(): " << complex.size() << std::endl;
 	// std::cout << "complexFinal.size(): " << complexFinal.size() << std::endl;
-
+	std::vector<PosStartSize> complexPositionsInForcedPositions;
+	for(const auto & comp : complexPositions) {
+		bool overlapForcedPosition = false;
+		for(const auto pos : alwaysReportLocations_) {
+			if(pos >= comp.start_ & pos < comp.start_ + comp.size_) {
+				overlapForcedPosition = true;
+			}
+		}
+		if(overlapForcedPosition) {
+			complexPositionsInForcedPositions.emplace_back(comp);
+		}
+	}
+	std::vector<PosStartSize> complexPositionsInForcedPositionsNotCovered;
+	for(const auto & comp : complexPositionsInForcedPositions) {
+		bool covered = false;
+		for(const auto & pos : complexFinal) {
+			for(const auto & ref : pos.second) {
+				if(comp.start_ == pos.first && comp.size_ == ref.first.size()) {
+					covered = true;
+					break;
+				}
+			}
+		}
+		if(!covered) {
+			complexPositionsInForcedPositionsNotCovered.emplace_back(comp);
+		}
+	}
 	for(const auto & pos : complexFinal){
 		for(const auto & ref : pos.second) {
 			std::vector<std::string> alts;
@@ -215,12 +241,48 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixed() con
 		}
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	}
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
+
+	//add in forced alts
+	bool addedForcedAlt = false;
+
+	for(const auto & comp : complexPositionsInForcedPositionsNotCovered) {
+
+		for(const auto & forcedAlt : forcedAltCalls_) {
+			if(forcedAlt.first >= comp.start_ && forcedAlt.first < comp.start_ + comp.size_) {
+				VCFOutput::VCFRecord currentRecord;
+				currentRecord.chrom_ = region_.chrom_;
+				currentRecord.pos_ = forcedAlt.first + 1;
+				currentRecord.id_ = ".";
+				currentRecord.ref_ = getBaseForGenomicRegion(forcedAlt.first);
+				currentRecord.alts_ = forcedAlt.second;
+				currentRecord.qual_ = 40;
+				currentRecord.filter_ = "PASS";
+
+				currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(forcedAlt.first) );
+				currentRecord.info_.addMeta("AC_REAL", njh::conToStr(std::vector<uint32_t>{0}, ",") );
+				currentRecord.info_.addMeta("AF_REAL", njh::conToStr(std::vector<double>{0}, ",") );
+
+
+				currentRecord.info_.addMeta("NS", samplesPerPosition.at(forcedAlt.first).size() );
+				currentRecord.info_.addMeta("SC", njh::conToStr(std::vector<uint32_t>{0}, ",") );
+				currentRecord.info_.addMeta("PREV", njh::conToStr(std::vector<double>{0}, ",") );
+
+				ret.records_.emplace_back(std::move(currentRecord));
+				addedForcedAlt = true;
+			}
+		}
+
+	}
+	if(addedForcedAlt) {
+		ret.sortRecords();
+	}
+
 	return ret;
 }
 
-VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixedWithSampleInfo(uint32_t ploidy, const std::string & chrom, uint32_t chromLength) const {
-	VCFOutput ret = createVCFOutputComplexFixed();
+VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixedWithSampleInfo(uint32_t ploidy, const std::string & chrom, uint32_t chromLength, const std::vector<PosStartSize> & complexPositions) const {
+	VCFOutput ret = createVCFOutputComplexFixed(complexPositions);
 	//add in sample names
 	ret.contigEntries_.emplace(chrom, VCFOutput::ContigEntry(chrom, chromLength));
 	{
@@ -248,25 +310,32 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixedWithSa
 
 	auto allSamplesForVariants = getAllSamples();
 	ret.samples_ = VecStr(allSamplesForVariants.begin(), allSamplesForVariants.end());
+
 	for (auto&rec: ret.records_) {
 		for (const auto&sample: allSamplesForVariants) {
 			std::vector<uint32_t> dps(1 + rec.alts_.size(), 0);
+
 			for (const auto& alt: iter::enumerate(rec.alts_)) {
-				if(njh::in(sample, complexFinal.at(rec.pos_ - 1).at(rec.ref_).at(alt.element).sampleReadCnts_)) {
-					dps[1 + alt.index] += complexFinal.at(rec.pos_ - 1).at(rec.ref_).at(alt.element).sampleReadCnts_.at(sample);
+				if(njh::in(rec.pos_ - 1, complexFinal) &&
+					njh::in(alt.element, njh::mapAt(complexFinal, rec.pos_ - 1).at(rec.ref_)) &&
+					njh::in(sample, complexFinal.at(rec.pos_ - 1).at(rec.ref_).at(alt.element).sampleReadCnts_)) {
+					dps[1 + alt.index] += njh::mapAt(complexFinal, rec.pos_ - 1).at(rec.ref_).at(alt.element).sampleReadCnts_.at(sample);
 				}
 			}
+
 			if(njh::in(rec.pos_ - 1, complexRefCount) &&
 				 njh::in(rec.ref_, complexRefCount.at(rec.pos_ - 1) ) &&
 				 njh::in(sample, complexRefCount.at(rec.pos_ - 1).at(rec.ref_).sampleReadCnts_)) {
 				dps[0] += complexRefCount.at(rec.pos_ - 1).at(rec.ref_).sampleReadCnts_.at(sample);
 			}
+;
 			auto dpsSum = vectorSum(dps);
 			std::vector<double> dpsFreq;
 			dpsFreq.reserve(dps.size());
 			for (const auto dp: dps) {
 				dpsFreq.emplace_back(dpsSum > 0 ? dp / dpsSum : 0.0);
 			}
+
 			if(0 == dpsSum) {
 				//if dpsSum equals 0 that most likely means that the sample either had a haplotype that didn't cover
 				//this location and/or a haplotype that didn't map
@@ -282,11 +351,13 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixedWithSa
 			}
 		}
 	}
+
 	ret.allAddGTFields(ploidy);
 	ret.allAutoAddDPFields();
 	ret.allAutoAddTYPEFields();
-	ret.allAutoAdd_AC_AC_AF_InfoFields();
+	ret.allAutoAdd_AN_AC_AF_InfoFields();
 	ret.allAddDefaultFormatField("GQ", 40, VCFOutput::FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
+
 	return ret;
 }
 
@@ -354,6 +425,10 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 	for(const auto & del : deletionsFinalForVCF){
 		positionsSet.emplace(del.first);
 	}
+	for(const auto pos : alwaysReportLocations_) {
+		positionsSet.emplace(pos);
+	}
+
 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
 	std::vector<uint32_t> positions(positionsSet.begin(), positionsSet.end());
@@ -376,11 +451,20 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 					alts.emplace_back(std::string(1, b.first));
 					altsCounts.emplace_back(b.second.alleleCount_);
 					altsFreqs.emplace_back(b.second.alleleCount_/static_cast<double>(depthPerPosition.at(pos)));
-
 					altsSampleCounts.emplace_back(b.second.sampleReadCnts_.size());
 					altsSamplePrevs.emplace_back(static_cast<double>(b.second.sampleReadCnts_.size())/static_cast<double>(samplesPerPosition.at(pos).size()));
 				}
+			}else if(njh::in(pos, forcedAltCalls_)){
+				//should only be called if not in snps
+				for(const auto & forcedAlt : forcedAltCalls_.at(pos)){
+					alts.emplace_back(forcedAlt);
+					altsCounts.emplace_back(0);
+					altsFreqs.emplace_back(0);
+					altsSampleCounts.emplace_back(0);
+					altsSamplePrevs.emplace_back(0);
+				}
 			}
+
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			if (njh::in(pos, insertionsFinalForVCF)) {
 				for (const auto & ins : insertionsFinalForVCF[pos]) {
@@ -392,6 +476,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 					altsSamplePrevs.emplace_back(static_cast<double>(ins.second.sampleReadCnts_.size())/static_cast<double>(samplesPerPosition.at(pos).size()));
 				}
 			}
+
 			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			VCFOutput::VCFRecord currentRecord;
 			currentRecord.chrom_ = region_.chrom_;
@@ -401,15 +486,16 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 			currentRecord.alts_ = alts;
 			currentRecord.qual_ = 40;
 			currentRecord.filter_ = "PASS";
+
 			currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(pos) );
 			currentRecord.info_.addMeta("AC_REAL", njh::conToStr(altsCounts, ",") );
 			currentRecord.info_.addMeta("AF_REAL", njh::conToStr(altsFreqs, ",") );
+
 
 			currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
 			currentRecord.info_.addMeta("SC", njh::conToStr(altsSampleCounts, ",") );
 			currentRecord.info_.addMeta("PREV", njh::conToStr(altsSamplePrevs, ",") );
 
-			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			ret.records_.emplace_back(std::move(currentRecord));
 		}
 
@@ -438,7 +524,38 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 		}
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	}
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
+	//add in forced alts
+	bool addedForcedAlt = false;
+
+	for(const auto & forcedAlt : forcedAltCalls_) {
+		if(njh::notIn(forcedAlt.first, snps)) {
+			VCFOutput::VCFRecord currentRecord;
+			currentRecord.chrom_ = region_.chrom_;
+			currentRecord.pos_ = forcedAlt.first + 1;
+			currentRecord.id_ = ".";
+			currentRecord.ref_ = getBaseForGenomicRegion(forcedAlt.first);
+			currentRecord.alts_ = forcedAlt.second;
+			currentRecord.qual_ = 40;
+			currentRecord.filter_ = "PASS";
+
+			currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(forcedAlt.first) );
+			currentRecord.info_.addMeta("AC_REAL", njh::conToStr(std::vector<uint32_t>(forcedAlt.second.size(), 0), ",") );
+			currentRecord.info_.addMeta("AF_REAL", njh::conToStr(std::vector<double>(forcedAlt.second.size(),0), ",") );
+
+
+			currentRecord.info_.addMeta("NS", samplesPerPosition.at(forcedAlt.first).size() );
+			currentRecord.info_.addMeta("SC", njh::conToStr(std::vector<uint32_t>(forcedAlt.second.size(),0), ",") );
+			currentRecord.info_.addMeta("PREV", njh::conToStr(std::vector<double>(forcedAlt.second.size(),0), ",") );
+
+			ret.records_.emplace_back(std::move(currentRecord));
+			addedForcedAlt = true;
+
+		}
+	}
+	if(addedForcedAlt) {
+		ret.sortRecords();
+	}
 	return ret;
 }
 
@@ -580,8 +697,6 @@ void TranslatorByAlignment::VariantsInfo::writeSNPTable(const OutOptions &snpTab
 
 
 	OutputStream snpTabOut(snpTabOutOpts);
-
-
 	std::unordered_set<uint32_t> positionsSet;
 	for(const auto & snps : snpsFinal){
 		positionsSet.emplace(snps.first);
@@ -658,21 +773,49 @@ void TranslatorByAlignment::VariantsInfo::writeSNPTable(const OutOptions &snpTab
 	}
 }
 
-void TranslatorByAlignment::VariantsInfo::setComplexFinals(const RunPars & rPars){
+void TranslatorByAlignment::VariantsInfo::setComplexFinals(const RunPars & rPars, std::vector<PosStartSize> complexPositions){
 	complexFinal.clear();
 
 	for(const auto & comp : complex) {
 		for(const auto & ref : comp.second) {
+			bool overlapsForcedPosition = false;
+			for(const auto & pos : alwaysReportLocations_){
+				if(pos >= comp.first && pos < comp.first + ref.first.size()) {
+					overlapsForcedPosition = true;
+				}
+			}
 			for(const auto & alt : ref.second) {
 				// std::cout << "ref: " << ref.first << std::endl;
 				// std::cout << "alt: " << alt.first << std::endl;
 				// std::cout << "alt.second.alleleCount_: " << alt.second.alleleCount_ << std::endl;
 				// std::cout << "alt.second.alleleCount_/static_cast<double>(depthPerPosition[comp.first]): " << alt.second.alleleCount_/static_cast<double>(depthPerPosition[comp.first]) << std::endl;
 				// std::cout << "alt.second.getTotalReadDepth(): " << alt.second.getTotalReadDepth() << std::endl << std::endl;
-				if(alt.second.alleleCount_ < rPars.occurrenceCutOff || alt.second.alleleCount_/static_cast<double>(depthPerPosition[comp.first]) < rPars.lowVariantCutOff || alt.second.getTotalReadDepth() < rPars.totalReadDepthCutOff){
+				//force this position
+				if(!overlapsForcedPosition  && (alt.second.alleleCount_ < rPars.occurrenceCutOff || alt.second.alleleCount_/static_cast<double>(depthPerPosition[comp.first]) < rPars.lowVariantCutOff || alt.second.getTotalReadDepth() < rPars.totalReadDepthCutOff) ){
 					continue;
 				}
 				complexFinal[comp.first][ref.first][alt.first] = alt.second;
+			}
+		}
+	}
+	//if a forced alt call wasn't covered in the calls, than add the the snps ref info to the complexRefCount so that when called later it will work
+	for(const auto & comp : complexPositions) {
+		for(const auto & forcedAlt : forcedAltCalls_) {
+			if(forcedAlt.first >= comp.start_ && forcedAlt.first < comp.start_ + comp.size_) {
+				//check if already added
+				bool alreadyAdded = false;
+				for(const auto & compFinal : complexFinal) {
+					for(const auto & ref : compFinal.second) {
+						if(forcedAlt.first >= compFinal.first && forcedAlt.first < compFinal.first + ref.first.size()) {
+							alreadyAdded = true;
+							break;
+						}
+					}
+				}
+				if(!alreadyAdded) {
+					auto refBase = std::string(1, getBaseForGenomicRegion(forcedAlt.first));
+					complexRefCount[forcedAlt.first][refBase] = refForSnps[forcedAlt.first];
+				}
 			}
 		}
 	}
@@ -722,7 +865,7 @@ void TranslatorByAlignment::VariantsInfo::setFinals(const RunPars & rPars){
 		for(const auto & b : snp.second){
 			//if(b.second < rPars.occurrenceCutOff || b.second/static_cast<double>(totalPopCount) < rPars.lowVariantCutOff){
 
-			if(b.second.alleleCount_ < rPars.occurrenceCutOff || b.second.alleleCount_/static_cast<double>(depthPerPosition[snp.first]) < rPars.lowVariantCutOff || b.second.getTotalReadDepth() < rPars.totalReadDepthCutOff){
+			if(njh::notIn(snp.first, alwaysReportLocations_) && ( b.second.alleleCount_ < rPars.occurrenceCutOff || b.second.alleleCount_/static_cast<double>(depthPerPosition[snp.first]) < rPars.lowVariantCutOff || b.second.getTotalReadDepth() < rPars.totalReadDepthCutOff) ){
 				continue;
 			}
 			snpsFinal[snp.first][b.first] = b.second;
@@ -769,6 +912,12 @@ std::vector<TranslatorByAlignment::VariantsInfo::PosStartSize> TranslatorByAlign
 		// std::cout << "\tcountOfCoveredSamples of haplotypes at this site: " << samplesPerPosition[snp.first].size() << " " << static_cast<double>(samplesPerPosition[snp.first].size())/static_cast<double>(allSamples.size()) << std::endl;
 		if(static_cast<double>(samplesPerPosition[snp.first].size())/static_cast<double>(allSamples.size()) >= pars.fractionOfCoveredSamples) {
 			all.emplace_back(snp.first, 1);
+		}
+	}
+	//add forced positions
+	for(const auto & pos : alwaysReportLocations_) {
+		if(njh::notIn(pos, snpsFinal)) {
+			all.emplace_back(pos, 1);
 		}
 	}
 	// std::cout << "deletions" << std::endl;
@@ -1071,6 +1220,13 @@ void TranslatorByAlignment::VariantsInfo::addVariantInfo(
 				samplesPerPosition[seqChromPosition][sampleReadCnt.first] += sampleReadCnt.second;
 			}
 			// njh::addVecToUOSet(njh::getVecOfMapKeys(sampleReadCnts), samplesPerPosition[seqChromPosition]);
+		} else if (alignedRefSeq[seqPos] == alignedQuerySeq[seqPos]) {
+			//count up the ref bases
+			const uint32_t seqChromPosition = getRealPosForAlnPos(alignedRefSeq, seqPos) + offSetStart;
+			refForSnps[seqChromPosition].alleleCount_ += querySeqCount;
+			for(const auto & sampleReadCnt : sampleReadCnts) {
+				refForSnps[seqChromPosition].sampleReadCnts_[sampleReadCnt.first] += sampleReadCnt.second;
+			}
 		}
 	}
 	for(const auto & m : comp.distances_.mismatches_){
@@ -2071,7 +2227,16 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			njh::files::makeDir(njh::files::MkdirPar{geneInfoDir});
 		}
 		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
-
+		GetGenomicLocationsForAminoAcidPositionsRet locs;
+		if(!pars_.knownAminoAcidMutationsFnp_.empty()) {
+			//add known to bed files
+			GetGenomicLocationsForAminoAcidPositionsPars parsForBedFileGen;
+			parsForBedFileGen.gffFnp = pars_.gffFnp_;
+			parsForBedFileGen.twoBitFnp = twoBitFnp;
+			parsForBedFileGen.doNotWrite = true;
+			parsForBedFileGen.proteinMutantTypingFnp = pars_.knownAminoAcidMutationsFnp_;
+			locs = getGenomicLocationsForAminoAcidPositions(parsForBedFileGen);
+		}
 		OutOptions outOpts(njh::files::make_path(geneInfoDir, "gene"));
 		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		std::unordered_map<std::string, VecStr> idToTranscriptName;
@@ -2279,6 +2444,21 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 						aln.gRegion_.start_);
 			}
 		}
+
+		for (auto& varPerChrom: ret.seqVariants_) {
+			for(const auto & knowLocs : locs.genomicLocs) {
+				if(knowLocs.chrom_ == varPerChrom.first) {
+					auto coveredPositions = getVectorOfMapKeys(varPerChrom.second.allBases);
+					auto minLocs = vectorMinimum(coveredPositions);
+					auto maxLocs = vectorMaximum(coveredPositions);
+					for(const auto forcePositon : iter::range(knowLocs.chromStart_, knowLocs.chromEnd_)) {
+						if(forcePositon >= minLocs && forcePositon <= maxLocs) {
+							varPerChrom.second.alwaysReportLocations_.emplace(forcePositon);
+						}
+					}
+				}
+			}
+		}
 		//set finals for the snps
 		std::unordered_map<std::string, std::vector<VariantsInfo::PosStartSize>> complexPositionsPerChrom;
 		for (auto& varPerChrom: ret.seqVariants_) {
@@ -2308,11 +2488,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		}
 
 		for (auto& varPerChrom: ret.seqVariants_) {
-			varPerChrom.second.setComplexFinals(rPars);
+			varPerChrom.second.setComplexFinals(rPars, complexPositionsPerChrom.at(varPerChrom.first));
 			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			// std::cout << "complex.size(): " << varPerChrom.second.complex.size() << std::endl;
 			// std::cout << "complexFinal.size(): " << varPerChrom.second.complexFinal.size() << std::endl;
-
 		}
 
 
@@ -2337,7 +2516,23 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		}
 		 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		// std::unordered_map<std::string, std::vector<VariantsInfo::PosStartSize>> complexPositionsPerTranscript;
-
+		for (auto& varPerTrans : ret.proteinVariants_) {
+			for(const auto & knowLocs : locs.transcriptLocs) {
+				if(knowLocs.chrom_ == varPerTrans.first) {
+					auto coveredPositions = getVectorOfMapKeys(varPerTrans.second.allBases);
+					auto minLocs = vectorMinimum(coveredPositions);
+					auto maxLocs = vectorMaximum(coveredPositions);
+					if(knowLocs.chromStart_ >= minLocs && knowLocs.chromStart_ <= maxLocs) {
+						varPerTrans.second.alwaysReportLocations_.emplace(knowLocs.chromStart_);
+						MetaDataInName meta(knowLocs.extraFields_[0]);
+						if(meta.containsMeta("KnownAlts")) {
+							auto alts = tokenizeString(meta.getMeta("KnownAlts"), ",");
+							varPerTrans.second.forcedAltCalls_[knowLocs.chromStart_] = alts;
+						}
+					}
+				}
+			}
+		}
 		for(auto & varPerTrans : ret.proteinVariants_){
 			varPerTrans.second.setFinals(rPars);
 			// {
@@ -2491,8 +2686,11 @@ std::unordered_map<std::string, std::set<uint32_t>> TranslatorByAlignment::readI
 TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByAlignment::getGenomicLocationsForAminoAcidPositions(const GetGenomicLocationsForAminoAcidPositionsPars & pars) {
 
 	GetGenomicLocationsForAminoAcidPositionsRet ret;
+  std::unique_ptr<OutputStream> out;
+	if(!pars.doNotWrite) {
+		out = std::make_unique<OutputStream>(pars.outOpts);
+	}
 
-	OutputStream out(pars.outOpts);
 	AminoAcidPositionInfo aaInfos(pars.proteinMutantTypingFnp, pars.zeroBased);
 
 	auto genes = GeneFromGffs::getGenesFromGffForGuessedTranscriptOrGeneIds(pars.gffFnp, aaInfos.ids_);
@@ -2570,7 +2768,9 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 				} else {
 					posBed.name_ = njh::pasteAsStr(idName, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
 				}
-				out << posBed.toDelimStrWithExtra() << std::endl;
+				if (!pars.doNotWrite) {
+					*out << posBed.toDelimStrWithExtra() << std::endl;
+				}
 				auto metaForCollapseForTranscript = metaForCollapse;
 				metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
 				metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);
@@ -2597,8 +2797,9 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 					} else {
 						posBed.name_ = njh::pasteAsStr(gsInfo.first, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
 					}
-					out << posBed.toDelimStrWithExtra() << std::endl;
-
+					if(!pars.doNotWrite) {
+						*out << posBed.toDelimStrWithExtra() << std::endl;
+					}
 					auto metaForCollapseForTranscript = metaForCollapse;
 					metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
 					metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);
@@ -2677,8 +2878,9 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 					} else {
 						posBed.name_ = njh::pasteAsStr(positions.first, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
 					}
-					out << posBed.toDelimStrWithExtra() << std::endl;
-
+					if(!pars.doNotWrite) {
+						*out << posBed.toDelimStrWithExtra() << std::endl;
+					}
 					auto metaForCollapseForTranscript = metaForCollapse;
 					metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
 					metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);
@@ -2706,8 +2908,9 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 						} else {
 							posBed.name_ = njh::pasteAsStr(positions.first, add, "-", "AA", pos + 1);
 						}
-						out << posBed.toDelimStrWithExtra() << std::endl;
-
+						if(!pars.doNotWrite) {
+							*out << posBed.toDelimStrWithExtra() << std::endl;
+						}
 						auto metaForCollapseForTranscript = meta;
 						metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
 						metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);
@@ -2737,8 +2940,9 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 						} else {
 							posBed.name_ = njh::pasteAsStr(gsInfo.first, "-", "[AA", minAAPos + 1, "-", maxAAPos + 1, "]");
 						}
-						out << posBed.toDelimStrWithExtra() << std::endl;
-
+						if(!pars.doNotWrite) {
+							*out << posBed.toDelimStrWithExtra() << std::endl;
+						}
 						auto metaForCollapseForTranscript = metaForCollapse;
 						metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
 						metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);
@@ -2766,8 +2970,9 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 							} else {
 								posBed.name_ = njh::pasteAsStr(gsInfo.first, add, "-", "AA", pos + 1);
 							}
-							out << posBed.toDelimStrWithExtra() << std::endl;
-
+							if(!pars.doNotWrite) {
+								*out << posBed.toDelimStrWithExtra() << std::endl;
+							}
 							auto metaForCollapseForTranscript = meta;
 							metaForCollapseForTranscript.addMeta("chrom", posBed.chrom_);
 							metaForCollapseForTranscript.addMeta("chromStart", posBed.chromStart_);

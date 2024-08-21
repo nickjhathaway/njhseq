@@ -169,7 +169,7 @@ public:
 		void addGTField(uint32_t ploidy = 2);
 		void autoAddTYPEField();
 		void autoAddTotalDP_RO_AO_InfoFields();
-		void autoAdd_AC_AC_AF_InfoFields();
+		void autoAdd_AN_AC_AF_InfoFields();
 
 		template<typename T>
 		void addFiledDefaultValue(const std::string & field, const T & defaultValue, bool replace = true) {
@@ -207,7 +207,7 @@ public:
 	 */
 	void allAddGTFields(uint32_t ploidy=2);
 
-	void allAutoAdd_AC_AC_AF_InfoFields();
+	void allAutoAdd_AN_AC_AF_InfoFields();
 
 	void allAutoAddDPFields();
 	void allAutoAddTYPEFields();
