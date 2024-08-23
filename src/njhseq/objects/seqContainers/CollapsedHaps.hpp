@@ -151,6 +151,8 @@ public:
 	void writeNames(const OutOptions &outOpts) const;
   void writeNamesPerLine(const OutOptions &outOpts) const;
   void writeLabIsolateNames(const OutOptions &outOpts, bool addAllNames = false) const;
+	void writeOutLabIsolateSeqs(const SeqIOOptions &seqOpts, bool collapse = false) const;
+
 	void writeOutMetaFields(const OutOptions &outOpts) const;
 	table createMetaFieldsTable(bool addSeq = false) const;
 

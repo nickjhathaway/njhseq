@@ -720,7 +720,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					if(knowLocs.chromStart_ >= minLocs && knowLocs.chromStart_ <= maxLocs) {
 						varPerTrans.second.alwaysReportLocations_.emplace(knowLocs.chromStart_);
 						MetaDataInName meta(knowLocs.extraFields_[0]);
-						if(meta.containsMeta("KnownAlts")) {
+						if(meta.containsMeta("KnownAlts") && !meta.getMeta("KnownAlts").empty()) {
 							auto alts = tokenizeString(meta.getMeta("KnownAlts"), ",");
 							varPerTrans.second.forcedAltCalls_[knowLocs.chromStart_] = alts;
 						}

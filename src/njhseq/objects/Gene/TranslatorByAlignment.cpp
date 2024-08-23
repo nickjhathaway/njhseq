@@ -272,7 +272,6 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixed(const
 				addedForcedAlt = true;
 			}
 		}
-
 	}
 	if(addedForcedAlt) {
 		ret.sortRecords();
@@ -457,11 +456,13 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 			}else if(njh::in(pos, forcedAltCalls_)){
 				//should only be called if not in snps
 				for(const auto & forcedAlt : forcedAltCalls_.at(pos)){
-					alts.emplace_back(forcedAlt);
-					altsCounts.emplace_back(0);
-					altsFreqs.emplace_back(0);
-					altsSampleCounts.emplace_back(0);
-					altsSamplePrevs.emplace_back(0);
+					if(forcedAlt != "X") {
+						alts.emplace_back(forcedAlt);
+						altsCounts.emplace_back(0);
+						altsFreqs.emplace_back(0);
+						altsSampleCounts.emplace_back(0);
+						altsSamplePrevs.emplace_back(0);
+					}
 				}
 			}
 
@@ -550,7 +551,6 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 
 			ret.records_.emplace_back(std::move(currentRecord));
 			addedForcedAlt = true;
-
 		}
 	}
 	if(addedForcedAlt) {
@@ -2525,7 +2525,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					if(knowLocs.chromStart_ >= minLocs && knowLocs.chromStart_ <= maxLocs) {
 						varPerTrans.second.alwaysReportLocations_.emplace(knowLocs.chromStart_);
 						MetaDataInName meta(knowLocs.extraFields_[0]);
-						if(meta.containsMeta("KnownAlts")) {
+						if(meta.containsMeta("KnownAlts") && !meta.getMeta("KnownAlts").empty()) {
 							auto alts = tokenizeString(meta.getMeta("KnownAlts"), ",");
 							varPerTrans.second.forcedAltCalls_[knowLocs.chromStart_] = alts;
 						}

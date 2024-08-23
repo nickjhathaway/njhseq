@@ -35,7 +35,9 @@ struct CollapseAndCallVariantsPars{
   CollapsedHaps::GenPopMeasuresPar calcPopMeasuresPars;
 
 
-	std::string identifier = "";
+	bool exportLabIsolateSeqs{false};
+
+	std::string identifier;
 	GenomicRegion refSeqRegion;
 
 	uint32_t numThreads = 1;

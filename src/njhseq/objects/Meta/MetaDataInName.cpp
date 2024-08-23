@@ -43,6 +43,20 @@ void MetaDataInName::removeMeta(const std::string & metaField){
 	meta_.erase(metaField);
 }
 
+void MetaDataInName::removeEmptyMetaFields(){
+	VecStr metasToRemove;
+	for(const auto & m : meta_) {
+		if(m.second.empty()) {
+			metasToRemove.emplace_back(m.first);
+		}
+	}
+	for(const auto & m : metasToRemove) {
+		removeMeta(m);
+	}
+}
+
+
+
 void MetaDataInName::addMeta(const MetaDataInName & otherMeta, bool replace) {
 	for(const auto & meta : otherMeta.meta_){
 		addMeta(meta.first, meta.second, replace);

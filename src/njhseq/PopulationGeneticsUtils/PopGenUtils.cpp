@@ -54,6 +54,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 	//write out seqs
 	auto uniqueSeqsOpts = SeqIOOptions::genFastaOutGz(njh::files::make_path(pars.outputDirectory, "uniqueSeqs.fasta.gz"));
 	inputSeqs.writeOutAll(pars.outputDirectory, "uniqueSeqs");
+	if(pars.exportLabIsolateSeqs) {
+		auto labIsolateSeqsOpts = SeqIOOptions::genFastaOutGz(njh::files::make_path(pars.outputDirectory, "refSeqs.fasta.gz"));
+		inputSeqs.writeOutLabIsolateSeqs(labIsolateSeqsOpts);
+	}
 	//key1 = sample, key2 = hap, value = readCount
 	std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> samplesToHapsWithReadCnts;
 	//key1 = hap , key2 = sample, value = readCount

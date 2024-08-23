@@ -59,7 +59,7 @@ public:
 	}
 
 
-
+	void removeEmptyMetaFields(	);
 	void removeMeta(const std::string & metaField);
 
 	void processNameForMeta(const std::string & name, bool replace);

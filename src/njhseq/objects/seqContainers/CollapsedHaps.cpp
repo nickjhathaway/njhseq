@@ -151,8 +151,12 @@ VecStr CollapsedHaps::GenPopMeasuresRes::getOut(const CollapsedHaps & inputSeqs,
 		if(pars.numSegSites_ != std::numeric_limits<uint32_t>::max()){
 //			njh::addConToVec(ret, toVecStr(pars.numSegSites_, tajimaRes_.d_, tajimaRes_.pval_beta_));
 			njh::addConToVec(ret, toVecStr(pars.numSegSites_, tajimaRes_.d_, tajimaRes_.pval_normal_));
+		}  else {
+			njh::addConToVec(ret, toVecStr("NA", "NA", "NA"));
 		}
 	}
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	// std::cout << njh::conToStr(ret, ",") << std::endl;
 	return ret;
 }
 
@@ -280,26 +284,27 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 	ret.tajimaRes_.d_ = 0;
 	ret.tajimaRes_.pval_beta_ = 1;
 	ret.tajimaRes_.pval_normal_ = 1;
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	ret.divMeasures_ = PopGenCalculator::getGeneralMeasuresOfDiversity(seqs_, pars.onlyPloidy2_);
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (pars.getPairwiseComps && size() > 1
 			&& std::numeric_limits < uint32_t > ::max() != pars.numSegSites_) {
 		if(pars.numSegSites_ == 0){
 			ret.tajimaRes_.d_ = 0;
 			ret.tajimaRes_.pval_beta_ = 1;
 			ret.tajimaRes_.pval_normal_ = 1;
+			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		} else {
 			try {
 				ret.tajimaRes_ = PopGenCalculator::calcTajimaTest(getTotalHapCount(), pars.numSegSites_, ret.avgPMeasures_.avgNumOfDiffs);
 			} catch (std::exception &e) {
 				//currently doing nothing, some times due to frequency filtering etc the calc throw an exception;
-//				//std::cout << "seqs_.size():" << seqs_.size() << std::endl;
-//				//std::cout << e.what() << std::endl;
+				//std::cout << "seqs_.size():" << seqs_.size() << std::endl;
+				//std::cout << e.what() << std::endl;
 			}
 		}
 	}
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+// 	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	return ret;
 }
 
@@ -649,6 +654,41 @@ void CollapsedHaps::writeLabIsolateNames(const OutOptions & outOpts, bool addAll
 		}
 	}
 }
+
+void CollapsedHaps::writeOutLabIsolateSeqs(const SeqIOOptions &seqOpts, bool collapse) const {
+	auto orderByCnt = getOrderByTopCnt();
+	SeqOutput writer(seqOpts);
+	writer.openOut();
+	std::unordered_map<std::string, uint32_t> labIsolateCounts;
+	for (const auto pos: orderByCnt) {
+		std::set<std::string> nonFieldSampleNames = CollapsedHaps::getPossibleLabIsolateNames(names_[pos]);
+		if (!nonFieldSampleNames.empty()) {
+			std::set<std::string> outNames;
+			for (const auto& name: nonFieldSampleNames) {
+				if(0 == labIsolateCounts[name]) {
+					outNames.emplace(name);
+				} else {
+					++labIsolateCounts[name];
+					outNames.emplace(njh::pasteAsStr(name, ".", labIsolateCounts[name]));
+				}
+			}
+			if (collapse) {
+				auto outSeq = *seqs_[pos];
+				outSeq.name_ = njh::conToStr(outNames, "::");
+				writer.write(outSeq);
+			} else {
+				for(const auto & name: outNames){
+					auto outSeq = *seqs_[pos];
+					outSeq.name_ =name;
+					writer.write(outSeq);
+				}
+			}
+		}
+	}
+}
+
+
+
 
 CollapsedHaps CollapsedHaps::readInReads(const SeqIOOptions & inOpts, const std::unique_ptr<MultipleGroupMetaData> & meta,
 		const std::unordered_map<std::string, std::set<std::string>> & metaValuesToAvoid){

@@ -32,12 +32,12 @@ namespace collapse {
 
 populationCollapse::populationCollapse(const std::string &populationName) :
 		populationName_(populationName) {
-	if (njh::containsSubString(populationName_, ".")) {
-		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ":Error populationName_ can't contain '.', "
-				<< populationName_ << "\n";
-		throw std::runtime_error { ss.str() };
-	}
+	// if (njh::containsSubString(populationName_, ".")) {
+	// 	std::stringstream ss;
+	// 	ss << __PRETTY_FUNCTION__ << ":Error populationName_ can't contain '.', "
+	// 			<< populationName_ << "\n";
+	// 	throw std::runtime_error { ss.str() };
+	// }
 }
 
 populationCollapse::populationCollapse(
@@ -45,12 +45,12 @@ populationCollapse::populationCollapse(
 		const std::string &populationName) :
 		input_(clusterSet(inputClusters)),
 		populationName_(populationName) {
-	if (njh::containsSubString(populationName_, ".")) {
-		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": Error populationName_ can't contain '.', "
-				<< populationName_ << "\n";
-		throw std::runtime_error { ss.str() };
-	}
+	// if (njh::containsSubString(populationName_, ".")) {
+	// 	std::stringstream ss;
+	// 	ss << __PRETTY_FUNCTION__ << ": Error populationName_ can't contain '.', "
+	// 			<< populationName_ << "\n";
+	// 	throw std::runtime_error { ss.str() };
+	// }
 	//no longer doing this cause for large sample numbers it would require way too much ram, e.g. 8000 samples would do 8000*8000 infos which adds up
 //	for (auto & i : input_.clusters_) {
 //		i.setSampInfosTotals(input_.info_.infos_);
