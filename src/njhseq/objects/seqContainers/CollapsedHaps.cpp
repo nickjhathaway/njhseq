@@ -667,9 +667,10 @@ void CollapsedHaps::writeOutLabIsolateSeqs(const SeqIOOptions &seqOpts, bool col
 			for (const auto& name: nonFieldSampleNames) {
 				if(0 == labIsolateCounts[name]) {
 					outNames.emplace(name);
-				} else {
 					++labIsolateCounts[name];
+				} else {
 					outNames.emplace(njh::pasteAsStr(name, ".", labIsolateCounts[name]));
+					++labIsolateCounts[name];
 				}
 			}
 			if (collapse) {
