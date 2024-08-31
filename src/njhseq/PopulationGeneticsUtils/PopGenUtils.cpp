@@ -682,11 +682,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	{
 		auto divMeasures = inputSeqs.getGeneralMeasuresOfDiversity(
-				calcPopMeasuresPars, alignerObj);
-
+			calcPopMeasuresPars, alignerObj);
 		divMeasures.writeDivMeasures(
-				njh::files::make_path(pars.outputDirectory, "divMeasures.tab.txt"),
-				inputSeqs, pars.identifier, calcPopMeasuresPars);
+			njh::files::make_path(pars.outputDirectory, "divMeasures.tab.txt"),
+			inputSeqs, pars.identifier, calcPopMeasuresPars);
 	}
 
 	if(!pars.metaFieldsToCalcPopDiffs.empty()){
@@ -695,24 +694,175 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 		std::unordered_map<std::string, std::unordered_map<std::string, CollapsedHaps::GenPopMeasuresRes>> measuresPer;
 
 		for(const auto & metaField : pars.metaFieldsToCalcPopDiffs){
-			OutputStream divMeasuresOut(njh::files::make_path(outputDirPerMeta,
-								metaField + "_divMeasures.tab.txt"));
-			divMeasuresOut << njh::conToStr(calcPopMeasuresPars.genHeader(), "\t") << std::endl;
+			OutputStream divMeasuresOut(njh::files::make_path(outputDirPerMeta, metaField + "_divMeasures.tab.txt.gz"));
+			divMeasuresOut << njh::conToStr(calcPopMeasuresPars.genHeader(VecStr{metaField}), "\t") << std::endl;
 			auto splitSeqs = inputSeqs.splitOutSeqsByMeta(metaField);
+			std::unordered_map<std::string, CollapsedHaps::GenPopMeasuresRes> divMeausresPerPop;
+			std::unordered_map<std::string, uint32_t> totalHapsPerPop;
 			for(const auto & subField : splitSeqs){
-//				std::cout << subField.first << std::endl;
-//				for(const auto & seqIter : iter::enumerate(subField.second.seqs_)){
-//					auto & seq = seqIter.element;
-//					std::cout << "\t" << seq->name_ << std::endl;
-//					std::cout << "\t" << seq->cnt_ << std::endl;
-//					std::cout << "\t" << seq->frac_ << std::endl;
-//					std::cout << "\t" << subField.second.names_[seqIter.index].size() << std::endl;
-//				}
 				auto divMeasures = subField.second.getGeneralMeasuresOfDiversity(calcPopMeasuresPars, alignerObj);
-				divMeasuresOut << njh::conToStr(divMeasures.getOut(subField.second, njh::pasteAsStr(pars.identifier, "::", subField.first), calcPopMeasuresPars), "\t") << std::endl;
+				divMeausresPerPop[subField.first] = divMeasures;
+				totalHapsPerPop[subField.first] = subField.second.getTotalHapCount();
+				divMeasuresOut << njh::conToStr(divMeasures.getOut(subField.second, njh::pasteAsStr(pars.identifier), calcPopMeasuresPars, VecStr{subField.first}), "\t") << std::endl;
+			}
+			OutputStream diffMeasuresOut(njh::files::make_path(outputDirPerMeta, njh::pasteAsStr(metaField, "_diffMeasures.tab.txt.gz")));
+			OutputStream pairwiseDiffMeasuresOut(njh::files::make_path(outputDirPerMeta, njh::pasteAsStr(metaField, "_pairwiseDiffMeasures.tab.txt.gz")));
+			diffMeasuresOut << "meta"
+					<<"\t"<< "metaSubGroupCount"
+					<<"\t"<< "target"
+					<<"\t"<<"totalHaps"
+					<<"\t"<<"uniqueHaps"
+					<<"\t"<<"nsamples"
+					<<"\t"<<"HsSample"
+					<<"\t"<<"HsEst"
+					<<"\t"<<"HtSample"
+					<<"\t"<<"HtEst"
+					<<"\t"<<"Gst"
+					<<"\t"<<"GstEst"
+					<<"\t"<<"JostD"
+					<<"\t"<<"JostDEst"
+					<<"\t"<<"ChaoA"
+					<<"\t"<<"ChaoB"
+					<<"\t"<<"JostDChaoEst"
+					<<"\t"<<"In"<< std::endl;
+
+			pairwiseDiffMeasuresOut << "target"
+					<< "\t" << metaField << "1"
+					<< "\t" << "popMeta" << "1_totalHaps"
+					<< "\t" << "popMeta" << "1_uniqueHaps"
+					<< "\t" << "popMeta" << "1_samples"
+					<< "\t" << "hapsOnlyIn_popMeta" << "1"
+					<< "\t" << "hapsOnlyIn_popMeta" << "1CumFreq"
+					<< "\t" << metaField << "2"
+					<< "\t" << "popMeta" << "2_totalHaps"
+					<< "\t" << "popMeta" << "2_uniqueHaps"
+					<< "\t" << "popMeta" << "2_samples"
+					<< "\t" << "hapsOnlyIn_popMeta" << "2"
+					<< "\t" << "hapsOnlyIn_popMeta" << "2CumFreq"
+					<< "\t" << "uniqHapsCombinedPops"
+					<< "\t" << "uniqHapsSharedInPops"
+					<< "\t" << "HsSample"
+									<< "\t" << "HsEst"
+									<< "\t" << "HtSample"
+									<< "\t" << "HtEst"
+									<< "\t" << "Gst"
+									<< "\t" << "GstEst"
+									<< "\t" << "JostD"
+									<< "\t" << "JostDEst"
+									<< "\t" << "ChaoA"
+									<< "\t" << "ChaoB"
+									<< "\t" << "JostDChaoEst"
+									<< "\t" << "In"
+
+									<< "\t" << "brayCurtisDissim"
+									<< "\t" << "brayCurtisRelativeDissim"
+									<< "\t" << "jaccardIndexDissim"
+									<< "\t" << "sorensenDistance"
+									<< "\t" << "RMSE"
+									<< "\t" << "correlationDissim"
+									<< "\t" << "matchingCoefficientDistance"
+									<< "\t" << "plainAvalance"
+									<< std::endl;
+
+			auto sampleCountsPerPop = inputSeqs.getSamplesPerSubFieldsForMetaField(metaField);
+			auto hapsForTargetPerPopulation = inputSeqs.getHapsPerSampleMetaSubPopulations(metaField);
+
+			if (hapsForTargetPerPopulation.size() > 1) {
+				auto generalDiff = PopGenCalculator::getOverallPopDiff(hapsForTargetPerPopulation);
+				diffMeasuresOut << metaField
+						<<"\t"<< hapsForTargetPerPopulation.size()
+						<<"\t"<< pars.identifier
+						<<"\t"<< inputSeqs.getTotalHapCount()
+						<<"\t"<< inputSeqs.seqs_.size()
+						<<"\t"<< inputSeqs.getAllSampleNames().size()
+						<<"\t"<< generalDiff.hsSample_
+						<<"\t"<< generalDiff.hsEst_
+						<<"\t"<< generalDiff.htSample_
+						<<"\t"<< generalDiff.htEst_
+						<<"\t"<< generalDiff.gst_
+						<<"\t"<< generalDiff.gstEst_
+						<<"\t"<< generalDiff.jostD_
+						<<"\t"<< generalDiff.jostDEst_
+						<<"\t"<< generalDiff.chaoA_
+						<<"\t"<< generalDiff.chaoB_
+						<<"\t"<< generalDiff.jostDChaoEst_
+						<<"\t"<< generalDiff.informativenessForAssign_<< std::endl;
+			} else {
+				diffMeasuresOut << metaField
+						<<"\t"<< hapsForTargetPerPopulation.size()
+						<<"\t"<< pars.identifier
+						<<"\t"<< inputSeqs.getTotalHapCount()
+						<<"\t"<< inputSeqs.seqs_.size()
+						<<"\t"<< inputSeqs.getAllSampleNames().size()
+						<<"\t"<< "NA"
+						<<"\t"<< "NA"
+						<<"\t"<< "NA"
+						<<"\t"<< "NA"
+						<<"\t"<< "NA"
+						<<"\t"<< "NA"
+						<<"\t"<< "NA"
+						<<"\t"<< "NA"
+						<<"\t"<< "NA"
+						<<"\t"<< "NA"
+						<<"\t"<< "NA"
+						<<"\t"<< "NA"<< std::endl;
+			}
+			std::unordered_map<std::string, std::unordered_map<std::string,
+				PopGenCalculator::PopDifferentiationMeasuresPairWise>> pairwiseDiffs;
+			if (hapsForTargetPerPopulation.size() > 1) {
+				pairwiseDiffs = PopGenCalculator::getPairwisePopDiff(hapsForTargetPerPopulation);
+				auto keys = getVectorOfMapKeys(pairwiseDiffs);
+				njh::sort(keys);
+				for(const auto & key : keys){
+					auto subKeys = getVectorOfMapKeys(pairwiseDiffs.at(key));
+					njh::sort(subKeys);
+					for(const auto & subKey : subKeys){
+						pairwiseDiffMeasuresOut << pars.identifier
+								<< "\t" << key
+								<< "\t" << totalHapsPerPop[key]
+								<< "\t" << divMeausresPerPop[key].divMeasures_.alleleNumber_
+								<< "\t" << sampleCountsPerPop[key].size()
+								<< "\t" << pairwiseDiffs.at(key).at(subKey).uniqueHapsInPop1_
+								<< "\t" << pairwiseDiffs.at(key).at(subKey).uniqueHapsInPop1CumFreq_
+								<< "\t" << subKey
+								<< "\t" << totalHapsPerPop[subKey]
+								<< "\t" << divMeausresPerPop[subKey].divMeasures_.alleleNumber_
+								<< "\t" << sampleCountsPerPop[subKey].size()
+								<< "\t" << pairwiseDiffs.at(key).at(subKey).uniqueHapsInPop2_
+								<< "\t" << pairwiseDiffs.at(key).at(subKey).uniqueHapsInPop2CumFreq_
+
+								<< "\t" << pairwiseDiffs.at(key).at(subKey).uniqueHapsAll_
+								<< "\t" << pairwiseDiffs.at(key).at(subKey).uniqueHapsShared_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.hsSample_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.hsEst_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.htSample_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.htEst_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.gst_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.gstEst_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.jostD_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.jostDEst_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.chaoA_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.chaoB_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.jostDChaoEst_
+													<<"\t"<< pairwiseDiffs.at(key).at(subKey).genDiffMeasures_.informativenessForAssign_
+
+
+													<< "\t" << pairwiseDiffs.at(key).at(subKey).brayCurtisDissim_
+													<< "\t" << pairwiseDiffs.at(key).at(subKey).brayCurtisRelativeDissim_
+													<< "\t" << pairwiseDiffs.at(key).at(subKey).jaccardIndexDissim_
+													<< "\t" << pairwiseDiffs.at(key).at(subKey).sorensenDistance_
+													<< "\t" << pairwiseDiffs.at(key).at(subKey).RMSE_
+													<< "\t" << pairwiseDiffs.at(key).at(subKey).halfR_
+													<< "\t" << pairwiseDiffs.at(key).at(subKey).matchingCoefficientDistance_
+													<< "\t" << pairwiseDiffs.at(key).at(subKey).plainAvalance_
+
+													<< std::endl;
+					}
+				}
 			}
 		}
 	}
+
 	alignerObj->processAlnInfoOutput(pars.alnCacheDir.string(), false);
 
 	//create summary table

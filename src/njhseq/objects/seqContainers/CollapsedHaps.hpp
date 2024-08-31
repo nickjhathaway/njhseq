@@ -22,9 +22,7 @@ namespace njhseq {
 class CollapsedHaps{
 public:
 
-	CollapsedHaps(){
-
-	}
+	CollapsedHaps()= default;
 
 
 	/**@brief Construct with seqs, seqs should already be collapsed to unique seqs
@@ -58,11 +56,11 @@ public:
 			const std::string &identifier);
 
 	////getting info
-	uint32_t getTotalHapCount() const; /**< The total number of input haplotypes */
-	uint32_t getTotalUniqueHapCount() const; /**< the total number of unique haplotypes */
-	size_t size() const;
+	[[nodiscard]] uint32_t getTotalHapCount() const; /**< The total number of input haplotypes */
+	[[nodiscard]] uint32_t getTotalUniqueHapCount() const; /**< the total number of unique haplotypes */
+	[[nodiscard]] size_t size() const;
 
-	std::unordered_map<std::string, uint32_t> genSeqNameKey() const;
+	[[nodiscard]] std::unordered_map<std::string, uint32_t> genSeqNameKey() const;
 
 	struct AvgPairwiseMeasures{
 		double avgPercentId {0};
@@ -84,7 +82,7 @@ public:
 		uint32_t numSegSites_{std::numeric_limits<uint32_t>::max()};
 		uint32_t numThreads = 1;
 		double lowVarFreq = 0;
-		VecStr genHeader() const;
+		[[nodiscard]] VecStr genHeader(const VecStr & prependDefaultHeaderFields = VecStr{}) const;
 	};
 
 	struct GenPopMeasuresRes {
@@ -93,36 +91,44 @@ public:
 		AvgPairwiseMeasures avgPMeasures_;
 		std::vector<std::vector<comparison>> allComps_;
 
-		VecStr getOut(const CollapsedHaps &inputSeqs, const std::string &identifier,
-				const GenPopMeasuresPar &pars) const;
+		[[nodiscard]] VecStr getOut(const CollapsedHaps &inputSeqs, const std::string &identifier,
+				const GenPopMeasuresPar &pars,
+				const VecStr & prependDefaultFields = VecStr{}) const;
 
 		void writeDivMeasures(const OutOptions &outOpts,
 				const CollapsedHaps &inputSeqs, const std::string &identifier,
-				const GenPopMeasuresPar &pars) const;
+				const GenPopMeasuresPar &pars,
+				const VecStr & prependDefaultHeaderFields = VecStr{},
+				const VecStr & prependDefaultFields = VecStr{}) const;
 	};
 
-	std::unordered_map<std::string,
-			std::unordered_map<std::string, GenPopMeasuresRes>> getGeneralMeasuresOfDiversity(
-			const std::unordered_map<std::string,
-					std::unordered_map<std::string, GenPopMeasuresPar>> &pars,
-			const std::set<std::string> &metaFields,
-			const std::shared_ptr<aligner> &alignerObj = nullptr) const;
-	GenPopMeasuresRes getGeneralMeasuresOfDiversity(const GenPopMeasuresPar &pars,
-			const std::shared_ptr<aligner> &alignerObj = nullptr) const;
+	[[nodiscard]] std::unordered_map<std::string,
+		std::unordered_map<std::string, GenPopMeasuresRes>> getGeneralMeasuresOfDiversity(
+		const std::unordered_map<std::string,
+			std::unordered_map<std::string, GenPopMeasuresPar>>& pars,
+		const std::set<std::string>& metaFields,
+		const std::shared_ptr<aligner>& alignerObj = nullptr) const;
+
+	[[nodiscard]] GenPopMeasuresRes getGeneralMeasuresOfDiversity(const GenPopMeasuresPar& pars,
+	                                                const std::shared_ptr<aligner>& alignerObj = nullptr) const;
 
 	//
-	std::unordered_map<std::string, CollapsedHaps> splitOutSeqsByMeta(const std::string & metaField) const;
+	[[nodiscard]] std::unordered_map<std::string, CollapsedHaps> splitOutSeqsByMeta(const std::string & metaField) const;
+	[[nodiscard]] std::unordered_map<std::string, std::unordered_set<std::string>> getSamplesPerSubFieldsForMetaField(const std::string & metaField) const;
+	[[nodiscard]] std::set<std::string> getSubFieldsForMetaField(const std::string & metaField) const;
+	[[nodiscard]] std::unordered_map<std::string, std::vector<PopGenCalculator::PopHapInfo>> getHapsPerSampleMetaSubPopulations(const std::string & metaField) const;
+
 
 
 	// getting reads lengths
-	std::vector<uint32_t> getReadLenVec() const;
-	std::unordered_map<uint32_t, uint32_t> getReadLenMap() const;
-	bool hasLengthVariation(const double freqCutOff = 0) const;
-	uint32_t getLongestLenDiff(const double freqCutOff = 0) const;
+	[[nodiscard]] std::vector<uint32_t> getReadLenVec() const;
+	[[nodiscard]] std::unordered_map<uint32_t, uint32_t> getReadLenMap() const;
+	[[nodiscard]] bool hasLengthVariation( double freqCutOff = 0) const;
+	[[nodiscard]] uint32_t getLongestLenDiff( double freqCutOff = 0) const;
 
 
 	std::vector<uint32_t> getOrder(const std::function<bool(const seqInfo &,const seqInfo&)> & comparator) const;
-	std::vector<uint32_t> getOrderByTopCnt() const;
+	[[nodiscard]] std::vector<uint32_t> getOrderByTopCnt() const;
 
 	//sample names
 	static std::string getSampleNameFromSeqName(const std::string& name,
@@ -142,21 +148,26 @@ public:
 	 */
 	static std::set<std::string> getPossibleLabIsolateNames(const std::unordered_set<std::string> & names);
 
-	std::set<std::string> getAllSampleNames() const;
-	std::vector<std::unordered_set<std::string>> getSampleNamesPerSeqs() const;
-	std::vector<std::unordered_map<std::string, uint32_t>> getSampleReadCntsPerSeqs() const;
+	[[nodiscard]] std::set<std::string> getAllSampleNames() const;
+	[[nodiscard]] std::vector<std::unordered_set<std::string>> getSampleNamesPerSeqs() const;
+	[[nodiscard]] std::vector<std::unordered_map<std::string, uint32_t>> getSampleReadCntsPerSeqs() const;
 
 	//writing out info
-	void writeOutSeqsOrdCnt(const SeqIOOptions &seqOpts) const;
-	void writeNames(const OutOptions &outOpts) const;
-  void writeNamesPerLine(const OutOptions &outOpts) const;
-  void writeLabIsolateNames(const OutOptions &outOpts, bool addAllNames = false) const;
-	void writeOutLabIsolateSeqs(const SeqIOOptions &seqOpts, bool collapse = false) const;
+	void writeOutSeqsOrdCnt(const SeqIOOptions& seqOpts) const;
 
-	void writeOutMetaFields(const OutOptions &outOpts) const;
-	table createMetaFieldsTable(bool addSeq = false) const;
+	void writeNames(const OutOptions& outOpts) const;
 
-	void writeOutAll(const bfs::path & outputDirectory, const std::string & namePrefix, bool overWrite = false) const;
+	void writeNamesPerLine(const OutOptions& outOpts) const;
+
+	void writeLabIsolateNames(const OutOptions& outOpts, bool addAllNames = false) const;
+
+	void writeOutLabIsolateSeqs(const SeqIOOptions& seqOpts, bool collapse = false) const;
+
+	void writeOutMetaFields(const OutOptions& outOpts) const;
+
+	[[nodiscard]] table createMetaFieldsTable(bool addSeq = false) const;
+
+	void writeOutAll(const bfs::path& outputDirectory, const std::string& namePrefix, bool overWrite = false) const;
 
 
 	//comparisons
@@ -174,7 +185,7 @@ public:
 
 
 
-	AvgPairwiseMeasures getAvgPairwiseMeasures(const std::vector<std::vector<comparison>> & allComps) const;
+	[[nodiscard]] AvgPairwiseMeasures getAvgPairwiseMeasures(const std::vector<std::vector<comparison>> & allComps) const;
 
 
 	//factories

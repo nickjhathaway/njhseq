@@ -56,7 +56,7 @@ void CollapsedHaps::setFrequencies(){
 
 CollapsedHaps::RenameRet CollapsedHaps::renameBaseOnFreq(
 		const std::string &identifier) {
-	CollapsedHaps::RenameRet ret;
+	RenameRet ret;
 	//rename based on freq
 	std::vector<uint32_t> orderByCnt = getOrderByTopCnt();
 	uint32_t seqId = 0;
@@ -101,11 +101,16 @@ std::unordered_map<std::string, uint32_t> CollapsedHaps::genSeqNameKey() const {
 }
 
 
-VecStr CollapsedHaps::GenPopMeasuresPar::genHeader() const {
-	VecStr header { "id", "totalHaplotypes", "uniqueHaplotypes", "singlets",
-			"doublets", "expShannonEntropy", "ShannonEntropyE",
-			"effectiveNumOfAlleles", "SimpsonIndex", "he", "ExpP3", "ExpP4", "ExpP5",
-			"lengthPolymorphism" };
+VecStr CollapsedHaps::GenPopMeasuresPar::genHeader(const VecStr & prependDefaultHeaderFields) const {
+
+	VecStr header = prependDefaultHeaderFields;
+
+	addOtherVec(header, VecStr{
+		            "target", "sampleCount", "totalHaplotypes", "uniqueHaplotypes", "singlets",
+		            "doublets", "expShannonEntropy", "ShannonEntropyE",
+		            "effectiveNumOfAlleles", "SimpsonIndex", "he", "ExpP3", "ExpP4", "ExpP5",
+		            "lengthPolymorphism"
+	            });
 	if (getPairwiseComps) {
 		header.emplace_back("avgPercentID");
 		header.emplace_back("avgNumOfDiffs");
@@ -124,25 +129,32 @@ VecStr CollapsedHaps::GenPopMeasuresPar::genHeader() const {
 
 
 
-VecStr CollapsedHaps::GenPopMeasuresRes::getOut(const CollapsedHaps & inputSeqs, const std::string & identifier, const GenPopMeasuresPar & pars) const{
-	VecStr ret;
-	ret = toVecStr(
-			identifier,
-			inputSeqs.getTotalHapCount(),
-			inputSeqs.seqs_.size(),
-			divMeasures_.singlets_,
-			divMeasures_.doublets_,
-			divMeasures_.expShannonEntropy_,
-			divMeasures_.ShannonEntropyE_,
-			divMeasures_.effectiveNumOfAlleles_,
-			divMeasures_.simpsonIndex_,
-			divMeasures_.heterozygostiy_,
-			std::numeric_limits<long double>::max() == divMeasures_.ploidy3_.expectedCOIForPloidy_.at(3) ? std::string("NA") : estd::to_string(divMeasures_.ploidy3_.expectedCOIForPloidy_.at(3)),
-			std::numeric_limits<long double>::max() == divMeasures_.ploidy4_.expectedCOIForPloidy_.at(4) ? std::string("NA") : estd::to_string(divMeasures_.ploidy4_.expectedCOIForPloidy_.at(4)),
-			std::numeric_limits<long double>::max() == divMeasures_.ploidy5_.expectedCOIForPloidy_.at(5) ? std::string("NA") : estd::to_string(divMeasures_.ploidy5_.expectedCOIForPloidy_.at(5)),
+VecStr CollapsedHaps::GenPopMeasuresRes::getOut(const CollapsedHaps & inputSeqs, const std::string & identifier, const GenPopMeasuresPar & pars, const VecStr & prependDefaultFields) const{
+	VecStr ret = prependDefaultFields;
+	addOtherVec(ret, toVecStr(
+		identifier,
+		inputSeqs.getAllSampleNames().size(),
+		inputSeqs.getTotalHapCount(),
+		inputSeqs.seqs_.size(),
+		divMeasures_.singlets_,
+		divMeasures_.doublets_,
+		divMeasures_.expShannonEntropy_,
+		divMeasures_.ShannonEntropyE_,
+		divMeasures_.effectiveNumOfAlleles_,
+		divMeasures_.simpsonIndex_,
+		divMeasures_.heterozygostiy_,
+		std::numeric_limits<long double>::max() == divMeasures_.ploidy3_.expectedCOIForPloidy_.at(3)
+			? std::string("NA")
+			: estd::to_string(divMeasures_.ploidy3_.expectedCOIForPloidy_.at(3)),
+		std::numeric_limits<long double>::max() == divMeasures_.ploidy4_.expectedCOIForPloidy_.at(4)
+			? std::string("NA")
+			: estd::to_string(divMeasures_.ploidy4_.expectedCOIForPloidy_.at(4)),
+		std::numeric_limits<long double>::max() == divMeasures_.ploidy5_.expectedCOIForPloidy_.at(5)
+			? std::string("NA")
+			: estd::to_string(divMeasures_.ploidy5_.expectedCOIForPloidy_.at(5)),
 
-			njh::boolToStr(inputSeqs.hasLengthVariation(pars.lowVarFreq))
-			);
+		njh::boolToStr(inputSeqs.hasLengthVariation(pars.lowVarFreq))
+	));
 	if(pars.getPairwiseComps){
 		njh::addConToVec(ret, toVecStr(avgPMeasures_.avgPercentId, avgPMeasures_.avgNumOfDiffs));
 		njh::addConToVec(ret, toVecStr(avgPMeasures_.nucleotideDiversity_));
@@ -160,11 +172,92 @@ VecStr CollapsedHaps::GenPopMeasuresRes::getOut(const CollapsedHaps & inputSeqs,
 	return ret;
 }
 
-void CollapsedHaps::GenPopMeasuresRes::writeDivMeasures(const OutOptions & outOpts, const CollapsedHaps & inputSeqs, const std::string & identifier, const GenPopMeasuresPar & pars) const {
+void CollapsedHaps::GenPopMeasuresRes::writeDivMeasures(const OutOptions& outOpts, const CollapsedHaps& inputSeqs,
+                                                        const std::string& identifier, const GenPopMeasuresPar& pars,
+                                                        const VecStr& prependDefaultHeaderFields,
+                                                        const VecStr& prependDefaultFields) const {
+	if (prependDefaultFields.size() != prependDefaultHeaderFields.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " << "prependDefaultFields.size(): " <<
+				prependDefaultFields.size() << " has to equal prependDefaultHeaderFields.szie(): "
+		<< prependDefaultHeaderFields.size() << "\n";
+		throw std::runtime_error{ss.str()};
+	}
 	OutputStream divMeasuresOut(outOpts);
-	divMeasuresOut << njh::conToStr(pars.genHeader(), "\t") << std::endl;
-	divMeasuresOut << njh::conToStr(getOut(inputSeqs, identifier, pars), "\t") << std::endl;
+	divMeasuresOut << njh::conToStr(pars.genHeader(prependDefaultHeaderFields), "\t") << std::endl;
+	divMeasuresOut << njh::conToStr(getOut(inputSeqs, identifier, pars, prependDefaultFields), "\t") << std::endl;
 }
+
+
+std::unordered_map<std::string, std::unordered_set<std::string>> CollapsedHaps::getSamplesPerSubFieldsForMetaField(const std::string & metaField) const {
+	std::unordered_map<std::string, std::unordered_set<std::string>> ret;
+	for (const auto seqPos: iter::range(seqs_.size())) {
+		for (const auto& name: names_[seqPos]) {
+			std::string val = "NA";
+			if (MetaDataInName::nameHasMetaData(name)) {
+				MetaDataInName seqMeta(name);
+				if (seqMeta.containsMeta(metaField)) {
+					val = seqMeta.getMeta(metaField);
+				}
+			}
+			auto sample = getSampleNameFromSeqName(name);
+			ret[val].emplace(sample);
+		}
+	}
+	return ret;
+}
+
+std::set<std::string> CollapsedHaps::getSubFieldsForMetaField(const std::string& metaField) const {
+	std::set<std::string> ret;
+	for (const auto seqPos: iter::range(seqs_.size())) {
+		for (const auto& name: names_[seqPos]) {
+			std::string val = "NA";
+			if (MetaDataInName::nameHasMetaData(name)) {
+				MetaDataInName seqMeta(name);
+				if (seqMeta.containsMeta(metaField)) {
+					val = seqMeta.getMeta(metaField);
+				}
+			}
+			ret.emplace(val);
+		}
+	}
+	return ret;
+}
+
+std::unordered_map<std::string, std::vector<PopGenCalculator::PopHapInfo>> CollapsedHaps::getHapsPerSampleMetaSubPopulations(const std::string & metaField) const {
+	std::unordered_map<std::string, std::vector<PopGenCalculator::PopHapInfo>> hapsForTargetPerPopulationRaw;
+	auto subFields = getSubFieldsForMetaField(metaField);
+	//initiliate with all zeros to make counting easier by just adding by index
+	for(const auto & subField : subFields){
+		for(const auto & seqPos : iter::range(seqs_.size())){
+			hapsForTargetPerPopulationRaw[subField].emplace_back(seqPos, 0);
+		}
+	}
+	//count up occurrences
+	for (const auto seqPos: iter::range(seqs_.size())) {
+		for (const auto& name: names_[seqPos]) {
+			std::string subField = "NA";
+			if (MetaDataInName::nameHasMetaData(name)) {
+				MetaDataInName seqMeta(name);
+				if (seqMeta.containsMeta(metaField)) {
+					subField = seqMeta.getMeta(metaField);
+				}
+			}
+			++hapsForTargetPerPopulationRaw[subField][seqPos].count_;
+		}
+	}
+	//now get rid of the zeros
+	std::unordered_map<std::string, std::vector<PopGenCalculator::PopHapInfo>> hapsForTargetPerPopulation;
+	for(const auto & pop : hapsForTargetPerPopulationRaw){
+		for(const auto & hap : pop.second){
+			if(hap.count_ > 0){
+				hapsForTargetPerPopulation[pop.first].emplace_back(hap);
+			}
+		}
+	}
+	return hapsForTargetPerPopulation;
+}
+
 
 
 std::unordered_map<std::string, CollapsedHaps> CollapsedHaps::splitOutSeqsByMeta(
