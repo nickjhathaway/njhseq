@@ -87,6 +87,9 @@ std::unordered_map<size_t,alnInfoLocal> bamAlnToAlnInfoLocal(const BamTools::Bam
 		for(const auto & cData : bAln.CigarData){
 			switch (cData.Type) {
 				case 'M':
+				case 'X':
+				case '=':
+					//M is REF and ALT have a base (not a gap), X means REF does not equal ALT, = means REF equals AlT
 					refOffSet += cData.Length;
 					seqOffSet += cData.Length;
 					currentOps.emplace_back(cData);
@@ -118,7 +121,7 @@ std::unordered_map<size_t,alnInfoLocal> bamAlnToAlnInfoLocal(const BamTools::Bam
 					//seqOffSet += cData.Length;
 					break;
 				default:
-					std::cerr << __PRETTY_FUNCTION__ << ": Unhandled case: " << cData.Type << std::endl;
+					std::cerr << __FILE__ << " " << __LINE__ << " "<< __PRETTY_FUNCTION__ << ": Unhandled case: " << cData.Type << std::endl;
 					break;
 			}
 		}
@@ -168,6 +171,9 @@ alnInfoLocal bamAlnToAlnInfoLocal(const std::vector<BamTools::CigarOp> & cigarDa
 	for(const auto & cData : cigarData){
 		switch (cData.Type) {
 			case 'M':
+			case 'X':
+			case '=':
+				//M is REF and ALT have a base (not a gap), X means REF does not equal ALT, = means REF equals AlT
 				ret.localASize_ += cData.Length;
 				ret.localBSize_ += cData.Length;
 				break;
@@ -188,7 +194,7 @@ alnInfoLocal bamAlnToAlnInfoLocal(const std::vector<BamTools::CigarOp> & cigarDa
 				//do nothing
 				break;
 			default:
-				std::cerr << __PRETTY_FUNCTION__ << ": Unhandled case: " << cData.Type << std::endl;
+				std::cerr << __FILE__ << " " << __LINE__ << " "<< __PRETTY_FUNCTION__ << ": Unhandled case: " << cData.Type << std::endl;
 				break;
 		}
 	}
