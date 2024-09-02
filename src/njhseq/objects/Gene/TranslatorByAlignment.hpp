@@ -521,7 +521,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			ret.transcriptInfosForGene_[gene.first] = gene.second->generateGeneSeqInfo(tReader, false);
 			for(const auto & transcriptInfo : ret.transcriptInfosForGene_[gene.first]){
 				ret.translationInfoForTranscirpt_[transcriptInfo.first] = transcriptInfo.second;
-				readVec::getMaxLength(transcriptInfo.second->protein_, proteinMaxLen);
+				if(pars_.useFullProtein_) {
+					readVec::getMaxLength(transcriptInfo.second->protein_, proteinMaxLen);
+				}
 	//			ret.proteinForTranscript_[transcriptInfo.first] = transcriptInfo.second->protein_.seq_;
 				ret.proteinVariants_.emplace(transcriptInfo.first,
 										VariantsInfo{Bed3RecordCore(transcriptInfo.first, 0, transcriptInfo.second->protein_.seq_.size()), transcriptInfo.second->protein_});
