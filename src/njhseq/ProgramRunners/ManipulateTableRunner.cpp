@@ -178,7 +178,7 @@ int ManipulateTableRunner::tableExtractCriteria(
 		const njh::progutils::CmdArgs & inputCommands) {
 	ManipulateTableSetUp setUp(inputCommands);
 	setUp.description_ = "Extract table contents by filtering on a column, by default will take values higher than cut off, --lessThan to take values less than cut off";
-	std::string columnName = "";
+	std::string columnName;
 	double cutOff = 1;
 	bool lessThan = false;
 	setUp.processDefaultProgram(true);
@@ -188,7 +188,7 @@ int ManipulateTableRunner::tableExtractCriteria(
 	setUp.finishSetUp(std::cout);
 
 	TableReader inTable(setUp.ioOptions_);
-	inTable.header_.containsColumn(columnName);
+	inTable.header_.checkForColumnsThrow({columnName}, __PRETTY_FUNCTION__);
 	OutputStream out(setUp.ioOptions_.out_);
 	if(setUp.ioOptions_.hasHeader_){
 		inTable.header_.outPutContents(out, setUp.ioOptions_.outDelim_);
