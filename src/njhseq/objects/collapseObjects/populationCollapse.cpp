@@ -84,6 +84,7 @@ void populationCollapse::popCluster(const collapser &collapserObj,
 		aligner &alignerObj) {
 
 	auto maxLeng = readVec::getMaxLength(input_.clusters_);
+	alignerObj.parts_.setMaxSize(maxLeng);
 	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	std::cout << "maxLeng = " << maxLeng << std::endl;
 	std::cout << "alignerObj.parts_.maxSize_: " << alignerObj.parts_.maxSize_ << std::endl;
