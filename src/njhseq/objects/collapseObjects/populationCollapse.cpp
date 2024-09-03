@@ -83,6 +83,10 @@ void populationCollapse::popCluster(const collapser &collapserObj,
 		CollapseIterations iteratorMap, const std::string &sortBy,
 		aligner &alignerObj) {
 
+	auto maxLeng = readVec::getMaxLength(input_.clusters_);
+	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	std::cout << "maxLeng = " << maxLeng << std::endl;
+	std::cout << "alignerObj.parts_.maxSize_: " << alignerObj.parts_.maxSize_ << std::endl;
 	collapsed_.clusters_ = collapserObj.runClustering(input_.clusters_, iteratorMap, alignerObj);
 	renameClusters(); //before with the update right afterwards, the base name will no longer represent the underlying samples
 	for(auto & clus : collapsed_.clusters_){
