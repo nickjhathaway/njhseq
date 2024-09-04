@@ -52,6 +52,7 @@ public:
 		uint32_t orphans_ = 0; /**< reads that are paired but their mates weren't found */
 		uint32_t orphansFiltered_ = 0; /**< reads that are paired but their mates weren't found and eventually are filtered off */
 		uint32_t orphansFilteredSoftCip_ = 0; /**< reads that are paired but their mates weren't found and eventually are filtered off due to soft clip filter */
+		uint32_t orphansFilteredInverse_ = 0; /**< reads that are paired but their mates weren't found and were found to be inverse reads */
 
 		uint32_t orphansUnmapped_ = 0; /**< reads that are paired but their mates weren't found are unmapped */
 		uint32_t pairsUnMapped_ = 0;
@@ -193,6 +194,7 @@ public:
 		bool originalOrientation_ = false;
 		bool throwAwayUnmappedMate_ = false;
 		bool tryToFindOrphansMate_ = false;
+		bool removeInverseOrphans_ = false;
 		bool keepMarkedDuplicate_ = false;
 		uint32_t minAlnMapSize_ = 35;
 		bool filterOffLowEntropyOrphansRecruits_{true};

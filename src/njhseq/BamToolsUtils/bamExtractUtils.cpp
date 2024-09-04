@@ -41,7 +41,7 @@ uint32_t getAlnLen(const BamTools::BamAlignment bAln){
 
 uint32_t BamExtractor::ExtractCounts::getTotal(){
 
-	return pairedReads_ + pairedReadsMateUnmapped_ + unpaiedReads_ + orphans_ + orphansUnmapped_ + mateFilteredOff_ + mateFilteredOffUnmapped_ + pairsUnMapped_ + unpairedUnMapped_ + discordant_ + inverse_ + pairedReadsBothFailedSoftClip_ + pairedReadsMateFailedSoftClip_ + unpairedFailedSoftClip_ + bothMatesFilteredOff_ + singlesFilteredOff_ + orphansFiltered_ + pairedReadsMateUnmappedFailedSoftClip_ + orphansFilteredSoftCip_;
+	return pairedReads_ + pairedReadsMateUnmapped_ + unpaiedReads_ + orphans_ + orphansUnmapped_ + mateFilteredOff_ + mateFilteredOffUnmapped_ + pairsUnMapped_ + unpairedUnMapped_ + discordant_ + inverse_ + pairedReadsBothFailedSoftClip_ + pairedReadsMateFailedSoftClip_ + unpairedFailedSoftClip_ + bothMatesFilteredOff_ + singlesFilteredOff_ + orphansFiltered_ + pairedReadsMateUnmappedFailedSoftClip_ + orphansFilteredSoftCip_ + orphansFilteredInverse_;
 }
 
 
@@ -66,6 +66,7 @@ void BamExtractor::ExtractCounts::log(std::ostream & out, const bfs::path & bamF
 	logStats("orphans", orphans_);
 	logStats("orphansFiltered", orphansFiltered_);
 	logStats("orphansFilteredSoftCip", orphansFilteredSoftCip_);
+	logStats("orphansFilteredInverse_", orphansFilteredInverse_);
 	logStats("orphansUnmapped", orphansUnmapped_);
 	logStats("bothMatesFilteredOff", bothMatesFilteredOff_);
 	logStats("mateFilteredOff", mateFilteredOff_);
@@ -4833,28 +4834,67 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					getAlnLen(*search) >= extractPars.minAlnMapSize_) {
 //				std::cout << "\tgetSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
 				if(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_){
-					if (search->IsPaired()) {
-						++ret.orphans_;
-					} else {
-						++ret.unpaiedReads_;
-					}
-					bool pass = true;
-					auto searchSeq = seqInfo(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
-//					std::cout << searchSeq.name_ << std::endl;
 
-					if (extractPars.filterOffLowEntropyOrphansRecruits_) {
-						kmerInfo kInfo(searchSeq.seq_, extractPars.entropyKlen_, false);
-//						std::cout << "\t" << kInfo.computeKmerEntropy() << std::endl;
-//						std::cout << "\t" << extractPars.filterOffLowEntropyOrphansRecruitsCutOff_ << std::endl;
-//						std::cout << "\t" << njh::colorBool(kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) << std::endl;
-						if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
-							pass = false;
-						}
-					}
-
-					if(pass){
-						if (extractPars.originalOrientation_) {
+					if(extractPars.removeInverseOrphans_ && search->IsReverseStrand() == search->IsMateReverseStrand()) {
+						//write filterd orphan
+						++ret.orphansFilteredInverse_;
+						if(extractPars.writeAll_){
 							if(subSamplingFunction()){
+								//i'm not sure this sub sampling function should be here.....
+								inversePairWriter.openWrite(bamAlnToSeqInfo(*search));
+							}
+							bWriter.SaveAlignment(*search);
+						}
+					} else {
+						bool pass = true;
+						auto searchSeq = seqInfo(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
+	//					std::cout << searchSeq.name_ << std::endl;
+						if (extractPars.filterOffLowEntropyOrphansRecruits_) {
+							kmerInfo kInfo(searchSeq.seq_, extractPars.entropyKlen_, false);
+	//						std::cout << "\t" << kInfo.computeKmerEntropy() << std::endl;
+	//						std::cout << "\t" << extractPars.filterOffLowEntropyOrphansRecruitsCutOff_ << std::endl;
+	//						std::cout << "\t" << njh::colorBool(kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) << std::endl;
+							if (kInfo.computeKmerEntropy() < extractPars.filterOffLowEntropyOrphansRecruitsCutOff_) {
+								pass = false;
+							}
+						}
+						if(pass){
+							if (search->IsPaired()) {
+								++ret.orphans_;
+							} else {
+								++ret.unpaiedReads_;
+							}
+							if (extractPars.originalOrientation_) {
+								if(subSamplingFunction()){
+									if((len(searchSeq) > searchRegion->getLen() || searchRegion->getLen() < 150) && searchIn){
+										seqInfo querySeq = bamAlnToSeqInfo(*search, true);
+										GenomicRegion balnRegion(*search, refData);
+										uint32_t startRelative = searchRegion->start_ - balnRegion.start_;
+										uint32_t endRelative = searchRegion->end_ - balnRegion.start_;
+										seqInfo holderSeq(balnRegion.uid_, std::string(balnRegion.getLen(), 'N'));
+										auto alnInfo = bamAlnToAlnInfoLocal(*search);
+										alignCalc::rearrangeLocal(holderSeq.seq_,  querySeq.seq_, '-'	, alnInfo.begin()->second);
+										alignCalc::rearrangeLocal(holderSeq.qual_, querySeq.qual_, 0	, alnInfo.begin()->second);
+										uint32_t startAln = 0;
+										if(searchRegion->start_ > balnRegion.start_){
+											startAln = getAlnPosForRealPos(holderSeq.seq_, startRelative);
+										}
+										uint32_t endAln = len(holderSeq);
+										if(searchRegion->end_ < balnRegion.end_){
+											endAln =  getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
+										}
+										auto outSeq = querySeq.getSubRead(startAln, endAln - startAln);
+										outSeq.removeGaps();
+										searchSeq = outSeq;
+									}
+									if(search->IsReverseStrand()){
+										searchSeq.reverseComplementRead(false, true);
+									}
+									writer.openWrite(searchSeq);
+									//writer.openWrite(bamAlnToSeqInfo(*search));
+								}
+							} else {
+								seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
 								if((len(searchSeq) > searchRegion->getLen() || searchRegion->getLen() < 150) && searchIn){
 									seqInfo querySeq = bamAlnToSeqInfo(*search, true);
 									GenomicRegion balnRegion(*search, refData);
@@ -4870,69 +4910,41 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 									}
 									uint32_t endAln = len(holderSeq);
 									if(searchRegion->end_ < balnRegion.end_){
-										endAln =  getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
+										endAln = getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
 									}
 									auto outSeq = querySeq.getSubRead(startAln, endAln - startAln);
 									outSeq.removeGaps();
 									searchSeq = outSeq;
 								}
-								if(search->IsReverseStrand()){
+								if (searchRegion->reverseSrand_) {
 									searchSeq.reverseComplementRead(false, true);
 								}
-								writer.openWrite(searchSeq);
-								//writer.openWrite(bamAlnToSeqInfo(*search));
-							}
-						} else {
-							seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
-							if((len(searchSeq) > searchRegion->getLen() || searchRegion->getLen() < 150) && searchIn){
-								seqInfo querySeq = bamAlnToSeqInfo(*search, true);
-								GenomicRegion balnRegion(*search, refData);
-								uint32_t startRelative = searchRegion->start_ - balnRegion.start_;
-								uint32_t endRelative = searchRegion->end_ - balnRegion.start_;
-								seqInfo holderSeq(balnRegion.uid_, std::string(balnRegion.getLen(), 'N'));
-								auto alnInfo = bamAlnToAlnInfoLocal(*search);
-								alignCalc::rearrangeLocal(holderSeq.seq_,  querySeq.seq_, '-'	, alnInfo.begin()->second);
-								alignCalc::rearrangeLocal(holderSeq.qual_, querySeq.qual_, 0	, alnInfo.begin()->second);
-								uint32_t startAln = 0;
-								if(searchRegion->start_ > balnRegion.start_){
-									startAln = getAlnPosForRealPos(holderSeq.seq_, startRelative);
+								if(subSamplingFunction()){
+									writer.openWrite(searchSeq);
 								}
-								uint32_t endAln = len(holderSeq);
-								if(searchRegion->end_ < balnRegion.end_){
-									endAln = getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
+							}
+							if(extractPars.writeAll_){
+								bWriter.SaveAlignment(*search);
+							}
+						}else{
+							++ret.orphansFiltered_;
+	//
+	//						std::cout << search->Name << std::endl;
+	//						std::cout << "\tgetAlnLen(*search): " << getAlnLen(*search) << std::endl;
+	//						std::cout << "\tnjh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_): " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
+	//						std::cout << "\tsearchIn: " << njh::colorBool(searchIn) << std::endl;
+	//						std::cout << "\tsearchRegion->getPercInRegion(*search, refData): " << searchRegion->getPercInRegion(*search, refData) << std::endl;
+	//
+	//						std::cout << "getAlnLen(*search) >= extractPars.minAlnMapSize_: " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
+	//						std::cout << "getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
+	//						std::cout << "pass: " << njh::colorBool(pass) << std::endl;
+	//						std::cout <<  "searchIn: " <<njh::colorBool(searchIn) << std::endl;
+							if(extractPars.writeAll_){
+								if(subSamplingFunction()){
+									singleFilteredWriter.openWrite(bamAlnToSeqInfo(*search));
 								}
-								auto outSeq = querySeq.getSubRead(startAln, endAln - startAln);
-								outSeq.removeGaps();
-								searchSeq = outSeq;
+								bWriter.SaveAlignment(*search);
 							}
-							if (searchRegion->reverseSrand_) {
-								searchSeq.reverseComplementRead(false, true);
-							}
-							if(subSamplingFunction()){
-								writer.openWrite(searchSeq);
-							}
-						}
-						if(extractPars.writeAll_){
-							bWriter.SaveAlignment(*search);
-						}
-					}else{
-						++ret.orphansFiltered_;
-//
-//						std::cout << search->Name << std::endl;
-//						std::cout << "\tgetAlnLen(*search): " << getAlnLen(*search) << std::endl;
-//						std::cout << "\tnjh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_): " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
-//						std::cout << "\tsearchIn: " << njh::colorBool(searchIn) << std::endl;
-//						std::cout << "\tsearchRegion->getPercInRegion(*search, refData): " << searchRegion->getPercInRegion(*search, refData) << std::endl;
-//
-//						std::cout << "getAlnLen(*search) >= extractPars.minAlnMapSize_: " << njh::colorBool(getAlnLen(*search) >= extractPars.minAlnMapSize_) << std::endl;
-//						std::cout << "getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
-//						std::cout << "pass: " << njh::colorBool(pass) << std::endl;
-//						std::cout <<  "searchIn: " <<njh::colorBool(searchIn) << std::endl;
-						if(extractPars.writeAll_){
-							if(subSamplingFunction()){
-								singleFilteredWriter.openWrite(bamAlnToSeqInfo(*search));
-							}
-							bWriter.SaveAlignment(*search);
 						}
 					}
 				}else{
