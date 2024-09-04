@@ -659,7 +659,15 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 		}
 		varPerChrom.second.writeOutSNPsFinalInfo(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-SNPs.tab.txt.gz")), varPerChrom.first);
 		if(!knownAAMutsChromPositions[varPerChrom.first].empty()){
-			varPerChrom.second.writeOutSNPsInfo(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-knownAA_SNPs.tab.txt.gz")), varPerChrom.first, knownAAMutsChromPositions[varPerChrom.first]);
+			//just positions covered
+			std::set<uint32_t> coveredPositions;
+			for(const auto pos  : knownAAMutsChromPositions[varPerChrom.first]) {
+				if(njh::in(pos, varPerChrom.second.allBases)) {
+					coveredPositions.insert(pos);
+				}
+			}
+			// varPerChrom.second.writeOutSNPsInfo(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-knownAA_SNPs.tab.txt.gz")), varPerChrom.first, knownAAMutsChromPositions[varPerChrom.first]);
+			varPerChrom.second.writeOutSNPsInfo(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-knownAA_SNPs.tab.txt.gz")), varPerChrom.first, coveredPositions);
 		}
 		varPerChrom.second.writeOutSNPsAllInfo(njh::files::make_path(variantInfoDir, njh::pasteAsStr(varPerChrom.first +  "-allBases.tab.txt.gz")), varPerChrom.first);
 		if(!varPerChrom.second.variablePositons_.empty()){

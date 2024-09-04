@@ -1020,6 +1020,7 @@ void TranslatorByAlignment::VariantsInfo::writeOutSNPsInfo(
 	}else{
 		out << njh::conToStr(TranslatorByAlignment::VariantsInfo::SNPHeaderGenomic(), "\t") << std::endl;
 	}
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	writeOutSNPsInfo(out, name, snpPositions, oneBased);
 }
 
@@ -1027,7 +1028,7 @@ void TranslatorByAlignment::VariantsInfo::writeOutSNPsInfo(std::ostream & out,
 		const std::string & name,
 		const std::set<uint32_t> & snpPositions,
 		bool oneBased){
-
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & snpPos : snpPositions){
 		if(!njh::in(snpPos, allBases)){
 			std::stringstream ss;
@@ -1052,6 +1053,7 @@ void TranslatorByAlignment::VariantsInfo::writeOutSNPsInfo(std::ostream & out,
 void TranslatorByAlignment::VariantsInfo::writeOutSNPsFinalInfo(std::ostream & out,
 		const std::string & name,
 		bool oneBased){
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	writeOutSNPsInfo(out, name, njh::getSetOfMapKeys(snpsFinal), oneBased);
 }
 
@@ -1071,6 +1073,7 @@ void TranslatorByAlignment::VariantsInfo::writeOutSNPsFinalInfo(
 void TranslatorByAlignment::VariantsInfo::writeOutSNPsAllInfo(std::ostream & out,
 		const std::string & name,
 		bool oneBased){
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	writeOutSNPsInfo(out, name, njh::getSetOfMapKeys(allBases), oneBased);
 }
 
@@ -1093,6 +1096,7 @@ void TranslatorByAlignment::VariantsInfo::writeOutSNPsAllInfo(
 	}else{
 		out << njh::conToStr(TranslatorByAlignment::VariantsInfo::SNPHeaderGenomic(), "\t") << std::endl;
 	}
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	writeOutSNPsInfo(out, name, njh::getSetOfMapKeys(allBases), oneBased);
 
 }
