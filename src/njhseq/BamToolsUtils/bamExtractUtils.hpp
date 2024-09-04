@@ -122,6 +122,8 @@ public:
 	BamExtractor(bool verbose = false);
 
 
+	static uint32_t getAlnLen(const BamTools::BamAlignment bAln);
+
 	BamExtractSeqsResults extractReadsFromBamRegion(
 			const bfs::path & bamFnp,
 			const GenomicRegion & region,
@@ -202,6 +204,7 @@ public:
 		uint32_t entropyKlen_{2};
 
 		double softClipPercentageCutOff_{1};//! by default can soft clip all
+		uint32_t softClipHardCutOff_{std::numeric_limits<uint32_t>::max()};//! by default can soft clip all
 
 		double percentSubSample_{1};//! should be 0 to 1, sub sample region
 
