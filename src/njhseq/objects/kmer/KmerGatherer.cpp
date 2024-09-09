@@ -175,6 +175,52 @@ std::set<std::string> KmerGatherer::getUniqueKmersSet(
 	return ret;
 }
 
+
+
+std::unordered_map<std::string, std::set<std::string>> KmerGatherer::getUniqueKmersSetFromFastas(
+		const std::vector<bfs::path> &fastaFnps) const {
+	njh::concurrent::LockableQueue <bfs::path > fastaQueue(fastaFnps);
+	std::unordered_map<std::string, std::set<std::string>> ret;
+	std::mutex mut;
+	std::function < void() > gatherKmers = [&fastaQueue, this, &ret, &mut]() {
+
+		bfs::path fastaFnp;
+		std::unordered_map<std::string, std::set<std::string>> current;
+		while (fastaQueue.getVal(fastaFnp)) {
+			std::set < std::string > genomeKmersCurrent;
+			auto fastaOpts  = SeqIOOptions::genFastaIn(fastaFnp);
+			if(pars_.allUpper_) {
+				fastaOpts.lowerCaseBases_ = "upper";
+			}
+			SeqInput reader(fastaOpts);
+			reader.openIn();
+			seqInfo seq;
+			while(reader.readNextRead(seq)) {
+				for (uint32_t pos = 0; pos < len(seq.seq_) - pars_.kmerLength_ + 1; ++pos) {
+					genomeKmersCurrent.emplace(seq.seq_.substr(pos, pars_.kmerLength_));
+				}
+				if (!pars_.noRevComp_) {
+					seq.reverseComplementRead(false, true);
+					for (uint32_t pos = 0; pos < len(seq.seq_) - pars_.kmerLength_ + 1;
+							++pos) {
+						genomeKmersCurrent.emplace(seq.seq_.substr(pos, pars_.kmerLength_));
+							}
+				}
+			}
+			current[fastaFnp.string()].insert(genomeKmersCurrent.begin(),
+		genomeKmersCurrent.end());
+		}
+		{
+			std::lock_guard < std::mutex > lock(mut);
+			for (const auto &kmerSet : current) {
+				ret[kmerSet.first].insert(kmerSet.second.begin(), kmerSet.second.end());
+			}
+		}
+	};
+	njh::concurrent::runVoidFunctionThreaded(gatherKmers, pars_.numThreads_);
+	return ret;
+}
+
 std::unordered_map<std::string, std::set<std::string>> KmerGatherer::getUniqueKmersSet(
 		const std::vector<bfs::path> &twobitFnps) const {
 	std::vector < TwobitFnpSeqNamePair > pairs;

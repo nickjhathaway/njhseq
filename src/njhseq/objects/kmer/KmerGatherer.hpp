@@ -52,6 +52,7 @@ public:
 		std::string seqName_;
 	};
 	[[nodiscard]] std::unordered_map<std::string, std::set<std::string>> getUniqueKmersSet(const std::vector<bfs::path> & twobitFnps) const;
+	[[nodiscard]] std::unordered_map<std::string, std::set<std::string>> getUniqueKmersSetFromFastas(const std::vector<bfs::path> & fastaFnps) const;
 
 	template<typename T>
 	std::unordered_map<std::string, std::unordered_set<uint64_t>> getUniqueKmersSetHash(const std::unordered_map<std::string, std::vector<T>> & seqs) const;
