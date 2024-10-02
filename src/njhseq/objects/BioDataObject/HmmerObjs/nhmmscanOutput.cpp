@@ -796,6 +796,7 @@ GenomicRegion nhmmscanOutput::QueryResults::HitOverlapGroup::genOutRegion()const
 	outRegion.meta_.meta_.clear();
 	outRegion.meta_.addMeta("hmmScores", njh::conToStr(scores, ","));
 	outRegion.meta_.addMeta("hmmModelNames", njh::conToStr(modelNames, ","));
+	outRegion.meta_.addMeta("model", njh::conToStr(getUniqueStrings(modelNames), ","));
 	outRegion.meta_.addMeta("hmmEvalues", njh::conToStr(evalues, ","));
 	return outRegion;
 }

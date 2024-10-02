@@ -227,15 +227,19 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				calcPopMeasuresPars.onlyPloidy2_ = true;
 			}
 			calcPopMeasuresPars.numSegSites_ = njh::mapAt(translatedRes.proteinVariants_, translatedSeqs.first).getFinalNumberOfSegratingSites();
-			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			auto divMeasures = inputTranslatedSeq.getGeneralMeasuresOfDiversity(calcPopMeasuresPars, alignerObj);
-			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			divMeasuresOut << njh::conToStr(divMeasures.getOut(inputTranslatedSeq, identifierTranslated, calcPopMeasuresPars), "\t")  << std::endl;
-			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			// std::cout << "variableTypedAAForTranslated names: " << njh::conToStr(njh::getVecOfMapKeys(variableTypedAAForTranslated), ",") << std::endl;
+
 			watch.startNewLap(njh::pasteAsStr("writing translation output - ", translatedSeqs.first, " - translatedSeqsAATyped"));
 			OutputStream outAATyped(njh::files::make_path(variantInfoDir, njh::pasteAsStr(translatedSeqs.first, "-", "translatedSeqsAATyped.tab.txt.gz") ) );
 			outAATyped << "name\tfullTyped\tknownTyped\tvariantTyped" << std::endl;
 			for(const auto & seq : inputTranslatedSeq.seqs_){
+				// std::cout << '\t' << seq->name_ << std::endl;
+				// std::cout << '\t' << renameRes.newNameToOldNameKey_[seq->name_] << std::endl;
 				outAATyped << seq->name_
 						<< "\t" << fullTypedAAForTranslated[renameRes.newNameToOldNameKey_[seq->name_]]
 						<< "\t" << knownsTypedAAForTranslated[renameRes.newNameToOldNameKey_[seq->name_]]

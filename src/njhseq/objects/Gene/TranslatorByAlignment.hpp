@@ -764,17 +764,25 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 						Codon refCodon(std::get<0>(refCodonInfo).aa_,
 						std::make_tuple(std::get<0>(refCodonInfo).base_,std::get<1>(refCodonInfo).base_, std::get<2>(refCodonInfo).base_));
 
+						MetaDataInName translatedMeta;
+						if(MetaDataInName::nameHasMetaData(seqName.first)) {
+							translatedMeta = MetaDataInName(seqName.first);
+						}
+						translatedMeta.addMeta("transcript", varPerTrans.first, true);
+						auto seqNameForKey = seqName.first;
+						translatedMeta.resetMetaInName(seqNameForKey);
+
 						ret.fullAATypedWithCodonInfo_[seqName.first].emplace_back(
 								TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
 										njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
-						ret.translated_fullAATypedWithCodonInfo_[njh::pasteAsStr(seqName.first, "[transcript=", varPerTrans.first, "]")].emplace_back(
+						ret.translated_fullAATypedWithCodonInfo_[seqNameForKey].emplace_back(
 								TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
 										njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
 						if(njh::in(loc, varPerTrans.second.snpsFinal)){
 							ret.variantAATypedWithCodonInfo_[seqName.first].emplace_back(
 									TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
 											njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
-							ret.translated_variantAATypedWithCodonInfo_[njh::pasteAsStr(seqName.first, "[transcript=", varPerTrans.first, "]")].emplace_back(
+							ret.translated_variantAATypedWithCodonInfo_[seqNameForKey].emplace_back(
 									TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
 											njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
 						}

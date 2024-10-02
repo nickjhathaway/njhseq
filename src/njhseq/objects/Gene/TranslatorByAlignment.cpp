@@ -2612,6 +2612,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 						translatedMeta.addMeta("transcript", varPerTrans.first, true);
 						auto seqNameForKey = seqName.first;
 						translatedMeta.resetMetaInName(seqNameForKey);
+
 						ret.fullAATypedWithCodonInfo_[seqName.first].emplace_back(
 								TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
 										njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
