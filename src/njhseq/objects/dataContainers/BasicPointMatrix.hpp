@@ -25,6 +25,8 @@
 //
 #include "njhseq/objects/dataContainers/graphs/UndirWeightedGraph.hpp"
 #include "njhseq/concurrency/PairwisePairFactory.hpp"
+#include "njhseq/IO/InputStream.hpp"
+#include "njhseq/IO/OutputStream.hpp"
 
 namespace njhseq {
 
@@ -172,8 +174,7 @@ public:
 	 */
 	void writeGraph(const OutOptions & opts) const {
 		checkGraphThrow();
-		std::ofstream outFile;
-		opts.openFile(outFile);
+		OutputStream outFile(opts);
 		writeGraph(outFile);
 	}
 	/**@brief write graph out to a stream
@@ -211,17 +212,8 @@ public:
 					bool firstColRowNames = false,
 					bool colNames = false) {
 		BasicPointMatrix<VAL> ret(dbPars);
-		if (!bfs::exists(fnp)) {
-			std::stringstream ss;
-			ss << __PRETTY_FUNCTION__ << ":" << fnp << " doesn't exist" << "\n";
-			throw std::runtime_error { ss.str() };
-		}
-		std::ifstream inFile(fnp.string());
-		if (!inFile) {
-			std::stringstream ss;
-			ss << __PRETTY_FUNCTION__ << ": error in opening " << fnp << "\n";
-			throw std::runtime_error { ss.str() };
-		}
+		InputStream inFile(InOptions{fnp});
+
 		bool inputMightHaveRowNames = njh::files::hasPossibleRowNames(fnp);
 		uint32_t expectedColNum = njh::files::getExpectedNumCol(fnp);
 		std::string line;
