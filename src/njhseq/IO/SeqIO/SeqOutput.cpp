@@ -53,7 +53,7 @@ void SeqOutput::openOut() {
 				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);
 				break;
 			case SeqIOOptions::outFormats::FASTQ:
-				if("" == prim_outOpts.outExtention_){
+				if(prim_outOpts.outExtention_.empty()){
 					prim_outOpts.outExtention_ = ".fastq";
 				}
 				primaryOut_ = std::make_unique<OutputStream>(prim_outOpts);

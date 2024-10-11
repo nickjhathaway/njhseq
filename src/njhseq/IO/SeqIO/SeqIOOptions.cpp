@@ -662,11 +662,12 @@ SeqIOOptions::SeqIOOptions(const OutOptions & out, outFormats outFormat) :
 SeqIOOptions::SeqIOOptions(const bfs::path & outFilename, outFormats outFormat) :
 		outFormat_(outFormat), out_(outFilename) {
 	inFormat_ = getInFormat(outFormat);
-	if("" == out_.outExtention_&&
+	if(out_.outExtention_.empty() &&
 			outFormat != SeqIOOptions::outFormats::NOFORMAT){
 		out_.outExtention_ = getOutExtension(outFormat_);
-	}else if("" != out_.outExtention_ && !njh::beginsWith(out_.outExtention_,".f") &&
-			(outFormat == SeqIOOptions::outFormats::FASTA || outFormat == SeqIOOptions::outFormats::FASTQ)){
+	} else if(!out_.outExtention_.empty() && !njh::beginsWith(out_.outExtention_,".f") &&
+			(outFormat == SeqIOOptions::outFormats::FASTA || outFormat == SeqIOOptions::outFormats::FASTQ ||
+			 outFormat == SeqIOOptions::outFormats::FASTAGZ || outFormat == SeqIOOptions::outFormats::FASTQGZ)){
 		out_.outExtention_ = getOutExtension(outFormat_);
 	}
 }
