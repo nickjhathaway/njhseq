@@ -24,6 +24,7 @@
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
 #include <string>
+#include "njhseq/common/allSystemIncludes.h"
 
 namespace njhseq {
 
