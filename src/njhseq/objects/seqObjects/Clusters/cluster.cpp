@@ -99,7 +99,7 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 		const snpBreakoutPars& pars) {
 	std::vector<cluster>  ret;
 	//log snp information
-//	std::cout << seqBase_.name_ << std::endl;
+	// std::cout << seqBase_.name_ << std::endl;
 	std::unordered_map<uint32_t, std::unordered_map<char, double>> mismatches;
 	for (const auto subReadPos : iter::range(reads_.size())) {
 		const auto & subRead = reads_[subReadPos];
@@ -112,21 +112,21 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 			}
 		}
 	}
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	std::cout << "pars.hardCutOff: " << pars.hardCutOff << std::endl;
-//  std::cout << "pars.hardSnpFreqCutOff: " << pars.hardSnpFreqCutOff << std::endl;
-//  std::cout << "pars.snpFreqCutOff: " << pars.snpFreqCutOff << std::endl;
-//  std::cout << "mismatches.size(): " << mismatches.size() << std::endl;
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	// std::cout << "pars.hardCutOff: " << pars.hardCutOff << std::endl;
+ //  std::cout << "pars.hardSnpFreqCutOff: " << pars.hardSnpFreqCutOff << std::endl;
+ //  std::cout << "pars.snpFreqCutOff: " << pars.snpFreqCutOff << std::endl;
+ //  std::cout << "mismatches.size(): " << mismatches.size() << std::endl;
 	std::unordered_map<uint32_t, std::unordered_map<char, double>> mismatchesAboveCutOff;
 	for (const auto & position : mismatches) {
 		for (const auto & base : position.second) {
 			if (base.second > pars.hardCutOff && base.second/seqBase_.cnt_ > pars.hardSnpFreqCutOff) {
-//				std::cout << position.first << "\t" << base.first << '\t' << base.second << '\t' << base.second/seqBase_.cnt_<< std::endl;
+				// std::cout << position.first << "\t" << base.first << '\t' << base.second << '\t' << base.second/seqBase_.cnt_<< std::endl;
 				mismatchesAboveCutOff[position.first][base.first] = base.second;
 			}
 		}
 	}
-//	std::cout << "mismatchesAboveCutOff.size(): " << mismatchesAboveCutOff.size() << std::endl;
+	// std::cout << "mismatchesAboveCutOff.size(): " << mismatchesAboveCutOff.size() << std::endl;
 	if (!mismatchesAboveCutOff.empty()) {
 		std::unordered_map<std::string, std::vector<uint32_t>> readsSnpUids;
 		for (const auto subReadPos : iter::range(
