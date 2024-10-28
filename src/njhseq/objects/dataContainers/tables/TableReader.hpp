@@ -33,7 +33,7 @@ namespace njhseq {
 class TableReader {
 public:
 
-	TableReader(const TableIOOpts & tabOpts);
+	explicit TableReader(TableIOOpts  tabOpts);
 	const TableIOOpts tabOpts_;
 	table header_;
 
@@ -41,9 +41,11 @@ public:
 
 	bool getNextRow(VecStr & row);
 
-	VecStr extractCols(const VecStr & row, const VecStr & cols) const;
+	[[nodiscard]] VecStr extractCols(const VecStr & row, const VecStr & cols) const;
 
 	void setHeaderlessHeader(uint32_t numOfCols) ;
+
+	void reopenInputForReReading();
 
 	bool doNotCheckRowSizes = false;
 };

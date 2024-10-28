@@ -28,12 +28,12 @@
 namespace njhseq {
 
 
-TableReader::TableReader(const TableIOOpts & tabOpts): tabOpts_(tabOpts){
-	//inital header reader
+TableReader::TableReader(TableIOOpts tabOpts): tabOpts_(std::move(tabOpts)){
+	//initial header reader
 	if("STDIN" == tabOpts_.in_.inFilename_){
 		in_ = std::make_unique<InputStream>(tabOpts_.in_);
 		if(tabOpts_.hasHeader_){
-			std::string currentLine = "";
+			std::string currentLine;
 			njh::files::crossPlatGetline(*in_, currentLine);
 			auto toks = tokenizeString(currentLine, tabOpts_.inDelim_, true);
 			header_ = table(toks);
@@ -59,6 +59,17 @@ TableReader::TableReader(const TableIOOpts & tabOpts): tabOpts_(tabOpts){
 	}
 }
 
+void TableReader::reopenInputForReReading() {
+	in_ = std::make_unique<InputStream>(tabOpts_.in_);
+	if(tabOpts_.hasHeader_){
+		//if has header read that in so the file re starts at the beginning of the content
+		std::string currentLine;
+		njh::files::crossPlatGetline(*in_, currentLine);
+	}
+}
+
+
+
 void TableReader::setHeaderlessHeader(uint32_t numOfCols) {
 	VecStr columnNames;
 	for (const auto i : iter::range(numOfCols)) {
@@ -69,7 +80,7 @@ void TableReader::setHeaderlessHeader(uint32_t numOfCols) {
 
 
 bool TableReader::getNextRow(VecStr & row){
-	std::string currentLine = "";
+	std::string currentLine;
 	row.clear();
 	if(njh::files::crossPlatGetline(*in_, currentLine)){
 		row = tokenizeString(currentLine, tabOpts_.inDelim_, true);
