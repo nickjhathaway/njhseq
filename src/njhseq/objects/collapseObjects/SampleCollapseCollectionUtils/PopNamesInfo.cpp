@@ -75,11 +75,12 @@ PopNamesInfo::PopNamesInfo(std::string populationName, VecStr samples, VecStr co
 }
 
 void PopNamesInfo::checkPopNameThrow()const{
-	if(njh::containsSubString(populationName_, ".")){
+	//no longer requiring no . 
+	/*if(njh::containsSubString(populationName_, ".")){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": Error, population name can't have a period in it, " << populationName_ << std::endl;
 		throw std::runtime_error{ss.str()};
-	}
+	}*/
 }
 
 bool PopNamesInfo::hasSample(const std::string & sample) const {
