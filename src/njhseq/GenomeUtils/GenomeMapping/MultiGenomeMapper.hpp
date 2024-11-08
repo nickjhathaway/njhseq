@@ -54,8 +54,12 @@ public:
 		inputParameters();
 		inputParameters(const bfs::path & genomeDir, const std::string & primaryGenome);
 		bfs::path genomeDir_;
+		std::set<std::string> acceptableGenomeExtensions_{".fasta", ".fa"};
+		std::set<std::string> acceptableGffExtensions_{".gff", ".gff3"};
+
 		std::string primaryGenome_;
 		std::set<std::string> selectedGenomes_;
+
 		uint32_t numThreads_ = 1;
 
 		bfs::path gffDir_;
@@ -176,6 +180,9 @@ public:
 			const BioCmdsUtils::LastZPars & lzPars) const;
 
 	static std::unordered_map<std::string, bfs::path> getBamFnps(const std::unordered_map<std::string, MultiGenomeMapper::AlignCmdOutput> & alignOutpus);
+
+
+	static std::vector<GenomicRegion> gatherGffRegionsWithDescriptions(const bfs::path & gffFile, const std::set<std::string> & description, const MultiGenomeMapper::inputParameters & inputParameters);
 };
 
 

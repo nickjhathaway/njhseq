@@ -31,6 +31,43 @@
 
 namespace njhseq {
 
+
+std::vector<GenomicRegion> MultiGenomeMapper::gatherGffRegionsWithDescriptions(
+	const bfs::path& gffFile, const std::set<std::string>& description,
+	const MultiGenomeMapper::inputParameters& inputParameters) {
+	BioDataFileIO<GFFCore> reader((IoOptions(InOptions(gffFile))));
+	reader.openIn();
+	// uint32_t count = 0;
+	std::string line;
+	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
+	std::vector<GenomicRegion> ret;
+	while (nullptr != gRecord) {
+		if (!njh::in(gRecord->type_, inputParameters.gffIntersectPars_.filterSubRegionFeatures_) &&
+		    (inputParameters.gffIntersectPars_.selectFeatures_.empty() || njh::in(
+			     gRecord->type_, inputParameters.gffIntersectPars_.selectFeatures_))) {
+			if (njh::in(gRecord->getAttr("description"), description)) {
+				GenomicRegion gregion(*gRecord);
+				gregion.meta_.meta_ = gRecord->attributes_;
+				ret.emplace_back(gregion);
+			}
+		}
+		bool end = false;
+		while ('#' == reader.inFile_->peek()) {
+			if (njh::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+				end = true;
+				break;
+			}
+			njh::files::crossPlatGetline(*reader.inFile_, line);
+		}
+		if (end) {
+			break;
+		}
+		gRecord = reader.readNextRecord();
+	}
+	return ret;
+}
+
+
 MultiGenomeMapper::MultiGenomeMapper(const inputParameters & pars):pars_(pars){
 
 }
@@ -145,30 +182,38 @@ void MultiGenomeMapper::loadGffFnps(){
 }
 
 void MultiGenomeMapper::loadGffFnps(const bfs::path & gffDir) {
-	for (auto & genome : genomes_) {
-		bfs::path gffFnp = njh::files::make_path(pars_.gffDir_,
-				genome.second->fnp_.filename()).replace_extension("gff");
-		if (bfs::exists(gffFnp)) {
-			genome.second->gffFnp_ = gffFnp;
-		} else {
-			gffFnp = gffFnp.string() + "3";
-			if (bfs::exists(gffFnp)) {
-				genome.second->gffFnp_ = gffFnp;
-			}
+	auto gffFiles = njh::files::gatherFiles(pars_.gffDir_, pars_.acceptableGffExtensions_, false);
+	//technically will fail if more than one extension found in gff dir with acceptable format
+	for (const auto & gffFile : gffFiles) {
+		auto genomeName = bfs::basename(gffFile);
+		if (njh::in(genomeName, genomes_)) {
+			genomes_.at(genomeName)->gffFnp_ = gffFile;
 		}
 	}
+	// for (auto & genome : genomes_) {
+	// 	bfs::path gffFnp = njh::files::make_path(pars_.gffDir_,
+	// 			genome.second->fnp_.filename()).replace_extension("gff");
+	// 	if (bfs::exists(gffFnp)) {
+	// 		genome.second->gffFnp_ = gffFnp;
+	// 	} else {
+	// 		gffFnp = gffFnp.string() + "3";
+	// 		if (bfs::exists(gffFnp)) {
+	// 			genome.second->gffFnp_ = gffFnp;
+	// 		}
+	// 	}
+	// }
 }
 
 
 void MultiGenomeMapper::loadInGenomes() {
 	std::lock_guard<std::mutex> lock(mut_);
-	auto fastaFiles = njh::files::gatherFiles(pars_.genomeDir_, ".fasta", false);
+	auto fastaFiles = njh::files::gatherFiles(pars_.genomeDir_, pars_.acceptableGenomeExtensions_, false);
 	if (fastaFiles.empty()) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__
 				<< ": Error, there has to be at least one genome in " << pars_.genomeDir_
 				<< "\n";
-		ss << "Found none ending with .fasta" << "\n";
+		ss << "Found none ending with " << njh::conToStr(pars_.acceptableGenomeExtensions_, ",") << "\n";
 		throw std::runtime_error { ss.str() };
 	}
 	for (const auto & f : fastaFiles) {
