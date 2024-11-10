@@ -49,11 +49,22 @@ GenomicRegion::GenomicRegion(const std::string & uid, const std::string & chrom,
 GenomicRegion::GenomicRegion(const Bed6RecordCore & bed) :
 		GenomicRegion(bed.name_, bed.chrom_, bed.chromStart_, bed.chromEnd_,
 				'-' == bed.strand_) {
-	if(bed.extraFields_.size() > 0){
+	if(!bed.extraFields_.empty()){
 		uint32_t extraFieldCount = 0;
 		for(const auto & extraField : bed.extraFields_){
+			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			// std::cout << njh::json::toJson(meta_) << std::endl;
+			// std::cout << "extraField: " << extraField << std::endl;
+			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			if(MetaDataInName::nameHasMetaData(extraField)){
-				meta_.addMeta(MetaDataInName(extraField), false);
+				MetaDataInName currentExtraFieldMeta(extraField);
+				for (const auto & m : currentExtraFieldMeta.meta_) {
+					if (njh::in(m.first, meta_.meta_)) {
+						meta_.addMeta(njh::pasteAsStr(m.first, "-extraField", leftPadNumStr<uint32_t>(extraFieldCount, bed.extraFields_.size())), m.second);
+					}else {
+						meta_.addMeta(m.first, m.second, false);
+					}
+				}
 			} else {
 				meta_.addMeta(njh::pasteAsStr("extraField", leftPadNumStr<uint32_t>(extraFieldCount, bed.extraFields_.size())), extraField, false);
 			}
