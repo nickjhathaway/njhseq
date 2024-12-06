@@ -81,6 +81,15 @@ njh::sys::RunOutput BioCmdsUtils::RunBwaIndex(const bfs::path & genomeFnp) const
 	return runCmdCheck(templateCmd, genomeFnp, bwaCheckFile);
 }
 
+njh::sys::RunOutput BioCmdsUtils::RunBwamem2Index(const bfs::path & genomeFnp) const {
+	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
+	njh::sys::requireExternalProgramThrow("bwa-mem2");
+	std::string templateCmd = "bwa-mem2 index " + genomeFnp.string();
+	auto bwaCheckFile = genomeFnp.string() + ".0123";
+	return runCmdCheck(templateCmd, genomeFnp, bwaCheckFile);
+}
+
+
 njh::sys::RunOutput BioCmdsUtils::RunSamtoolsFastaIndex(const bfs::path & genomeFnp) const {
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	njh::sys::requireExternalProgramThrow("samtools");
@@ -131,6 +140,12 @@ std::unordered_map<std::string, njh::sys::RunOutput> BioCmdsUtils::runAllPossibl
 		outputs.emplace("bwa", RunBwaIndex(genomeFnp));
 	}else	if(verbose_){
 		std::cerr << "Couldn't find " << "bwa" << " skipping bwa indexing" << std::endl;
+	}
+
+	if (njh::sys::hasSysCommand("bwa-mem2")) {
+		outputs.emplace("bwa", RunBwamem2Index(genomeFnp));
+	}else	if(verbose_){
+		std::cerr << "Couldn't find " << "bwa-mem2" << " skipping bwa indexing" << std::endl;
 	}
 
 	if (njh::sys::hasSysCommand("samtools")) {
