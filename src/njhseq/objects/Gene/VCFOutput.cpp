@@ -556,7 +556,13 @@ void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut, const std::vector<Genomic
 			if(!infoOut.empty()) {
 				infoOut +=";";
 			}
-			infoOut += info.id_ + "=" + rec.info_.getMeta(info.id_);
+			if (infoKey.second.type_ == "Flag") {
+				if (rec.info_.containsMeta(info.id_)) {
+					infoOut += info.id_;
+				}
+			} else {
+				infoOut += info.id_ + "=" + rec.info_.getMeta(info.id_);
+			}
 		}
 		vcfOut << "\t" << infoOut;
 		vcfOut << std::endl;
@@ -676,7 +682,13 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 				if(!infoOut.empty()) {
 					infoOut +=";";
 				}
-				infoOut += info.id_ + "=" + rec.info_.getMeta(info.id_);
+				if (infoKey.second.type_ == "Flag") {
+					if (rec.info_.containsMeta(info.id_)) {
+						infoOut += info.id_;
+					}
+				} else {
+					infoOut += info.id_ + "=" + rec.info_.getMeta(info.id_);
+				}
 			}
 			vcfOut << "\t" << infoOut;
 			vcfOut << "\t" << formatOut;
@@ -790,22 +802,30 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedData(const std::string 
 
 	auto infoToks = tokenizeString(toks[7], ";");
 	for(const auto & infoTok : infoToks) {
-		const auto equalSignPos = infoTok.find("=");
-		if(equalSignPos == std::string::npos || equalSignPos == 0 || equalSignPos +1 >= infoTok.size()) {
-			std::stringstream ss;
-			ss << __PRETTY_FUNCTION__ << ", error " << "info toks should have an equal sign separating values" << "\n";
-			ss << "infoTok: " << infoTok << "\n";
-			throw std::runtime_error{ss.str()};
+		std::string key;
+		std::string val;
+		uint32_t valCount = 0;
+		if (njh::in(infoTok, infoEntries_) && infoEntries_.at(infoTok).number_ == "0" && infoEntries_.at(infoTok).type_ == "Flag") {
+			key = infoTok;
+			val = "true";
+		} else {
+			const auto equalSignPos = infoTok.find("=");
+			if(equalSignPos == std::string::npos || equalSignPos == 0 || equalSignPos +1 >= infoTok.size()) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "info toks should have an equal sign separating values" << "\n";
+				ss << "infoTok: " << infoTok << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+			key = infoTok.substr(0, equalSignPos);
+			val = infoTok.substr(equalSignPos + 1);
+			valCount = 1 + countOccurences(val, ",");
 		}
-		auto key = infoTok.substr(0, equalSignPos);
-		auto val = infoTok.substr(equalSignPos + 1);
 
 		if(!njh::in(key, infoEntries_)) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << ", error " << "no info entry to define " << key  << " options are " << njh::conToStr(njh::getVecOfMapKeys(infoEntries_)) << "\n";
 			throw std::runtime_error{ss.str()};
 		}
-		auto valCount = 1 + countOccurences(val, ",");
 		if(infoEntries_.at(key).number_ == "A") {
 			if(valCount != rec.alts_.size()) {
 				std::stringstream ss;
