@@ -73,18 +73,23 @@ private:
 	motifSubUnit processInclusion(uint32_t start, uint32_t stop);
 	motifSubUnit processExclusion(uint32_t start, uint32_t stop);
 public:
-	[[nodiscard]] uint32_t scoreMotif(const std::string & possibleMotif)const;
-	[[nodiscard]] uint32_t scoreMotif(const std::string::const_iterator & targetBegin,
-			const std::string::const_iterator & targetEnd )const;
+	[[nodiscard]] uint32_t scoreMotif(const std::string& possibleMotif) const;
 
-	[[nodiscard]] bool passMotifParameter(const std::string & possibleMotif,
-			uint32_t scoreCutOff) const;
+	[[nodiscard]] uint32_t scoreMotif(const std::string::const_iterator& targetBegin,
+	                                  const std::string::const_iterator& targetEnd) const;
 
-	[[nodiscard]] std::vector<size_t> findPositions(const std::string & wholeProtein,
-			uint32_t scoreCutOff) const;
 
-	[[nodiscard]] std::vector<size_t> findPositionsFull(const std::string & wholeProtein,
-			uint32_t allowableErrors) const;
+	[[nodiscard]] bool passMotifParameter(const std::string::const_iterator& targetBegin,
+	                                      const std::string::const_iterator& targetEnd, uint32_t scoreCutOff) const;
+
+	[[nodiscard]] bool passMotifParameter(const std::string& possibleMotif,
+	                                      uint32_t scoreCutOff) const;
+
+	[[nodiscard]] std::vector<size_t> findPositions(const std::string& wholeProtein,
+	                                                uint32_t scoreCutOff) const;
+
+	[[nodiscard]] std::vector<size_t> findPositionsFull(const std::string& wholeProtein,
+	                                                    uint32_t allowableErrors) const;
 	/**@brief Look for motif between these positions
 	 *
 	 * @param wholeProtein The string to search for the motif in

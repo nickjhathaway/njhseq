@@ -100,10 +100,10 @@ void MultiSeqIO::closeOutForReopeningAll() {
 }
 
 void MultiSeqIO::closeNext() {
-//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//	for(const auto & openOutName : outsOpen_){
-//		std::cout << openOutName << std::endl;
-//	}
+	//	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//	for(const auto & openOutName : outsOpen_){
+	//		std::cout << openOutName << std::endl;
+	//	}
 	auto nextUp = outsOpen_.front();
 	outsOpen_.pop_front();
 	while (openPriorityCounts_[nextUp] > 1) {
@@ -116,6 +116,15 @@ void MultiSeqIO::closeNext() {
 	readIO->second->out_.closeOutForReopening();
 	openPriorityCounts_[nextUp] = 0;
 }
+
+void MultiSeqIO::setAllReaderToOverwrite() {
+	for (auto & readIo : readIos_) {
+		readIo.second->out_.ioOptions_.out_.overWriteFile_ = true;
+	}
+}
+
+
+
 
 uint32_t MultiSeqIO::getOpenLimit() const {
 	return outOpenLimit_;

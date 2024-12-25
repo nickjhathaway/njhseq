@@ -178,18 +178,18 @@ uint32_t motif::scoreMotif(const std::string & possibleMotif) const {
 	return score;
 }
 
-uint32_t motif::scoreMotif(const std::string::const_iterator & targetBegin,
-		const std::string::const_iterator & targetEnd) const {
-	if(targetEnd < targetBegin){
+uint32_t motif::scoreMotif(const std::string::const_iterator& targetBegin,
+                           const std::string::const_iterator& targetEnd) const {
+	if (targetEnd < targetBegin) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": targetBegin must come before targetEnd"
 				<< std::endl;
-		throw std::runtime_error { ss.str() };
-	}else if (static_cast<size_t>(targetEnd - targetBegin) != motifUnits_.size()) {
+		throw std::runtime_error{ss.str()};
+	} else if (static_cast<size_t>(targetEnd - targetBegin) != motifUnits_.size()) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": motif size doesn't equal size of the check"
 				<< std::endl;
-		throw std::runtime_error { ss.str() };
+		throw std::runtime_error{ss.str()};
 	}
 //	{
 //		std::string possibleMotif;
@@ -218,10 +218,16 @@ uint32_t motif::scoreMotif(const std::string::const_iterator & targetBegin,
 	return score;
 }
 
-bool motif::passMotifParameter(const std::string & possibleMotif,
-		uint32_t scoreCutOff) const {
+bool motif::passMotifParameter(const std::string& possibleMotif,
+                               uint32_t scoreCutOff) const {
 	return scoreMotif(possibleMotif) >= scoreCutOff;
 }
+
+bool motif::passMotifParameter(const std::string::const_iterator& targetBegin,
+                               const std::string::const_iterator& targetEnd, uint32_t scoreCutOff) const {
+	return scoreMotif(targetBegin, targetEnd) >= scoreCutOff;
+}
+
 
 std::vector<size_t> motif::findPositions(const std::string & wholeProtein,
 		uint32_t scoreCutOff) const {

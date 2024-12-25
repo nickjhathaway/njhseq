@@ -153,6 +153,11 @@ public:
 	 */
 	void setOpenLimit(uint32_t limit);
 
+	/**@brief Set all Readers to overwrite
+	*
+	*/
+	void setAllReaderToOverwrite();
+
 	template<typename T>
 	friend class MultiSeqOutCache;
 private:
@@ -176,6 +181,8 @@ private:
 	 *
 	 */
 	void closeNext();
+
+
 
 	std::mutex mut_;/**< mutex to lock the class*/
 
