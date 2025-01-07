@@ -225,10 +225,18 @@ public:
 				std::ostream & out,
 				const std::string & name,
 				bool oneBased = false);
+
+		/**
+		 * @brief Write out the final snp info
+		 * @param outOpts output options to write to
+		 * @param name a name to output with the info
+		 * @param oneBased whether to write out the positioons as one base or zero based positions
+		 */
 		void writeOutSNPsFinalInfo(
 				const OutOptions & outOpts,
 				const std::string & name,
 				bool oneBased = false);
+
 		/**@brief write out info all positions
 		 *
 		 * The order written, name, position, ref base, query base, count, frequency, allele Depth, samples depth
@@ -275,6 +283,11 @@ public:
 
 		uint32_t allowableStopCodons_ {1};
 
+		/**
+		 * @brief Set the default options for translation by alignment
+		 * @param setUp the sequence option setter object
+		 * @param requireGenome whether or not the genome is required
+		 */
 		void setOptions(seqSetUp & setUp, bool requireGenome = false);
 	};
 
@@ -398,12 +411,6 @@ public:
 	                                const GenomicRegion & refSeqRegion,
 	                                const RunPars & rPars);
 
-	// TranslatorByAlignmentResult run(
-	// 	const std::vector<seqInfo> & seqs,
-	// 	const std::unordered_map<std::string, std::unordered_set<std::string>> & sampCountsForHaps,
-	// 	const GenomicRegion & refSeqRegion,
-	// 	const RunPars & rPars);
-
 	template<typename T>
 	TranslatorByAlignmentResult run(
 		const std::vector<T>& seqs,
@@ -428,12 +435,13 @@ public:
 		bool doNotWrite = false;
 	};
 
-	struct GetGenomicLocationsForAminoAcidPositionsRet{
-		std::vector<Bed6RecordCore> genomicLocs;
-		std::vector<Bed6RecordCore> transcriptLocs;
+	struct GetGenomicLocationsForAminoAcidPositionsRet {
+		std::vector<Bed6RecordCore> genomicLocs; //! zero-based positioning
+		std::vector<Bed6RecordCore> transcriptLocs; //! one-based positioning
 	};
 
-	static GetGenomicLocationsForAminoAcidPositionsRet getGenomicLocationsForAminoAcidPositions(const GetGenomicLocationsForAminoAcidPositionsPars & pars);
+	static GetGenomicLocationsForAminoAcidPositionsRet getGenomicLocationsForAminoAcidPositions(
+		const GetGenomicLocationsForAminoAcidPositionsPars& pars);
 
 };
 
@@ -672,9 +680,19 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				// for (const auto& pos: complex_positions) {
 				// 	std::cout << "\t" << pos.start_ << "\t" << pos.size_ << "\t" << pos.count_ << std::endl;
 				// }
-
 			}
-
+			for(const auto & knowLocs : locs.genomicLocs) {
+				if(knowLocs.chrom_ == varPerChrom.first) {
+					auto coveredPositions = getVectorOfMapKeys(varPerChrom.second.allBases);
+					auto minLocs = vectorMinimum(coveredPositions);
+					auto maxLocs = vectorMaximum(coveredPositions);
+					for(const auto forcePosition : iter::range(knowLocs.chromStart_, knowLocs.chromEnd_)) {
+						if(forcePosition >= minLocs && forcePosition <= maxLocs && njh::notIn(forcePosition, varPerChrom.second.snpsFinal)) {
+							varPerChrom.second.forcedAltCalls_[forcePosition].emplace_back("N");
+						}
+					}
+				}
+			}
 		}
 		for(const auto & seqName : ret.seqAlns_){
 			for(const auto & aln : seqName.second){

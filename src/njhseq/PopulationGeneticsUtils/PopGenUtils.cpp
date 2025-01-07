@@ -276,6 +276,17 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 					vcfOutputForTrans.addDefaultInfoField("GeneName", njh::mapAt(translatedRes.translationInfoForTranscirpt_, varPerTrans.first)->geneName_, VCFOutput::InfoEntry("GeneName", "1", "String", "A name for the Gene"));
 					vcfOutputForTrans.addDefaultInfoField("TranscriptID", njh::mapAt(translatedRes.translationInfoForTranscirpt_, varPerTrans.first)->transcriptID_, VCFOutput::InfoEntry("TranscriptID", "1", "String", "The Transcript ID"));
 
+					//add if location is a known drug resistance location
+					vcfOutputForTrans.infoEntries_.emplace("AF", VCFOutput::InfoEntry(
+						"KNOWN_AA_CHANGE_POS", "0", "Flag",
+						"Position is a known amino acid position of interest, e.g. drug resistance mutation, etc"
+					));
+					for (auto & rec : vcfOutputForTrans.records_) {
+						//if the position, which was entered as 1 based, is in 1 based position list of known muts
+						if(njh::in(rec.pos_, translator->knownAminoAcidPositions_[varPerTrans.first])) {
+							rec.info_.addMeta("KNOWN_AA_CHANGE_POS",true);
+						}
+					}
 
 					watch.startNewLap(njh::pasteAsStr("writing translation output - ", varPerTrans.first, " - write out vcf sample info gather"));
 
@@ -299,9 +310,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						"Read Depth for the ref and alt alleles in the order listed, a count of 0 means not detected"
 					));
 					vcfOutputForTrans.formatEntries_.emplace("AF", VCFOutput::FormatEntry(
-						"AF", "R", "Float",
-						"Read Frequency for the ref and alt alleles in the order listed, a freq of 0 means not detected"
-					));
+						                                         "AF", "R", "Float",
+						                                         "Read Frequency for the ref and alt alleles in the order listed, a freq of 0 means not detected"
+					                                         ));
 
 
 					std::unordered_set<std::string> chromPositions;
@@ -317,7 +328,6 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						}
 						// std::cout << translatedSeqRes.first << std::endl;
 						//adding SNPs
-
 						for(const auto & mis : translatedSeqRes.second[varPerTrans.first].comp_.distances_.mismatches_) {
 							//adjust for genomic location and for the 1 based positioning of vcf
 							auto realTranslatedPos = mis.second.refBasePos;
@@ -521,8 +531,22 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			                                         ));
 			vcfOutputForChrom.formatEntries_.emplace("AF", VCFOutput::FormatEntry(
 				                                         "AF", "R", "Float",
-				                                         "Read Frequncy for the ref and alt alleles in the order listed, a freq of 0 means not detected"
+				                                         "Read Frequency for the ref and alt alleles in the order listed, a freq of 0 means not detected"
 			                                         ));
+
+			//add if location is a known drug resistance location
+			vcfOutputForChrom.infoEntries_.emplace("AF", VCFOutput::InfoEntry(
+				"KNOWN_AA_CHANGE_POS", "0", "Flag",
+				"Position is a known chromosome position that is within the codon for a known amino acid position of interest, e.g. drug resistance mutation, etc"
+			));
+
+			for (auto & rec : vcfOutputForChrom.records_) {
+				//the position in the vcf output is 1 based but the positions saved in knownAAMutsChromPositions are 0 based
+				if(!knownAAMutsChromPositions[varPerChrom.first].empty() && njh::in(rec.pos_ - 1, knownAAMutsChromPositions[varPerChrom.first]) ) {
+					rec.info_.addMeta("KNOWN_AA_CHANGE_POS",true);
+				}
+			}
+
 			std::unordered_set<std::string> chromPositions;
 			for(const auto & rec : vcfOutputForChrom.records_) {
 				chromPositions.emplace(njh::pasteAsStr(rec.chrom_, "-", rec.pos_));
@@ -550,7 +574,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 					for(const auto & g : seqAln.comp_.distances_.alignmentGaps_) {
 						if(g.second.ref_) {
 							//insertion
-							//substract 1 because vcf does insertions/deletions from the base directly proceding the actual INDEL
+							//subtract 1 because vcf does insertions/deletions from the base directly proceeding the actual INDEL
 							auto realGenomicPos = seqAln.gRegion_.start_ + g.second.refPos_ - 1;
 							auto vcfPosition = realGenomicPos + 1;
 							auto currentVariantChromPos = njh::pasteAsStr(seqAln.gRegion_.chrom_, "-", vcfPosition);
@@ -561,7 +585,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 							}
 						} else {
 							//deletion
-							//substract 1 because vcf does insertions/deletions from the base directly proceding the actual INDEL
+							//subtract 1 because vcf does insertions/deletions from the base directly proceeding the actual INDEL
 							auto realGenomicPos = seqAln.gRegion_.start_ + g.second.refPos_ - 1;
 							auto vcfPosition = realGenomicPos + 1;
 							auto currentVariantChromPos = njh::pasteAsStr(seqAln.gRegion_.chrom_, "-", vcfPosition);

@@ -553,14 +553,17 @@ void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut, const std::vector<Genomic
 		std::string infoOut;
 		for (const auto & infoKey: infoEntries_) {
 			const auto & info = infoKey.second;
-			if(!infoOut.empty()) {
-				infoOut +=";";
-			}
 			if (infoKey.second.type_ == "Flag") {
 				if (rec.info_.containsMeta(info.id_)) {
+					if(!infoOut.empty()) {
+						infoOut +=";";
+					}
 					infoOut += info.id_;
 				}
 			} else {
+				if(!infoOut.empty()) {
+					infoOut +=";";
+				}
 				infoOut += info.id_ + "=" + rec.info_.getMeta(info.id_);
 			}
 		}
@@ -679,14 +682,18 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 			std::string infoOut;
 			for (const auto & infoKey: infoEntries_) {
 				const auto & info = infoKey.second;
-				if(!infoOut.empty()) {
-					infoOut +=";";
-				}
+
 				if (infoKey.second.type_ == "Flag") {
 					if (rec.info_.containsMeta(info.id_)) {
+						if(!infoOut.empty()) {
+							infoOut +=";";
+						}
 						infoOut += info.id_;
 					}
 				} else {
+					if(!infoOut.empty()) {
+						infoOut +=";";
+					}
 					infoOut += info.id_ + "=" + rec.info_.getMeta(info.id_);
 				}
 			}
@@ -814,6 +821,7 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedData(const std::string 
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error " << "info toks should have an equal sign separating values" << "\n";
 				ss << "infoTok: " << infoTok << "\n";
+				ss << "info field: " << toks[7] << "\n";
 				throw std::runtime_error{ss.str()};
 			}
 			key = infoTok.substr(0, equalSignPos);

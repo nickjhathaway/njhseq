@@ -31,13 +31,14 @@ public:
 		std::map<uint32_t, char> aminos_; //positions are 0-based
 	};
 
-	GenomicAminoAcidPositionTyper(const bfs::path & proteinMutantTypingFnp,
+	
+	explicit GenomicAminoAcidPositionTyper(const bfs::path & proteinMutantTypingFnp,
 			bool inputZeroBased = false);
 	/**@brief Give a map of Gene ID to amino acid position (zero based positioning)
 	 *
 	 * @param aminoPositionsForTyping key = Gene ID (eg. PF3D7_0810800-1) and the amino acid positions to type
 	 */
-	GenomicAminoAcidPositionTyper(const std::unordered_map<std::string, std::vector<uint32_t>> & aminoPositionsForTyping);
+	explicit GenomicAminoAcidPositionTyper(const std::unordered_map<std::string, std::vector<uint32_t>> & aminoPositionsForTyping);
 
 	bfs::path proteinMutantTypingFnp_;
 	bool inputZeroBased_;
@@ -48,7 +49,7 @@ public:
 	std::unordered_map<std::string, GeneAminoTyperInfo> aminoPositionsForTypingWithInfo_;
 
 
-	std::set<std::string> getGeneIds() const;
+	[[nodiscard]] std::set<std::string> getGeneIds() const;
 
 	/**@brief Type the amino acids for the alignment
 	 *

@@ -435,8 +435,9 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 	njh::sort(positions);
 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	for(const auto & pos : positions){
+
 		//add in SNPs and insertions since they have the same chrom,pos,ref
-		if (njh::in(pos, insertionsFinalForVCF) || njh::in(pos, snpsFinal)) {
+		if (njh::in(pos, insertionsFinalForVCF) || njh::in(pos, snpsFinal) || njh::in(pos, forcedAltCalls_)) {
 			std::vector<std::string> alts;
 			std::vector<uint32_t> altsCounts;
 			std::vector<double> altsFreqs;
@@ -444,7 +445,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 			std::vector<uint32_t> altsSampleCounts;
 			std::vector<double> altsSamplePrevs;
 
-
+			//add if in snps
 			if(njh::in(pos, snpsFinal)){
 				for(const auto & b : snpsFinal.at(pos)){
 					alts.emplace_back(std::string(1, b.first));
@@ -453,10 +454,13 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 					altsSampleCounts.emplace_back(b.second.sampleReadCnts_.size());
 					altsSamplePrevs.emplace_back(static_cast<double>(b.second.sampleReadCnts_.size())/static_cast<double>(samplesPerPosition.at(pos).size()));
 				}
-			}else if(njh::in(pos, forcedAltCalls_)){
-				//should only be called if not in snps
+			}
+			//force add if in the forced alts calls but not in the snps
+			if(njh::in(pos, forcedAltCalls_)){
+				//should only be called if alt is not in snps final
 				for(const auto & forcedAlt : forcedAltCalls_.at(pos)){
-					if(forcedAlt != "X") {
+					if(forcedAlt != "X" &&
+						(njh::notIn(pos, snpsFinal) || njh::notIn(forcedAlt.front(), snpsFinal.at(pos)))) {
 						alts.emplace_back(forcedAlt);
 						altsCounts.emplace_back(0);
 						altsFreqs.emplace_back(0);
@@ -526,36 +530,38 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	}
 
-	//add in forced alts
-	bool addedForcedAlt = false;
-
-	for(const auto & forcedAlt : forcedAltCalls_) {
-		if(njh::notIn(forcedAlt.first, snps)) {
-			VCFOutput::VCFRecord currentRecord;
-			currentRecord.chrom_ = region_.chrom_;
-			currentRecord.pos_ = forcedAlt.first + 1;
-			currentRecord.id_ = ".";
-			currentRecord.ref_ = getBaseForGenomicRegion(forcedAlt.first);
-			currentRecord.alts_ = forcedAlt.second;
-			currentRecord.qual_ = 40;
-			currentRecord.filter_ = "PASS";
-
-			currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(forcedAlt.first) );
-			currentRecord.info_.addMeta("AC_REAL", njh::conToStr(std::vector<uint32_t>(forcedAlt.second.size(), 0), ",") );
-			currentRecord.info_.addMeta("AF_REAL", njh::conToStr(std::vector<double>(forcedAlt.second.size(),0), ",") );
-
-
-			currentRecord.info_.addMeta("NS", samplesPerPosition.at(forcedAlt.first).size() );
-			currentRecord.info_.addMeta("SC", njh::conToStr(std::vector<uint32_t>(forcedAlt.second.size(),0), ",") );
-			currentRecord.info_.addMeta("PREV", njh::conToStr(std::vector<double>(forcedAlt.second.size(),0), ",") );
-
-			ret.records_.emplace_back(std::move(currentRecord));
-			addedForcedAlt = true;
-		}
-	}
-	if(addedForcedAlt) {
-		ret.sortRecords();
-	}
+	// //add in forced alts
+	// bool addedForcedAlt = false;
+	//
+	// for(const auto & forcedAlt : forcedAltCalls_) {
+	// 	std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	// 	std::cout << "\t" << region_.toDelimStrWithExtra() << std::endl;
+	// 	if(njh::notIn(forcedAlt.first, snps)) {
+	// 		VCFOutput::VCFRecord currentRecord;
+	// 		currentRecord.chrom_ = region_.chrom_;
+	// 		currentRecord.pos_ = forcedAlt.first + 1;
+	// 		currentRecord.id_ = ".";
+	// 		currentRecord.ref_ = getBaseForGenomicRegion(forcedAlt.first);
+	// 		currentRecord.alts_ = forcedAlt.second;
+	// 		currentRecord.qual_ = 40;
+	// 		currentRecord.filter_ = "PASS";
+	//
+	// 		currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(forcedAlt.first) );
+	// 		currentRecord.info_.addMeta("AC_REAL", njh::conToStr(std::vector<uint32_t>(forcedAlt.second.size(), 0), ",") );
+	// 		currentRecord.info_.addMeta("AF_REAL", njh::conToStr(std::vector<double>(forcedAlt.second.size(),0), ",") );
+	//
+	//
+	// 		currentRecord.info_.addMeta("NS", samplesPerPosition.at(forcedAlt.first).size() );
+	// 		currentRecord.info_.addMeta("SC", njh::conToStr(std::vector<uint32_t>(forcedAlt.second.size(),0), ",") );
+	// 		currentRecord.info_.addMeta("PREV", njh::conToStr(std::vector<double>(forcedAlt.second.size(),0), ",") );
+	//
+	// 		ret.records_.emplace_back(std::move(currentRecord));
+	// 		addedForcedAlt = true;
+	// 	}
+	// }
+	// if(addedForcedAlt) {
+	// 	ret.sortRecords();
+	// }
 	return ret;
 }
 
@@ -798,7 +804,7 @@ void TranslatorByAlignment::VariantsInfo::setComplexFinals(const RunPars & rPars
 			}
 		}
 	}
-	//if a forced alt call wasn't covered in the calls, than add the the snps ref info to the complexRefCount so that when called later it will work
+	//if a forced alt call wasn't covered in the calls, then add the snps ref info to the complexRefCount so that when called later it will work
 	for(const auto & comp : complexPositions) {
 		for(const auto & forcedAlt : forcedAltCalls_) {
 			if(forcedAlt.first >= comp.start_ && forcedAlt.first < comp.start_ + comp.size_) {
@@ -2147,8 +2153,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		const std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> & sampReadCountsForHaps,
 		const RunPars & rPars){
 	//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
-
-	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	TranslatorByAlignmentResult ret;
 	std::vector<bfs::path> fnpsToRemove;
 	auto seqInputFnp = njh::files::make_path(pars_.workingDirtory_, "inputSeqs.fasta");
@@ -2188,10 +2193,6 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		auto bowtie2RunOutput = bRunner.RunBowtie2Index(pars_.lzPars_.genomeFnp);
 		// BioCmdsUtils::checkRunOutThrow(bowtie2RunOutput, __PRETTY_FUNCTION__);
 	}
-
-
-
-
 	{
 		auto gprefix = bfs::path(pars_.lzPars_.genomeFnp).replace_extension("");
 		auto twoBitFnp = gprefix.string() + ".2bit";
@@ -2207,18 +2208,18 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 
 		uniqueSeqInOpts.out_.transferOverwriteOpts(seqOpts.out_);
 		//map to genome
-		if(!pars_.useLastz_){
-			auto bowtieRunOut = bRunner.bowtie2Align(uniqueSeqInOpts, pars_.lzPars_.genomeFnp, pars_.additionalBowtieArguments_);
+		if (!pars_.useLastz_) {
+			auto bowtieRunOut = bRunner.bowtie2Align(uniqueSeqInOpts, pars_.lzPars_.genomeFnp,
+			                                         pars_.additionalBowtieArguments_);
 			//auto bowtieRunOut = bRunner.bowtie2Align(uniqueSeqInOpts, pars_.lzPars_.genomeFnp, "-D 20 -R 3 -N 1 -L 15 -i S,1,0.5 --end-to-end");
 			BioCmdsUtils::checkRunOutThrow(bowtieRunOut, __PRETTY_FUNCTION__);
-		}else{
+		} else {
 			auto lastzRunOut = bRunner.lastzAlign(uniqueSeqInOpts, pars_.lzPars_);
 			BioCmdsUtils::checkRunOutThrow(lastzRunOut, __PRETTY_FUNCTION__);
 		}
 		// //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//count the regions mapped
 		auto regionsCounter = GenomicRegionCounter::countRegionsInBam(uniqueSeqInOpts.out_.outName());
-
 		auto ids = regionsCounter.getIntersectingGffIds(pars_.gffFnp_);
 		ret.geneIds_ = ids;
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -2241,6 +2242,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			parsForBedFileGen.proteinMutantTypingFnp = pars_.knownAminoAcidMutationsFnp_;
 			locs = getGenomicLocationsForAminoAcidPositions(parsForBedFileGen);
 		}
+
 		OutOptions outOpts(njh::files::make_path(geneInfoDir, "gene"));
 		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		std::unordered_map<std::string, VecStr> idToTranscriptName;
@@ -2260,13 +2262,12 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					break;
 				}
 			}
-
 			if(!failFilter){
 				 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				genes[gene.first] = gene.second;
 			}
 		}
-//		std::cout << "genes.size(): " << genes.size() << std::endl;
+    //std::cout << "genes.size(): " << genes.size() << std::endl;
 		//std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 		//std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>>> geneTranscriptInfos;
 		uint64_t proteinMaxLen = seqMaxLen;
@@ -2457,9 +2458,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 					auto coveredPositions = getVectorOfMapKeys(varPerChrom.second.allBases);
 					auto minLocs = vectorMinimum(coveredPositions);
 					auto maxLocs = vectorMaximum(coveredPositions);
-					for(const auto forcePositon : iter::range(knowLocs.chromStart_, knowLocs.chromEnd_)) {
-						if(forcePositon >= minLocs && forcePositon <= maxLocs) {
-							varPerChrom.second.alwaysReportLocations_.emplace(forcePositon);
+					for(const auto forcePosition : iter::range(knowLocs.chromStart_, knowLocs.chromEnd_)) {
+						if(forcePosition >= minLocs && forcePosition <= maxLocs) {
+							varPerChrom.second.alwaysReportLocations_.emplace(forcePosition);
 						}
 					}
 				}
@@ -2477,6 +2478,18 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				// for (const auto& pos: complex_positions) {
 				// 	std::cout << "\t" << pos.start_ << "\t" << pos.size_ << "\t" << pos.count_ << std::endl;
 				// }
+			}
+			for(const auto & knowLocs : locs.genomicLocs) {
+				if(knowLocs.chrom_ == varPerChrom.first) {
+					auto coveredPositions = getVectorOfMapKeys(varPerChrom.second.allBases);
+					auto minLocs = vectorMinimum(coveredPositions);
+					auto maxLocs = vectorMaximum(coveredPositions);
+					for(const auto forcePosition : iter::range(knowLocs.chromStart_, knowLocs.chromEnd_)) {
+						if(forcePosition >= minLocs && forcePosition <= maxLocs && njh::notIn(forcePosition, varPerChrom.second.snpsFinal)) {
+							varPerChrom.second.forcedAltCalls_[forcePosition].emplace_back("N");
+						}
+					}
+				}
 			}
 		}
 		for(const auto & seqName : ret.seqAlns_){
@@ -2592,7 +2605,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 			for(const auto pos : knownAminoAcidPositions_[varPerTrans.first]){
 				knownMutationsLocationsZeroBased.emplace(pos - 1);
 			}
-			//this includes both known mutations as well as locations with significant variation
+			//this includes both known mutations and locations with variation above cut offs
 			std::set<uint32_t> allLocations = getAllInterestingAAPosZeroBased(varPerTrans.first, ret);
 			for (auto & seqName : ret.translations_) {
 				if (njh::in(varPerTrans.first, seqName.second)) {
@@ -2612,7 +2625,6 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 						translatedMeta.addMeta("transcript", varPerTrans.first, true);
 						auto seqNameForKey = seqName.first;
 						translatedMeta.resetMetaInName(seqNameForKey);
-
 						ret.fullAATypedWithCodonInfo_[seqName.first].emplace_back(
 								TranslatorByAlignment::AAInfo(varPerTrans.first, loc, codon,
 										njh::in(loc, knownMutationsLocationsZeroBased), refCodon));
@@ -2877,6 +2889,11 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 																			 positions.second.end());
 					auto minAAPos = vectorMinimum(posVec);
 					auto maxAAPos = vectorMaximum(posVec);
+					std::string refaa;
+					for (auto aapos : iter::range(minAAPos, maxAAPos + 1)) {
+						refaa += std::get<0>(njh::mapAt(gsInfo->infosByAAPos_, aapos)).aa_;
+					}
+					metaForCollapse.addMeta("refaa", refaa);
 					auto posBed = gsInfo->genBedFromAAPositions(minAAPos, maxAAPos + 1);
 					posBed.extraFields_.emplace_back(metaForCollapse.createMetaName());
 					if (pars.zeroBased) {
@@ -2903,7 +2920,11 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 						MetaDataInName meta = aaInfos.metaDataForAAPos_[positions.first][pos];
 						meta.addMeta("transcript", positions.first);
 						meta.addMeta("GeneID", geneID);
-
+						std::string refaa;
+						for (auto aapos : iter::range(pos, pos + 1)) {
+							refaa += std::get<0>(njh::mapAt(gsInfo->infosByAAPos_, aapos)).aa_;
+						}
+						meta.addMeta("refaa", refaa);
 						auto posBed = gsInfo->genBedFromAAPositions(pos, pos + 1);
 						posBed.extraFields_.emplace_back(meta.createMetaName());
 						std::string add;
@@ -2930,7 +2951,7 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 						ret.genomicLocs.emplace_back(posBed);
 					}
 				}
-			}else{
+			} else {
 				for(const auto & gsInfo : gsInfos){
 					if (pars.collapsePerId && positions.second.size() > 1) {
 						std::vector<uint32_t> posVec(positions.second.begin(),
@@ -2938,6 +2959,11 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 						auto minAAPos = vectorMinimum(posVec);
 						auto maxAAPos = vectorMaximum(posVec);
 						metaForCollapse.addMeta("transcript", gsInfo.first);
+						std::string refaa;
+						for (auto aapos : iter::range(minAAPos, maxAAPos + 1)) {
+							refaa += std::get<0>(njh::mapAt(gsInfo.second->infosByAAPos_, aapos)).aa_;
+						}
+						metaForCollapse.addMeta("refaa", refaa);
 						auto posBed = gsInfo.second->genBedFromAAPositions(minAAPos, maxAAPos + 1);
 						posBed.extraFields_.emplace_back(metaForCollapse.createMetaName());
 
@@ -2965,7 +2991,11 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 							MetaDataInName meta = aaInfos.metaDataForAAPos_[positions.first][pos];
 							meta.addMeta("transcript", gsInfo.first);
 							meta.addMeta("GeneID", geneID);
-
+							std::string refaa;
+							for (auto aapos : iter::range(pos, pos + 1)) {
+								refaa += std::get<0>(njh::mapAt(gsInfo.second->infosByAAPos_, aapos)).aa_;
+							}
+							meta.addMeta("refaa", refaa);
 							auto posBed = gsInfo.second->genBedFromAAPositions(pos, pos + 1);
 							posBed.extraFields_.emplace_back(meta.createMetaName());
 							std::string add;
