@@ -1254,6 +1254,16 @@ VCFOutput VCFOutput::readInHeader(const bfs::path & fnp) {
 
 
 VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
+																	const comnbineVCFsPars &pars) {
+	std::set<std::string> sampleNamesSet;
+	for (const auto & fnp : vcfsFnps) {
+		auto vcfHeader = VCFOutput::readInHeader(fnp);
+		njh::addVecToSet(vcfHeader.samples_, sampleNamesSet);
+	}
+	return comnbineVCFs(vcfsFnps, sampleNamesSet, pars);
+}
+
+VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
                                   const std::set<std::string> &sampleNamesSet,
                                   const comnbineVCFsPars &pars) {
 	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;

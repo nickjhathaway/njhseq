@@ -303,6 +303,9 @@ public:
 		const std::set<std::string> & sampleNamesSet,
 		const comnbineVCFsPars & pars);
 
+	static VCFOutput comnbineVCFs(const std::vector<bfs::path> & vcfsFnps,
+	const comnbineVCFsPars & pars);
+
 };
 
 
