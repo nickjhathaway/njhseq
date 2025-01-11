@@ -120,6 +120,7 @@ public:
 
 	Json::Value toJson() const;
   Json::Value toJsonLocationOnly() const;
+	Json::Value toJsonLocationOnly(TwoBit::TwoBitFile & twobitReader) const;
 
 	std::string createUidFromCoords() const;
 	std::string createUidFromCoordsStrand() const;
