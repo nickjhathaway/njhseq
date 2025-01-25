@@ -391,6 +391,10 @@ void GeneFromGffs::writeOutGeneInfo(TwoBit::TwoBitFile & tReader, const OutOptio
 		transcriptGenomicOutRec.meta_.addMeta("geneID", gene_->getAttr("ID"));
 		transcriptGenomicOutRec.meta_.addMeta("transcriptID", transcript->getAttr("ID"));
 		transcriptGenomicOutRec.meta_.addMeta("geneName", getGeneDetailedName()[transcript->getAttr("ID")]);
+		if (gene_->hasAttr("Name")) {
+			transcriptGenomicOutRec.meta_.addMeta("CommonName", gene_->getAttr("Name"));
+
+		}
 		transcriptBedOut << transcriptGenomicOutRec.genBedRecordCore().toDelimStrWithExtra() <<std::endl;
 		auto exonIntronPositions = getIntronExonTables();
 		auto exonIntronBeds = getIntronExonBedLocs();

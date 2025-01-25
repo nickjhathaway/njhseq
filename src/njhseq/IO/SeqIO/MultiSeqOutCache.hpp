@@ -175,7 +175,7 @@ private:
 	uint32_t cacheSize_ = 0;/**< The current cache size*/
 	MultiSeqIO writers_;/**< The MultiSeqIO responsible for writing the cache*/
 
-	//std::shared_timed_mutex mut_; /**< to make thread safe*/
+	// std::shared_timed_mutex mut_; /**< to make thread safe*/
 };
 
 }  // namespace njhseq

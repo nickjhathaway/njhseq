@@ -2779,8 +2779,8 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 																		 aaPositions.end());
 				auto minAAPos = vectorMinimum(posVec);
 				auto maxAAPos = vectorMaximum(posVec);
-				metaForCollapse.addMeta("aa_position_start", minAAPos);
-				metaForCollapse.addMeta("aa_position_end", maxAAPos + 1);
+				metaForCollapse.addMeta("aa_position_start", minAAPos + 1 );
+				metaForCollapse.addMeta("aa_position_end", maxAAPos + 1 + 1);
 				auto posBed = gsInfo->genBedFromAAPositions(minAAPos, maxAAPos + 1);
 				posBed.extraFields_.emplace_back(metaForCollapse.createMetaName());
 				if (pars.zeroBased) {
@@ -2809,8 +2809,8 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 					auto minAAPos = vectorMinimum(posVec);
 					auto maxAAPos = vectorMaximum(posVec);
 					metaForCollapse.addMeta("transcript", gsInfo.first);
-					metaForCollapse.addMeta("aa_position_start", minAAPos);
-					metaForCollapse.addMeta("aa_position_end", maxAAPos + 1);
+					metaForCollapse.addMeta("aa_position_start", minAAPos + 1);
+					metaForCollapse.addMeta("aa_position_end", maxAAPos + 1 + 1);
 					auto posBed = gsInfo.second->genBedFromAAPositions(minAAPos, maxAAPos + 1);
 					posBed.extraFields_.emplace_back(metaForCollapse.createMetaName());
 
@@ -2894,8 +2894,8 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 																			 positions.second.end());
 					auto minAAPos = vectorMinimum(posVec);
 					auto maxAAPos = vectorMaximum(posVec);
-					metaForCollapse.addMeta("aa_position_start", minAAPos);
-					metaForCollapse.addMeta("aa_position_end", maxAAPos + 1);
+					metaForCollapse.addMeta("aa_position_start", minAAPos + 1);
+					metaForCollapse.addMeta("aa_position_end", maxAAPos + 1 + 1);
 					std::string refaa;
 					for (auto aapos : iter::range(minAAPos, maxAAPos + 1)) {
 						refaa += std::get<0>(njh::mapAt(gsInfo->infosByAAPos_, aapos)).aa_;
@@ -2927,7 +2927,7 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 						MetaDataInName meta = aaInfos.metaDataForAAPos_[positions.first][pos];
 						meta.addMeta("transcript", positions.first);
 						meta.addMeta("GeneID", geneID);
-						meta.addMeta("aa_position", pos);
+						meta.addMeta("aa_position", pos + 1);
 						std::string refaa;
 						for (auto aapos : iter::range(pos, pos + 1)) {
 							refaa += std::get<0>(njh::mapAt(gsInfo->infosByAAPos_, aapos)).aa_;
@@ -3006,7 +3006,7 @@ TranslatorByAlignment::GetGenomicLocationsForAminoAcidPositionsRet TranslatorByA
 								refaa += std::get<0>(njh::mapAt(gsInfo.second->infosByAAPos_, aapos)).aa_;
 							}
 							meta.addMeta("refaa", refaa);
-							meta.addMeta("aa_position", pos);
+							meta.addMeta("aa_position", pos + 1);
 							auto posBed = gsInfo.second->genBedFromAAPositions(pos, pos + 1);
 							posBed.extraFields_.emplace_back(meta.createMetaName());
 							std::string add;
