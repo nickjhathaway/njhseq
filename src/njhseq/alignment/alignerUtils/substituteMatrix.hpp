@@ -116,13 +116,15 @@ public:
 	 */
 	Json::Value toJson() const ;
 
-	//static creating matrixes
+	//static creating matrix's
 	static substituteMatrix createDegenScoreMatrix(int32_t matchScore, int32_t mismatchScore);
 	static substituteMatrix createDegenScoreMatrixCaseInsensitive(int32_t matchScore, int32_t mismatchScore);
 	static substituteMatrix createDegenScoreMatrixLessN(int32_t matchScore, int32_t mismatchScore);
 	static substituteMatrix createDegenScoreMatrixNoNInRef(int32_t matchScore, int32_t mismatchScore);
 	static substituteMatrix createScoreMatrix(int32_t matchScore, int32_t mismatchScore,
 			bool degenerativeScoring, bool degenLessN, bool caseInsensitive);
+
+	static substituteMatrix createBlosum62();
 };
 
 

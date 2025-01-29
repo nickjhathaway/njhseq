@@ -1858,8 +1858,11 @@ void aligner::scoreAlignment(bool editTheSame) {
   comp_.alnScore_ = parts_.score_;
 }
 
+
+
 void aligner::noAlignSetAndScore(const seqInfo& objectA,
 		const seqInfo& objectB) {
+
 	alignObjectA_.seqBase_ = objectA;
 	alignObjectB_.seqBase_ = objectB;
 

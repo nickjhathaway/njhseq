@@ -226,7 +226,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			if(inputTranslatedSeq.size() > pars.calcPopMeasuresPars.seqCountCutOffPloidyCalc_) {
 				calcPopMeasuresPars.onlyPloidy2_ = true;
 			}
-			calcPopMeasuresPars.numSegSites_ = njh::mapAt(translatedRes.proteinVariants_, translatedSeqs.first).getFinalNumberOfSegratingSites();
+			calcPopMeasuresPars.numSegSites_ = njh::mapAt(translatedRes.proteinVariants_, translatedSeqs.first).getFinalNumberOfSegregatingSites();
 			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			auto divMeasures = inputTranslatedSeq.getGeneralMeasuresOfDiversity(calcPopMeasuresPars, alignerObj);
 			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -481,16 +481,16 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 	watch.startNewLap("writing seq output");
 	//snps
 	uint32_t maxSeqCount = 0;
-	auto calcPopMeasuresPars =  pars.calcPopMeasuresPars;
+	auto calcPopMeasuresPars_local =  pars.calcPopMeasuresPars;
 	if(inputSeqs.size() > pars.calcPopMeasuresPars.seqCountCutOffPloidyCalc_) {
-		calcPopMeasuresPars.onlyPloidy2_ = true;
+		calcPopMeasuresPars_local.onlyPloidy2_ = true;
 	}
 	for(auto & varPerChrom : translatedRes.seqVariants_){
 		for(const auto & count : varPerChrom.second.depthPerPosition){
 			if(count.second > maxSeqCount){
 				//cheap way of doing this for now
 				maxSeqCount = count.second;
-				calcPopMeasuresPars.numSegSites_ = varPerChrom.second.getFinalNumberOfSegratingSites();
+				calcPopMeasuresPars_local.numSegSites_ = varPerChrom.second.getFinalNumberOfSegregatingSites();
 			}
 		}
 
@@ -718,10 +718,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	{
 		auto divMeasures = inputSeqs.getGeneralMeasuresOfDiversity(
-			calcPopMeasuresPars, alignerObj);
+			calcPopMeasuresPars_local, alignerObj);
 		divMeasures.writeDivMeasures(
 			njh::files::make_path(pars.outputDirectory, "divMeasures.tab.txt"),
-			inputSeqs, pars.identifier, calcPopMeasuresPars);
+			inputSeqs, pars.identifier, calcPopMeasuresPars_local);
 	}
 
 	if(!pars.metaFieldsToCalcPopDiffs.empty()){
@@ -731,15 +731,28 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 
 		for(const auto & metaField : pars.metaFieldsToCalcPopDiffs){
 			OutputStream divMeasuresOut(njh::files::make_path(outputDirPerMeta, metaField + "_divMeasures.tab.txt.gz"));
-			divMeasuresOut << njh::conToStr(calcPopMeasuresPars.genHeader(VecStr{metaField}), "\t") << std::endl;
+			divMeasuresOut << njh::conToStr(calcPopMeasuresPars_local.genHeader(VecStr{metaField}), "\t") << std::endl;
 			auto splitSeqs = inputSeqs.splitOutSeqsByMeta(metaField);
 			std::unordered_map<std::string, CollapsedHaps::GenPopMeasuresRes> divMeausresPerPop;
 			std::unordered_map<std::string, uint32_t> totalHapsPerPop;
 			for(const auto & subField : splitSeqs){
-				auto divMeasures = subField.second.getGeneralMeasuresOfDiversity(calcPopMeasuresPars, alignerObj);
+				auto calcPopMeasuresPars_local_forSubField = calcPopMeasuresPars_local;
+				maxSeqCount = 0;
+				for(auto & varPerChrom : translatedRes.seqVariants_) {
+					for(const auto & count : varPerChrom.second.depthPerPosition){
+						if(count.second > maxSeqCount){
+							//hacky way of doing this for now
+							maxSeqCount = count.second;
+							calcPopMeasuresPars_local_forSubField.numSegSites_ = varPerChrom.second.getFinalNumberOfSegregatingSites(subField.second.getAllSampleNames());
+						}
+					}
+				}
+
+
+				auto divMeasures = subField.second.getGeneralMeasuresOfDiversity(calcPopMeasuresPars_local_forSubField, alignerObj);
 				divMeausresPerPop[subField.first] = divMeasures;
 				totalHapsPerPop[subField.first] = subField.second.getTotalHapCount();
-				divMeasuresOut << njh::conToStr(divMeasures.getOut(subField.second, njh::pasteAsStr(pars.identifier), calcPopMeasuresPars, VecStr{subField.first}), "\t") << std::endl;
+				divMeasuresOut << njh::conToStr(divMeasures.getOut(subField.second, njh::pasteAsStr(pars.identifier), calcPopMeasuresPars_local_forSubField, VecStr{subField.first}), "\t") << std::endl;
 			}
 			OutputStream diffMeasuresOut(njh::files::make_path(outputDirPerMeta, njh::pasteAsStr(metaField, "_diffMeasures.tab.txt.gz")));
 			OutputStream pairwiseDiffMeasuresOut(njh::files::make_path(outputDirPerMeta, njh::pasteAsStr(metaField, "_pairwiseDiffMeasures.tab.txt.gz")));

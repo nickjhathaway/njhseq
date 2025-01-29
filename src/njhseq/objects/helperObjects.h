@@ -32,8 +32,7 @@
 #include "njhseq/objects/helperObjects/nucCompCluster.hpp"
 #include "njhseq/objects/helperObjects/AminoAcidPositionInfo.hpp"
 
-
+#include "njhseq/objects/helperObjects/PeptideLibraryReducer.hpp"
 #include "njhseq/objects/helperObjects/sampInfo.hpp"
 
-#include "njhseq/objects/Meta/MetaDataInName.hpp"
 

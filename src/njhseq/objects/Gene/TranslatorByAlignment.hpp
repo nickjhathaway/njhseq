@@ -192,7 +192,8 @@ public:
 
 		void writeSNPTable(const OutOptions &snpTabOutOpts) const;
 
-		[[nodiscard]] uint32_t getFinalNumberOfSegratingSites() const;
+		[[nodiscard]] uint32_t getFinalNumberOfSegregatingSites() const;
+		[[nodiscard]] uint32_t getFinalNumberOfSegregatingSites(const std::set<std::string> & for_samples) const;
 
 		/**@brief write out info for positions, will throw if no info present
 		 *

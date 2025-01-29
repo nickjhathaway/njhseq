@@ -2482,4 +2482,13 @@ substituteMatrix substituteMatrix::createScoreMatrix(int32_t matchScore, int32_t
   return scoring;
 }
 
+
+substituteMatrix substituteMatrix::createBlosum62() {
+	substituteMatrix scoring;
+	scoring.setWtihBlosum62();
+	return scoring;
+}
+
+
+
 } /* namespace njh */

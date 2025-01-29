@@ -230,8 +230,13 @@ void seqSetUp::processScoringPars() {
 //		std::cout << "pars_.degenScoring_: " << pars_.degenScoring_ << std::endl;
 //		std::cout << "pars_.lessNScoring_: " << pars_.lessNScoring_ << std::endl;
 //		std::cout << "pars_.caseInsensitiveScoring_: " << pars_.caseInsensitiveScoring_ << std::endl;
-
-		pars_.scoring_ = substituteMatrix::createScoreMatrix(pars_.generalMatch_, pars_.generalMismatch_, pars_.degenScoring_, pars_.lessNScoring_, pars_.caseInsensitiveScoring_);
+		bool blosum62 = false;
+		setOption(blosum62, "--use_blosum62", "Use blosum62 scoring", false, "Alignment");
+		if (blosum62) {
+			pars_.scoring_ = substituteMatrix::createBlosum62();
+		} else {
+			pars_.scoring_ = substituteMatrix::createScoreMatrix(pars_.generalMatch_, pars_.generalMismatch_, pars_.degenScoring_, pars_.lessNScoring_, pars_.caseInsensitiveScoring_);
+		}
 	}
 }
 

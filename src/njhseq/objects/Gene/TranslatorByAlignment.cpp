@@ -999,9 +999,53 @@ std::vector<TranslatorByAlignment::VariantsInfo::PosStartSize> TranslatorByAlign
 }
 
 
-uint32_t TranslatorByAlignment::VariantsInfo::getFinalNumberOfSegratingSites() const{
+uint32_t TranslatorByAlignment::VariantsInfo::getFinalNumberOfSegregatingSites(const std::set<std::string> & for_samples) const{
 	std::unordered_set<uint32_t> idPositions;
 	for(const auto & snp : snpsFinal){
+		for(const auto & b : snp.second) {
+			auto samplesInVariant = njh::vecToSet(njh::getVecOfMapKeys(b.second.sampleReadCnts_));
+			VecStr samples_intersection;
+			std::set_intersection(
+				samplesInVariant.begin(), samplesInVariant.end(),for_samples.begin(), for_samples.end(),std::back_inserter(samples_intersection));
+			if(!samples_intersection.empty()) {
+				idPositions.emplace(snp.first);
+			}
+		}
+	}
+	for(const auto & ins : insertionsFinal){
+		for(const auto & b : ins.second) {
+			auto samplesInVariant = njh::vecToSet(njh::getVecOfMapKeys(b.second.sampleReadCnts_));
+			VecStr samples_intersection;
+			std::set_intersection(
+				samplesInVariant.begin(), samplesInVariant.end(),for_samples.begin(), for_samples.end(),std::back_inserter(samples_intersection));
+			if(!samples_intersection.empty()) {
+				idPositions.emplace(ins.first);
+			}
+		}
+	}
+	for(const auto & del : deletionsFinal){
+		for(const auto & seq : del.second){
+			auto samplesInVariant = njh::vecToSet(njh::getVecOfMapKeys(seq.second.sampleReadCnts_));
+			VecStr samples_intersection;
+			std::set_intersection(
+				samplesInVariant.begin(), samplesInVariant.end(),for_samples.begin(), for_samples.end(),std::back_inserter(samples_intersection));
+			if(!samples_intersection.empty()) {
+				idPositions.emplace(del.first + seq.first.size());
+			}
+		}
+	}
+	return idPositions.size();
+}
+
+uint32_t TranslatorByAlignment::VariantsInfo::getFinalNumberOfSegregatingSites() const{
+	std::unordered_set<uint32_t> idPositions;
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	for(const auto & snp : snpsFinal){
+		// std::cout << "snp.first: " << snp.first << std::endl;
+		// for(const auto & b : snp.second) {
+		// 	std::cout << "\t" << b.first << ": alleleCount_          : " << b.second.alleleCount_ << std::endl;
+		// 	std::cout << "\t" << b.first << ": sampleReadCnts_.size(): " << b.second.sampleReadCnts_.size() << std::endl;
+		// }
 		idPositions.emplace(snp.first);
 	}
 	for(const auto & ins : insertionsFinal){
