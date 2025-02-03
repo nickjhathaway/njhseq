@@ -105,6 +105,7 @@ public:
 
   // remove base at position
   void removeBase(size_t pos);
+	void removeBases(size_t pos, size_t size);
   void removeLowQualityBases(uint8_t qualCutOff);
   // handle gaps
   void removeGaps();

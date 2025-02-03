@@ -358,8 +358,11 @@ public:
 
 	void checkForColumnsThrow(const VecStr & requiredColumns,
 			const std::string & funcName) const;
-
+	void checkForDupColumnsThrow(const std::string & funcName) const;
 	VecStr getMissingHeaders(const VecStr requiredColumns) const;
+
+	[[nodiscard]] table leftJoin(const table & otherTable, VecStr column_names) const;
+	[[nodiscard]] table leftJoin(const table & otherTable) const;
 
 	 struct splitColWithMetaPars{
 

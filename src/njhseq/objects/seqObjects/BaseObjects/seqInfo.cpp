@@ -481,6 +481,22 @@ uint8_t seqInfo::findLowestNeighborhoodQual(uint32_t posA,
 	}
 	return lowestQual;
 }
+
+void seqInfo::removeBases(size_t pos, size_t size) {
+	if (pos >= seq_.size() || pos >= qual_.size()) {
+		std::stringstream ss;
+		ss << "pos: " << pos << " out of bounds of seq " << seq_.size() << " or out of bounds of qual " << qual_.size() << "\n";
+		throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
+	}
+	if (pos + size >= seq_.size() || pos + size > qual_.size()) {
+		std::stringstream ss;
+		ss << "pos + size: " << pos + size << " out of bounds of seq " << seq_.size() << " or out of bounds of qual " << qual_.size() << "\n";
+		throw std::runtime_error { njh::bashCT::boldRed(ss.str()) };
+	}
+	seq_.erase(pos, size);
+	qual_.erase(qual_.begin() + pos, qual_.begin() + pos + size);
+}
+
 void seqInfo::removeBase(size_t pos) {
 	if (pos >= seq_.size()) {
 		std::stringstream ss;

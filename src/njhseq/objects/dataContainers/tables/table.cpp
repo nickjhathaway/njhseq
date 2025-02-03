@@ -1360,6 +1360,26 @@ table table::extractNumColGreater(uint32_t colPos, double cutOff)const{
 }
 
 
+
+void table::checkForDupColumnsThrow(const std::string & funcName) const {
+	std::unordered_map<std::string, uint32_t> counts;
+	for(const auto & col : columnNames_){
+		++counts[col];
+	}
+	VecStr dupCols;
+	for(const auto & count : counts){
+		if(count.second > 1){
+			dupCols.emplace_back(count.first);
+		}
+	}
+	if (!dupCols.empty()) {
+		std::stringstream ss;
+		ss << funcName << ", error " << "the following column names are duplicated" << "\n";
+		ss << njh::conToStr(dupCols, "\n") << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+}
+
 void table::checkForColumnsThrow(const VecStr & requiredColumns, const std::string & funcName) const{
 	VecStr columnsNotFound;
 	for (const auto & col : requiredColumns) {
@@ -1391,6 +1411,94 @@ VecStr table::getMissingHeaders(const VecStr requiredColumns) const{
 	}
 	return columnsNotFound;
 }
+
+table table::leftJoin(const table & otherTable) const {
+	checkForDupColumnsThrow(__PRETTY_FUNCTION__);
+	otherTable.checkForDupColumnsThrow(__PRETTY_FUNCTION__);
+	auto columnNames = njh::naturalSortNameRet(columnNames_);
+	auto other_columnNames = njh::naturalSortNameRet(otherTable.columnNames_);
+	VecStr shared;
+	std::set_intersection(other_columnNames.begin(), other_columnNames.end(), columnNames.begin(), columnNames.end(), std::back_inserter(shared));
+	return leftJoin(otherTable, shared);
+}
+
+table table::leftJoin(const table & otherTable, VecStr column_names) const{
+	njh::naturalSortNameSet(column_names);
+	checkForColumnsThrow(column_names, __PRETTY_FUNCTION__);
+	otherTable.checkForColumnsThrow(column_names, __PRETTY_FUNCTION__);
+	checkForDupColumnsThrow(__PRETTY_FUNCTION__);
+	otherTable.checkForDupColumnsThrow(__PRETTY_FUNCTION__);
+	//create a key to index into the other table
+	std::unordered_map<std::string, std::vector<uint32_t>> other_table_key;
+	std::vector<uint32_t> column_names_other_pos;
+	for (const auto & col : column_names) {
+		column_names_other_pos.emplace_back(otherTable.getColPos(col));
+	}
+
+
+	for (const auto & rowEnum : iter::enumerate(otherTable.content_)) {
+		std::string key;
+		for (const auto & col : column_names_other_pos) {
+			if (!key.empty()) {
+				key += "SPLITONTHIS";
+			}
+			key += rowEnum.element[col];
+		}
+		other_table_key[key].emplace_back(rowEnum.index);
+	}
+	//get other column not in the join
+	auto otherColumns = njh::naturalSortNameRet(otherTable.columnNames_);
+	VecStr otherColumnsNotInJoin;
+	std::set_difference(otherColumns.begin(), otherColumns.end(), column_names.begin(), column_names.end(), std::back_inserter(otherColumnsNotInJoin));
+	if (otherColumnsNotInJoin.empty()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " << "no columns to join, all columns in in coming table are in the join" << "\n";
+		ss << "otherColumns:\n" << njh::conToStr(otherColumns, "\n") << "\n";
+		ss << "join_columns:\n" << njh::conToStr(column_names, "\n") << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	//get positions
+	std::vector<uint32_t> otherColumnsNotInJoinPos;
+	for (const auto & col : otherColumnsNotInJoin) {
+		otherColumnsNotInJoinPos.emplace_back(otherTable.getColPos(col));
+	}
+
+
+	//create return table
+	table ret(concatVecs(columnNames_, otherColumnsNotInJoin));
+	std::vector<uint32_t> column_names_pos;
+	for (const auto & col : column_names) {
+		column_names_pos.emplace_back(getColPos(col));
+	}
+	for (const auto & rowEnum : iter::enumerate(content_)) {
+		//generate look up key
+		std::string key;
+		for (const auto & col : column_names_pos) {
+			if (!key.empty()) {
+				key += "SPLITONTHIS";
+			}
+			key += rowEnum.element[col];
+		}
+		if (njh::in(key, other_table_key)) {
+			//add a new row for each matching
+			for (const auto & row_index : other_table_key[key]) {
+				VecStr add;
+				for (const auto & col : otherColumnsNotInJoinPos) {
+					add.emplace_back(otherTable.content_[row_index][col]);
+				}
+				ret.addRow(concatVecs(rowEnum.element, add));
+			}
+		} else {
+			//if not found then add NAs
+			VecStr add(otherColumnsNotInJoin.size(), "NA");
+			ret.addRow(concatVecs(rowEnum.element, add));
+		}
+	}
+
+	return ret;
+}
+
+
 
 table table::splitColWithMeta(const table & inputTab, const splitColWithMetaPars & pars){
 	auto inTab = inputTab;
