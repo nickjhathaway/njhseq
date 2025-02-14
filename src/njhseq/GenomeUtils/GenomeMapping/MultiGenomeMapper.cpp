@@ -512,23 +512,21 @@ std::unordered_map<std::string, std::vector<seqInfo>> MultiGenomeMapper::getRefS
 
 
 std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
-		const GenomicRegion & region, const bfs::path & refAlignsDir,
+		const GenomicRegion & region,
+		const bfs::path & refAlignsDir,
 		const getRefSeqsWithPrimaryGenomePars & pars,
 		aligner & orgAlignerObj) const {
+
 	std::unordered_map<std::string, GenomicRegion> primaryRegion { {
 		pars_.primaryGenome_, region } };
 	auto primaryRef = extractRegions(primaryRegion);
 	auto refFnp = njh::files::make_path(refAlignsDir, "primaryRefSeq.fasta");
 	SeqOutput::write(primaryRef, SeqIOOptions::genFastaOut(refFnp));
-	/*
-	 * 	auto alignOutputs = alignToGenomes(
-	 SeqIOOptions::genFastaIn(refFnp),
-	 njh::appendAsNeededRet(refAlignsDir.string(), "/"));
-	 */
+
 	auto alignOutputs = alignToGenomesLastz(SeqIOOptions::genFastaIn(refFnp),
 			njh::appendAsNeededRet(refAlignsDir.string(), "/"),
 			pars.lzPars);
-	auto bamFnps = MultiGenomeMapper::getBamFnps(alignOutputs);
+	auto bamFnps = getBamFnps(alignOutputs);
 	auto allRegions = getRegionsFromBams(bamFnps);
 	std::vector<seqInfo> refSeqs;
 	std::vector<aligner> aligners;
@@ -540,7 +538,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 	seqInfo primaryRefInfo;
 	{
 		TwoBit::TwoBitFile refReader(genomes_.at(pars_.primaryGenome_)->fnpTwoBit_);
-		std::string refSeq = "";
+		std::string refSeq;
 		refReader[region.chrom_]->getSequence(refSeq, region.start_,
 				region.end_, region.reverseSrand_);
 		primaryRefInfo = seqInfo(pars_.primaryGenome_, refSeq);
@@ -561,10 +559,10 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 															 &aligners, &orgAlignerObj
 															 ](uint32_t threadNumber){
 
-		std::string genome = "";
+		std::string genome;
 		while(genomesQueue.getVal(genome)){
 			auto & regions = allRegions.at(genome);
-			if(regions.size() == 0){
+			if(regions.empty()){
 				continue;
 			}
 			if(pars.extendAndTrim){
@@ -589,12 +587,6 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 						}
 						readVecTrimmer::trimSeqToRefByGlobalAln(trimmedExtractedSeq, primaryRefInfo, trimPars, aligners[threadNumber]);
 					}
-//					std::cout << trimmedExtractedSeq.name_ << std::endl;
-//					std::cout << reg.genBedRecordCore().toDelimStr() << std::endl;
-//					std::cout << extenedRegion.genBedRecordCore().toDelimStr() << std::endl;
-//					std::cout <<"trimmedExtractedSeq.on_: " <<  njh::colorBool(trimmedExtractedSeq.on_) << std::endl;
-//					aligners[threadNumber].alignObjectA_.seqBase_.outPutSeq(std::cout);
-//					aligners[threadNumber].alignObjectB_.seqBase_.outPutSeq(std::cout);
 					if(trimmedExtractedSeq.on_){
 						uint32_t startPos = extractedSeq.seq_.find(trimmedExtractedSeq.seq_);
 						uint32_t stopPos = startPos + len(trimmedExtractedSeq);
@@ -612,7 +604,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 			auto bedRegions = convertGenomeRegions<GenomicRegion, Bed6RecordCore>(regions,[](const GenomicRegion & reg){
 				return reg.genBedRecordCore();
 			});
-			if("" != genomes_.at(genome)->gffFnp_){
+			if(!genomes_.at(genome)->gffFnp_.empty()){
 				intersectBedLocsWtihGffRecordsPars intersectPars(genomes_.at(genome)->gffFnp_);
 				intersectPars.selectFeatures_ = pars_.gffIntersectPars_.selectFeatures_;
 				intersectPars.extraAttributes_ = pars_.gffIntersectPars_.extraAttributes_;
@@ -623,7 +615,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 			OutputStream bedOut(OutOptions(njh::files::make_path(refAlignsDir, genome + "_regions.bed")));
 
 			TwoBit::TwoBitFile refReader(genomes_.at(genome)->fnpTwoBit_);
-			std::string refSeq = "";
+			std::string refSeq;
 			for (const auto &reg: bedRegions) {
 				++genomeExtractionsResults.at(genome).extractCounts_;
 				if (reg.reverseStrand()) {
@@ -647,9 +639,9 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 				{
 					std::lock_guard<std::mutex> lock(refSeqsMut);
 					if(!pars.shortNames){
-						refSeqs.emplace_back(seqInfo(genome + " " + refMeta.createMetaName(), refSeq));
+						refSeqs.emplace_back(genome + " " + refMeta.createMetaName(), refSeq);
 					}else{
-						refSeqs.emplace_back(seqInfo(genome, refSeq));
+						refSeqs.emplace_back(genome, refSeq);
 					}
 				}
 			} else {
@@ -674,9 +666,9 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 					alignerObj.rearrangeObjsGlobal(primaryRefInfo, genomeSeq);
 					alignerObj.profilePrimerAlignment(primaryRefInfo, genomeSeq);
 					if(pars.byScore){
-						scores.emplace_back(std::make_pair(alignerObj.parts_.score_, regPos));
+						scores.emplace_back(alignerObj.parts_.score_, regPos);
 					}else{
-						scores.emplace_back(std::make_pair(alignerObj.comp_.distances_.eventBasedIdentityHq_, regPos));
+						scores.emplace_back(alignerObj.comp_.distances_.eventBasedIdentityHq_, regPos);
 					}
 			}
 				njh::sort(scores, [](const auto & s1, const auto & s2 ){
@@ -732,7 +724,7 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 	}else{
 		std::vector<std::thread> threads;
 		for(uint32_t t = 0; t < pars_.numThreads_; ++t){
-			threads.emplace_back(std::thread(extractBestGenomeSeq, t));
+			threads.emplace_back(extractBestGenomeSeq, t);
 		}
 		njh::concurrent::joinAllThreads(threads);
 	}
@@ -764,6 +756,272 @@ std::vector<seqInfo> MultiGenomeMapper::getRefSeqsWithPrimaryGenome(
 		}
 	}
 
+	return ret;
+}
+
+
+
+std::unordered_map<std::string, MultiGenomeMapper::determineRegionsLastzRes> MultiGenomeMapper::determineRegionsLastzAgainstGenomes(
+		const SeqIOOptions & inputOpts,
+		const bfs::path & refAlignsDir,
+		const getRefSeqsWithPrimaryGenomePars & pars,
+		aligner & orgAlignerObj) const {
+
+	auto inputSeqs = SeqInput::getSeqVec<seqInfo>(inputOpts);
+	auto alignOutputs = alignToGenomesLastz(inputOpts,
+			njh::appendAsNeededRet(refAlignsDir.string(), "/"),
+			pars.lzPars);
+	auto bamFnps = getBamFnps(alignOutputs);
+	// auto allRegions = getRegionsFromBams(bamFnps);
+	std::unordered_map<std::string, std::vector<GenomicRegion>> allRegions;
+	for (const auto & bamFnp : bamFnps) {
+		if (njh::in(bamFnp.first, genomes_)) {
+			BamTools::BamReader bReader;
+			bReader.Open(bamFnp.second.string());
+			checkBamOpenThrow(bReader, bamFnp.second.string());
+			BamTools::BamAlignment bAln;
+			auto refIds = bReader.GetReferenceData();
+			while (bReader.GetNextAlignment(bAln)) {
+				if (bAln.IsMapped()) {
+					allRegions[bamFnp.first].emplace_back(bAln, refIds);
+				}
+			}
+		}
+	}
+
+	std::vector<seqInfo> refSeqs;
+	std::vector<aligner> aligners;
+	if(pars_.numThreads_ > 1){
+		for(uint32_t t = 0; t < pars_.numThreads_; ++t){
+			aligners.emplace_back(orgAlignerObj);
+		}
+	}
+	std::unordered_map<std::string, determineRegionsLastzRes> ret;
+	std::mutex retMut;
+	for (const auto & inputSeq : inputSeqs) {
+		std::mutex refSeqsMut;
+		njh::concurrent::LockableQueue<std::string> genomesQueue(getVectorOfMapKeys(allRegions));
+		struct GenExtracRes{
+			uint32_t forwardHits_{0};
+			uint32_t reverseHits_{0};
+			uint32_t extractCounts_{0};
+		};
+		std::unordered_map<std::string, GenExtracRes> genomeExtractionsResults;
+		for(const auto & genome : genomes_){
+			genomeExtractionsResults[genome.first] = GenExtracRes{};
+		}
+		auto extractBestGenomeSeq = [this,&genomesQueue,&refSeqs,&refSeqsMut,&inputSeq,
+																 &allRegions, &refAlignsDir,&pars,&genomeExtractionsResults,
+																 &aligners, &orgAlignerObj,
+																 &ret, &retMut
+																 ](uint32_t threadNumber){
+
+			std::string genome;
+			while(genomesQueue.getVal(genome)){
+				std::vector<GenomicRegion> regions;
+				for (const auto & region : allRegions.at(genome)) {
+					if (region.uid_ == inputSeq.name_) {
+						regions.emplace_back(region);
+					}
+				}
+				if(regions.empty()){
+					continue;
+				}
+				if(pars.extendAndTrim){
+					for(auto & reg : regions){
+						auto extenedRegion = reg;
+						extenedRegion.start_ = reg.start_ <= pars.extendAndTrimLen ? 0 : reg.start_ - pars.extendAndTrimLen;
+						extenedRegion.end_ = reg.end_ + pars.extendAndTrimLen < genomes_.at(genome)->chromosomeLengths_.at(reg.chrom_) ? reg.end_ + pars.extendAndTrimLen : genomes_.at(genome)->chromosomeLengths_.at(reg.chrom_);
+						TwoBit::TwoBitFile tReader(genomes_.at(genome)->fnpTwoBit_);
+						auto extractedSeq = extenedRegion.extractSeq(tReader);
+						auto trimmedExtractedSeq = extractedSeq;
+						readVecTrimmer::GlobalAlnTrimPars trimPars{};
+						trimPars.startInclusive_ = 0;
+						trimPars.endInclusive_ = len(inputSeq) -1;
+						if(pars_.numThreads_ == 1){
+							if(len(trimmedExtractedSeq) >= orgAlignerObj.parts_.maxSize_){
+								orgAlignerObj.parts_.setMaxSize(len(trimmedExtractedSeq));
+							}
+							readVecTrimmer::trimSeqToRefByGlobalAln(trimmedExtractedSeq, inputSeq, trimPars, orgAlignerObj);
+						}else{
+							if(len(trimmedExtractedSeq) >= aligners[threadNumber].parts_.maxSize_){
+								aligners[threadNumber].parts_.setMaxSize(len(trimmedExtractedSeq));
+							}
+							readVecTrimmer::trimSeqToRefByGlobalAln(trimmedExtractedSeq, inputSeq, trimPars, aligners[threadNumber]);
+						}
+						if(trimmedExtractedSeq.on_){
+							uint32_t startPos = extractedSeq.seq_.find(trimmedExtractedSeq.seq_);
+							uint32_t stopPos = startPos + len(trimmedExtractedSeq);
+							uint32_t trimmedOffBack = len(extractedSeq.seq_) - stopPos;
+							if(reg.reverseSrand_){
+								reg.start_ = extenedRegion.start_ + trimmedOffBack;
+								reg.end_ = extenedRegion.end_ - startPos;
+							}else{
+								reg.start_ = extenedRegion.start_ + startPos;
+								reg.end_ = extenedRegion.end_ - trimmedOffBack;
+							}
+						}
+					}
+				}
+				auto bedRegions = convertGenomeRegions<GenomicRegion, Bed6RecordCore>(regions,[](const GenomicRegion & reg){
+					return reg.genBedRecordCore();
+				});
+				if(!genomes_.at(genome)->gffFnp_.empty()){
+					intersectBedLocsWtihGffRecordsPars intersectPars(genomes_.at(genome)->gffFnp_);
+					intersectPars.selectFeatures_ = pars_.gffIntersectPars_.selectFeatures_;
+					intersectPars.extraAttributes_ = pars_.gffIntersectPars_.extraAttributes_;
+
+					intersectBedLocsWtihGffRecords(bedRegions, intersectPars);
+				}
+				OutputStream bestBedOut(OutOptions(njh::files::make_path(refAlignsDir, genome + "_" + inputSeq.name_ + "_bestRegion.bed")));
+				OutputStream bedOut(OutOptions(njh::files::make_path(refAlignsDir, genome + "_" + inputSeq.name_ + "_regions.bed")));
+
+				TwoBit::TwoBitFile refReader(genomes_.at(genome)->fnpTwoBit_);
+				std::string refSeq;
+				for (const auto &reg: bedRegions) {
+					++genomeExtractionsResults.at(genome).extractCounts_;
+					if (reg.reverseStrand()) {
+						++genomeExtractionsResults.at(genome).reverseHits_;
+					} else {
+						++genomeExtractionsResults.at(genome).forwardHits_;
+					}
+				}
+				if(regions.size() == 1){
+					refReader[regions.front().chrom_]->getSequence(refSeq, regions.front().start_,
+							regions.front().end_, regions.front().reverseSrand_);
+					MetaDataInName refMeta;
+					refMeta.addMeta("genome", genome);
+					refMeta.addMeta("chrom", regions.front().chrom_);
+					refMeta.addMeta("start", regions.front().start_);
+					refMeta.addMeta("end", regions.front().end_);
+					refMeta.addMeta("strand", (regions.front().reverseSrand_ ? '-' : '+'));
+					bestBedOut << regions.front().genBedRecordCore().toDelimStrWithExtra() << std::endl;
+					bedOut << regions.front().genBedRecordCore().toDelimStrWithExtra() << std::endl;
+
+					{
+						std::lock_guard<std::mutex> lock(refSeqsMut);
+						if(!pars.shortNames){
+							refSeqs.emplace_back(genome + " " + refMeta.createMetaName(), refSeq);
+						}else{
+							refSeqs.emplace_back(genome, refSeq);
+						}
+					}
+					{
+						std::lock_guard<std::mutex> lock(retMut);
+						ret[genome].all_individual_regions.emplace_back(regions.front());
+					}
+				} else {
+					uint64_t maxlen = 0;
+					for(const auto & reg : regions){
+						if(reg.getLen() > maxlen){
+							maxlen = reg.getLen();
+						}
+					}
+					readVec::getMaxLength(inputSeq, maxlen);
+					aligner alignerObj(maxlen, gapScoringParameters(5,1,5,1,5,1), substituteMatrix(2,-2), true);
+					std::vector<std::pair<double, uint32_t>> scores;
+					std::vector<seqInfo> genomeSeqs;
+										for(const auto  regPos : iter::range(regions.size())){
+						const auto & reg  = regions[regPos];
+						refReader[reg.chrom_]->getSequence(refSeq, reg.start_,
+								reg.end_, reg.reverseSrand_);
+
+						seqInfo genomeSeq(genome, refSeq);
+						genomeSeqs.emplace_back(genomeSeq);
+						alignerObj.alignCacheGlobal(inputSeq, genomeSeq);
+						alignerObj.rearrangeObjsGlobal(inputSeq, genomeSeq);
+						alignerObj.profilePrimerAlignment(inputSeq, genomeSeq);
+						if(pars.byScore){
+							scores.emplace_back(alignerObj.parts_.score_, regPos);
+						}else{
+							scores.emplace_back(alignerObj.comp_.distances_.eventBasedIdentityHq_, regPos);
+						}
+				}
+					njh::sort(scores, [](const auto & s1, const auto & s2 ){
+						return s1.first > s2.first;
+					});
+					{
+						MetaDataInName refMeta;
+						refMeta.addMeta("genome", genome);
+						refMeta.addMeta("chrom",   regions[scores.front().second].chrom_);
+						refMeta.addMeta("start",   regions[scores.front().second].start_);
+						refMeta.addMeta("end",     regions[scores.front().second].end_);
+						refMeta.addMeta("strand", (regions[scores.front().second].reverseSrand_ ? '-' : '+'));
+						refMeta.addMeta("score", scores.front().first);
+
+						if(!pars.shortNames){
+							genomeSeqs[scores.front().second].name_ += " " + refMeta.createMetaName();
+						}
+						{
+							std::lock_guard<std::mutex> lock(refSeqsMut);
+							refSeqs.emplace_back(genomeSeqs[scores.front().second]);
+						}
+						bestBedOut << regions[scores.front().second].genBedRecordCore().toDelimStrWithExtra() << "\t" << "[score=" << scores.front().first << ";]"<< std::endl;
+						bedOut << regions[scores.front().second].genBedRecordCore().toDelimStrWithExtra() << "\t" << "[score=" << scores.front().first << ";]"<< std::endl;
+					}
+					for(const auto scorePos : iter::range<uint32_t>(1, scores.size())){
+						bedOut << regions[scores[scorePos].second].genBedRecordCore().toDelimStrWithExtra() << "\t" << "[score=" << scores[scorePos].first << ";]"<< std::endl;
+					}
+					{
+						std::lock_guard<std::mutex> lock(retMut);
+						ret[genome].all_individual_regions.emplace_back(regions[scores.front().second]);
+					}
+					if(!pars.keepBestOnly){
+						for(const auto scorePos : iter::range<uint32_t>(1, scores.size())){
+							{
+								std::lock_guard<std::mutex> lock(retMut);
+								ret[genome].all_individual_regions.emplace_back(regions[scorePos]);
+							}
+							MetaDataInName refMeta;
+							refMeta.addMeta("genome", genome);
+							refMeta.addMeta("chrom",  regions[scores[scorePos].second].chrom_);
+							refMeta.addMeta("start",  regions[scores[scorePos].second].start_);
+							refMeta.addMeta("end",    regions[scores[scorePos].second].end_);
+							refMeta.addMeta("strand", (regions[scores[scorePos].second].reverseSrand_ ? '-' : '+'));
+							refMeta.addMeta("score", scores[scorePos].first);
+
+							genomeSeqs[scores[scorePos].second].name_ += "." + estd::to_string(scorePos);
+							if(!pars.shortNames){
+								genomeSeqs[scores[scorePos].second].name_ += " " + refMeta.createMetaName();
+							}
+							{
+								std::lock_guard<std::mutex> lock(refSeqsMut);
+								refSeqs.emplace_back(genomeSeqs[scores[scorePos].second]);
+							}
+						}
+					}
+				}
+			}
+		};
+		if(pars_.numThreads_ <= 1){
+			extractBestGenomeSeq(0);
+		}else{
+			std::vector<std::thread> threads;
+			for(uint32_t t = 0; t < pars_.numThreads_; ++t){
+				threads.emplace_back(extractBestGenomeSeq, t);
+			}
+			njh::concurrent::joinAllThreads(threads);
+		}
+		table performanceTab(VecStr{"genome", "region", "forwardStrandHits", "reverseStrandHits", "extractionCounts"});
+		auto genomeKeys = getVectorOfMapKeys(genomeExtractionsResults);
+		njh::sort(genomeKeys);
+		for(const auto & genomeKey : genomeKeys){
+			performanceTab.addRow(genomeKey,
+					inputSeq.name_,
+					genomeExtractionsResults[genomeKey].forwardHits_,
+					genomeExtractionsResults[genomeKey].reverseHits_,
+					genomeExtractionsResults[genomeKey].extractCounts_);
+		}
+		auto perTabOpts = TableIOOpts::genTabFileOut(njh::files::make_path(refAlignsDir, inputSeq.name_ + "_extractionCounts"),true);
+		performanceTab.outPutContents(perTabOpts);
+	}
+	for (auto & genomeRet : ret) {
+		GenomicRegionCounter gCounter;
+		for (const auto & region : genomeRet.second.all_individual_regions) {
+			gCounter.increaseCount(region,1);
+		}
+		genomeRet.second.most_common_region = gCounter.getRegionsLargestOnTop().front();
+	}
 	return ret;
 }
 

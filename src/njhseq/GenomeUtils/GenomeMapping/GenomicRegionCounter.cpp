@@ -71,9 +71,15 @@ void GenomicRegionCounter::increaseCount(const GenomicRegion & region,
 std::vector<GenomicRegion> GenomicRegionCounter::getRegionsLargestOnTop() const {
 	auto uids = getVectorOfMapKeys(counts_);
 	njh::sort(uids,
-			[this](const std::string & key1, const std::string & key2) {return counts_.at(key1).count_ > counts_.at(key2).count_;});
+	          [this](const std::string& key1, const std::string& key2) {
+	          	if (counts_.at(key1).count_ == counts_.at(key2).count_) {
+	          		return counts_.at(key1).region_.getLen() > counts_.at(key2).region_.getLen();
+	          	}
+		          return counts_.at(key1).count_ > counts_.at(key2).count_;
+	          });
 	std::vector<GenomicRegion> ret;
-	for (const auto & key : uids) {
+	ret.reserve(uids.size());
+	for (const auto& key: uids) {
 		ret.emplace_back(counts_.at(key).region_);
 	}
 	return ret;

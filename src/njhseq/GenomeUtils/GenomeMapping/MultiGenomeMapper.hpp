@@ -173,6 +173,17 @@ public:
 			const getRefSeqsWithPrimaryGenomePars & pars,
 			aligner & alignerObj) const;
 
+	struct determineRegionsLastzRes {
+		std::vector<GenomicRegion> all_individual_regions;
+		GenomicRegion most_common_region;
+	};
+
+	std::unordered_map<std::string, determineRegionsLastzRes> determineRegionsLastzAgainstGenomes(
+			const SeqIOOptions & inputOpts,
+			const bfs::path & alignmentsDir,
+			const getRefSeqsWithPrimaryGenomePars & pars,
+			aligner & alignerObj) const;
+
 
 
 	std::unordered_map<std::string, std::vector<seqInfo>> getRefSeqsWithPrimaryGenomeAll(
