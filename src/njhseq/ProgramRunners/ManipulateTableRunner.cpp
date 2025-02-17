@@ -475,32 +475,51 @@ int ManipulateTableRunner::sortTable(
 
 int ManipulateTableRunner::tableExtractColumns(const njh::progutils::CmdArgs & inputCommands){
 	ManipulateTableSetUp setUp(inputCommands);
-	VecStr extractColumns;
+	VecStr rawExtractColumns;
 	bool getUniqueRows = false;
 	setUp.processFileName();
 	setUp.processNonRquiredDefaults();
 	setUp.processSorting();
-  std::string extractColumnsStrings = "";
-  setUp.setOption(extractColumns, "--columns",
-                  "Names Of Columns To Extract, either comma separated input or a file with each line a column name",
+  setUp.setOption(rawExtractColumns, "--columns",
+                  "Names Of Columns To Extract, either comma separated input or a file with each line a column name, can also optionall rename columns by giving extract names separated from output names with a double ::, e.g. EXTRACT_COLNAME_1::OUTPUT_COLNAME_1,EXTRACT_COLNAME_2::OUTPUT_COLNAME_2,EXTRACT_COLNAME_3",
 									true);
   setUp.setOption(getUniqueRows, "-getUniqueRows", "GetUniqueRows");
   setUp.finishSetUp(std::cout);
 
+	std::unordered_map<std::string, std::string> rename_key;
+	VecStr extractColumns;
+	VecStr outColNames;
+	for (const auto & columnName : rawExtractColumns) {
+		auto toks = tokenizeString(columnName, "::");
+		if (toks.size() > 2) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " << "processing extract name " << columnName << ", if supply renaming columns should be INPUT_COL_NAME::OUTPUT_COL_NAME, found more than one double ::"<< "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		if (toks.size() == 1) {
+			rename_key.emplace(toks[0], toks[0]);
+			outColNames.emplace_back(toks[0]);
+		} else if (toks.size() == 2) {
+			rename_key.emplace(toks[0], toks[1]);
+			outColNames.emplace_back(toks[1]);
+		}
+		extractColumns.emplace_back(toks[0]);
+	}
 
 
-  if(!getUniqueRows && "" == setUp.sortByColumn_){
+  if(!getUniqueRows && setUp.sortByColumn_.empty()){
   	// if not sorting and not getting unique columns, just use tab reader
   	TableReader tabReader(setUp.ioOptions_);
   	tabReader.header_.checkForColumnsThrow(extractColumns,__PRETTY_FUNCTION__);
 
   	OutputStream out(setUp.ioOptions_.out_);
-  	out << njh::conToStr(extractColumns, setUp.ioOptions_.outDelim_) << "\n";
+  	out << njh::conToStr(outColNames, setUp.ioOptions_.outDelim_) << "\n";
   	VecStr row;
   	std::vector<uint32_t> columnPositions;
-  	for(const auto & col : extractColumns){
-  		columnPositions.emplace_back(tabReader.header_.getColPos(col));
-  	}
+  	columnPositions.reserve(extractColumns.size());
+	  for (const auto& col: extractColumns) {
+		  columnPositions.emplace_back(tabReader.header_.getColPos(col));
+	  }
   	std::function<void(const VecStr &)>extractAndWrite;
   	if(1 == extractColumns.size()){
   		extractAndWrite = [&out,&columnPositions](const VecStr & row){
@@ -521,7 +540,9 @@ int ManipulateTableRunner::tableExtractColumns(const njh::progutils::CmdArgs & i
   } else {
   	table inTab(setUp.ioOptions_);
   	table outTab = inTab.getColumns(extractColumns);
-  	if (setUp.sortByColumn_ != "") {
+  	outTab.columnNames_ = outColNames;
+  	outTab.setColNamePositions();
+  	if (!setUp.sortByColumn_.empty()) {
   		outTab.sortTable(setUp.sortByColumn_, setUp.decending_);
   	}
   	if (getUniqueRows) {
