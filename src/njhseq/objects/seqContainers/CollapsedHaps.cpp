@@ -380,8 +380,9 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 //	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	ret.divMeasures_ = PopGenCalculator::getGeneralMeasuresOfDiversity(seqs_, pars.onlyPloidy2_);
 // 	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	if (pars.getPairwiseComps && size() > 1
-			&& std::numeric_limits < uint32_t > ::max() != pars.numSegSites_) {
+	if (pars.getPairwiseComps &&
+			size() > 1 &&
+			std::numeric_limits < uint32_t > ::max() != pars.numSegSites_) {
 		if(pars.numSegSites_ == 0){
 			ret.tajimaRes_.d_ = 0;
 			ret.tajimaRes_.pval_beta_ = 1;

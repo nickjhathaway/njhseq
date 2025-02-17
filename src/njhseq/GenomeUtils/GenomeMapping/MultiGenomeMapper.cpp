@@ -139,6 +139,15 @@ Json::Value MultiGenomeMapper::Genome::toJson() const{
 }
 
 
+MultiGenomeMapper::IntersectedProteinInfo::IntersectedProteinInfo(std::string id, std::string Name, uint32_t aaStart, uint32_t aaStop,
+											 std::string desc) : id_(std::move(id)),
+																					 Name_(std::move(Name)),
+																					 aaStart_(aaStart),
+																					 aaStop_(aaStop),
+																					 description_(std::move(desc)) {
+}
+
+
 MultiGenomeMapper::inputParameters::inputParameters() {
 	gffIntersectPars_.selectFeatures_ = {"gene", "pseudogene", "protein_coding_gene"};
 	gffIntersectPars_.extraAttributes_ = {"description"};

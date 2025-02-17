@@ -37,12 +37,13 @@ namespace njhseq {
 class MultiGenomeMapper {
 public:
 	struct IntersectedProteinInfo {
-		IntersectedProteinInfo(std::string id, uint32_t aaStart, uint32_t aaStop,
-		                  std::string desc) : id_(std::move(id)), aaStart_(aaStart), aaStop_(aaStop),
-		                                      description_(std::move(desc)) {
-		}
+		IntersectedProteinInfo(std::string id,
+		                       std::string Name,
+		                       uint32_t aaStart, uint32_t aaStop,
+		                       std::string desc);
 
 		std::string id_; //!< transcript ID
+		std::string Name_; //!< CommonName of the gene, if non-exist, will default to Gene ID
 		uint32_t aaStart_; //!< 1-based
 		uint32_t aaStop_; //!< 1-based
 		std::string description_; //!< detailed description of the gene of the transcript
@@ -246,8 +247,9 @@ MultiGenomeMapper::addIntersectingGeneInfosToLocs(
 			MetaDataInName geneMeta(geneTok);
 			if (njh::in(geneMeta.getMeta("ID"), genes)) {
 				TwoBit::TwoBitFile tReader(genomes_.at(genome)->fnpTwoBit_);
-				auto infos = njh::mapAt(genes, geneMeta.getMeta("ID"))->generateGeneSeqInfo(tReader, false);
-				auto detailedName = njh::mapAt(genes, geneMeta.getMeta("ID"))->getGeneDetailedName();
+				const auto & gene = njh::mapAt(genes, geneMeta.getMeta("ID"));
+				auto infos = gene->generateGeneSeqInfo(tReader, false);
+				auto detailedName = gene->getGeneDetailedName();
 				for (const auto&info: infos) {
 					auto posInfos = info.second->getInfosByGDNAPos();
 
@@ -298,7 +300,11 @@ MultiGenomeMapper::addIntersectingGeneInfosToLocs(
 						description = detailedName[info.first];
 						geneMeta.addMeta("detailedDescription", detailedName[info.first]);
 					}
-					ret[getRef(reg).name_].emplace_back(geneMeta.getMeta("ID"), aaStartPos, aaStopPos, description);
+					std::string geneName = geneMeta.getMeta("ID");
+					if (gene->gene_->hasAttr("Name") && "NA" != gene->gene_->getAttr("Name") && !gene->gene_->getAttr("Name").empty()) {
+						geneName = gene->gene_->getAttr("Name");
+					}
+					ret[getRef(reg).name_].emplace_back(geneMeta.getMeta("ID"), geneName, aaStartPos, aaStopPos, description);
 				}
 			}
 			if (!replacement.empty()) {
