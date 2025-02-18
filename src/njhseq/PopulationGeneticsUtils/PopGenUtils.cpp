@@ -963,7 +963,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 					}
 					if(!row[seqsAATyped.getColPos("fullTyped")].empty()) {
 						auto fullTyped = tokenizeString( row[seqsAATyped.getColPos("fullTyped")], "--");
-						allKnownTyped[fullTyped[0]][row[seqsAATyped.getColPos("name")]] = fullTyped[1];
+						allFullTyped[fullTyped[0]][row[seqsAATyped.getColPos("name")]] = fullTyped[1];
 						// std::cout << "fullTyped: " << njh::conToStr(fullTyped, ",") << std::endl;
 						transcripts.emplace(fullTyped[0]);
 					}
