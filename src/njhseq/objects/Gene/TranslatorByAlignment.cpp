@@ -425,7 +425,9 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 		positionsSet.emplace(del.first);
 	}
 	for(const auto pos : alwaysReportLocations_) {
-		positionsSet.emplace(pos);
+		if (njh::in(pos, depthPerPosition)) {
+			positionsSet.emplace(pos);
+		}
 	}
 
 	 //std::cout << __FILE__ << " " << __LINE__ << std::endl;
@@ -922,7 +924,7 @@ std::vector<TranslatorByAlignment::VariantsInfo::PosStartSize> TranslatorByAlign
 	}
 	//add forced positions
 	for(const auto & pos : alwaysReportLocations_) {
-		if(njh::notIn(pos, snpsFinal)) {
+		if(njh::notIn(pos, snpsFinal) && njh::in(pos, depthPerPosition)) {
 			all.emplace_back(pos, 1);
 		}
 	}
