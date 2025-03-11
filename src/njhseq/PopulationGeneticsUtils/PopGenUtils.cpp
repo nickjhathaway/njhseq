@@ -969,6 +969,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 					}
 				}
 			}
+		} else if (translatedRes.seqsTranslationFiltered_.size() == inputSeqs.size()) {
+			transcripts.emplace("untranslatable");
 		} else {
 			transcripts.emplace("intergenic");
 		}

@@ -42,7 +42,7 @@ public:
 	std::unordered_map<std::string,std::shared_ptr<GeneSeqInfo>> generateGeneSeqInfo(TwoBit::TwoBitFile & tReader,
 			bool oneBased) const;
 
-	void writeOutGeneInfo(TwoBit::TwoBitFile & tReader, const OutOptions & outPrefix) const;
+	std::vector<Bed6RecordCore> writeOutGeneInfo(TwoBit::TwoBitFile & tReader, const OutOptions & outPrefix) const;
 	void writeGffRecords(std::ostream & out) const;
 
 	static std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> getGenesFromGffForIds(const bfs::path & gffFnp, const std::set<std::string> & ids);

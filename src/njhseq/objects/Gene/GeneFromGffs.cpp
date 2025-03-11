@@ -363,13 +363,16 @@ std::unordered_map<std::string, std::vector<Bed6RecordCore>> GeneFromGffs::getIn
 	return ret;
 }
 
-void GeneFromGffs::writeOutGeneInfo(TwoBit::TwoBitFile & tReader, const OutOptions & outPrefix) const{
+std::vector<Bed6RecordCore> GeneFromGffs::writeOutGeneInfo(TwoBit::TwoBitFile & tReader, const OutOptions & outPrefix) const{
+	std::vector<Bed6RecordCore> ret;
 	auto gsInfos = generateGeneSeqInfo(tReader, false);
-
+	//exon and introns
+	auto exonIntronPositions = getIntronExonTables();
+	auto exonIntronBeds = getIntronExonBedLocs();
 	for(const auto & transcript : mRNAs_){
-		//idToTranscriptName[id].emplace_back(transcript->getIDAttr());
-		GenomicRegion mRnaRegion(*transcript) ;
-		OutOptions transcriptOut(bfs::path(outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_basePositions"), ".tab.txt");
+		GenomicRegion mRnaRegion(*transcript);
+		OutOptions transcriptOut(
+			bfs::path(outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_basePositions"), ".tab.txt");
 		transcriptOut.transferOverwriteOpts(outPrefix);
 		auto tOutFile = transcriptOut.openFile();
 		auto gsInfo = gsInfos[transcript->getIDAttr()];
@@ -377,32 +380,95 @@ void GeneFromGffs::writeOutGeneInfo(TwoBit::TwoBitFile & tReader, const OutOptio
 		gsInfo->infoTab_.addColumn(VecStr{gene_->getIDAttr()}, "GeneID");
 		gsInfo->infoTab_.addColumn(VecStr{std::string(1, transcript->strand_)}, "strand");
 		gsInfo->infoTab_.outPutContents(*tOutFile, "\t");
-		auto gDNAOpts = SeqIOOptions::genFastaOut(    outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_gDNA");
-		auto cDNAOpts = SeqIOOptions::genFastaOut(    outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_cDNA");
-		auto proteinOpts = SeqIOOptions::genFastaOut( outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_protein");
-		auto tableOpts = TableIOOpts::genTabFileOut(  outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_exonIntronPositions", true);
-		auto bedOpts = OutOptions(bfs::path(          outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_exonIntronPositions.bed"));
-		auto transcriptBedOpts = OutOptions(bfs::path(outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + ".bed"));
+		auto gDNAOpts = SeqIOOptions::genFastaOut(
+			outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_gDNA");
+		auto cDNAOpts = SeqIOOptions::genFastaOut(
+			outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_cDNA");
+		auto proteinOpts = SeqIOOptions::genFastaOut(
+			outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_protein");
+		auto tableOpts = TableIOOpts::genTabFileOut(
+			outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_exonIntronPositions", true);
+		auto bedOpts = OutOptions(bfs::path(
+			outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_exonIntronPositions.bed"));
+		auto transcriptBedOpts = OutOptions(
+			bfs::path(outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_withUTR.bed"));
+		auto transcriptJustCodingBedOpts = OutOptions(
+			bfs::path(outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + ".bed"));
+
 		bedOpts.transferOverwriteOpts(outPrefix);
 		transcriptBedOpts.transferOverwriteOpts(outPrefix);
+		transcriptJustCodingBedOpts.transferOverwriteOpts(outPrefix);
 		tableOpts.out_.transferOverwriteOpts(outPrefix);
-		OutputStream transcriptBedOut(transcriptBedOpts);
-		auto transcriptGenomicOutRec = GenomicRegion(*transcript);
-		transcriptGenomicOutRec.meta_.addMeta("geneID", gene_->getAttr("ID"));
-		transcriptGenomicOutRec.meta_.addMeta("transcriptID", transcript->getAttr("ID"));
-		transcriptGenomicOutRec.meta_.addMeta("geneName", getGeneDetailedName()[transcript->getAttr("ID")]);
-		if (gene_->hasAttr("Name")) {
-			transcriptGenomicOutRec.meta_.addMeta("CommonName", gene_->getAttr("Name"));
 
+		// transcript
+		OutputStream transcriptBedOut(transcriptBedOpts);
+		auto transcriptBedRecord = GenomicRegion(*transcript).genBedRecordCore();
+		MetaDataInName transcriptMeta;
+		transcriptMeta.addMeta("TranscriptID", transcript->getAttr("ID"));
+		transcriptMeta.addMeta("ID", gene_->getAttr("ID"));
+		transcriptMeta.addMeta("feature", gene_->type_);
+		transcriptMeta.addMeta("description", getOneGeneDetailedName());
+		if (gene_->hasAttr("Name")) {
+			transcriptMeta.addMeta("Name", gene_->getAttr("Name"));
 		}
-		transcriptBedOut << transcriptGenomicOutRec.genBedRecordCore().toDelimStrWithExtra() <<std::endl;
-		auto exonIntronPositions = getIntronExonTables();
-		auto exonIntronBeds = getIntronExonBedLocs();
+
+		transcriptBedRecord.extraFields_.emplace_back(transcriptMeta.createMetaName());
+		transcriptBedOut << transcriptBedRecord.toDelimStrWithExtra() << std::endl;
+
+		//exon and introns
 		exonIntronPositions[transcript->getIDAttr()].outPutContents(tableOpts);
 		BioDataFileIO<Bed6RecordCore> reader{IoOptions(bedOpts)};
-		reader.openWrite(exonIntronBeds[transcript->getIDAttr()], [](const Bed6RecordCore & record, std::ostream & out){
+		reader.openWrite(exonIntronBeds[transcript->getIDAttr()], [](const Bed6RecordCore& record, std::ostream& out) {
 			out << record.toDelimStrWithExtra() << std::endl;
 		});
+
+
+
+		//get just the coding region of the transcript, which will be the transcript but just start and end
+		//modified to be the min start of the CDs_ and the max end of the CDS_
+		OutputStream transcriptJustCodingBedOut(transcriptJustCodingBedOpts);
+		uint32_t minCD = std::numeric_limits<uint32_t>::max();
+		uint32_t maxCD = 0;
+		for (const auto& cd: CDS_.at(transcript->getIDAttr())) {
+			auto cdBedRec = GenomicRegion(*cd).genBedRecordCore();
+			if (cdBedRec.chromStart_ < minCD) {
+				minCD = cdBedRec.chromStart_;
+			}
+			if (cdBedRec.chromEnd_ > maxCD) {
+				maxCD = cdBedRec.chromEnd_;
+			}
+		}
+		auto transcriptBedRecordJustCoding = transcriptBedRecord;
+		transcriptBedRecordJustCoding.chromStart_ = minCD;
+		transcriptBedRecordJustCoding.chromEnd_ = maxCD;
+		transcriptBedRecordJustCoding.score_ = maxCD - minCD;
+		transcriptBedRecordJustCoding.name_ = njh::pasteAsStr(transcriptBedRecordJustCoding.genUIDFromCoords(), "_",
+		                                                      transcript->getAttr("ID"));
+		transcriptJustCodingBedOut << transcriptBedRecordJustCoding.toDelimStrWithExtra() << std::endl;
+		ret.emplace_back(transcriptBedRecordJustCoding);
+		if (exonIntronBeds[transcript->getIDAttr()].size() > 1) {
+			auto outRegionInfo = transcriptBedRecordJustCoding;
+			outRegionInfo.name_ = transcript->getAttr("ID");
+			OutputStream intronMaskingFile(bfs::path(outPrefix.outFilename_.string() + "_" + transcript->getAttr("ID") + "_intronMasking.tsv"));
+			intronMaskingFile << "#chrom\tstart\tend\tregionUID\tlength\tstrand\tref_start\tref_segment_size\treplacement_size\treplacement_name" << std::endl;
+			//create a masking file for introns
+			for (const auto & intronExon : exonIntronBeds[transcript->getIDAttr()]) {
+				if (intronExon.name_.find("-intron") != std::string::npos) {
+					intronMaskingFile << outRegionInfo.toDelimStr();
+					if (outRegionInfo.strand_ == '+') {
+						intronMaskingFile << "\t" << intronExon.chromStart_ - outRegionInfo.chromStart_;
+					} else {
+						intronMaskingFile << "\t" << outRegionInfo.chromEnd_ - intronExon.chromEnd_;
+					}
+					intronMaskingFile
+									<< "\t" << intronExon.length()
+									<< "\t" << intronExon.length()
+									<< "\t" << intronExon.name_ << std::endl;
+				}
+			}
+		}
+
+		//gDNA and cDNA
 		gDNAOpts.out_.transferOverwriteOpts(outPrefix);
 		cDNAOpts.out_.transferOverwriteOpts(outPrefix);
 		proteinOpts.out_.transferOverwriteOpts(outPrefix);
@@ -410,12 +476,16 @@ void GeneFromGffs::writeOutGeneInfo(TwoBit::TwoBitFile & tReader, const OutOptio
 		gsInfo->gDna_.name_ = transcript->getAttr("ID") + "_GenomicDNA";
 		SeqOutput::write(std::vector<seqInfo>{gsInfo->gDna_}, gDNAOpts);
 		SeqOutput::write(std::vector<seqInfo>{gsInfo->cDna_}, cDNAOpts);
-		gsInfo->protein_.name_ = transcript->getAttr("ID") + "_protein";
-		if('*' == gsInfo->protein_.seq_.back()){
-			gsInfo->protein_.trimBack(gsInfo->protein_.seq_.size() - 1);
+
+		//translate
+		auto protein = gsInfo->cDna_.translateRet(false, false);
+		protein.name_ = transcript->getAttr("ID") + "_protein";
+		if ('*' == protein.seq_.back()) {
+			protein.trimBack(protein.seq_.size() - 1);
 		}
-		SeqOutput::write(std::vector<seqInfo>{gsInfo->protein_}, proteinOpts);
+		SeqOutput::write(std::vector<seqInfo>{protein}, proteinOpts);
 	}
+	return ret;
 }
 
 std::unordered_map<std::string, std::shared_ptr<GeneSeqInfo>> GeneFromGffs::generateGeneSeqInfo(TwoBit::TwoBitFile & tReader, bool oneBased) const{
@@ -915,11 +985,11 @@ void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars& pars
 	std::vector<Bed6RecordCore> allTranscriptRecords;
 	TwoBit::TwoBitFile tReader(pars.twoBitFnp);
 
-	std::string gffHeader = ""; {
+	std::string gffHeader; {
 		std::stringstream gffHeaderStream;
 		//write header
 		std::ifstream infile(pars.inputFile.string());
-		std::string line = "";
+		std::string line;
 		while ('#' == infile.peek()) {
 			njh::files::crossPlatGetline(infile, line);
 			gffHeaderStream << line << std::endl;
@@ -928,13 +998,7 @@ void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars& pars
 	}
 
 	for (const auto& gene: genes) {
-		// std::cout << gene.first << "\t" << gene.second->getOneGeneDetailedName() << std::endl;
-		// auto names = gene.second->getGeneDetailedName();
-		// for(const auto & name : names){
-		// 	std::cout << name.first << "\t" << name.second << std::endl;
-		// }
-		auto gsInfos = gene.second->generateGeneSeqInfo(tReader, false);
-		//gff
+		// write out gff
 		auto gffOpts = OutOptions(
 			bfs::path(pars.outOpts.outFilename_.string() + "_" + gene.second->gene_->getAttr("ID") + ".gff"));
 		gffOpts.transferOverwriteOpts(pars.outOpts);
@@ -942,114 +1006,16 @@ void GeneFromGffs::gffRecordIDsToGeneInfo(const gffRecordIDsToGeneInfoPars& pars
 		gffOut << gffHeader;
 		gene.second->writeGffRecords(gffOut);
 
-		for (const auto& transcript: gene.second->mRNAs_) {
-			GenomicRegion mRnaRegion(*transcript);
-			OutOptions transcriptOut(
-				bfs::path(pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_basePositions"), ".tab.txt");
-			transcriptOut.transferOverwriteOpts(pars.outOpts);
-			auto tOutFile = transcriptOut.openFile();
-			auto gsInfo = gsInfos[transcript->getIDAttr()];
-			gsInfo->infoTab_.addColumn(VecStr{transcript->getIDAttr()}, "transcript");
-			gsInfo->infoTab_.addColumn(VecStr{gene.second->gene_->getIDAttr()}, "GeneID");
-			gsInfo->infoTab_.addColumn(VecStr{std::string(1, transcript->strand_)}, "strand");
-			gsInfo->infoTab_.outPutContents(*tOutFile, "\t");
-			auto gDNAOpts = SeqIOOptions::genFastaOut(
-				pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_gDNA");
-			auto cDNAOpts = SeqIOOptions::genFastaOut(
-				pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_cDNA");
-			auto proteinOpts = SeqIOOptions::genFastaOut(
-				pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_protein");
-			auto tableOpts = TableIOOpts::genTabFileOut(
-				pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_exonIntronPositions", true);
-			auto bedOpts = OutOptions(bfs::path(
-				pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_exonIntronPositions.bed"));
-			auto transcriptBedOpts = OutOptions(
-				bfs::path(pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + "_withUTR.bed"));
-			auto transcriptJustCodingBedOpts = OutOptions(
-				bfs::path(pars.outOpts.outFilename_.string() + "_" + transcript->getAttr("ID") + ".bed"));
-
-			bedOpts.transferOverwriteOpts(pars.outOpts);
-			transcriptBedOpts.transferOverwriteOpts(pars.outOpts);
-			transcriptJustCodingBedOpts.transferOverwriteOpts(pars.outOpts);
-			tableOpts.out_.transferOverwriteOpts(pars.outOpts);
-
-			// transcript
-			OutputStream transcriptBedOut(transcriptBedOpts);
-
-			auto transcriptBedRecord = GenomicRegion(*transcript).genBedRecordCore();
-			MetaDataInName transcriptMeta;
-			transcriptMeta.addMeta("TranscriptID", transcript->getAttr("ID"));
-			transcriptMeta.addMeta("ID", gene.second->gene_->getAttr("ID"));
-			transcriptMeta.addMeta("feature", gene.second->gene_->type_);
-			transcriptMeta.addMeta("description", gene.second->getOneGeneDetailedName());
-			if (gene.second->gene_->hasAttr("Name")) {
-				transcriptMeta.addMeta("Name", gene.second->gene_->getAttr("Name"));
-			}
-
-			transcriptBedRecord.extraFields_.emplace_back(transcriptMeta.createMetaName());
-			transcriptBedOut << transcriptBedRecord.toDelimStrWithExtra() << std::endl;
-
-			//exon and introns
-			auto exonIntronPositions = gene.second->getIntronExonTables();
-			auto exonIntronBeds = gene.second->getIntronExonBedLocs();
-			exonIntronPositions[transcript->getIDAttr()].outPutContents(tableOpts);
-			BioDataFileIO<Bed6RecordCore> reader{IoOptions(bedOpts)};
-			reader.openWrite(exonIntronBeds[transcript->getIDAttr()], [](const Bed6RecordCore& record, std::ostream& out) {
-				out << record.toDelimStrWithExtra() << std::endl;
-			});
-
-			//get just the coding region of the transcript, which will be the transcript but just start and end
-			//modified to be the min start of the CDs_ and the max end of the CDS_
-			OutputStream transcriptJustCodingBedOut(transcriptJustCodingBedOpts);
-			// std::vector<Bed6RecordCore> cdsRecs;
-			uint32_t minCD = std::numeric_limits<uint32_t>::max();
-			uint32_t maxCD = 0;
-			for (const auto& cd: gene.second->CDS_.at(transcript->getIDAttr())) {
-				auto cdBedRec = GenomicRegion(*cd).genBedRecordCore();
-				if (cdBedRec.chromStart_ < minCD) {
-					minCD = cdBedRec.chromStart_;
-				}
-				if (cdBedRec.chromEnd_ > maxCD) {
-					maxCD = cdBedRec.chromEnd_;
-				}
-			}
-
-			auto transcriptBedRecordJustCoding = transcriptBedRecord;
-
-			transcriptBedRecordJustCoding.chromStart_ = minCD;
-			transcriptBedRecordJustCoding.chromEnd_ = maxCD;
-			transcriptBedRecordJustCoding.score_ = maxCD - minCD;
-			transcriptBedRecordJustCoding.name_ = njh::pasteAsStr(transcriptBedRecordJustCoding.genUIDFromCoords(), "_",
-			                                                      transcript->getAttr("ID"));
-			// allTranscriptRecords.emplace_back(transcriptBedRecord);
-			transcriptJustCodingBedOut << transcriptBedRecordJustCoding.toDelimStrWithExtra() << std::endl;
-
-			allTranscriptRecords.emplace_back(transcriptBedRecordJustCoding);
-
-
-			//gDNA and cDNA
-			gDNAOpts.out_.transferOverwriteOpts(pars.outOpts);
-			cDNAOpts.out_.transferOverwriteOpts(pars.outOpts);
-			proteinOpts.out_.transferOverwriteOpts(pars.outOpts);
-			gsInfo->cDna_.name_ = transcript->getAttr("ID") + "_CodingDNA";
-			gsInfo->gDna_.name_ = transcript->getAttr("ID") + "_GenomicDNA";
-			SeqOutput::write(std::vector<seqInfo>{gsInfo->gDna_}, gDNAOpts);
-			SeqOutput::write(std::vector<seqInfo>{gsInfo->cDna_}, cDNAOpts);
-			gsInfo->cDna_.name_ = transcript->getAttr("ID") + "_protein";
-			gsInfo->cDna_.translate(false, false);
-			if ('*' == gsInfo->cDna_.seq_.back()) {
-				gsInfo->cDna_.trimBack(gsInfo->cDna_.seq_.size() - 1);
-			}
-			SeqOutput::write(std::vector<seqInfo>{gsInfo->cDna_}, proteinOpts);
-		}
+		// write out info per transcript
+		addOtherVec(allTranscriptRecords, gene.second->writeOutGeneInfo(tReader, pars.outOpts));
 	}
+
 	auto transcriptBedOpts = OutOptions(bfs::path(pars.outOpts.outFilename_.string() + "_" + "allTranscripts" + ".bed"));
 	OutputStream transcriptBedOut(transcriptBedOpts);
 	BedUtility::coordSort(allTranscriptRecords, false);
-	for (const auto& bedRecod: allTranscriptRecords) {
-		transcriptBedOut << bedRecod.toDelimStrWithExtra() << std::endl;
+	for (const auto& bed6_record: allTranscriptRecords) {
+		transcriptBedOut << bed6_record.toDelimStrWithExtra() << std::endl;
 	}
-
 }
 
 } /* namespace njhseq */
