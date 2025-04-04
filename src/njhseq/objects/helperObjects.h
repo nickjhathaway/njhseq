@@ -34,5 +34,7 @@
 
 #include "njhseq/objects/helperObjects/PeptideLibraryReducer.hpp"
 #include "njhseq/objects/helperObjects/sampInfo.hpp"
+#include "njhseq/objects/helperObjects/RenamingKeyUtil.hpp"
+
 
 

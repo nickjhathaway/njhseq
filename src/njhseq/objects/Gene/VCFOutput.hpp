@@ -147,10 +147,10 @@ public:
 		[[nodiscard]] Json::Value toJson() const ;
 	};
 
-	std::map<std::string,FormatEntry> formatEntries_;
-	std::map<std::string,InfoEntry> infoEntries_;
+	std::map<std::string, FormatEntry> formatEntries_;
+	std::map<std::string, InfoEntry> infoEntries_;
 	std::vector<FilterEntry> filterEntries_;
-	std::map<std::string,ContigEntry> contigEntries_;
+	std::map<std::string, ContigEntry> contigEntries_;
 
 	class VCFRecord {
 	public:
@@ -254,6 +254,7 @@ public:
 	void writeOutFixedOnly(std::ostream & out, const std::vector<GenomicRegion> & selectRegions = {}) const;
 
 
+	void changeContigNames(const std::unordered_map<std::string, std::string> & name_key);
 
 
 	/**

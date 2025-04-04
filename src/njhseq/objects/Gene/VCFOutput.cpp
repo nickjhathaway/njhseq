@@ -142,6 +142,7 @@ void VCFOutput::VCFRecord::autoAddTotalDP_RO_AO_InfoFields() {
 	info_.addMeta("DP", totalDP, true);
 	info_.addMeta("RO", totalRO, true);
 	info_.addMeta("AO", njh::conToStr(totalAOs, ","), true);
+
 }
 
 
@@ -516,6 +517,35 @@ void VCFOutput::writeOutHeaderFieldsOtherThanFormat(std::ostream & vcfOut) const
 	}
 }
 
+void VCFOutput::changeContigNames(const std::unordered_map<std::string, std::string> & name_key) {
+	VecStr missing_name;
+	std::map<std::string, ContigEntry> replacement_map;
+	for (auto & contig : contigEntries_) {
+		if (njh::notIn(contig.second.id_, name_key)) {
+			missing_name.emplace_back(contig.first);
+		} else {
+			auto replacement_name =  njh::mapAt(name_key, contig.second.id_);
+			auto replacement_contig = contig.second;
+			replacement_contig.id_ =  replacement_name;
+			if (njh::in(replacement_name, replacement_map)) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "already have replacement name: " << replacement_name << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+			replacement_map.emplace(replacement_name, replacement_contig);
+		}
+	}
+	if (!missing_name.empty()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " << "missing the following contig names from renmaing key: " << njh::conToStr(missing_name, ",") << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	contigEntries_ = replacement_map;
+	//rename in records
+	for (auto & record: records_) {
+		record.chrom_ = name_key.at(record.chrom_);
+	}
+}
 
 void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut, const std::vector<GenomicRegion> & selectRegions) const {
 	vcfOut << "##fileformat=" << vcfFormatVersion_ << std::endl;
@@ -628,13 +658,11 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 			throw std::runtime_error{ss.str()};
 		}
 		for(const auto & rec : records_) {
-
 			auto currentSetOfSamples = njh::vecToSet(getVectorOfMapKeys(rec.sampleFormatInfos_));
 			if(firstSetOfSamples != currentSetOfSamples) {
 				std::vector<std::string> uniqueTo1;
 				std::vector<std::string> uniqueTo2;
 				std::vector<std::string> inBoth;
-
 				njh::decompose_sets(firstSetOfSamples.begin(), firstSetOfSamples.end(),
 					currentSetOfSamples.begin(), currentSetOfSamples.end(),
 					std::back_inserter(uniqueTo1),
@@ -672,6 +700,7 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 					continue;
 				}
 			}
+
 			vcfOut << rec.chrom_
 			<< "\t" << rec.pos_
 			<< "\t" << rec.id_
