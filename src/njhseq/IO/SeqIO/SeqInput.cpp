@@ -319,11 +319,11 @@ void SeqInput::openInLockFree() {
 	auto openPrimSec =
 			[this,&failedToOpen]() {
 				priReader_ = std::make_unique<InputStream>(InOptions(ioOptions_.firstName_));
-				if (!(*priReader_)) {
+				if (!(*priReader_) || ioOptions_.secondName_.empty()) {
 					failedToOpen = true;
 				}
 				secReader_ = std::make_unique<InputStream>(InOptions(ioOptions_.secondName_));
-				if (!(*secReader_)) {
+				if (!(*secReader_) || ioOptions_.secondName_.empty()) {
 					failedToOpen = true;
 				}
 			};
@@ -377,13 +377,15 @@ void SeqInput::openInLockFree() {
 		throw std::runtime_error { ssFormatCheck.str() };
 		break;
 	}
-
 	if (failedToOpen) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ": Error in opening : "
-				<< ioOptions_.firstName_;
-		if ("" != ioOptions_.secondName_) {
+		ss << __PRETTY_FUNCTION__ ;
+		ss << ": Error in opening : " << ioOptions_.firstName_;
+		if (!ioOptions_.secondName_.empty()) {
 			ss << " or " << ioOptions_.secondName_;
+		}
+		if (ioOptions_.isPairedIn() && ioOptions_.secondName_.empty() && !ioOptions_.firstName_.empty()) {
+			ss << "\nerror in paired input, first name: " << ioOptions_.firstName_ << " but second name left blank";
 		}
 		ss << "\n";
 		throw std::runtime_error { ss.str() };

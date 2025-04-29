@@ -90,7 +90,10 @@ struct SeqIOOptions {
   static inFormats getInFormat(const std::string & format);
   static outFormats getOutFormat(const std::string & format);
   static inFormats getInFormatFromFnp(const bfs::path & fnp);
-  static outFormats getOutFormatFromFnp(const bfs::path & fnp);
+	static inFormats getInFormatFromFnpExcludePaired(const bfs::path & fnp);
+	static outFormats getOutFormatFromFnp(const bfs::path & fnp);
+	static outFormats getOutFormatFromFnpExcludePaired(const bfs::path & fnp);
+
   static outFormats getOutFormat(inFormats format);
   static inFormats getInFormat(outFormats format);
 

@@ -115,6 +115,36 @@ SeqIOOptions::outFormats SeqIOOptions::getOutFormat(const std::string & format){
 	return out;
 }
 
+
+SeqIOOptions::inFormats SeqIOOptions::getInFormatFromFnpExcludePaired(const bfs::path & fnp){
+	//below is somewhat dangerous because it wouldn't be unusual for a regular unpaired file to end with _1.fastq so
+	//this could lead to a mis identification of paired reads
+	const auto& fnpStr = fnp.string();
+	inFormats in = inFormats::NOFORMAT;
+	if (njh::endsWith(fnpStr, ".fastq") || njh::endsWith(fnpStr, ".fq") || njh::endsWith(fnpStr, ".fnq")) {
+		in =  inFormats::FASTQ;
+	} else if (njh::endsWith(fnpStr, ".fastq.gz")|| njh::endsWith(fnpStr, ".fq.gz") || njh::endsWith(fnpStr, ".fnq.gz")) {
+		in =  inFormats::FASTQGZ;
+	} else if (njh::endsWith(fnpStr, ".fasta") || njh::endsWith(fnpStr, ".fa")|| njh::endsWith(fnpStr, ".fna")) {
+		in =  inFormats::FASTA;
+	} else if (njh::endsWith(fnpStr, ".fasta.gz") || njh::endsWith(fnpStr, ".fa.gz")|| njh::endsWith(fnpStr, ".fna.gz")) {
+		in =  inFormats::FASTAGZ;
+	} else if (njh::endsWith(fnpStr, ".bam")) {
+		in =  inFormats::BAM;
+	} else if (njh::endsWith(fnpStr, ".sff.txt")) {
+		in =  inFormats::SFFTXT;
+	} else if (njh::endsWith(fnpStr, ".sff")){
+		in =  inFormats::SFFBIN;
+	}else {
+
+		std::stringstream ss;
+		ss << "Unrecognized file extension for : " << fnp
+				<< ", in " << __PRETTY_FUNCTION__ << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	return in;
+}
+
 SeqIOOptions::inFormats SeqIOOptions::getInFormatFromFnp(const bfs::path & fnp){
 	//below is somewhat dangerous because it wouldn't be unusual for a regular unpaired file to end with _1.fastq so
 	//this could lead to a mis identification of paired reads
@@ -148,16 +178,48 @@ SeqIOOptions::inFormats SeqIOOptions::getInFormatFromFnp(const bfs::path & fnp){
 	return in;
 }
 
+
+
+
 SeqIOOptions::outFormats SeqIOOptions::getOutFormatFromFnp(const bfs::path & fnp){
 	//below is somewhat dangerous because it wouldn't be unusual for a regular unpaired file to end with _1.fastq so
 	//this could lead to a mis identification of paired reads
-	auto fnpStr = fnp.string();
+	const auto& fnpStr = fnp.string();
 	outFormats out = outFormats::NOFORMAT;
 	if (njh::endsWith(fnpStr, "_R1.fastq") || njh::endsWith(fnpStr, "_1.fastq")) {
 		out =  outFormats::FASTQPAIRED;
 	} else if (njh::endsWith(fnpStr, "_R1.fastq.gz") || njh::endsWith(fnpStr, "_1.fastq.gz")) {
 		out =  outFormats::FASTQPAIREDGZ;
 	} else if (njh::endsWith(fnpStr, ".fastq") || njh::endsWith(fnpStr, ".fq") || njh::endsWith(fnpStr, ".fnq")) {
+		out =  outFormats::FASTQ;
+	} else if (njh::endsWith(fnpStr, ".fastq.gz")|| njh::endsWith(fnpStr, ".fq.gz") || njh::endsWith(fnpStr, ".fnq.gz")) {
+		out =  outFormats::FASTQGZ;
+	} else if (njh::endsWith(fnpStr, ".fasta") || njh::endsWith(fnpStr, ".fa")|| njh::endsWith(fnpStr, ".fna")) {
+		out =  outFormats::FASTA;
+	} else if (njh::endsWith(fnpStr, ".fasta.gz") || njh::endsWith(fnpStr, ".fa.gz")|| njh::endsWith(fnpStr, ".fna.gz")) {
+		out =  outFormats::FASTAGZ;
+	} else if (njh::endsWith(fnpStr, ".bam")) {
+		out =  outFormats::FASTQ;
+	} else if (njh::endsWith(fnpStr, ".sff.txt")) {
+		out =  outFormats::FASTQ;
+	} else if (njh::endsWith(fnpStr, ".sff")){
+		out =  outFormats::FASTQ;
+	}else {
+		std::stringstream ss;
+		ss << "Unrecognized file extension for : " << fnp
+				<< ", in " << __PRETTY_FUNCTION__ << std::endl;
+		throw std::runtime_error { ss.str() };
+	}
+	return out;
+}
+
+
+SeqIOOptions::outFormats SeqIOOptions::getOutFormatFromFnpExcludePaired(const bfs::path & fnp){
+	//below is somewhat dangerous because it wouldn't be unusual for a regular unpaired file to end with _1.fastq so
+	//this could lead to a mis identification of paired reads
+	const auto& fnpStr = fnp.string();
+	outFormats out = outFormats::NOFORMAT;
+	if (njh::endsWith(fnpStr, ".fastq") || njh::endsWith(fnpStr, ".fq") || njh::endsWith(fnpStr, ".fnq")) {
 		out =  outFormats::FASTQ;
 	} else if (njh::endsWith(fnpStr, ".fastq.gz")|| njh::endsWith(fnpStr, ".fq.gz") || njh::endsWith(fnpStr, ".fnq.gz")) {
 		out =  outFormats::FASTQGZ;
