@@ -204,9 +204,11 @@ public:
 						if(!passMinLen){
 							if(startReg.length() + endReg.length() > pars.maxLen){
 								passMinLen = true;
-							}else if(0 == pos && endReg.length() > startReg.length() + endReg.length() > pars.maxLen){
-								passMinLen = true;
-							}else if(startReg.length() + endReg.length() > pars.maxLen && downStreamPos == (byChrom.second.size() -1)){
+							}
+							// else if(0 == pos && endReg.length() > startReg.length() + endReg.length() > pars.maxLen){
+							// 	passMinLen = true;
+							// }
+							else if(startReg.length() + endReg.length() > pars.maxLen && downStreamPos == (byChrom.second.size() -1)){
 								passMinLen = true;
 							}else if(0 == pos && downStreamPos == (byChrom.second.size() -1)){
 								passMinLen = true;

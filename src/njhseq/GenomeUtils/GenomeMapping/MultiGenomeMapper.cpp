@@ -139,12 +139,16 @@ Json::Value MultiGenomeMapper::Genome::toJson() const{
 }
 
 
-MultiGenomeMapper::IntersectedProteinInfo::IntersectedProteinInfo(std::string id, std::string Name, uint32_t aaStart, uint32_t aaStop,
-											 std::string desc) : id_(std::move(id)),
-																					 Name_(std::move(Name)),
-																					 aaStart_(aaStart),
-																					 aaStop_(aaStop),
-																					 description_(std::move(desc)) {
+MultiGenomeMapper::IntersectedProteinInfo::IntersectedProteinInfo(std::string gene_id,
+                                                                  std::string transcript_id, std::string Name,
+                                                                  uint32_t aaStart, uint32_t aaStop,
+                                                                  std::string desc) :
+	gene_id_(std::move(gene_id)),
+	id_(std::move(transcript_id)),
+	Name_(std::move(Name)),
+	aaStart_(aaStart),
+	aaStop_(aaStop),
+	description_(std::move(desc)) {
 }
 
 

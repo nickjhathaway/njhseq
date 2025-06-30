@@ -37,11 +37,13 @@ namespace njhseq {
 class MultiGenomeMapper {
 public:
 	struct IntersectedProteinInfo {
-		IntersectedProteinInfo(std::string id,
+		IntersectedProteinInfo(std::string gene_id,
+		                       std::string transcript_id,
 		                       std::string Name,
 		                       uint32_t aaStart, uint32_t aaStop,
 		                       std::string desc);
 
+		std::string gene_id_; //!< gene ID
 		std::string id_; //!< transcript ID
 		std::string Name_; //!< CommonName of the gene, if non-exist, will default to Gene ID
 		uint32_t aaStart_; //!< 1-based
