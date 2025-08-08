@@ -119,7 +119,17 @@ public:
 	bool operator >(const GenomicRegion & otherRegion) const;
 
 	Json::Value toJson() const;
-  Json::Value toJsonLocationOnly() const;
+
+	/**@brief Generate a json object with values for chrom, start, end, strand (+ or -)
+	 *
+	 * @return a json object with chrom, start, end, strand (+ or -)
+	 */
+	Json::Value toJsonLocationOnly() const;
+
+	/**@brief Generate a json object with values for chrom, start, end, strand (+ or -) , and ref_seq
+ *
+ * @return a json object with chrom, start, end, strand (+ or -), and ref_seq
+ */
 	Json::Value toJsonLocationOnly(TwoBit::TwoBitFile & twobitReader) const;
 
 	std::string createUidFromCoords() const;
