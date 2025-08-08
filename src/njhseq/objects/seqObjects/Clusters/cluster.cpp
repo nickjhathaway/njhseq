@@ -117,6 +117,7 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
  //  std::cout << "pars.hardSnpFreqCutOff: " << pars.hardSnpFreqCutOff << std::endl;
  //  std::cout << "pars.snpFreqCutOff: " << pars.snpFreqCutOff << std::endl;
  //  std::cout << "mismatches.size(): " << mismatches.size() << std::endl;
+
 	std::unordered_map<uint32_t, std::unordered_map<char, double>> mismatchesAboveCutOff;
 	for (const auto & position : mismatches) {
 		for (const auto & base : position.second) {
@@ -127,55 +128,60 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 		}
 	}
 	// std::cout << "mismatchesAboveCutOff.size(): " << mismatchesAboveCutOff.size() << std::endl;
+
 	if (!mismatchesAboveCutOff.empty()) {
 		std::unordered_map<std::string, std::vector<uint32_t>> readsSnpUids;
-		for (const auto subReadPos : iter::range(
-				reads_.size())) {
+		for (const auto subReadPos : iter::range(reads_.size())) {
 			const auto & subRead = reads_[subReadPos];
 			alignerObj.alignCache(*this, subRead, false);
 			//count gaps and mismatches and get identity
 			alignerObj.profilePrimerAlignment(*this, subRead);
 			std::stringstream ss;
 			uint32_t snpCount = 0;
-			// double freqSum = 0;
+			double freqSum = 0;
 			for (const auto & m : alignerObj.comp_.distances_.mismatches_) {
 				if (njh::in(m.second.seqBase,
 						mismatchesAboveCutOff[m.second.refBasePos])) {
 					++snpCount;
-					// freqSum +=  mismatchesAboveCutOff[m.second.refBasePos][m.second.seqBase]/seqBase_.cnt_;
+					freqSum +=  mismatchesAboveCutOff[m.second.refBasePos][m.second.seqBase]/seqBase_.cnt_;
 					ss << m.second.refBasePos << ":" << m.second.seqBase << ";";
 				}
 			}
-//			std::cout << '\t' << "freqSum: " << freqSum << std::endl;
 
 			std::string snpProfileUid = ss.str();
-//      std::cout << "\t" << "snpProfileUid: " << snpProfileUid << std::endl;
-			if ("" != snpProfileUid &&
+
+			if (!snpProfileUid.empty() &&
 					snpCount >= pars.minSnps
 //          && freqSum >= pars.snpFreqCutOff
           ) {
+				// std::cout << '\t' << "snpCount:      " << snpCount << std::endl;
+				// std::cout << '\t' << "freqSum:       " << freqSum << std::endl;
+				// std::cout << "\t" << "snpProfileUid: " << snpProfileUid << std::endl;
 				readsSnpUids[snpProfileUid].emplace_back(subReadPos);
 			}
 		}
 		std::vector<uint32_t> readsToErase;
+		// std::cout << "Counts for reads with high freq snps: " << std::endl;
 		for (const auto & readsWithSnpUid : readsSnpUids) {
       double countOfReadsWithSnpUID = 0;
+
       for(const auto & seqPos : readsWithSnpUid.second){
         countOfReadsWithSnpUID += reads_[seqPos]->seqBase_.cnt_;
       }
-//			std::cout << readsWithSnpUid.first << " " << readsWithSnpUid.second.size() << std::endl;
+			double freqOfReadsWithSnpUID = countOfReadsWithSnpUID/seqBase_.cnt_;
+			// std::cout << "\t" << readsWithSnpUid.first << " " << readsWithSnpUid.second.size() << " " << freqOfReadsWithSnpUID << std::endl;
 
-
-			if (countOfReadsWithSnpUID > pars.hardCutOff) {
+			if (countOfReadsWithSnpUID > pars.hardCutOff && freqOfReadsWithSnpUID > pars.clusterFreqCutOff) {
 //        if (readsWithSnpUid.second.size() > pars.hardCutOff) {
-//				std::cout << "\t" << readsWithSnpUid.first << " " << readsWithSnpUid.second.size() << std::endl;
+				// std::cout << njh::bashCT::red;
+				// std::cout << "\t" << readsWithSnpUid.first << " " << readsWithSnpUid.second.size() << " " << freqOfReadsWithSnpUID << std::endl;
+				// std::cout << njh::bashCT::reset;
 				std::vector<std::shared_ptr<readObject>> splitSeqs;
 				for(const auto & pos : readsWithSnpUid.second){
 					splitSeqs.push_back(reads_[pos]);
 					readsToErase.emplace_back(pos);
 				}
 				readVecSorter::sort(splitSeqs);
-//				std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				// OutOptions outOpts(bfs::path("first_name_of_first_splitSeqs.txt"));
 				// outOpts.append_ = true;
 				// OutputStream out(outOpts);
@@ -185,6 +191,9 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 				ret.back().calculateConsensus(alignerObj, true);;
 			}
 		}
+		// std::cout << "readsToErase: " << readsToErase.size()	<< std::endl;
+		// std::cout << __FILE__ << " " << __LINE__ << std::endl << std::endl;
+
 		if(!readsToErase.empty()){
 			removeReads(readsToErase);
 		}
