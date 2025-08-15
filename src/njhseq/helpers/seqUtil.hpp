@@ -27,7 +27,7 @@
 
 #include "njhseq/utils.h"
 #include "njhseq/objects/kmer/kmer.hpp"
-#include "njhseq/seqToolsUtils/aminoAcidInfo.hpp"
+#include "njhseq/objects/Gene/aminoAcidInfo.hpp"
 
 #include "njhseq/objects/dataContainers/tables/table.hpp"
 #include "njhseq/objects/seqObjects/BaseObjects/seqInfo.hpp"

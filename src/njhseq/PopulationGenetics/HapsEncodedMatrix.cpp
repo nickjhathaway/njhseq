@@ -79,10 +79,9 @@ HapsEncodedMatrix::HapsEncodedMatrix(const SetWithExternalPars & pars): pars_(pa
   if(std::numeric_limits<uint32_t>::max() != pars.minNumOfTargets){
     auto numTargetsPerSample = getNumberTargetsPerSample();
     std::unordered_set<std::string> filteredSamples;
-    for (const auto &row: numTargetsPerSample) {
-      if (njh::StrToNumConverter::stoToNum<uint32_t>(row[numTargetsPerSample.getColPos("targetCount")]) >=
-          pars_.minNumOfTargets) {
-        filteredSamples.emplace(row[numTargetsPerSample.getColPos("sample")]);
+    for (const auto &count: numTargetsPerSample) {
+      if (count.second >= pars_.minNumOfTargets) {
+        filteredSamples.emplace(count.first);
       }
     }
     if(filteredSamples.empty()){
@@ -243,14 +242,42 @@ void HapsEncodedMatrix::calcHapProbs(){
 	}
 }
 
-table HapsEncodedMatrix::getNumberTargetsPerSample() const {
-	table ret(VecStr { "sample", "targetCount" });
+
+std::unordered_map<std::string, uint32_t> HapsEncodedMatrix::getNumberTargetsPerSample() const {
+	std::unordered_map<std::string, uint32_t> ret;
 	for (const auto row : iter::range(targetsEncodeBySamp_.size())) {
-		ret.addRow(sampNamesVec_[row], vectorSum(targetsEncodeBySamp_[row]));
+		ret.emplace(sampNamesVec_[row], vectorSum(targetsEncodeBySamp_[row]));
 	}
 	return ret;
 }
+std::unordered_map<std::string, double> HapsEncodedMatrix::getTargetCoveragePerSample() const {
+	std::unordered_map<std::string, double> lociCoveragePerSample;
+	for (const auto row : iter::range(targetsEncodeBySamp_.size())) {
+		lociCoveragePerSample[sampNamesVec_[row]] = vectorSum(targetsEncodeBySamp_[row])/static_cast<double>(numberOfHapsPerTarget_.size());
+	}
+	return lociCoveragePerSample;
+}
 
+
+table HapsEncodedMatrix::getTableNumberTargetsPerSample(double coverage_cut_off) const{
+	VecStr header{"sample", "targetCount", "target_coverage"};
+	if (coverage_cut_off != std::numeric_limits<double>::min()) {
+		header.emplace_back("above_coverage_cut_off");
+	}
+	table ret(header);
+	auto coverage = getTargetCoveragePerSample();
+	auto count = getNumberTargetsPerSample();
+	for (const auto & cov : coverage) {
+		if (coverage_cut_off != std::numeric_limits<double>::min()) {
+			ret.addRow(cov.first, count[cov.first], cov.second, cov.second >= coverage_cut_off);
+		} else {
+			ret.addRow(cov.first, count[cov.first], cov.second);
+		}
+	}
+	ret.sortTable("sample", true);
+
+	return ret;
+}
 
 void HapsEncodedMatrix::addMetaWithInputTab(const std::set<std::string> & metaFields){
 	TableReader inputTab(TableIOOpts::genTabFileIn(pars_.tableFnp));

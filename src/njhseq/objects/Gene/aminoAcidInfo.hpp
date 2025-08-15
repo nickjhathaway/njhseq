@@ -26,10 +26,9 @@
 #include <map>
 #include "njhseq/utils.h"
 #include "njhseq/objects/counters/strCounterMap.hpp"
+
 namespace njhseq {
 namespace aminoAcidInfo {
-
-
 
 class aminoAcid {
 public:
@@ -37,10 +36,12 @@ public:
 			uint32_t numCodons,
 			char letCode, std::string triCode,
 			std::string fullName, std::string classification,
-			double weight, double acidHydrophobicity):dnaCodons_(dnaCodons),rnaCodons_(rnaCodons),
-			numCodons_(numCodons),
-			letCode_(letCode),triCode_(triCode),fullName_(fullName),classification_(classification),
-			weight_(weight), acidHydrophobicity_(acidHydrophobicity){}
+			double weight, double acidHydrophobicity);
+
+	aminoAcid(VecStr dnaCodons,VecStr rnaCodons,
+		char letCode, std::string triCode,
+		std::string fullName);
+
 	VecStr dnaCodons_;
 	VecStr rnaCodons_;
 	uint32_t numCodons_;
@@ -64,11 +65,16 @@ public:
 
 
 	const static std::map<int, std::vector<char>> weightIntToAminoAcid;
-	const static std::unordered_map<std::string, char> rnaCodonToAminoACid ;
 
+	const static std::unordered_map<std::string, char> rnaCodonToAminoACid;
 	const static std::unordered_map<std::string, char> dnaCodonToAminoAcid;
 
 	static const std::map<int, VecStr> wieghtToSimilarDoubles;
+
+	/**@brief the usage of DNA codons by e coli
+	 * defined at https://www.kazusa.or.jp/codon/cgi-bin/showcodon.cgi?species=37762
+	 */
+	static const std::unordered_map<std::string, double> e_coli_dna_codon_usage;
 };
 
 
@@ -79,6 +85,16 @@ public:
   virtual void increaseCountByString(const std::string &seq, double cnt);
   virtual ~codonUsageCounter(){}
 };
+
+/**@brief the most efficient stop codon
+ *
+ */
+const static std::string AMBER_STOP_DNA_CODON = "TAG";
+const static std::string OCHRE_STOP_DNA_CODON = "TAA";
+const static std::string OPAL_STOP_DNA_CODON = "TGA";
+
+
+
 
 }  // namespace aminoAcidInfo
 }  // namespace njhseq

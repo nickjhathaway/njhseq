@@ -91,7 +91,9 @@ public:
 
 	void calcHapProbs();
 
-	table getNumberTargetsPerSample() const;
+	table getTableNumberTargetsPerSample(double coverage_cut_off = std::numeric_limits<double>::min()) const;
+	std::unordered_map<std::string, uint32_t> getNumberTargetsPerSample() const;
+	std::unordered_map<std::string, double> getTargetCoveragePerSample() const;
 
 	void addMeta(const bfs::path & metaFnp);
 	void addMetaWithInputTab(const std::set<std::string> & metaFields);

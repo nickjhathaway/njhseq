@@ -23,12 +23,63 @@
 // You should have received a copy of the GNU General Public License
 // along with njhseq.  If not, see <http://www.gnu.org/licenses/>.
 //
-#include "njhseq/seqToolsUtils/aminoAcidInfo.hpp"
+#include "aminoAcidInfo.hpp"
 
 
 
 namespace njhseq {
 namespace aminoAcidInfo {
+
+
+aminoAcid::aminoAcid(VecStr dnaCodons, VecStr rnaCodons,
+		uint32_t numCodons,
+		char letCode, std::string triCode,
+		std::string fullName, std::string classification,
+		double weight, double acidHydrophobicity):dnaCodons_(dnaCodons),rnaCodons_(rnaCodons),
+		numCodons_(numCodons),
+		letCode_(letCode),triCode_(triCode),fullName_(fullName),classification_(classification),
+		weight_(weight), acidHydrophobicity_(acidHydrophobicity) {
+	if (3 != triCode.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error triCode must be 3 letters, error in setting " << letCode << " with " << triCode << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+
+	VecStr warnings;
+
+	if (dnaCodons_.empty()) {
+		warnings.emplace_back(njh::pasteAsStr("dnaCodons cannot be empty, while setting ", letCode));
+	}
+	if (rnaCodons_.empty()) {
+		warnings.emplace_back(njh::pasteAsStr("rnaCodons cannot be empty, while setting ", letCode));
+	}
+	for (const auto & dna_codon : dnaCodons_) {
+		if (3 != dna_codon.size()) {
+			warnings.emplace_back(njh::pasteAsStr("dna_codon has to be 3 letters, not", dna_codon.size(), " for ", dna_codon, ", while setting ", letCode));
+		}
+	}
+	for (const auto & rnaCodon : rnaCodons_) {
+		if (3 != rnaCodon.size()) {
+			warnings.emplace_back(njh::pasteAsStr("rnaCodon has to be 3 letters, not", rnaCodon.size(), " for ", rnaCodon, ", while setting ", letCode));
+		}
+	}
+
+	if (!warnings.empty()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error, found the following issues while constructing amino acid info for " << letCode << "\n";
+		ss << njh::conToStr(warnings, "\n") << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+}
+
+aminoAcid::aminoAcid(VecStr dnaCodons,
+                     VecStr rnaCodons,
+                     char letCode, std::string triCode,
+                     std::string fullName): aminoAcid(
+	dnaCodons, rnaCodons, dnaCodons.size(), letCode, triCode, fullName, std::string("none"),
+	std::numeric_limits<double>::max(),
+	std::numeric_limits<double>::max()) {
+}
 
 const std::unordered_map<char, aminoAcid> infos::allInfo {
 	 {'A', aminoAcid(VecStr{"GCA","GCC","GCG","GCT"}, VecStr{"GCA","GCC","GCG","GCU"}, 4, 'A', "ala","Alanine", "nonpolar", 71.03711, 1.8)},
@@ -228,13 +279,35 @@ const std::map<int, VecStr> infos::wieghtToSimilarDoubles = {
     {156, {"GV", "VG"}},
     {186, {"GE", "AD", "SV", "VS", "DA", "EG"}}};
 
+
+const std::unordered_map<std::string, double> infos::e_coli_dna_codon_usage = {
+	{"TTT", 24.4}, {"TCT", 13.1}, {"TAT", 21.6}, {"TGT", 5.9},
+	{"TTC", 13.9}, {"TCC", 9.7},  {"TAC", 11.7}, {"TGC", 5.5},
+	{"TTA", 17.4}, {"TCA", 13.1}, {"TAA", 2.0},  {"TGA", 1.1},
+	{"TTG", 12.9}, {"TCG", 8.2},  {"TAG", 0.3},  {"TGG", 13.4},
+	{"CTT", 14.5}, {"CCT", 9.5},  {"CAT", 12.4}, {"CGT", 15.9},
+	{"CTC", 9.5},  {"CCC", 6.2},  {"CAC", 7.3},  {"CGC", 14.0},
+	{"CTA", 5.6},  {"CCA", 9.1},  {"CAA", 14.4}, {"CGA", 4.8},
+	{"CTG", 37.4}, {"CCG", 14.5}, {"CAG", 26.7}, {"CGG", 7.9},
+	{"ATT", 29.6}, {"ACT", 13.1}, {"AAT", 29.3}, {"AGT", 13.2},
+	{"ATC", 19.4}, {"ACC", 18.9}, {"AAC", 20.3}, {"AGC", 14.3},
+	{"ATA", 13.3}, {"ACA", 15.1}, {"AAA", 37.2}, {"AGA", 7.1},
+	{"ATG", 23.7}, {"ACG", 13.6}, {"AAG", 15.3}, {"AGG", 4.0},
+	{"GTT", 21.6}, {"GCT", 18.9}, {"GAT", 33.7}, {"GGT", 23.7},
+	{"GTC", 13.1}, {"GCC", 21.6}, {"GAC", 17.9}, {"GGC", 20.6},
+	{"GTA", 13.1}, {"GCA", 23.0}, {"GAA", 35.1}, {"GGA", 13.6},
+	{"GTG", 19.9}, {"GCG", 21.1}, {"GAG", 19.4}, {"GGG", 12.3}
+};
+
+
+
 void codonUsageCounter::increaseCountByString(const std::string &seq, double cnt){
 	//check to see if stop is a divisible by three to prevent trying to count a codon less than three
 	uint64_t stop = seq.size();
 	while (stop % 3 != 0){
 		--stop;
 	}
-	for(const auto pos : iter::range<uint64_t> (0, stop, 3)){
+	for(const auto pos : iter::range<uint64_t> (0, stop, 3)) {
 		counts_[seq.substr(pos, 3)] += cnt;
 	}
 }

@@ -26,7 +26,7 @@
 
 #include "njhseq/seqToolsUtils/seqToolsUtils.hpp"
 #include "njhseq/seqToolsUtils/distCalc.hpp"
-#include "njhseq/seqToolsUtils/aminoAcidInfo.hpp"
+
 #include "njhseq/seqToolsUtils/determinators.h"
 #include "njhseq/seqToolsUtils/ExtractionStator.hpp"
 #include "njhseq/seqToolsUtils/RefDetermination.h"

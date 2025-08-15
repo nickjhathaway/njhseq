@@ -26,7 +26,6 @@
 #include "njhseq/objects/seqObjects/readObject.hpp"
 #include "njhseq/objects/seqObjects/sffObject.hpp"
 
-#include "njhseq/seqToolsUtils/aminoAcidInfo.hpp"
 #include "njhseq/alignment.h"
 #include "njhseq/helpers/seqUtil.hpp"
 #include "njhseq/utils.h"

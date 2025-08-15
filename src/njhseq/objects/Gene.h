@@ -12,3 +12,6 @@
 #include "njhseq/objects/Gene/GenomicAminoAcidPositionTyper.hpp"
 #include "njhseq/objects/Gene/TranslatorByAlignment.hpp"
 #include "njhseq/objects/Gene/VCFOutput.hpp"
+#include "njhseq/objects/Gene/aminoAcidInfo.hpp"
+#include "njhseq/objects/Gene/CodonSampler.hpp"
+
