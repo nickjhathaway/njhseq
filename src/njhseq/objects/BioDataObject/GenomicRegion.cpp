@@ -505,6 +505,14 @@ size_t GenomicRegion::getRelativePositionFromStartStrandAware(
 	}
 }
 
+std::string GenomicRegion::extractSeq(const std::string & seq) const {
+	auto ret = seq.substr(start_, end_ - start_);
+	if (reverseSrand_) {
+		ret = seqUtil::reverseComplement(ret, "DNA");
+	}
+	return ret;
+}
+
 
 seqInfo GenomicRegion::extractSeq(TwoBit::TwoBitFile & twobitReader) const{
 	std::string buffer = "";

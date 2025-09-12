@@ -1412,6 +1412,19 @@ VecStr table::getMissingHeaders(const VecStr requiredColumns) const{
 	return columnsNotFound;
 }
 
+bool table::column_all_na(const std::string & column_name, const VecStr & nas) const {
+	checkForColumnsThrow({column_name}, __PRETTY_FUNCTION__);
+	auto col_pos = getColPos(column_name);
+	bool pass = true;
+	for (const auto & row : content_) {
+		if (njh::in(row[col_pos], nas)) {
+			pass = false;
+			break;
+		}
+	}
+	return pass;
+}
+
 table table::leftJoin(const table & otherTable) const {
 	checkForDupColumnsThrow(__PRETTY_FUNCTION__);
 	otherTable.checkForDupColumnsThrow(__PRETTY_FUNCTION__);

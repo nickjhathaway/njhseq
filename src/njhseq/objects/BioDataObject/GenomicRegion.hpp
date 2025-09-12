@@ -145,6 +145,7 @@ public:
 				const std::string & chrom) const;
 
 	seqInfo extractSeq(TwoBit::TwoBitFile & twobitReader) const;
+	std::string extractSeq(const std::string & seq) const;
 
 	size_t getRelativePositionFromStartStrandAware(size_t strandAwarePositionFromStart) const;
 

@@ -364,6 +364,8 @@ public:
 	[[nodiscard]] table leftJoin(const table & otherTable, VecStr column_names) const;
 	[[nodiscard]] table leftJoin(const table & otherTable) const;
 
+	bool column_all_na(const std::string & column_name, const VecStr & nas = {"NA"}) const;
+
 	 struct splitColWithMetaPars{
 
 		std::string column_;
@@ -374,6 +376,8 @@ public:
 		std::string sortCol_;
 		bool descending_ = false;
 	};
+
+
 
 	 static table splitColWithMeta(const table & inputTab, const splitColWithMetaPars & pars);
 
