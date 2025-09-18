@@ -71,6 +71,9 @@ GenomicRegion::GenomicRegion(const Bed6RecordCore & bed) :
 			++extraFieldCount;
 		}
 	}
+	if (bed.score_ != bed.length()) {
+		score_ = bed.score_;
+	}
 }
 
 GenomicRegion::GenomicRegion(const Bed3RecordCore & bed) :
@@ -78,7 +81,7 @@ GenomicRegion::GenomicRegion(const Bed3RecordCore & bed) :
 				njh::pasteAsStr(bed.chrom_, "-", bed.chromStart_, "-", bed.chromEnd_),
 				bed.chrom_, bed.chromStart_, bed.chromEnd_, false) {
 	//add name if extract fields present, might not always be name though
-	if(bed.extraFields_.size() > 0){
+	if(!bed.extraFields_.empty()){
 		uid_ = bed.extraFields_[0];
 	}
 }
@@ -96,6 +99,13 @@ GenomicRegion::GenomicRegion(const TandemRepeatFinderRecord & trfRecord):Genomic
 bool GenomicRegion::operator <(const GenomicRegion & otherRegion) const {
 	if(chrom_ == otherRegion.chrom_) {
 		if(start_ == otherRegion.start_) {
+			if (end_== otherRegion.end_) {
+				if (reverseSrand_ == otherRegion.reverseSrand_) {
+					//sorting by greater score so if the region is the same (same chrom, start, end) will place higher scoring region first)
+					return score_ > otherRegion.score_;
+				}
+				return reverseSrand_ < otherRegion.reverseSrand_;
+			}
 			return end_ < otherRegion.end_;
 		}
 		return start_ < otherRegion.start_;
@@ -114,6 +124,13 @@ bool GenomicRegion::operator ==(const GenomicRegion &otherRegion) const {
 bool GenomicRegion::operator >(const GenomicRegion & otherRegion) const {
 	if(chrom_ == otherRegion.chrom_) {
 		if(start_ == otherRegion.start_) {
+			if (end_== otherRegion.end_) {
+				if (reverseSrand_ == otherRegion.reverseSrand_) {
+					//sorting by greater score so if the region is the same (same chrom, start, end) will place higher scoring region last)
+					return score_ < otherRegion.score_;
+				}
+				return reverseSrand_ > otherRegion.reverseSrand_;
+			}
 			return end_ > otherRegion.end_;
 		}
 		return start_ > otherRegion.start_;
@@ -144,7 +161,7 @@ GenomicRegion::GenomicRegion(const BamTools::BamAlignment & bAln,
 				start_(bAln.Position),
 				end_(bAln.GetEndPosition()),
 				reverseSrand_(bAln.IsReverseStrand()) {
-
+	score_ = bAln.MapQuality;
 }
 
 

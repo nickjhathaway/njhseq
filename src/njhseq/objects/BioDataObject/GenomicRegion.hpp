@@ -54,6 +54,7 @@ public:
 	size_t end_;
 	bool reverseSrand_ = false;
 	bool off_ = false;
+	double score_ = std::numeric_limits<double>::max();
 
 	MetaDataInName meta_;
 
