@@ -52,32 +52,25 @@ void BioMethod::validate() const {
 BioinformaticsMethodInfo BioinformaticsMethodInfo::from_json(const nlohmann::json& j) {
     BioinformaticsMethodInfo ret;
     std::set<std::string> _known;
-    _known.insert("additional_methods");
-    if (auto it = j.find("additional_methods"); it != j.end() && !it->is_null()) { std::vector<BioMethod> _vec; for (const auto& _el : *it) _vec.emplace_back(BioMethod::from_json(_el)); ret.additional_methods_ = std::move(_vec); }
-    _known.insert("bioinformatics_method_name");
-    if (auto it = j.find("bioinformatics_method_name"); it != j.end() && !it->is_null()) ret.bioinformatics_method_name_ = it->get<std::string>();
-    _known.insert("demultiplexing_method");
-    ret.demultiplexing_method_ = BioMethod::from_json(j.at("demultiplexing_method"));
-    _known.insert("denoising_method");
-    ret.denoising_method_ = BioMethod::from_json(j.at("denoising_method"));
+    _known.insert("methods");
+    { std::vector<BioMethod> _vec; for (const auto& _el : j.at("methods")) _vec.emplace_back(BioMethod::from_json(_el)); ret.methods_ = std::move(_vec); }
+    _known.insert("pipeline");
+    if (auto it = j.find("pipeline"); it != j.end() && !it->is_null()) ret.pipeline_ = BioMethod::from_json(*it);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
 
 nlohmann::json BioinformaticsMethodInfo::to_json() const {
     nlohmann::json j = nlohmann::json::object();
-    if (additional_methods_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : additional_methods_.value()) _arr.emplace_back(_el.to_json()); j["additional_methods"] = std::move(_arr); }
-    if (bioinformatics_method_name_.has_value()) j["bioinformatics_method_name"] = bioinformatics_method_name_.value();
-    j["demultiplexing_method"] = demultiplexing_method_.to_json();
-    j["denoising_method"] = denoising_method_.to_json();
+    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : methods_) _arr.emplace_back(_el.to_json()); j["methods"] = std::move(_arr); }
+    if (pipeline_.has_value()) j["pipeline"] = pipeline_.value().to_json();
     for (const auto& kv : extras_) j[kv.first] = kv.second;
     return j;
 }
 
 void BioinformaticsMethodInfo::validate() const {
-    if (additional_methods_.has_value()) for (const auto& _el : additional_methods_.value()) _el.validate();
-    demultiplexing_method_.validate();
-    denoising_method_.validate();
+    for (const auto& _el : methods_) _el.validate();
+    if (pipeline_.has_value()) pipeline_.value().validate();
 }
 
 BioinformaticsRunInfo BioinformaticsRunInfo::from_json(const nlohmann::json& j) {

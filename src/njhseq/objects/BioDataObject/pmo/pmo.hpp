@@ -75,10 +75,8 @@ public:
 class BioinformaticsMethodInfo {
 public:
     BioinformaticsMethodInfo() = default;
-    std::optional<std::vector<BioMethod>> additional_methods_;
-    std::optional<std::string> bioinformatics_method_name_;
-    BioMethod demultiplexing_method_;
-    BioMethod denoising_method_;
+    std::vector<BioMethod> methods_;
+    std::optional<BioMethod> pipeline_;
     std::map<std::string, nlohmann::json> extras_;
 
     [[nodiscard]] static BioinformaticsMethodInfo from_json(const nlohmann::json& j);
