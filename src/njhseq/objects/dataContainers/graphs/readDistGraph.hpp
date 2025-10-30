@@ -92,7 +92,7 @@ public:
 
 	/**@brief  Construct with just a vector of reads for edges to be added latter
 	 *
-	 * @param reads the seqsuences to construct with
+	 * @param reads the sequences to construct with
 	 */
 	template<typename T>
 	readDistGraph(const std::vector<T> & reads) {
@@ -458,6 +458,21 @@ public:
 			}
 			return graphJson;
 		}
+
+	/** Remove edges if the length difference between sequences is greater than the supplied value,
+	 * works by turning edges off and then remove off edges so will interfere if edges are already being turned off and on for other reasons
+	 *
+	 * @param length_diff_exclusive the difference to use to break edges, exclusive has to be greater than this amount
+	 */
+	void remove_edges_length_diff_between_reads(const uint64_t length_diff_exclusive) {
+		for (const auto &edge: this->edges_) {
+			if (uAbsdiff(edge->nodeToNode_.begin()->second.lock()->value_->seq_.size(),
+			             edge->nodeToNode_.rbegin()->second.lock()->value_->seq_.size()) > length_diff_exclusive) {
+				edge->on_ = false;
+			}
+		}
+	  this->removeOffEdges();
+	}
 };
 
 }  // namespace njhseq
