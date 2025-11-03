@@ -89,6 +89,13 @@ njh::sys::RunOutput BioCmdsUtils::RunBwamem2Index(const bfs::path & genomeFnp) c
 	return runCmdCheck(templateCmd, genomeFnp, bwaCheckFile);
 }
 
+njh::sys::RunOutput BioCmdsUtils::RunMinimap2Index(const bfs::path & genomeFnp) const {
+	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
+	njh::sys::requireExternalProgramThrow("minimap2");
+	auto minimap2CheckFile =njh::files::replaceExtension(genomeFnp, "mmi").string();
+	std::string templateCmd = "minimap2 -d " + minimap2CheckFile + " " + genomeFnp.string();
+	return runCmdCheck(templateCmd, genomeFnp, minimap2CheckFile);
+}
 
 njh::sys::RunOutput BioCmdsUtils::RunSamtoolsFastaIndex(const bfs::path & genomeFnp) const {
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
@@ -160,11 +167,16 @@ std::unordered_map<std::string, njh::sys::RunOutput> BioCmdsUtils::runAllPossibl
 //		std::cerr << "Couldn't find " << "picard" << " skipping picard CreateSequenceDictionary" << std::endl;
 //	}
   if(njh::sys::hasSysCommand("makeblastdb")) {
-    outputs.emplace("picard", RunMakeblastdb(genomeFnp));
+    outputs.emplace("makeblastdb", RunMakeblastdb(genomeFnp));
   } else {
     std::cerr << "Couldn't find " << "makeblastdb" << " skipping makeblastdb" << std::endl;
   }
 
+	if(njh::sys::hasSysCommand("minimap2")) {
+		outputs.emplace("minimap2", RunMinimap2Index(genomeFnp));
+	} else {
+		std::cerr << "Couldn't find " << "minimap2" << " skipping minimap2" << std::endl;
+	}
 	outputs.emplace("TwoBit", RunFaToTwoBit(genomeFnp));
 //	if (njh::sys::hasSysCommand("TwoBit")) {
 //		outputs.emplace("TwoBit", RunFaToTwoBit(genomeFnp));

@@ -43,6 +43,7 @@ public:
   njh::sys::RunOutput RunMakeblastdb(const bfs::path & genomeFnp) const;
 	njh::sys::RunOutput RunBwaIndex(const bfs::path & genomeFnp) const;
 	njh::sys::RunOutput RunBwamem2Index(const bfs::path & genomeFnp) const;
+	njh::sys::RunOutput RunMinimap2Index(const bfs::path & genomeFnp) const;
 
 	njh::sys::RunOutput RunSamtoolsFastaIndex(const bfs::path & genomeFnp) const;
 	njh::sys::RunOutput RunPicardFastaSeqDict(const bfs::path & genomeFnp) const;
