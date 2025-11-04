@@ -54,8 +54,6 @@ BioinformaticsMethodInfo BioinformaticsMethodInfo::from_json(const nlohmann::jso
     std::set<std::string> _known;
     _known.insert("methods");
     { std::vector<BioMethod> _vec; for (const auto& _el : j.at("methods")) _vec.emplace_back(BioMethod::from_json(_el)); ret.methods_ = std::move(_vec); }
-    _known.insert("pipeline");
-    if (auto it = j.find("pipeline"); it != j.end() && !it->is_null()) ret.pipeline_ = BioMethod::from_json(*it);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -63,14 +61,12 @@ BioinformaticsMethodInfo BioinformaticsMethodInfo::from_json(const nlohmann::jso
 nlohmann::json BioinformaticsMethodInfo::to_json() const {
     nlohmann::json j = nlohmann::json::object();
     { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : methods_) _arr.emplace_back(_el.to_json()); j["methods"] = std::move(_arr); }
-    if (pipeline_.has_value()) j["pipeline"] = pipeline_.value().to_json();
     for (const auto& kv : extras_) j[kv.first] = kv.second;
     return j;
 }
 
 void BioinformaticsMethodInfo::validate() const {
     for (const auto& _el : methods_) _el.validate();
-    if (pipeline_.has_value()) pipeline_.value().validate();
 }
 
 BioinformaticsRunInfo BioinformaticsRunInfo::from_json(const nlohmann::json& j) {
@@ -1058,9 +1054,9 @@ void SequencingInfo::validate() const {
 StageReadCounts StageReadCounts::from_json(const nlohmann::json& j) {
     StageReadCounts ret;
     std::set<std::string> _known;
-    _known.insert("read_count");
-    if (auto it = j.find("read_count"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.read_count_ = std::numeric_limits<uint32_t>::max(); else ret.read_count_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("read_count").get_to(ret.read_count_);
+    _known.insert("reads");
+    if (auto it = j.find("reads"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.reads_ = std::numeric_limits<uint32_t>::max(); else ret.reads_ = static_cast<uint32_t>(std::stod(_s)); }
+    else j.at("reads").get_to(ret.reads_);
     _known.insert("stage");
     j.at("stage").get_to(ret.stage_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
@@ -1069,14 +1065,14 @@ StageReadCounts StageReadCounts::from_json(const nlohmann::json& j) {
 
 nlohmann::json StageReadCounts::to_json() const {
     nlohmann::json j = nlohmann::json::object();
-    if (read_count_ == std::numeric_limits<uint32_t>::max()) j["read_count"] = "NA"; else j["read_count"] = read_count_;
+    if (reads_ == std::numeric_limits<uint32_t>::max()) j["reads"] = "NA"; else j["reads"] = reads_;
     j["stage"] = stage_;
     for (const auto& kv : extras_) j[kv.first] = kv.second;
     return j;
 }
 
 void StageReadCounts::validate() const {
-    if (read_count_ < 0) throw std::runtime_error("Validation failed: StageReadCounts.read_count minimum");
+    if (reads_ < 0) throw std::runtime_error("Validation failed: StageReadCounts.reads minimum");
     if (!std::regex_match(stage_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: StageReadCounts.stage pattern");
 }
 

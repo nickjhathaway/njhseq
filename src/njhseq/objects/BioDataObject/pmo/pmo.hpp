@@ -76,7 +76,6 @@ class BioinformaticsMethodInfo {
 public:
     BioinformaticsMethodInfo() = default;
     std::vector<BioMethod> methods_;
-    std::optional<BioMethod> pipeline_;
     std::map<std::string, nlohmann::json> extras_;
 
     [[nodiscard]] static BioinformaticsMethodInfo from_json(const nlohmann::json& j);
@@ -500,10 +499,11 @@ public:
     void validate() const;
 };
 
+
 class StageReadCounts {
 public:
     StageReadCounts() = default;
-    uint32_t read_count_{std::numeric_limits<uint32_t>::max()};
+    uint32_t reads_{std::numeric_limits<uint32_t>::max()};
     std::string stage_;
     std::map<std::string, nlohmann::json> extras_;
 
