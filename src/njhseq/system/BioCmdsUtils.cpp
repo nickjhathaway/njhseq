@@ -92,7 +92,7 @@ njh::sys::RunOutput BioCmdsUtils::RunBwamem2Index(const bfs::path & genomeFnp) c
 njh::sys::RunOutput BioCmdsUtils::RunMinimap2Index(const bfs::path & genomeFnp) const {
 	checkGenomeFnpExistsThrow(genomeFnp, __PRETTY_FUNCTION__);
 	njh::sys::requireExternalProgramThrow("minimap2");
-	auto minimap2CheckFile =njh::files::replaceExtension(genomeFnp, "mmi").string();
+	auto minimap2CheckFile =njh::files::replaceExtension(genomeFnp, ".mmi").string();
 	std::string templateCmd = "minimap2 -d " + minimap2CheckFile + " " + genomeFnp.string();
 	return runCmdCheck(templateCmd, genomeFnp, minimap2CheckFile);
 }
