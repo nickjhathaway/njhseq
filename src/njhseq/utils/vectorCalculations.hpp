@@ -26,6 +26,8 @@
 #include "njhseq/utils/utils.hpp"
 #include <vector>
 #include <algorithm>
+#include <boost/math/statistics/univariate_statistics.hpp>
+
 //#include <armadillo>
 
 /// various functions to calculate stats on vectors of any number
@@ -293,6 +295,49 @@ template<typename T>
 T getSumFromVecStr(const VecStr & strNums){
 	auto converted = njh::lexical_cast_con<VecStr, std::vector<T>>(strNums);
 	return vectorSum(converted);
+}
+
+
+template<typename T>
+double lins_concordance_correlation(
+    const std::vector<T>& x,
+    const std::vector<T>& y){
+  // If all elements are exactly equal
+  bool all_equal = true;
+  for (size_t i = 0; i < x.size(); ++i) {
+    if (x[i] != y[i]) { all_equal = false; break; }
+  }
+  if (all_equal) return 1.0;
+
+  if (x.size() != y.size() || x.empty())
+    throw std::invalid_argument("Vectors must have same non-zero length");
+
+  // Compute means
+  const double mean_x = boost::math::statistics::mean(x);
+  const double mean_y = boost::math::statistics::mean(y);
+
+  // Compute variances (population) and covariance
+  const double var_x = boost::math::statistics::variance(x);
+  const double var_y = boost::math::statistics::variance(y);
+
+  double cov_xy = 0.0;
+  for (size_t i = 0; i < x.size(); ++i) {
+    cov_xy += (x[i] - mean_x) * (y[i] - mean_y);
+  }
+  cov_xy /= static_cast<double>(x.size());
+
+  // Pearson correlation coefficient
+  const double r = cov_xy / std::sqrt(var_x * var_y);
+
+  // Lin’s CCC formula:
+  // CCC = (2 * r * σx * σy) / (σx² + σy² + (μx - μy)²)
+  const double sd_x = std::sqrt(var_x);
+  const double sd_y = std::sqrt(var_y);
+
+  const double numerator = 2.0 * r * sd_x * sd_y;
+  const double denominator = var_x + var_y + std::pow(mean_x - mean_y, 2.0);
+
+  return numerator / denominator;
 }
 
 
