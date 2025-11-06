@@ -134,8 +134,10 @@ void sampleCollapse::excludeChimeras(bool update) {
   uint32_t chimeraNum = 0;
   //collapsed_.clusters_ = readVecSplitter::splitVectorOnRemoveAdd(
   //    collapsed_.clusters_, excluded_.clusters_, chimeraNum, "none", false);
-  collapsed_.clusters_ = readVecSplitter::splitVectorWithNameContainingAdd(
-        collapsed_.clusters_,"CHI_", excluded_.clusters_, chimeraNum, false);
+	std::function<bool(const sampleCluster&)> check_if_chimeric_func = [](const sampleCluster & clus){ return clus.seqBase_.isChimeric();};
+  collapsed_.clusters_ = readVecSplitter::splitVectorWithExclusionCriteriaAdd(
+
+        collapsed_.clusters_, check_if_chimeric_func, "is_chimeric", excluded_.clusters_, chimeraNum, false);
   if (update) {
     updateAfterExclustion();
   }

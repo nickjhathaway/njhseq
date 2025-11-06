@@ -106,7 +106,7 @@ std::unordered_map<std::string, std::string> renameReadNames(std::vector<T>& rea
   VecStr originalNames = readVec::getNames(reads);
   uint64_t maxSize = reads.size();
   for (auto& seq : reads) {
-    bool chimera = getSeqBase(seq).name_.find("CHI") != std::string::npos;
+  	bool chimera = getSeqBase(seq).isChimeric();
     bool comp = getSeqBase(seq).name_.find("_Comp") != std::string::npos;
     getSeqBase(seq).name_ = stub;
     if (chimera && keepChimeraFlag) {

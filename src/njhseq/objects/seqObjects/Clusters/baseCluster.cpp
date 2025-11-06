@@ -733,7 +733,6 @@ bool baseCluster::compare(baseCluster & read, aligner & alignerObj,
 
 bool baseCluster::isClusterCompletelyChimeric() {
   for (const auto &read : reads_) {
-    //if (read->seqBase_.name_.find("CHI") == std::string::npos) {
   	if(read->seqBase_.isChimeric()){
       return false;
     }
@@ -746,7 +745,6 @@ bool baseCluster::isClusterAtLeastHalfChimeric() {
 	uint32_t chiReadCnt = 0;
 	double total = readVec::getTotalReadCount(reads_);
 	for (const auto &read : reads_) {
-		//if (read->seqBase_.name_.find("CHI") != std::string::npos) {
 		if(read->seqBase_.isChimeric()){
 			// ++chiCount;
 			chiReadCnt += read->seqBase_.cnt_;
@@ -763,7 +761,6 @@ bool baseCluster::isClusterAtLeastChimericCutOff(double cutOff) {
 	uint32_t chiReadCnt = 0;
 	double total = readVec::getTotalReadCount(reads_);
 	for (const auto &read : reads_) {
-		//if (read->seqBase_.name_.find("CHI") != std::string::npos) {
 		if(read->seqBase_.isChimeric()){
 			// ++chiCount;
 			chiReadCnt += read->seqBase_.cnt_;

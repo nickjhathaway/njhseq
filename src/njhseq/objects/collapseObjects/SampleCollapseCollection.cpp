@@ -691,16 +691,14 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 //			std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			setUpSampleFromPrevious(sampleName);
 		}
-//		std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//		std::cout << "sampleName: " <<  sampleName << std::endl;
-//		std::cout << "njh::in(sampleName, lowRepCntSamples_): " << njh::colorBool(njh::in(sampleName, lowRepCntSamples_))<< std::endl;
-//		std::cout << "njh::in(sampleName, sampleCollapses_): " << njh::colorBool(njh::in(sampleName, sampleCollapses_))<< std::endl;
+
 
 		if (njh::in(sampleName, lowRepCntSamples_)
 				|| sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_
 						< preFiltCutOffs_.sampleMinReadCount) {
 			continue;
 		}
+
 //		std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		passingSamples_.emplace_back(sampleName);
 		double totalReadCnt = 0;

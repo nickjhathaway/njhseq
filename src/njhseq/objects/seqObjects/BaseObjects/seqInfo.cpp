@@ -562,14 +562,14 @@ std::string seqInfo::getFastqQualString(uint8_t offset) const {
 
 //
 void seqInfo::markAsChimeric() {
-	if (name_.find("CHI") == std::string::npos) {
+	if (!njh::beginsWith(name_, "CHI_")) {
 		name_ = "CHI_" + name_;
 	}
 }
 
 void seqInfo::unmarkAsChimeric() {
-	if (name_.find("CHI") != std::string::npos) {
-		name_ = njh::replaceString(name_, "CHI_", "");
+	if (njh::beginsWith(name_, "CHI_")) {
+		name_ = name_.substr(4);
 	}
 }
 
@@ -668,7 +668,9 @@ std::string seqInfo::getStubName(bool removeChiFlag) const {
 	}
 
 	if (removeChiFlag) {
-		outString = njh::replaceString(outString, "CHI_", "");
+		if (njh::beginsWith(outString, "CHI_")) {
+			outString = outString.substr(4);
+		}
 	}
 //	if (removeChiFlag) {
 //		if(MetaDataInName::nameHasMetaData(outString)){
@@ -814,7 +816,9 @@ std::string getStubNameExternal(const std::string & name, bool removeChiFlag)  {
 	}
 
 	if (removeChiFlag) {
-		outString = njh::replaceString(outString, "CHI_", "");
+		if (njh::beginsWith(outString, "CHI_")) {
+			outString = outString.substr(4);
+		}
 	}
 //	if (removeChiFlag) {
 //		if(MetaDataInName::nameHasMetaData(outString)){
@@ -844,24 +848,16 @@ std::string seqInfo::getOwnSampName() const {
 		name = getStubName(true);
 	}
 	//std::cout << name.substr(0,name.rfind(".")) << std::endl;
-	return name.substr(0,name.rfind("."));
-	/*
-	std::string name = name_;
-	auto firstBracket = name_.find("[");
-	if(std::string::npos != firstBracket){
-		name = name.substr(firstBracket);
-	}
-	VecStr toks = tokenizeString(name, ".");
-	return njh::replaceString(toks[0], "CHI_", "");
-	*/
+	return name.substr(0,name.rfind('.'));
+
 }
 
 bool seqInfo::nameHasMetaData() const {
-	auto firstBracket = name_.find("[");
+	auto firstBracket = name_.find('[');
 	if (std::string::npos == firstBracket) {
 		return false;
 	}
-	auto secondBracket = name_.find("]", firstBracket);
+	auto secondBracket = name_.find(']', firstBracket);
 	if (std::string::npos == secondBracket) {
 		return false;
 	}
@@ -938,7 +934,6 @@ void seqInfo::processNameForMeta(std::unordered_map<std::string, std::string> & 
 
 bool seqInfo::isChimeric() const {
 	return njh::beginsWith(name_, "CHI_");
-	//return name_.find("CHI") != std::string::npos;
 }
 
 bool seqInfo::operator ==(const seqInfo & other) const{

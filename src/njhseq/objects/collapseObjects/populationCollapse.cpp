@@ -184,7 +184,7 @@ void populationCollapse::renameToOtherPopNames(const std::vector<readObject> &pr
 		allIds[name] = 0;
 	}
   for (auto &clus : collapsed_.clusters_) {
-  	bool chimeric = clus.seqBase_.name_.find("CHI") != std::string::npos;
+  	bool chimeric = clus.seqBase_.isChimeric();
     double bestScore = 0;
     uint32_t bestRefPos = std::numeric_limits<uint32_t>::max();
     for (const auto refPos : iter::range(previousPop.size())) {
