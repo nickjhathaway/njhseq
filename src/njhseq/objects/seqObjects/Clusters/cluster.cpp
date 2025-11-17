@@ -101,6 +101,7 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 	//log snp information
 	// std::cout << seqBase_.name_ << std::endl;
 	std::unordered_map<uint32_t, std::unordered_map<char, double>> mismatches;
+	std::unordered_map<uint32_t, std::unordered_map<char, double>> mismatches_cnt;
 	for (const auto subReadPos : iter::range(reads_.size())) {
 		const auto & subRead = reads_[subReadPos];
 		alignerObj.alignCache(*this, subRead, false);
@@ -109,19 +110,34 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 		for (const auto & m : alignerObj.comp_.distances_.mismatches_) {
 			if (m.second.highQualityJustSeq(pars.qScorePars)) {
 				mismatches[m.second.refBasePos][m.second.seqBase] += subRead->seqBase_.cnt_;
+				if (njh::endsWith(subRead->seqBase_.name_, "_Comp")) {
+					mismatches_cnt[m.second.refBasePos][m.second.seqBase] += subRead->seqBase_.cnt_;
+				}
 			}
 		}
 	}
+	auto comp_count = std::count_if(reads_.begin(), reads_.end(), [](const std::shared_ptr<readObject>& r) {
+		return njh::endsWith(r->seqBase_.name_, "_Comp");
+	});
+	double higher_cut_off = 1 - pars.rev_comp_composition_cut_off;
 	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	// std::cout << "pars.hardCutOff: " << pars.hardCutOff << std::endl;
- //  std::cout << "pars.hardSnpFreqCutOff: " << pars.hardSnpFreqCutOff << std::endl;
- //  std::cout << "pars.snpFreqCutOff: " << pars.snpFreqCutOff << std::endl;
- //  std::cout << "mismatches.size(): " << mismatches.size() << std::endl;
+	// std::cout << "pars.hardSnpFreqCutOff: " << pars.hardSnpFreqCutOff << std::endl;
+	// std::cout << "pars.snpFreqCutOff: " << pars.snpFreqCutOff << std::endl;
+	// std::cout << "mismatches.size(): " << mismatches.size() << std::endl;
 
 	std::unordered_map<uint32_t, std::unordered_map<char, double>> mismatchesAboveCutOff;
 	for (const auto & position : mismatches) {
 		for (const auto & base : position.second) {
-			if (base.second > pars.hardCutOff && base.second/seqBase_.cnt_ > pars.hardSnpFreqCutOff) {
+
+			double comp_perc = static_cast<double>(comp_count)/ static_cast<double>(reads_.size());
+			//if the entire cluster is one or the other (which might mean the extraction was in one direction anyways) then don't filter based on comp
+			//keep only if the percentage is above and below the cut-off
+			bool pass_comp = comp_count == reads_.size() || 0 != comp_count  || (comp_perc > pars.rev_comp_composition_cut_off && comp_perc < higher_cut_off);
+			if (base.second > pars.hardCutOff &&
+			    base.second / seqBase_.cnt_ > pars.hardSnpFreqCutOff &&
+			    pass_comp
+			) {
 				// std::cout << position.first << "\t" << base.first << '\t' << base.second << '\t' << base.second/seqBase_.cnt_<< std::endl;
 				mismatchesAboveCutOff[position.first][base.first] = base.second;
 			}

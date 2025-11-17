@@ -149,6 +149,7 @@ class cluster : public baseCluster {
 		double hardSnpFreqCutOff = 0; //! range 0-1, only use snps with frequencies above this number
   	uint32_t hardCutOff = 3; //! there needs to be at least this many reads with the snp to count
   	double clusterFreqCutOff = 0.01; //! should be greater than this internal cluster frequency to breakout a new cluster
+  	double rev_comp_composition_cut_off = 0.20; //! snps should have more than this percentage in one direction if both directions are present in the cluster
 		QualScorePars qScorePars;
 	};
   std::vector<cluster> breakoutClustersBasedOnSnps(aligner & alignerObj, const snpBreakoutPars& pars );

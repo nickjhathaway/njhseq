@@ -1180,16 +1180,12 @@ BamExtractor::ExtractCounts BamExtractor::writeExtractReadsFromBamOnlyMapped(con
 	return ret;
 }
 
-
 BamExtractor::BamExtractSeqsResultsAlns BamExtractor::extractReadsFromBamRegionAlns(
-		const bfs::path & bamFnp, const GenomicRegion & region,
-		double percInRegion) {
+	BamTools::BamReader & bReader,
+	const GenomicRegion & region,
+	double percInRegion) const {
 	BamExtractSeqsResultsAlns ret;
-	BamTools::BamReader bReader;
 	BamTools::BamAlignment bAln;
-	bReader.Open(bamFnp.string());
-	checkBamOpenThrow(bReader, bamFnp);
-	loadBamIndexThrow(bReader);
 
 	BamAlnsCache alnCache;
 	auto refData = bReader.GetReferenceData();
@@ -1373,7 +1369,7 @@ BamExtractor::BamExtractSeqsResultsAlns BamExtractor::extractReadsFromBamRegionA
 		}
 	}
 	if(verbose_){
-		ret.log(std::cout, bamFnp);
+		ret.log(std::cout, bReader.GetFilename());
 	}
 //	while (bReader.GetNextAlignment(bAln)) {
 //		//skip secondary alignments
@@ -1447,6 +1443,19 @@ BamExtractor::BamExtractSeqsResultsAlns BamExtractor::extractReadsFromBamRegionA
 //		}
 //	}
 	return ret;
+}
+
+BamExtractor::BamExtractSeqsResultsAlns BamExtractor::extractReadsFromBamRegionAlns(
+		const bfs::path & bamFnp, const GenomicRegion & region,
+		double percInRegion) const {
+
+	BamTools::BamReader bReader;
+
+	bReader.Open(bamFnp.string());
+	checkBamOpenThrow(bReader, bamFnp);
+	loadBamIndexThrow(bReader);
+
+	return extractReadsFromBamRegionAlns(bReader, region, percInRegion);
 }
 
 //BamExtractor::BamExtractSeqsResultsAlns BamExtractor::extractReadsFromBamAlns(

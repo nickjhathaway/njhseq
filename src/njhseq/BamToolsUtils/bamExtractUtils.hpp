@@ -144,9 +144,14 @@ public:
 
 
 	BamExtractSeqsResultsAlns extractReadsFromBamRegionAlns(
-			const bfs::path & bamFnp,
+			const bfs::path & bReader,
 			const GenomicRegion & region,
-			double percInRegion);
+			double percInRegion) const;
+
+	BamExtractSeqsResultsAlns extractReadsFromBamRegionAlns(
+		BamTools::BamReader & bam,
+		const GenomicRegion & region,
+		double percInRegion) const;
 
 	ExtractedFilesWithStichingOpts writeExtractReadsFromBamRegionStitch(
 			const bfs::path & bamFnp, const GenomicRegion & region,
