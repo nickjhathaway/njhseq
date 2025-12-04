@@ -150,9 +150,9 @@ std::unordered_map<std::string, njh::sys::RunOutput> BioCmdsUtils::runAllPossibl
 	}
 
 	if (njh::sys::hasSysCommand("bwa-mem2")) {
-		outputs.emplace("bwa", RunBwamem2Index(genomeFnp));
+		outputs.emplace("bwa-mem2", RunBwamem2Index(genomeFnp));
 	}else	if(verbose_){
-		std::cerr << "Couldn't find " << "bwa-mem2" << " skipping bwa indexing" << std::endl;
+		std::cerr << "Couldn't find " << "bwa-mem2" << " skipping bwa-mem2 indexing" << std::endl;
 	}
 
 	if (njh::sys::hasSysCommand("samtools")) {
