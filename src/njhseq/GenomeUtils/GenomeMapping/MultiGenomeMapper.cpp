@@ -258,15 +258,97 @@ void MultiGenomeMapper::setUpGenomes() {
 
 void MultiGenomeMapper::bioIndexAllGenomes() {
 	std::lock_guard<std::mutex> lock(mut_);
-	njh::concurrent::LockableQueue<std::string> queueGenome(getVectorOfMapKeys(genomes_));
-	std::function<void()> setUpGenome = [&queueGenome,this](){
-		std::string genome = "";
+	std::vector<std::pair<std::string, std::string>> genome_programs;
+
+	VecStr programs{};
+
+	if (njh::sys::hasSysCommand("bowtie2")) {
+		programs.emplace_back("bowtie2");
+	}else	if(pars_.verbose_){
+		std::cerr << "Couldn't find " << "bowtie2" << " skipping bowtie2 indexing" << std::endl;
+	}
+
+	if (njh::sys::hasSysCommand("bwa")) {
+		programs.emplace_back("bwa");
+	}else	if(pars_.verbose_){
+		std::cerr << "Couldn't find " << "bwa" << " skipping bwa indexing" << std::endl;
+	}
+
+	if (njh::sys::hasSysCommand("samtools")) {
+		programs.emplace_back("samtools");
+	}else	if(pars_.verbose_){
+		std::cerr << "Couldn't find " << "samtools" << " skipping samtools faidx" << std::endl;
+	}
+
+	if (njh::sys::hasSysCommand("picard")) {
+		programs.emplace_back("picard");
+	} else	if(pars_.verbose_){
+		std::cerr << "Couldn't find " << "picard" << " skipping picard CreateSequenceDictionary" << std::endl;
+	}
+
+	if(njh::sys::hasSysCommand("makeblastdb")) {
+		programs.emplace_back("makeblastdb");
+	} else	if(pars_.verbose_){
+		std::cerr << "Couldn't find " << "makeblastdb" << " skipping makeblastdb" << std::endl;
+	}
+
+	if(njh::sys::hasSysCommand("minimap2")) {
+		programs.emplace_back("minimap2");
+	} else	if(pars_.verbose_){
+		std::cerr << "Couldn't find " << "minimap2" << " skipping minimap2" << std::endl;
+	}
+	programs.emplace_back("TwoBit");
+
+	auto genomes = getVectorOfMapKeys(genomes_);
+  for (const auto & genome : genomes) {
+	  for (const auto & program : programs) {
+		  genome_programs.emplace_back(genome, program);
+	  }
+  }
+	njh::concurrent::LockableQueue<std::pair<std::string, std::string>> queueGenomePrograms(genome_programs);
+	std::vector<njh::sys::RunOutput> run_results;
+	std::mutex run_results_mut;
+	std::function<void()> setUpGenome = [&queueGenomePrograms, &run_results, &run_results_mut,this](){
+		std::pair<std::string, std::string> genome_program;
 		BioCmdsUtils bioRunner(pars_.verbose_);
-		while(queueGenome.getVal(genome)){
-			bioRunner.runAllPossibleIndexes(genomes_.at(genome)->fnp_);
+		std::vector<njh::sys::RunOutput> current_run_results;
+		while(queueGenomePrograms.getVal(genome_program)){
+			if ("bowtie2" == genome_program.second) {
+				current_run_results.emplace_back(bioRunner.RunBowtie2Index(genomes_.at(genome_program.first)->fnp_));
+			} else if ("bwa" == genome_program.second || "bwa-mem2" == genome_program.second) {
+				//have to runs things one after the other because they create same files
+				if (njh::sys::hasSysCommand("bwa-mem2")) {
+					current_run_results.emplace_back(bioRunner.RunBwamem2Index(genomes_.at(genome_program.first)->fnp_));
+				}
+				if (njh::sys::hasSysCommand("bwa")) {
+					current_run_results.emplace_back(bioRunner.RunBwaIndex(genomes_.at(genome_program.first)->fnp_));
+				}
+			} else if ("samtools" == genome_program.second) {
+				current_run_results.emplace_back(bioRunner.RunSamtoolsFastaIndex(genomes_.at(genome_program.first)->fnp_));
+			} else if ("picard" == genome_program.second) {
+				current_run_results.emplace_back(bioRunner.RunPicardFastaSeqDict(genomes_.at(genome_program.first)->fnp_));
+			} else if ("TwoBit" == genome_program.second) {
+				current_run_results.emplace_back(bioRunner.RunFaToTwoBit(genomes_.at(genome_program.first)->fnp_));
+			} else if ("makeblastdb" == genome_program.second) {
+				current_run_results.emplace_back(bioRunner.RunMakeblastdb(genomes_.at(genome_program.first)->fnp_));
+			} else if ("minimap2" == genome_program.second) {
+				current_run_results.emplace_back(bioRunner.RunMinimap2Index(genomes_.at(genome_program.first)->fnp_));
+			}
+		}
+		{
+			std::lock_guard<std::mutex> lock(run_results_mut);
+			addOtherVec(run_results, current_run_results);
 		}
 	};
+
 	njh::concurrent::runVoidFunctionThreaded(setUpGenome, pars_.numThreads_);
+	if (pars_.verbose_) {
+		for (const auto & run_result : run_results) {
+			if (!run_result.success_) {
+				std::cerr << run_result.toJson() << std::endl;
+			}
+		}
+	}
 }
 
 
