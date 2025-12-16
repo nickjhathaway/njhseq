@@ -289,7 +289,11 @@ void HapsEncodedMatrix::addMetaWithInputTab(const std::set<std::string> & metaFi
 	while(inputTab.getNextRow(row)){
 		metaTab.addRow(inputTab.extractCols(row, tableCheckerCols));
 	}
-	meta_ = std::make_shared<MultipleGroupMetaData>(metaTab.getUniqueRows(), njh::vecToSet(metaTab.getColumnLevels(pars_.sampleCol)));
+	//have to rename for the MultipleGroupMetaData class, it wants sample, Sample, samples, or Samples
+	metaTab.columnNames_[metaTab.getColPos(pars_.sampleCol)] = "sample";
+	metaTab.setColNamePositions();
+
+	meta_ = std::make_shared<MultipleGroupMetaData>(metaTab.getUniqueRows(), njh::vecToSet(metaTab.getColumnLevels("sample")));
 }
 
 
