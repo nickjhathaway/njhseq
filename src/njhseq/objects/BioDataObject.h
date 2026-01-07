@@ -33,6 +33,7 @@
 #include "njhseq/objects/BioDataObject/pmo.h"
 
 #include "njhseq/objects/BioDataObject/VCFVariant.hpp"
+#include "njhseq/objects/BioDataObject/NucmerRecord.hpp"
 
 
 #include "njhseq/objects/BioDataObject/parsers.h"
