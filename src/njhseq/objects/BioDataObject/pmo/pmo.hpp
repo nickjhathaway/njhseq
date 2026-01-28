@@ -1,11 +1,15 @@
+// Auto-generated header from JSON Schema (enhanced v8)
 #pragma once
-
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <optional>
 #include <map>
+#include <set>
 #include <unordered_set>
+#include <utility>
 #include <stdexcept>
+#include <regex>
 #include <limits>
 #include <nlohmann/json.hpp>
 
@@ -17,7 +21,6 @@
 inline constexpr const char* PMO_NA_TOKENS_ARR[] = { PMO_NA_TOKENS };
 inline constexpr std::size_t PMO_NA_TOKENS_COUNT = sizeof(PMO_NA_TOKENS_ARR) / sizeof(const char*);
 
-
 namespace njhseq::pmo {
 class BioMethod;
 class BioinformaticsMethodInfo;
@@ -28,8 +31,8 @@ class DetectedMicrohaplotypesForSample;
 class DetectedMicrohaplotypes;
 class GenomeInfo;
 class GenomicLocation;
-class PlateInfo;
 class ParasiteDensity;
+class PlateInfo;
 class LibrarySampleInfo;
 class MarkerOfInterest;
 class MaskingInfo;
@@ -37,21 +40,21 @@ class ReactionInfo;
 class PanelInfo;
 class PmoGenerationMethod;
 class PmoHeader;
-class ProteinVariant;
 class Pseudocigar;
+class ProteinVariant;
 class RepresentativeMicrohaplotype;
 class RepresentativeMicrohaplotypesForTarget;
 class RepresentativeMicrohaplotypes;
-class ProjectInfo;
-class PrimerInfo;
-class TargetInfo;
-class TravelInfo;
-class SpecimenInfo;
-class SequencingInfo;
 class StageReadCounts;
 class ReadCountsByStageForTarget;
 class ReadCountsByStageForLibrarySample;
 class ReadCountsByStage;
+class PrimerInfo;
+class TargetInfo;
+class SequencingInfo;
+class TravelInfo;
+class SpecimenInfo;
+class ProjectInfo;
 class PortableMicrohaplotypeObject;
 
 // Returns a set of NA tokens as configured by PMO_NA_TOKENS.
@@ -178,19 +181,6 @@ public:
     void validate() const;
 };
 
-class PlateInfo {
-public:
-    PlateInfo() = default;
-    std::optional<uint32_t> plate_col_;
-    std::optional<std::string> plate_name_;
-    std::optional<std::string> plate_row_;
-    std::map<std::string, nlohmann::json> extras_;
-
-    [[nodiscard]] static PlateInfo from_json(const nlohmann::json& j);
-    [[nodiscard]] nlohmann::json to_json() const;
-    void validate() const;
-};
-
 class ParasiteDensity {
 public:
     ParasiteDensity() = default;
@@ -201,6 +191,19 @@ public:
     std::map<std::string, nlohmann::json> extras_;
 
     [[nodiscard]] static ParasiteDensity from_json(const nlohmann::json& j);
+    [[nodiscard]] nlohmann::json to_json() const;
+    void validate() const;
+};
+
+class PlateInfo {
+public:
+    PlateInfo() = default;
+    std::optional<uint32_t> plate_col_;
+    std::optional<std::string> plate_name_;
+    std::optional<std::string> plate_row_;
+    std::map<std::string, nlohmann::json> extras_;
+
+    [[nodiscard]] static PlateInfo from_json(const nlohmann::json& j);
     [[nodiscard]] nlohmann::json to_json() const;
     void validate() const;
 };
@@ -300,6 +303,19 @@ public:
     void validate() const;
 };
 
+class Pseudocigar {
+public:
+    Pseudocigar() = default;
+    std::optional<std::string> pseudocigar_generation_description_;
+    std::string pseudocigar_seq_;
+    GenomicLocation ref_loc_;
+    std::map<std::string, nlohmann::json> extras_;
+
+    [[nodiscard]] static Pseudocigar from_json(const nlohmann::json& j);
+    [[nodiscard]] nlohmann::json to_json() const;
+    void validate() const;
+};
+
 class ProteinVariant {
 public:
     ProteinVariant() = default;
@@ -310,19 +326,6 @@ public:
     std::map<std::string, nlohmann::json> extras_;
 
     [[nodiscard]] static ProteinVariant from_json(const nlohmann::json& j);
-    [[nodiscard]] nlohmann::json to_json() const;
-    void validate() const;
-};
-
-class Pseudocigar {
-public:
-    Pseudocigar() = default;
-    std::optional<std::string> pseudocigar_generation_description_;
-    std::string pseudocigar_seq_;
-    GenomicLocation ref_loc_;
-    std::map<std::string, nlohmann::json> extras_;
-
-    [[nodiscard]] static Pseudocigar from_json(const nlohmann::json& j);
     [[nodiscard]] nlohmann::json to_json() const;
     void validate() const;
 };
@@ -369,18 +372,51 @@ public:
     void validate() const;
 };
 
-class ProjectInfo {
+class StageReadCounts {
 public:
-    ProjectInfo() = default;
-    std::optional<std::string> BioProject_accession_;
-    std::optional<std::string> project_collector_chief_scientist_;
-    std::optional<std::vector<std::string>> project_contributors_;
-    std::string project_description_;
-    std::string project_name_;
-    std::optional<std::string> project_type_;
+    StageReadCounts() = default;
+    uint32_t reads_{std::numeric_limits<uint32_t>::max()};
+    std::string stage_;
     std::map<std::string, nlohmann::json> extras_;
 
-    [[nodiscard]] static ProjectInfo from_json(const nlohmann::json& j);
+    [[nodiscard]] static StageReadCounts from_json(const nlohmann::json& j);
+    [[nodiscard]] nlohmann::json to_json() const;
+    void validate() const;
+};
+
+class ReadCountsByStageForTarget {
+public:
+    ReadCountsByStageForTarget() = default;
+    std::vector<StageReadCounts> stages_;
+    uint32_t target_id_{std::numeric_limits<uint32_t>::max()};
+    std::map<std::string, nlohmann::json> extras_;
+
+    [[nodiscard]] static ReadCountsByStageForTarget from_json(const nlohmann::json& j);
+    [[nodiscard]] nlohmann::json to_json() const;
+    void validate() const;
+};
+
+class ReadCountsByStageForLibrarySample {
+public:
+    ReadCountsByStageForLibrarySample() = default;
+    uint32_t library_sample_id_{std::numeric_limits<uint32_t>::max()};
+    std::optional<std::vector<ReadCountsByStageForTarget>> read_counts_for_targets_;
+    uint32_t total_raw_count_{std::numeric_limits<uint32_t>::max()};
+    std::map<std::string, nlohmann::json> extras_;
+
+    [[nodiscard]] static ReadCountsByStageForLibrarySample from_json(const nlohmann::json& j);
+    [[nodiscard]] nlohmann::json to_json() const;
+    void validate() const;
+};
+
+class ReadCountsByStage {
+public:
+    ReadCountsByStage() = default;
+    uint32_t bioinformatics_run_id_{std::numeric_limits<uint32_t>::max()};
+    std::vector<ReadCountsByStageForLibrarySample> read_counts_by_library_sample_by_stage_;
+    std::map<std::string, nlohmann::json> extras_;
+
+    [[nodiscard]] static ReadCountsByStage from_json(const nlohmann::json& j);
     [[nodiscard]] nlohmann::json to_json() const;
     void validate() const;
 };
@@ -410,6 +446,32 @@ public:
     std::map<std::string, nlohmann::json> extras_;
 
     [[nodiscard]] static TargetInfo from_json(const nlohmann::json& j);
+    [[nodiscard]] nlohmann::json to_json() const;
+    void validate() const;
+};
+
+class SequencingInfo {
+public:
+    SequencingInfo() = default;
+    std::optional<std::string> library_kit_;
+    std::string library_layout_;
+    std::optional<std::string> library_screen_;
+    std::string library_selection_;
+    std::string library_source_;
+    std::string library_strategy_;
+    std::optional<std::string> nucl_acid_amp_;
+    std::optional<std::string> nucl_acid_amp_date_;
+    std::optional<std::string> nucl_acid_ext_;
+    std::optional<std::string> nucl_acid_ext_date_;
+    std::optional<std::string> pcr_cond_;
+    std::optional<std::string> seq_center_;
+    std::optional<std::string> seq_date_;
+    std::string seq_instrument_model_;
+    std::string seq_platform_;
+    std::string sequencing_info_name_;
+    std::map<std::string, nlohmann::json> extras_;
+
+    [[nodiscard]] static SequencingInfo from_json(const nlohmann::json& j);
     [[nodiscard]] nlohmann::json to_json() const;
     void validate() const;
 };
@@ -473,78 +535,18 @@ public:
     void validate() const;
 };
 
-class SequencingInfo {
+class ProjectInfo {
 public:
-    SequencingInfo() = default;
-    std::optional<std::string> library_kit_;
-    std::string library_layout_;
-    std::optional<std::string> library_screen_;
-    std::string library_selection_;
-    std::string library_source_;
-    std::string library_strategy_;
-    std::optional<std::string> nucl_acid_amp_;
-    std::optional<std::string> nucl_acid_amp_date_;
-    std::optional<std::string> nucl_acid_ext_;
-    std::optional<std::string> nucl_acid_ext_date_;
-    std::optional<std::string> pcr_cond_;
-    std::optional<std::string> seq_center_;
-    std::optional<std::string> seq_date_;
-    std::string seq_instrument_model_;
-    std::string seq_platform_;
-    std::string sequencing_info_name_;
+    ProjectInfo() = default;
+    std::optional<std::string> BioProject_accession_;
+    std::optional<std::string> project_collector_chief_scientist_;
+    std::optional<std::vector<std::string>> project_contributors_;
+    std::string project_description_;
+    std::string project_name_;
+    std::optional<std::string> project_type_;
     std::map<std::string, nlohmann::json> extras_;
 
-    [[nodiscard]] static SequencingInfo from_json(const nlohmann::json& j);
-    [[nodiscard]] nlohmann::json to_json() const;
-    void validate() const;
-};
-
-
-class StageReadCounts {
-public:
-    StageReadCounts() = default;
-    uint32_t reads_{std::numeric_limits<uint32_t>::max()};
-    std::string stage_;
-    std::map<std::string, nlohmann::json> extras_;
-
-    [[nodiscard]] static StageReadCounts from_json(const nlohmann::json& j);
-    [[nodiscard]] nlohmann::json to_json() const;
-    void validate() const;
-};
-
-class ReadCountsByStageForTarget {
-public:
-    ReadCountsByStageForTarget() = default;
-    std::vector<StageReadCounts> stages_;
-    uint32_t target_id_{std::numeric_limits<uint32_t>::max()};
-    std::map<std::string, nlohmann::json> extras_;
-
-    [[nodiscard]] static ReadCountsByStageForTarget from_json(const nlohmann::json& j);
-    [[nodiscard]] nlohmann::json to_json() const;
-    void validate() const;
-};
-
-class ReadCountsByStageForLibrarySample {
-public:
-    ReadCountsByStageForLibrarySample() = default;
-    uint32_t library_sample_id_{std::numeric_limits<uint32_t>::max()};
-    std::optional<std::vector<ReadCountsByStageForTarget>> read_counts_for_targets_;
-    uint32_t total_raw_count_{std::numeric_limits<uint32_t>::max()};
-    std::map<std::string, nlohmann::json> extras_;
-
-    [[nodiscard]] static ReadCountsByStageForLibrarySample from_json(const nlohmann::json& j);
-    [[nodiscard]] nlohmann::json to_json() const;
-    void validate() const;
-};
-
-class ReadCountsByStage {
-public:
-    ReadCountsByStage() = default;
-    uint32_t bioinformatics_run_id_{std::numeric_limits<uint32_t>::max()};
-    std::vector<ReadCountsByStageForLibrarySample> read_counts_by_library_sample_by_stage_;
-    std::map<std::string, nlohmann::json> extras_;
-
-    [[nodiscard]] static ReadCountsByStage from_json(const nlohmann::json& j);
+    [[nodiscard]] static ProjectInfo from_json(const nlohmann::json& j);
     [[nodiscard]] nlohmann::json to_json() const;
     void validate() const;
 };

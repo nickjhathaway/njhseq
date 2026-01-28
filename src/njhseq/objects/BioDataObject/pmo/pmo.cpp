@@ -1,16 +1,14 @@
-
+// Auto-generated implementation from JSON Schema (enhanced v8)
 #include "pmo.hpp"
 
-#include <utility>
-#include <regex>
-#include <set>
-
+#include <cstdlib>
+#include <cmath>
 
 namespace njhseq::pmo {
 const std::unordered_set<std::string>& PMO_NA_STRINGS() {
     static const std::unordered_set<std::string> s = [] {
         std::unordered_set<std::string> tmp;
-        for (auto i : PMO_NA_TOKENS_ARR) tmp.emplace(i);
+        for (std::size_t i = 0; i < PMO_NA_TOKENS_COUNT; ++i) tmp.emplace(PMO_NA_TOKENS_ARR[i]);
         return tmp;
     }();
     return s;
@@ -238,7 +236,7 @@ nlohmann::json GenomeInfo::to_json() const {
 void GenomeInfo::validate() const {
     if (!std::regex_match(genome_version_, std::regex("^[A-z-._0-9]+$"))) throw std::runtime_error("Validation failed: GenomeInfo.genome_version pattern");
     if (!std::regex_match(name_, std::regex("^[A-z-._0-9]+$"))) throw std::runtime_error("Validation failed: GenomeInfo.name pattern");
-    if (!std::regex_match(url_, std::regex(R"(^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$)"))) throw std::runtime_error("Validation failed: GenomeInfo.url pattern");
+    if (!std::regex_match(url_, std::regex("^(https?|ftp):\\/\\/[^\\s/$.?#].[^\\s]*$"))) throw std::runtime_error("Validation failed: GenomeInfo.url pattern");
 }
 
 GenomicLocation GenomicLocation::from_json(const nlohmann::json& j) {
@@ -285,34 +283,6 @@ void GenomicLocation::validate() const {
     if (start_ < 0) throw std::runtime_error("Validation failed: GenomicLocation.start minimum");
 }
 
-PlateInfo PlateInfo::from_json(const nlohmann::json& j) {
-    PlateInfo ret;
-    std::set<std::string> _known;
-    _known.insert("plate_col");
-    if (auto it = j.find("plate_col"); it != j.end() && !it->is_null()) {
-        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.plate_col_ = std::numeric_limits<uint32_t>::max(); else ret.plate_col_ = static_cast<uint32_t>(std::stod(_s)); }
-        else ret.plate_col_ = it->get<uint32_t>();
-    }
-    _known.insert("plate_name");
-    if (auto it = j.find("plate_name"); it != j.end() && !it->is_null()) ret.plate_name_ = it->get<std::string>();
-    _known.insert("plate_row");
-    if (auto it = j.find("plate_row"); it != j.end() && !it->is_null()) ret.plate_row_ = it->get<std::string>();
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json PlateInfo::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (plate_col_.has_value()) { if (plate_col_.value() == std::numeric_limits<uint32_t>::max()) j["plate_col"] = "NA"; else j["plate_col"] = plate_col_.value(); }
-    if (plate_name_.has_value()) j["plate_name"] = plate_name_.value();
-    if (plate_row_.has_value()) j["plate_row"] = plate_row_.value();
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void PlateInfo::validate() const {
-}
-
 ParasiteDensity ParasiteDensity::from_json(const nlohmann::json& j) {
     ParasiteDensity ret;
     std::set<std::string> _known;
@@ -342,6 +312,34 @@ nlohmann::json ParasiteDensity::to_json() const {
 void ParasiteDensity::validate() const {
     if (parasite_density_ < 0) throw std::runtime_error("Validation failed: ParasiteDensity.parasite_density minimum");
     if (!std::regex_match(parasite_density_method_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: ParasiteDensity.parasite_density_method pattern");
+}
+
+PlateInfo PlateInfo::from_json(const nlohmann::json& j) {
+    PlateInfo ret;
+    std::set<std::string> _known;
+    _known.insert("plate_col");
+    if (auto it = j.find("plate_col"); it != j.end() && !it->is_null()) {
+        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.plate_col_ = std::numeric_limits<uint32_t>::max(); else ret.plate_col_ = static_cast<uint32_t>(std::stod(_s)); }
+        else ret.plate_col_ = it->get<uint32_t>();
+    }
+    _known.insert("plate_name");
+    if (auto it = j.find("plate_name"); it != j.end() && !it->is_null()) ret.plate_name_ = it->get<std::string>();
+    _known.insert("plate_row");
+    if (auto it = j.find("plate_row"); it != j.end() && !it->is_null()) ret.plate_row_ = it->get<std::string>();
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json PlateInfo::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (plate_col_.has_value()) { if (plate_col_.value() == std::numeric_limits<uint32_t>::max()) j["plate_col"] = "NA"; else j["plate_col"] = plate_col_.value(); }
+    if (plate_name_.has_value()) j["plate_name"] = plate_name_.value();
+    if (plate_row_.has_value()) j["plate_row"] = plate_row_.value();
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void PlateInfo::validate() const {
 }
 
 LibrarySampleInfo LibrarySampleInfo::from_json(const nlohmann::json& j) {
@@ -554,6 +552,33 @@ void PmoHeader::validate() const {
     if (generation_method_.has_value()) generation_method_.value().validate();
 }
 
+Pseudocigar Pseudocigar::from_json(const nlohmann::json& j) {
+    Pseudocigar ret;
+    std::set<std::string> _known;
+    _known.insert("pseudocigar_generation_description");
+    if (auto it = j.find("pseudocigar_generation_description"); it != j.end() && !it->is_null()) ret.pseudocigar_generation_description_ = it->get<std::string>();
+    _known.insert("pseudocigar_seq");
+    j.at("pseudocigar_seq").get_to(ret.pseudocigar_seq_);
+    _known.insert("ref_loc");
+    ret.ref_loc_ = GenomicLocation::from_json(j.at("ref_loc"));
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json Pseudocigar::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (pseudocigar_generation_description_.has_value()) j["pseudocigar_generation_description"] = pseudocigar_generation_description_.value();
+    j["pseudocigar_seq"] = pseudocigar_seq_;
+    j["ref_loc"] = ref_loc_.to_json();
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void Pseudocigar::validate() const {
+    if (!std::regex_match(pseudocigar_seq_, std::regex("^[A-z-._0-9]+$"))) throw std::runtime_error("Validation failed: Pseudocigar.pseudocigar_seq pattern");
+    ref_loc_.validate();
+}
+
 ProteinVariant ProteinVariant::from_json(const nlohmann::json& j) {
     ProteinVariant ret;
     std::set<std::string> _known;
@@ -582,33 +607,6 @@ nlohmann::json ProteinVariant::to_json() const {
 void ProteinVariant::validate() const {
     if (codon_genomic_location_.has_value()) codon_genomic_location_.value().validate();
     protein_location_.validate();
-}
-
-Pseudocigar Pseudocigar::from_json(const nlohmann::json& j) {
-    Pseudocigar ret;
-    std::set<std::string> _known;
-    _known.insert("pseudocigar_generation_description");
-    if (auto it = j.find("pseudocigar_generation_description"); it != j.end() && !it->is_null()) ret.pseudocigar_generation_description_ = it->get<std::string>();
-    _known.insert("pseudocigar_seq");
-    j.at("pseudocigar_seq").get_to(ret.pseudocigar_seq_);
-    _known.insert("ref_loc");
-    ret.ref_loc_ = GenomicLocation::from_json(j.at("ref_loc"));
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json Pseudocigar::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (pseudocigar_generation_description_.has_value()) j["pseudocigar_generation_description"] = pseudocigar_generation_description_.value();
-    j["pseudocigar_seq"] = pseudocigar_seq_;
-    j["ref_loc"] = ref_loc_.to_json();
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void Pseudocigar::validate() const {
-    if (!std::regex_match(pseudocigar_seq_, std::regex("^[A-z-._0-9]+$"))) throw std::runtime_error("Validation failed: Pseudocigar.pseudocigar_seq pattern");
-    ref_loc_.validate();
 }
 
 RepresentativeMicrohaplotype RepresentativeMicrohaplotype::from_json(const nlohmann::json& j) {
@@ -705,39 +703,109 @@ void RepresentativeMicrohaplotypes::validate() const {
     for (const auto& _el : targets_) _el.validate();
 }
 
-ProjectInfo ProjectInfo::from_json(const nlohmann::json& j) {
-    ProjectInfo ret;
+StageReadCounts StageReadCounts::from_json(const nlohmann::json& j) {
+    StageReadCounts ret;
     std::set<std::string> _known;
-    _known.insert("BioProject_accession");
-    if (auto it = j.find("BioProject_accession"); it != j.end() && !it->is_null()) ret.BioProject_accession_ = it->get<std::string>();
-    _known.insert("project_collector_chief_scientist");
-    if (auto it = j.find("project_collector_chief_scientist"); it != j.end() && !it->is_null()) ret.project_collector_chief_scientist_ = it->get<std::string>();
-    _known.insert("project_contributors");
-    if (auto it = j.find("project_contributors"); it != j.end() && !it->is_null()) ret.project_contributors_ = it->get<std::vector<std::string>>();
-    _known.insert("project_description");
-    j.at("project_description").get_to(ret.project_description_);
-    _known.insert("project_name");
-    j.at("project_name").get_to(ret.project_name_);
-    _known.insert("project_type");
-    if (auto it = j.find("project_type"); it != j.end() && !it->is_null()) ret.project_type_ = it->get<std::string>();
+    _known.insert("reads");
+    if (auto it = j.find("reads"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.reads_ = std::numeric_limits<uint32_t>::max(); else ret.reads_ = static_cast<uint32_t>(std::stod(_s)); }
+    else j.at("reads").get_to(ret.reads_);
+    _known.insert("stage");
+    j.at("stage").get_to(ret.stage_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
 
-nlohmann::json ProjectInfo::to_json() const {
+nlohmann::json StageReadCounts::to_json() const {
     nlohmann::json j = nlohmann::json::object();
-    if (BioProject_accession_.has_value()) j["BioProject_accession"] = BioProject_accession_.value();
-    if (project_collector_chief_scientist_.has_value()) j["project_collector_chief_scientist"] = project_collector_chief_scientist_.value();
-    if (project_contributors_.has_value()) j["project_contributors"] = project_contributors_.value();
-    j["project_description"] = project_description_;
-    j["project_name"] = project_name_;
-    if (project_type_.has_value()) j["project_type"] = project_type_.value();
+    if (reads_ == std::numeric_limits<uint32_t>::max()) j["reads"] = "NA"; else j["reads"] = reads_;
+    j["stage"] = stage_;
     for (const auto& kv : extras_) j[kv.first] = kv.second;
     return j;
 }
 
-void ProjectInfo::validate() const {
-    if (!std::regex_match(project_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: ProjectInfo.project_name pattern");
+void StageReadCounts::validate() const {
+    if (reads_ < 0) throw std::runtime_error("Validation failed: StageReadCounts.reads minimum");
+    if (!std::regex_match(stage_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: StageReadCounts.stage pattern");
+}
+
+ReadCountsByStageForTarget ReadCountsByStageForTarget::from_json(const nlohmann::json& j) {
+    ReadCountsByStageForTarget ret;
+    std::set<std::string> _known;
+    _known.insert("stages");
+    { std::vector<StageReadCounts> _vec; for (const auto& _el : j.at("stages")) _vec.emplace_back(StageReadCounts::from_json(_el)); ret.stages_ = std::move(_vec); }
+    _known.insert("target_id");
+    if (auto it = j.find("target_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.target_id_ = std::numeric_limits<uint32_t>::max(); else ret.target_id_ = static_cast<uint32_t>(std::stod(_s)); }
+    else j.at("target_id").get_to(ret.target_id_);
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json ReadCountsByStageForTarget::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : stages_) _arr.emplace_back(_el.to_json()); j["stages"] = std::move(_arr); }
+    if (target_id_ == std::numeric_limits<uint32_t>::max()) j["target_id"] = "NA"; else j["target_id"] = target_id_;
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void ReadCountsByStageForTarget::validate() const {
+    if (target_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForTarget.target_id minimum");
+    for (const auto& _el : stages_) _el.validate();
+}
+
+ReadCountsByStageForLibrarySample ReadCountsByStageForLibrarySample::from_json(const nlohmann::json& j) {
+    ReadCountsByStageForLibrarySample ret;
+    std::set<std::string> _known;
+    _known.insert("library_sample_id");
+    if (auto it = j.find("library_sample_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.library_sample_id_ = std::numeric_limits<uint32_t>::max(); else ret.library_sample_id_ = static_cast<uint32_t>(std::stod(_s)); }
+    else j.at("library_sample_id").get_to(ret.library_sample_id_);
+    _known.insert("read_counts_for_targets");
+    if (auto it = j.find("read_counts_for_targets"); it != j.end() && !it->is_null()) { std::vector<ReadCountsByStageForTarget> _vec; for (const auto& _el : *it) _vec.emplace_back(ReadCountsByStageForTarget::from_json(_el)); ret.read_counts_for_targets_ = std::move(_vec); }
+    _known.insert("total_raw_count");
+    if (auto it = j.find("total_raw_count"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.total_raw_count_ = std::numeric_limits<uint32_t>::max(); else ret.total_raw_count_ = static_cast<uint32_t>(std::stod(_s)); }
+    else j.at("total_raw_count").get_to(ret.total_raw_count_);
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json ReadCountsByStageForLibrarySample::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (library_sample_id_ == std::numeric_limits<uint32_t>::max()) j["library_sample_id"] = "NA"; else j["library_sample_id"] = library_sample_id_;
+    if (read_counts_for_targets_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : read_counts_for_targets_.value()) _arr.emplace_back(_el.to_json()); j["read_counts_for_targets"] = std::move(_arr); }
+    if (total_raw_count_ == std::numeric_limits<uint32_t>::max()) j["total_raw_count"] = "NA"; else j["total_raw_count"] = total_raw_count_;
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void ReadCountsByStageForLibrarySample::validate() const {
+    if (library_sample_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForLibrarySample.library_sample_id minimum");
+    if (total_raw_count_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForLibrarySample.total_raw_count minimum");
+    if (read_counts_for_targets_.has_value()) for (const auto& _el : read_counts_for_targets_.value()) _el.validate();
+}
+
+ReadCountsByStage ReadCountsByStage::from_json(const nlohmann::json& j) {
+    ReadCountsByStage ret;
+    std::set<std::string> _known;
+    _known.insert("bioinformatics_run_id");
+    if (auto it = j.find("bioinformatics_run_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_run_id_ = std::numeric_limits<uint32_t>::max(); else ret.bioinformatics_run_id_ = static_cast<uint32_t>(std::stod(_s)); }
+    else j.at("bioinformatics_run_id").get_to(ret.bioinformatics_run_id_);
+    _known.insert("read_counts_by_library_sample_by_stage");
+    { std::vector<ReadCountsByStageForLibrarySample> _vec; for (const auto& _el : j.at("read_counts_by_library_sample_by_stage")) _vec.emplace_back(ReadCountsByStageForLibrarySample::from_json(_el)); ret.read_counts_by_library_sample_by_stage_ = std::move(_vec); }
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json ReadCountsByStage::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (bioinformatics_run_id_ == std::numeric_limits<uint32_t>::max()) j["bioinformatics_run_id"] = "NA"; else j["bioinformatics_run_id"] = bioinformatics_run_id_;
+    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : read_counts_by_library_sample_by_stage_) _arr.emplace_back(_el.to_json()); j["read_counts_by_library_sample_by_stage"] = std::move(_arr); }
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void ReadCountsByStage::validate() const {
+    if (bioinformatics_run_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStage.bioinformatics_run_id minimum");
+    for (const auto& _el : read_counts_by_library_sample_by_stage_) _el.validate();
 }
 
 PrimerInfo PrimerInfo::from_json(const nlohmann::json& j) {
@@ -804,6 +872,77 @@ void TargetInfo::validate() const {
     if (insert_location_.has_value()) insert_location_.value().validate();
     if (markers_of_interest_.has_value()) for (const auto& _el : markers_of_interest_.value()) _el.validate();
     reverse_primer_.validate();
+}
+
+SequencingInfo SequencingInfo::from_json(const nlohmann::json& j) {
+    SequencingInfo ret;
+    std::set<std::string> _known;
+    _known.insert("library_kit");
+    if (auto it = j.find("library_kit"); it != j.end() && !it->is_null()) ret.library_kit_ = it->get<std::string>();
+    _known.insert("library_layout");
+    j.at("library_layout").get_to(ret.library_layout_);
+    _known.insert("library_screen");
+    if (auto it = j.find("library_screen"); it != j.end() && !it->is_null()) ret.library_screen_ = it->get<std::string>();
+    _known.insert("library_selection");
+    j.at("library_selection").get_to(ret.library_selection_);
+    _known.insert("library_source");
+    j.at("library_source").get_to(ret.library_source_);
+    _known.insert("library_strategy");
+    j.at("library_strategy").get_to(ret.library_strategy_);
+    _known.insert("nucl_acid_amp");
+    if (auto it = j.find("nucl_acid_amp"); it != j.end() && !it->is_null()) ret.nucl_acid_amp_ = it->get<std::string>();
+    _known.insert("nucl_acid_amp_date");
+    if (auto it = j.find("nucl_acid_amp_date"); it != j.end() && !it->is_null()) ret.nucl_acid_amp_date_ = it->get<std::string>();
+    _known.insert("nucl_acid_ext");
+    if (auto it = j.find("nucl_acid_ext"); it != j.end() && !it->is_null()) ret.nucl_acid_ext_ = it->get<std::string>();
+    _known.insert("nucl_acid_ext_date");
+    if (auto it = j.find("nucl_acid_ext_date"); it != j.end() && !it->is_null()) ret.nucl_acid_ext_date_ = it->get<std::string>();
+    _known.insert("pcr_cond");
+    if (auto it = j.find("pcr_cond"); it != j.end() && !it->is_null()) ret.pcr_cond_ = it->get<std::string>();
+    _known.insert("seq_center");
+    if (auto it = j.find("seq_center"); it != j.end() && !it->is_null()) ret.seq_center_ = it->get<std::string>();
+    _known.insert("seq_date");
+    if (auto it = j.find("seq_date"); it != j.end() && !it->is_null()) ret.seq_date_ = it->get<std::string>();
+    _known.insert("seq_instrument_model");
+    j.at("seq_instrument_model").get_to(ret.seq_instrument_model_);
+    _known.insert("seq_platform");
+    j.at("seq_platform").get_to(ret.seq_platform_);
+    _known.insert("sequencing_info_name");
+    j.at("sequencing_info_name").get_to(ret.sequencing_info_name_);
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json SequencingInfo::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (library_kit_.has_value()) j["library_kit"] = library_kit_.value();
+    j["library_layout"] = library_layout_;
+    if (library_screen_.has_value()) j["library_screen"] = library_screen_.value();
+    j["library_selection"] = library_selection_;
+    j["library_source"] = library_source_;
+    j["library_strategy"] = library_strategy_;
+    if (nucl_acid_amp_.has_value()) j["nucl_acid_amp"] = nucl_acid_amp_.value();
+    if (nucl_acid_amp_date_.has_value()) j["nucl_acid_amp_date"] = nucl_acid_amp_date_.value();
+    if (nucl_acid_ext_.has_value()) j["nucl_acid_ext"] = nucl_acid_ext_.value();
+    if (nucl_acid_ext_date_.has_value()) j["nucl_acid_ext_date"] = nucl_acid_ext_date_.value();
+    if (pcr_cond_.has_value()) j["pcr_cond"] = pcr_cond_.value();
+    if (seq_center_.has_value()) j["seq_center"] = seq_center_.value();
+    if (seq_date_.has_value()) j["seq_date"] = seq_date_.value();
+    j["seq_instrument_model"] = seq_instrument_model_;
+    j["seq_platform"] = seq_platform_;
+    j["sequencing_info_name"] = sequencing_info_name_;
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void SequencingInfo::validate() const {
+    if (!std::regex_match(library_layout_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.library_layout pattern");
+    if (!std::regex_match(library_selection_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.library_selection pattern");
+    if (!std::regex_match(library_source_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.library_source pattern");
+    if (!std::regex_match(library_strategy_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.library_strategy pattern");
+    if (!std::regex_match(seq_instrument_model_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.seq_instrument_model pattern");
+    if (!std::regex_match(seq_platform_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.seq_platform pattern");
+    if (!std::regex_match(sequencing_info_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.sequencing_info_name pattern");
 }
 
 TravelInfo TravelInfo::from_json(const nlohmann::json& j) {
@@ -974,186 +1113,45 @@ void SpecimenInfo::validate() const {
     if (!std::regex_match(collection_date_, std::regex("(?:\\d{4}(?:-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12][0-9]|3[01]))?)?|NA)"))) throw std::runtime_error("Validation failed: SpecimenInfo.collection_date pattern");
     if (host_taxon_id_ < 0) throw std::runtime_error("Validation failed: SpecimenInfo.host_taxon_id minimum");
     if (project_id_ < 0) throw std::runtime_error("Validation failed: SpecimenInfo.project_id minimum");
-    if (!std::regex_match(specimen_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SpecimenInfo.specimen_name pattern");
+    if (!std::regex_match(specimen_name_, std::regex("^[A-z-._0-9\\(\\),\\/\\ ]+$"))) throw std::runtime_error("Validation failed: SpecimenInfo.specimen_name pattern");
     if (parasite_density_info_.has_value()) for (const auto& _el : parasite_density_info_.value()) _el.validate();
     if (storage_plate_info_.has_value()) storage_plate_info_.value().validate();
     if (travel_out_six_month_.has_value()) for (const auto& _el : travel_out_six_month_.value()) _el.validate();
 }
 
-SequencingInfo SequencingInfo::from_json(const nlohmann::json& j) {
-    SequencingInfo ret;
+ProjectInfo ProjectInfo::from_json(const nlohmann::json& j) {
+    ProjectInfo ret;
     std::set<std::string> _known;
-    _known.insert("library_kit");
-    if (auto it = j.find("library_kit"); it != j.end() && !it->is_null()) ret.library_kit_ = it->get<std::string>();
-    _known.insert("library_layout");
-    j.at("library_layout").get_to(ret.library_layout_);
-    _known.insert("library_screen");
-    if (auto it = j.find("library_screen"); it != j.end() && !it->is_null()) ret.library_screen_ = it->get<std::string>();
-    _known.insert("library_selection");
-    j.at("library_selection").get_to(ret.library_selection_);
-    _known.insert("library_source");
-    j.at("library_source").get_to(ret.library_source_);
-    _known.insert("library_strategy");
-    j.at("library_strategy").get_to(ret.library_strategy_);
-    _known.insert("nucl_acid_amp");
-    if (auto it = j.find("nucl_acid_amp"); it != j.end() && !it->is_null()) ret.nucl_acid_amp_ = it->get<std::string>();
-    _known.insert("nucl_acid_amp_date");
-    if (auto it = j.find("nucl_acid_amp_date"); it != j.end() && !it->is_null()) ret.nucl_acid_amp_date_ = it->get<std::string>();
-    _known.insert("nucl_acid_ext");
-    if (auto it = j.find("nucl_acid_ext"); it != j.end() && !it->is_null()) ret.nucl_acid_ext_ = it->get<std::string>();
-    _known.insert("nucl_acid_ext_date");
-    if (auto it = j.find("nucl_acid_ext_date"); it != j.end() && !it->is_null()) ret.nucl_acid_ext_date_ = it->get<std::string>();
-    _known.insert("pcr_cond");
-    if (auto it = j.find("pcr_cond"); it != j.end() && !it->is_null()) ret.pcr_cond_ = it->get<std::string>();
-    _known.insert("seq_center");
-    if (auto it = j.find("seq_center"); it != j.end() && !it->is_null()) ret.seq_center_ = it->get<std::string>();
-    _known.insert("seq_date");
-    if (auto it = j.find("seq_date"); it != j.end() && !it->is_null()) ret.seq_date_ = it->get<std::string>();
-    _known.insert("seq_instrument_model");
-    j.at("seq_instrument_model").get_to(ret.seq_instrument_model_);
-    _known.insert("seq_platform");
-    j.at("seq_platform").get_to(ret.seq_platform_);
-    _known.insert("sequencing_info_name");
-    j.at("sequencing_info_name").get_to(ret.sequencing_info_name_);
+    _known.insert("BioProject_accession");
+    if (auto it = j.find("BioProject_accession"); it != j.end() && !it->is_null()) ret.BioProject_accession_ = it->get<std::string>();
+    _known.insert("project_collector_chief_scientist");
+    if (auto it = j.find("project_collector_chief_scientist"); it != j.end() && !it->is_null()) ret.project_collector_chief_scientist_ = it->get<std::string>();
+    _known.insert("project_contributors");
+    if (auto it = j.find("project_contributors"); it != j.end() && !it->is_null()) ret.project_contributors_ = it->get<std::vector<std::string>>();
+    _known.insert("project_description");
+    j.at("project_description").get_to(ret.project_description_);
+    _known.insert("project_name");
+    j.at("project_name").get_to(ret.project_name_);
+    _known.insert("project_type");
+    if (auto it = j.find("project_type"); it != j.end() && !it->is_null()) ret.project_type_ = it->get<std::string>();
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
 
-nlohmann::json SequencingInfo::to_json() const {
+nlohmann::json ProjectInfo::to_json() const {
     nlohmann::json j = nlohmann::json::object();
-    if (library_kit_.has_value()) j["library_kit"] = library_kit_.value();
-    j["library_layout"] = library_layout_;
-    if (library_screen_.has_value()) j["library_screen"] = library_screen_.value();
-    j["library_selection"] = library_selection_;
-    j["library_source"] = library_source_;
-    j["library_strategy"] = library_strategy_;
-    if (nucl_acid_amp_.has_value()) j["nucl_acid_amp"] = nucl_acid_amp_.value();
-    if (nucl_acid_amp_date_.has_value()) j["nucl_acid_amp_date"] = nucl_acid_amp_date_.value();
-    if (nucl_acid_ext_.has_value()) j["nucl_acid_ext"] = nucl_acid_ext_.value();
-    if (nucl_acid_ext_date_.has_value()) j["nucl_acid_ext_date"] = nucl_acid_ext_date_.value();
-    if (pcr_cond_.has_value()) j["pcr_cond"] = pcr_cond_.value();
-    if (seq_center_.has_value()) j["seq_center"] = seq_center_.value();
-    if (seq_date_.has_value()) j["seq_date"] = seq_date_.value();
-    j["seq_instrument_model"] = seq_instrument_model_;
-    j["seq_platform"] = seq_platform_;
-    j["sequencing_info_name"] = sequencing_info_name_;
+    if (BioProject_accession_.has_value()) j["BioProject_accession"] = BioProject_accession_.value();
+    if (project_collector_chief_scientist_.has_value()) j["project_collector_chief_scientist"] = project_collector_chief_scientist_.value();
+    if (project_contributors_.has_value()) j["project_contributors"] = project_contributors_.value();
+    j["project_description"] = project_description_;
+    j["project_name"] = project_name_;
+    if (project_type_.has_value()) j["project_type"] = project_type_.value();
     for (const auto& kv : extras_) j[kv.first] = kv.second;
     return j;
 }
 
-void SequencingInfo::validate() const {
-    if (!std::regex_match(library_layout_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.library_layout pattern");
-    if (!std::regex_match(library_selection_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.library_selection pattern");
-    if (!std::regex_match(library_source_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.library_source pattern");
-    if (!std::regex_match(library_strategy_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.library_strategy pattern");
-    if (!std::regex_match(seq_instrument_model_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.seq_instrument_model pattern");
-    if (!std::regex_match(seq_platform_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.seq_platform pattern");
-    if (!std::regex_match(sequencing_info_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.sequencing_info_name pattern");
-}
-
-StageReadCounts StageReadCounts::from_json(const nlohmann::json& j) {
-    StageReadCounts ret;
-    std::set<std::string> _known;
-    _known.insert("reads");
-    if (auto it = j.find("reads"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.reads_ = std::numeric_limits<uint32_t>::max(); else ret.reads_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("reads").get_to(ret.reads_);
-    _known.insert("stage");
-    j.at("stage").get_to(ret.stage_);
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json StageReadCounts::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (reads_ == std::numeric_limits<uint32_t>::max()) j["reads"] = "NA"; else j["reads"] = reads_;
-    j["stage"] = stage_;
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void StageReadCounts::validate() const {
-    if (reads_ < 0) throw std::runtime_error("Validation failed: StageReadCounts.reads minimum");
-    if (!std::regex_match(stage_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: StageReadCounts.stage pattern");
-}
-
-ReadCountsByStageForTarget ReadCountsByStageForTarget::from_json(const nlohmann::json& j) {
-    ReadCountsByStageForTarget ret;
-    std::set<std::string> _known;
-    _known.insert("stages");
-    { std::vector<StageReadCounts> _vec; for (const auto& _el : j.at("stages")) _vec.emplace_back(StageReadCounts::from_json(_el)); ret.stages_ = std::move(_vec); }
-    _known.insert("target_id");
-    if (auto it = j.find("target_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.target_id_ = std::numeric_limits<uint32_t>::max(); else ret.target_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("target_id").get_to(ret.target_id_);
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json ReadCountsByStageForTarget::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : stages_) _arr.emplace_back(_el.to_json()); j["stages"] = std::move(_arr); }
-    if (target_id_ == std::numeric_limits<uint32_t>::max()) j["target_id"] = "NA"; else j["target_id"] = target_id_;
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void ReadCountsByStageForTarget::validate() const {
-    if (target_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForTarget.target_id minimum");
-    for (const auto& _el : stages_) _el.validate();
-}
-
-ReadCountsByStageForLibrarySample ReadCountsByStageForLibrarySample::from_json(const nlohmann::json& j) {
-    ReadCountsByStageForLibrarySample ret;
-    std::set<std::string> _known;
-    _known.insert("library_sample_id");
-    if (auto it = j.find("library_sample_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.library_sample_id_ = std::numeric_limits<uint32_t>::max(); else ret.library_sample_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("library_sample_id").get_to(ret.library_sample_id_);
-    _known.insert("read_counts_for_targets");
-    if (auto it = j.find("read_counts_for_targets"); it != j.end() && !it->is_null()) { std::vector<ReadCountsByStageForTarget> _vec; for (const auto& _el : *it) _vec.emplace_back(ReadCountsByStageForTarget::from_json(_el)); ret.read_counts_for_targets_ = std::move(_vec); }
-    _known.insert("total_raw_count");
-    if (auto it = j.find("total_raw_count"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.total_raw_count_ = std::numeric_limits<uint32_t>::max(); else ret.total_raw_count_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("total_raw_count").get_to(ret.total_raw_count_);
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json ReadCountsByStageForLibrarySample::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (library_sample_id_ == std::numeric_limits<uint32_t>::max()) j["library_sample_id"] = "NA"; else j["library_sample_id"] = library_sample_id_;
-    if (read_counts_for_targets_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : read_counts_for_targets_.value()) _arr.emplace_back(_el.to_json()); j["read_counts_for_targets"] = std::move(_arr); }
-    if (total_raw_count_ == std::numeric_limits<uint32_t>::max()) j["total_raw_count"] = "NA"; else j["total_raw_count"] = total_raw_count_;
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void ReadCountsByStageForLibrarySample::validate() const {
-    if (library_sample_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForLibrarySample.library_sample_id minimum");
-    if (total_raw_count_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForLibrarySample.total_raw_count minimum");
-    if (read_counts_for_targets_.has_value()) for (const auto& _el : read_counts_for_targets_.value()) _el.validate();
-}
-
-ReadCountsByStage ReadCountsByStage::from_json(const nlohmann::json& j) {
-    ReadCountsByStage ret;
-    std::set<std::string> _known;
-    _known.insert("bioinformatics_run_id");
-    if (auto it = j.find("bioinformatics_run_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_run_id_ = std::numeric_limits<uint32_t>::max(); else ret.bioinformatics_run_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("bioinformatics_run_id").get_to(ret.bioinformatics_run_id_);
-    _known.insert("read_counts_by_library_sample_by_stage");
-    { std::vector<ReadCountsByStageForLibrarySample> _vec; for (const auto& _el : j.at("read_counts_by_library_sample_by_stage")) _vec.emplace_back(ReadCountsByStageForLibrarySample::from_json(_el)); ret.read_counts_by_library_sample_by_stage_ = std::move(_vec); }
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json ReadCountsByStage::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (bioinformatics_run_id_ == std::numeric_limits<uint32_t>::max()) j["bioinformatics_run_id"] = "NA"; else j["bioinformatics_run_id"] = bioinformatics_run_id_;
-    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : read_counts_by_library_sample_by_stage_) _arr.emplace_back(_el.to_json()); j["read_counts_by_library_sample_by_stage"] = std::move(_arr); }
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void ReadCountsByStage::validate() const {
-    if (bioinformatics_run_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStage.bioinformatics_run_id minimum");
-    for (const auto& _el : read_counts_by_library_sample_by_stage_) _el.validate();
+void ProjectInfo::validate() const {
+    if (!std::regex_match(project_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: ProjectInfo.project_name pattern");
 }
 
 PortableMicrohaplotypeObject PortableMicrohaplotypeObject::from_json(const nlohmann::json& j) {

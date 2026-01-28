@@ -60,6 +60,7 @@ public:
 
 	std::vector<std::vector<uint8_t>> hapsEncodeBySamp_; //! each row is a sample, each column is hap, 0 for not present, 1 for present
 	std::vector<std::vector<uint8_t>> targetsEncodeBySamp_; //! each row is a sample, each column is a target, 0 if sample has no data for target, 1 for has data
+  std::vector<std::vector<double>> hapsEncodeBySampRelAbund_; //! each row is a sample, each column is hap, number between 0 and 1 for relative abundance within the sample
 
 	std::vector<double> hapsProbs_;
 
@@ -76,7 +77,6 @@ public:
 		std::string samp_;
 		std::string tar_;
 		std::string hap_;
-
 	};
 	void addSampTarHapForEncoding(const std::string &samp, const std::string &tar,
 			const std::string &hap);
@@ -90,6 +90,8 @@ public:
 
 
 	void calcHapProbs();
+
+  void add_relative_abundance();
 
 	table getTableNumberTargetsPerSample(double coverage_cut_off = std::numeric_limits<double>::min()) const;
 	std::unordered_map<std::string, uint32_t> getNumberTargetsPerSample() const;
@@ -115,13 +117,19 @@ public:
 
 	};
 
+  struct CCCRMSEResults{
+    CCCRMSEResults(const uint64_t numOfSamps);
+    std::vector<std::vector<double>> rmse;//! rmse by targets shared
+    std::vector<std::vector<double>> ccc;//! concordance by targets shared
+    std::vector<std::vector<uint32_t>> targets_shared;// total number of targets shared between samples
+  };
+
 	IndexResults genIndexMeasures(bool verbose = false) const;
+  CCCRMSEResults calc_ccc_rmse_measures(uint32_t bin_batch_size = 1000, bool verbose = false) const;
 
 	void writeAbsoluteHapSharedPerSamplePerTar(const OutOptions & outOptions, bool verbose = false) const;
 
 };
-
-
 
 
 }  // namespace njhseq
