@@ -1510,8 +1510,10 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
           } else {
             cdnaEnd = len(currentTranscriptInfo->cDna_);
           }
+
           auto subcDNA = currentTranscriptInfo->cDna_.getSubRead(cdnaStart, cdnaEnd - cdnaStart);
           alignerObj.parts_.setMaxSize(subcDNA.seq_.size());
+          alignerObj.parts_.setMaxSize(balnSeq.seq_.size());
           alignerObj.alignCacheGlobal(subcDNA, balnSeq);
           // if (print) {
           //   alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
