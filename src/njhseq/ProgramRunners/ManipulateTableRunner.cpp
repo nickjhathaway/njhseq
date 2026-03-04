@@ -55,6 +55,8 @@ ManipulateTableRunner::ManipulateTableRunner() :
 					addFunc("splitColumnContainingMeta",splitColumnContainingMeta, false),
 					addFunc("roughHistogramOfColumn",roughHistogramOfColumn, false),
 					addFunc("removeColumns",removeColumns, false),
+				  addFunc("tableRenameColumns",tableRenameColumns, false),
+				  addFunc("tableExtractElementsWithLevels",tableExtractElementsWithLevels, false),
 				}, "ManipulateTable", "1") {
 }
 //
@@ -553,6 +555,45 @@ int ManipulateTableRunner::tableExtractColumns(const njh::progutils::CmdArgs & i
 	return 0;
 }
 
+
+
+int ManipulateTableRunner::tableExtractElementsWithLevels(
+    const njh::progutils::CmdArgs & inputCommands) {
+  std::string column;
+  VecStr levels;
+  bool getUniqueRows = false;
+  bool opposite = false;
+  ManipulateTableSetUp setUp(inputCommands);
+
+  setUp.processFileName();
+  setUp.processNonRquiredDefaults();
+  setUp.processSorting();
+  setUp.setOption(levels, "--levels",
+      "Column must have one of these values to be included in the extracted table", true);
+  setUp.setOption(column, "--column", "Name of the column to search", true);
+  setUp.setOption(getUniqueRows, "--getUniqueRows", "Get Unique Rows");
+  setUp.setOption(opposite, "--opposite",
+      "Get elements in column that doesn't match this pattern");
+
+  setUp.finishSetUp(std::cout);
+
+  table inTab(setUp.ioOptions_);
+  table outTab;
+  if (opposite) {
+    outTab = inTab.getRowsNotMatchingLevels(column, levels);
+  } else {
+    outTab = inTab.getRowsMatchingLevels(column, levels);
+  }
+  if (setUp.sortByColumn_ != "") {
+    outTab.sortTable(setUp.sortByColumn_, setUp.decending_);
+  }
+  if (getUniqueRows) {
+    outTab = inTab.getUniqueRows();
+  }
+  outTab.outPutContents(setUp.ioOptions_);
+  return 0;
+}
+
 int ManipulateTableRunner::tableExtractElementsWithPattern(
 		const njh::progutils::CmdArgs & inputCommands) {
 	std::string column;
@@ -616,6 +657,74 @@ int ManipulateTableRunner::tableExtractElementsStartingWith(const njh::progutils
 	outTab.outPutContents(setUp.ioOptions_);
 	return 0;
 }
+
+int ManipulateTableRunner::tableRenameColumns(const njh::progutils::CmdArgs & inputCommands){
+
+  std::string rename_key;
+  std::string old_col_name;
+  std::string new_col_name;
+
+  ManipulateTableSetUp setUp(inputCommands);
+
+  setUp.processFileName();
+  setUp.processNonRquiredDefaults();
+  setUp.processSorting();
+  setUp.setOption(rename_key, "--rename_key", "a renaming key, can either be direct key with pattern old_name1:new_name1;old_name2:new_name2, name of two column table with first column old name and 2nd column new name, or a table with name key as supplied by --old_col_name and --new_col_name", true);
+  setUp.setOption(old_col_name, "--old_col_name", "old column name");
+  setUp.setOption(new_col_name, "--new_col_name", "new column name");
+  setUp.finishSetUp(std::cout);
+
+  table inTab(setUp.ioOptions_);
+  std::unordered_map<std::string, std::string> rename_key_map;
+
+  if ((bfs::path(rename_key).filename().string().length() <= 255 && (bfs::exists(rename_key) && !bfs::is_directory(rename_key))) || "STDIN" == rename_key) {
+    if (old_col_name.empty() && new_col_name.empty()) {
+      table input_tab(rename_key, "\t", false);
+      if (input_tab.nRow() < 2) {
+        std::stringstream ss;
+        ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " << " table " << rename_key << " should have at least two columns" << "\n";
+        throw std::runtime_error{ss.str()};
+      }
+      for (const auto & row : input_tab) {
+        rename_key_map[row[0]] = row[1];
+      }
+    } else {
+      table input_tab(rename_key, "\t", true);
+      input_tab.checkForColumnsThrow(VecStr{old_col_name, new_col_name}, __PRETTY_FUNCTION__);
+      auto old_name_col_pos = input_tab.getColPos(old_col_name);
+      auto new_name_col_pos = input_tab.getColPos(new_col_name);
+      for (const auto & row : input_tab) {
+        rename_key_map[row[old_name_col_pos]] = row[new_name_col_pos];
+      }
+    }
+  } else {
+    VecStr messages;
+    auto first_toks = tokenizeString(rename_key, ";");
+    for (const auto & tok : first_toks) {
+      auto second_toks = tokenizeString(tok, ":");
+      if (second_toks.size() != 2) {
+        messages.emplace_back(njh::pasteAsStr("error in processing ", njh::bashCT::boldBlack(tok), " should be two values delimited by a : ", " found instead ", second_toks.size(), " values") );
+      }
+      rename_key_map[second_toks[0]] = second_toks[1];
+    }
+    if (!messages.empty()) {
+      std::stringstream ss;
+      ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", errors " << "\n";
+      ss << njh::conToStr(messages, "\n");
+      throw std::runtime_error{ss.str()};
+    }
+  }
+
+  inTab.rename_columns(rename_key_map);
+  if (setUp.sortByColumn_ != "") {
+    inTab.sortTable(setUp.sortByColumn_, setUp.decending_);
+  }
+  inTab.outPutContents(setUp.ioOptions_);
+  return 0;
+}
+
+
+
 
 int ManipulateTableRunner::tableExtractColumnsStartsWith(const njh::progutils::CmdArgs & inputCommands){
 	std::string patStr = "";
@@ -1089,4 +1198,8 @@ int ManipulateTableRunner::printCol(
 	printVector(col, "\n", out);
 	return 0;
 }
+
+
+
+
 }  // namespace njh

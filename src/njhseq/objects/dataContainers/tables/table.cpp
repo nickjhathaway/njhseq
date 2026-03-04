@@ -1412,6 +1412,39 @@ VecStr table::getMissingHeaders(const VecStr requiredColumns) const{
 	return columnsNotFound;
 }
 
+void table::rename_columns(const std::unordered_map<std::string, std::string> & rename_key) {
+  VecStr messages;
+  //check if columns are present
+  for (const auto & key : rename_key) {
+    if (!njh::in(key.first, columnNames_)) {
+      messages.emplace_back(njh::pasteAsStr("old column name ", njh::bashCT::boldRed(key.first), " from key, not found in current table\ncurrent options are: ",
+        njh::conToStr(columnNames_, ",")));
+    }
+  }
+  //check if new names are unique
+  auto new_column_name_counts = countVec(getVectorOfMapValues(rename_key));
+  for (const auto & count : new_column_name_counts) {
+    if (count.second > 1) {
+      messages.emplace_back(njh::pasteAsStr("new column name ", njh::bashCT::boldRed(count.first), " is in key multiple times: ", count.second));
+    }
+  }
+  if (!messages.empty()) {
+    std::stringstream ss;
+    ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", errors " << " " << "\n";
+    ss << njh::conToStr(messages, "\n") << "\n";
+    throw std::runtime_error{ss.str()};
+  }
+
+  //rename
+  for (const auto & key : rename_key) {
+    columnNames_[getFirstPositionOfTarget(columnNames_, key.first)] = key.second;
+  }
+  // reset the positions info
+  setColNamePositions();
+}
+
+
+
 bool table::column_all_na(const std::string & column_name, const VecStr & nas) const {
 	checkForColumnsThrow({column_name}, __PRETTY_FUNCTION__);
 	auto col_pos = getColPos(column_name);

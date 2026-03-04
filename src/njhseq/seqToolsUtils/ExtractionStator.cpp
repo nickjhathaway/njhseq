@@ -37,12 +37,12 @@ uint32_t ExtractionStator::extractCounts::getTotal() const {
 }
 
 
-ExtractionStator::ExtractionStator(uint32_t totalReadCount,
-		uint32_t readsUnrecBarcode, uint32_t readsUnrecBarcodePosContamination,
-		uint32_t smallFrags) :
-		totalReadCount_(totalReadCount), readsUnrecBarcode_(readsUnrecBarcode), readsUnrecBarcodePosContamination_(
-				readsUnrecBarcodePosContamination), smallFrags_(smallFrags) {
-
+ExtractionStator::ExtractionStator(const ExtractionStatorMainCounts &main_counts) : totalReadCount_(main_counts.totalReadCount),
+  readsUnrecBarcode_(main_counts.readsUnrecBarcode),
+  readsUnrecBarcodePosContamination_(main_counts.readsUnrecBarcodePosContamination),
+  smallFrags_(main_counts.smallFrags),
+  multihit_(main_counts.multihit) {
+  
 }
 
 
@@ -53,61 +53,67 @@ void ExtractionStator::increaseFailedForward(const std::string & midName, const 
 	++failedForward_[midName][rComp];
 }
 
-void ExtractionStator::increaseCounts(const std::string & midName, const std::string & seqName,
-		extractCase eCase) {
-	bool rComp = njh::containsSubString(seqName, "_Comp");
-	switch (eCase) {
-	case extractCase::GOOD:
-		++counts_[midName][rComp].good_;
-		break;
-	case extractCase::MISMATCHPRIMERS:
-		++counts_[midName][rComp].bad_;
-		++counts_[midName][rComp].mismatchPrimers_;
-		break;
-	case extractCase::BADREVERSE:
-		++counts_[midName][rComp].bad_;
-		++counts_[midName][rComp].badReverse_;
-		break;
-	case extractCase::BADFORWARD:
-		++counts_[midName][rComp].bad_;
-		++counts_[midName][rComp].badForward_;
-		break;
-	case extractCase::FAILEDBOTHPRIMERS:
-		++counts_[midName][rComp].bad_;
-		++counts_[midName][rComp].failedBothPrimers_;
-		break;
-	case extractCase::CONTAINSNS:
-		++counts_[midName][rComp].bad_;
-		++counts_[midName][rComp].containsNs_;
-		break;
-	case extractCase::MINLENBAD:
-		++counts_[midName][rComp].bad_;
-		++counts_[midName][rComp].minLenBad_;
-		break;
-	case extractCase::MAXLENBAD:
-		++counts_[midName][rComp].bad_;
-		++counts_[midName][rComp].maxLenBad_;
-		break;
-	case extractCase::QUALITYFAILED:
-		++counts_[midName][rComp].bad_;
-		++counts_[midName][rComp].qualityFailed_;
-		break;
-	case extractCase::BADMID:
-			++counts_[midName][rComp].bad_;
-		++counts_[midName][rComp].badmid_;
-		break;
-	case extractCase::CONTAMINATION:
-		++counts_[midName][rComp].contamination_;
-		break;
-	default:
-		std::stringstream ss;
-		ss << njh::bashCT::boldBlack(__PRETTY_FUNCTION__)
-			 << njh::bashCT::boldRed(": shouldn't be happending..., unknown case: ")
-			 << std::endl;
-		throw std::runtime_error{ss.str()};
-		break;
-	}
+void ExtractionStator::increaseCounts(const std::string &midName, const std::string &seqName,
+                                      extractCase eCase) {
+  bool rComp = njh::containsSubString(seqName, "_Comp");
+  switch (eCase) {
+    case extractCase::GOOD:
+      ++counts_[midName][rComp].good_;
+      break;
+    case extractCase::MISMATCHPRIMERS:
+      ++counts_[midName][rComp].bad_;
+      ++counts_[midName][rComp].mismatchPrimers_;
+      break;
+    case extractCase::BADREVERSE:
+      ++counts_[midName][rComp].bad_;
+      ++counts_[midName][rComp].badReverse_;
+      break;
+    case extractCase::BADFORWARD:
+      ++counts_[midName][rComp].bad_;
+      ++counts_[midName][rComp].badForward_;
+      break;
+    case extractCase::FAILEDBOTHPRIMERS:
+      ++counts_[midName][rComp].bad_;
+      ++counts_[midName][rComp].failedBothPrimers_;
+      break;
+    case extractCase::CONTAINSNS:
+      ++counts_[midName][rComp].bad_;
+      ++counts_[midName][rComp].containsNs_;
+      break;
+    case extractCase::MINLENBAD:
+      ++counts_[midName][rComp].bad_;
+      ++counts_[midName][rComp].minLenBad_;
+      break;
+    case extractCase::MAXLENBAD:
+      ++counts_[midName][rComp].bad_;
+      ++counts_[midName][rComp].maxLenBad_;
+      break;
+    case extractCase::QUALITYFAILED:
+      ++counts_[midName][rComp].bad_;
+      ++counts_[midName][rComp].qualityFailed_;
+      break;
+    case extractCase::BADMID:
+      ++counts_[midName][rComp].bad_;
+      ++counts_[midName][rComp].badmid_;
+      break;
+    case extractCase::CONTAMINATION:
+      ++counts_[midName][rComp].contamination_;
+      break;
+    case extractCase::INVERSECHIMERA:
+      ++counts_[midName][rComp].inverse_chimera_;
+      ++counts_[midName][rComp].bad_;
+      break;
+    default:
+      std::stringstream ss;
+      ss << njh::bashCT::boldBlack(__PRETTY_FUNCTION__)
+          << njh::bashCT::boldRed(": shouldn't be happening..., unknown case: ")
+          << std::endl;
+      throw std::runtime_error{ss.str()};
+      break;
+  }
 }
+
+
 void ExtractionStator::outStatsPerName(std::ostream & out, const std::string & delim){
 
 	for(auto & mid : counts_){
@@ -116,6 +122,8 @@ void ExtractionStator::outStatsPerName(std::ostream & out, const std::string & d
 		uint32_t totalBadReads = mid.second[true].bad_ + mid.second[false].bad_;
 		uint32_t totalContam = mid.second[true].contamination_ + mid.second[false].contamination_;
 		uint32_t totalBadRev = mid.second[true].badReverse_ + mid.second[false].badReverse_;
+	  uint32_t total_inverse_chimera= mid.second[true].inverse_chimera_ + mid.second[false].inverse_chimera_;
+
 		uint32_t totalConN = mid.second[true].containsNs_ + mid.second[false].containsNs_;
 		uint32_t totalMinLen = mid.second[true].minLenBad_ + mid.second[false].minLenBad_;
 		uint32_t totalMaxLen = mid.second[true].maxLenBad_ + mid.second[false].maxLenBad_;
@@ -176,12 +184,11 @@ void ExtractionStator::outTotalStats(std::ostream & out, const std::string & del
 
 
 void ExtractionStator::addOtherExtractorCounts(const ExtractionStator & otherCounts){
-
-
   for(const auto & count : otherCounts.counts_){
     for(const auto & dir : count.second){
       counts_[count.first][dir.first].good_ += dir.second.good_;
       counts_[count.first][dir.first].bad_ += dir.second.bad_;
+      counts_[count.first][dir.first].inverse_chimera_ += dir.second.inverse_chimera_;
       counts_[count.first][dir.first].badReverse_ += dir.second.badReverse_;
 			counts_[count.first][dir.first].badForward_ += dir.second.badForward_;
 			counts_[count.first][dir.first].failedBothPrimers_ += dir.second.failedBothPrimers_;
@@ -192,12 +199,12 @@ void ExtractionStator::addOtherExtractorCounts(const ExtractionStator & otherCou
       counts_[count.first][dir.first].qualityFailed_ += dir.second.qualityFailed_;
       counts_[count.first][dir.first].contamination_ += dir.second.contamination_;
     	counts_[count.first][dir.first].badmid_ += dir.second.badmid_;
-
     }
   }
 
   totalReadCount_ += otherCounts.totalReadCount_;
   readsUnrecBarcode_ += otherCounts.readsUnrecBarcode_;
+  multihit_ += otherCounts.multihit_;
   readsUnrecBarcodePosContamination_ += otherCounts.readsUnrecBarcodePosContamination_;
   smallFrags_ += otherCounts.smallFrags_;
   for(const auto & ff : otherCounts.failedForward_){

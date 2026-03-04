@@ -236,6 +236,32 @@ public:
 	table getRowsNotContainingPattern(const std::string &forColumn,
 			const std::regex & pattern) const;
 
+  template<typename CON>
+  table getRowsMatchingLevels(const std::string &forColumn, const CON & levels) const {
+    table ret(columnNames_);
+    ret.content_.reserve(content_.size());
+    auto col_pos = getColPos(forColumn);
+    for (const auto & row : content_) {
+      if (njh::in(row[col_pos], levels)) {
+        ret.content_.emplace_back(row);
+      }
+    }
+    return ret;
+  }
+
+  template<typename CON>
+  table getRowsNotMatchingLevels(const std::string &forColumn, const CON & levels) const {
+    table ret(columnNames_);
+    ret.content_.reserve(content_.size());
+    auto col_pos = getColPos(forColumn);
+    for (const auto & row : content_) {
+      if (njh::notIn(row[col_pos], levels)) {
+        ret.content_.emplace_back(row);
+      }
+    }
+    return ret;
+  }
+
 	// get unique rows only
 	table getUniqueRows() const;
 	// deleting a row
@@ -377,7 +403,7 @@ public:
 		bool descending_ = false;
 	};
 
-
+  void rename_columns(const std::unordered_map<std::string, std::string> & rename_key);
 
 	 static table splitColWithMeta(const table & inputTab, const splitColWithMetaPars & pars);
 

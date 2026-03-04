@@ -41,6 +41,7 @@ public:
 		uint32_t badForward_ = 0;
 		uint32_t failedBothPrimers_ = 0;
 		uint32_t mismatchPrimers_ = 0;
+	  uint32_t inverse_chimera_ = 0;//! when a target goes from reverse strand into it's forward orientation (can be seen in nanopore data )
 
 		uint32_t badmid_ = 0;
 
@@ -65,18 +66,24 @@ public:
 		MINLENBAD,
 		MAXLENBAD,
 		QUALITYFAILED,
-		CONTAMINATION
+		CONTAMINATION,
+	  INVERSECHIMERA
 	};
 
   ExtractionStator();
+
+  struct ExtractionStatorMainCounts {
+    uint32_t totalReadCount = 0;
+    uint32_t readsUnrecBarcode = 0;
+    uint32_t readsUnrecBarcodePosContamination =0 ;
+    uint32_t smallFrags = 0;
+    uint32_t multihit = 0;
+  };
   /**@brief Construct with initial counts
    *
-   * @param totalReadCount The total count of the input reads for extraction
-   * @param readsUnrecBarcode The number of reads that have unrecognized barcodes
-   * @param smallFrags The number of reads that are small fragments
+   * @param main_counts a struct with counts of totalReadCount, readsUnrecBarcode, readsUnrecBarcodePosContamination, smallFrags, multihit
    */
-	ExtractionStator(uint32_t totalReadCount, uint32_t readsUnrecBarcode,
-			uint32_t readsUnrecBarcodePosContamination, uint32_t smallFrags);
+	ExtractionStator(const ExtractionStatorMainCounts &main_counts);
 
 private:
 public:
@@ -86,6 +93,7 @@ public:
   uint32_t readsUnrecBarcode_ = 0;
   uint32_t readsUnrecBarcodePosContamination_ = 0;
   uint32_t smallFrags_ = 0;
+  uint32_t multihit_ = 0;
   /**@brief Increase the count failing the forward primer
    *
    * @param midName The name of the MID
