@@ -41,6 +41,12 @@ void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & set
   setUp.setOption(correct_small_homopolymer_errors_, "--correct_small_homopolymer_errors",
                   "correct small homopolymer errors based on alignment to reference within cDNA", false,
                   "Translation Output");
+  setUp.setOption(min_hp_run_size_to_correct_, "--min_hp_run_size_to_correct",
+                "the homopolymer run in which to correct errors must be this size or great (inclusive)", false,
+                "Translation Output");
+  setUp.setOption(max_hp_run_gap_size_, "--max_hp_run_gap_size",
+                "the maximum(inclusive) homopolymer error size to correct", false,
+                "Translation Output");
 
 	setUp.setOption(aaExpand_, "--aaExpand",
 				"Amount to expand the protein for when aligning ", false, "Translation Output");
@@ -1541,7 +1547,7 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
             // std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
             // std::cout << "gap.second.gapedSequence_.size() <= 2: " <<  njh::colorBool(gap.second.gapedSequence_.size() <= 2)<< std::endl;
 
-            if (gap.second.gapedSequence_.size() <= 3) {
+            if (gap.second.gapedSequence_.size() <= pars.max_hp_run_gap_size_) {
               //check if is homopolymer
               // std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
               // std::cout << "seqUtil::isHomopolyer(gap.second.gapedSequence_): " <<  njh::colorBool(seqUtil::isHomopolyer(gap.second.gapedSequence_))<< std::endl;
@@ -1578,7 +1584,8 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
                     }
                   }
                 }
-                if (size_of_query_homopolymer > 7 && size_of_ref_homopolymer > 7) {
+                if (size_of_query_homopolymer >= pars.min_hp_run_size_to_correct_ &&
+                    size_of_ref_homopolymer >= pars.min_hp_run_size_to_correct_) {
                   corrections.emplace_back(gap.second.seqPos_, gap.second.seqPos_ + gap.second.gapedSequence_.size(),
                                            gap.second.gapedSequence_.front(), gap.second.ref_);
                 }

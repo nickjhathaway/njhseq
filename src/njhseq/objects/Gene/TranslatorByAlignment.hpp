@@ -283,6 +283,9 @@ public:
 		bool useFullProtein_ = false;
 
 	  bool correct_small_homopolymer_errors_ = false;
+	  uint32_t min_hp_run_size_to_correct_ = 8;
+	  uint32_t max_hp_run_gap_size_ = 3;
+
 		uint32_t allowableStopCodons_ {1};
 
 		/**
