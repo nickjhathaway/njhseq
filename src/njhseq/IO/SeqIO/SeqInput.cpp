@@ -28,6 +28,19 @@
 namespace njhseq {
 
 
+inline void trimAtFirstSpaceTab(std::string& s) noexcept {
+  const char* p = s.data();
+  const size_t n = s.size();
+
+  for (size_t i = 0; i < n; ++i) {
+    unsigned char c = static_cast<unsigned char>(p[i]);
+    if (c == ' ' || c == '\t') {
+      s.resize(i);
+      return;
+    }
+  }
+}
+
 void SeqInput::seekToSeqIndex(size_t pos){
 	if (pos >= index_.size()) {
 		std::stringstream ss;
@@ -513,11 +526,9 @@ bool SeqInput::readNextFastaStream(std::istream & fastaFile, seqInfo& read,
 			njh::files::crossPlatGetline(fastaFile, line);
 			buildingSeq.append(line);
 		}
-		if (!ioOptions_.includeWhiteSpaceInName_ && name.find(' ') != std::string::npos) {
-			//not really safe if name starts with space but hopefully no would do that
-			read = seqInfo(name.substr(1, name.find(' ') - 1), buildingSeq);
-		} else {
-			read = seqInfo(name.substr(1), buildingSeq);
+	  read = seqInfo(name.substr(1), buildingSeq);
+		if (!ioOptions_.includeWhiteSpaceInName_) {
+		  trimAtFirstSpaceTab(read.name_);
 		}
 		if (processed) {
 			read.processRead(processed);
@@ -555,12 +566,10 @@ bool SeqInput::readNextQualStream(std::istream & qualFile,
 			}
 			buildingQual.append(line);
 		}
-		if (!ioOptions_.includeWhiteSpaceInName_
-				&& name.find(" ") != std::string::npos) {
-			//not really safe if name starts with space but hopefully no would do that
-			name = name.substr(1, name.find(" ") - 1);
-		} else {
-			name = name.substr(1);
+	  name = name.substr(1);
+
+		if (!ioOptions_.includeWhiteSpaceInName_) {
+		  trimAtFirstSpaceTab(name);
 		}
 		quals = stringToVector<uint8_t>(buildingQual);
 		return true;
@@ -627,10 +636,12 @@ bool SeqInput::readNextFastqStream(const VecStr & data, const uint32_t lCount, u
 			throw std::runtime_error { ss.str() };
 		}
 		seq = seqInfo(data[0].substr(1), data[1], data[3], offSet);
-		if (!ioOptions_.includeWhiteSpaceInName_ && seq.name_.find(" ") != std::string::npos) {
-			seq.name_ = seq.name_.substr(0, seq.name_.find_first_of(" "));
+
+		if (!ioOptions_.includeWhiteSpaceInName_) {
+		  trimAtFirstSpaceTab(seq.name_);
 		}
 		seq.processRead(processed);
+
 		return true;
 	} else if (lCount > 0 && lCount < 4) {
 		bool allBlanks = true;
