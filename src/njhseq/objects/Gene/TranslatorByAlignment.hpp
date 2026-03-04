@@ -282,6 +282,7 @@ public:
 		uint32_t aaExpand_ = 10;
 		bool useFullProtein_ = false;
 
+	  bool correct_small_homopolymer_errors_ = false;
 		uint32_t allowableStopCodons_ {1};
 
 		/**

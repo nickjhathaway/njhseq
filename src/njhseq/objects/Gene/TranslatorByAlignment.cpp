@@ -38,6 +38,9 @@ void TranslatorByAlignment::TranslatorByAlignmentPars::setOptions(seqSetUp & set
 		setUp.failed_ = true;
 		setUp.addWarning(njh::pasteAsStr(lzPars_.genomeFnp, " should be a file, not a directory"));
 	}
+  setUp.setOption(correct_small_homopolymer_errors_, "--correct_small_homopolymer_errors",
+                  "correct small homopolymer errors based on alignment to reference within cDNA", false,
+                  "Translation Output");
 
 	setUp.setOption(aaExpand_, "--aaExpand",
 				"Amount to expand the protein for when aligning ", false, "Translation Output");
@@ -1481,8 +1484,129 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 			if(0 == aaStart){
 				forceMStart = true;
 			}
-			//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+      if (pars.correct_small_homopolymer_errors_) {
+        uint32_t cdnaStart = std::min(njh::mapAt(genePosInfoByGDna, cdnaGenomicStart).cDNAPos_,
+                                      njh::mapAt(genePosInfoByGDna, cdnaGenomicEndInconclusive).cDNAPos_);
+        uint32_t cdnaEnd = std::max(njh::mapAt(genePosInfoByGDna, cdnaGenomicStart).cDNAPos_,
+                                    njh::mapAt(genePosInfoByGDna, cdnaGenomicEndInconclusive).cDNAPos_);
+
+        // bool print = false;
+        // if (balnSeq.seq_ == "AGAAAATAATCTGACGTTACTACCAATAAAGAGCACTGAAGAAGAAAAAGATGATATAAAAAATGGAAAGGATATAAAAAAAGAAATTGATAATGATAAAGAGAATATAAAAACAAATAATGCTAAAGATCATTCAACATATATAAAATCATATTTGAATACAAATGTAAATGATGGTTTAAAATATTTGTTTATTCCTTCTCATAATTCTTTTATAAAAAAATATTCTGTATTTAATCAAATAAATGATGGCATGTTATTAAATGAAAAAAATGATGTGAAAAATAATGAAGACTATAAAAATGTGGATTATAAAAATGTTAATTTTTTACAATATCATTTTAAAGAGTTATCAAATTATAACATTGCAAATTCTATTGATATTTTACAAGAAAAAGAAGGACATTTGGATTTTGTTATAATACCTCATTATACTTTTTTAGATTATTATAAACATTTATCTTATAATTCTATATATCATAAGTCCTCTACATATGGAAAGTGTATAGCTGTAGATGCTTTTATTAAGAAAATAAATGAAACATATGACAAAGTGAAAAGTAAATGTAATGATATAAAGAATGATTTAATTGCAACTATAAAAAAATTAGAGCATCCTTATGATATAAATAATAAGAATGATGATTCCTATAGATATGATATATCTGAAGAAATCGATGATAAATCTGAAGAGACAGATGATGAAACCGAAGAGGTAGAAGATAGTATACAAGATACAGATAGTAATCATACTCCTTCAAATAAAAAAAATGATCTTATGAATAGAACGTTTAAAAAGATGATGGATGAATATAATACAAAAAAAAAAAATTAATTAAATGTATAAAAAACCATGAGAATGATTTTAATAAAATATGTATGGATATGAAAAATTATGGTACAAACCTTTTTGAACAACTTTCATGTTACAATAATAATTTCTGTAATACAAACGGAATAAGATATCATTATGATGAATATATTCATAAATTAATATTATCTGTTAAATCAAAAAACTTAAATAAAGACCTATCAGATATGACAAATATTTTACAACAAAGTGAATTATTATTAACCAATTTAAATAAAAAAATGGGTTCCTATATATATATTGATACAATGAAATTTATACATAAAGAAATGAAACATATTTTTAACAGAATTGAATATCATACAAAAATAATAAACGATAAAACTAAAATAATTCAAGACAAAATTAAATTAAATATATGGAGAACATTTCAAAAAGATGAATTATTAAAAAGAATTTTAGACATGTCAAATGAATATTCTTTATTTATTACTAGTGATCATTTAAGACAAATGTTATATAATACATTCTATTCAAAAGAAAAACATTTAAATAATATATTTCATCATTTAATTTATGTACTACAAATGAAGTTCAATGATGTCCCAATTAAAATGGAATATTT") {
+        //   print = true;
+        // }
+        // std::cout << __FILE__ << " " << __LINE__ << std::endl;
+        //  std::cout << "cdnaStart: " << cdnaStart << std::endl;
+        //  std::cout << "cdnaEnd: " << cdnaEnd << std::endl;
+        {
+          //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+          if (cdnaStart > pars.aaExpand_) {
+            cdnaStart -= pars.aaExpand_;
+          } else {
+            cdnaStart = 0;
+          }
+          //std::cout << __FILE__ << " " << __LINE__ << std::endl;
+          if (len(currentTranscriptInfo->cDna_) - cdnaEnd > pars.aaExpand_) {
+            cdnaEnd += pars.aaExpand_;
+          } else {
+            cdnaEnd = len(currentTranscriptInfo->cDna_);
+          }
+          auto subcDNA = currentTranscriptInfo->cDna_.getSubRead(cdnaStart, cdnaEnd - cdnaStart);
+          alignerObj.parts_.setMaxSize(subcDNA.seq_.size());
+          alignerObj.alignCacheGlobal(subcDNA, balnSeq);
+          // if (print) {
+          //   alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+          //   alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+          // }
+
+          alignerObj.profileAlignment(subcDNA, balnSeq, false, false, false);
+          //first correct for homopolymers insertions
+
+          struct HpCorrection {
+            HpCorrection(uint32_t start, uint32_t end, char base, bool delete_hp) : start_(start), end_(end),
+              base_(base), delete_hp_(delete_hp) {
+            }
+
+            uint32_t start_{std::numeric_limits<uint32_t>::max()};
+            uint32_t end_{std::numeric_limits<uint32_t>::max()};
+            char base_{' '};
+            bool delete_hp_{false}; //! whether or not to delete this postion
+            uint32_t size() const {
+              return end_ - start_;
+            }
+          };
+          std::vector<HpCorrection> corrections;
+          for (const auto &gap: alignerObj.comp_.distances_.alignmentGaps_) {
+            // std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+            // std::cout << "gap.second.gapedSequence_.size() <= 2: " <<  njh::colorBool(gap.second.gapedSequence_.size() <= 2)<< std::endl;
+
+            if (gap.second.gapedSequence_.size() <= 3) {
+              //check if is homopolymer
+              // std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+              // std::cout << "seqUtil::isHomopolyer(gap.second.gapedSequence_): " <<  njh::colorBool(seqUtil::isHomopolyer(gap.second.gapedSequence_))<< std::endl;
+
+              if (seqUtil::isHomopolyer(gap.second.gapedSequence_)) {
+                uint32_t size_of_ref_homopolymer = 0;
+                uint32_t size_of_query_homopolymer = gap.second.gapedSequence_.size();
+                //search backwards
+                if (gap.first != 0) {
+                  //for now let's require that both homopolymers be the same location in both ref and query
+                  uint32_t cursor = gap.first;
+                  while (cursor > 0) {
+                    --cursor;
+                    if (alignerObj.alignObjectA_.seqBase_.seq_[cursor] == gap.second.gapedSequence_.front() &&
+                        alignerObj.alignObjectB_.seqBase_.seq_[cursor] == gap.second.gapedSequence_.front()) {
+                      ++size_of_ref_homopolymer;
+                      ++size_of_query_homopolymer;
+                    } else {
+                      break;
+                    }
+                  }
+                }
+                if (gap.first + 1 != alignerObj.alignObjectB_.seqBase_.seq_.size()) {
+                  //for now let's require that both homopolymers be the same location in both ref and query
+                  uint32_t cursor = gap.first;
+                  while (cursor + 1 < alignerObj.alignObjectB_.seqBase_.seq_.size()) {
+                    ++cursor;
+                    if (alignerObj.alignObjectA_.seqBase_.seq_[cursor] == gap.second.gapedSequence_.front() &&
+                        alignerObj.alignObjectB_.seqBase_.seq_[cursor] == gap.second.gapedSequence_.front()) {
+                      ++size_of_ref_homopolymer;
+                      ++size_of_query_homopolymer;
+                    } else {
+                      break;
+                    }
+                  }
+                }
+                if (size_of_query_homopolymer > 7 && size_of_ref_homopolymer > 7) {
+                  corrections.emplace_back(gap.second.seqPos_, gap.second.seqPos_ + gap.second.gapedSequence_.size(),
+                                           gap.second.gapedSequence_.front(), gap.second.ref_);
+                }
+              }
+            }
+          }
+          for (const auto &cor: iter::reversed(corrections)) {
+            // if (print) {
+            //   std::cout << "cor.start_:" << cor.start_ << std::endl;
+            //   std::cout << "cor.end_:" << cor.end_ << std::endl;
+            //   std::cout << "cor.size():" << cor.size() << std::endl;
+            //   std::cout << "cor.base_:" << cor.base_ << std::endl;
+            //   std::cout << "cor.delete_hp_:" << njh::colorBool(cor.delete_hp_) << std::endl;
+            // }
+            if (cor.delete_hp_) {
+              balnSeq.removeBases(cor.start_, cor.size());
+            } else {
+              // std::cout << "std::string(cor.base_, cor.size()): " << std::string(cor.size(), cor.base_) << std::endl;
+              balnSeq.insert(cor.start_, std::string(cor.size(), cor.base_));
+            }
+          }
+          // alignerObj.alignCacheGlobal(subcDNA, balnSeq);
+          // alignerObj.alignObjectA_.seqBase_.outPutSeqAnsi(std::cout);
+          // alignerObj.alignObjectB_.seqBase_.outPutSeqAnsi(std::cout);
+          // std::cout << std::endl;
+        }
+      }
 			auto balnSeqTrans = balnSeq.translateRet(false, false, transStart, forceMStart);
+
+
 			if(balnSeqTrans.seq_.size() < 2) {
 				continue;
 			}
@@ -1520,7 +1644,9 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 				auto subProtein = currentTranscriptInfo->protein_.getSubRead(aaStart, aaEnd - aaStart);
 				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				alignerObj.alignCacheGlobal(subProtein, balnSeqTrans);
-				//std::cout << __FILE__ << " " << __LINE__ << std::endl;
+				// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+			 //  alignerObj.alignObjectA_.seqBase_.outPutSeq(std::cout);
+			 //  alignerObj.alignObjectB_.seqBase_.outPutSeq(std::cout);
 				if(aaStart > 0){
 					//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 					alignerObj.alignObjectA_.seqBase_.prepend(currentTranscriptInfo->protein_.getSubRead(0, aaStart));

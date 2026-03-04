@@ -284,6 +284,10 @@ void seqInfo::insert(uint32_t pos, const seqInfo & otherInfo){
 	qual_.insert(qual_.begin() + pos, otherInfo.qual_.begin(), otherInfo.qual_.end());
 }
 
+void seqInfo::insert(uint32_t pos, const std::string &seq, uint8_t defaultQual) {
+  insert(pos, seqInfo("", seq, std::vector<uint8_t>(seq.size(), defaultQual)));
+}
+
 void seqInfo::replace(uint32_t pos, uint32_t size, const seqInfo & otherInfo){
 	replace(pos, size, otherInfo.seq_, otherInfo.qual_);
 }

@@ -1020,12 +1020,10 @@ void aligner::handleGapCountingInA(gap& currentGap) {
 						++cursor;
 					}
 
-
 					double currentScore = frontGapSize;
 					//if it is a whole chuck of homopolymer missing, no weighting
 					if (alnABases == 0 || alnBBases == 0) {
 						frontGapSize = 1;
-
 					} else {
 						/*double currentScore = frontGapSize
 								/ ((alnBBases * alignObjectB_.seqBase_.cnt_
