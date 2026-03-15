@@ -61,17 +61,24 @@ public:
 
 	struct ExpectedPloidyInfo {
 
-
 		uint32_t ploidy_;
 
 		long double expectedPolyClonal_; //!< the expected freq of polyclonal samples for given ploidy for given population frequencies
 		std::unordered_map<uint32_t, long double> expectedCOIForPloidy_; //!< the expected COI or given ploidy for given population frequencies
 
-
-		[[nodiscard]] long double getMaxExpPloidy() const;
-
 		//currently only does ploidy up to and including 5, will throw otherwise
 		static ExpectedPloidyInfo genPloidyInfo(uint32_t ploidy, const std::vector<long double> & freqs);
+	};
+
+
+	struct ExpectedKHeterozygosityRes {
+		ExpectedKHeterozygosityRes() = default;
+		ExpectedKHeterozygosityRes(uint32_t k, const std::vector<long double> & freqs);
+		uint32_t k_{std::numeric_limits<uint32_t>::max()};
+		long double expected_monoclonal_{std::numeric_limits<long double>::max()};
+		long double k_heterozygosity_{std::numeric_limits<long double>::max()};
+
+		static long double factorial_int(uint32_t k);
 	};
 
 
@@ -88,12 +95,7 @@ public:
 
 		double simpsonIndex_ = std::numeric_limits<double>::max(); //!< simpson index of diversity
 
-		ExpectedPloidyInfo ploidy2_;//!< info when sampling 2 haplotypes
-		ExpectedPloidyInfo ploidy3_;//!< info when sampling 3 haplotypes
-		ExpectedPloidyInfo ploidy4_;//!< info when sampling 4 haplotypes
-		ExpectedPloidyInfo ploidy5_;//!< info when sampling 5 haplotypes
-
-
+		std::map<uint32_t, ExpectedKHeterozygosityRes> expected_k_heterozygosities;//!< probability of choosing a specific number of unique haplotypes, key is the number of expected;
 
 	};
 
@@ -104,19 +106,24 @@ public:
 	 * @return a struct with several diversity measurements
 	 */
 	template<typename T>
-	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<T> & haps, bool onlyPloidy2 = false){
+	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<T> & haps){
 
 		std::unordered_map<std::string, uint32_t> popCounts;
+		std::unordered_map<std::string, uint32_t> popCountsWeighted;
 		for(const auto & seq : haps){
 			popCounts[getSeqBase(seq).seq_] += getSeqBase(seq).cnt_;
+		}
+		for(const auto & seq : haps){
+			popCountsWeighted[getSeqBase(seq).seq_] += getSeqBase(seq).frac_;
 		}
 		std::vector<PopGenCalculator::PopHapInfo> popHapInfos;
 		uint32_t count = 0;
 		for(const auto & popCount : popCounts){
 			popHapInfos.emplace_back(count, popCount.second);
+			popHapInfos[count].weighted_count_ = popCountsWeighted[popCount.first];
 			++count;
 		}
-		return getGeneralMeasuresOfDiversity(popHapInfos, onlyPloidy2);
+		return getGeneralMeasuresOfDiversity(popHapInfos);
 //
 //
 //		DiversityMeasures res;
@@ -339,9 +346,16 @@ public:
 
 		uint32_t popUid_;
 		uint32_t count_;
+		double weighted_count_ = 0;
 
 		double prob_{0};
 
+
+		static double getTotalWeightedPopCount(const std::vector<PopHapInfo> & hapsForPopulation){
+			return std::accumulate(hapsForPopulation.begin(), hapsForPopulation.end(), 0, [](uint32_t weighted_count, const PopHapInfo & hap){
+				return weighted_count + hap.weighted_count_;
+			});
+		}
 
 		static uint32_t getTotalPopCount(const std::vector<PopHapInfo> & hapsForPopulation){
 			return std::accumulate(hapsForPopulation.begin(), hapsForPopulation.end(), 0, [](uint32_t total, const PopHapInfo & hap){
@@ -360,10 +374,27 @@ public:
 				hap.prob_ = hap.count_/static_cast<double>(total);
 			});
 		}
+
+		static void setProbWeighted(std::vector<PopHapInfo> & hapsForPopulation, double weighted_total){
+			njh::for_each(hapsForPopulation, [&weighted_total](PopHapInfo & hap){
+				hap.prob_ = hap.weighted_count_/weighted_total;
+			});
+		}
+		static void setProbWeighted(std::vector<PopHapInfo> & hapsForPopulation){
+			auto weighted_total = getTotalWeightedPopCount(hapsForPopulation);
+			njh::for_each(hapsForPopulation, [&weighted_total](PopHapInfo & hap){
+				hap.prob_ = hap.weighted_count_/weighted_total;
+			});
+		}
 	};
 
-
-	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<PopHapInfo> & haps, bool onlyPloidy2 = false);
+	/**
+	 * @brief get general measurements of diversity
+	 * @param haps the population haplotypes with counts
+	 * @param by_unweighted_counts by default, the frequency metrics are calculated by the weighted (frac_) counts, set this to true to do freqs by count (cnt_)
+	 * @return a struct with several diversity metrics
+	 */
+	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<PopHapInfo> & haps, bool by_unweighted_counts = false);
 
 
 	static PopDifferentiationMeasures getOverallPopDiff(std::unordered_map<std::string, std::vector<PopHapInfo> > hapsForPopulations);

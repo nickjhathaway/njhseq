@@ -87,32 +87,30 @@ PopGenCalculator::TajimaTestRes PopGenCalculator::calcTajimaTest(uint32_t nInput
   return {D, Pval_normal, Pval_beta};
 }
 
-long double PopGenCalculator::ExpectedPloidyInfo::getMaxExpPloidy() const{
-	return expectedCOIForPloidy_.at(ploidy_);
-}
+
+
+
 
 PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPloidyInfo(uint32_t ploidy, const std::vector<long double> & freqs){
 
-	PopGenCalculator::ExpectedPloidyInfo ret;
+	ExpectedPloidyInfo ret;
 	ret.ploidy_ = ploidy;
 	if(0 == ploidy || 1 == ploidy){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error " << "ploidy can't be " << ploidy << "\n";
 		throw std::runtime_error{ss.str()};
 	}
-
 	if(ploidy > 5){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error " << "currently calculations for ploidy greater than 5 not implemented"<< "\n";
 		throw std::runtime_error{ss.str()};
 	}
-
 	//monoclonal
 	long double sumOfMonoSquareFreqs = 0;
 	for(const auto freq : freqs){
 		sumOfMonoSquareFreqs += std::pow(freq, ploidy);
 	}
-	ret.expectedPolyClonal_ = 1.0 - sumOfMonoSquareFreqs;
+	ret.expectedPolyClonal_ = 1 - sumOfMonoSquareFreqs;
 	ret.expectedCOIForPloidy_[1] = sumOfMonoSquareFreqs;
 
 	if (freqs.size() < ploidy){
@@ -122,12 +120,9 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 	}
 
 	if (2 == ploidy) {
-
 		//for 2 clones it's just expected heterozygosity
-		ret.expectedCOIForPloidy_[2] = 1.0 - sumOfMonoSquareFreqs;
-
+		ret.expectedCOIForPloidy_[2] = 1 - sumOfMonoSquareFreqs;
 	} else if (3 == ploidy) {
-
 		long double sumOfNotTroidy = 0;
 		long double sumTwoClones = 0;
 		for(const auto freq : freqs){
@@ -175,7 +170,6 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 			ret.expectedCOIForPloidy_[4] = 1 - sumOf3Clones - sumOf2Clones - sumOfMonoSquareFreqs;
 		}
 	} else if (5 == ploidy) {
-
 		long double sumOf2Clones = 0;
 		for(const auto freqPos : iter::range(freqs.size())){
 			for(const auto otherFreqPos : iter::range(freqs.size())){
@@ -186,19 +180,17 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 				}
 			}
 		}
-
 		long double sumOf3Clones = 0;
 		for (const auto freqPos : iter::range(freqs.size())) {
 			for (const auto qFreqPos : iter::range(freqs.size())) {
 				if(qFreqPos == freqPos){
 					continue;
 				}
-				long double zFreq = 1.0 - freqs[freqPos] - freqs[qFreqPos];
+				double zFreq = 1 - freqs[freqPos] - freqs[qFreqPos];
 				sumOf3Clones += std::pow(freqs[freqPos], 3.0) * std::pow(freqs[qFreqPos], 1.0) * zFreq * 10;
 				sumOf3Clones += std::pow(freqs[freqPos], 2.0) * std::pow(freqs[qFreqPos], 2.0) * zFreq * 15;
 			}
 		}
-
 		long double sumOf4Clones = 0;
 		for (const auto freqPos : iter::range(freqs.size())) {
 			for (const auto qFreqPos : iter::range(freqs.size())) {
@@ -209,12 +201,11 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 					if(rFreqPos == freqPos || rFreqPos == qFreqPos){
 						continue;
 					}
-					long double zFreq = 1.0 - freqs[freqPos] - freqs[qFreqPos] - freqs[rFreqPos];
+					double zFreq = 1 - freqs[freqPos] - freqs[qFreqPos] - freqs[rFreqPos];
 					sumOf4Clones += std::pow(freqs[freqPos], 2.0) * freqs[qFreqPos] * freqs[rFreqPos] * zFreq * 10;
 				}
 			}
 		}
-
 		if(freqs.size() > 1){
 			ret.expectedCOIForPloidy_[2] = sumOf2Clones;
 		}
@@ -233,87 +224,109 @@ PopGenCalculator::ExpectedPloidyInfo PopGenCalculator::ExpectedPloidyInfo::genPl
 }
 
 
+long double PopGenCalculator::ExpectedKHeterozygosityRes::factorial_int(uint32_t k) {
+	long double f = 1.0;
+	for (uint32_t i = 2; i <= k; ++i) f *= static_cast<long double>(i);
+	return f;
+}
 
-PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDiversity(const std::vector<PopHapInfo> & haps, bool onlyPloidy2){
+PopGenCalculator::ExpectedKHeterozygosityRes::ExpectedKHeterozygosityRes(uint32_t k, const std::vector<long double> & freqs):k_(k) {
+	// // keep positive, finite, will assume allele frequencies being supplied have been processed correctly
+	// freqs.erase(std::remove_if(freqs.begin(), freqs.end(),
+	// 											 [](double x){ return !(std::isfinite(x) && x > 0.0); }),
+	// 				freqs.end());
+	//
+	if (!freqs.empty()) {
+
+		//calculate the chance that all chosen are the same
+		long double sumOfMonoPowFreqs = 0;
+		for(const auto freq : freqs){
+			sumOfMonoPowFreqs += std::pow(freq, k);
+		}
+		expected_monoclonal_ = sumOfMonoPowFreqs;
+
+		//now calculate the k-way Heterozygostiy
+		// if k is more than the size of the frequencies (unique alleles) then there will never be more any selection with more or equal to k
+		if (k > static_cast<uint32_t>(freqs.size())) {
+			k_heterozygosity_ = 0;
+		} else {
+			std::vector<long double> e(k + 1, 0.0);
+			e[0] = 1.0; // e0
+
+			for (double pi : freqs) {
+				for (uint32_t j = k; j >= 1; --j) {
+					e[j] += pi * e[j - 1];
+				}
+			}
+			k_heterozygosity_ = factorial_int(k) * e[k];
+		}
+	}
+}
+
+PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDiversity(
+	const std::vector<PopHapInfo> & haps,
+	bool by_unweighted_counts){
 	DiversityMeasures res;
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	res.alleleNumber_ = haps.size();
 	double sumOfSquares = 0;
 	double sumOfLogFreqTimesFreq = 0;
 	double totalHaps = PopHapInfo::getTotalPopCount(haps);
+	double total_weighted_haps = PopHapInfo::getTotalWeightedPopCount(haps);
 	double sumTopOfSimpson = 0;
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	std::vector<long double> freqs;
 	for (const auto & hap : haps) {
-		freqs.emplace_back(hap.count_/totalHaps);
 		if (1 == hap.count_) {
 			++res.singlets_;
 		} else if (2 == hap.count_) {
 			++res.doublets_;
 		}
-		sumTopOfSimpson += hap.count_ * (hap.count_ - 1);
-		double prob = hap.count_/totalHaps;
-		sumOfSquares += std::pow(prob, 2.0);
-		sumOfLogFreqTimesFreq += prob * std::log(prob);
 	}
+	if (!by_unweighted_counts) {
+		for (const auto & hap : haps) {
+			double prob = hap.weighted_count_/total_weighted_haps;
+			freqs.emplace_back(prob);
+			sumTopOfSimpson += hap.weighted_count_ * (hap.weighted_count_ - 1);
+			sumOfSquares += std::pow(prob, 2.0);
+			sumOfLogFreqTimesFreq += prob * std::log(prob);
+		}
+		if (totalHaps > 1) {
+			res.simpsonIndex_ = 1 - sumTopOfSimpson / (total_weighted_haps * (total_weighted_haps - 1));
+		} else {
+			res.simpsonIndex_ = 0;
+		}
+	} else {
+		for (const auto & hap : haps) {
+			double prob = hap.count_/totalHaps;
+			freqs.emplace_back(prob);
+			sumTopOfSimpson += hap.count_ * (hap.count_ - 1);
+			sumOfSquares += std::pow(prob, 2.0);
+			sumOfLogFreqTimesFreq += prob * std::log(prob);
+		}
+		if (totalHaps > 1) {
+			res.simpsonIndex_ = 1 - sumTopOfSimpson / (totalHaps * (totalHaps - 1));
+		} else {
+			res.simpsonIndex_ = 0;
+		}
+	}
+
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	res.heterozygostiy_ = 1 - sumOfSquares;
 	res.effectiveNumOfAlleles_ = std::pow(sumOfSquares, -1);
 	res.ShannonEntropyE_ = -sumOfLogFreqTimesFreq;
 	res.expShannonEntropy_ = std::exp(-sumOfLogFreqTimesFreq);
-	if (totalHaps > 1) {
-		res.simpsonIndex_ = 1 - sumTopOfSimpson / (totalHaps * (totalHaps - 1));
-	} else {
-		res.simpsonIndex_ = 0;
-	}
+
 
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 
-	//ploidy 2
-	res.ploidy2_ = ExpectedPloidyInfo::genPloidyInfo(2, freqs);
-	//ploidy of 2 is kind of unnecessary since it's just expected hetereozygosity
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	if(!onlyPloidy2){
-		//ploidy 3
-		res.ploidy3_ = ExpectedPloidyInfo::genPloidyInfo(3, freqs);
-
-		//ploidy 4
-		res.ploidy4_ = ExpectedPloidyInfo::genPloidyInfo(4, freqs);
-
-		//ploidy 5
-		res.ploidy5_ = ExpectedPloidyInfo::genPloidyInfo(5, freqs);
-	} else {
-		//ploidy 3
-		res.ploidy3_ = ExpectedPloidyInfo();
-		res.ploidy3_.ploidy_ = 3;
-		res.ploidy3_.expectedCOIForPloidy_[3] = std::numeric_limits<long double>::max();
-
-		//ploidy 4
-		res.ploidy4_ = ExpectedPloidyInfo();
-		res.ploidy4_.ploidy_ = 4;
-		res.ploidy4_.expectedCOIForPloidy_[4] = std::numeric_limits<long double>::max();
-
-		//ploidy 5
-		res.ploidy5_ = ExpectedPloidyInfo();
-		res.ploidy5_.ploidy_ = 5;
-		res.ploidy5_.expectedCOIForPloidy_[5] = std::numeric_limits<long double>::max();
-	}
-
-	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//
-//	for(const auto & freq : freqs){
-//		std::cout << freq << std::endl;
-//	}
-//	std::cout << "res.heterozygostiy_: " << res.heterozygostiy_ << std::endl;
-//	std::cout << "res.ploidy2_.expectedPolyClonal_: " << res.ploidy2_.expectedPolyClonal_ << std::endl;
-//	std::cout << "res.ploidy3_.expectedPolyClonal_: " << res.ploidy3_.expectedPolyClonal_ << std::endl;
-//	std::cout << "res.ploidy4_.expectedPolyClonal_: " << res.ploidy4_.expectedPolyClonal_ << std::endl;
-//	std::cout << "res.ploidy5_.expectedPolyClonal_: " << res.ploidy5_.expectedPolyClonal_ << std::endl;
-
-
+	//get expected k-way distinct ways of choosing
+	res.expected_k_heterozygosities[2] = ExpectedKHeterozygosityRes(2, freqs);
+	res.expected_k_heterozygosities[3] = ExpectedKHeterozygosityRes(3, freqs);
+	res.expected_k_heterozygosities[4] = ExpectedKHeterozygosityRes(4, freqs);
+	res.expected_k_heterozygosities[5] = ExpectedKHeterozygosityRes(5, freqs);
 	return res;
 }
-
 
 PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff(std::unordered_map<std::string, std::vector<PopHapInfo> > hapsForPopulations){
 
@@ -448,7 +461,6 @@ PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff
 	ret.jostDChaoEst_ = 1 - (a/b);
 	return ret;
 }
-
 
 PopGenCalculator::PopDifferentiationMeasuresPairWise PopGenCalculator::getPopDiff(
 		const std::string & pop1, const std::vector<PopHapInfo> & pop1Haps,
@@ -613,8 +625,6 @@ PopGenCalculator::PopDifferentiationMeasuresPairWise PopGenCalculator::getPopDif
 	return ret;
 }
 
-
-
 std::unordered_map<std::string,
 		std::unordered_map<std::string, PopGenCalculator::PopDifferentiationMeasuresPairWise>> PopGenCalculator::getPairwisePopDiff(
 		const std::unordered_map<std::string, std::vector<PopHapInfo>> & hapsForPopulations,
@@ -645,6 +655,7 @@ std::unordered_map<std::string,
 	}
 	return ret;
 }
+
 
 PopGenCalculator::FisherExactFor2x2::FisherExactFor2x2Result PopGenCalculator::FisherExactFor2x2::runFisherExactOn2x2(const PopGenCalculator::FisherExactFor2x2::FisherExactFor2x2Input & inPars){
 	//implementation based on R implement of 2x2 fisher exact
@@ -878,3 +889,6 @@ PopGenCalculator::FisherExactFor2x2::FisherExactFor2x2Result PopGenCalculator::F
 
 }  // namespace njhseq
 
+
+//add weighted frequency estimates
+//add new expected He2

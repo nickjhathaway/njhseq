@@ -170,8 +170,8 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixed(const
 	ret.infoEntries_.emplace("AC_REAL", VCFOutput::InfoEntry(
 														 "AC_REAL", "A", "Integer", "Allele Count not dependent on ploidy, number of microhaplotypes with variant"
 													 ));
-	ret.infoEntries_.emplace("AF_REAL", VCFOutput::InfoEntry(
-														 "AF_REAL", "A", "Float", "Allele Frequency not dependent on ploidy, calculated AC/AN"
+	ret.infoEntries_.emplace("UNWEIGHTED_AF_REAL", VCFOutput::InfoEntry(
+														 "UNWEIGHTED_AF_REAL", "A", "Float", "Allele Frequency not dependent on ploidy, calculated as AC/AN, not weighted by within sample frequencies"
 													 ));
 
 	ret.infoEntries_.emplace("NS", VCFOutput::InfoEntry(
@@ -241,7 +241,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixed(const
 			currentRecord.filter_ = "PASS";
 			currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(pos.first) );
 			currentRecord.info_.addMeta("AC_REAL", njh::conToStr(altsCounts, ",") );
-			currentRecord.info_.addMeta("AF_REAL", njh::conToStr(altsFreqs, ",") );
+			currentRecord.info_.addMeta("UNWEIGHTED_AF_REAL", njh::conToStr(altsFreqs, ",") );
 
 			currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos.first).size() );
 			currentRecord.info_.addMeta("SC", njh::conToStr(altsSampleCounts, ",") );
@@ -270,7 +270,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixed(const
 
 				currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(forcedAlt.first) );
 				currentRecord.info_.addMeta("AC_REAL", njh::conToStr(std::vector<uint32_t>{0}, ",") );
-				currentRecord.info_.addMeta("AF_REAL", njh::conToStr(std::vector<double>{0}, ",") );
+				currentRecord.info_.addMeta("UNWEIGHTED_AF_REAL", njh::conToStr(std::vector<double>{0}, ",") );
 
 
 				currentRecord.info_.addMeta("NS", samplesPerPosition.at(forcedAlt.first).size() );
@@ -364,6 +364,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputComplexFixedWithSa
 	ret.allAutoAddDPFields();
 	ret.allAutoAddTYPEFields();
 	ret.allAutoAdd_AN_AC_AF_InfoFields();
+	ret.allAutoAddWeightedAFRealField();
 	ret.allAddDefaultFormatField("GQ", 40, VCFOutput::FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 
 	return ret;
@@ -381,8 +382,8 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 	ret.infoEntries_.emplace("AC_REAL", VCFOutput::InfoEntry(
 														 "AC_REAL", "A", "Integer", "Allele Count not dependent on ploidy, number of microhaplotypes with variant"
 													 ));
-	ret.infoEntries_.emplace("AF_REAL", VCFOutput::InfoEntry(
-														 "AF_REAL", "A", "Float", "Allele Frequency not dependent on ploidy, calculated AC/AN"
+	ret.infoEntries_.emplace("UNWEIGHTED_AF_REAL", VCFOutput::InfoEntry(
+														 "UNWEIGHTED_AF_REAL", "A", "Float", "Allele Frequency not dependent on ploidy, calculated as AC/AN, not weighted by within sample frequencies"
 													 ));
 
 	ret.infoEntries_.emplace("NS", VCFOutput::InfoEntry(
@@ -505,7 +506,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 
 			currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(pos) );
 			currentRecord.info_.addMeta("AC_REAL", njh::conToStr(altsCounts, ",") );
-			currentRecord.info_.addMeta("AF_REAL", njh::conToStr(altsFreqs, ",") );
+			currentRecord.info_.addMeta("UNWEIGHTED_AF_REAL", njh::conToStr(altsFreqs, ",") );
 
 
 			currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
@@ -531,7 +532,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 				currentRecord.filter_ = "PASS";
 				currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(pos) );
 				currentRecord.info_.addMeta("AC_REAL", d.second.alleleCount_ );
-				currentRecord.info_.addMeta("AF_REAL", d.second.alleleCount_/static_cast<double>(depthPerPosition.at(pos)) );
+				currentRecord.info_.addMeta("UNWEIGHTED_AF_REAL", d.second.alleleCount_/static_cast<double>(depthPerPosition.at(pos)) );
 				currentRecord.info_.addMeta("NS", samplesPerPosition.at(pos).size() );
 				currentRecord.info_.addMeta("SC", d.second.sampleReadCnts_.size() );
 				currentRecord.info_.addMeta("PREV", static_cast<double>(d.second.sampleReadCnts_.size())/static_cast<double>(samplesPerPosition.at(pos).size()) );
@@ -559,7 +560,7 @@ VCFOutput TranslatorByAlignment::VariantsInfo::createVCFOutputFixed() const {
 	//
 	// 		currentRecord.info_.addMeta("AN_REAL", depthPerPosition.at(forcedAlt.first) );
 	// 		currentRecord.info_.addMeta("AC_REAL", njh::conToStr(std::vector<uint32_t>(forcedAlt.second.size(), 0), ",") );
-	// 		currentRecord.info_.addMeta("AF_REAL", njh::conToStr(std::vector<double>(forcedAlt.second.size(),0), ",") );
+	// 		currentRecord.info_.addMeta("UNWEIGHTED_AF_REAL", njh::conToStr(std::vector<double>(forcedAlt.second.size(),0), ",") );
 	//
 	//
 	// 		currentRecord.info_.addMeta("NS", samplesPerPosition.at(forcedAlt.first).size() );

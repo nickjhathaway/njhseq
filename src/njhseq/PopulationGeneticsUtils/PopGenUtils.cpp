@@ -223,9 +223,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			watch.startNewLap(njh::pasteAsStr("writing translation output - ", translatedSeqs.first, " - get div measures"));
 
 			auto calcPopMeasuresPars =  pars.calcPopMeasuresPars;
-			if(inputTranslatedSeq.size() > pars.calcPopMeasuresPars.seqCountCutOffPloidyCalc_) {
-				calcPopMeasuresPars.onlyPloidy2_ = true;
-			}
+
 			calcPopMeasuresPars.numSegSites_ = njh::mapAt(translatedRes.proteinVariants_, translatedSeqs.first).getFinalNumberOfSegregatingSites();
 			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			auto divMeasures = inputTranslatedSeq.getGeneralMeasuresOfDiversity(calcPopMeasuresPars, alignerObj);
@@ -233,6 +231,17 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			divMeasuresOut << njh::conToStr(divMeasures.getOut(inputTranslatedSeq, identifierTranslated, calcPopMeasuresPars), "\t")  << std::endl;
 			// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			// std::cout << "variableTypedAAForTranslated names: " << njh::conToStr(njh::getVecOfMapKeys(variableTypedAAForTranslated), ",") << std::endl;
+
+			auto inputTranslatedSeq_prevs = inputTranslatedSeq.getPrevalences();
+			auto inputTranslatedSeq_freqs = inputTranslatedSeq.getWeightedAlleleFreqs();
+
+			OutputStream translated_prev_freq_out(njh::files::make_path(variantInfoDir, "translated_prev_freq.tsv.gz"));
+			translated_prev_freq_out << "target_name\tseq\tfreq\tprev" << std::endl;
+			for (const auto & seq : inputTranslatedSeq.seqs_) {
+				translated_prev_freq_out << identifierTranslated << "\t" << seq->seq_
+					<< "\t" << inputTranslatedSeq_freqs[seq->seq_]
+					<< "\t" << inputTranslatedSeq_prevs[seq->seq_] << std::endl;
+			}
 
 			watch.startNewLap(njh::pasteAsStr("writing translation output - ", translatedSeqs.first, " - translatedSeqsAATyped"));
 			OutputStream outAATyped(njh::files::make_path(variantInfoDir, njh::pasteAsStr(translatedSeqs.first, "-", "translatedSeqsAATyped.tab.txt.gz") ) );
@@ -438,6 +447,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						vcfOutputForTrans.allAutoAddDPFields();
 						vcfOutputForTrans.allAutoAddTYPEFields();
 						vcfOutputForTrans.allAutoAdd_AN_AC_AF_InfoFields();
+						vcfOutputForTrans.allAutoAddWeightedAFRealField();
 						vcfOutputForTrans.allAddDefaultFormatField("GQ", 40, VCFOutput::FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 						vcfOutputForTrans.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 					}
@@ -482,9 +492,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 	//snps
 	uint32_t maxSeqCount = 0;
 	auto calcPopMeasuresPars_local =  pars.calcPopMeasuresPars;
-	if(inputSeqs.size() > pars.calcPopMeasuresPars.seqCountCutOffPloidyCalc_) {
-		calcPopMeasuresPars_local.onlyPloidy2_ = true;
-	}
+
 	for(auto & varPerChrom : translatedRes.seqVariants_){
 		for(const auto & count : varPerChrom.second.depthPerPosition){
 			if(count.second > maxSeqCount){
@@ -674,6 +682,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 				vcfOutputForChrom.allAutoAddDPFields();
 				vcfOutputForChrom.allAutoAddTYPEFields();
 				vcfOutputForChrom.allAutoAdd_AN_AC_AF_InfoFields();
+				vcfOutputForChrom.allAutoAddWeightedAFRealField();
 				vcfOutputForChrom.allAddDefaultFormatField("GQ", 40, VCFOutput::FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 				vcfOutputForChrom.writeOutFixedAndSampleMeta(genomeVcfWithSamples);
 
@@ -722,6 +731,18 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 		divMeasures.writeDivMeasures(
 			njh::files::make_path(pars.outputDirectory, "divMeasures.tab.txt"),
 			inputSeqs, pars.identifier, calcPopMeasuresPars_local);
+	}
+	{
+		auto inputSeqs_prevs = inputSeqs.getPrevalences();
+		auto inputSeqs_freqs = inputSeqs.getWeightedAlleleFreqs();
+		OutputStream inputSeqs_prev_freq_out(njh::files::make_path(pars.outputDirectory, "seqs_prev_freq.tsv.gz"));
+		inputSeqs_prev_freq_out << "target_name\tseq\tfreq\tprev" << std::endl;
+		for (const auto & seq : inputSeqs.seqs_) {
+			inputSeqs_prev_freq_out << pars.identifier
+				<< "\t" << seq->seq_
+				<< "\t" << inputSeqs_freqs[seq->seq_]
+				<< "\t" << inputSeqs_prevs[seq->seq_] << std::endl;
+		}
 	}
 
 	if(!pars.metaFieldsToCalcPopDiffs.empty()){

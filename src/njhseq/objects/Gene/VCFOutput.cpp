@@ -63,18 +63,18 @@ void VCFOutput::VCFRecord::autoAdd_AN_AC_AF_InfoFields() {
 	std::unordered_map<std::string, uint32_t> alleleCounts;
 	uint32_t AN = 0;
 	std::regex blankDataPattern("\\.(,\\.)*");
-	for (auto &samp: sampleFormatInfos_) {
+	for (auto& samp: sampleFormatInfos_) {
 		if (!samp.second.containsMeta("GT")) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " <<
-					" need to have field GT in field if going too add total AN, AC, and AF fields " << "\n";
+					" need to have field GT in field if going to add total AN, AC, and AF fields " << "\n";
 			ss << "Current fields are : " << njh::conToStr(njh::getVecOfMapKeys(samp.second.meta_), ",") << "\n";
 			throw std::runtime_error{ss.str()};
 		}
-		if("." != samp.second.getMeta("GT")) {
+		if ("." != samp.second.getMeta("GT")) {
 			auto GT = samp.second.getMeta("GT");
 			auto GT_toks = tokenizeString(GT, "/");
-			for(const auto & tok : GT_toks) {
+			for (const auto& tok: GT_toks) {
 				++alleleCounts[tok];
 				++AN;
 			}
@@ -84,30 +84,67 @@ void VCFOutput::VCFRecord::autoAdd_AN_AC_AF_InfoFields() {
 	auto alleles = getVectorOfMapKeys(alleleCounts);
 	std::vector<uint32_t> allelesNumeric;
 	allelesNumeric.reserve(alleles.size());
-for(auto & allele : alleles) {
+	for (auto& allele: alleles) {
 		allelesNumeric.emplace_back(njh::StrToNumConverter::stoToNum<uint32_t>(allele));
 	}
-	if(vectorMaximum(allelesNumeric) > alts_.size()) {
+	if (vectorMaximum(allelesNumeric) > alts_.size()) {
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " << " genotype number: " << vectorMaximum(allelesNumeric) << " can't be more than the alts_.size(): " << alts_.size() << " + 1 " << "\n";
+		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " << " genotype number: " <<
+				vectorMaximum(allelesNumeric) << " can't be more than the alts_.size(): " << alts_.size() << " + 1 " << "\n";
 		throw std::runtime_error{ss.str()};
 	}
 	std::vector<double> afs;
 	std::string ACs;
 	//the allele counts include the reference so alts.size() will be equal to the genotype number, e.g. for alts of size of 2, there will be 0, 1, 2 (will skip 0)
-	for(const auto pos : iter::range(1UL, alts_.size() + 1)) {
-		if(!ACs.empty()) {
+	for (const auto pos: iter::range(1UL, alts_.size() + 1)) {
+		if (!ACs.empty()) {
 			ACs += ",";
 		}
 		//if missing from the counts will default to zero
 		ACs += estd::to_string(alleleCounts[estd::to_string(pos)]);
-		afs.emplace_back(alleleCounts[estd::to_string(pos)]/static_cast<double>(AN));
+		afs.emplace_back(alleleCounts[estd::to_string(pos)] / static_cast<double>(AN));
 	}
 	info_.addMeta("AN", AN, true);
 	info_.addMeta("AC", ACs, true);
 	info_.addMeta("AF", njh::conToStr(afs, ","), true);
 }
 
+
+void VCFOutput::VCFRecord::autoAddWeightedAFRealField() {
+	std::vector<double> weighted_real_afs(alts_.size(), 0); //total read per each alt observation
+	std::regex blankDataPattern("\\.(,\\.)*");
+	double reference_sum = 0;
+	for (auto &samp: sampleFormatInfos_) {
+		if (!samp.second.containsMeta("DP") || !samp.second.containsMeta("AD")) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " <<
+					" need to have field DP and AD in field if going to add weighted AF_REAL " << "\n";
+			ss << "Current fields are : " << njh::conToStr(njh::getVecOfMapKeys(samp.second.meta_), ",") << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		if("." != samp.second.getMeta("DP")) {
+			double DP = samp.second.getMeta<uint32_t>("DP");
+			auto AD_toks = tokenizeString(samp.second.getMeta("AD"), ",");
+			if(AD_toks.size() != 1 + alts_.size()) {
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "AD_toks.size(): " << AD_toks.size() << " does not equal the alts_ and ref size: " << 1 + alts_.size() << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+			for(const auto & e : iter::enumerate(AD_toks)) {
+				if (0 != e.index) {
+					weighted_real_afs[e.index - 1] += njh::StrToNumConverter::stoToNum<uint32_t>(AD_toks[e.index])/DP;
+				} else {
+					reference_sum += njh::StrToNumConverter::stoToNum<uint32_t>(AD_toks[e.index])/DP;
+				}
+			}
+		}
+	}
+	auto weighted_real_afs_sum = vectorSum(weighted_real_afs) + reference_sum;
+	for (auto & af : weighted_real_afs) {
+		af /= weighted_real_afs_sum;
+	}
+	info_.addMeta("AF_REAL", njh::conToStr(weighted_real_afs, ","), true);
+}
 
 void VCFOutput::VCFRecord::autoAddTotalDP_RO_AO_InfoFields() {
 	uint32_t totalDP = 0;
@@ -118,7 +155,7 @@ void VCFOutput::VCFRecord::autoAddTotalDP_RO_AO_InfoFields() {
 		if (!samp.second.containsMeta("DP") || !samp.second.containsMeta("AD")) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " <<
-					" need to have field DP and AD in field if going too add total DP, RO, and AO fields " << "\n";
+					" need to have field DP and AD in field if going to add total DP, RO, and AO fields " << "\n";
 			ss << "Current fields are : " << njh::conToStr(njh::getVecOfMapKeys(samp.second.meta_), ",") << "\n";
 			throw std::runtime_error{ss.str()};
 		}
@@ -154,7 +191,7 @@ void VCFOutput::VCFRecord::addGTField(uint32_t ploidy) {
 		if (!samp.second.containsMeta("AD")) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " <<
-					" need to have field AD in field if going too add GT field " << "\n";
+					" need to have field AD in field if going to add GT field " << "\n";
 			ss << "Current fields are : " << njh::conToStr(njh::getVecOfMapKeys(samp.second.meta_), ",") << "\n";
 			throw std::runtime_error{ss.str()};
 		}
@@ -364,27 +401,41 @@ void VCFOutput::allAutoAddDPFields() {
 
 
 void VCFOutput::allAutoAdd_AN_AC_AF_InfoFields() {
-	if(njh::notIn("AN", infoEntries_)) {
+	if (njh::notIn("AN", infoEntries_)) {
 		infoEntries_.emplace("AN", InfoEntry(
-													 "AN", "1", "Integer",
-													 "Total Allele Depth dependent on ploidy, sum of AC with rest of depth being ref")
-);
+			                     "AN", "1", "Integer",
+			                     "Total Allele Depth dependent on ploidy, sum of AC with rest of depth being ref")
+		);
 	}
-	if(njh::notIn("AC", infoEntries_)) {
+	if (njh::notIn("AC", infoEntries_)) {
 		infoEntries_.emplace("AC", InfoEntry(
-													 "AC", "A", "Integer", "Allele Count dependent on set ploidy"
-												 ));
+			                     "AC", "A", "Integer", "Allele Count dependent on set ploidy"
+		                     ));
 	}
-	if(njh::notIn("AF", infoEntries_)) {
+	if (njh::notIn("AF", infoEntries_)) {
 		infoEntries_.emplace("AF", InfoEntry(
-													 "AF", "A", "Float", "Allele Frequency dependent on ploidy, calulated AC/AN"
-												 ));
+			                     "AF", "A", "Float", "Allele Frequency dependent on ploidy, calulated AC/AN"
+		                     ));
 	}
 
 	njh::for_each(
-	records_, [](auto &rec) { rec.autoAdd_AN_AC_AF_InfoFields(); });
+		records_, [](auto& rec) { rec.autoAdd_AN_AC_AF_InfoFields(); });
 
 }
+
+void VCFOutput::allAutoAddWeightedAFRealField() {
+	if (njh::notIn("AF_REAL", infoEntries_)) {
+		infoEntries_.emplace("AF_REAL", InfoEntry(
+													 "AF_REAL", "A", "Float", "Allele Frequency not dependent on ploidy, calculated as AC/AN weighted by within sample frequencies"
+												 ));
+	}
+	njh::for_each(
+		records_, [](auto& rec) { rec.autoAddWeightedAFRealField(); });
+
+}
+
+
+
 
 
 
@@ -1545,7 +1596,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 											//replace AC and AF with zeros so that underneath they get properly modified
 											auto AC = firstVcf.records_[bestPos].info_.getMeta("AC_REAL");
 											auto AC_toks = tokenizeString(AC, ",");
-											auto AF = firstVcf.records_[bestPos].info_.getMeta("AF_REAL");
+											auto AF = firstVcf.records_[bestPos].info_.getMeta("UNWEIGHTED_AF_REAL");
 											auto AF_toks = tokenizeString(AF, ",");
 											auto SC = firstVcf.records_[bestPos].info_.getMeta("SC");
 											auto SC_toks = tokenizeString(SC, ",");
@@ -1575,7 +1626,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 												}
 											}
 											firstVcf.records_[bestPos].info_.addMeta("AC_REAL", AC_replacement, true);
-											firstVcf.records_[bestPos].info_.addMeta("AF_REAL", AF_replacement, true);
+											firstVcf.records_[bestPos].info_.addMeta("UNWEIGHTED_AF_REAL", AF_replacement, true);
 											firstVcf.records_[bestPos].info_.addMeta("SC", SC_replacement, true);
 											firstVcf.records_[bestPos].info_.addMeta("PREV", PREV_replacement, true);
 											firstVcf.records_[bestPos].alts_ = newAlts;
@@ -1625,7 +1676,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 										AFs.emplace_back(estd::to_string(njh::StrToNumConverter::stoToNum<uint32_t>(AC_tok)/AN));
 									}
 									//replace the updated AF
-									firstVcf.records_[bestPos].info_.addMeta("AF_REAL", njh::conToStr(AFs, ","), true);
+									firstVcf.records_[bestPos].info_.addMeta("UNWEIGHTED_AF_REAL", njh::conToStr(AFs, ","), true);
 
 
 									////// SC
@@ -1840,7 +1891,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 												//replace AC and AF with zeros so that underneath they get properly modified
 												auto AC = firstVcf.records_[bestPos].info_.getMeta("AC_REAL");
 												auto AC_toks = tokenizeString(AC, ",");
-												auto AF = firstVcf.records_[bestPos].info_.getMeta("AF_REAL");
+												auto AF = firstVcf.records_[bestPos].info_.getMeta("UNWEIGHTED_AF_REAL");
 												auto AF_toks = tokenizeString(AF, ",");
 												auto SC = firstVcf.records_[bestPos].info_.getMeta("SC");
 												auto SC_toks = tokenizeString(SC, ",");
@@ -1870,7 +1921,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 													}
 												}
 												firstVcf.records_[bestPos].info_.addMeta("AC_REAL", AC_replacement, true);
-												firstVcf.records_[bestPos].info_.addMeta("AF_REAL", AF_replacement, true);
+												firstVcf.records_[bestPos].info_.addMeta("UNWEIGHTED_AF_REAL", AF_replacement, true);
 												firstVcf.records_[bestPos].info_.addMeta("SC", SC_replacement, true);
 												firstVcf.records_[bestPos].info_.addMeta("PREV", PREV_replacement, true);
 												firstVcf.records_[bestPos].alts_ = newAlts;
@@ -2028,7 +2079,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 									}
 									// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 									//replace the updated AF
-									firstVcf.records_[bestPos].info_.addMeta("AF_REAL", njh::conToStr(AFs, ","), true);
+									firstVcf.records_[bestPos].info_.addMeta("UNWEIGHTED_AF_REAL", njh::conToStr(AFs, ","), true);
 
 									//update the SC
 									firstVcf.records_[bestPos].info_.addMeta("SC", njh::conToStr(SC_toks, ","), true);
@@ -2231,7 +2282,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 										//replace AC and AF with zeros so that underneath they get properly modified
 										auto AC = firstVcf.records_[bestPos].info_.getMeta("AC_REAL");
 										auto AC_toks = tokenizeString(AC, ",");
-										auto AF = firstVcf.records_[bestPos].info_.getMeta("AF_REAL");
+										auto AF = firstVcf.records_[bestPos].info_.getMeta("UNWEIGHTED_AF_REAL");
 										auto AF_toks = tokenizeString(AF, ",");
 										auto SC = firstVcf.records_[bestPos].info_.getMeta("SC");
 										auto SC_toks = tokenizeString(SC, ",");
@@ -2261,7 +2312,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 											}
 										}
 										firstVcf.records_[bestPos].info_.addMeta("AC_REAL", AC_replacement, true);
-										firstVcf.records_[bestPos].info_.addMeta("AF_REAL", AF_replacement, true);
+										firstVcf.records_[bestPos].info_.addMeta("UNWEIGHTED_AF_REAL", AF_replacement, true);
 										firstVcf.records_[bestPos].info_.addMeta("SC", SC_replacement, true);
 										firstVcf.records_[bestPos].info_.addMeta("PREV", PREV_replacement, true);
 										firstVcf.records_[bestPos].alts_ = newAlts;
@@ -2309,7 +2360,7 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 									AFs.emplace_back(estd::to_string(njh::StrToNumConverter::stoToNum<uint32_t>(AC_tok)/AN));
 								}
 								//replace the updated AF
-								firstVcf.records_[bestPos].info_.addMeta("AF_REAL", njh::conToStr(AFs, ","), true);
+								firstVcf.records_[bestPos].info_.addMeta("UNWEIGHTED_AF_REAL", njh::conToStr(AFs, ","), true);
 
 
 								////// SC
@@ -2388,6 +2439,8 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 	firstVcf.allAutoAddDPFields();
 	firstVcf.allAutoAddTYPEFields();
 	firstVcf.allAutoAdd_AN_AC_AF_InfoFields();
+	firstVcf.allAutoAddWeightedAFRealField();
+
 	firstVcf.allAddDefaultFormatField("GQ", 40, FormatEntry("GQ", "1", "Float", "Genotype Quality"), true);
 	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
 	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;

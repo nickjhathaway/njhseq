@@ -143,15 +143,15 @@ VecStr CollapsedHaps::GenPopMeasuresRes::getOut(const CollapsedHaps & inputSeqs,
 		divMeasures_.effectiveNumOfAlleles_,
 		divMeasures_.simpsonIndex_,
 		divMeasures_.heterozygostiy_,
-		std::numeric_limits<long double>::max() == divMeasures_.ploidy3_.expectedCOIForPloidy_.at(3)
+		std::numeric_limits<long double>::max() == divMeasures_.expected_k_heterozygosities.at(3).k_heterozygosity_
 			? std::string("NA")
-			: estd::to_string(divMeasures_.ploidy3_.expectedCOIForPloidy_.at(3)),
-		std::numeric_limits<long double>::max() == divMeasures_.ploidy4_.expectedCOIForPloidy_.at(4)
+			: estd::to_string(divMeasures_.expected_k_heterozygosities.at(3).k_heterozygosity_),
+		std::numeric_limits<long double>::max() == divMeasures_.expected_k_heterozygosities.at(4).k_heterozygosity_
 			? std::string("NA")
-			: estd::to_string(divMeasures_.ploidy4_.expectedCOIForPloidy_.at(4)),
-		std::numeric_limits<long double>::max() == divMeasures_.ploidy5_.expectedCOIForPloidy_.at(5)
+			: estd::to_string(divMeasures_.expected_k_heterozygosities.at(4).k_heterozygosity_),
+		std::numeric_limits<long double>::max() == divMeasures_.expected_k_heterozygosities.at(5).k_heterozygosity_
 			? std::string("NA")
-			: estd::to_string(divMeasures_.ploidy5_.expectedCOIForPloidy_.at(5)),
+			: estd::to_string(divMeasures_.expected_k_heterozygosities.at(5).k_heterozygosity_),
 
 		njh::boolToStr(inputSeqs.hasLengthVariation(pars.lowVarFreq))
 	));
@@ -315,7 +315,7 @@ std::unordered_map<std::string,
 		const std::unordered_map<std::string,
 				std::unordered_map<std::string, GenPopMeasuresPar>> &pars,
 		const std::set<std::string> &metaFields,
-		const std::shared_ptr<aligner> &alignerObj)const {
+		const std::shared_ptr<aligner> &alignerObj) const {
 
 	std::unordered_map<std::string, std::unordered_map<std::string, CollapsedHaps::GenPopMeasuresRes>> ret;
 	for(const auto & metaField : metaFields){
@@ -378,7 +378,18 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 	ret.tajimaRes_.pval_beta_ = 1;
 	ret.tajimaRes_.pval_normal_ = 1;
 //	std::cout << __FILE__ << " " << __LINE__ << std::endl;
-	ret.divMeasures_ = PopGenCalculator::getGeneralMeasuresOfDiversity(seqs_, pars.onlyPloidy2_);
+	//set within-sample frequencies to get weighted diversity metrics
+	std::vector<seqInfo> weightedSeqs;
+	auto reads_total_per_sample = getSampleReadCnts();
+	for (const auto seq_pos : iter::range(seqs_.size())) {
+		weightedSeqs.emplace_back(seqs_[seq_pos]->name_, seqs_[seq_pos]->seq_);
+		weightedSeqs.back().cnt_ += seqs_[seq_pos]->cnt_;
+		weightedSeqs.back().frac_ = 0;
+		for (const auto & name : names_[seq_pos]) {
+			weightedSeqs.back().frac_ += static_cast<double>(getReadCountFromSeqName(name))/reads_total_per_sample[getSampleNameFromSeqName(name, possibleSampleMetaFields_)];
+		}
+	}
+	ret.divMeasures_ = PopGenCalculator::getGeneralMeasuresOfDiversity(weightedSeqs);
 // 	std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (pars.getPairwiseComps &&
 			size() > 1 &&
@@ -578,6 +589,45 @@ std::set<std::string> CollapsedHaps::getAllSampleNames() const {
 	}
 	return ret;
 }
+
+
+std::unordered_map<std::string, uint32_t> CollapsedHaps::getSampleReadCnts() const {
+	std::unordered_map<std::string, uint32_t> ret;
+	for(const auto & subNames : names_){
+		for(const auto & name : subNames){
+			ret[getSampleNameFromSeqName(name, possibleSampleMetaFields_)] = getReadCountFromSeqName(name, possibleReadCountMetaFields_);
+		}
+	}
+	return ret;
+}
+
+
+std::unordered_map<std::string, double> CollapsedHaps::getWeightedAlleleFreqs() const {
+	std::unordered_map<std::string, double> ret;
+	double total = 0.0;
+	auto reads_total_per_sample = getSampleReadCnts();
+	for (const auto seq_pos : iter::range(seqs_.size())) {
+		for (const auto & name : names_[seq_pos]) {
+			ret[seqs_[seq_pos]->seq_] += static_cast<double>(getReadCountFromSeqName(name))/reads_total_per_sample[getSampleNameFromSeqName(name, possibleSampleMetaFields_)];
+			total                     += static_cast<double>(getReadCountFromSeqName(name))/reads_total_per_sample[getSampleNameFromSeqName(name, possibleSampleMetaFields_)];
+		}
+	}
+	for (auto & freq : ret) {
+		freq.second /= total;
+	}
+	return ret;
+}
+
+std::unordered_map<std::string, double> CollapsedHaps::getPrevalences() const {
+	auto samples_per_seq = getSampleNamesPerSeqs();
+	std::unordered_map<std::string, double> ret;
+	auto sample_total = static_cast<double>(getAllSampleNames().size());
+	for (const auto seq_pos : iter::range(seqs_.size())) {
+		ret[seqs_[seq_pos]->seq_] = static_cast<double>(samples_per_seq[seq_pos].size()) / sample_total;
+	}
+	return ret;
+}
+
 
 std::vector<std::unordered_map<std::string, uint32_t>> CollapsedHaps::getSampleReadCntsPerSeqs() const {
 	std::vector<std::unordered_map<std::string, uint32_t>> ret;
@@ -975,6 +1025,7 @@ std::vector<std::vector<comparison>> CollapsedHaps::getPairwiseCompsDiagAln(alig
 
 
 CollapsedHaps::AvgPairwiseMeasures CollapsedHaps::getAvgPairwiseMeasures(const std::vector<std::vector<comparison>> & allComps) const{
+	//@todo readjust for weighting by within sample frequencies
 	AvgPairwiseMeasures ret;
 	PairwisePairFactory pFac(seqs_.size());
 	PairwisePairFactory::PairwisePair pair;

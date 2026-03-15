@@ -77,8 +77,7 @@ public:
 		bool getPairwiseComps {false};
 		bool diagAlnPairwiseComps {true};
 
-		bool onlyPloidy2_ {false};
-		uint32_t seqCountCutOffPloidyCalc_{8000};
+
 		uint32_t numSegSites_{std::numeric_limits<uint32_t>::max()};
 		uint32_t numThreads = 1;
 		double lowVarFreq = 0;
@@ -151,6 +150,9 @@ public:
 	[[nodiscard]] std::set<std::string> getAllSampleNames() const;
 	[[nodiscard]] std::vector<std::unordered_set<std::string>> getSampleNamesPerSeqs() const;
 	[[nodiscard]] std::vector<std::unordered_map<std::string, uint32_t>> getSampleReadCntsPerSeqs() const;
+	[[nodiscard]] std::unordered_map<std::string, uint32_t> getSampleReadCnts() const;
+	[[nodiscard]] std::unordered_map<std::string, double> getWeightedAlleleFreqs() const;
+	[[nodiscard]] std::unordered_map<std::string, double> getPrevalences() const;
 
 	//writing out info
 	void writeOutSeqsOrdCnt(const SeqIOOptions& seqOpts) const;

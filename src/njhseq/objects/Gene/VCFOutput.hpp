@@ -169,6 +169,7 @@ public:
 		void addGTField(uint32_t ploidy = 2);
 		void autoAddTYPEField();
 		void autoAddTotalDP_RO_AO_InfoFields();
+		void autoAddWeightedAFRealField();
 		void autoAdd_AN_AC_AF_InfoFields();
 
 		template<typename T>
@@ -208,7 +209,7 @@ public:
 	void allAddGTFields(uint32_t ploidy=2);
 
 	void allAutoAdd_AN_AC_AF_InfoFields();
-
+	void allAutoAddWeightedAFRealField();
 	void allAutoAddDPFields();
 	void allAutoAddTYPEFields();
 
