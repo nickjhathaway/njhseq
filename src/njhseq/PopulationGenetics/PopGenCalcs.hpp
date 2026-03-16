@@ -100,77 +100,6 @@ public:
 	};
 
 
-	/**@brief Get several general measures of diversity, assumes haps are already collapsed to unique haplotypes and have frequencies set
-	 *
-	 * @param haps a vector of unique haplotypes
-	 * @return a struct with several diversity measurements
-	 */
-	template<typename T>
-	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<T> & haps){
-
-		std::unordered_map<std::string, uint32_t> popCounts;
-		std::unordered_map<std::string, uint32_t> popCountsWeighted;
-		for(const auto & seq : haps){
-			popCounts[getSeqBase(seq).seq_] += getSeqBase(seq).cnt_;
-		}
-		for(const auto & seq : haps){
-			popCountsWeighted[getSeqBase(seq).seq_] += getSeqBase(seq).frac_;
-		}
-		std::vector<PopGenCalculator::PopHapInfo> popHapInfos;
-		uint32_t count = 0;
-		for(const auto & popCount : popCounts){
-			popHapInfos.emplace_back(count, popCount.second);
-			popHapInfos[count].weighted_count_ = popCountsWeighted[popCount.first];
-			++count;
-		}
-		return getGeneralMeasuresOfDiversity(popHapInfos);
-//
-//
-//		DiversityMeasures res;
-//
-//		res.alleleNumber_ = haps.size();
-//		double sumOfSquares = 0;
-//		double sumOfLogFreqTimesFreq = 0;
-//
-//
-//		for (const auto & hap : haps) {
-//			const seqInfo & seqRef = getSeqBase(hap);
-//			if (1 == seqRef.cnt_) {
-//				++res.singlets_;
-//			} else if (2 == seqRef.cnt_) {
-//				++res.doublets_;
-//			}
-//			sumOfSquares += std::pow(seqRef.frac_, 2.0);
-//			sumOfLogFreqTimesFreq += seqRef.frac_ * std::log(seqRef.frac_);
-//		}
-//
-//		res.heterozygostiy_ = 1 - sumOfSquares;
-//		res.effectiveNumOfAlleles_ = std::pow(sumOfSquares, -1);
-//		res.ShannonEntropyE_ = -sumOfLogFreqTimesFreq;
-//		res.expShannonEntropy_ = std::exp(-sumOfLogFreqTimesFreq);
-//
-//		return res;
-	}
-
-	/**@brief Get several general measures of diversity,
-	 *
-	 * @param haps a vector of unique haplotypes
-	 * @return a struct with several diversity measurements
-	 */
-	template<typename T>
-	static DiversityMeasures getGeneralMeasuresOfDiversityRawInput(const std::vector<T> & haps){
-		std::unordered_map<std::string, uint32_t> popCounts;
-		for(const auto & seq : haps){
-			++popCounts[getSeqBase(seq).seq_];
-		}
-		std::vector<PopGenCalculator::PopHapInfo> popHapInfos;
-		uint32_t count = 0;
-		for(const auto & popCount : popCounts){
-			popHapInfos.emplace_back(count, popCount.second);
-			++count;
-		}
-		return getGeneralMeasuresOfDiversity(popHapInfos);
-	}
 
 
 
@@ -245,148 +174,111 @@ public:
 	};
 
 
-	//
-	//template<typename T>
-	//PopDifferentiationMeasures getOverallPopDiff(const std::unordered_map<std::string, std::shared_ptr<std::vector<T>>> & popSeqs){
-	//	if(popSeqs.size() < 2){
-	//		std::stringstream ss;
-	//		ss << __PRETTY_FUNCTION__ << " error, popSeqs should at least be size 2 not " << popSeqs.size() << "\n";
-	//		throw std::runtime_error{ss.str()};
-	//	}
-	//	PopDifferentiationMeasures ret;
-	//
-	//	std::unordered_map<std::string, uint32_t> subPopSizes;
-	//	std::unordered_set<std::string> allHapSeqs;
-	//	std::unordered_map<std::string, std::unordered_map<std::string, double>> freqsForPopForHapSeq;
-	//	std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> countsForPopForHapSeq;
-	//
-	//	for(const auto & subPop : popSeqs){
-	//		subPopSizes[subPop.first] =
-	//				std::accumulate(subPop.second->begin(), subPop.second->end(), 0,
-	//						[](uint32_t total, const T & seq) {
-	//							return total + std::round(getSeqBase(seq).cnt_);
-	//						});
-	//		double sumOfSquares = 0;
-	//		for(const auto & seq : *subPop.second){
-	//			allHapSeqs.emplace(getSeqBase(seq).seq_);
-	//			freqsForPopForHapSeq[subPop.first][getSeqBase(seq).seq_] = getSeqBase(seq).frac_;
-	//			countsForPopForHapSeq[subPop.first][getSeqBase(seq).seq_] = std::round(getSeqBase(seq).cnt_);
-	//			sumOfSquares += std::pow(getSeqBase(seq).frac_, 2.0);
-	//		}
-	//		ret.hjsSample_[subPop.first] = 1 - sumOfSquares;
-	//	}
-	//
-	//	double sumOfHjsSample = 0;
-	//	for(const auto & subPop : ret.hjsSample_){
-	//		sumOfHjsSample += subPop.second;
-	//	}
-	//	ret.hsSample_ = sumOfHjsSample/ret.hjsSample_.size();
-	//	double jtSample = 0;
-	//	for(const auto & hapSeq : allHapSeqs){
-	//		double freqSum = 0;
-	//		for( auto & subPop : freqsForPopForHapSeq){
-	//			freqSum += subPop.second[hapSeq];
-	//		}
-	//		jtSample += std::pow(freqSum/popSeqs.size(), 2.0);
-	//	}
-	//	ret.htSample_ = 1 - jtSample;
-	//
-	//	double harmonicMean = 0;
-	//	double sumOfInverses = 0;
-	//	uint32_t totalHaps = 0;
-	//	for(const auto & popSize : subPopSizes){
-	//		totalHaps += popSize.second;
-	//		sumOfInverses += 1.0/popSize.second;
-	//	}
-	//	harmonicMean = subPopSizes.size()/sumOfInverses;
-	//
-	//	ret.hsEst_ = (harmonicMean/(harmonicMean - 1)) * ret.hsSample_;
-	//	ret.htEst_ = ret.htSample_ + (ret.hsEst_)/(harmonicMean * popSeqs.size());
-	//
-	//	ret.gst_ = (ret.htSample_ - ret.hsSample_)/ret.htSample_;
-	//	ret.jostD_ = ((ret.htSample_ - ret.hsSample_)/(1 - ret.hsSample_)) * (popSeqs.size()/(popSeqs.size() - 1));
-	//
-	//	ret.gstEst_ =  (ret.htEst_ - ret.hsEst_)/ret.htEst_;
-	//	ret.jostDEst_ = ((ret.htEst_ - ret.hsEst_)/(1 - ret.hsEst_)) * (popSeqs.size()/(popSeqs.size() - 1));
-	//
-	//
-	//	double a = 0;
-	//	for(const auto & hapSeq : allHapSeqs){
-	//		double sumOfFreqs = 0;
-	//		double sumOfSqaureFreqs = 0;
-	//		for( auto & subPop : freqsForPopForHapSeq){
-	//			sumOfFreqs += subPop.second[hapSeq];
-	//			sumOfSqaureFreqs += std::pow(subPop.second[hapSeq], 2.0);
-	//		}
-	//		a += (std::pow(sumOfFreqs, 2.0) - sumOfSqaureFreqs)/(subPopSizes.size() - 1);
-	//	}
-	//	ret.chaoA_ = a;
-	//	double b = 0;
-	//	for(const auto & hapSeq : allHapSeqs){
-	//		for(auto & subPop : countsForPopForHapSeq){
-	//			if(subPop.second[hapSeq] > 0){
-	//				b += (subPop.second[hapSeq] *(subPop.second[hapSeq] - 1) )/static_cast<double>(subPopSizes[subPop.first] * (subPopSizes[subPop.first] - 1));
-	//			}
-	//		}
-	//	}
-	//	ret.chaoB_ = b;
-	//	ret.jostDChaoEst_ = 1 - (a/b);
-	//	return ret;
-	//}
-	//
-
-
 	struct PopHapInfo {
-		PopHapInfo(const uint32_t & popUid, uint32_t count): popUid_(popUid), count_(count){
-
+		PopHapInfo(const uint32_t& popUid, uint32_t count) : popUid_(popUid), unweighted_count_(count) {
 		}
-		PopHapInfo(const uint32_t & popUid, uint32_t count, double prob): popUid_(popUid), count_(count), prob_(prob){
 
+		PopHapInfo(const uint32_t& popUid, uint32_t count, double prob) : popUid_(popUid), unweighted_count_(count),
+		                                                                  unweighted_prob_(prob) {
 		}
 
 		uint32_t popUid_;
-		uint32_t count_;
+		uint32_t unweighted_count_;
 		double weighted_count_ = 0;
 
-		double prob_{0};
+		double unweighted_prob_{0};
+		double weighted_prob_{0};
 
+		static double getTotalWeightedPopCount(const std::vector<PopHapInfo>& hapsForPopulation) {
+			return std::accumulate(hapsForPopulation.begin(), hapsForPopulation.end(), 0,
+			                       [](uint32_t weighted_count, const PopHapInfo& hap) {
+				                       return weighted_count + hap.weighted_count_;
+			                       });
+		}
 
-		static double getTotalWeightedPopCount(const std::vector<PopHapInfo> & hapsForPopulation){
-			return std::accumulate(hapsForPopulation.begin(), hapsForPopulation.end(), 0, [](uint32_t weighted_count, const PopHapInfo & hap){
-				return weighted_count + hap.weighted_count_;
+		static uint32_t getTotalPopCount(const std::vector<PopHapInfo>& hapsForPopulation) {
+			return std::accumulate(hapsForPopulation.begin(), hapsForPopulation.end(), 0,
+			                       [](uint32_t total, const PopHapInfo& hap) {
+				                       return total + hap.unweighted_count_;
+			                       });
+		}
+
+		static void setProb(std::vector<PopHapInfo>& hapsForPopulation, uint32_t total) {
+			njh::for_each(hapsForPopulation, [&total](PopHapInfo& hap) {
+				hap.unweighted_prob_ = hap.unweighted_count_ / static_cast<double>(total);
 			});
 		}
 
-		static uint32_t getTotalPopCount(const std::vector<PopHapInfo> & hapsForPopulation){
-			return std::accumulate(hapsForPopulation.begin(), hapsForPopulation.end(), 0, [](uint32_t total, const PopHapInfo & hap){
-				return total + hap.count_;
-			});
-		}
-
-		static void setProb(std::vector<PopHapInfo> & hapsForPopulation, uint32_t total){
-			njh::for_each(hapsForPopulation, [&total](PopHapInfo & hap){
-				hap.prob_ = hap.count_/static_cast<double>(total);
-			});
-		}
-		static void setProb(std::vector<PopHapInfo> & hapsForPopulation){
+		static void setProb(std::vector<PopHapInfo>& hapsForPopulation) {
 			auto total = getTotalPopCount(hapsForPopulation);
-			njh::for_each(hapsForPopulation, [&total](PopHapInfo & hap){
-				hap.prob_ = hap.count_/static_cast<double>(total);
+			njh::for_each(hapsForPopulation, [&total](PopHapInfo& hap) {
+				hap.unweighted_prob_ = hap.unweighted_count_ / static_cast<double>(total);
 			});
 		}
 
-		static void setProbWeighted(std::vector<PopHapInfo> & hapsForPopulation, double weighted_total){
-			njh::for_each(hapsForPopulation, [&weighted_total](PopHapInfo & hap){
-				hap.prob_ = hap.weighted_count_/weighted_total;
+		static void setProbWeighted(std::vector<PopHapInfo>& hapsForPopulation, double weighted_total) {
+			njh::for_each(hapsForPopulation, [&weighted_total](PopHapInfo& hap) {
+				hap.weighted_prob_ = hap.weighted_count_ / weighted_total;
 			});
 		}
-		static void setProbWeighted(std::vector<PopHapInfo> & hapsForPopulation){
+
+		static void setProbWeighted(std::vector<PopHapInfo>& hapsForPopulation) {
 			auto weighted_total = getTotalWeightedPopCount(hapsForPopulation);
-			njh::for_each(hapsForPopulation, [&weighted_total](PopHapInfo & hap){
-				hap.prob_ = hap.weighted_count_/weighted_total;
+			njh::for_each(hapsForPopulation, [&weighted_total](PopHapInfo& hap) {
+				hap.weighted_prob_ = hap.weighted_count_ / weighted_total;
 			});
 		}
 	};
+
+
+		/**@brief Get several general measures of diversity, assumes haps are already collapsed to unique haplotypes and have frequencies set
+	 *
+	 * @param haps a vector of unique haplotypes
+	 * @param by_unweighted_counts by default, the frequency metrics are calculated by the weighted (frac_) counts, set this to true to do freqs by count (cnt_)
+	 * @return a struct with several diversity measurements
+	 */
+	template<typename T>
+	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<T> & haps, bool by_unweighted_counts = false){
+
+		std::unordered_map<std::string, uint32_t> popCounts;
+		std::unordered_map<std::string, uint32_t> popCountsWeighted;
+		for(const auto & seq : haps){
+			popCounts[getSeqBase(seq).seq_] += getSeqBase(seq).cnt_;
+		}
+		for(const auto & seq : haps){
+			popCountsWeighted[getSeqBase(seq).seq_] += getSeqBase(seq).frac_;
+		}
+		std::vector<PopGenCalculator::PopHapInfo> popHapInfos;
+		uint32_t count = 0;
+		for(const auto & popCount : popCounts){
+			popHapInfos.emplace_back(count, popCount.second);
+			popHapInfos[count].weighted_count_ = popCountsWeighted[popCount.first];
+			++count;
+		}
+		return getGeneralMeasuresOfDiversity(popHapInfos, by_unweighted_counts);
+	}
+
+	/**@brief Get several general measures of diversity,
+	 *
+	 * @param haps a vector of unique haplotypes
+	 * @return a struct with several diversity measurements
+	 */
+	template<typename T>
+	static DiversityMeasures getGeneralMeasuresOfDiversityRawInput(const std::vector<T> & haps){
+		std::unordered_map<std::string, uint32_t> popCounts;
+		for(const auto & seq : haps){
+			++popCounts[getSeqBase(seq).seq_];
+		}
+		std::vector<PopGenCalculator::PopHapInfo> popHapInfos;
+		uint32_t count = 0;
+		for(const auto & popCount : popCounts){
+			popHapInfos.emplace_back(count, popCount.second);
+			//set weighted_count_ as well in case used later
+			popHapInfos[count].weighted_count_ = popCount.second;
+			++count;
+		}
+		return getGeneralMeasuresOfDiversity(popHapInfos);
+	}
 
 	/**
 	 * @brief get general measurements of diversity
@@ -397,59 +289,99 @@ public:
 	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<PopHapInfo> & haps, bool by_unweighted_counts = false);
 
 
-	static PopDifferentiationMeasures getOverallPopDiff(std::unordered_map<std::string, std::vector<PopHapInfo> > hapsForPopulations);
-
-
-	static PopDifferentiationMeasuresPairWise getPopDiff(
+	static PopDifferentiationMeasuresPairWise getPopDiffUnweighted(
 			const std::string & pop1, const std::vector<PopHapInfo> & pop1Haps,
 			const std::string & pop2, const std::vector<PopHapInfo> & pop2Haps,
 			const std::unordered_set<uint32_t> & allPossibleHaps,
-			const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>> & pairwiseDistacne = std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>>{});
+			const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>> & pairwiseDistance = std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>>{});
+
+	static PopDifferentiationMeasuresPairWise getPopDiffWeighted(
+		const std::string & pop1, const std::vector<PopHapInfo> & pop1Haps,
+		const std::string & pop2, const std::vector<PopHapInfo> & pop2Haps,
+		const std::unordered_set<uint32_t> & allPossibleHaps,
+		const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>> & pairwiseDistance = std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>>{});
+
 
 	template<typename T>
-	static PopDifferentiationMeasures getOverallPopDiffForSeqs(const std::unordered_map<std::string, std::shared_ptr<std::vector<T>>> & popSeqs){
-		if(popSeqs.size() < 2){
+	static PopDifferentiationMeasures getOverallPopDiffForSeqsWeighted(
+		const std::unordered_map<std::string, std::shared_ptr<std::vector<T>>>& popSeqs) {
+		if (popSeqs.size() < 2) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " error, popSeqs should at least be size 2 not " << popSeqs.size() << "\n";
 			throw std::runtime_error{ss.str()};
 		}
-		std::unordered_map<std::string, std::vector<PopHapInfo> > hapsForPopulations;
+		std::unordered_map<std::string, std::vector<PopHapInfo>> hapsForPopulations;
 		std::unordered_map<std::string, uint32_t> seqCounts;
-		for(const auto & pop : popSeqs){
-			for(const auto & hap : *pop.second){
+		for (const auto& pop: popSeqs) {
+			for (const auto& hap: *pop.second) {
 				seqCounts[getSeqBase(hap).seq_] += getSeqBase(hap).cnt_;
 			}
 		}
 		auto seqs = njh::getVecOfMapKeys(seqCounts);
-		njh::sort(seqs,[&seqCounts](const std::string & seq1, const std::string & seq2){
+		njh::sort(seqs, [&seqCounts](const std::string& seq1, const std::string& seq2) {
 			return seqCounts[seq1] > seqCounts[seq2];
 		});
 
 		std::unordered_map<std::string, uint32_t> seqToPopUID;
-		for(const auto pos : iter::range(seqs.size())){
+		for (const auto pos: iter::range(seqs.size())) {
 			seqToPopUID[seqs[pos]] = pos;
 		}
 
-		for(const auto & pop : popSeqs){
-			for(const auto & hap : *pop.second){
+		for (const auto& pop: popSeqs) {
+			for (const auto& hap: *pop.second) {
 				hapsForPopulations[pop.first].emplace_back(PopHapInfo(seqToPopUID[getSeqBase(hap).seq_], getSeqBase(hap).cnt_));
+				//add weighted count as well
+				hapsForPopulations[pop.first].back().weighted_count_ = getSeqBase(hap).frac_;
 			}
 		}
-		return getOverallPopDiff(hapsForPopulations);
+		return getOverallPopDiffWeighted(hapsForPopulations);
+	}
+
+	template<typename T>
+	static PopDifferentiationMeasures getOverallPopDiffForSeqsUnweighted(
+		const std::unordered_map<std::string, std::shared_ptr<std::vector<T>>>& popSeqs) {
+		if (popSeqs.size() < 2) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " error, popSeqs should at least be size 2 not " << popSeqs.size() << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+		std::unordered_map<std::string, std::vector<PopHapInfo>> hapsForPopulations;
+		std::unordered_map<std::string, uint32_t> seqCounts;
+		for (const auto& pop: popSeqs) {
+			for (const auto& hap: *pop.second) {
+				seqCounts[getSeqBase(hap).seq_] += getSeqBase(hap).cnt_;
+			}
+		}
+		auto seqs = njh::getVecOfMapKeys(seqCounts);
+		njh::sort(seqs, [&seqCounts](const std::string& seq1, const std::string& seq2) {
+			return seqCounts[seq1] > seqCounts[seq2];
+		});
+
+		std::unordered_map<std::string, uint32_t> seqToPopUID;
+		for (const auto pos: iter::range(seqs.size())) {
+			seqToPopUID[seqs[pos]] = pos;
+		}
+
+		for (const auto& pop: popSeqs) {
+			for (const auto& hap: *pop.second) {
+				hapsForPopulations[pop.first].emplace_back(PopHapInfo(seqToPopUID[getSeqBase(hap).seq_], getSeqBase(hap).cnt_));
+				//add weighted count as well
+				hapsForPopulations[pop.first].back().weighted_count_ = getSeqBase(hap).frac_;
+			}
+		}
+		return getOverallPopDiffUnweighted(hapsForPopulations);
 	}
 
 
-	static std::unordered_map<std::string,
-			std::unordered_map<std::string, PopDifferentiationMeasuresPairWise>> getPairwisePopDiff(
-			const std::unordered_map<std::string, std::vector<PopHapInfo>> & hapsForPopulations,
-			const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>> & pairwiseDists = std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>>{});
 
+	static PopDifferentiationMeasures getOverallPopDiffWeighted(std::unordered_map<std::string, std::vector<PopHapInfo> > hapsForPopulations);
+	static PopDifferentiationMeasures getOverallPopDiffUnweighted(std::unordered_map<std::string, std::vector<PopHapInfo> > hapsForPopulations);
 
 	template<typename T>
 	static std::unordered_map<std::string,
-			std::unordered_map<std::string, PopDifferentiationMeasuresPairWise>> getPairwisePopDiff(
+			std::unordered_map<std::string, PopDifferentiationMeasuresPairWise>> getPairwisePopDiffUnweighted(
 			const std::unordered_map<std::string, std::shared_ptr<std::vector<T>>> & popSeqs,
-			const std::vector<std::vector<double>> & pairwiseDistacne = std::vector<std::vector<double>>{}) {
+			const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>> & pairwiseDistance = std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>>{}) {
 		if(popSeqs.size() < 2){
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " error, popSeqs should at least be size 2 not " << popSeqs.size() << "\n";
@@ -478,22 +410,64 @@ public:
 		for(const auto & pop : popSeqs){
 			for(const auto & hap : *pop.second){
 				hapsForPopulations[pop.first].emplace_back(PopHapInfo(seqToPopUID[getSeqBase(hap).seq_], getSeqBase(hap).cnt_));
+				hapsForPopulations[pop.first].back().weighted_count_ = getSeqBase(hap).frac_;
 			}
 		}
-		return getPairwisePopDiff(hapsForPopulations);
-//		for(const auto keyPos : iter::range(keys.size())){
-//			for(const auto secondKeyPos : iter::range(keyPos)){
-//	//			std::unordered_map<std::string, std::shared_ptr<std::vector<T>>> currentPair;
-//	//			currentPair[keys[keyPos]] = popSeqs.at(keys[keyPos]);
-//	//			currentPair[keys[secondKeyPos]] = popSeqs.at(keys[secondKeyPos]);
-//	//			auto popMeasures = getOverallPopDiff(currentPair);
-//				auto popMeasures = getPopDiff(keys[keyPos], hapsForPopulations[keys[keyPos]],
-//						keys[secondKeyPos], hapsForPopulations[keys[secondKeyPos]]);
-//				ret[keys[keyPos]][keys[secondKeyPos]] = popMeasures;
-//			}
-//		}
-//		return ret;
+		//pairwiseDistance
+		return getPairwisePopDiffUnweighted(hapsForPopulations, pairwiseDistance);
 	}
+	static std::unordered_map<std::string,
+		std::unordered_map<std::string, PopDifferentiationMeasuresPairWise>> getPairwisePopDiffUnweighted(
+		const std::unordered_map<std::string, std::vector<PopHapInfo>> & hapsForPopulations,
+		const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>> & pairwiseDists = std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>>{});
+
+	template<typename T>
+	static std::unordered_map<std::string,
+		std::unordered_map<std::string, PopDifferentiationMeasuresPairWise>> getPairwisePopDiffWeighted(
+		const std::unordered_map<std::string, std::shared_ptr<std::vector<T>>>& popSeqs,
+		const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>>& pairwiseDistance = std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>>{}) {
+
+		if (popSeqs.size() < 2) {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << " error, popSeqs should at least be size 2 not " << popSeqs.size() << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+
+		auto keys = njh::getVecOfMapKeys(popSeqs);
+		njh::sort(keys);
+		std::unordered_map<std::string, uint32_t> seqCounts;
+		for (const auto& pop: popSeqs) {
+			for (const auto& hap: *pop.second) {
+				seqCounts[getSeqBase(hap).seq_] += getSeqBase(hap).cnt_;
+			}
+		}
+		auto seqs = njh::getVecOfMapKeys(seqCounts);
+		njh::sort(seqs, [&seqCounts](const std::string& seq1, const std::string& seq2) {
+			return seqCounts[seq1] > seqCounts[seq2];
+		});
+
+		std::unordered_map<std::string, uint32_t> seqToPopUID;
+		for (const auto pos: iter::range(seqs.size())) {
+			seqToPopUID[seqs[pos]] = pos;
+		}
+
+		std::unordered_map<std::string, std::vector<PopHapInfo>> hapsForPopulations;
+		for (const auto& pop: popSeqs) {
+			for (const auto& hap: *pop.second) {
+				hapsForPopulations[pop.first].emplace_back(PopHapInfo(seqToPopUID[getSeqBase(hap).seq_], getSeqBase(hap).cnt_));
+				hapsForPopulations[pop.first].back().weighted_count_ = getSeqBase(hap).frac_;
+			}
+		}
+		//pairwiseDistance
+		return getPairwisePopDiffWeighted(hapsForPopulations, pairwiseDistance);
+	}
+
+	static std::unordered_map<std::string,
+		std::unordered_map<std::string, PopDifferentiationMeasuresPairWise>> getPairwisePopDiffWeighted(
+		const std::unordered_map<std::string, std::vector<PopHapInfo>>& hapsForPopulations,
+		const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>>& pairwiseDists = std::unordered_map<
+			uint32_t, std::unordered_map<uint32_t, double>>{});
+
 
 	class FisherExactFor2x2{
 	public:

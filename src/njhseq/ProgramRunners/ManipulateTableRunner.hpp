@@ -62,6 +62,8 @@ class ManipulateTableRunner : public njh::progutils::ProgramRunner {
   static int printCol(const njh::progutils::CmdArgs & inputCommands);
 
   static int splitColumnContainingMeta(const njh::progutils::CmdArgs & inputCommands);
+	static int tableUniteColumns(const njh::progutils::CmdArgs & inputCommands);
+	static int tablePrependColumnElements(const njh::progutils::CmdArgs & inputCommands);
 
   static int roughHistogramOfColumn(const njh::progutils::CmdArgs & inputCommands);
 

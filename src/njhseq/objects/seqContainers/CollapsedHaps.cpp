@@ -234,6 +234,7 @@ std::unordered_map<std::string, std::vector<PopGenCalculator::PopHapInfo>> Colla
 		}
 	}
 	//count up occurrences
+	auto sample_counts = getSampleReadCnts();
 	for (const auto seqPos: iter::range(seqs_.size())) {
 		for (const auto& name: names_[seqPos]) {
 			std::string subField = "NA";
@@ -243,14 +244,15 @@ std::unordered_map<std::string, std::vector<PopGenCalculator::PopHapInfo>> Colla
 					subField = seqMeta.getMeta(metaField);
 				}
 			}
-			++hapsForTargetPerPopulationRaw[subField][seqPos].count_;
+			++hapsForTargetPerPopulationRaw[subField][seqPos].unweighted_count_;
+			hapsForTargetPerPopulationRaw[subField][seqPos].weighted_count_ += static_cast<double>(getReadCountFromSeqName(name))/sample_counts[getSampleNameFromSeqName(name)];
 		}
 	}
 	//now get rid of the zeros
 	std::unordered_map<std::string, std::vector<PopGenCalculator::PopHapInfo>> hapsForTargetPerPopulation;
 	for(const auto & pop : hapsForTargetPerPopulationRaw){
 		for(const auto & hap : pop.second){
-			if(hap.count_ > 0){
+			if(hap.unweighted_count_ > 0){
 				hapsForTargetPerPopulation[pop.first].emplace_back(hap);
 			}
 		}

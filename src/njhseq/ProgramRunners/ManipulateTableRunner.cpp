@@ -57,10 +57,52 @@ ManipulateTableRunner::ManipulateTableRunner() :
 					addFunc("removeColumns",removeColumns, false),
 				  addFunc("tableRenameColumns",tableRenameColumns, false),
 				  addFunc("tableExtractElementsWithLevels",tableExtractElementsWithLevels, false),
+					addFunc("tableUniteColumns",tableUniteColumns, false),
+					addFunc("tablePrependColumnElements",tablePrependColumnElements, false),
 				}, "ManipulateTable", "1") {
 }
-//
 
+
+int ManipulateTableRunner::tableUniteColumns(
+		const njh::progutils::CmdArgs & inputCommands) {
+	ManipulateTableSetUp setUp(inputCommands);
+	bool do_not_remove = false;
+
+	std::string sep = "-";
+	std::string new_column_name;
+	VecStr columns;
+	setUp.processDefaultProgram(true);
+	setUp.setOption(columns, "--columns","Columns to remove", true);
+	setUp.setOption(do_not_remove, "--do_not_remove","remove the original columns");
+	bool remove = ! do_not_remove;
+	setUp.setOption(sep, "--sep","separator for the column contents that will be united");
+	setUp.setOption(new_column_name, "--new_column_name","new column name, if left blank will be the original colunns with the separateor");
+
+	setUp.finishSetUp(std::cout);
+	table outTab(setUp.ioOptions_);
+	if (new_column_name.empty()) {
+		outTab = outTab.unite_columns(columns, sep, remove);
+	} else {
+		outTab = outTab.unite_columns(columns, new_column_name, sep, remove);
+	}
+	outTab.outPutContents(setUp.ioOptions_);
+	return 0;
+}
+
+int ManipulateTableRunner::tablePrependColumnElements(
+		const njh::progutils::CmdArgs & inputCommands) {
+	ManipulateTableSetUp setUp(inputCommands);
+	std::string column;
+	std::string str_to_prepend_with;
+	setUp.processDefaultProgram(true);
+	setUp.setOption(column, "--column","column to prepend", true);
+	setUp.setOption(str_to_prepend_with, "--str_to_prepend_with","what to prepend the column elements with", true);
+	setUp.finishSetUp(std::cout);
+	table outTab(setUp.ioOptions_);
+	outTab.prepend_column(column, str_to_prepend_with);
+	outTab.outPutContents(setUp.ioOptions_);
+	return 0;
+}
 
 int ManipulateTableRunner::splitColumnContainingMeta(
 	const njh::progutils::CmdArgs&inputCommands) {
@@ -98,7 +140,6 @@ int ManipulateTableRunner::splitColumnContainingMeta(
 	return 0;
 }
 
-//
 int ManipulateTableRunner::extractColumnElementLength(
 		const njh::progutils::CmdArgs & inputCommands) {
 	seqSetUp setUp(inputCommands);

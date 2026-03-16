@@ -277,9 +277,9 @@ PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDivers
 	//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	std::vector<long double> freqs;
 	for (const auto & hap : haps) {
-		if (1 == hap.count_) {
+		if (1 == hap.unweighted_count_) {
 			++res.singlets_;
-		} else if (2 == hap.count_) {
+		} else if (2 == hap.unweighted_count_) {
 			++res.doublets_;
 		}
 	}
@@ -298,9 +298,9 @@ PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDivers
 		}
 	} else {
 		for (const auto & hap : haps) {
-			double prob = hap.count_/totalHaps;
+			double prob = hap.unweighted_count_/totalHaps;
 			freqs.emplace_back(prob);
-			sumTopOfSimpson += hap.count_ * (hap.count_ - 1);
+			sumTopOfSimpson += hap.unweighted_count_ * (hap.unweighted_count_ - 1);
 			sumOfSquares += std::pow(prob, 2.0);
 			sumOfLogFreqTimesFreq += prob * std::log(prob);
 		}
@@ -328,7 +328,8 @@ PopGenCalculator::DiversityMeasures PopGenCalculator::getGeneralMeasuresOfDivers
 	return res;
 }
 
-PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff(std::unordered_map<std::string, std::vector<PopHapInfo> > hapsForPopulations){
+PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiffUnweighted(
+	std::unordered_map<std::string, std::vector<PopHapInfo> > hapsForPopulations){
 
 	if(hapsForPopulations.size() < 2){
 		std::stringstream ss;
@@ -351,11 +352,10 @@ PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff
 		PopHapInfo::setProb(hapsForPopulation.second, totalForPop);
 		double sumOfSquares = 0;
 		for(const auto & hap : hapsForPopulation.second){
-
 			allHapSeqs.emplace(hap.popUid_);
-			freqsForPopForHapSeq[hapsForPopulation.first][hap.popUid_] = hap.prob_;
-			countsForPopForHapSeq[hapsForPopulation.first][hap.popUid_] = hap.count_;
-			sumOfSquares += std::pow(hap.prob_, 2.0);
+			freqsForPopForHapSeq[hapsForPopulation.first][hap.popUid_] = hap.unweighted_prob_;
+			countsForPopForHapSeq[hapsForPopulation.first][hap.popUid_] = hap.unweighted_count_;
+			sumOfSquares += std::pow(hap.unweighted_prob_, 2.0);
 		}
 		ret.hjsSample_[hapsForPopulation.first] = 1 - sumOfSquares;
 	}
@@ -367,7 +367,7 @@ PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff
 	}
 	for(auto & hapsForPopulation : hapsForPopulations){
 		for(const auto & hap : hapsForPopulation.second){
-			acrossPopulationsHaps[hap.popUid_].count_ += hap.count_;
+			acrossPopulationsHaps[hap.popUid_].unweighted_count_ += hap.unweighted_count_;
 		}
 	}
 	PopHapInfo::setProb(acrossPopulationsHaps);
@@ -462,13 +462,326 @@ PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiff
 	return ret;
 }
 
-PopGenCalculator::PopDifferentiationMeasuresPairWise PopGenCalculator::getPopDiff(
-		const std::string & pop1, const std::vector<PopHapInfo> & pop1Haps,
-		const std::string & pop2, const std::vector<PopHapInfo> & pop2Haps,
-		const std::unordered_set<uint32_t> & allPossibleHaps,
-		const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>> & pairwiseDistances){
-	PopDifferentiationMeasuresPairWise ret(getOverallPopDiff(std::unordered_map<std::string, std::vector<PopHapInfo>>{{pop1, pop1Haps}, {pop2, pop2Haps}}),
-			pop1, pop2);
+PopGenCalculator::PopDifferentiationMeasures PopGenCalculator::getOverallPopDiffWeighted(
+	std::unordered_map<std::string, std::vector<PopHapInfo> > hapsForPopulations){
+
+	if(hapsForPopulations.size() < 2){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error, popSeqs should at least be size 2 not " << hapsForPopulations.size() << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	PopDifferentiationMeasures ret;
+
+	uint32_t popK = hapsForPopulations.size();
+
+	std::unordered_map<std::string, uint32_t> subPopSizes;
+	std::unordered_set<uint32_t> allHapSeqs;
+	std::unordered_map<std::string, std::unordered_map<uint32_t, double>> freqsForPopForHapSeq;
+	std::unordered_map<std::string, std::unordered_map<uint32_t, double>> countsForPopForHapSeq;
+
+
+	for (auto& hapsForPopulation: hapsForPopulations) {
+		auto totalForPop = PopHapInfo::getTotalPopCount(hapsForPopulation.second);
+		auto weightedTotalForPop = PopHapInfo::getTotalWeightedPopCount(hapsForPopulation.second);
+		subPopSizes[hapsForPopulation.first] = totalForPop;
+		PopHapInfo::setProb(hapsForPopulation.second, totalForPop);
+		PopHapInfo::setProbWeighted(hapsForPopulation.second, weightedTotalForPop);
+		double sumOfSquares = 0;
+		for (const auto& hap: hapsForPopulation.second) {
+			allHapSeqs.emplace(hap.popUid_);
+			freqsForPopForHapSeq[hapsForPopulation.first][hap.popUid_] = hap.weighted_prob_;
+			countsForPopForHapSeq[hapsForPopulation.first][hap.popUid_] = hap.weighted_count_;
+			sumOfSquares += std::pow(hap.weighted_prob_, 2.0);
+		}
+		ret.hjsSample_[hapsForPopulation.first] = 1 - sumOfSquares;
+	}
+	uint32_t maxHapId = *std::max_element(allHapSeqs.begin(), allHapSeqs.end());
+	//this only works if population identifier is set in a logical way e.g. ids with ranging from 0 to haplotype count
+	std::vector<PopHapInfo> acrossPopulationsHaps;
+	for(const auto pos : iter::range(maxHapId + 1)){
+		acrossPopulationsHaps.emplace_back(pos, 0);
+	}
+	for(auto & hapsForPopulation : hapsForPopulations){
+		for(const auto & hap : hapsForPopulation.second){
+			acrossPopulationsHaps[hap.popUid_].weighted_count_ += hap.weighted_count_;
+		}
+	}
+	PopHapInfo::setProb(acrossPopulationsHaps);
+
+	std::unordered_map<uint32_t, double> parametricProbsPerHap;
+	for (const auto &popUid : allHapSeqs) {
+		for (auto &freqWithPop : freqsForPopForHapSeq) {
+			parametricProbsPerHap[popUid] += freqWithPop.second[popUid]/popK;
+		}
+	}
+	//informativeness for assignment
+	{
+
+		for(const auto & popUid : allHapSeqs){
+
+			double firstTerm = -parametricProbsPerHap[popUid] * log(parametricProbsPerHap[popUid]);
+			double secondTerm = 0;
+			for( auto & freqWithPop : freqsForPopForHapSeq){
+				if(freqWithPop.second[popUid] > 0){
+					secondTerm += freqWithPop.second[popUid]/static_cast<double>(hapsForPopulations.size()) * log(freqWithPop.second[popUid]);
+				}
+			}
+			ret.informativenessForAssignPerHap_[popUid] = firstTerm + secondTerm;
+			ret.informativenessForAssign_ += firstTerm + secondTerm;
+		}
+
+
+		for(const auto & pop : freqsForPopForHapSeq){
+			for(const auto & hap : pop.second){
+				if(hap.second > 0){
+					ret.informativenessForAssignPerPopulation_[pop.first] += hap.second/static_cast<double>(hapsForPopulations.size()) * log(hap.second/parametricProbsPerHap[hap.first]);
+				}
+			}
+		}
+	}
+
+	double sumOfHjsSample = 0;
+	for(const auto & subPop : ret.hjsSample_){
+		sumOfHjsSample += subPop.second;
+	}
+	ret.hsSample_ = sumOfHjsSample/static_cast<double>(ret.hjsSample_.size());
+	double jtSample = 0;
+	for(const auto & hapSeq : allHapSeqs){
+		double freqSum = 0;
+		for( auto & subPop : freqsForPopForHapSeq){
+			freqSum += subPop.second[hapSeq];
+		}
+		jtSample += std::pow(freqSum/static_cast<double>(hapsForPopulations.size()), 2.0);
+	}
+	ret.htSample_ = 1 - jtSample;
+
+	double harmonicMean = 0;
+	double sumOfInverses = 0;
+	// uint32_t totalHaps = 0;
+	for(const auto & popSize : subPopSizes){
+		// totalHaps += popSize.second;
+		sumOfInverses += 1.0/popSize.second;
+	}
+	harmonicMean = static_cast<double>(subPopSizes.size())/sumOfInverses;
+
+	ret.hsEst_ = (harmonicMean/(harmonicMean - 1)) * ret.hsSample_;
+	ret.htEst_ = ret.htSample_ + (ret.hsEst_)/(harmonicMean * static_cast<double>(hapsForPopulations.size()));
+
+	ret.gst_ = (ret.htSample_ - ret.hsSample_)/ret.htSample_;
+	ret.jostD_ = ((ret.htSample_ - ret.hsSample_)/(1 - ret.hsSample_)) * (static_cast<double>(hapsForPopulations.size())/(static_cast<double>(hapsForPopulations.size()) - 1));
+
+	ret.gstEst_ =  (ret.htEst_ - ret.hsEst_)/ret.htEst_;
+	ret.jostDEst_ = ((ret.htEst_ - ret.hsEst_)/(1 - ret.hsEst_)) * (static_cast<double>(hapsForPopulations.size())/(static_cast<double>(hapsForPopulations.size()) - 1));
+
+
+	double a = 0;
+	for(const auto & hapSeq : allHapSeqs){
+		double sumOfFreqs = 0;
+		double sumOfSqaureFreqs = 0;
+		for( auto & subPop : freqsForPopForHapSeq){
+			sumOfFreqs += subPop.second[hapSeq];
+			sumOfSqaureFreqs += std::pow(subPop.second[hapSeq], 2.0);
+		}
+		a += (std::pow(sumOfFreqs, 2.0) - sumOfSqaureFreqs)/(static_cast<double>(subPopSizes.size()) - 1);
+	}
+	ret.chaoA_ = a;
+	double b = 0;
+	for(const auto & hapSeq : allHapSeqs){
+		for(auto & subPop : countsForPopForHapSeq){
+			if(subPop.second[hapSeq] > 0){
+				b += (subPop.second[hapSeq] *(subPop.second[hapSeq] - 1) )/static_cast<double>(subPopSizes[subPop.first] * (subPopSizes[subPop.first] - 1));
+			}
+		}
+	}
+	ret.chaoB_ = b;
+	ret.jostDChaoEst_ = 1 - (a/b);
+	return ret;
+}
+
+
+
+
+
+PopGenCalculator::PopDifferentiationMeasuresPairWise PopGenCalculator::getPopDiffWeighted(
+	const std::string& pop1, const std::vector<PopHapInfo>& pop1Haps,
+	const std::string& pop2, const std::vector<PopHapInfo>& pop2Haps,
+	const std::unordered_set<uint32_t>& allPossibleHaps,
+	const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>>& pairwiseDistances) {
+
+	PopDifferentiationMeasuresPairWise ret(
+		getOverallPopDiffWeighted(std::unordered_map<std::string, std::vector<PopHapInfo>>{
+			{pop1, pop1Haps},
+			{pop2, pop2Haps}}),
+		pop1, pop2);
+
+
+	std::unordered_map<uint32_t, double> pop1HapsCounts;
+	std::unordered_map<uint32_t, double> pop2HapsCounts;
+
+	std::unordered_map<uint32_t, double> pop1HapsFreqs;
+	std::unordered_map<uint32_t, double> pop2HapsFreqs;
+
+	std::unordered_set<uint32_t> allHaps;
+
+	double pop1Total = 0;
+	double pop2Total = 0;
+
+
+	for(const auto & pop1Hap : pop1Haps){
+		allHaps.emplace(pop1Hap.popUid_);
+		pop1HapsCounts[pop1Hap.popUid_] = pop1Hap.weighted_count_;
+		pop1Total += pop1Hap.weighted_count_;
+	}
+	for(auto & pop1Hap : pop1HapsCounts){
+		pop1HapsFreqs[pop1Hap.first] = pop1Hap.second/static_cast<double>(pop1Total);
+	}
+
+	for(const auto & pop2Hap : pop2Haps){
+		allHaps.emplace(pop2Hap.popUid_);
+		pop2HapsCounts[pop2Hap.popUid_] = pop2Hap.weighted_count_;
+		pop2Total += pop2Hap.weighted_count_;
+	}
+	for(auto & pop2Hap : pop2HapsCounts){
+		pop2HapsFreqs[pop2Hap.first] = pop2Hap.second/static_cast<double>(pop2Total);
+	}
+
+	for(const auto & pop1Hap : pop1Haps){
+		if(!njh::in(pop1Hap.popUid_, pop2HapsCounts)){
+			++ret.uniqueHapsInPop1_;
+			ret.uniqueHapsInPop1CumFreq_ += pop1HapsFreqs[pop1Hap.popUid_];
+		}
+	}
+	for(const auto & pop2Hap : pop2Haps){
+		if(!njh::in(pop2Hap.popUid_, pop1HapsCounts)){
+			++ret.uniqueHapsInPop2_;
+			ret.uniqueHapsInPop2CumFreq_ += pop2HapsFreqs[pop2Hap.popUid_];
+		}
+		if(njh::in(pop2Hap.popUid_, pop1HapsCounts)){
+			++ret.uniqueHapsShared_;
+		}
+	}
+	ret.uniqueHapsAll_ = allHaps.size();
+
+	//sorensen
+	{
+		ret.sorensenDistance_ = (ret.uniqueHapsInPop1_ + ret.uniqueHapsInPop2_)/static_cast<double>(ret.uniqueHapsInPop1_ + ret.uniqueHapsInPop2_ + ret.uniqueHapsShared_ * 2.0);
+	}
+
+	//jaccard
+	{
+		ret.jaccardIndexDissim_ = (ret.uniqueHapsInPop1_ + ret.uniqueHapsInPop2_)/static_cast<double>(ret.uniqueHapsInPop1_ + ret.uniqueHapsInPop2_ + ret.uniqueHapsShared_);
+	}
+
+	//brayCurtis
+	{
+		double sumOfAbsDiffs = 0;
+		double total = 0;
+		for(const auto & hap : allHaps){
+			sumOfAbsDiffs += std::abs(pop1HapsCounts[hap] - pop2HapsCounts[hap]);
+			total += pop1HapsCounts[hap] + pop2HapsCounts[hap];
+		}
+		ret.brayCurtisDissim_ = sumOfAbsDiffs/total;
+	}
+
+	//brayCurtis relative
+	{
+		double sumOfAbsDiffs = 0;
+		double total = 0;
+		for(const auto & hap : allHaps){
+			sumOfAbsDiffs += std::abs(pop1HapsFreqs[hap] - pop2HapsFreqs[hap]);
+			total += pop1HapsFreqs[hap] + pop2HapsFreqs[hap];
+		}
+		ret.brayCurtisRelativeDissim_ = sumOfAbsDiffs/total;
+	}
+
+	//RMSE
+	{
+		double sumOfSqaures = 0;
+		for(const auto & hap : allHaps){
+			sumOfSqaures += std::pow(pop1HapsFreqs[hap] - pop2HapsFreqs[hap], 2.0);
+		}
+		ret.RMSE_ = std::sqrt(sumOfSqaures/static_cast<double>(allHaps.size()));
+	}
+
+	//half R and matching coefficien
+	{
+		//if lots and lots of rare haps this number might be skewed but all pops should be effected
+		double a = 0; //found in both
+		double b = 0; //found only in pop 1
+		double c = 0; //found only in pop 2
+		double d = 0; //not found in either
+		for (const auto& hap: allPossibleHaps) {
+			//have to do > 0 cause index in above will create empty records
+			// bool inPop1 = pop1HapsCounts[hap] > 0;
+			// bool inPop2 = pop2HapsCounts[hap] > 0;
+			bool inPop1 = pop1HapsCounts.count(hap) && pop1HapsCounts.at(hap) > 0;
+			bool inPop2 = pop2HapsCounts.count(hap) && pop2HapsCounts.at(hap) > 0;
+			if (inPop1 && inPop2) {
+				++a;
+			} else if (inPop1 && !inPop2) {
+				++b;
+			} else if (!inPop1 && inPop2) {
+				++c;
+			} else {
+				++d;
+			}
+		}
+
+		//matching coefficient
+		ret.matchingCoefficientDistance_ = (b + c)/(a + b + c + d);
+
+		//half r
+		//I feel like we have to add 1 to all
+		++a;
+		++b;
+		++c;
+		++d;
+		ret.halfR_ = 0.5 * (1 - (((a*d) - (b *c))/std::sqrt((a + b) * (c + d) * (a + c) * (b + d))));
+
+	}
+
+
+	// discriminatingAvalance_
+	if (pairwiseDistances.empty()) {
+		//no distances supplied
+		ret.discriminatingAvalance_ = ret.plainAvalance_;
+	} else {
+		double sum = 0;
+		for (const auto& hap1: allHaps) {
+			for (const auto& hap2: allHaps) {
+				sum += pairwiseDistances.at(hap1).at(hap2) * std::abs(pop1HapsFreqs[hap1] - pop2HapsFreqs[hap1]) * std::abs(
+					pop1HapsFreqs[hap2] - pop2HapsFreqs[hap2]);
+			}
+		}
+		ret.plainAvalance_ = sum * 0.5;
+	}
+
+	// plainAvalance_
+	{
+		double sum = 0;
+		for(const auto & hap1 : allHaps){
+			for(const auto & hap2 : allHaps){
+				sum += std::abs(pop1HapsFreqs[hap1] - pop2HapsFreqs[hap1]) * std::abs(pop1HapsFreqs[hap2] - pop2HapsFreqs[hap2]);
+			}
+		}
+		ret.plainAvalance_ = sum * 0.5;
+	}
+	return ret;
+}
+
+
+
+PopGenCalculator::PopDifferentiationMeasuresPairWise PopGenCalculator::getPopDiffUnweighted(
+	const std::string& pop1, const std::vector<PopHapInfo>& pop1Haps,
+	const std::string& pop2, const std::vector<PopHapInfo>& pop2Haps,
+	const std::unordered_set<uint32_t>& allPossibleHaps,
+	const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>>& pairwiseDistances) {
+
+	PopDifferentiationMeasuresPairWise ret(
+		getOverallPopDiffUnweighted(std::unordered_map<std::string, std::vector<PopHapInfo>>{
+			{pop1, pop1Haps},
+			{pop2, pop2Haps}}),
+		pop1, pop2);
 
 
 	std::unordered_map<uint32_t, uint32_t> pop1HapsCounts;
@@ -485,8 +798,8 @@ PopGenCalculator::PopDifferentiationMeasuresPairWise PopGenCalculator::getPopDif
 
 	for(const auto & pop1Hap : pop1Haps){
 		allHaps.emplace(pop1Hap.popUid_);
-		pop1HapsCounts[pop1Hap.popUid_] = pop1Hap.count_;
-		pop1Total += pop1Hap.count_;
+		pop1HapsCounts[pop1Hap.popUid_] = pop1Hap.unweighted_count_;
+		pop1Total += pop1Hap.unweighted_count_;
 	}
 	for(auto & pop1Hap : pop1HapsCounts){
 		pop1HapsFreqs[pop1Hap.first] = pop1Hap.second/static_cast<double>(pop1Total);
@@ -494,8 +807,8 @@ PopGenCalculator::PopDifferentiationMeasuresPairWise PopGenCalculator::getPopDif
 
 	for(const auto & pop2Hap : pop2Haps){
 		allHaps.emplace(pop2Hap.popUid_);
-		pop2HapsCounts[pop2Hap.popUid_] = pop2Hap.count_;
-		pop2Total += pop2Hap.count_;
+		pop2HapsCounts[pop2Hap.popUid_] = pop2Hap.unweighted_count_;
+		pop2Total += pop2Hap.unweighted_count_;
 	}
 	for(auto & pop2Hap : pop2HapsCounts){
 		pop2HapsFreqs[pop2Hap.first] = pop2Hap.second/static_cast<double>(pop2Total);
@@ -566,17 +879,19 @@ PopGenCalculator::PopDifferentiationMeasuresPairWise PopGenCalculator::getPopDif
 		double b = 0; //found only in pop 1
 		double c = 0; //found only in pop 2
 		double d = 0; //not found in either
-		for(const auto & hap : allPossibleHaps){
+		for (const auto& hap: allPossibleHaps) {
 			//have to do > 0 cause index in above will create empty records
-			bool inPop1 = pop1HapsCounts[hap] > 0;
-			bool inPop2 = pop2HapsCounts[hap] > 0;
-			if(inPop1 && inPop2){
+			// bool inPop1 = pop1HapsCounts[hap] > 0;
+			// bool inPop2 = pop2HapsCounts[hap] > 0;
+			bool inPop1 = pop1HapsCounts.count(hap) && pop1HapsCounts.at(hap) > 0;
+			bool inPop2 = pop2HapsCounts.count(hap) && pop2HapsCounts.at(hap) > 0;
+			if (inPop1 && inPop2) {
 				++a;
-			}else if(inPop1 && !inPop2){
+			} else if (inPop1 && !inPop2) {
 				++b;
-			}else if(!inPop1 && inPop2){
+			} else if (!inPop1 && inPop2) {
 				++c;
-			}else{
+			} else {
 				++d;
 			}
 		}
@@ -591,20 +906,18 @@ PopGenCalculator::PopDifferentiationMeasuresPairWise PopGenCalculator::getPopDif
 		++c;
 		++d;
 		ret.halfR_ = 0.5 * (1 - (((a*d) - (b *c))/std::sqrt((a + b) * (c + d) * (a + c) * (b + d))));
-
 	}
 
-
-
 	// discriminatingAvalance_
-	if(pairwiseDistances.empty()){
+	if (pairwiseDistances.empty()) {
 		//no distances supplied
-		ret.discriminatingAvalance_  = ret.plainAvalance_ ;
-	}else{
+		ret.discriminatingAvalance_ = ret.plainAvalance_;
+	} else {
 		double sum = 0;
-		for(const auto & hap1 : allHaps){
-			for(const auto & hap2 : allHaps){
-				sum += pairwiseDistances.at(hap1).at(hap2) * std::abs(pop1HapsFreqs[hap1] - pop2HapsFreqs[hap1]) * std::abs(pop1HapsFreqs[hap2] - pop2HapsFreqs[hap2]);
+		for (const auto& hap1: allHaps) {
+			for (const auto& hap2: allHaps) {
+				sum += pairwiseDistances.at(hap1).at(hap2) * std::abs(pop1HapsFreqs[hap1] - pop2HapsFreqs[hap1]) * std::abs(
+					pop1HapsFreqs[hap2] - pop2HapsFreqs[hap2]);
 			}
 		}
 		ret.plainAvalance_ = sum * 0.5;
@@ -620,13 +933,14 @@ PopGenCalculator::PopDifferentiationMeasuresPairWise PopGenCalculator::getPopDif
 		}
 		ret.plainAvalance_ = sum * 0.5;
 	}
-
-
 	return ret;
 }
 
+
+
+
 std::unordered_map<std::string,
-		std::unordered_map<std::string, PopGenCalculator::PopDifferentiationMeasuresPairWise>> PopGenCalculator::getPairwisePopDiff(
+		std::unordered_map<std::string, PopGenCalculator::PopDifferentiationMeasuresPairWise>> PopGenCalculator::getPairwisePopDiffWeighted(
 		const std::unordered_map<std::string, std::vector<PopHapInfo>> & hapsForPopulations,
 		const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>> & pairwiseDists) {
 	if(hapsForPopulations.size() < 2){
@@ -645,16 +959,52 @@ std::unordered_map<std::string,
 	}
 	for(const auto keyPos : iter::range(keys.size())){
 		for(const auto secondKeyPos : iter::range(keyPos)){
-			auto popMeasures = getPopDiff(
+			auto popMeasures = getPopDiffWeighted(
 					keys[keyPos],       hapsForPopulations.at(keys[keyPos]),
 					keys[secondKeyPos], hapsForPopulations.at(keys[secondKeyPos]),
-					allHaps, pairwiseDists
+					allHaps,
+					pairwiseDists
 					);
 			ret[keys[keyPos]][keys[secondKeyPos]] = popMeasures;
 		}
 	}
 	return ret;
 }
+
+std::unordered_map<std::string,
+		std::unordered_map<std::string, PopGenCalculator::PopDifferentiationMeasuresPairWise>> PopGenCalculator::getPairwisePopDiffUnweighted(
+		const std::unordered_map<std::string, std::vector<PopHapInfo>> & hapsForPopulations,
+		const std::unordered_map<uint32_t, std::unordered_map<uint32_t, double>> & pairwiseDists) {
+	if(hapsForPopulations.size() < 2){
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " error, popSeqs should at least be size 2 not " << hapsForPopulations.size() << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	std::unordered_map<std::string, std::unordered_map<std::string, PopDifferentiationMeasuresPairWise>> ret;
+	auto keys = njh::getVecOfMapKeys(hapsForPopulations);
+	njh::sort(keys);
+	std::unordered_set<uint32_t> allHaps;
+	for(const auto & hapsForPopulation : hapsForPopulations){
+		for(const auto & hap : hapsForPopulation.second){
+			allHaps.emplace(hap.popUid_);
+		}
+	}
+	for(const auto keyPos : iter::range(keys.size())){
+		for(const auto secondKeyPos : iter::range(keyPos)){
+			auto popMeasures = getPopDiffUnweighted(
+					keys[keyPos],       hapsForPopulations.at(keys[keyPos]),
+					keys[secondKeyPos], hapsForPopulations.at(keys[secondKeyPos]),
+					allHaps,
+					pairwiseDists
+					);
+			ret[keys[keyPos]][keys[secondKeyPos]] = popMeasures;
+		}
+	}
+	return ret;
+}
+
+
+
 
 
 PopGenCalculator::FisherExactFor2x2::FisherExactFor2x2Result PopGenCalculator::FisherExactFor2x2::runFisherExactOn2x2(const PopGenCalculator::FisherExactFor2x2::FisherExactFor2x2Input & inPars){

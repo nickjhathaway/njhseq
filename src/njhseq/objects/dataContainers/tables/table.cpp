@@ -146,6 +146,29 @@ void table::setColNamePositions(){
 		colNameToPos_[columnNames_[pos]] = pos;
 	}
 }
+
+std::vector<uint32_t> table::getColumnPositions(const VecStr & colNames) const {
+	VecStr missing;
+	std::vector<uint32_t> ret;
+	for (const auto & col : colNames) {
+		auto search = colNameToPos_.find(col);
+		if ( search == colNameToPos_.end()) {
+			missing.emplace_back(col);
+		} else {
+			ret.emplace_back(search->second);
+		}
+	}
+	if (!missing.empty()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error "
+				<< " could not find the following columns: " << njh::conToStr(missing, ",")
+				<< " out of " << njh::conToStr(colNames, ",") << "\n";
+		ss << "current options are: " << njh::conToStr(columnNames_, ",") << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	return ret;
+}
+
 uint32_t table::getColPos(const std::string & colName) const {
 	auto search = colNameToPos_.find(colName);
 	if (search == colNameToPos_.end()) {
@@ -173,6 +196,57 @@ void table::changeHeaderToLowerCase(){
 		njh::strToLower(col);
 	});
 	setColNamePositions();
+}
+
+
+table table::unite_columns(const VecStr& columns,
+                           const std::string& sep, bool remove) const {
+
+	std::string new_column_name = njh::conToStr(columns, sep);
+	return unite_columns(columns, new_column_name, sep, remove);
+}
+
+table table::unite_columns(const VecStr& columns, const std::string& new_column_name,
+                           const std::string& sep, bool remove) const {
+	if (columns.size() < 2) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error "
+				<< " should only unite at least 2 or more columns" << "\n";
+		ss << "gave columns: " << njh::conToStr(columns, ",") << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	checkForColumnsThrow(columns, __PRETTY_FUNCTION__);
+	auto column_positions = getColumnPositions(columns);
+	auto ret = table(content_, columnNames_);
+	ret.columnNames_.emplace_back(new_column_name);
+	for (const auto  row_pos : iter::range(content_.size())) {
+		VecStr to_unite;
+		for (const auto col_pos : column_positions) {
+			to_unite.emplace_back(content_[row_pos][col_pos]);
+		}
+		ret.content_[row_pos].emplace_back(njh::conToStr(to_unite, sep));
+	}
+	ret.setColNamePositions();
+	if (remove) {
+		ret.remove_columns(columns);
+	}
+	return  ret;
+}
+
+void table::prepend_column(const std::string & column, const std::string & str_to_prepend_with) {
+	auto col_pos = getColPos(column);
+	prepend_column(col_pos, str_to_prepend_with);
+}
+
+void table::prepend_column(const uint32_t col_pos, const std::string & str_to_prepend_with) {
+	if (col_pos >= columnNames_.size()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " << " column position: " << col_pos << " greater than number of columns, col_pos:" << col_pos << ", columnNames_.size()L" << columnNames_.size() << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	for (auto & row : content_) {
+		row[col_pos].insert(0, str_to_prepend_with);
+	}
 }
 
 void table::populateTable(std::istream & in, const std::string &inDelim, bool header){
@@ -367,6 +441,7 @@ void table::deleteColumn(const std::string &columnName) {
   size_t pos = getFirstPositionOfTarget(columnNames_, columnName);
   deleteColumn(pos);
 }
+
 void table::deleteColumn(size_t columnIndex) {
   if (columnIndex < columnNames_.size()) {
     columnNames_.erase(columnNames_.begin() + columnIndex);
@@ -1239,6 +1314,32 @@ table table::cbind(const std::map<std::string, table> &tables,
   std::vector<table> tableVector = getVectorOfMapValues(tables);
   return cbind(tableVector, columnForceMatch, addZeros);
 }
+
+void table::remove_columns(std::vector<uint32_t> column_positions) {
+	njh::sort(column_positions);
+	std::vector<uint32_t> out_of_bounds;
+	for (const auto &pos : column_positions) {
+		if (pos > columnNames_.size()) {
+			out_of_bounds.emplace_back(pos);
+		}
+	}
+	if (!out_of_bounds.empty()) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " << " the following columns are out of bounds of columnNames_.size(): " << columnNames_.size() << "\n";
+		ss << njh::conToStr(out_of_bounds, ",") << "\n";
+		throw std::runtime_error{ss.str()};
+	}
+	for(const auto & pos : iter::reversed(column_positions)){
+		content_.erase(content_.begin() + pos);
+	}
+	setColNamePositions();
+}
+
+void table::remove_columns(const VecStr & column_positions) {
+	remove_columns(getColumnPositions(column_positions));
+}
+
+
 void table::removeEmpty(bool addPadding) {
 	std::vector<uint32_t> emptyPositions;
 	for(const auto rowPos : iter::range(content_.size())){
@@ -1263,7 +1364,6 @@ void table::removeEmpty(bool addPadding) {
 			content_.erase(content_.begin() + pos);
 		}
 	}
-
 }
 
 

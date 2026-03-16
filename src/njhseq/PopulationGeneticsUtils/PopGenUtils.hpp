@@ -88,8 +88,5 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const CollapseAndCallVariantsPars & pars, CollapsedHaps & inputSeqs);
 
 
-
-
-
 }  // namespace njhseq
 

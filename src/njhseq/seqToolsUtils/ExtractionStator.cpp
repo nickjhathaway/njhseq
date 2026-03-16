@@ -122,7 +122,7 @@ void ExtractionStator::outStatsPerName(std::ostream & out, const std::string & d
 		uint32_t totalBadReads = mid.second[true].bad_ + mid.second[false].bad_;
 		uint32_t totalContam = mid.second[true].contamination_ + mid.second[false].contamination_;
 		uint32_t totalBadRev = mid.second[true].badReverse_ + mid.second[false].badReverse_;
-	  uint32_t total_inverse_chimera= mid.second[true].inverse_chimera_ + mid.second[false].inverse_chimera_;
+	  // uint32_t total_inverse_chimera = mid.second[true].inverse_chimera_ + mid.second[false].inverse_chimera_;
 
 		uint32_t totalConN = mid.second[true].containsNs_ + mid.second[false].containsNs_;
 		uint32_t totalMinLen = mid.second[true].minLenBad_ + mid.second[false].minLenBad_;

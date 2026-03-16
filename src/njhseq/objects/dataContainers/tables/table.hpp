@@ -153,6 +153,8 @@ public:
 	void setRowSize(uint32_t rowSize);
 	void setColNamePositions();
 	uint32_t getColPos(const std::string & colName) const;
+	std::vector<uint32_t> getColumnPositions(const VecStr & colName) const;
+
 	bool containsColumn(const std::string & colName) const;
 	bool containsColumn(const std::string & colName,
 			std::function<bool(const std::string&, const std::string &)> comp) const;
@@ -217,6 +219,9 @@ public:
 	// deleting columns
 	void deleteColumn(const std::string &columnName);
 	void deleteColumn(size_t columnIndex);
+	void remove_columns(std::vector<uint32_t> column_positions);
+	void remove_columns(const VecStr & column_positions);
+
 	// extracting rows
 	table getRows(const std::string &forColumn, const std::string &element) const;
 	table getRows(const std::vector<uint32_t> &specificRowPositions) const;
@@ -321,11 +326,18 @@ public:
 			const std::string &columnForceMatch, bool addZeros = true);
 	void removeEmpty(bool addPadding);
 
+
+
 	table extractNumColGreater(uint32_t colPos, double cutOff) const;
 	table extractNumColGreater(const std::string & colName, double cutOff) const;
 
 	VecStr getColumnLevels(uint32_t colPos)const;
 	VecStr getColumnLevels(const std::string & colName)const;
+
+	table unite_columns(const VecStr & columns, const std::string & sep = "-", bool remove = true) const;
+	table unite_columns(const VecStr & columns, const std::string & new_column_name, const std::string & sep = "-", bool remove = true) const;
+	void prepend_column(const std::string & column, const std::string & str_to_prepend_with);
+	void prepend_column(const uint32_t col_pos, const std::string & str_to_prepend_with);
 
 	void changeHeaderToLowerCase();
 

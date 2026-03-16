@@ -838,7 +838,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			auto hapsForTargetPerPopulation = inputSeqs.getHapsPerSampleMetaSubPopulations(metaField);
 
 			if (hapsForTargetPerPopulation.size() > 1) {
-				auto generalDiff = PopGenCalculator::getOverallPopDiff(hapsForTargetPerPopulation);
+				auto generalDiff = PopGenCalculator::getOverallPopDiffWeighted(hapsForTargetPerPopulation);
 				diffMeasuresOut << metaField
 						<<"\t"<< hapsForTargetPerPopulation.size()
 						<<"\t"<< pars.identifier
@@ -877,10 +877,10 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 						<<"\t"<< "NA"
 						<<"\t"<< "NA"<< std::endl;
 			}
-			std::unordered_map<std::string, std::unordered_map<std::string,
-				PopGenCalculator::PopDifferentiationMeasuresPairWise>> pairwiseDiffs;
+
 			if (hapsForTargetPerPopulation.size() > 1) {
-				pairwiseDiffs = PopGenCalculator::getPairwisePopDiff(hapsForTargetPerPopulation);
+				std::unordered_map<std::string, std::unordered_map<std::string,
+					PopGenCalculator::PopDifferentiationMeasuresPairWise>> pairwiseDiffs = PopGenCalculator::getPairwisePopDiffWeighted(hapsForTargetPerPopulation);
 				auto keys = getVectorOfMapKeys(pairwiseDiffs);
 				njh::sort(keys);
 				for(const auto & key : keys){
