@@ -198,6 +198,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 		auto variableTypedAAForTranslated = translatedRes.translated_genAATypedStrOnlyPopVariant();
 		//std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		//
+		OutputStream translated_prev_freq_out(njh::files::make_path(variantInfoDir, "translated_prev_freq.tsv.gz"));
+		translated_prev_freq_out << "target_name\tseq\tfreq\tprev" << std::endl;
 		for(const auto & translatedSeqs : translatedSeqsByTranscript){
 			watch.startNewLap(njh::pasteAsStr("writing translation output - ", translatedSeqs.first, " - collapse seq"));
 			auto inputTranslatedSeq = CollapsedHaps::collapseReads(translatedSeqs.second, translatedSeqInputNames[translatedSeqs.first]);
@@ -235,8 +237,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult collapseAndCallVariants(const
 			auto inputTranslatedSeq_prevs = inputTranslatedSeq.getPrevalences();
 			auto inputTranslatedSeq_freqs = inputTranslatedSeq.getWeightedAlleleFreqs();
 
-			OutputStream translated_prev_freq_out(njh::files::make_path(variantInfoDir, "translated_prev_freq.tsv.gz"));
-			translated_prev_freq_out << "target_name\tseq\tfreq\tprev" << std::endl;
+
 			for (const auto & seq : inputTranslatedSeq.seqs_) {
 				translated_prev_freq_out << identifierTranslated << "\t" << seq->seq_
 					<< "\t" << inputTranslatedSeq_freqs[seq->seq_]
