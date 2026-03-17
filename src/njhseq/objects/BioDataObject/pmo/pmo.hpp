@@ -1,4 +1,4 @@
-// Auto-generated header from JSON Schema (enhanced v8)
+// Auto-generated header from JSON Schema
 #pragma once
 #include <cstdint>
 #include <string>
@@ -11,15 +11,15 @@
 #include <stdexcept>
 #include <regex>
 #include <limits>
+#include <type_traits>
 #include <nlohmann/json.hpp>
 
-// Configure NA tokens at compile-time by defining PMO_NA_TOKENS before including this header.
-// Example: -DPMO_NA_TOKENS=""N/A","NA","Not Applicable","\""
 #ifndef PMO_NA_TOKENS
 #define PMO_NA_TOKENS "N/A","NA","Not Applicable",""
 #endif
 inline constexpr const char* PMO_NA_TOKENS_ARR[] = { PMO_NA_TOKENS };
 inline constexpr std::size_t PMO_NA_TOKENS_COUNT = sizeof(PMO_NA_TOKENS_ARR) / sizeof(const char*);
+
 
 namespace njhseq::pmo {
 class BioMethod;
@@ -40,24 +40,23 @@ class ReactionInfo;
 class PanelInfo;
 class PmoGenerationMethod;
 class PmoHeader;
-class Pseudocigar;
 class ProteinVariant;
+class Pseudocigar;
 class RepresentativeMicrohaplotype;
 class RepresentativeMicrohaplotypesForTarget;
 class RepresentativeMicrohaplotypes;
+class PrimerInfo;
+class TargetInfo;
 class StageReadCounts;
 class ReadCountsByStageForTarget;
 class ReadCountsByStageForLibrarySample;
 class ReadCountsByStage;
-class PrimerInfo;
-class TargetInfo;
 class SequencingInfo;
+class ProjectInfo;
 class TravelInfo;
 class SpecimenInfo;
-class ProjectInfo;
 class PortableMicrohaplotypeObject;
 
-// Returns a set of NA tokens as configured by PMO_NA_TOKENS.
 const std::unordered_set<std::string>& PMO_NA_STRINGS();
 
 class BioMethod {
@@ -198,9 +197,9 @@ public:
 class PlateInfo {
 public:
     PlateInfo() = default;
-    std::optional<uint32_t> plate_col_;
-    std::optional<std::string> plate_name_;
-    std::optional<std::string> plate_row_;
+    uint32_t plate_col_{std::numeric_limits<uint32_t>::max()};
+    std::string plate_name_;
+    std::string plate_row_;
     std::map<std::string, nlohmann::json> extras_;
 
     [[nodiscard]] static PlateInfo from_json(const nlohmann::json& j);
@@ -303,19 +302,6 @@ public:
     void validate() const;
 };
 
-class Pseudocigar {
-public:
-    Pseudocigar() = default;
-    std::optional<std::string> pseudocigar_generation_description_;
-    std::string pseudocigar_seq_;
-    GenomicLocation ref_loc_;
-    std::map<std::string, nlohmann::json> extras_;
-
-    [[nodiscard]] static Pseudocigar from_json(const nlohmann::json& j);
-    [[nodiscard]] nlohmann::json to_json() const;
-    void validate() const;
-};
-
 class ProteinVariant {
 public:
     ProteinVariant() = default;
@@ -326,6 +312,19 @@ public:
     std::map<std::string, nlohmann::json> extras_;
 
     [[nodiscard]] static ProteinVariant from_json(const nlohmann::json& j);
+    [[nodiscard]] nlohmann::json to_json() const;
+    void validate() const;
+};
+
+class Pseudocigar {
+public:
+    Pseudocigar() = default;
+    std::optional<std::string> pseudocigar_generation_description_;
+    std::string pseudocigar_seq_;
+    GenomicLocation ref_loc_;
+    std::map<std::string, nlohmann::json> extras_;
+
+    [[nodiscard]] static Pseudocigar from_json(const nlohmann::json& j);
     [[nodiscard]] nlohmann::json to_json() const;
     void validate() const;
 };
@@ -368,6 +367,35 @@ public:
     std::map<std::string, nlohmann::json> extras_;
 
     [[nodiscard]] static RepresentativeMicrohaplotypes from_json(const nlohmann::json& j);
+    [[nodiscard]] nlohmann::json to_json() const;
+    void validate() const;
+};
+
+class PrimerInfo {
+public:
+    PrimerInfo() = default;
+    std::optional<GenomicLocation> location_;
+    std::string seq_;
+    std::map<std::string, nlohmann::json> extras_;
+
+    [[nodiscard]] static PrimerInfo from_json(const nlohmann::json& j);
+    [[nodiscard]] nlohmann::json to_json() const;
+    void validate() const;
+};
+
+class TargetInfo {
+public:
+    TargetInfo() = default;
+    PrimerInfo forward_primer_;
+    std::optional<std::string> gene_name_;
+    std::optional<GenomicLocation> insert_location_;
+    std::optional<std::vector<MarkerOfInterest>> markers_of_interest_;
+    PrimerInfo reverse_primer_;
+    std::optional<std::vector<std::string>> target_attributes_;
+    std::string target_name_;
+    std::map<std::string, nlohmann::json> extras_;
+
+    [[nodiscard]] static TargetInfo from_json(const nlohmann::json& j);
     [[nodiscard]] nlohmann::json to_json() const;
     void validate() const;
 };
@@ -421,35 +449,6 @@ public:
     void validate() const;
 };
 
-class PrimerInfo {
-public:
-    PrimerInfo() = default;
-    std::optional<GenomicLocation> location_;
-    std::string seq_;
-    std::map<std::string, nlohmann::json> extras_;
-
-    [[nodiscard]] static PrimerInfo from_json(const nlohmann::json& j);
-    [[nodiscard]] nlohmann::json to_json() const;
-    void validate() const;
-};
-
-class TargetInfo {
-public:
-    TargetInfo() = default;
-    PrimerInfo forward_primer_;
-    std::optional<std::string> gene_name_;
-    std::optional<GenomicLocation> insert_location_;
-    std::optional<std::vector<MarkerOfInterest>> markers_of_interest_;
-    PrimerInfo reverse_primer_;
-    std::optional<std::vector<std::string>> target_attributes_;
-    std::string target_name_;
-    std::map<std::string, nlohmann::json> extras_;
-
-    [[nodiscard]] static TargetInfo from_json(const nlohmann::json& j);
-    [[nodiscard]] nlohmann::json to_json() const;
-    void validate() const;
-};
-
 class SequencingInfo {
 public:
     SequencingInfo() = default;
@@ -472,6 +471,22 @@ public:
     std::map<std::string, nlohmann::json> extras_;
 
     [[nodiscard]] static SequencingInfo from_json(const nlohmann::json& j);
+    [[nodiscard]] nlohmann::json to_json() const;
+    void validate() const;
+};
+
+class ProjectInfo {
+public:
+    ProjectInfo() = default;
+    std::optional<std::string> BioProject_accession_;
+    std::optional<std::string> project_collector_chief_scientist_;
+    std::optional<std::vector<std::string>> project_contributors_;
+    std::string project_description_;
+    std::string project_name_;
+    std::optional<std::string> project_type_;
+    std::map<std::string, nlohmann::json> extras_;
+
+    [[nodiscard]] static ProjectInfo from_json(const nlohmann::json& j);
     [[nodiscard]] nlohmann::json to_json() const;
     void validate() const;
 };
@@ -513,7 +528,7 @@ public:
     std::optional<bool> has_travel_out_six_month_;
     std::optional<float> host_age_;
     std::optional<std::string> host_sex_;
-    std::optional<uint32_t> host_subject_id_;
+    std::optional<std::string> host_subject_name_;
     uint32_t host_taxon_id_{std::numeric_limits<uint32_t>::max()};
     std::optional<std::string> lat_lon_;
     std::optional<std::vector<ParasiteDensity>> parasite_density_info_;
@@ -531,22 +546,6 @@ public:
     std::map<std::string, nlohmann::json> extras_;
 
     [[nodiscard]] static SpecimenInfo from_json(const nlohmann::json& j);
-    [[nodiscard]] nlohmann::json to_json() const;
-    void validate() const;
-};
-
-class ProjectInfo {
-public:
-    ProjectInfo() = default;
-    std::optional<std::string> BioProject_accession_;
-    std::optional<std::string> project_collector_chief_scientist_;
-    std::optional<std::vector<std::string>> project_contributors_;
-    std::string project_description_;
-    std::string project_name_;
-    std::optional<std::string> project_type_;
-    std::map<std::string, nlohmann::json> extras_;
-
-    [[nodiscard]] static ProjectInfo from_json(const nlohmann::json& j);
     [[nodiscard]] nlohmann::json to_json() const;
     void validate() const;
 };
@@ -575,3 +574,4 @@ public:
 };
 
 } // namespace njhseq::pmo
+

@@ -1,17 +1,27 @@
-// Auto-generated implementation from JSON Schema (enhanced v8)
+// Auto-generated implementation from JSON Schema
 #include "pmo.hpp"
 
 #include <cstdlib>
 #include <cmath>
+#include <type_traits>
+
 
 namespace njhseq::pmo {
 const std::unordered_set<std::string>& PMO_NA_STRINGS() {
     static const std::unordered_set<std::string> s = [] {
         std::unordered_set<std::string> tmp;
-        for (std::size_t i = 0; i < PMO_NA_TOKENS_COUNT; ++i) tmp.emplace(PMO_NA_TOKENS_ARR[i]);
+        for (auto i : PMO_NA_TOKENS_ARR) tmp.emplace(i);
         return tmp;
     }();
     return s;
+}
+
+inline const nlohmann::json& require_member(const nlohmann::json& j, const char* class_name, const char* member_name) {
+    auto it = j.find(member_name);
+    if (it == j.end() || it->is_null()) {
+        throw std::runtime_error(std::string(class_name) + "." + member_name + " is required but missing");
+    }
+    return *it;
 }
 
 BioMethod BioMethod::from_json(const nlohmann::json& j) {
@@ -20,13 +30,13 @@ BioMethod BioMethod::from_json(const nlohmann::json& j) {
     _known.insert("additional_argument");
     if (auto it = j.find("additional_argument"); it != j.end() && !it->is_null()) ret.additional_argument_ = it->get<std::vector<std::string>>();
     _known.insert("program");
-    j.at("program").get_to(ret.program_);
+    require_member(j, "BioMethod", "program").get_to(ret.program_);
     _known.insert("program_description");
     if (auto it = j.find("program_description"); it != j.end() && !it->is_null()) ret.program_description_ = it->get<std::string>();
     _known.insert("program_url");
     if (auto it = j.find("program_url"); it != j.end() && !it->is_null()) ret.program_url_ = it->get<std::string>();
     _known.insert("program_version");
-    j.at("program_version").get_to(ret.program_version_);
+    require_member(j, "BioMethod", "program_version").get_to(ret.program_version_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -51,7 +61,7 @@ BioinformaticsMethodInfo BioinformaticsMethodInfo::from_json(const nlohmann::jso
     BioinformaticsMethodInfo ret;
     std::set<std::string> _known;
     _known.insert("methods");
-    { std::vector<BioMethod> _vec; for (const auto& _el : j.at("methods")) _vec.emplace_back(BioMethod::from_json(_el)); ret.methods_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "BioinformaticsMethodInfo", "methods"); std::vector<BioMethod> _vec; for (const auto& _el : _req) _vec.emplace_back(BioMethod::from_json(_el)); ret.methods_ = std::move(_vec); }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -71,10 +81,12 @@ BioinformaticsRunInfo BioinformaticsRunInfo::from_json(const nlohmann::json& j) 
     BioinformaticsRunInfo ret;
     std::set<std::string> _known;
     _known.insert("bioinformatics_methods_id");
-    if (auto it = j.find("bioinformatics_methods_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_methods_id_ = std::numeric_limits<uint32_t>::max(); else ret.bioinformatics_methods_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("bioinformatics_methods_id").get_to(ret.bioinformatics_methods_id_);
+    { const auto& _req = require_member(j, "BioinformaticsRunInfo", "bioinformatics_methods_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_methods_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("BioinformaticsRunInfo") + ".bioinformatics_methods_id cannot be negative"); } ret.bioinformatics_methods_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("BioinformaticsRunInfo") + ".bioinformatics_methods_id cannot be negative"); ret.bioinformatics_methods_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.bioinformatics_methods_id_); }
+    }
     _known.insert("bioinformatics_run_name");
-    j.at("bioinformatics_run_name").get_to(ret.bioinformatics_run_name_);
+    require_member(j, "BioinformaticsRunInfo", "bioinformatics_run_name").get_to(ret.bioinformatics_run_name_);
     _known.insert("run_date");
     if (auto it = j.find("run_date"); it != j.end() && !it->is_null()) ret.run_date_ = it->get<std::string>();
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
@@ -99,15 +111,19 @@ MicrohaplotypeForTarget MicrohaplotypeForTarget::from_json(const nlohmann::json&
     MicrohaplotypeForTarget ret;
     std::set<std::string> _known;
     _known.insert("mhap_id");
-    if (auto it = j.find("mhap_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.mhap_id_ = std::numeric_limits<uint32_t>::max(); else ret.mhap_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("mhap_id").get_to(ret.mhap_id_);
+    { const auto& _req = require_member(j, "MicrohaplotypeForTarget", "mhap_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.mhap_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("MicrohaplotypeForTarget") + ".mhap_id cannot be negative"); } ret.mhap_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("MicrohaplotypeForTarget") + ".mhap_id cannot be negative"); ret.mhap_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.mhap_id_); }
+    }
     _known.insert("reads");
-    if (auto it = j.find("reads"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.reads_ = std::numeric_limits<uint32_t>::max(); else ret.reads_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("reads").get_to(ret.reads_);
+    { const auto& _req = require_member(j, "MicrohaplotypeForTarget", "reads");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.reads_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("MicrohaplotypeForTarget") + ".reads cannot be negative"); } ret.reads_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("MicrohaplotypeForTarget") + ".reads cannot be negative"); ret.reads_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.reads_); }
+    }
     _known.insert("umis");
     if (auto it = j.find("umis"); it != j.end() && !it->is_null()) {
-        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.umis_ = std::numeric_limits<uint32_t>::max(); else ret.umis_ = static_cast<uint32_t>(std::stod(_s)); }
-        else ret.umis_ = it->get<uint32_t>();
+        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.umis_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("MicrohaplotypeForTarget") + ".umis cannot be negative"); } ret.umis_ = static_cast<uint32_t>(_tmp); } }
+        else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = it->get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("MicrohaplotypeForTarget") + ".umis cannot be negative"); ret.umis_ = static_cast<uint32_t>(_tmp); } else ret.umis_ = it->get<uint32_t>(); }
     }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
@@ -131,10 +147,12 @@ DetectedMicrohaplotypesForTarget DetectedMicrohaplotypesForTarget::from_json(con
     DetectedMicrohaplotypesForTarget ret;
     std::set<std::string> _known;
     _known.insert("mhaps");
-    { std::vector<MicrohaplotypeForTarget> _vec; for (const auto& _el : j.at("mhaps")) _vec.emplace_back(MicrohaplotypeForTarget::from_json(_el)); ret.mhaps_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "DetectedMicrohaplotypesForTarget", "mhaps"); std::vector<MicrohaplotypeForTarget> _vec; for (const auto& _el : _req) _vec.emplace_back(MicrohaplotypeForTarget::from_json(_el)); ret.mhaps_ = std::move(_vec); }
     _known.insert("mhaps_target_id");
-    if (auto it = j.find("mhaps_target_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.mhaps_target_id_ = std::numeric_limits<uint32_t>::max(); else ret.mhaps_target_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("mhaps_target_id").get_to(ret.mhaps_target_id_);
+    { const auto& _req = require_member(j, "DetectedMicrohaplotypesForTarget", "mhaps_target_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.mhaps_target_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("DetectedMicrohaplotypesForTarget") + ".mhaps_target_id cannot be negative"); } ret.mhaps_target_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("DetectedMicrohaplotypesForTarget") + ".mhaps_target_id cannot be negative"); ret.mhaps_target_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.mhaps_target_id_); }
+    }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -156,10 +174,12 @@ DetectedMicrohaplotypesForSample DetectedMicrohaplotypesForSample::from_json(con
     DetectedMicrohaplotypesForSample ret;
     std::set<std::string> _known;
     _known.insert("library_sample_id");
-    if (auto it = j.find("library_sample_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.library_sample_id_ = std::numeric_limits<uint32_t>::max(); else ret.library_sample_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("library_sample_id").get_to(ret.library_sample_id_);
+    { const auto& _req = require_member(j, "DetectedMicrohaplotypesForSample", "library_sample_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.library_sample_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("DetectedMicrohaplotypesForSample") + ".library_sample_id cannot be negative"); } ret.library_sample_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("DetectedMicrohaplotypesForSample") + ".library_sample_id cannot be negative"); ret.library_sample_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.library_sample_id_); }
+    }
     _known.insert("target_results");
-    { std::vector<DetectedMicrohaplotypesForTarget> _vec; for (const auto& _el : j.at("target_results")) _vec.emplace_back(DetectedMicrohaplotypesForTarget::from_json(_el)); ret.target_results_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "DetectedMicrohaplotypesForSample", "target_results"); std::vector<DetectedMicrohaplotypesForTarget> _vec; for (const auto& _el : _req) _vec.emplace_back(DetectedMicrohaplotypesForTarget::from_json(_el)); ret.target_results_ = std::move(_vec); }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -181,10 +201,12 @@ DetectedMicrohaplotypes DetectedMicrohaplotypes::from_json(const nlohmann::json&
     DetectedMicrohaplotypes ret;
     std::set<std::string> _known;
     _known.insert("bioinformatics_run_id");
-    if (auto it = j.find("bioinformatics_run_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_run_id_ = std::numeric_limits<uint32_t>::max(); else ret.bioinformatics_run_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("bioinformatics_run_id").get_to(ret.bioinformatics_run_id_);
+    { const auto& _req = require_member(j, "DetectedMicrohaplotypes", "bioinformatics_run_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_run_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("DetectedMicrohaplotypes") + ".bioinformatics_run_id cannot be negative"); } ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("DetectedMicrohaplotypes") + ".bioinformatics_run_id cannot be negative"); ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.bioinformatics_run_id_); }
+    }
     _known.insert("library_samples");
-    { std::vector<DetectedMicrohaplotypesForSample> _vec; for (const auto& _el : j.at("library_samples")) _vec.emplace_back(DetectedMicrohaplotypesForSample::from_json(_el)); ret.library_samples_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "DetectedMicrohaplotypes", "library_samples"); std::vector<DetectedMicrohaplotypesForSample> _vec; for (const auto& _el : _req) _vec.emplace_back(DetectedMicrohaplotypesForSample::from_json(_el)); ret.library_samples_ = std::move(_vec); }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -208,15 +230,15 @@ GenomeInfo GenomeInfo::from_json(const nlohmann::json& j) {
     _known.insert("chromosomes");
     if (auto it = j.find("chromosomes"); it != j.end() && !it->is_null()) ret.chromosomes_ = it->get<std::vector<std::string>>();
     _known.insert("genome_version");
-    j.at("genome_version").get_to(ret.genome_version_);
+    require_member(j, "GenomeInfo", "genome_version").get_to(ret.genome_version_);
     _known.insert("gff_url");
     if (auto it = j.find("gff_url"); it != j.end() && !it->is_null()) ret.gff_url_ = it->get<std::string>();
     _known.insert("name");
-    j.at("name").get_to(ret.name_);
+    require_member(j, "GenomeInfo", "name").get_to(ret.name_);
     _known.insert("taxon_id");
-    { std::vector<uint32_t> _vec; for (const auto& _el : j.at("taxon_id")) { if (_el.is_string()) { auto _s = _el.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) _vec.emplace_back(std::numeric_limits<uint32_t>::max()); else _vec.emplace_back(static_cast<uint32_t>(std::stod(_s))); } else _vec.emplace_back(_el.get<uint32_t>()); } ret.taxon_id_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "GenomeInfo", "taxon_id"); std::vector<uint32_t> _vec; for (const auto& _el : _req) { if (_el.is_string()) { auto _s = _el.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) _vec.emplace_back(std::numeric_limits<uint32_t>::max()); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("GenomeInfo") + ".taxon_id cannot contain negative values"); } _vec.emplace_back(static_cast<uint32_t>(_tmp)); } } else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _el.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("GenomeInfo") + ".taxon_id cannot contain negative values"); _vec.emplace_back(static_cast<uint32_t>(_tmp)); } else _vec.emplace_back(_el.get<uint32_t>()); } } ret.taxon_id_ = std::move(_vec); }
     _known.insert("url");
-    j.at("url").get_to(ret.url_);
+    require_member(j, "GenomeInfo", "url").get_to(ret.url_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -245,18 +267,24 @@ GenomicLocation GenomicLocation::from_json(const nlohmann::json& j) {
     _known.insert("alt_seq");
     if (auto it = j.find("alt_seq"); it != j.end() && !it->is_null()) ret.alt_seq_ = it->get<std::string>();
     _known.insert("chrom");
-    j.at("chrom").get_to(ret.chrom_);
+    require_member(j, "GenomicLocation", "chrom").get_to(ret.chrom_);
     _known.insert("end");
-    if (auto it = j.find("end"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.end_ = std::numeric_limits<uint32_t>::max(); else ret.end_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("end").get_to(ret.end_);
+    { const auto& _req = require_member(j, "GenomicLocation", "end");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.end_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("GenomicLocation") + ".end cannot be negative"); } ret.end_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("GenomicLocation") + ".end cannot be negative"); ret.end_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.end_); }
+    }
     _known.insert("genome_id");
-    if (auto it = j.find("genome_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.genome_id_ = std::numeric_limits<uint32_t>::max(); else ret.genome_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("genome_id").get_to(ret.genome_id_);
+    { const auto& _req = require_member(j, "GenomicLocation", "genome_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.genome_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("GenomicLocation") + ".genome_id cannot be negative"); } ret.genome_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("GenomicLocation") + ".genome_id cannot be negative"); ret.genome_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.genome_id_); }
+    }
     _known.insert("ref_seq");
     if (auto it = j.find("ref_seq"); it != j.end() && !it->is_null()) ret.ref_seq_ = it->get<std::string>();
     _known.insert("start");
-    if (auto it = j.find("start"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.start_ = std::numeric_limits<uint32_t>::max(); else ret.start_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("start").get_to(ret.start_);
+    { const auto& _req = require_member(j, "GenomicLocation", "start");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.start_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("GenomicLocation") + ".start cannot be negative"); } ret.start_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("GenomicLocation") + ".start cannot be negative"); ret.start_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.start_); }
+    }
     _known.insert("strand");
     if (auto it = j.find("strand"); it != j.end() && !it->is_null()) ret.strand_ = it->get<std::string>();
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
@@ -291,10 +319,12 @@ ParasiteDensity ParasiteDensity::from_json(const nlohmann::json& j) {
     _known.insert("density_method_comments");
     if (auto it = j.find("density_method_comments"); it != j.end() && !it->is_null()) ret.density_method_comments_ = it->get<std::string>();
     _known.insert("parasite_density");
-    if (auto it = j.find("parasite_density"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.parasite_density_ = std::numeric_limits<float>::max(); else ret.parasite_density_ = static_cast<float>(std::stod(_s)); }
-    else j.at("parasite_density").get_to(ret.parasite_density_);
+    { const auto& _req = require_member(j, "ParasiteDensity", "parasite_density");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.parasite_density_ = std::numeric_limits<float>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<float>) { if (_tmp < 0) throw std::runtime_error(std::string("ParasiteDensity") + ".parasite_density cannot be negative"); } ret.parasite_density_ = static_cast<float>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<float>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("ParasiteDensity") + ".parasite_density cannot be negative"); ret.parasite_density_ = static_cast<float>(_tmp); } else _req.get_to(ret.parasite_density_); }
+    }
     _known.insert("parasite_density_method");
-    j.at("parasite_density_method").get_to(ret.parasite_density_method_);
+    require_member(j, "ParasiteDensity", "parasite_density_method").get_to(ret.parasite_density_method_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -318,28 +348,31 @@ PlateInfo PlateInfo::from_json(const nlohmann::json& j) {
     PlateInfo ret;
     std::set<std::string> _known;
     _known.insert("plate_col");
-    if (auto it = j.find("plate_col"); it != j.end() && !it->is_null()) {
-        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.plate_col_ = std::numeric_limits<uint32_t>::max(); else ret.plate_col_ = static_cast<uint32_t>(std::stod(_s)); }
-        else ret.plate_col_ = it->get<uint32_t>();
+    { const auto& _req = require_member(j, "PlateInfo", "plate_col");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.plate_col_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("PlateInfo") + ".plate_col cannot be negative"); } ret.plate_col_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("PlateInfo") + ".plate_col cannot be negative"); ret.plate_col_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.plate_col_); }
     }
     _known.insert("plate_name");
-    if (auto it = j.find("plate_name"); it != j.end() && !it->is_null()) ret.plate_name_ = it->get<std::string>();
+    require_member(j, "PlateInfo", "plate_name").get_to(ret.plate_name_);
     _known.insert("plate_row");
-    if (auto it = j.find("plate_row"); it != j.end() && !it->is_null()) ret.plate_row_ = it->get<std::string>();
+    require_member(j, "PlateInfo", "plate_row").get_to(ret.plate_row_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
 
 nlohmann::json PlateInfo::to_json() const {
     nlohmann::json j = nlohmann::json::object();
-    if (plate_col_.has_value()) { if (plate_col_.value() == std::numeric_limits<uint32_t>::max()) j["plate_col"] = "NA"; else j["plate_col"] = plate_col_.value(); }
-    if (plate_name_.has_value()) j["plate_name"] = plate_name_.value();
-    if (plate_row_.has_value()) j["plate_row"] = plate_row_.value();
+    if (plate_col_ == std::numeric_limits<uint32_t>::max()) j["plate_col"] = "NA"; else j["plate_col"] = plate_col_;
+    j["plate_name"] = plate_name_;
+    j["plate_row"] = plate_row_;
     for (const auto& kv : extras_) j[kv.first] = kv.second;
     return j;
 }
 
 void PlateInfo::validate() const {
+    if (plate_col_ < 0) throw std::runtime_error("Validation failed: PlateInfo.plate_col minimum");
+    if (!std::regex_match(plate_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: PlateInfo.plate_name pattern");
+    if (!std::regex_match(plate_row_, std::regex("^[A-z]$"))) throw std::runtime_error("Validation failed: PlateInfo.plate_row pattern");
 }
 
 LibrarySampleInfo LibrarySampleInfo::from_json(const nlohmann::json& j) {
@@ -354,20 +387,26 @@ LibrarySampleInfo LibrarySampleInfo::from_json(const nlohmann::json& j) {
     _known.insert("library_prep_plate_info");
     if (auto it = j.find("library_prep_plate_info"); it != j.end() && !it->is_null()) ret.library_prep_plate_info_ = PlateInfo::from_json(*it);
     _known.insert("library_sample_name");
-    j.at("library_sample_name").get_to(ret.library_sample_name_);
+    require_member(j, "LibrarySampleInfo", "library_sample_name").get_to(ret.library_sample_name_);
     _known.insert("panel_id");
-    if (auto it = j.find("panel_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.panel_id_ = std::numeric_limits<uint32_t>::max(); else ret.panel_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("panel_id").get_to(ret.panel_id_);
+    { const auto& _req = require_member(j, "LibrarySampleInfo", "panel_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.panel_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("LibrarySampleInfo") + ".panel_id cannot be negative"); } ret.panel_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("LibrarySampleInfo") + ".panel_id cannot be negative"); ret.panel_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.panel_id_); }
+    }
     _known.insert("qpcr_parasite_density_info");
     if (auto it = j.find("qpcr_parasite_density_info"); it != j.end() && !it->is_null()) { std::vector<ParasiteDensity> _vec; for (const auto& _el : *it) _vec.emplace_back(ParasiteDensity::from_json(_el)); ret.qpcr_parasite_density_info_ = std::move(_vec); }
     _known.insert("run_accession");
     if (auto it = j.find("run_accession"); it != j.end() && !it->is_null()) ret.run_accession_ = it->get<std::string>();
     _known.insert("sequencing_info_id");
-    if (auto it = j.find("sequencing_info_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.sequencing_info_id_ = std::numeric_limits<uint32_t>::max(); else ret.sequencing_info_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("sequencing_info_id").get_to(ret.sequencing_info_id_);
+    { const auto& _req = require_member(j, "LibrarySampleInfo", "sequencing_info_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.sequencing_info_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("LibrarySampleInfo") + ".sequencing_info_id cannot be negative"); } ret.sequencing_info_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("LibrarySampleInfo") + ".sequencing_info_id cannot be negative"); ret.sequencing_info_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.sequencing_info_id_); }
+    }
     _known.insert("specimen_id");
-    if (auto it = j.find("specimen_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.specimen_id_ = std::numeric_limits<uint32_t>::max(); else ret.specimen_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("specimen_id").get_to(ret.specimen_id_);
+    { const auto& _req = require_member(j, "LibrarySampleInfo", "specimen_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.specimen_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("LibrarySampleInfo") + ".specimen_id cannot be negative"); } ret.specimen_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("LibrarySampleInfo") + ".specimen_id cannot be negative"); ret.specimen_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.specimen_id_); }
+    }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -403,7 +442,7 @@ MarkerOfInterest MarkerOfInterest::from_json(const nlohmann::json& j) {
     _known.insert("associations");
     if (auto it = j.find("associations"); it != j.end() && !it->is_null()) ret.associations_ = it->get<std::vector<std::string>>();
     _known.insert("marker_location");
-    ret.marker_location_ = GenomicLocation::from_json(j.at("marker_location"));
+    ret.marker_location_ = GenomicLocation::from_json(require_member(j, "MarkerOfInterest", "marker_location"));
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -426,14 +465,20 @@ MaskingInfo MaskingInfo::from_json(const nlohmann::json& j) {
     _known.insert("masking_generation_description");
     if (auto it = j.find("masking_generation_description"); it != j.end() && !it->is_null()) ret.masking_generation_description_ = it->get<std::string>();
     _known.insert("replacement_size");
-    if (auto it = j.find("replacement_size"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.replacement_size_ = std::numeric_limits<uint32_t>::max(); else ret.replacement_size_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("replacement_size").get_to(ret.replacement_size_);
+    { const auto& _req = require_member(j, "MaskingInfo", "replacement_size");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.replacement_size_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("MaskingInfo") + ".replacement_size cannot be negative"); } ret.replacement_size_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("MaskingInfo") + ".replacement_size cannot be negative"); ret.replacement_size_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.replacement_size_); }
+    }
     _known.insert("seq_segment_size");
-    if (auto it = j.find("seq_segment_size"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.seq_segment_size_ = std::numeric_limits<uint32_t>::max(); else ret.seq_segment_size_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("seq_segment_size").get_to(ret.seq_segment_size_);
+    { const auto& _req = require_member(j, "MaskingInfo", "seq_segment_size");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.seq_segment_size_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("MaskingInfo") + ".seq_segment_size cannot be negative"); } ret.seq_segment_size_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("MaskingInfo") + ".seq_segment_size cannot be negative"); ret.seq_segment_size_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.seq_segment_size_); }
+    }
     _known.insert("seq_start");
-    if (auto it = j.find("seq_start"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.seq_start_ = std::numeric_limits<uint32_t>::max(); else ret.seq_start_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("seq_start").get_to(ret.seq_start_);
+    { const auto& _req = require_member(j, "MaskingInfo", "seq_start");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.seq_start_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("MaskingInfo") + ".seq_start cannot be negative"); } ret.seq_start_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("MaskingInfo") + ".seq_start cannot be negative"); ret.seq_start_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.seq_start_); }
+    }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -458,9 +503,9 @@ ReactionInfo ReactionInfo::from_json(const nlohmann::json& j) {
     ReactionInfo ret;
     std::set<std::string> _known;
     _known.insert("panel_targets");
-    { std::vector<uint32_t> _vec; for (const auto& _el : j.at("panel_targets")) { if (_el.is_string()) { auto _s = _el.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) _vec.emplace_back(std::numeric_limits<uint32_t>::max()); else _vec.emplace_back(static_cast<uint32_t>(std::stod(_s))); } else _vec.emplace_back(_el.get<uint32_t>()); } ret.panel_targets_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "ReactionInfo", "panel_targets"); std::vector<uint32_t> _vec; for (const auto& _el : _req) { if (_el.is_string()) { auto _s = _el.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) _vec.emplace_back(std::numeric_limits<uint32_t>::max()); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("ReactionInfo") + ".panel_targets cannot contain negative values"); } _vec.emplace_back(static_cast<uint32_t>(_tmp)); } } else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _el.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("ReactionInfo") + ".panel_targets cannot contain negative values"); _vec.emplace_back(static_cast<uint32_t>(_tmp)); } else _vec.emplace_back(_el.get<uint32_t>()); } } ret.panel_targets_ = std::move(_vec); }
     _known.insert("reaction_name");
-    j.at("reaction_name").get_to(ret.reaction_name_);
+    require_member(j, "ReactionInfo", "reaction_name").get_to(ret.reaction_name_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -481,9 +526,9 @@ PanelInfo PanelInfo::from_json(const nlohmann::json& j) {
     PanelInfo ret;
     std::set<std::string> _known;
     _known.insert("panel_name");
-    j.at("panel_name").get_to(ret.panel_name_);
+    require_member(j, "PanelInfo", "panel_name").get_to(ret.panel_name_);
     _known.insert("reactions");
-    { std::vector<ReactionInfo> _vec; for (const auto& _el : j.at("reactions")) _vec.emplace_back(ReactionInfo::from_json(_el)); ret.reactions_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "PanelInfo", "reactions"); std::vector<ReactionInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(ReactionInfo::from_json(_el)); ret.reactions_ = std::move(_vec); }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -505,9 +550,9 @@ PmoGenerationMethod PmoGenerationMethod::from_json(const nlohmann::json& j) {
     PmoGenerationMethod ret;
     std::set<std::string> _known;
     _known.insert("program_name");
-    j.at("program_name").get_to(ret.program_name_);
+    require_member(j, "PmoGenerationMethod", "program_name").get_to(ret.program_name_);
     _known.insert("program_version");
-    j.at("program_version").get_to(ret.program_version_);
+    require_member(j, "PmoGenerationMethod", "program_version").get_to(ret.program_version_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -533,7 +578,7 @@ PmoHeader PmoHeader::from_json(const nlohmann::json& j) {
     _known.insert("generation_method");
     if (auto it = j.find("generation_method"); it != j.end() && !it->is_null()) ret.generation_method_ = PmoGenerationMethod::from_json(*it);
     _known.insert("pmo_version");
-    j.at("pmo_version").get_to(ret.pmo_version_);
+    require_member(j, "PmoHeader", "pmo_version").get_to(ret.pmo_version_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -552,33 +597,6 @@ void PmoHeader::validate() const {
     if (generation_method_.has_value()) generation_method_.value().validate();
 }
 
-Pseudocigar Pseudocigar::from_json(const nlohmann::json& j) {
-    Pseudocigar ret;
-    std::set<std::string> _known;
-    _known.insert("pseudocigar_generation_description");
-    if (auto it = j.find("pseudocigar_generation_description"); it != j.end() && !it->is_null()) ret.pseudocigar_generation_description_ = it->get<std::string>();
-    _known.insert("pseudocigar_seq");
-    j.at("pseudocigar_seq").get_to(ret.pseudocigar_seq_);
-    _known.insert("ref_loc");
-    ret.ref_loc_ = GenomicLocation::from_json(j.at("ref_loc"));
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json Pseudocigar::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (pseudocigar_generation_description_.has_value()) j["pseudocigar_generation_description"] = pseudocigar_generation_description_.value();
-    j["pseudocigar_seq"] = pseudocigar_seq_;
-    j["ref_loc"] = ref_loc_.to_json();
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void Pseudocigar::validate() const {
-    if (!std::regex_match(pseudocigar_seq_, std::regex("^[A-z-._0-9]+$"))) throw std::runtime_error("Validation failed: Pseudocigar.pseudocigar_seq pattern");
-    ref_loc_.validate();
-}
-
 ProteinVariant ProteinVariant::from_json(const nlohmann::json& j) {
     ProteinVariant ret;
     std::set<std::string> _known;
@@ -589,7 +607,7 @@ ProteinVariant ProteinVariant::from_json(const nlohmann::json& j) {
     _known.insert("gene_name");
     if (auto it = j.find("gene_name"); it != j.end() && !it->is_null()) ret.gene_name_ = it->get<std::string>();
     _known.insert("protein_location");
-    ret.protein_location_ = GenomicLocation::from_json(j.at("protein_location"));
+    ret.protein_location_ = GenomicLocation::from_json(require_member(j, "ProteinVariant", "protein_location"));
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -607,6 +625,33 @@ nlohmann::json ProteinVariant::to_json() const {
 void ProteinVariant::validate() const {
     if (codon_genomic_location_.has_value()) codon_genomic_location_.value().validate();
     protein_location_.validate();
+}
+
+Pseudocigar Pseudocigar::from_json(const nlohmann::json& j) {
+    Pseudocigar ret;
+    std::set<std::string> _known;
+    _known.insert("pseudocigar_generation_description");
+    if (auto it = j.find("pseudocigar_generation_description"); it != j.end() && !it->is_null()) ret.pseudocigar_generation_description_ = it->get<std::string>();
+    _known.insert("pseudocigar_seq");
+    require_member(j, "Pseudocigar", "pseudocigar_seq").get_to(ret.pseudocigar_seq_);
+    _known.insert("ref_loc");
+    ret.ref_loc_ = GenomicLocation::from_json(require_member(j, "Pseudocigar", "ref_loc"));
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json Pseudocigar::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (pseudocigar_generation_description_.has_value()) j["pseudocigar_generation_description"] = pseudocigar_generation_description_.value();
+    j["pseudocigar_seq"] = pseudocigar_seq_;
+    j["ref_loc"] = ref_loc_.to_json();
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void Pseudocigar::validate() const {
+    if (!std::regex_match(pseudocigar_seq_, std::regex("^[a-zA-Z0-9+=.]+$"))) throw std::runtime_error("Validation failed: Pseudocigar.pseudocigar_seq pattern");
+    ref_loc_.validate();
 }
 
 RepresentativeMicrohaplotype RepresentativeMicrohaplotype::from_json(const nlohmann::json& j) {
@@ -627,7 +672,7 @@ RepresentativeMicrohaplotype RepresentativeMicrohaplotype::from_json(const nlohm
     _known.insert("quality");
     if (auto it = j.find("quality"); it != j.end() && !it->is_null()) ret.quality_ = it->get<std::string>();
     _known.insert("seq");
-    j.at("seq").get_to(ret.seq_);
+    require_member(j, "RepresentativeMicrohaplotype", "seq").get_to(ret.seq_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -660,10 +705,12 @@ RepresentativeMicrohaplotypesForTarget RepresentativeMicrohaplotypesForTarget::f
     _known.insert("mhap_location");
     if (auto it = j.find("mhap_location"); it != j.end() && !it->is_null()) ret.mhap_location_ = GenomicLocation::from_json(*it);
     _known.insert("microhaplotypes");
-    { std::vector<RepresentativeMicrohaplotype> _vec; for (const auto& _el : j.at("microhaplotypes")) _vec.emplace_back(RepresentativeMicrohaplotype::from_json(_el)); ret.microhaplotypes_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "RepresentativeMicrohaplotypesForTarget", "microhaplotypes"); std::vector<RepresentativeMicrohaplotype> _vec; for (const auto& _el : _req) _vec.emplace_back(RepresentativeMicrohaplotype::from_json(_el)); ret.microhaplotypes_ = std::move(_vec); }
     _known.insert("target_id");
-    if (auto it = j.find("target_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.target_id_ = std::numeric_limits<uint32_t>::max(); else ret.target_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("target_id").get_to(ret.target_id_);
+    { const auto& _req = require_member(j, "RepresentativeMicrohaplotypesForTarget", "target_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.target_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("RepresentativeMicrohaplotypesForTarget") + ".target_id cannot be negative"); } ret.target_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("RepresentativeMicrohaplotypesForTarget") + ".target_id cannot be negative"); ret.target_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.target_id_); }
+    }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -687,7 +734,7 @@ RepresentativeMicrohaplotypes RepresentativeMicrohaplotypes::from_json(const nlo
     RepresentativeMicrohaplotypes ret;
     std::set<std::string> _known;
     _known.insert("targets");
-    { std::vector<RepresentativeMicrohaplotypesForTarget> _vec; for (const auto& _el : j.at("targets")) _vec.emplace_back(RepresentativeMicrohaplotypesForTarget::from_json(_el)); ret.targets_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "RepresentativeMicrohaplotypes", "targets"); std::vector<RepresentativeMicrohaplotypesForTarget> _vec; for (const auto& _el : _req) _vec.emplace_back(RepresentativeMicrohaplotypesForTarget::from_json(_el)); ret.targets_ = std::move(_vec); }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -703,118 +750,13 @@ void RepresentativeMicrohaplotypes::validate() const {
     for (const auto& _el : targets_) _el.validate();
 }
 
-StageReadCounts StageReadCounts::from_json(const nlohmann::json& j) {
-    StageReadCounts ret;
-    std::set<std::string> _known;
-    _known.insert("reads");
-    if (auto it = j.find("reads"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.reads_ = std::numeric_limits<uint32_t>::max(); else ret.reads_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("reads").get_to(ret.reads_);
-    _known.insert("stage");
-    j.at("stage").get_to(ret.stage_);
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json StageReadCounts::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (reads_ == std::numeric_limits<uint32_t>::max()) j["reads"] = "NA"; else j["reads"] = reads_;
-    j["stage"] = stage_;
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void StageReadCounts::validate() const {
-    if (reads_ < 0) throw std::runtime_error("Validation failed: StageReadCounts.reads minimum");
-    if (!std::regex_match(stage_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: StageReadCounts.stage pattern");
-}
-
-ReadCountsByStageForTarget ReadCountsByStageForTarget::from_json(const nlohmann::json& j) {
-    ReadCountsByStageForTarget ret;
-    std::set<std::string> _known;
-    _known.insert("stages");
-    { std::vector<StageReadCounts> _vec; for (const auto& _el : j.at("stages")) _vec.emplace_back(StageReadCounts::from_json(_el)); ret.stages_ = std::move(_vec); }
-    _known.insert("target_id");
-    if (auto it = j.find("target_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.target_id_ = std::numeric_limits<uint32_t>::max(); else ret.target_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("target_id").get_to(ret.target_id_);
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json ReadCountsByStageForTarget::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : stages_) _arr.emplace_back(_el.to_json()); j["stages"] = std::move(_arr); }
-    if (target_id_ == std::numeric_limits<uint32_t>::max()) j["target_id"] = "NA"; else j["target_id"] = target_id_;
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void ReadCountsByStageForTarget::validate() const {
-    if (target_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForTarget.target_id minimum");
-    for (const auto& _el : stages_) _el.validate();
-}
-
-ReadCountsByStageForLibrarySample ReadCountsByStageForLibrarySample::from_json(const nlohmann::json& j) {
-    ReadCountsByStageForLibrarySample ret;
-    std::set<std::string> _known;
-    _known.insert("library_sample_id");
-    if (auto it = j.find("library_sample_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.library_sample_id_ = std::numeric_limits<uint32_t>::max(); else ret.library_sample_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("library_sample_id").get_to(ret.library_sample_id_);
-    _known.insert("read_counts_for_targets");
-    if (auto it = j.find("read_counts_for_targets"); it != j.end() && !it->is_null()) { std::vector<ReadCountsByStageForTarget> _vec; for (const auto& _el : *it) _vec.emplace_back(ReadCountsByStageForTarget::from_json(_el)); ret.read_counts_for_targets_ = std::move(_vec); }
-    _known.insert("total_raw_count");
-    if (auto it = j.find("total_raw_count"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.total_raw_count_ = std::numeric_limits<uint32_t>::max(); else ret.total_raw_count_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("total_raw_count").get_to(ret.total_raw_count_);
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json ReadCountsByStageForLibrarySample::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (library_sample_id_ == std::numeric_limits<uint32_t>::max()) j["library_sample_id"] = "NA"; else j["library_sample_id"] = library_sample_id_;
-    if (read_counts_for_targets_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : read_counts_for_targets_.value()) _arr.emplace_back(_el.to_json()); j["read_counts_for_targets"] = std::move(_arr); }
-    if (total_raw_count_ == std::numeric_limits<uint32_t>::max()) j["total_raw_count"] = "NA"; else j["total_raw_count"] = total_raw_count_;
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void ReadCountsByStageForLibrarySample::validate() const {
-    if (library_sample_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForLibrarySample.library_sample_id minimum");
-    if (total_raw_count_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForLibrarySample.total_raw_count minimum");
-    if (read_counts_for_targets_.has_value()) for (const auto& _el : read_counts_for_targets_.value()) _el.validate();
-}
-
-ReadCountsByStage ReadCountsByStage::from_json(const nlohmann::json& j) {
-    ReadCountsByStage ret;
-    std::set<std::string> _known;
-    _known.insert("bioinformatics_run_id");
-    if (auto it = j.find("bioinformatics_run_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_run_id_ = std::numeric_limits<uint32_t>::max(); else ret.bioinformatics_run_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("bioinformatics_run_id").get_to(ret.bioinformatics_run_id_);
-    _known.insert("read_counts_by_library_sample_by_stage");
-    { std::vector<ReadCountsByStageForLibrarySample> _vec; for (const auto& _el : j.at("read_counts_by_library_sample_by_stage")) _vec.emplace_back(ReadCountsByStageForLibrarySample::from_json(_el)); ret.read_counts_by_library_sample_by_stage_ = std::move(_vec); }
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json ReadCountsByStage::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (bioinformatics_run_id_ == std::numeric_limits<uint32_t>::max()) j["bioinformatics_run_id"] = "NA"; else j["bioinformatics_run_id"] = bioinformatics_run_id_;
-    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : read_counts_by_library_sample_by_stage_) _arr.emplace_back(_el.to_json()); j["read_counts_by_library_sample_by_stage"] = std::move(_arr); }
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void ReadCountsByStage::validate() const {
-    if (bioinformatics_run_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStage.bioinformatics_run_id minimum");
-    for (const auto& _el : read_counts_by_library_sample_by_stage_) _el.validate();
-}
-
 PrimerInfo PrimerInfo::from_json(const nlohmann::json& j) {
     PrimerInfo ret;
     std::set<std::string> _known;
     _known.insert("location");
     if (auto it = j.find("location"); it != j.end() && !it->is_null()) ret.location_ = GenomicLocation::from_json(*it);
     _known.insert("seq");
-    j.at("seq").get_to(ret.seq_);
+    require_member(j, "PrimerInfo", "seq").get_to(ret.seq_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -836,7 +778,7 @@ TargetInfo TargetInfo::from_json(const nlohmann::json& j) {
     TargetInfo ret;
     std::set<std::string> _known;
     _known.insert("forward_primer");
-    ret.forward_primer_ = PrimerInfo::from_json(j.at("forward_primer"));
+    ret.forward_primer_ = PrimerInfo::from_json(require_member(j, "TargetInfo", "forward_primer"));
     _known.insert("gene_name");
     if (auto it = j.find("gene_name"); it != j.end() && !it->is_null()) ret.gene_name_ = it->get<std::string>();
     _known.insert("insert_location");
@@ -844,11 +786,11 @@ TargetInfo TargetInfo::from_json(const nlohmann::json& j) {
     _known.insert("markers_of_interest");
     if (auto it = j.find("markers_of_interest"); it != j.end() && !it->is_null()) { std::vector<MarkerOfInterest> _vec; for (const auto& _el : *it) _vec.emplace_back(MarkerOfInterest::from_json(_el)); ret.markers_of_interest_ = std::move(_vec); }
     _known.insert("reverse_primer");
-    ret.reverse_primer_ = PrimerInfo::from_json(j.at("reverse_primer"));
+    ret.reverse_primer_ = PrimerInfo::from_json(require_member(j, "TargetInfo", "reverse_primer"));
     _known.insert("target_attributes");
     if (auto it = j.find("target_attributes"); it != j.end() && !it->is_null()) ret.target_attributes_ = it->get<std::vector<std::string>>();
     _known.insert("target_name");
-    j.at("target_name").get_to(ret.target_name_);
+    require_member(j, "TargetInfo", "target_name").get_to(ret.target_name_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -874,21 +816,136 @@ void TargetInfo::validate() const {
     reverse_primer_.validate();
 }
 
+StageReadCounts StageReadCounts::from_json(const nlohmann::json& j) {
+    StageReadCounts ret;
+    std::set<std::string> _known;
+    _known.insert("reads");
+    { const auto& _req = require_member(j, "StageReadCounts", "reads");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.reads_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("StageReadCounts") + ".reads cannot be negative"); } ret.reads_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("StageReadCounts") + ".reads cannot be negative"); ret.reads_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.reads_); }
+    }
+    _known.insert("stage");
+    require_member(j, "StageReadCounts", "stage").get_to(ret.stage_);
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json StageReadCounts::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (reads_ == std::numeric_limits<uint32_t>::max()) j["reads"] = "NA"; else j["reads"] = reads_;
+    j["stage"] = stage_;
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void StageReadCounts::validate() const {
+    if (reads_ < 0) throw std::runtime_error("Validation failed: StageReadCounts.reads minimum");
+    if (!std::regex_match(stage_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: StageReadCounts.stage pattern");
+}
+
+ReadCountsByStageForTarget ReadCountsByStageForTarget::from_json(const nlohmann::json& j) {
+    ReadCountsByStageForTarget ret;
+    std::set<std::string> _known;
+    _known.insert("stages");
+    { const auto& _req = require_member(j, "ReadCountsByStageForTarget", "stages"); std::vector<StageReadCounts> _vec; for (const auto& _el : _req) _vec.emplace_back(StageReadCounts::from_json(_el)); ret.stages_ = std::move(_vec); }
+    _known.insert("target_id");
+    { const auto& _req = require_member(j, "ReadCountsByStageForTarget", "target_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.target_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStageForTarget") + ".target_id cannot be negative"); } ret.target_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStageForTarget") + ".target_id cannot be negative"); ret.target_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.target_id_); }
+    }
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json ReadCountsByStageForTarget::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : stages_) _arr.emplace_back(_el.to_json()); j["stages"] = std::move(_arr); }
+    if (target_id_ == std::numeric_limits<uint32_t>::max()) j["target_id"] = "NA"; else j["target_id"] = target_id_;
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void ReadCountsByStageForTarget::validate() const {
+    if (target_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForTarget.target_id minimum");
+    for (const auto& _el : stages_) _el.validate();
+}
+
+ReadCountsByStageForLibrarySample ReadCountsByStageForLibrarySample::from_json(const nlohmann::json& j) {
+    ReadCountsByStageForLibrarySample ret;
+    std::set<std::string> _known;
+    _known.insert("library_sample_id");
+    { const auto& _req = require_member(j, "ReadCountsByStageForLibrarySample", "library_sample_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.library_sample_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStageForLibrarySample") + ".library_sample_id cannot be negative"); } ret.library_sample_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStageForLibrarySample") + ".library_sample_id cannot be negative"); ret.library_sample_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.library_sample_id_); }
+    }
+    _known.insert("read_counts_for_targets");
+    if (auto it = j.find("read_counts_for_targets"); it != j.end() && !it->is_null()) { std::vector<ReadCountsByStageForTarget> _vec; for (const auto& _el : *it) _vec.emplace_back(ReadCountsByStageForTarget::from_json(_el)); ret.read_counts_for_targets_ = std::move(_vec); }
+    _known.insert("total_raw_count");
+    { const auto& _req = require_member(j, "ReadCountsByStageForLibrarySample", "total_raw_count");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.total_raw_count_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStageForLibrarySample") + ".total_raw_count cannot be negative"); } ret.total_raw_count_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStageForLibrarySample") + ".total_raw_count cannot be negative"); ret.total_raw_count_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.total_raw_count_); }
+    }
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json ReadCountsByStageForLibrarySample::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (library_sample_id_ == std::numeric_limits<uint32_t>::max()) j["library_sample_id"] = "NA"; else j["library_sample_id"] = library_sample_id_;
+    if (read_counts_for_targets_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : read_counts_for_targets_.value()) _arr.emplace_back(_el.to_json()); j["read_counts_for_targets"] = std::move(_arr); }
+    if (total_raw_count_ == std::numeric_limits<uint32_t>::max()) j["total_raw_count"] = "NA"; else j["total_raw_count"] = total_raw_count_;
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void ReadCountsByStageForLibrarySample::validate() const {
+    if (library_sample_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForLibrarySample.library_sample_id minimum");
+    if (total_raw_count_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStageForLibrarySample.total_raw_count minimum");
+    if (read_counts_for_targets_.has_value()) for (const auto& _el : read_counts_for_targets_.value()) _el.validate();
+}
+
+ReadCountsByStage ReadCountsByStage::from_json(const nlohmann::json& j) {
+    ReadCountsByStage ret;
+    std::set<std::string> _known;
+    _known.insert("bioinformatics_run_id");
+    { const auto& _req = require_member(j, "ReadCountsByStage", "bioinformatics_run_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_run_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStage") + ".bioinformatics_run_id cannot be negative"); } ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStage") + ".bioinformatics_run_id cannot be negative"); ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.bioinformatics_run_id_); }
+    }
+    _known.insert("read_counts_by_library_sample_by_stage");
+    { const auto& _req = require_member(j, "ReadCountsByStage", "read_counts_by_library_sample_by_stage"); std::vector<ReadCountsByStageForLibrarySample> _vec; for (const auto& _el : _req) _vec.emplace_back(ReadCountsByStageForLibrarySample::from_json(_el)); ret.read_counts_by_library_sample_by_stage_ = std::move(_vec); }
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json ReadCountsByStage::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (bioinformatics_run_id_ == std::numeric_limits<uint32_t>::max()) j["bioinformatics_run_id"] = "NA"; else j["bioinformatics_run_id"] = bioinformatics_run_id_;
+    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : read_counts_by_library_sample_by_stage_) _arr.emplace_back(_el.to_json()); j["read_counts_by_library_sample_by_stage"] = std::move(_arr); }
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void ReadCountsByStage::validate() const {
+    if (bioinformatics_run_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStage.bioinformatics_run_id minimum");
+    for (const auto& _el : read_counts_by_library_sample_by_stage_) _el.validate();
+}
+
 SequencingInfo SequencingInfo::from_json(const nlohmann::json& j) {
     SequencingInfo ret;
     std::set<std::string> _known;
     _known.insert("library_kit");
     if (auto it = j.find("library_kit"); it != j.end() && !it->is_null()) ret.library_kit_ = it->get<std::string>();
     _known.insert("library_layout");
-    j.at("library_layout").get_to(ret.library_layout_);
+    require_member(j, "SequencingInfo", "library_layout").get_to(ret.library_layout_);
     _known.insert("library_screen");
     if (auto it = j.find("library_screen"); it != j.end() && !it->is_null()) ret.library_screen_ = it->get<std::string>();
     _known.insert("library_selection");
-    j.at("library_selection").get_to(ret.library_selection_);
+    require_member(j, "SequencingInfo", "library_selection").get_to(ret.library_selection_);
     _known.insert("library_source");
-    j.at("library_source").get_to(ret.library_source_);
+    require_member(j, "SequencingInfo", "library_source").get_to(ret.library_source_);
     _known.insert("library_strategy");
-    j.at("library_strategy").get_to(ret.library_strategy_);
+    require_member(j, "SequencingInfo", "library_strategy").get_to(ret.library_strategy_);
     _known.insert("nucl_acid_amp");
     if (auto it = j.find("nucl_acid_amp"); it != j.end() && !it->is_null()) ret.nucl_acid_amp_ = it->get<std::string>();
     _known.insert("nucl_acid_amp_date");
@@ -904,11 +961,11 @@ SequencingInfo SequencingInfo::from_json(const nlohmann::json& j) {
     _known.insert("seq_date");
     if (auto it = j.find("seq_date"); it != j.end() && !it->is_null()) ret.seq_date_ = it->get<std::string>();
     _known.insert("seq_instrument_model");
-    j.at("seq_instrument_model").get_to(ret.seq_instrument_model_);
+    require_member(j, "SequencingInfo", "seq_instrument_model").get_to(ret.seq_instrument_model_);
     _known.insert("seq_platform");
-    j.at("seq_platform").get_to(ret.seq_platform_);
+    require_member(j, "SequencingInfo", "seq_platform").get_to(ret.seq_platform_);
     _known.insert("sequencing_info_name");
-    j.at("sequencing_info_name").get_to(ret.sequencing_info_name_);
+    require_member(j, "SequencingInfo", "sequencing_info_name").get_to(ret.sequencing_info_name_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -945,13 +1002,48 @@ void SequencingInfo::validate() const {
     if (!std::regex_match(sequencing_info_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.sequencing_info_name pattern");
 }
 
+ProjectInfo ProjectInfo::from_json(const nlohmann::json& j) {
+    ProjectInfo ret;
+    std::set<std::string> _known;
+    _known.insert("BioProject_accession");
+    if (auto it = j.find("BioProject_accession"); it != j.end() && !it->is_null()) ret.BioProject_accession_ = it->get<std::string>();
+    _known.insert("project_collector_chief_scientist");
+    if (auto it = j.find("project_collector_chief_scientist"); it != j.end() && !it->is_null()) ret.project_collector_chief_scientist_ = it->get<std::string>();
+    _known.insert("project_contributors");
+    if (auto it = j.find("project_contributors"); it != j.end() && !it->is_null()) ret.project_contributors_ = it->get<std::vector<std::string>>();
+    _known.insert("project_description");
+    require_member(j, "ProjectInfo", "project_description").get_to(ret.project_description_);
+    _known.insert("project_name");
+    require_member(j, "ProjectInfo", "project_name").get_to(ret.project_name_);
+    _known.insert("project_type");
+    if (auto it = j.find("project_type"); it != j.end() && !it->is_null()) ret.project_type_ = it->get<std::string>();
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json ProjectInfo::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (BioProject_accession_.has_value()) j["BioProject_accession"] = BioProject_accession_.value();
+    if (project_collector_chief_scientist_.has_value()) j["project_collector_chief_scientist"] = project_collector_chief_scientist_.value();
+    if (project_contributors_.has_value()) j["project_contributors"] = project_contributors_.value();
+    j["project_description"] = project_description_;
+    j["project_name"] = project_name_;
+    if (project_type_.has_value()) j["project_type"] = project_type_.value();
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void ProjectInfo::validate() const {
+    if (!std::regex_match(project_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: ProjectInfo.project_name pattern");
+}
+
 TravelInfo TravelInfo::from_json(const nlohmann::json& j) {
     TravelInfo ret;
     std::set<std::string> _known;
     _known.insert("bed_net_usage");
     if (auto it = j.find("bed_net_usage"); it != j.end() && !it->is_null()) {
-        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bed_net_usage_ = std::numeric_limits<float>::max(); else ret.bed_net_usage_ = static_cast<float>(std::stod(_s)); }
-        else ret.bed_net_usage_ = it->get<float>();
+        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bed_net_usage_ = std::numeric_limits<float>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<float>) { if (_tmp < 0) throw std::runtime_error(std::string("TravelInfo") + ".bed_net_usage cannot be negative"); } ret.bed_net_usage_ = static_cast<float>(_tmp); } }
+        else { if constexpr (std::is_unsigned_v<float>) { auto _tmp = it->get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("TravelInfo") + ".bed_net_usage cannot be negative"); ret.bed_net_usage_ = static_cast<float>(_tmp); } else ret.bed_net_usage_ = it->get<float>(); }
     }
     _known.insert("geo_admin1");
     if (auto it = j.find("geo_admin1"); it != j.end() && !it->is_null()) ret.geo_admin1_ = it->get<std::string>();
@@ -962,11 +1054,11 @@ TravelInfo TravelInfo::from_json(const nlohmann::json& j) {
     _known.insert("lat_lon");
     if (auto it = j.find("lat_lon"); it != j.end() && !it->is_null()) ret.lat_lon_ = it->get<std::string>();
     _known.insert("travel_country");
-    j.at("travel_country").get_to(ret.travel_country_);
+    require_member(j, "TravelInfo", "travel_country").get_to(ret.travel_country_);
     _known.insert("travel_end_date");
-    j.at("travel_end_date").get_to(ret.travel_end_date_);
+    require_member(j, "TravelInfo", "travel_end_date").get_to(ret.travel_end_date_);
     _known.insert("travel_start_date");
-    j.at("travel_start_date").get_to(ret.travel_start_date_);
+    require_member(j, "TravelInfo", "travel_start_date").get_to(ret.travel_start_date_);
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -986,7 +1078,7 @@ nlohmann::json TravelInfo::to_json() const {
 }
 
 void TravelInfo::validate() const {
-    if (!std::regex_match(travel_country_, std::regex("^[A-Za-z0-9 ,._:'–-]+$"))) throw std::runtime_error("Validation failed: TravelInfo.travel_country pattern");
+    if (!std::regex_match(travel_country_, std::regex("^[\\w ,._:'–-]+$"))) throw std::runtime_error("Validation failed: TravelInfo.travel_country pattern");
     if (!std::regex_match(travel_end_date_, std::regex("\\d{4}-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12][0-9]|3[01]))?"))) throw std::runtime_error("Validation failed: TravelInfo.travel_end_date pattern");
     if (!std::regex_match(travel_start_date_, std::regex("\\d{4}-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12][0-9]|3[01]))?"))) throw std::runtime_error("Validation failed: TravelInfo.travel_start_date pattern");
 }
@@ -999,9 +1091,9 @@ SpecimenInfo SpecimenInfo::from_json(const nlohmann::json& j) {
     _known.insert("blood_meal");
     if (auto it = j.find("blood_meal"); it != j.end() && !it->is_null()) ret.blood_meal_ = it->get<bool>();
     _known.insert("collection_country");
-    j.at("collection_country").get_to(ret.collection_country_);
+    require_member(j, "SpecimenInfo", "collection_country").get_to(ret.collection_country_);
     _known.insert("collection_date");
-    j.at("collection_date").get_to(ret.collection_date_);
+    require_member(j, "SpecimenInfo", "collection_date").get_to(ret.collection_date_);
     _known.insert("drug_usage");
     if (auto it = j.find("drug_usage"); it != j.end() && !it->is_null()) ret.drug_usage_ = it->get<std::vector<std::string>>();
     _known.insert("env_broad_scale");
@@ -1020,33 +1112,34 @@ SpecimenInfo SpecimenInfo::from_json(const nlohmann::json& j) {
     if (auto it = j.find("gravid"); it != j.end() && !it->is_null()) ret.gravid_ = it->get<bool>();
     _known.insert("gravidity");
     if (auto it = j.find("gravidity"); it != j.end() && !it->is_null()) {
-        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.gravidity_ = std::numeric_limits<uint32_t>::max(); else ret.gravidity_ = static_cast<uint32_t>(std::stod(_s)); }
-        else ret.gravidity_ = it->get<uint32_t>();
+        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.gravidity_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".gravidity cannot be negative"); } ret.gravidity_ = static_cast<uint32_t>(_tmp); } }
+        else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = it->get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".gravidity cannot be negative"); ret.gravidity_ = static_cast<uint32_t>(_tmp); } else ret.gravidity_ = it->get<uint32_t>(); }
     }
     _known.insert("has_travel_out_six_month");
     if (auto it = j.find("has_travel_out_six_month"); it != j.end() && !it->is_null()) ret.has_travel_out_six_month_ = it->get<bool>();
     _known.insert("host_age");
     if (auto it = j.find("host_age"); it != j.end() && !it->is_null()) {
-        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.host_age_ = std::numeric_limits<float>::max(); else ret.host_age_ = static_cast<float>(std::stod(_s)); }
-        else ret.host_age_ = it->get<float>();
+        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.host_age_ = std::numeric_limits<float>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<float>) { if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".host_age cannot be negative"); } ret.host_age_ = static_cast<float>(_tmp); } }
+        else { if constexpr (std::is_unsigned_v<float>) { auto _tmp = it->get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".host_age cannot be negative"); ret.host_age_ = static_cast<float>(_tmp); } else ret.host_age_ = it->get<float>(); }
     }
     _known.insert("host_sex");
     if (auto it = j.find("host_sex"); it != j.end() && !it->is_null()) ret.host_sex_ = it->get<std::string>();
-    _known.insert("host_subject_id");
-    if (auto it = j.find("host_subject_id"); it != j.end() && !it->is_null()) {
-        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.host_subject_id_ = std::numeric_limits<uint32_t>::max(); else ret.host_subject_id_ = static_cast<uint32_t>(std::stod(_s)); }
-        else ret.host_subject_id_ = it->get<uint32_t>();
-    }
+    _known.insert("host_subject_name");
+    if (auto it = j.find("host_subject_name"); it != j.end() && !it->is_null()) ret.host_subject_name_ = it->get<std::string>();
     _known.insert("host_taxon_id");
-    if (auto it = j.find("host_taxon_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.host_taxon_id_ = std::numeric_limits<uint32_t>::max(); else ret.host_taxon_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("host_taxon_id").get_to(ret.host_taxon_id_);
+    { const auto& _req = require_member(j, "SpecimenInfo", "host_taxon_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.host_taxon_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".host_taxon_id cannot be negative"); } ret.host_taxon_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".host_taxon_id cannot be negative"); ret.host_taxon_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.host_taxon_id_); }
+    }
     _known.insert("lat_lon");
     if (auto it = j.find("lat_lon"); it != j.end() && !it->is_null()) ret.lat_lon_ = it->get<std::string>();
     _known.insert("parasite_density_info");
     if (auto it = j.find("parasite_density_info"); it != j.end() && !it->is_null()) { std::vector<ParasiteDensity> _vec; for (const auto& _el : *it) _vec.emplace_back(ParasiteDensity::from_json(_el)); ret.parasite_density_info_ = std::move(_vec); }
     _known.insert("project_id");
-    if (auto it = j.find("project_id"); it != j.end() && it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.project_id_ = std::numeric_limits<uint32_t>::max(); else ret.project_id_ = static_cast<uint32_t>(std::stod(_s)); }
-    else j.at("project_id").get_to(ret.project_id_);
+    { const auto& _req = require_member(j, "SpecimenInfo", "project_id");
+      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.project_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".project_id cannot be negative"); } ret.project_id_ = static_cast<uint32_t>(_tmp); } }
+      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".project_id cannot be negative"); ret.project_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.project_id_); }
+    }
     _known.insert("specimen_accession");
     if (auto it = j.find("specimen_accession"); it != j.end() && !it->is_null()) ret.specimen_accession_ = it->get<std::string>();
     _known.insert("specimen_collect_device");
@@ -1054,11 +1147,11 @@ SpecimenInfo SpecimenInfo::from_json(const nlohmann::json& j) {
     _known.insert("specimen_comments");
     if (auto it = j.find("specimen_comments"); it != j.end() && !it->is_null()) ret.specimen_comments_ = it->get<std::vector<std::string>>();
     _known.insert("specimen_name");
-    j.at("specimen_name").get_to(ret.specimen_name_);
+    require_member(j, "SpecimenInfo", "specimen_name").get_to(ret.specimen_name_);
     _known.insert("specimen_store_loc");
     if (auto it = j.find("specimen_store_loc"); it != j.end() && !it->is_null()) ret.specimen_store_loc_ = it->get<std::string>();
     _known.insert("specimen_taxon_id");
-    { std::vector<uint32_t> _vec; for (const auto& _el : j.at("specimen_taxon_id")) { if (_el.is_string()) { auto _s = _el.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) _vec.emplace_back(std::numeric_limits<uint32_t>::max()); else _vec.emplace_back(static_cast<uint32_t>(std::stod(_s))); } else _vec.emplace_back(_el.get<uint32_t>()); } ret.specimen_taxon_id_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "SpecimenInfo", "specimen_taxon_id"); std::vector<uint32_t> _vec; for (const auto& _el : _req) { if (_el.is_string()) { auto _s = _el.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) _vec.emplace_back(std::numeric_limits<uint32_t>::max()); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".specimen_taxon_id cannot contain negative values"); } _vec.emplace_back(static_cast<uint32_t>(_tmp)); } } else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _el.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".specimen_taxon_id cannot contain negative values"); _vec.emplace_back(static_cast<uint32_t>(_tmp)); } else _vec.emplace_back(_el.get<uint32_t>()); } } ret.specimen_taxon_id_ = std::move(_vec); }
     _known.insert("specimen_type");
     if (auto it = j.find("specimen_type"); it != j.end() && !it->is_null()) ret.specimen_type_ = it->get<std::string>();
     _known.insert("storage_plate_info");
@@ -1089,7 +1182,7 @@ nlohmann::json SpecimenInfo::to_json() const {
     if (has_travel_out_six_month_.has_value()) j["has_travel_out_six_month"] = has_travel_out_six_month_.value();
     if (host_age_.has_value()) { if (host_age_.value() == std::numeric_limits<float>::max()) j["host_age"] = "NA"; else j["host_age"] = host_age_.value(); }
     if (host_sex_.has_value()) j["host_sex"] = host_sex_.value();
-    if (host_subject_id_.has_value()) { if (host_subject_id_.value() == std::numeric_limits<uint32_t>::max()) j["host_subject_id"] = "NA"; else j["host_subject_id"] = host_subject_id_.value(); }
+    if (host_subject_name_.has_value()) j["host_subject_name"] = host_subject_name_.value();
     if (host_taxon_id_ == std::numeric_limits<uint32_t>::max()) j["host_taxon_id"] = "NA"; else j["host_taxon_id"] = host_taxon_id_;
     if (lat_lon_.has_value()) j["lat_lon"] = lat_lon_.value();
     if (parasite_density_info_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : parasite_density_info_.value()) _arr.emplace_back(_el.to_json()); j["parasite_density_info"] = std::move(_arr); }
@@ -1109,7 +1202,7 @@ nlohmann::json SpecimenInfo::to_json() const {
 }
 
 void SpecimenInfo::validate() const {
-    if (!std::regex_match(collection_country_, std::regex("^[A-Za-z0-9 ,._:'–-]+$"))) throw std::runtime_error("Validation failed: SpecimenInfo.collection_country pattern");
+    if (!std::regex_match(collection_country_, std::regex("^[\\w ,._:'–-]+$"))) throw std::runtime_error("Validation failed: SpecimenInfo.collection_country pattern");
     if (!std::regex_match(collection_date_, std::regex("(?:\\d{4}(?:-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12][0-9]|3[01]))?)?|NA)"))) throw std::runtime_error("Validation failed: SpecimenInfo.collection_date pattern");
     if (host_taxon_id_ < 0) throw std::runtime_error("Validation failed: SpecimenInfo.host_taxon_id minimum");
     if (project_id_ < 0) throw std::runtime_error("Validation failed: SpecimenInfo.project_id minimum");
@@ -1119,70 +1212,35 @@ void SpecimenInfo::validate() const {
     if (travel_out_six_month_.has_value()) for (const auto& _el : travel_out_six_month_.value()) _el.validate();
 }
 
-ProjectInfo ProjectInfo::from_json(const nlohmann::json& j) {
-    ProjectInfo ret;
-    std::set<std::string> _known;
-    _known.insert("BioProject_accession");
-    if (auto it = j.find("BioProject_accession"); it != j.end() && !it->is_null()) ret.BioProject_accession_ = it->get<std::string>();
-    _known.insert("project_collector_chief_scientist");
-    if (auto it = j.find("project_collector_chief_scientist"); it != j.end() && !it->is_null()) ret.project_collector_chief_scientist_ = it->get<std::string>();
-    _known.insert("project_contributors");
-    if (auto it = j.find("project_contributors"); it != j.end() && !it->is_null()) ret.project_contributors_ = it->get<std::vector<std::string>>();
-    _known.insert("project_description");
-    j.at("project_description").get_to(ret.project_description_);
-    _known.insert("project_name");
-    j.at("project_name").get_to(ret.project_name_);
-    _known.insert("project_type");
-    if (auto it = j.find("project_type"); it != j.end() && !it->is_null()) ret.project_type_ = it->get<std::string>();
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json ProjectInfo::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (BioProject_accession_.has_value()) j["BioProject_accession"] = BioProject_accession_.value();
-    if (project_collector_chief_scientist_.has_value()) j["project_collector_chief_scientist"] = project_collector_chief_scientist_.value();
-    if (project_contributors_.has_value()) j["project_contributors"] = project_contributors_.value();
-    j["project_description"] = project_description_;
-    j["project_name"] = project_name_;
-    if (project_type_.has_value()) j["project_type"] = project_type_.value();
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void ProjectInfo::validate() const {
-    if (!std::regex_match(project_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: ProjectInfo.project_name pattern");
-}
-
 PortableMicrohaplotypeObject PortableMicrohaplotypeObject::from_json(const nlohmann::json& j) {
     PortableMicrohaplotypeObject ret;
     std::set<std::string> _known;
     _known.insert("bioinformatics_methods_info");
-    { std::vector<BioinformaticsMethodInfo> _vec; for (const auto& _el : j.at("bioinformatics_methods_info")) _vec.emplace_back(BioinformaticsMethodInfo::from_json(_el)); ret.bioinformatics_methods_info_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "bioinformatics_methods_info"); std::vector<BioinformaticsMethodInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(BioinformaticsMethodInfo::from_json(_el)); ret.bioinformatics_methods_info_ = std::move(_vec); }
     _known.insert("bioinformatics_run_info");
-    { std::vector<BioinformaticsRunInfo> _vec; for (const auto& _el : j.at("bioinformatics_run_info")) _vec.emplace_back(BioinformaticsRunInfo::from_json(_el)); ret.bioinformatics_run_info_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "bioinformatics_run_info"); std::vector<BioinformaticsRunInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(BioinformaticsRunInfo::from_json(_el)); ret.bioinformatics_run_info_ = std::move(_vec); }
     _known.insert("detected_microhaplotypes");
-    { std::vector<DetectedMicrohaplotypes> _vec; for (const auto& _el : j.at("detected_microhaplotypes")) _vec.emplace_back(DetectedMicrohaplotypes::from_json(_el)); ret.detected_microhaplotypes_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "detected_microhaplotypes"); std::vector<DetectedMicrohaplotypes> _vec; for (const auto& _el : _req) _vec.emplace_back(DetectedMicrohaplotypes::from_json(_el)); ret.detected_microhaplotypes_ = std::move(_vec); }
     _known.insert("library_sample_info");
-    { std::vector<LibrarySampleInfo> _vec; for (const auto& _el : j.at("library_sample_info")) _vec.emplace_back(LibrarySampleInfo::from_json(_el)); ret.library_sample_info_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "library_sample_info"); std::vector<LibrarySampleInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(LibrarySampleInfo::from_json(_el)); ret.library_sample_info_ = std::move(_vec); }
     _known.insert("panel_info");
-    { std::vector<PanelInfo> _vec; for (const auto& _el : j.at("panel_info")) _vec.emplace_back(PanelInfo::from_json(_el)); ret.panel_info_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "panel_info"); std::vector<PanelInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(PanelInfo::from_json(_el)); ret.panel_info_ = std::move(_vec); }
     _known.insert("pmo_header");
-    ret.pmo_header_ = PmoHeader::from_json(j.at("pmo_header"));
+    ret.pmo_header_ = PmoHeader::from_json(require_member(j, "PortableMicrohaplotypeObject", "pmo_header"));
     _known.insert("project_info");
-    { std::vector<ProjectInfo> _vec; for (const auto& _el : j.at("project_info")) _vec.emplace_back(ProjectInfo::from_json(_el)); ret.project_info_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "project_info"); std::vector<ProjectInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(ProjectInfo::from_json(_el)); ret.project_info_ = std::move(_vec); }
     _known.insert("read_counts_by_stage");
     if (auto it = j.find("read_counts_by_stage"); it != j.end() && !it->is_null()) { std::vector<ReadCountsByStage> _vec; for (const auto& _el : *it) _vec.emplace_back(ReadCountsByStage::from_json(_el)); ret.read_counts_by_stage_ = std::move(_vec); }
     _known.insert("representative_microhaplotypes");
-    ret.representative_microhaplotypes_ = RepresentativeMicrohaplotypes::from_json(j.at("representative_microhaplotypes"));
+    ret.representative_microhaplotypes_ = RepresentativeMicrohaplotypes::from_json(require_member(j, "PortableMicrohaplotypeObject", "representative_microhaplotypes"));
     _known.insert("sequencing_info");
-    { std::vector<SequencingInfo> _vec; for (const auto& _el : j.at("sequencing_info")) _vec.emplace_back(SequencingInfo::from_json(_el)); ret.sequencing_info_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "sequencing_info"); std::vector<SequencingInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(SequencingInfo::from_json(_el)); ret.sequencing_info_ = std::move(_vec); }
     _known.insert("specimen_info");
-    { std::vector<SpecimenInfo> _vec; for (const auto& _el : j.at("specimen_info")) _vec.emplace_back(SpecimenInfo::from_json(_el)); ret.specimen_info_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "specimen_info"); std::vector<SpecimenInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(SpecimenInfo::from_json(_el)); ret.specimen_info_ = std::move(_vec); }
     _known.insert("target_info");
-    { std::vector<TargetInfo> _vec; for (const auto& _el : j.at("target_info")) _vec.emplace_back(TargetInfo::from_json(_el)); ret.target_info_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "target_info"); std::vector<TargetInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(TargetInfo::from_json(_el)); ret.target_info_ = std::move(_vec); }
     _known.insert("targeted_genomes");
-    { std::vector<GenomeInfo> _vec; for (const auto& _el : j.at("targeted_genomes")) _vec.emplace_back(GenomeInfo::from_json(_el)); ret.targeted_genomes_ = std::move(_vec); }
+    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "targeted_genomes"); std::vector<GenomeInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(GenomeInfo::from_json(_el)); ret.targeted_genomes_ = std::move(_vec); }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
@@ -1223,3 +1281,4 @@ void PortableMicrohaplotypeObject::validate() const {
 }
 
 } // namespace njhseq::pmo
+
