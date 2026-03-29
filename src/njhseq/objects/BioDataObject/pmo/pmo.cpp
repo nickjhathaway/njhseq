@@ -201,9 +201,9 @@ DetectedMicrohaplotypes DetectedMicrohaplotypes::from_json(const nlohmann::json&
     DetectedMicrohaplotypes ret;
     std::set<std::string> _known;
     _known.insert("bioinformatics_run_id");
-    { const auto& _req = require_member(j, "DetectedMicrohaplotypes", "bioinformatics_run_id");
-      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_run_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("DetectedMicrohaplotypes") + ".bioinformatics_run_id cannot be negative"); } ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } }
-      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("DetectedMicrohaplotypes") + ".bioinformatics_run_id cannot be negative"); ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.bioinformatics_run_id_); }
+    if (auto it = j.find("bioinformatics_run_id"); it != j.end() && !it->is_null()) {
+        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_run_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("DetectedMicrohaplotypes") + ".bioinformatics_run_id cannot be negative"); } ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } }
+        else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = it->get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("DetectedMicrohaplotypes") + ".bioinformatics_run_id cannot be negative"); ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } else ret.bioinformatics_run_id_ = it->get<uint32_t>(); }
     }
     _known.insert("library_samples");
     { const auto& _req = require_member(j, "DetectedMicrohaplotypes", "library_samples"); std::vector<DetectedMicrohaplotypesForSample> _vec; for (const auto& _el : _req) _vec.emplace_back(DetectedMicrohaplotypesForSample::from_json(_el)); ret.library_samples_ = std::move(_vec); }
@@ -213,14 +213,13 @@ DetectedMicrohaplotypes DetectedMicrohaplotypes::from_json(const nlohmann::json&
 
 nlohmann::json DetectedMicrohaplotypes::to_json() const {
     nlohmann::json j = nlohmann::json::object();
-    if (bioinformatics_run_id_ == std::numeric_limits<uint32_t>::max()) j["bioinformatics_run_id"] = "NA"; else j["bioinformatics_run_id"] = bioinformatics_run_id_;
+    if (bioinformatics_run_id_.has_value()) { if (bioinformatics_run_id_.value() == std::numeric_limits<uint32_t>::max()) j["bioinformatics_run_id"] = "NA"; else j["bioinformatics_run_id"] = bioinformatics_run_id_.value(); }
     { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : library_samples_) _arr.emplace_back(_el.to_json()); j["library_samples"] = std::move(_arr); }
     for (const auto& kv : extras_) j[kv.first] = kv.second;
     return j;
 }
 
 void DetectedMicrohaplotypes::validate() const {
-    if (bioinformatics_run_id_ < 0) throw std::runtime_error("Validation failed: DetectedMicrohaplotypes.bioinformatics_run_id minimum");
     for (const auto& _el : library_samples_) _el.validate();
 }
 
@@ -258,7 +257,7 @@ nlohmann::json GenomeInfo::to_json() const {
 void GenomeInfo::validate() const {
     if (!std::regex_match(genome_version_, std::regex("^[A-z-._0-9]+$"))) throw std::runtime_error("Validation failed: GenomeInfo.genome_version pattern");
     if (!std::regex_match(name_, std::regex("^[A-z-._0-9]+$"))) throw std::runtime_error("Validation failed: GenomeInfo.name pattern");
-    if (!std::regex_match(url_, std::regex("^(https?|ftp):\\/\\/[^\\s/$.?#].[^\\s]*$"))) throw std::runtime_error("Validation failed: GenomeInfo.url pattern");
+    if (!std::regex_match(url_, std::regex("^(?:NA|(https?|ftp):\\/\\/[^\\s/$.?#].[^\\s]*)$"))) throw std::runtime_error("Validation failed: GenomeInfo.url pattern");
 }
 
 GenomicLocation GenomicLocation::from_json(const nlohmann::json& j) {
@@ -398,9 +397,9 @@ LibrarySampleInfo LibrarySampleInfo::from_json(const nlohmann::json& j) {
     _known.insert("run_accession");
     if (auto it = j.find("run_accession"); it != j.end() && !it->is_null()) ret.run_accession_ = it->get<std::string>();
     _known.insert("sequencing_info_id");
-    { const auto& _req = require_member(j, "LibrarySampleInfo", "sequencing_info_id");
-      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.sequencing_info_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("LibrarySampleInfo") + ".sequencing_info_id cannot be negative"); } ret.sequencing_info_id_ = static_cast<uint32_t>(_tmp); } }
-      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("LibrarySampleInfo") + ".sequencing_info_id cannot be negative"); ret.sequencing_info_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.sequencing_info_id_); }
+    if (auto it = j.find("sequencing_info_id"); it != j.end() && !it->is_null()) {
+        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.sequencing_info_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("LibrarySampleInfo") + ".sequencing_info_id cannot be negative"); } ret.sequencing_info_id_ = static_cast<uint32_t>(_tmp); } }
+        else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = it->get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("LibrarySampleInfo") + ".sequencing_info_id cannot be negative"); ret.sequencing_info_id_ = static_cast<uint32_t>(_tmp); } else ret.sequencing_info_id_ = it->get<uint32_t>(); }
     }
     _known.insert("specimen_id");
     { const auto& _req = require_member(j, "LibrarySampleInfo", "specimen_id");
@@ -421,7 +420,7 @@ nlohmann::json LibrarySampleInfo::to_json() const {
     if (panel_id_ == std::numeric_limits<uint32_t>::max()) j["panel_id"] = "NA"; else j["panel_id"] = panel_id_;
     if (qpcr_parasite_density_info_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : qpcr_parasite_density_info_.value()) _arr.emplace_back(_el.to_json()); j["qpcr_parasite_density_info"] = std::move(_arr); }
     if (run_accession_.has_value()) j["run_accession"] = run_accession_.value();
-    if (sequencing_info_id_ == std::numeric_limits<uint32_t>::max()) j["sequencing_info_id"] = "NA"; else j["sequencing_info_id"] = sequencing_info_id_;
+    if (sequencing_info_id_.has_value()) { if (sequencing_info_id_.value() == std::numeric_limits<uint32_t>::max()) j["sequencing_info_id"] = "NA"; else j["sequencing_info_id"] = sequencing_info_id_.value(); }
     if (specimen_id_ == std::numeric_limits<uint32_t>::max()) j["specimen_id"] = "NA"; else j["specimen_id"] = specimen_id_;
     for (const auto& kv : extras_) j[kv.first] = kv.second;
     return j;
@@ -430,7 +429,6 @@ nlohmann::json LibrarySampleInfo::to_json() const {
 void LibrarySampleInfo::validate() const {
     if (!std::regex_match(library_sample_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: LibrarySampleInfo.library_sample_name pattern");
     if (panel_id_ < 0) throw std::runtime_error("Validation failed: LibrarySampleInfo.panel_id minimum");
-    if (sequencing_info_id_ < 0) throw std::runtime_error("Validation failed: LibrarySampleInfo.sequencing_info_id minimum");
     if (specimen_id_ < 0) throw std::runtime_error("Validation failed: LibrarySampleInfo.specimen_id minimum");
     if (library_prep_plate_info_.has_value()) library_prep_plate_info_.value().validate();
     if (qpcr_parasite_density_info_.has_value()) for (const auto& _el : qpcr_parasite_density_info_.value()) _el.validate();
@@ -597,6 +595,107 @@ void PmoHeader::validate() const {
     if (generation_method_.has_value()) generation_method_.value().validate();
 }
 
+ProjectInfo ProjectInfo::from_json(const nlohmann::json& j) {
+    ProjectInfo ret;
+    std::set<std::string> _known;
+    _known.insert("BioProject_accession");
+    if (auto it = j.find("BioProject_accession"); it != j.end() && !it->is_null()) ret.BioProject_accession_ = it->get<std::string>();
+    _known.insert("project_collector_chief_scientist");
+    if (auto it = j.find("project_collector_chief_scientist"); it != j.end() && !it->is_null()) ret.project_collector_chief_scientist_ = it->get<std::string>();
+    _known.insert("project_contributors");
+    if (auto it = j.find("project_contributors"); it != j.end() && !it->is_null()) ret.project_contributors_ = it->get<std::vector<std::string>>();
+    _known.insert("project_description");
+    require_member(j, "ProjectInfo", "project_description").get_to(ret.project_description_);
+    _known.insert("project_name");
+    require_member(j, "ProjectInfo", "project_name").get_to(ret.project_name_);
+    _known.insert("project_type");
+    if (auto it = j.find("project_type"); it != j.end() && !it->is_null()) ret.project_type_ = it->get<std::string>();
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json ProjectInfo::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (BioProject_accession_.has_value()) j["BioProject_accession"] = BioProject_accession_.value();
+    if (project_collector_chief_scientist_.has_value()) j["project_collector_chief_scientist"] = project_collector_chief_scientist_.value();
+    if (project_contributors_.has_value()) j["project_contributors"] = project_contributors_.value();
+    j["project_description"] = project_description_;
+    j["project_name"] = project_name_;
+    if (project_type_.has_value()) j["project_type"] = project_type_.value();
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void ProjectInfo::validate() const {
+    if (!std::regex_match(project_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: ProjectInfo.project_name pattern");
+}
+
+PrimerInfo PrimerInfo::from_json(const nlohmann::json& j) {
+    PrimerInfo ret;
+    std::set<std::string> _known;
+    _known.insert("location");
+    if (auto it = j.find("location"); it != j.end() && !it->is_null()) ret.location_ = GenomicLocation::from_json(*it);
+    _known.insert("seq");
+    require_member(j, "PrimerInfo", "seq").get_to(ret.seq_);
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json PrimerInfo::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    if (location_.has_value()) j["location"] = location_.value().to_json();
+    j["seq"] = seq_;
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void PrimerInfo::validate() const {
+    if (!std::regex_match(seq_, std::regex("^[A-z]+$"))) throw std::runtime_error("Validation failed: PrimerInfo.seq pattern");
+    if (location_.has_value()) location_.value().validate();
+}
+
+TargetInfo TargetInfo::from_json(const nlohmann::json& j) {
+    TargetInfo ret;
+    std::set<std::string> _known;
+    _known.insert("forward_primer");
+    ret.forward_primer_ = PrimerInfo::from_json(require_member(j, "TargetInfo", "forward_primer"));
+    _known.insert("gene_name");
+    if (auto it = j.find("gene_name"); it != j.end() && !it->is_null()) ret.gene_name_ = it->get<std::string>();
+    _known.insert("insert_location");
+    if (auto it = j.find("insert_location"); it != j.end() && !it->is_null()) ret.insert_location_ = GenomicLocation::from_json(*it);
+    _known.insert("markers_of_interest");
+    if (auto it = j.find("markers_of_interest"); it != j.end() && !it->is_null()) { std::vector<MarkerOfInterest> _vec; for (const auto& _el : *it) _vec.emplace_back(MarkerOfInterest::from_json(_el)); ret.markers_of_interest_ = std::move(_vec); }
+    _known.insert("reverse_primer");
+    ret.reverse_primer_ = PrimerInfo::from_json(require_member(j, "TargetInfo", "reverse_primer"));
+    _known.insert("target_attributes");
+    if (auto it = j.find("target_attributes"); it != j.end() && !it->is_null()) ret.target_attributes_ = it->get<std::vector<std::string>>();
+    _known.insert("target_name");
+    require_member(j, "TargetInfo", "target_name").get_to(ret.target_name_);
+    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
+    return ret;
+}
+
+nlohmann::json TargetInfo::to_json() const {
+    nlohmann::json j = nlohmann::json::object();
+    j["forward_primer"] = forward_primer_.to_json();
+    if (gene_name_.has_value()) j["gene_name"] = gene_name_.value();
+    if (insert_location_.has_value()) j["insert_location"] = insert_location_.value().to_json();
+    if (markers_of_interest_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : markers_of_interest_.value()) _arr.emplace_back(_el.to_json()); j["markers_of_interest"] = std::move(_arr); }
+    j["reverse_primer"] = reverse_primer_.to_json();
+    if (target_attributes_.has_value()) j["target_attributes"] = target_attributes_.value();
+    j["target_name"] = target_name_;
+    for (const auto& kv : extras_) j[kv.first] = kv.second;
+    return j;
+}
+
+void TargetInfo::validate() const {
+    if (!std::regex_match(target_name_, std::regex("^[A-z-._0-9]+$"))) throw std::runtime_error("Validation failed: TargetInfo.target_name pattern");
+    forward_primer_.validate();
+    if (insert_location_.has_value()) insert_location_.value().validate();
+    if (markers_of_interest_.has_value()) for (const auto& _el : markers_of_interest_.value()) _el.validate();
+    reverse_primer_.validate();
+}
+
 ProteinVariant ProteinVariant::from_json(const nlohmann::json& j) {
     ProteinVariant ret;
     std::set<std::string> _known;
@@ -750,72 +849,6 @@ void RepresentativeMicrohaplotypes::validate() const {
     for (const auto& _el : targets_) _el.validate();
 }
 
-PrimerInfo PrimerInfo::from_json(const nlohmann::json& j) {
-    PrimerInfo ret;
-    std::set<std::string> _known;
-    _known.insert("location");
-    if (auto it = j.find("location"); it != j.end() && !it->is_null()) ret.location_ = GenomicLocation::from_json(*it);
-    _known.insert("seq");
-    require_member(j, "PrimerInfo", "seq").get_to(ret.seq_);
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json PrimerInfo::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (location_.has_value()) j["location"] = location_.value().to_json();
-    j["seq"] = seq_;
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void PrimerInfo::validate() const {
-    if (!std::regex_match(seq_, std::regex("^[A-z]+$"))) throw std::runtime_error("Validation failed: PrimerInfo.seq pattern");
-    if (location_.has_value()) location_.value().validate();
-}
-
-TargetInfo TargetInfo::from_json(const nlohmann::json& j) {
-    TargetInfo ret;
-    std::set<std::string> _known;
-    _known.insert("forward_primer");
-    ret.forward_primer_ = PrimerInfo::from_json(require_member(j, "TargetInfo", "forward_primer"));
-    _known.insert("gene_name");
-    if (auto it = j.find("gene_name"); it != j.end() && !it->is_null()) ret.gene_name_ = it->get<std::string>();
-    _known.insert("insert_location");
-    if (auto it = j.find("insert_location"); it != j.end() && !it->is_null()) ret.insert_location_ = GenomicLocation::from_json(*it);
-    _known.insert("markers_of_interest");
-    if (auto it = j.find("markers_of_interest"); it != j.end() && !it->is_null()) { std::vector<MarkerOfInterest> _vec; for (const auto& _el : *it) _vec.emplace_back(MarkerOfInterest::from_json(_el)); ret.markers_of_interest_ = std::move(_vec); }
-    _known.insert("reverse_primer");
-    ret.reverse_primer_ = PrimerInfo::from_json(require_member(j, "TargetInfo", "reverse_primer"));
-    _known.insert("target_attributes");
-    if (auto it = j.find("target_attributes"); it != j.end() && !it->is_null()) ret.target_attributes_ = it->get<std::vector<std::string>>();
-    _known.insert("target_name");
-    require_member(j, "TargetInfo", "target_name").get_to(ret.target_name_);
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json TargetInfo::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    j["forward_primer"] = forward_primer_.to_json();
-    if (gene_name_.has_value()) j["gene_name"] = gene_name_.value();
-    if (insert_location_.has_value()) j["insert_location"] = insert_location_.value().to_json();
-    if (markers_of_interest_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : markers_of_interest_.value()) _arr.emplace_back(_el.to_json()); j["markers_of_interest"] = std::move(_arr); }
-    j["reverse_primer"] = reverse_primer_.to_json();
-    if (target_attributes_.has_value()) j["target_attributes"] = target_attributes_.value();
-    j["target_name"] = target_name_;
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void TargetInfo::validate() const {
-    if (!std::regex_match(target_name_, std::regex("^[A-z-._0-9]+$"))) throw std::runtime_error("Validation failed: TargetInfo.target_name pattern");
-    forward_primer_.validate();
-    if (insert_location_.has_value()) insert_location_.value().validate();
-    if (markers_of_interest_.has_value()) for (const auto& _el : markers_of_interest_.value()) _el.validate();
-    reverse_primer_.validate();
-}
-
 StageReadCounts StageReadCounts::from_json(const nlohmann::json& j) {
     StageReadCounts ret;
     std::set<std::string> _known;
@@ -908,9 +941,9 @@ ReadCountsByStage ReadCountsByStage::from_json(const nlohmann::json& j) {
     ReadCountsByStage ret;
     std::set<std::string> _known;
     _known.insert("bioinformatics_run_id");
-    { const auto& _req = require_member(j, "ReadCountsByStage", "bioinformatics_run_id");
-      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_run_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStage") + ".bioinformatics_run_id cannot be negative"); } ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } }
-      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStage") + ".bioinformatics_run_id cannot be negative"); ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.bioinformatics_run_id_); }
+    if (auto it = j.find("bioinformatics_run_id"); it != j.end() && !it->is_null()) {
+        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.bioinformatics_run_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStage") + ".bioinformatics_run_id cannot be negative"); } ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } }
+        else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = it->get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("ReadCountsByStage") + ".bioinformatics_run_id cannot be negative"); ret.bioinformatics_run_id_ = static_cast<uint32_t>(_tmp); } else ret.bioinformatics_run_id_ = it->get<uint32_t>(); }
     }
     _known.insert("read_counts_by_library_sample_by_stage");
     { const auto& _req = require_member(j, "ReadCountsByStage", "read_counts_by_library_sample_by_stage"); std::vector<ReadCountsByStageForLibrarySample> _vec; for (const auto& _el : _req) _vec.emplace_back(ReadCountsByStageForLibrarySample::from_json(_el)); ret.read_counts_by_library_sample_by_stage_ = std::move(_vec); }
@@ -920,14 +953,13 @@ ReadCountsByStage ReadCountsByStage::from_json(const nlohmann::json& j) {
 
 nlohmann::json ReadCountsByStage::to_json() const {
     nlohmann::json j = nlohmann::json::object();
-    if (bioinformatics_run_id_ == std::numeric_limits<uint32_t>::max()) j["bioinformatics_run_id"] = "NA"; else j["bioinformatics_run_id"] = bioinformatics_run_id_;
+    if (bioinformatics_run_id_.has_value()) { if (bioinformatics_run_id_.value() == std::numeric_limits<uint32_t>::max()) j["bioinformatics_run_id"] = "NA"; else j["bioinformatics_run_id"] = bioinformatics_run_id_.value(); }
     { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : read_counts_by_library_sample_by_stage_) _arr.emplace_back(_el.to_json()); j["read_counts_by_library_sample_by_stage"] = std::move(_arr); }
     for (const auto& kv : extras_) j[kv.first] = kv.second;
     return j;
 }
 
 void ReadCountsByStage::validate() const {
-    if (bioinformatics_run_id_ < 0) throw std::runtime_error("Validation failed: ReadCountsByStage.bioinformatics_run_id minimum");
     for (const auto& _el : read_counts_by_library_sample_by_stage_) _el.validate();
 }
 
@@ -1002,41 +1034,6 @@ void SequencingInfo::validate() const {
     if (!std::regex_match(sequencing_info_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: SequencingInfo.sequencing_info_name pattern");
 }
 
-ProjectInfo ProjectInfo::from_json(const nlohmann::json& j) {
-    ProjectInfo ret;
-    std::set<std::string> _known;
-    _known.insert("BioProject_accession");
-    if (auto it = j.find("BioProject_accession"); it != j.end() && !it->is_null()) ret.BioProject_accession_ = it->get<std::string>();
-    _known.insert("project_collector_chief_scientist");
-    if (auto it = j.find("project_collector_chief_scientist"); it != j.end() && !it->is_null()) ret.project_collector_chief_scientist_ = it->get<std::string>();
-    _known.insert("project_contributors");
-    if (auto it = j.find("project_contributors"); it != j.end() && !it->is_null()) ret.project_contributors_ = it->get<std::vector<std::string>>();
-    _known.insert("project_description");
-    require_member(j, "ProjectInfo", "project_description").get_to(ret.project_description_);
-    _known.insert("project_name");
-    require_member(j, "ProjectInfo", "project_name").get_to(ret.project_name_);
-    _known.insert("project_type");
-    if (auto it = j.find("project_type"); it != j.end() && !it->is_null()) ret.project_type_ = it->get<std::string>();
-    for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
-    return ret;
-}
-
-nlohmann::json ProjectInfo::to_json() const {
-    nlohmann::json j = nlohmann::json::object();
-    if (BioProject_accession_.has_value()) j["BioProject_accession"] = BioProject_accession_.value();
-    if (project_collector_chief_scientist_.has_value()) j["project_collector_chief_scientist"] = project_collector_chief_scientist_.value();
-    if (project_contributors_.has_value()) j["project_contributors"] = project_contributors_.value();
-    j["project_description"] = project_description_;
-    j["project_name"] = project_name_;
-    if (project_type_.has_value()) j["project_type"] = project_type_.value();
-    for (const auto& kv : extras_) j[kv.first] = kv.second;
-    return j;
-}
-
-void ProjectInfo::validate() const {
-    if (!std::regex_match(project_name_, std::regex("^[A-z-._0-9 ]+$"))) throw std::runtime_error("Validation failed: ProjectInfo.project_name pattern");
-}
-
 TravelInfo TravelInfo::from_json(const nlohmann::json& j) {
     TravelInfo ret;
     std::set<std::string> _known;
@@ -1091,9 +1088,9 @@ SpecimenInfo SpecimenInfo::from_json(const nlohmann::json& j) {
     _known.insert("blood_meal");
     if (auto it = j.find("blood_meal"); it != j.end() && !it->is_null()) ret.blood_meal_ = it->get<bool>();
     _known.insert("collection_country");
-    require_member(j, "SpecimenInfo", "collection_country").get_to(ret.collection_country_);
+    if (auto it = j.find("collection_country"); it != j.end() && !it->is_null()) ret.collection_country_ = it->get<std::string>();
     _known.insert("collection_date");
-    require_member(j, "SpecimenInfo", "collection_date").get_to(ret.collection_date_);
+    if (auto it = j.find("collection_date"); it != j.end() && !it->is_null()) ret.collection_date_ = it->get<std::string>();
     _known.insert("drug_usage");
     if (auto it = j.find("drug_usage"); it != j.end() && !it->is_null()) ret.drug_usage_ = it->get<std::vector<std::string>>();
     _known.insert("env_broad_scale");
@@ -1127,18 +1124,18 @@ SpecimenInfo SpecimenInfo::from_json(const nlohmann::json& j) {
     _known.insert("host_subject_name");
     if (auto it = j.find("host_subject_name"); it != j.end() && !it->is_null()) ret.host_subject_name_ = it->get<std::string>();
     _known.insert("host_taxon_id");
-    { const auto& _req = require_member(j, "SpecimenInfo", "host_taxon_id");
-      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.host_taxon_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".host_taxon_id cannot be negative"); } ret.host_taxon_id_ = static_cast<uint32_t>(_tmp); } }
-      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".host_taxon_id cannot be negative"); ret.host_taxon_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.host_taxon_id_); }
+    if (auto it = j.find("host_taxon_id"); it != j.end() && !it->is_null()) {
+        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.host_taxon_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".host_taxon_id cannot be negative"); } ret.host_taxon_id_ = static_cast<uint32_t>(_tmp); } }
+        else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = it->get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".host_taxon_id cannot be negative"); ret.host_taxon_id_ = static_cast<uint32_t>(_tmp); } else ret.host_taxon_id_ = it->get<uint32_t>(); }
     }
     _known.insert("lat_lon");
     if (auto it = j.find("lat_lon"); it != j.end() && !it->is_null()) ret.lat_lon_ = it->get<std::string>();
     _known.insert("parasite_density_info");
     if (auto it = j.find("parasite_density_info"); it != j.end() && !it->is_null()) { std::vector<ParasiteDensity> _vec; for (const auto& _el : *it) _vec.emplace_back(ParasiteDensity::from_json(_el)); ret.parasite_density_info_ = std::move(_vec); }
     _known.insert("project_id");
-    { const auto& _req = require_member(j, "SpecimenInfo", "project_id");
-      if (_req.is_string()) { auto _s = _req.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.project_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".project_id cannot be negative"); } ret.project_id_ = static_cast<uint32_t>(_tmp); } }
-      else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _req.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".project_id cannot be negative"); ret.project_id_ = static_cast<uint32_t>(_tmp); } else _req.get_to(ret.project_id_); }
+    if (auto it = j.find("project_id"); it != j.end() && !it->is_null()) {
+        if (it->is_string()) { auto _s = it->get<std::string>(); if (PMO_NA_STRINGS().count(_s)) ret.project_id_ = std::numeric_limits<uint32_t>::max(); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".project_id cannot be negative"); } ret.project_id_ = static_cast<uint32_t>(_tmp); } }
+        else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = it->get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".project_id cannot be negative"); ret.project_id_ = static_cast<uint32_t>(_tmp); } else ret.project_id_ = it->get<uint32_t>(); }
     }
     _known.insert("specimen_accession");
     if (auto it = j.find("specimen_accession"); it != j.end() && !it->is_null()) ret.specimen_accession_ = it->get<std::string>();
@@ -1151,7 +1148,7 @@ SpecimenInfo SpecimenInfo::from_json(const nlohmann::json& j) {
     _known.insert("specimen_store_loc");
     if (auto it = j.find("specimen_store_loc"); it != j.end() && !it->is_null()) ret.specimen_store_loc_ = it->get<std::string>();
     _known.insert("specimen_taxon_id");
-    { const auto& _req = require_member(j, "SpecimenInfo", "specimen_taxon_id"); std::vector<uint32_t> _vec; for (const auto& _el : _req) { if (_el.is_string()) { auto _s = _el.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) _vec.emplace_back(std::numeric_limits<uint32_t>::max()); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".specimen_taxon_id cannot contain negative values"); } _vec.emplace_back(static_cast<uint32_t>(_tmp)); } } else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _el.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".specimen_taxon_id cannot contain negative values"); _vec.emplace_back(static_cast<uint32_t>(_tmp)); } else _vec.emplace_back(_el.get<uint32_t>()); } } ret.specimen_taxon_id_ = std::move(_vec); }
+    if (auto it = j.find("specimen_taxon_id"); it != j.end() && !it->is_null()) { std::vector<uint32_t> _vec; for (const auto& _el : *it) { if (_el.is_string()) { auto _s = _el.get<std::string>(); if (PMO_NA_STRINGS().count(_s)) _vec.emplace_back(std::numeric_limits<uint32_t>::max()); else { auto _tmp = std::stod(_s); if constexpr (std::is_unsigned_v<uint32_t>) { if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".specimen_taxon_id cannot contain negative values"); } _vec.emplace_back(static_cast<uint32_t>(_tmp)); } } else { if constexpr (std::is_unsigned_v<uint32_t>) { auto _tmp = _el.get<double>(); if (_tmp < 0) throw std::runtime_error(std::string("SpecimenInfo") + ".specimen_taxon_id cannot contain negative values"); _vec.emplace_back(static_cast<uint32_t>(_tmp)); } else _vec.emplace_back(_el.get<uint32_t>()); } } ret.specimen_taxon_id_ = std::move(_vec); }
     _known.insert("specimen_type");
     if (auto it = j.find("specimen_type"); it != j.end() && !it->is_null()) ret.specimen_type_ = it->get<std::string>();
     _known.insert("storage_plate_info");
@@ -1168,8 +1165,8 @@ nlohmann::json SpecimenInfo::to_json() const {
     nlohmann::json j = nlohmann::json::object();
     if (alternate_identifiers_.has_value()) j["alternate_identifiers"] = alternate_identifiers_.value();
     if (blood_meal_.has_value()) j["blood_meal"] = blood_meal_.value();
-    j["collection_country"] = collection_country_;
-    j["collection_date"] = collection_date_;
+    if (collection_country_.has_value()) j["collection_country"] = collection_country_.value();
+    if (collection_date_.has_value()) j["collection_date"] = collection_date_.value();
     if (drug_usage_.has_value()) j["drug_usage"] = drug_usage_.value();
     if (env_broad_scale_.has_value()) j["env_broad_scale"] = env_broad_scale_.value();
     if (env_local_scale_.has_value()) j["env_local_scale"] = env_local_scale_.value();
@@ -1183,16 +1180,16 @@ nlohmann::json SpecimenInfo::to_json() const {
     if (host_age_.has_value()) { if (host_age_.value() == std::numeric_limits<float>::max()) j["host_age"] = "NA"; else j["host_age"] = host_age_.value(); }
     if (host_sex_.has_value()) j["host_sex"] = host_sex_.value();
     if (host_subject_name_.has_value()) j["host_subject_name"] = host_subject_name_.value();
-    if (host_taxon_id_ == std::numeric_limits<uint32_t>::max()) j["host_taxon_id"] = "NA"; else j["host_taxon_id"] = host_taxon_id_;
+    if (host_taxon_id_.has_value()) { if (host_taxon_id_.value() == std::numeric_limits<uint32_t>::max()) j["host_taxon_id"] = "NA"; else j["host_taxon_id"] = host_taxon_id_.value(); }
     if (lat_lon_.has_value()) j["lat_lon"] = lat_lon_.value();
     if (parasite_density_info_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : parasite_density_info_.value()) _arr.emplace_back(_el.to_json()); j["parasite_density_info"] = std::move(_arr); }
-    if (project_id_ == std::numeric_limits<uint32_t>::max()) j["project_id"] = "NA"; else j["project_id"] = project_id_;
+    if (project_id_.has_value()) { if (project_id_.value() == std::numeric_limits<uint32_t>::max()) j["project_id"] = "NA"; else j["project_id"] = project_id_.value(); }
     if (specimen_accession_.has_value()) j["specimen_accession"] = specimen_accession_.value();
     if (specimen_collect_device_.has_value()) j["specimen_collect_device"] = specimen_collect_device_.value();
     if (specimen_comments_.has_value()) j["specimen_comments"] = specimen_comments_.value();
     j["specimen_name"] = specimen_name_;
     if (specimen_store_loc_.has_value()) j["specimen_store_loc"] = specimen_store_loc_.value();
-    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _v : specimen_taxon_id_) { if (_v == std::numeric_limits<uint32_t>::max()) _arr.emplace_back("NA"); else _arr.emplace_back(_v); } j["specimen_taxon_id"] = std::move(_arr); }
+    if (specimen_taxon_id_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _v : specimen_taxon_id_.value()) { if (_v == std::numeric_limits<uint32_t>::max()) _arr.emplace_back("NA"); else _arr.emplace_back(_v); } j["specimen_taxon_id"] = std::move(_arr); }
     if (specimen_type_.has_value()) j["specimen_type"] = specimen_type_.value();
     if (storage_plate_info_.has_value()) j["storage_plate_info"] = storage_plate_info_.value().to_json();
     if (travel_out_six_month_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : travel_out_six_month_.value()) _arr.emplace_back(_el.to_json()); j["travel_out_six_month"] = std::move(_arr); }
@@ -1202,10 +1199,6 @@ nlohmann::json SpecimenInfo::to_json() const {
 }
 
 void SpecimenInfo::validate() const {
-    if (!std::regex_match(collection_country_, std::regex("^[\\w ,._:'–-]+$"))) throw std::runtime_error("Validation failed: SpecimenInfo.collection_country pattern");
-    if (!std::regex_match(collection_date_, std::regex("(?:\\d{4}(?:-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12][0-9]|3[01]))?)?|NA)"))) throw std::runtime_error("Validation failed: SpecimenInfo.collection_date pattern");
-    if (host_taxon_id_ < 0) throw std::runtime_error("Validation failed: SpecimenInfo.host_taxon_id minimum");
-    if (project_id_ < 0) throw std::runtime_error("Validation failed: SpecimenInfo.project_id minimum");
     if (!std::regex_match(specimen_name_, std::regex("^[A-z-._0-9\\(\\),\\/\\ ]+$"))) throw std::runtime_error("Validation failed: SpecimenInfo.specimen_name pattern");
     if (parasite_density_info_.has_value()) for (const auto& _el : parasite_density_info_.value()) _el.validate();
     if (storage_plate_info_.has_value()) storage_plate_info_.value().validate();
@@ -1216,9 +1209,9 @@ PortableMicrohaplotypeObject PortableMicrohaplotypeObject::from_json(const nlohm
     PortableMicrohaplotypeObject ret;
     std::set<std::string> _known;
     _known.insert("bioinformatics_methods_info");
-    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "bioinformatics_methods_info"); std::vector<BioinformaticsMethodInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(BioinformaticsMethodInfo::from_json(_el)); ret.bioinformatics_methods_info_ = std::move(_vec); }
+    if (auto it = j.find("bioinformatics_methods_info"); it != j.end() && !it->is_null()) { std::vector<BioinformaticsMethodInfo> _vec; for (const auto& _el : *it) _vec.emplace_back(BioinformaticsMethodInfo::from_json(_el)); ret.bioinformatics_methods_info_ = std::move(_vec); }
     _known.insert("bioinformatics_run_info");
-    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "bioinformatics_run_info"); std::vector<BioinformaticsRunInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(BioinformaticsRunInfo::from_json(_el)); ret.bioinformatics_run_info_ = std::move(_vec); }
+    if (auto it = j.find("bioinformatics_run_info"); it != j.end() && !it->is_null()) { std::vector<BioinformaticsRunInfo> _vec; for (const auto& _el : *it) _vec.emplace_back(BioinformaticsRunInfo::from_json(_el)); ret.bioinformatics_run_info_ = std::move(_vec); }
     _known.insert("detected_microhaplotypes");
     { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "detected_microhaplotypes"); std::vector<DetectedMicrohaplotypes> _vec; for (const auto& _el : _req) _vec.emplace_back(DetectedMicrohaplotypes::from_json(_el)); ret.detected_microhaplotypes_ = std::move(_vec); }
     _known.insert("library_sample_info");
@@ -1228,56 +1221,56 @@ PortableMicrohaplotypeObject PortableMicrohaplotypeObject::from_json(const nlohm
     _known.insert("pmo_header");
     ret.pmo_header_ = PmoHeader::from_json(require_member(j, "PortableMicrohaplotypeObject", "pmo_header"));
     _known.insert("project_info");
-    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "project_info"); std::vector<ProjectInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(ProjectInfo::from_json(_el)); ret.project_info_ = std::move(_vec); }
+    if (auto it = j.find("project_info"); it != j.end() && !it->is_null()) { std::vector<ProjectInfo> _vec; for (const auto& _el : *it) _vec.emplace_back(ProjectInfo::from_json(_el)); ret.project_info_ = std::move(_vec); }
     _known.insert("read_counts_by_stage");
     if (auto it = j.find("read_counts_by_stage"); it != j.end() && !it->is_null()) { std::vector<ReadCountsByStage> _vec; for (const auto& _el : *it) _vec.emplace_back(ReadCountsByStage::from_json(_el)); ret.read_counts_by_stage_ = std::move(_vec); }
     _known.insert("representative_microhaplotypes");
     ret.representative_microhaplotypes_ = RepresentativeMicrohaplotypes::from_json(require_member(j, "PortableMicrohaplotypeObject", "representative_microhaplotypes"));
     _known.insert("sequencing_info");
-    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "sequencing_info"); std::vector<SequencingInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(SequencingInfo::from_json(_el)); ret.sequencing_info_ = std::move(_vec); }
+    if (auto it = j.find("sequencing_info"); it != j.end() && !it->is_null()) { std::vector<SequencingInfo> _vec; for (const auto& _el : *it) _vec.emplace_back(SequencingInfo::from_json(_el)); ret.sequencing_info_ = std::move(_vec); }
     _known.insert("specimen_info");
     { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "specimen_info"); std::vector<SpecimenInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(SpecimenInfo::from_json(_el)); ret.specimen_info_ = std::move(_vec); }
     _known.insert("target_info");
     { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "target_info"); std::vector<TargetInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(TargetInfo::from_json(_el)); ret.target_info_ = std::move(_vec); }
     _known.insert("targeted_genomes");
-    { const auto& _req = require_member(j, "PortableMicrohaplotypeObject", "targeted_genomes"); std::vector<GenomeInfo> _vec; for (const auto& _el : _req) _vec.emplace_back(GenomeInfo::from_json(_el)); ret.targeted_genomes_ = std::move(_vec); }
+    if (auto it = j.find("targeted_genomes"); it != j.end() && !it->is_null()) { std::vector<GenomeInfo> _vec; for (const auto& _el : *it) _vec.emplace_back(GenomeInfo::from_json(_el)); ret.targeted_genomes_ = std::move(_vec); }
     for (auto it = j.begin(); it != j.end(); ++it) { if (_known.find(it.key()) == _known.end()) ret.extras_[it.key()] = it.value(); }
     return ret;
 }
 
 nlohmann::json PortableMicrohaplotypeObject::to_json() const {
     nlohmann::json j = nlohmann::json::object();
-    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : bioinformatics_methods_info_) _arr.emplace_back(_el.to_json()); j["bioinformatics_methods_info"] = std::move(_arr); }
-    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : bioinformatics_run_info_) _arr.emplace_back(_el.to_json()); j["bioinformatics_run_info"] = std::move(_arr); }
+    if (bioinformatics_methods_info_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : bioinformatics_methods_info_.value()) _arr.emplace_back(_el.to_json()); j["bioinformatics_methods_info"] = std::move(_arr); }
+    if (bioinformatics_run_info_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : bioinformatics_run_info_.value()) _arr.emplace_back(_el.to_json()); j["bioinformatics_run_info"] = std::move(_arr); }
     { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : detected_microhaplotypes_) _arr.emplace_back(_el.to_json()); j["detected_microhaplotypes"] = std::move(_arr); }
     { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : library_sample_info_) _arr.emplace_back(_el.to_json()); j["library_sample_info"] = std::move(_arr); }
     { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : panel_info_) _arr.emplace_back(_el.to_json()); j["panel_info"] = std::move(_arr); }
     j["pmo_header"] = pmo_header_.to_json();
-    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : project_info_) _arr.emplace_back(_el.to_json()); j["project_info"] = std::move(_arr); }
+    if (project_info_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : project_info_.value()) _arr.emplace_back(_el.to_json()); j["project_info"] = std::move(_arr); }
     if (read_counts_by_stage_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : read_counts_by_stage_.value()) _arr.emplace_back(_el.to_json()); j["read_counts_by_stage"] = std::move(_arr); }
     j["representative_microhaplotypes"] = representative_microhaplotypes_.to_json();
-    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : sequencing_info_) _arr.emplace_back(_el.to_json()); j["sequencing_info"] = std::move(_arr); }
+    if (sequencing_info_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : sequencing_info_.value()) _arr.emplace_back(_el.to_json()); j["sequencing_info"] = std::move(_arr); }
     { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : specimen_info_) _arr.emplace_back(_el.to_json()); j["specimen_info"] = std::move(_arr); }
     { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : target_info_) _arr.emplace_back(_el.to_json()); j["target_info"] = std::move(_arr); }
-    { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : targeted_genomes_) _arr.emplace_back(_el.to_json()); j["targeted_genomes"] = std::move(_arr); }
+    if (targeted_genomes_.has_value()) { nlohmann::json _arr = nlohmann::json::array(); for (const auto& _el : targeted_genomes_.value()) _arr.emplace_back(_el.to_json()); j["targeted_genomes"] = std::move(_arr); }
     for (const auto& kv : extras_) j[kv.first] = kv.second;
     return j;
 }
 
 void PortableMicrohaplotypeObject::validate() const {
-    for (const auto& _el : bioinformatics_methods_info_) _el.validate();
-    for (const auto& _el : bioinformatics_run_info_) _el.validate();
+    if (bioinformatics_methods_info_.has_value()) for (const auto& _el : bioinformatics_methods_info_.value()) _el.validate();
+    if (bioinformatics_run_info_.has_value()) for (const auto& _el : bioinformatics_run_info_.value()) _el.validate();
     for (const auto& _el : detected_microhaplotypes_) _el.validate();
     for (const auto& _el : library_sample_info_) _el.validate();
     for (const auto& _el : panel_info_) _el.validate();
     pmo_header_.validate();
-    for (const auto& _el : project_info_) _el.validate();
+    if (project_info_.has_value()) for (const auto& _el : project_info_.value()) _el.validate();
     if (read_counts_by_stage_.has_value()) for (const auto& _el : read_counts_by_stage_.value()) _el.validate();
     representative_microhaplotypes_.validate();
-    for (const auto& _el : sequencing_info_) _el.validate();
+    if (sequencing_info_.has_value()) for (const auto& _el : sequencing_info_.value()) _el.validate();
     for (const auto& _el : specimen_info_) _el.validate();
     for (const auto& _el : target_info_) _el.validate();
-    for (const auto& _el : targeted_genomes_) _el.validate();
+    if (targeted_genomes_.has_value()) for (const auto& _el : targeted_genomes_.value()) _el.validate();
 }
 
 } // namespace njhseq::pmo
