@@ -26,5 +26,5 @@
 #include "njhseq/alignment/alignerUtils.h"
 #include "njhseq/alignment/alnCache.h"
 #include "njhseq/alignment/aligner.h"
-#include "njhseq/alignment/stripedSmithWaterman.h"
+//#include "njhseq/alignment/stripedSmithWaterman.h"
 
