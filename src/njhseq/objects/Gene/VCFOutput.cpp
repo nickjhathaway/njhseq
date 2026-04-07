@@ -80,19 +80,25 @@ void VCFOutput::VCFRecord::autoAdd_AN_AC_AF_InfoFields() {
 			}
 		}
 	}
-
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
+	// for (const auto & allele_count : alleleCounts) {
+	// 	std::cout << allele_count.first << " : " << allele_count.second << std::endl;
+	// }
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	auto alleles = getVectorOfMapKeys(alleleCounts);
 	std::vector<uint32_t> allelesNumeric;
 	allelesNumeric.reserve(alleles.size());
 	for (auto& allele: alleles) {
 		allelesNumeric.emplace_back(njh::StrToNumConverter::stoToNum<uint32_t>(allele));
 	}
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	if (vectorMaximum(allelesNumeric) > alts_.size()) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " << " genotype number: " <<
 				vectorMaximum(allelesNumeric) << " can't be more than the alts_.size(): " << alts_.size() << " + 1 " << "\n";
 		throw std::runtime_error{ss.str()};
 	}
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	std::vector<double> afs;
 	std::string ACs;
 	//the allele counts include the reference so alts.size() will be equal to the genotype number, e.g. for alts of size of 2, there will be 0, 1, 2 (will skip 0)
@@ -104,9 +110,11 @@ void VCFOutput::VCFRecord::autoAdd_AN_AC_AF_InfoFields() {
 		ACs += estd::to_string(alleleCounts[estd::to_string(pos)]);
 		afs.emplace_back(alleleCounts[estd::to_string(pos)] / static_cast<double>(AN));
 	}
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	info_.addMeta("AN", AN, true);
 	info_.addMeta("AC", ACs, true);
 	info_.addMeta("AF", njh::conToStr(afs, ","), true);
+	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 }
 
 
@@ -186,7 +194,7 @@ void VCFOutput::VCFRecord::autoAddTotalDP_RO_AO_InfoFields() {
 
 void VCFOutput::VCFRecord::addGTField(uint32_t ploidy) {
 	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
-	std::regex blankDataPattern("\\.(,\\.)*");
+	std::regex blankDataPattern("[\\.0](,[\\.0])*");
 	for (auto &samp: sampleFormatInfos_) {
 		if (!samp.second.containsMeta("AD")) {
 			std::stringstream ss;
@@ -221,7 +229,6 @@ void VCFOutput::VCFRecord::addGTField(uint32_t ploidy) {
 			// std::cout << "depths: " << njh::conToStr(depths, ",") << std::endl;
 			// std::cout << "allelesWithDepth: " << allelesWithDepth << std::endl;
 			// std::cout << "rank: " << njh::conToStr(rank, ",") << std::endl;
-			//
 			// std::cout << "ploidy <= allelesWithDepth: " << njh::colorBool(ploidy <= allelesWithDepth) << std::endl;
 
 			std::vector<uint32_t> gts;
