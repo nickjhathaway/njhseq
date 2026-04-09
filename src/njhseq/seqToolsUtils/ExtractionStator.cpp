@@ -41,6 +41,7 @@ ExtractionStator::ExtractionStator(const ExtractionStatorMainCounts &main_counts
   readsUnrecBarcode_(main_counts.readsUnrecBarcode),
   readsUnrecBarcodePosContamination_(main_counts.readsUnrecBarcodePosContamination),
   smallFrags_(main_counts.smallFrags),
+  largeFrags_(main_counts.largeFrags),
   multihit_(main_counts.multihit) {
   
 }
@@ -176,6 +177,7 @@ void ExtractionStator::outTotalStats(std::ostream & out, const std::string & del
 			getPercentageString(readsUnrecBarcode_, totalReadCount_),
 			getPercentageString(readsUnrecBarcodePosContamination_, totalReadCount_),
 			getPercentageString(smallFrags_, totalReadCount_),
+			getPercentageString(largeFrags_, totalReadCount_),
 			getPercentageString(totalFailedForward, totalReadCount_),
 			getPercentageString(totalBadReads, totalReadCount_),
 			getPercentageString(totalGoodReads, totalReadCount_),
@@ -207,6 +209,7 @@ void ExtractionStator::addOtherExtractorCounts(const ExtractionStator & otherCou
   multihit_ += otherCounts.multihit_;
   readsUnrecBarcodePosContamination_ += otherCounts.readsUnrecBarcodePosContamination_;
   smallFrags_ += otherCounts.smallFrags_;
+  largeFrags_ += otherCounts.largeFrags_;
   for(const auto & ff : otherCounts.failedForward_){
     for(const auto & dir : ff.second){
       failedForward_[ff.first][dir.first] += dir.second;

@@ -77,11 +77,12 @@ public:
     uint32_t readsUnrecBarcode = 0;
     uint32_t readsUnrecBarcodePosContamination =0 ;
     uint32_t smallFrags = 0;
+    uint32_t largeFrags = 0;
     uint32_t multihit = 0;
   };
   /**@brief Construct with initial counts
    *
-   * @param main_counts a struct with counts of totalReadCount, readsUnrecBarcode, readsUnrecBarcodePosContamination, smallFrags, multihit
+   * @param main_counts a struct with counts of totalReadCount, readsUnrecBarcode, readsUnrecBarcodePosContamination, smallFrags, largeFrags, multihit
    */
 	ExtractionStator(const ExtractionStatorMainCounts &main_counts);
 
@@ -93,6 +94,7 @@ public:
   uint32_t readsUnrecBarcode_ = 0;
   uint32_t readsUnrecBarcodePosContamination_ = 0;
   uint32_t smallFrags_ = 0;
+  uint32_t largeFrags_ = 0;
   uint32_t multihit_ = 0;
   /**@brief Increase the count failing the forward primer
    *
