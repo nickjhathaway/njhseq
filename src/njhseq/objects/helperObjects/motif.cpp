@@ -37,9 +37,15 @@ motif::motifSubUnit::motifSubUnit(const std::vector<char> & aas, bool inclusive)
 }
 motif::motifSubUnit::motifSubUnit(const std::string & motifSub, bool inclusive) :
 		inclusive_(inclusive) {
-	for (const auto & c : motifSub) {
-		aas_.emplace_back(c);
-	}
+  //if wild card ., then place all upper case letters 
+  if (motifSub.size() == 1 && motifSub.front() == '.') {
+    aas_ = getUpperCaseLetters();
+  } else {
+    for (const auto & c : motifSub) {
+      aas_.emplace_back(c);
+    }
+  }
+
 	setScoreArray();
 }
 

@@ -42,7 +42,7 @@ class motif {
 		//members
 		std::vector<char> aas_;
 		bool inclusive_;
-		std::array<uint32_t, 26> score_;
+		std::array<uint32_t, 26> score_{};
 		uint32_t otherScore_{std::numeric_limits<uint32_t>::max()};
 
 		//functions

@@ -324,6 +324,7 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 			}
 		}
 	}
+
 	auto checkLineTokNumber = [](uint32_t expectedTokNumber, uint32_t observedTokNumber,const std::string & line, const std::string & parsedLineName, const std::string & funcname){
 		if(expectedTokNumber != observedTokNumber){
 			std::stringstream ss;
@@ -332,6 +333,7 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 			throw std::runtime_error{ss.str()};
 		}
 	};
+
 	{
 		//read through each query hits
 		while(njh::files::crossPlatGetline(in, line)){
@@ -340,6 +342,7 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 				//process for Query info
 				nhmmscanOutput::QueryResults queryRes;
 				{
+
 					auto queryLineToks = njh::tokenizeString(line, ":");
 					checkLineTokNumber(2, queryLineToks.size(), line, "query line", __PRETTY_FUNCTION__);
 					auto lenBegin = queryLineToks[1].rfind("[L=");
@@ -355,11 +358,14 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 					njh::trim(queryRes.queryName_);
 					queryRes.queryLen_ = njh::StrToNumConverter::stoToNum<uint64_t>(queryLineToks[1].substr(lenBegin + 3, lenEnd - (lenBegin + 3)));
 				}
+
 				std::string subLine;
 				//parse until get
 				bool endQueryParse = false;
 				while(njh::files::crossPlatGetline(in, subLine) && !endQueryParse){
+
 					if(njh::beginsWith(subLine, ">> ")){
+
 						//process subLine for model name;
 						nhmmscanOutput::Hit hit;
 						hit.queryName_ = queryRes.queryName_;
@@ -375,35 +381,43 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 						//hit values
 						njh::files::crossPlatGetline(in, hitline);
 						njh::trim(hitline);
+
+
 						auto hitValuesToks = tokenizeString(hitline, "whitespace");
 						checkLineTokNumber(15, hitValuesToks.size(), hitline, "hit values line", __PRETTY_FUNCTION__);
 						//[1]=score, [2]=bias,, [3]=Evalue, [4]=hmmfrom, [5]=hmm to, [6]=hmmflank, [7]=alifrom, [8]=ali to, [9]=aliflank, [10]=envfrom, [11]=env to [12]=envflnak, [13]=mod len, [14]=acc
 						hit.modelScore_ = njh::StrToNumConverter::stoToNum<double>(hitValuesToks[1]);
 						hit.modelBias_ = njh::StrToNumConverter::stoToNum<double>(hitValuesToks[2]);
 						hit.modelEvalue_ = njh::StrToNumConverter::stoToNum<long double>(hitValuesToks[3]);
+
 						//hmm
 						hit.hmmFrom_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[4]);
 						hit.hmmTo_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[5]);
 						hit.hmmEdgeInfo_ = hitValuesToks[6];
+
 						//ali
 						hit.alignFrom_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[7]);
 						hit.alignTo_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[8]);
 						hit.aliEdgeInfo_ = hitValuesToks[9];
+
 						//fix for ali edge info since it doesn't seem to be being marked correctly, specifically the end bracket
 						auto aliStart = std::min(hit.alignFrom_, hit.alignTo_);
 						auto aliEnd = std::max(hit.alignFrom_, hit.alignTo_);
 						hit.aliEdgeInfo_ = njh::pasteAsStr(aliStart  == 1 ? '[' : '.', aliEnd == queryRes.queryLen_ ? ']' : '.');
 						hit.strand_ = hit.isReverseStrand() ? '-' : '+';
+
 						//env
 						hit.envFrom_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[10]);
 						hit.envTo_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[11]);
 						hit.envEdgeInfo_ = hitValuesToks[12];
+
 						//fix for env edge info since it doesn't seem to be being marked correctly, specifically the end bracket
 						auto envStart = std::min(hit.envFrom_, hit.envTo_);
 						auto envEnd = std::max(hit.envFrom_, hit.envTo_);
 						hit.envEdgeInfo_ = njh::pasteAsStr(envStart  == 1 ? '[' : '.', envEnd == queryRes.queryLen_ ? ']' : '.');
 						hit.modelLen_ = njh::StrToNumConverter::stoToNum<uint32_t>(hitValuesToks[13]);
 						hit.acc_ = njh::StrToNumConverter::stoToNum<double>(hitValuesToks[14]);
+
 						//blank line
 						njh::files::crossPlatGetline(in, hitline);
 						njh::trim(hitline);
@@ -416,6 +430,7 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 						//model aln
 						njh::files::crossPlatGetline(in, hitline);
 						njh::trim(hitline);
+
 						{
 							auto modelAlnToks = tokenizeString(hitline, "whitespace");
 							checkLineTokNumber(4, modelAlnToks.size(), hitline, "model aln line", __PRETTY_FUNCTION__);
@@ -482,10 +497,10 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 							ss << "Expected ppToks[1] tp be PP, not: " << ppToks[1]	<< "\n";
 							throw std::runtime_error{ss.str()};
 						}
-						hit.aln_posterior_probability_ = ppToks[0];
-						queryRes.hits_.emplace_back(hit);
-					} else if (njh::beginsWith(subLine, "Internal pipeline statistics summary")){
-						//reading summary stats for query
+            hit.aln_posterior_probability_ = ppToks[0];
+            queryRes.hits_.emplace_back(hit);
+          } else if (njh::beginsWith(subLine, "Internal pipeline statistics summary")) {
+					  						//reading summary stats for query
 //						uint64_t targetModNodes_{std::numeric_limits<uint64_t>::max()};
 //						uint64_t residuesSearched_{std::numeric_limits<uint64_t>::max()};
 //						uint64_t residuesPass_SSV_filter_{std::numeric_limits<uint64_t>::max()};
@@ -633,9 +648,9 @@ nhmmscanOutput nhmmscanOutput::parseRawOutput(const bfs::path & input){
 							ret.qResults_.emplace_back(queryRes);
 							break;
 						}
-					}
-				}
-			}
+          }
+        }
+      }
 		}
 	}
 	for(auto & query : ret.qResults_){
