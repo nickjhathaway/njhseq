@@ -15,7 +15,7 @@
 #include <nlohmann/json.hpp>
 
 #ifndef PMO_NA_TOKENS
-#define PMO_NA_TOKENS "N/A","NA","Not Applicable",""
+#define PMO_NA_TOKENS "N/A","NA","Not Applicable","","null", "NULL"
 #endif
 inline constexpr const char* PMO_NA_TOKENS_ARR[] = { PMO_NA_TOKENS };
 inline constexpr std::size_t PMO_NA_TOKENS_COUNT = sizeof(PMO_NA_TOKENS_ARR) / sizeof(const char*);
