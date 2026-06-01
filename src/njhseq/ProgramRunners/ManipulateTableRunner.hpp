@@ -47,6 +47,7 @@ class ManipulateTableRunner : public njh::progutils::ProgramRunner {
   static int tableExtractColumnsWithPattern(const njh::progutils::CmdArgs & inputCommands);
   static int tableExtractCriteria(const njh::progutils::CmdArgs & inputCommands);
   static int tableRenameColumns(const njh::progutils::CmdArgs & inputCommands);
+  static int tableRecodeLevels(const njh::progutils::CmdArgs & inputCommands);
 
   static int trimContent(const njh::progutils::CmdArgs & inputCommands);
   static int getStats(const njh::progutils::CmdArgs & inputCommands);

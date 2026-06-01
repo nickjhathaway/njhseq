@@ -59,8 +59,90 @@ ManipulateTableRunner::ManipulateTableRunner() :
 				  addFunc("tableExtractElementsWithLevels",tableExtractElementsWithLevels, false),
 					addFunc("tableUniteColumns",tableUniteColumns, false),
 					addFunc("tablePrependColumnElements",tablePrependColumnElements, false),
+				  addFunc("tableRecodeLevels", tableRecodeLevels, false),
 				}, "ManipulateTable", "1") {
 }
+
+
+int ManipulateTableRunner::tableRecodeLevels(
+    const njh::progutils::CmdArgs & inputCommands) {
+  ManipulateTableSetUp setUp(inputCommands);
+  bool skip_missing_keys = false;
+  bfs::path nameKeyTableFnp = "";
+  std::string oldNameColName;
+  std::string newNameColName;
+  std::string column;
+  setUp.processDefaultProgram(true);
+  setUp.setOption(column, "--column","column to do the recoding", true);
+  setUp.setOption(skip_missing_keys, "--skip_missing_keys", "skip missing keys (level will remain the same), otherwise throw if missing from rename table", false);
+
+  setUp.setOption(nameKeyTableFnp, "--nameKeyTableFnp", "A key table, either no header, 1) current chromosome names in bed file, 2) name to be renamed to, or will use the name columns supplied", true);
+  setUp.setOption(oldNameColName, "--oldNameColName", "Old Name Col Name, supply if you want to use specific columns in the name key for renaming", false);
+  setUp.setOption(newNameColName, "--newNameColName", "New Name Col Name, supply if you want to use specific columns in the name key for renaming", false);
+
+  setUp.finishSetUp(std::cout);
+
+  std::unordered_map<std::string, std::string> nameKey;
+
+  {
+    if(oldNameColName.empty() != newNameColName.empty()) {
+      std::stringstream ss;
+      ss << __PRETTY_FUNCTION__ << ", error " << "supplied one key column name but not the other name"  << "\n";
+      ss << "oldNameColName: " << oldNameColName << "\n";
+      ss << "newNameColName: " << newNameColName << "\n";
+      throw std::runtime_error{ss.str()};
+    }
+    bool header = !oldNameColName.empty();
+    table nameKeyTab(nameKeyTableFnp, "\t", header);
+
+    if(nameKeyTab.columnNames_.size() < 2 ){
+      std::stringstream ss;
+      ss << __PRETTY_FUNCTION__ << ", error " << nameKeyTableFnp << " should be a table with at least two columns" << "\n";
+      throw std::runtime_error{ss.str()};
+    }
+
+    if(header) {
+      nameKeyTab.checkForColumnsThrow(VecStr{oldNameColName, newNameColName}, __PRETTY_FUNCTION__);
+      for(const auto & row : nameKeyTab.content_){
+        auto oldName = row[nameKeyTab.getColPos(oldNameColName)];
+        if(njh::in(oldName, nameKey)) {
+          std::stringstream ss;
+          ss << __PRETTY_FUNCTION__ << ", error " << "already have name: " << oldName << " in key, it's current value is: " << nameKey[oldName] << "\n";
+          throw std::runtime_error{ss.str()};
+        }
+        nameKey[oldName] = row[nameKeyTab.getColPos(newNameColName)];
+      }
+    } else {
+      for(const auto & row : nameKeyTab.content_){
+        auto oldName = row[0];
+        if(njh::in(oldName, nameKey)) {
+          std::stringstream ss;
+          ss << __PRETTY_FUNCTION__ << ", error " << "already have name: " << oldName << " in key, it's current value is: " << nameKey[oldName] << "\n";
+          throw std::runtime_error{ss.str()};
+        }
+        nameKey[oldName] = row[1];
+      }
+    }
+  }
+
+  table outTab(setUp.ioOptions_);
+  outTab.checkForColumnsThrow(VecStr{column}, __PRETTY_FUNCTION__);
+
+  auto col_pos = outTab.getColPos(column);
+  for (auto &row: outTab.content_) {
+    auto oldName = row[col_pos];
+    if (!njh::in(oldName, nameKey) && !skip_missing_keys) {
+      std::stringstream ss;
+      ss << __PRETTY_FUNCTION__ << ", error " << "missing a key for the following level: " << oldName << "\n";
+      throw std::runtime_error{ss.str()};
+    }
+    row[col_pos] = njh::in(oldName, nameKey) ? nameKey[oldName] : oldName;
+  }
+
+  outTab.outPutContents(setUp.ioOptions_);
+  return 0;
+}
+
 
 
 int ManipulateTableRunner::tableUniteColumns(
