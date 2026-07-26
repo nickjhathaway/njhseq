@@ -21,13 +21,14 @@ void HapsEncodedMatrix::SetWithExternalPars::setDefaults(seqSetUp & setUp){
   setUp.setOption(popIDCol, "--popIDCol", "popIDCol", true);
   setUp.setOption(relAbundCol, "--relAbundCol", "relAbundCol", true);
 
-  setUp.setOption(selectSamples, "--selectSamples", "Only analyze these select samples");
-  setUp.setOption(selectTargets, "--selectTargets", "Only analyze these select targets");
+  setUp.setOption(exclude_targets, "--exclude_targets", "Exclude these targets from analysis");
+  setUp.setOption(exclude_samples, "--exclude_samples", "Exclude these samples from analysis");
+  setUp.setOption(selectTargets, "--select_targets", "Analyze only these targets");
+  setUp.setOption(selectSamples, "--select_samples", "Analyze only these samples");
+
 	setUp.setOption(numThreads, "--numThreads", "number of cpus to use");
 	setUp.setOption(majorOnly, "--calcMajorHapOnly", "calculate differences by major haplotype only");
   setUp.setOption(minNumOfTargets, "--minNumOfTargets", "min number of targets per sample");
-
-
 
 }
 
@@ -43,15 +44,21 @@ HapsEncodedMatrix::HapsEncodedMatrix(const SetWithExternalPars & pars): pars_(pa
 		VecStr row;
 		while(hapTab.getNextRow(row)){
 
-			auto samp = row[hapTab.header_.getColPos(pars.sampleCol)];
-			auto tar = row[hapTab.header_.getColPos(pars.targetNameCol)];
+			const auto &  samp = row[hapTab.header_.getColPos(pars.sampleCol)];
+			const auto &  tar = row[hapTab.header_.getColPos(pars.targetNameCol)];
 			if(!pars.selectSamples.empty() && !njh::in(samp, pars.selectSamples)){
 				continue;
 			}
+		  if(!pars.exclude_samples.empty() && njh::in(samp, pars.exclude_samples)){
+		    continue;
+		  }
 			if(!pars.selectTargets.empty() && !njh::in(tar, pars.selectTargets)){
 				continue;
 			}
-			auto hapName = row[hapTab.header_.getColPos(pars.popIDCol)];
+		  if(!pars.exclude_targets.empty() && njh::in(tar, pars.exclude_targets)){
+		    continue;
+		  }
+			const auto & hapName = row[hapTab.header_.getColPos(pars.popIDCol)];
 			addSampTarHapForEncoding(samp, tar, hapName);
 		}
 	}
@@ -62,15 +69,15 @@ HapsEncodedMatrix::HapsEncodedMatrix(const SetWithExternalPars & pars): pars_(pa
 		TableReader reReadHapTab(TableIOOpts(InOptions(pars.tableFnp), "\t", true));
 		VecStr row;
 		while(reReadHapTab.getNextRow(row)){
-			auto samp = row[reReadHapTab.header_.getColPos(pars.sampleCol)];
-			auto tar = row[reReadHapTab.header_.getColPos(pars.targetNameCol)];
+			const auto &  samp = row[reReadHapTab.header_.getColPos(pars.sampleCol)];
+			const auto &  tar = row[reReadHapTab.header_.getColPos(pars.targetNameCol)];
 			if(!pars.selectSamples.empty() && !njh::in(samp, pars.selectSamples)){
 				continue;
 			}
 			if(!pars.selectTargets.empty() && !njh::in(tar, pars.selectTargets)){
 				continue;
 			}
-			auto hapName = row[reReadHapTab.header_.getColPos(pars.popIDCol)];
+			const auto &  hapName = row[reReadHapTab.header_.getColPos(pars.popIDCol)];
 			//auto rBund = njh::StrToNumConverter::stoToNum<double>(row[reReadHapTab.header_.getColPos(pars.relAbundCol)]); //doing nothing right now with this
 			encodeSampTarHap(samp, tar, hapName);
 		}
@@ -97,16 +104,21 @@ HapsEncodedMatrix::HapsEncodedMatrix(const SetWithExternalPars & pars): pars_(pa
       //read in first to gather information on the table
       VecStr row;
       while(hapTab.getNextRow(row)){
-
-        auto samp = row[hapTab.header_.getColPos(pars_.sampleCol)];
-        auto tar = row[hapTab.header_.getColPos(pars_.targetNameCol)];
+        const auto &  samp = row[hapTab.header_.getColPos(pars_.sampleCol)];
+        const auto &  tar = row[hapTab.header_.getColPos(pars_.targetNameCol)];
         if(!pars_.selectSamples.empty() && !njh::in(samp, pars_.selectSamples)){
+          continue;
+        }
+        if(!pars_.exclude_samples.empty() && njh::in(samp, pars_.exclude_samples)){
           continue;
         }
         if(!pars_.selectTargets.empty() && !njh::in(tar, pars_.selectTargets)){
           continue;
         }
-        auto hapName = row[hapTab.header_.getColPos(pars_.popIDCol)];
+        if(!pars_.exclude_targets.empty() && njh::in(tar, pars_.exclude_targets)){
+          continue;
+        }
+        const auto &  hapName = row[hapTab.header_.getColPos(pars_.popIDCol)];
         addSampTarHapForEncoding(samp, tar, hapName);
       }
     }
@@ -117,15 +129,21 @@ HapsEncodedMatrix::HapsEncodedMatrix(const SetWithExternalPars & pars): pars_(pa
       TableReader reReadHapTab(TableIOOpts(InOptions(pars_.tableFnp), "\t", true));
       VecStr row;
       while(reReadHapTab.getNextRow(row)){
-        auto samp = row[reReadHapTab.header_.getColPos(pars_.sampleCol)];
-        auto tar = row[reReadHapTab.header_.getColPos(pars_.targetNameCol)];
+        const auto &  samp = row[reReadHapTab.header_.getColPos(pars_.sampleCol)];
+        const auto &  tar = row[reReadHapTab.header_.getColPos(pars_.targetNameCol)];
         if(!pars_.selectSamples.empty() && !njh::in(samp, pars_.selectSamples)){
+          continue;
+        }
+        if(!pars_.exclude_samples.empty() && njh::in(samp, pars_.exclude_samples)){
           continue;
         }
         if(!pars_.selectTargets.empty() && !njh::in(tar, pars_.selectTargets)){
           continue;
         }
-        auto hapName = row[reReadHapTab.header_.getColPos(pars_.popIDCol)];
+        if(!pars_.exclude_targets.empty() && njh::in(tar, pars_.exclude_targets)){
+          continue;
+        }
+        const auto &  hapName = row[reReadHapTab.header_.getColPos(pars_.popIDCol)];
         //auto rBund = njh::StrToNumConverter::stoToNum<double>(row[reReadHapTab.header_.getColPos(pars_.relAbundCol)]); //doing nothing right now with this
         encodeSampTarHap(samp, tar, hapName);
       }
@@ -230,10 +248,16 @@ void HapsEncodedMatrix::add_relative_abundance() {
   while (reReadHapTab.getNextRow(row)) {
     const auto &samp = row[reReadHapTab.header_.getColPos(pars_.sampleCol)];
     const auto &tar = row[reReadHapTab.header_.getColPos(pars_.targetNameCol)];
-    if (!pars_.selectSamples.empty() && !njh::in(samp, pars_.selectSamples)) {
+    if(!pars_.selectSamples.empty() && !njh::in(samp, pars_.selectSamples)){
       continue;
     }
-    if (!pars_.selectTargets.empty() && !njh::in(tar, pars_.selectTargets)) {
+    if(!pars_.exclude_samples.empty() && njh::in(samp, pars_.exclude_samples)){
+      continue;
+    }
+    if(!pars_.selectTargets.empty() && !njh::in(tar, pars_.selectTargets)){
+      continue;
+    }
+    if(!pars_.exclude_targets.empty() && njh::in(tar, pars_.exclude_targets)){
       continue;
     }
     const auto &hapName = row[reReadHapTab.header_.getColPos(pars_.popIDCol)];
@@ -275,6 +299,52 @@ std::unordered_map<std::string, double> HapsEncodedMatrix::getTargetCoveragePerS
 	return lociCoveragePerSample;
 }
 
+
+table HapsEncodedMatrix::exportEncodedTable() const{
+	return exportEncodedTable(ExportEncodedTablePars{});
+}
+
+table HapsEncodedMatrix::exportEncodedTable(const ExportEncodedTablePars & exportPars) const{
+	const bool hasRelAbund = !hapsEncodeBySampRelAbund_.empty();
+	VecStr header{exportPars.sampleColName, exportPars.targetColName, exportPars.hapColName};
+	if(hasRelAbund){
+		header.emplace_back(exportPars.relAbundColName);
+	}
+	table ret(header);
+	//invert the haplotype keys so the haplotype index within a target can be used to look up the haplotype name
+	std::vector<std::vector<std::string>> hapNamesByTarKey(tarNamesVec_.size());
+	for(const auto tarPos : iter::range(tarNamesVec_.size())){
+		hapNamesByTarKey[tarPos] = std::vector<std::string>(numberOfHapsPerTarget_[tarPos]);
+	}
+	for(const auto & tarHaps : hapNamesKey_){
+		const auto tarPos = tarNameKey_.at(tarHaps.first);
+		for(const auto & hap : tarHaps.second){
+			hapNamesByTarKey[tarPos][hap.second] = hap.first;
+		}
+	}
+	for(const auto sampPos : iter::range(hapsEncodeBySamp_.size())){
+		for(const auto tarPos : iter::range(tarNamesVec_.size())){
+			if(0 == targetsEncodeBySamp_[sampPos][tarPos]){
+				//sample has no data for this target
+				continue;
+			}
+			for(const auto hapPos : iter::range(numberOfHapsPerTarget_[tarPos])){
+				if(0 == hapsEncodeBySamp_[sampPos][tarStart_[tarPos] + hapPos]){
+					continue;
+				}
+				if(hasRelAbund){
+					ret.addRow(sampNamesVec_[sampPos], tarNamesVec_[tarPos],
+							hapNamesByTarKey[tarPos][hapPos],
+							hapsEncodeBySampRelAbund_[sampPos][tarStart_[tarPos] + hapPos]);
+				}else{
+					ret.addRow(sampNamesVec_[sampPos], tarNamesVec_[tarPos],
+							hapNamesByTarKey[tarPos][hapPos]);
+				}
+			}
+		}
+	}
+	return ret;
+}
 
 table HapsEncodedMatrix::getTableNumberTargetsPerSample(double coverage_cut_off) const{
 	VecStr header{"sample", "targetCount", "target_coverage"};
@@ -535,7 +605,7 @@ HapsEncodedMatrix::CCCRMSEResults HapsEncodedMatrix::calc_ccc_rmse_measures(uint
   return ret;
 }
 
-HapsEncodedMatrix::IndexResults HapsEncodedMatrix::genIndexMeasures(bool verbose) const{
+HapsEncodedMatrix::IndexResults HapsEncodedMatrix::genIndexMeasures(uint32_t bin_batch_size, bool verbose) const{
 	IndexResults ret(sampNames_.size());
 
 	PairwisePairFactory pFactor(sampNames_.size());
@@ -549,10 +619,10 @@ HapsEncodedMatrix::IndexResults HapsEncodedMatrix::genIndexMeasures(bool verbose
 
 	std::function<void()> compSamps = [&pFactor,&progpar,
 																		 this,
-																		 &ret,
+																		 &ret, &bin_batch_size,
 																		 &verbose](){
 		PairwisePairFactory::PairwisePairVec pairVec;
-		while(pFactor.setNextPairs(pairVec, 100)){
+		while(pFactor.setNextPairs(pairVec, bin_batch_size)){
 		  if(verbose){
 		    progpar.outputProgAdd(std::cout, pairVec.pairs_.size(), true);
 		  }

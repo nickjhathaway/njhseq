@@ -201,6 +201,26 @@ public:
 			}
 		}
 
+	  uint32_t visit_off_nodes_and_group_on_eps(const uint32_t currentGroup, const DIST eps){
+		  uint32_t group_count = 0;
+		  if(!visited_){
+		    group_ = currentGroup;
+		    visited_ = true;
+		    on_ = true;
+		    ++visitedAmount_;
+		    ++group_count;
+		    for(auto & e : edges_){
+		      //only off nodes, so don't have to worry about not having a group already
+		      if(!e->nodeToNode_[name_].lock()->on_ && e->dist_ <= eps && !e->visited_){
+		        e->visited_ = true;
+		        e->on_ = true;
+		        group_count += e->nodeToNode_[name_].lock()->visit_off_nodes_and_group_on_eps(currentGroup, eps);
+		      }
+		    }
+		  }
+		  return group_count;
+		}
+
 		void visitAndGroupCons(uint32_t currentGroup){
 			if(!visited_){
 				group_ = currentGroup;
@@ -219,11 +239,11 @@ public:
 			return edges_;
 		}
 
-		std::vector<std::shared_ptr<edge>> getNeighborsEps(double eps) const {
+		std::vector<std::shared_ptr<edge>> getNeighborsEps(DIST eps) const {
 			std::vector<std::shared_ptr<edge>> neighbors;
 			for (auto & e : edges_) {
 				if (e->dist_ <= eps) {
-					neighbors.push_back(e);
+					neighbors.emplace_back(e);
 				}
 			}
 			return neighbors;
@@ -687,6 +707,79 @@ public:
 				++numberOfGroups_;
 			}
 		}
+	}
+
+  void add_small_groups_in_off_nodes(const dbscanPars & pars){
+	  if (pars.minEpNeighbors_ > 2) {
+	    add_small_groups_in_off_nodes(pars.minEpNeighbors_ -1, pars.eps_);
+	  }
+	}
+
+  void add_small_groups_in_off_nodes(const uint32_t max_group_size, DIST eps){
+	  //should be called after a clustering step like dbscan
+	  //will cluster small groups up to the max group size
+	  //helps to rescue groups like pairs or triplets that might be missed by requiring min_neighbors = 4
+
+	  auto current_number_of_groups = numberOfGroups_;
+	  //reset the visited for off nodes
+	  for (auto & n : nodes_) {
+	    if (!n->on_) {
+	      n->visited_ = false;
+	      n->visitedAmount_ = 0;
+	      for (auto & e : n->edges_) {
+	        e->visitedAmount_ = 0;
+	        e->visited_ = false;
+	      }
+	    }
+	  }
+
+	  //now we cluster, if the cluster is larger than the max_group_size, reset to
+	  for(auto & n : nodes_){
+	    if(!n->on_ && !n->visited_){
+	      auto group_count = n->visit_off_nodes_and_group_on_eps(numberOfGroups_, eps);
+	      //if it only formed a group of 1, then reset group
+	      if (group_count <= 1) {
+	        n->group_ = std::numeric_limits<uint32_t>::max();
+	      } else {
+	        ++numberOfGroups_;
+	      }
+	    }
+	  }
+	  // after grouping, we have to make sure that we didn't single link cluster anything super large
+	  auto group_counts = getGroupCounts();
+	  std::unordered_set<uint32_t> groups_too_large;
+	  std::unordered_map<uint32_t, uint32_t> groups_key;
+	  uint32_t group_offset = 0;
+	  for (const auto & count : group_counts) {
+	    //only groups above or equal to current_number_of_groups are new groups
+      if (count.first != std::numeric_limits<uint32_t>::max() &&
+          count.first >= current_number_of_groups &&
+          count.second > max_group_size) {
+	      groups_too_large.insert(count.first);
+	    } else if (count.first >= current_number_of_groups){
+	      //create a key to be used to reset group names
+	      groups_key[count.first] = current_number_of_groups + group_offset;
+	      ++group_offset;
+	    }
+	  }
+	  if (!groups_too_large.empty()) {
+	    // std::cout << groups_too_large.size() << " groups are too large" << std::endl;
+	    // for (const auto & group : groups_too_large) {
+	    //   std::cout << group << "\t" << group_counts[group] << std::endl;
+	    // }
+	    // std::cout << "Group key" << std::endl;
+	    // for (const auto & group_key : groups_key) {
+	    //   std::cout << group_key.first << "\t" << group_key.second << std::endl;
+	    // }
+	    for (auto & n : nodes_) {
+	      if (njh::in(n->group_, groups_too_large)) {
+	        n->group_ = std::numeric_limits<uint32_t>::max();
+	      } else if (n->group_ != std::numeric_limits<uint32_t>::max() && n->group_ >= current_number_of_groups){
+	        n->group_ = groups_key[n->group_];
+	      }
+	    }
+	    numberOfGroups_ = numberOfGroups_ - groups_too_large.size();
+	  }
 	}
 
 	void allDetermineBestDistanceWithComp(bool doTies, std::function<bool(const DIST&,const DIST&)> distCompFunc,

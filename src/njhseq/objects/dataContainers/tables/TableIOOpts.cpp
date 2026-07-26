@@ -26,25 +26,36 @@
 #include "TableIOOpts.hpp"
 
 namespace njhseq {
-
-TableIOOpts TableIOOpts::genTabFileOut(const bfs::path & outFilename, bool header){
-	bool zip = njh::endsWith(outFilename.string(), ".gz");
-	return TableIOOpts(InOptions(), "\t", OutOptions(outFilename.string(), zip ? ".tab.txt.gz" : ".tab.txt", "tab"), "\t", header);
+TableIOOpts TableIOOpts::genTabFileOut(const bfs::path &outFilename, bool header) {
+  bool zip = njh::endsWith(outFilename.string(), ".gz");
+  std::string extension = njh::endsWith(outFilename.string(), ".tsv") || njh::endsWith(outFilename.string(), ".tsv.gz") ? ".tsv": ".tab.txt";
+  if (zip) {
+    extension.append(".gz");
+  }
+  return TableIOOpts(InOptions(), "\t", OutOptions(outFilename.string(), extension, "tab"), "\t",
+                     header);
 }
 
-TableIOOpts TableIOOpts::genTabFileIn(const bfs::path & inFilename, bool header){
-	bool zip = njh::endsWith(inFilename.string(), ".gz");
-	return TableIOOpts(InOptions(inFilename), "\t", OutOptions("", zip ? ".tab.txt.gz" : ".tab.txt", "tab"), "\t", header);
+TableIOOpts TableIOOpts::genTabFileIn(const bfs::path &inFilename, bool header) {
+  bool zip = njh::endsWith(inFilename.string(), ".gz");
+  std::string extension = njh::endsWith(inFilename.string(), ".tsv") || njh::endsWith(inFilename.string(), ".tsv.gz") ? ".tsv": ".tab.txt";
+  if (zip) {
+    extension.append(".gz");
+  }
+  return TableIOOpts(InOptions(inFilename), "\t",
+    OutOptions("", extension, "tab"), "\t",
+                     header);
 }
 
-TableIOOpts TableIOOpts::genCommaFileOut(const bfs::path & outFilename, bool header){
-	bool zip = njh::endsWith(outFilename.string(), ".gz");
-	return TableIOOpts(InOptions(), ",", OutOptions(outFilename.string(), zip ? ".csv.gz" : ".csv", "comma"), ",", header);
+TableIOOpts TableIOOpts::genCommaFileOut(const bfs::path &outFilename, bool header) {
+  bool zip = njh::endsWith(outFilename.string(), ".gz");
+  return TableIOOpts(InOptions(), ",", OutOptions(outFilename.string(), zip ? ".csv.gz" : ".csv", "comma"), ",",
+                     header);
 }
 
-TableIOOpts TableIOOpts::genCommaFileIn(const bfs::path & inFilename, bool header){
-	bool zip = njh::endsWith(inFilename.string(), ".gz");
-	return TableIOOpts(InOptions(inFilename), ",", OutOptions("", zip ? ".csv.gz" : ".csv", "comma"), ",", header);
+TableIOOpts TableIOOpts::genCommaFileIn(const bfs::path &inFilename, bool header) {
+  bool zip = njh::endsWith(inFilename.string(), ".gz");
+  return TableIOOpts(InOptions(inFilename), ",", OutOptions("", zip ? ".csv.gz" : ".csv", "comma"), ",", header);
 }
 
 TableIOOpts::TableIOOpts() :

@@ -33,6 +33,8 @@ public:
 		std::string relAbundCol = "";
 		std::unordered_set<std::string> selectSamples{};
 		std::unordered_set<std::string> selectTargets{};
+	  std::unordered_set<std::string> exclude_samples{};
+	  std::unordered_set<std::string> exclude_targets{};
 		void setDefaults(seqSetUp & setUp);
 		uint32_t numThreads = 1;
 		bool majorOnly = false;
@@ -60,7 +62,7 @@ public:
 
 	std::vector<std::vector<uint8_t>> hapsEncodeBySamp_; //! each row is a sample, each column is hap, 0 for not present, 1 for present
 	std::vector<std::vector<uint8_t>> targetsEncodeBySamp_; //! each row is a sample, each column is a target, 0 if sample has no data for target, 1 for has data
-  std::vector<std::vector<double>> hapsEncodeBySampRelAbund_; //! each row is a sample, each column is hap, number between 0 and 1 for relative abundance within the sample
+  	std::vector<std::vector<double>> hapsEncodeBySampRelAbund_; //! each row is a sample, each column is hap, number between 0 and 1 for relative abundance within the sample
 
 	std::vector<double> hapsProbs_;
 
@@ -91,7 +93,27 @@ public:
 
 	void calcHapProbs();
 
-  void add_relative_abundance();
+  	void add_relative_abundance();
+
+	struct ExportEncodedTablePars{
+		std::string sampleColName = "library_sample_name";
+		std::string targetColName = "target_name";
+		std::string hapColName = "seq";
+		std::string relAbundColName = "within_sample_freq"; //! only used if hapsEncodeBySampRelAbund_ has been loaded
+	};
+
+	/**@brief export the encoded data back out into a table of sample, target, haplotype, and, if loaded, the within sample relative abundance
+	 *
+	 * @param exportPars the column names to use for the output table
+	 * @return a table with a row per sample/target/haplotype combination
+	 */
+	table exportEncodedTable(const ExportEncodedTablePars & exportPars) const;
+
+	/**@brief export the encoded data with the default column names
+	 *
+	 * @return a table with a row per sample/target/haplotype combination
+	 */
+	table exportEncodedTable() const;
 
 	table getTableNumberTargetsPerSample(double coverage_cut_off = std::numeric_limits<double>::min()) const;
 	std::unordered_map<std::string, uint32_t> getNumberTargetsPerSample() const;
@@ -124,7 +146,7 @@ public:
     std::vector<std::vector<uint32_t>> targets_shared;// total number of targets shared between samples
   };
 
-	IndexResults genIndexMeasures(bool verbose = false) const;
+	IndexResults genIndexMeasures(uint32_t bin_batch_size = 1000, bool verbose = false) const;
   CCCRMSEResults calc_ccc_rmse_measures(uint32_t bin_batch_size = 1000, bool verbose = false) const;
 
 	void writeAbsoluteHapSharedPerSamplePerTar(const OutOptions & outOptions, bool verbose = false) const;
