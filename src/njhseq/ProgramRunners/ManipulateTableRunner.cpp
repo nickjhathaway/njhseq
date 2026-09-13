@@ -72,6 +72,7 @@ int ManipulateTableRunner::tableRecodeLevels(
   std::string oldNameColName;
   std::string newNameColName;
   std::string column;
+  std::string sep;
   setUp.processDefaultProgram(true);
   setUp.setOption(column, "--column","column to do the recoding", true);
   setUp.setOption(skip_missing_keys, "--skip_missing_keys", "skip missing keys (level will remain the same), otherwise throw if missing from rename table", false);
@@ -79,6 +80,7 @@ int ManipulateTableRunner::tableRecodeLevels(
   setUp.setOption(nameKeyTableFnp, "--nameKeyTableFnp", "A key table, either no header, 1) current chromosome names in bed file, 2) name to be renamed to, or will use the name columns supplied", true);
   setUp.setOption(oldNameColName, "--oldNameColName", "Old Name Col Name, supply if you want to use specific columns in the name key for renaming", false);
   setUp.setOption(newNameColName, "--newNameColName", "New Name Col Name, supply if you want to use specific columns in the name key for renaming", false);
+  setUp.setOption(sep, "--sep", "Optional separator to split on first before recoding", false);
 
   setUp.finishSetUp(std::cout);
 
@@ -131,14 +133,26 @@ int ManipulateTableRunner::tableRecodeLevels(
   auto col_pos = outTab.getColPos(column);
   for (auto &row: outTab.content_) {
     auto oldName = row[col_pos];
-    if (!njh::in(oldName, nameKey) && !skip_missing_keys) {
-      std::stringstream ss;
-      ss << __PRETTY_FUNCTION__ << ", error " << "missing a key for the following level: " << oldName << "\n";
-      throw std::runtime_error{ss.str()};
+    if (!sep.empty()) {
+      auto oldName_toks = tokenizeString(oldName, sep);
+      for (auto & tok : oldName_toks) {
+        if (!njh::in(tok, nameKey) && !skip_missing_keys) {
+          std::stringstream ss;
+          ss << __PRETTY_FUNCTION__ << ", error " << "missing a key for the following level: " << tok << "\n";
+          throw std::runtime_error{ss.str()};
+        }
+        tok = njh::in(tok, nameKey) ? nameKey[tok] : tok;
+      }
+      row[col_pos] = njh::conToStr(oldName_toks, sep);
+    } else {
+      if (!njh::in(oldName, nameKey) && !skip_missing_keys) {
+        std::stringstream ss;
+        ss << __PRETTY_FUNCTION__ << ", error " << "missing a key for the following level: " << oldName << "\n";
+        throw std::runtime_error{ss.str()};
+      }
+      row[col_pos] = njh::in(oldName, nameKey) ? nameKey[oldName] : oldName;
     }
-    row[col_pos] = njh::in(oldName, nameKey) ? nameKey[oldName] : oldName;
   }
-
   outTab.outPutContents(setUp.ioOptions_);
   return 0;
 }
