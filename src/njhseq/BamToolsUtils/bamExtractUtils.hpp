@@ -27,6 +27,7 @@
 #include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 #include "njhseq/objects/seqObjects/Paired/PairedRead.hpp"
 #include "njhseq/readVectorManipulation/readVectorHelpers/readChecker.hpp"
+#include "njhseq/BamToolsUtils/StrandBiasKmerCorrector.hpp"
 
 
 namespace njhseq {
@@ -61,6 +62,10 @@ public:
 
 		uint32_t improperPairFiltered_ = 0; //! number of reads removed for being a improper pair, doesn't count towards final counts
 		uint32_t markedDuplicateFiltered_ = 0; //! number of reads removed for being a marked duplicate, doesn't count towards final counts
+
+		uint32_t strandBiasKmerCorrectionPasses_ = 0; //! number of strand-bias k-mer correction passes that found corrections
+		uint32_t strandBiasKmerCorrectedReads_ = 0; //! number of reads that had at least one base corrected for strand-restricted artifacts
+		uint64_t strandBiasKmerCorrectedBases_ = 0; //! number of bases corrected for strand-restricted artifacts
 
 //		uint32_t mateFilteredOff_ = 0; //! mate has been filtered
 //		uint32_t mateFilteredOffUnmapped_ = 0;//! mate was unmapped
@@ -221,9 +226,19 @@ public:
 
 		bool writeAll_{true};
 
+		StrandBiasKmerCorrectionPars strandBiasKmerCorrection_; //! detect and correct strand-restricted (SSE) artifacts at the k-mer level before writing reads
+
 		Json::Value toJson() const;
 
 	};
+
+	/**@brief Build the strand-bias k-mer correction passes for the regions, read-only passes over the BAM.
+	 * Stops as soon as a pass finds no corrections or after maxPasses_. Nothing is written. */
+	static void buildStrandBiasKmerCorrectionPasses(BamTools::BamReader & bReader,
+			const std::vector<GenomicRegion> & regions,
+			const extractReadsWtihCrossRegionMappingPars & extractPars,
+			StrandBiasKmerCorrector & corrector);
+
 	ExtractedFilesOpts extractReadsWtihCrossRegionMapping(
 			const SeqIOOptions & inOutOpts,
 			const std::vector<GenomicRegion> & regions,

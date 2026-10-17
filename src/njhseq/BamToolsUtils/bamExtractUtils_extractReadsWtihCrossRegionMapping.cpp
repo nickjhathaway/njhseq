@@ -16,6 +16,64 @@
 namespace njhseq {
 
 
+
+void BamExtractor::buildStrandBiasKmerCorrectionPasses(BamTools::BamReader & bReader,
+		const std::vector<GenomicRegion> & regions,
+		const extractReadsWtihCrossRegionMappingPars & extractPars,
+		StrandBiasKmerCorrector & corrector) {
+	const auto & sbPars = extractPars.strandBiasKmerCorrection_;
+	if (!sbPars.on_) {
+		return;
+	}
+	auto refData = bReader.GetReferenceData();
+	std::unordered_map<std::string, uint32_t> refNameToId;
+	for (auto pos : iter::range(refData.size())) {
+		refNameToId[refData[pos].RefName] = pos;
+	}
+	BamTools::BamAlignment bAln;
+	for (uint32_t pass = 0; pass < sbPars.maxPasses_; ++pass) {
+		StrandBiasKmerCorrector::KmerTable table;
+		for (const auto & region : regions) {
+			GenomicRegion tallyRegion = region;
+			if (sbPars.padRegionByK_) {
+				tallyRegion.start_ = tallyRegion.start_ > sbPars.kLen_ ? tallyRegion.start_ - sbPars.kLen_ : 0;
+				auto refSearch = refNameToId.find(region.chrom_);
+				if (refSearch != refNameToId.end()) {
+					tallyRegion.end_ = std::min<size_t>(tallyRegion.end_ + sbPars.kLen_, refData[refSearch->second].RefLength);
+				}
+			}
+			setBamFileRegionThrow(bReader, tallyRegion);
+			while (bReader.GetNextAlignment(bAln)) {
+				//same pre-filters as the extraction loop below so the tally describes the reads that get written
+				if (!bAln.IsPrimaryAlignment()) {
+					continue;
+				}
+				if (!extractPars.keepMarkedDuplicate_ && bAln.IsDuplicate()) {
+					continue;
+				}
+				if (extractPars.removeImproperPairs_ && bAln.IsPaired() && !bAln.IsProperPair()) {
+					bool bothMapped = bAln.IsMapped() && bAln.IsMateMapped();
+					if (!extractPars.keepImproperMateUnmapped_ || bothMapped) {
+						continue;
+					}
+				}
+				if (!StrandBiasKmerCorrector::alnEligible(bAln) || bAln.QueryBases.size() < sbPars.kLen_) {
+					continue;
+				}
+				std::string plusSeq = StrandBiasKmerCorrector::alnIsPlusOriented(bAln) ? bAln.QueryBases : seqUtil::reverseComplement(bAln.QueryBases, "DNA");
+				//tally on the reads as they would look after the passes found so far
+				corrector.applyToSeq(plusSeq);
+				corrector.tallySeq(table, plusSeq, StrandBiasKmerCorrector::alnSeqStrandIsReverse(bAln));
+			}
+		}
+		auto found = corrector.findCorrections(table);
+		if (found.corrections_.empty()) {
+			break;
+		}
+		corrector.addPass(std::move(found));
+	}
+}
+
 BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMapping(
 		BamTools::BamReader & bReader,
 		const OutOptions & outOpts,
@@ -609,6 +667,21 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			bWriter.SaveAlignment(bAln);
 		}
 	};
+	//strand-bias (sequence specific error) k-mer correction: read-only tally passes, corrections
+	//are applied in place to QueryBases as alignments enter the loops below so every write path sees them
+	StrandBiasKmerCorrector sbCorrector(extractPars.strandBiasKmerCorrection_);
+	buildStrandBiasKmerCorrectionPasses(bReader, regions, extractPars, sbCorrector);
+	const bool doSbCorrection = sbCorrector.hasCorrections();
+	ret.strandBiasKmerCorrectionPasses_ = sbCorrector.numPasses();
+	auto sbCorrect = [&doSbCorrection,&sbCorrector,&ret](BamTools::BamAlignment & aln){
+		if(doSbCorrection){
+			auto edited = sbCorrector.correct(aln);
+			if(edited > 0){
+				ret.strandBiasKmerCorrectedBases_ += edited;
+				++ret.strandBiasKmerCorrectedReads_;
+			}
+		}
+	};
 	try {
 	for (const auto regionPos : iter::range(regions.size())) {
 		const auto & region = regions[regionPos];
@@ -622,6 +695,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			if (!bAln.IsPrimaryAlignment()) {
 				continue;
 			}
+			sbCorrect(bAln);
 			if(!extractPars.keepMarkedDuplicate_ && bAln.IsDuplicate()){
 				++ret.markedDuplicateFiltered_;
 				continue;
@@ -1204,6 +1278,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					if (!bAln.IsPrimaryAlignment()) {
 						continue;
 					}
+					sbCorrect(bAln);
 					if(static_cast<uint32_t>(bAln.Position) < reg.start_){
 						continue;
 					}
@@ -1242,6 +1317,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					if (!bAln.IsPrimaryAlignment()) {
 						continue;
 					}
+					sbCorrect(bAln);
 					if (bAln.IsPaired()) {
 						if (alnCache.has(bAln.Name)) {
 							auto search = alnCache.get(bAln.Name);

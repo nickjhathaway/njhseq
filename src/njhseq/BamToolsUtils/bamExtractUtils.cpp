@@ -85,6 +85,21 @@ void BamExtractor::ExtractCounts::log(std::ostream & out, const bfs::path & bamF
 			<< "\t" << markedDuplicateFiltered_
 			<< "\t" << ""
 			<< std::endl;
+	out << bamFnp.string()
+			<< "\t" << "strandBiasKmerCorrectionPasses"
+			<< "\t" << strandBiasKmerCorrectionPasses_
+			<< "\t" << ""
+			<< std::endl;
+	out << bamFnp.string()
+			<< "\t" << "strandBiasKmerCorrectedReads"
+			<< "\t" << strandBiasKmerCorrectedReads_
+			<< "\t" << ""
+			<< std::endl;
+	out << bamFnp.string()
+			<< "\t" << "strandBiasKmerCorrectedBases"
+			<< "\t" << strandBiasKmerCorrectedBases_
+			<< "\t" << ""
+			<< std::endl;
 }
 
 void BamExtractor::ExtractedFilesOpts::removeAllInFiles(){
@@ -3527,6 +3542,7 @@ Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const
 	ret["threePrimeTrim_"] = njh::json::toJson(threePrimeTrim_);
 	ret["writeAll_"] = njh::json::toJson(writeAll_);
 	ret["percentSubSample_"] = njh::json::toJson(percentSubSample_);
+	ret["strandBiasKmerCorrection_"] = njh::json::toJson(strandBiasKmerCorrection_);
 	return ret;
 }
 
