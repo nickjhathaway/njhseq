@@ -28,6 +28,10 @@
 #include "njhseq/BamToolsUtils/BamToolsUtils.hpp"
 #include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 
+#include <array>
+#include <map>
+#include <set>
+
 namespace njhseq {
 
 /**@brief Parameters for detecting and correcting strand-restricted sequencing artifacts
@@ -52,6 +56,18 @@ struct StrandBiasKmerCorrectionPars {
 	uint32_t maxPasses_{5};                       //!< tally/correct passes, each pass re-tallies on the corrected reads; stops early when a pass proposes no new candidate k-mers
 	bool padRegionByK_{true};                     //!< tally reads from the region padded by k on both sides so edge positions keep partner depth
 
+	//!@brief Quality-informed relaxation. A sequence-specific error degrades the whole strand in its
+	//! window, so the reference base at the artifact position is itself much lower quality on the
+	//! artifact strand than on the other strand. That drop is independent evidence of an artifact, so
+	//! where it is present the two guards that lose power at low depth -- partner depth and the Fisher
+	//! test -- are relaxed. One-sidedness, the VAF ratio, partner dominance and the minor-strand
+	//! evidence guard are never relaxed.
+	bool useQualityRelax_{true};
+	double qualDropMin_{8};                       //!< required Phred drop (other strand minus artifact strand) at the candidate's offset
+	uint32_t qualMinReads_{5};                    //!< partner reads needed on each strand before a drop is trusted
+	uint32_t relaxedPartnerMissingStrandDepth_{8};//!< partner depth required instead of minPartnerMissingStrandDepth_ when a drop is seen
+	double relaxedFisherPhred_{10};               //!< Fisher Phred required instead of fisherPhred_ when a drop is seen
+
 	Json::Value toJson() const;
 };
 
@@ -74,6 +90,29 @@ public:
 		uint32_t offset_{0}; //!< offset within the k-mer of the base to change
 		char to_{'N'};       //!< base to change it to (the partner's base)
 	};
+
+	/**@brief A proposed correction before the guards that quality can relax have been resolved.*/
+	struct Candidate {
+		uint64_t kmer_{0};
+		uint64_t partner_{0};
+		uint32_t offset_{0};
+		char to_{'N'};
+		bool missingIsFwd_{false};            //!< strand the candidate k-mer is (nearly) absent from
+		uint32_t partnerDepthMissing_{0};
+		double fisherPhred_{0};
+		bool failedDepth_{false};             //!< relaxable
+		bool failedFisher_{false};            //!< relaxable
+	};
+
+	/**@brief One region read held in genome plus orientation, so passes can re-tally without re-reading the BAM.*/
+	struct BufferedRead {
+		std::string seq_;
+		std::vector<uint8_t> quals_;
+		bool reverseStrand_{false};
+	};
+
+	//!@brief (partner k-mer, offset) -> {n fwd, n rev, quality sum fwd, quality sum rev} of the base at that offset
+	using QualTable = std::map<std::pair<uint64_t, uint32_t>, std::array<double, 4>>;
 
 	struct Pass {
 		std::unordered_map<uint64_t, Edit> corrections_; //!< candidate k-mer hash -> edit
@@ -104,10 +143,18 @@ public:
 
 	//pass building
 	void tallySeq(KmerTable & table, const std::string & plusSeq, bool reverseStrand) const;
-	Pass findCorrections(const KmerTable & table) const;
+	/**@brief every one-sided k-mer with a dominant partner, with the relaxable guards recorded rather than applied*/
+	std::vector<Candidate> findCandidates(const KmerTable & table) const;
+	/**@brief mean quality of the partner's base at each candidate's offset, per strand, from the buffered reads*/
+	QualTable collectOffsetQuality(const std::vector<BufferedRead> & reads, const std::vector<Candidate> & candidates) const;
+	/**@brief turn candidates into a pass, accepting those whose only failures are relaxable and that show a quality drop*/
+	Pass buildPass(const std::vector<Candidate> & candidates, const KmerTable & table, const QualTable & quals, uint32_t & qualityRescued) const;
+	Pass findCorrections(const KmerTable & table) const; //!< convenience: findCandidates + buildPass with no quality information
 	void addPass(Pass pass);
 	bool hasCorrections() const;
 	uint32_t numPasses() const;
+	uint32_t numQualityRescued() const { return qualityRescued_; }
+	void addQualityRescued(uint32_t n) { qualityRescued_ += n; }
 
 	//application
 	/**@brief apply all passes in order to a plus oriented sequence, returns number of bases edited*/
@@ -116,6 +163,7 @@ public:
 	uint32_t correct(BamTools::BamAlignment & aln) const;
 
 private:
+	uint32_t qualityRescued_{0}; //!< corrections admitted only because of a quality drop
 	uint32_t applyPass(const Pass & pass, std::string & plusSeq) const;
 };
 

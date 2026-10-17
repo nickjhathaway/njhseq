@@ -45,6 +45,11 @@ Json::Value StrandBiasKmerCorrectionPars::toJson() const {
 	ret["maxMinorStrandReads_"] = njh::json::toJson(maxMinorStrandReads_);
 	ret["maxPasses_"] = njh::json::toJson(maxPasses_);
 	ret["padRegionByK_"] = njh::json::toJson(padRegionByK_);
+	ret["useQualityRelax_"] = njh::json::toJson(useQualityRelax_);
+	ret["qualDropMin_"] = njh::json::toJson(qualDropMin_);
+	ret["qualMinReads_"] = njh::json::toJson(qualMinReads_);
+	ret["relaxedPartnerMissingStrandDepth_"] = njh::json::toJson(relaxedPartnerMissingStrandDepth_);
+	ret["relaxedFisherPhred_"] = njh::json::toJson(relaxedFisherPhred_);
 	return ret;
 }
 
@@ -163,14 +168,11 @@ void StrandBiasKmerCorrector::tallySeq(KmerTable & table, const std::string & pl
 	}
 }
 
-StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::findCorrections(const KmerTable & table) const {
-	Pass ret;
+std::vector<StrandBiasKmerCorrector::Candidate> StrandBiasKmerCorrector::findCandidates(const KmerTable & table) const {
+	std::vector<Candidate> ret;
 	const uint32_t k = pars_.kLen_;
 	for (const auto & entry : table) {
 		const auto & cand = entry.second;
-		if (cand.minor() > pars_.maxMinorStrandReads_) {
-			ret.balanced_.insert(entry.first);
-		}
 		const uint32_t tot = cand.total();
 		if (tot < pars_.minTotal_) {
 			continue;
@@ -179,9 +181,8 @@ StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::findCorrections(const Kme
 			continue;
 		}
 		if (njh::in(entry.first, candidatesSeen_)) {
-			continue; //already proposed by an earlier pass; it was either applied (and is gone from the reads) or blocked at application, re-proposing it would never converge
+			continue; //already proposed by an earlier pass; re-proposing it would never converge
 		}
-		++ret.oneSidedKmers_;
 		const bool missingIsFwd = cand.fwd_ <= cand.rev_;
 		//find the best Hamming-1 partner
 		uint64_t bestHash = 0;
@@ -203,7 +204,7 @@ StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::findCorrections(const Kme
 				}
 				const uint32_t ntot = search->second.total();
 				if (ntot > best.total()) {
-					secondTotal = best.total();
+					secondTotal = std::max(secondTotal, best.total());
 					best = search->second;
 					bestHash = neighbor;
 					bestOffset = i;
@@ -216,6 +217,7 @@ StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::findCorrections(const Kme
 		if ('N' == bestBase) {
 			continue; //no partner
 		}
+		//guards that are never relaxed
 		if (best.total() <= tot) {
 			continue; //partner not dominant
 		}
@@ -226,22 +228,110 @@ StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::findCorrections(const Kme
 		const uint32_t partnerPresent = missingIsFwd ? best.rev_ : best.fwd_;
 		const uint32_t candMissing = missingIsFwd ? cand.fwd_ : cand.rev_;
 		const uint32_t candPresent = missingIsFwd ? cand.rev_ : cand.fwd_;
-		if (partnerMissing < pars_.minPartnerMissingStrandDepth_) {
-			continue; //cannot tell artifact from one sided coverage
-		}
 		const double vafMissing = (candMissing + partnerMissing) > 0 ? candMissing / static_cast<double>(candMissing + partnerMissing) : 0;
 		const double vafPresent = (candPresent + partnerPresent) > 0 ? candPresent / static_cast<double>(candPresent + partnerPresent) : 0;
 		const double ratio = vafPresent > 0 ? vafMissing / vafPresent : 1.0;
 		if (ratio >= pars_.ratioHard_) {
 			continue;
 		}
-		if (fisherTwoSidedPhred(best.fwd_, cand.fwd_, best.rev_, cand.rev_) <= pars_.fisherPhred_) {
-			continue;
-		}
-		(void) bestHash;
-		ret.corrections_[entry.first] = Edit { bestOffset, bestBase };
+		Candidate c;
+		c.kmer_ = entry.first;
+		c.partner_ = bestHash;
+		c.offset_ = bestOffset;
+		c.to_ = bestBase;
+		c.missingIsFwd_ = missingIsFwd;
+		c.partnerDepthMissing_ = partnerMissing;
+		c.fisherPhred_ = fisherTwoSidedPhred(best.fwd_, cand.fwd_, best.rev_, cand.rev_);
+		c.failedDepth_ = partnerMissing < pars_.minPartnerMissingStrandDepth_;
+		c.failedFisher_ = c.fisherPhred_ <= pars_.fisherPhred_;
+		ret.emplace_back(c);
 	}
 	return ret;
+}
+
+StrandBiasKmerCorrector::QualTable StrandBiasKmerCorrector::collectOffsetQuality(
+		const std::vector<BufferedRead> & reads, const std::vector<Candidate> & candidates) const {
+	QualTable ret;
+	if (candidates.empty()) {
+		return ret;
+	}
+	//only the candidates whose acceptance depends on quality need measuring
+	std::unordered_map<uint64_t, std::set<uint32_t>> wanted;
+	for (const auto & c : candidates) {
+		if (c.failedDepth_ || c.failedFisher_) {
+			wanted[c.partner_].emplace(c.offset_);
+		}
+	}
+	if (wanted.empty()) {
+		return ret;
+	}
+	const uint32_t k = pars_.kLen_;
+	uint64_t h = 0;
+	for (const auto & rd : reads) {
+		if (rd.seq_.size() < k || rd.quals_.size() != rd.seq_.size()) {
+			continue;
+		}
+		const uint32_t nWindows = rd.seq_.size() - k + 1;
+		for (uint32_t pos = 0; pos < nWindows; ++pos) {
+			if (!hashKmer(rd.seq_, pos, k, h)) {
+				continue;
+			}
+			auto search = wanted.find(h);
+			if (search == wanted.end()) {
+				continue;
+			}
+			for (const auto offset : search->second) {
+				auto & slot = ret[{h, offset}];
+				slot[rd.reverseStrand_ ? 1 : 0] += 1;
+				slot[rd.reverseStrand_ ? 3 : 2] += rd.quals_[pos + offset];
+			}
+		}
+	}
+	return ret;
+}
+
+StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::buildPass(const std::vector<Candidate> & candidates,
+		const KmerTable & table, const QualTable & quals, uint32_t & qualityRescued) const {
+	Pass ret;
+	for (const auto & entry : table) {
+		if (entry.second.minor() > pars_.maxMinorStrandReads_) {
+			ret.balanced_.insert(entry.first);
+		}
+	}
+	ret.oneSidedKmers_ = candidates.size();
+	for (const auto & c : candidates) {
+		bool accept = !c.failedDepth_ && !c.failedFisher_;
+		if (!accept && pars_.useQualityRelax_) {
+			auto search = quals.find({c.partner_, c.offset_});
+			if (search != quals.end()) {
+				const auto & q = search->second;
+				const double nMissing = c.missingIsFwd_ ? q[0] : q[1];
+				const double nPresent = c.missingIsFwd_ ? q[1] : q[0];
+				if (nMissing >= pars_.qualMinReads_ && nPresent >= pars_.qualMinReads_) {
+					const double meanMissing = (c.missingIsFwd_ ? q[2] : q[3]) / nMissing;
+					const double meanPresent = (c.missingIsFwd_ ? q[3] : q[2]) / nPresent;
+					//the artifact strand is the one the candidate is present on, so a positive drop
+					//means the reference base is degraded exactly where the candidate appears
+					const double drop = meanMissing - meanPresent;
+					if (drop >= pars_.qualDropMin_
+							&& c.partnerDepthMissing_ >= pars_.relaxedPartnerMissingStrandDepth_
+							&& c.fisherPhred_ > pars_.relaxedFisherPhred_) {
+						accept = true;
+						++qualityRescued;
+					}
+				}
+			}
+		}
+		if (accept) {
+			ret.corrections_[c.kmer_] = Edit { c.offset_, c.to_ };
+		}
+	}
+	return ret;
+}
+
+StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::findCorrections(const KmerTable & table) const {
+	uint32_t rescued = 0;
+	return buildPass(findCandidates(table), table, QualTable{}, rescued);
 }
 
 void StrandBiasKmerCorrector::addPass(Pass pass) {

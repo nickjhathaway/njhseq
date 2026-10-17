@@ -9,6 +9,7 @@
 #include "njhseq/IO/SeqIO.h"
 #include "njhseq/objects/BioDataObject/BioRecordsUtils/BedUtility.hpp"
 #include "njhseq/readVectorManipulation/readVectorHelpers/readVecTrimmer.hpp"
+#include "njhseq/helpers/seqUtil.hpp"
 
 
 
@@ -30,48 +31,84 @@ void BamExtractor::buildStrandBiasKmerCorrectionPasses(BamTools::BamReader & bRe
 	for (auto pos : iter::range(refData.size())) {
 		refNameToId[refData[pos].RefName] = pos;
 	}
+	//Read the regions once into a plus-oriented buffer. Later passes re-tally from the buffer, so the
+	//BAM is read once no matter how many passes run, and the per-base qualities needed for the
+	//quality-informed relaxation are available without a second pass over the file.
+	std::vector<StrandBiasKmerCorrector::BufferedRead> buffer;
 	BamTools::BamAlignment bAln;
-	for (uint32_t pass = 0; pass < sbPars.maxPasses_; ++pass) {
-		StrandBiasKmerCorrector::KmerTable table;
-		for (const auto & region : regions) {
-			GenomicRegion tallyRegion = region;
-			if (sbPars.padRegionByK_) {
-				tallyRegion.start_ = tallyRegion.start_ > sbPars.kLen_ ? tallyRegion.start_ - sbPars.kLen_ : 0;
-				auto refSearch = refNameToId.find(region.chrom_);
-				if (refSearch != refNameToId.end()) {
-					tallyRegion.end_ = std::min<size_t>(tallyRegion.end_ + sbPars.kLen_, refData[refSearch->second].RefLength);
-				}
-			}
-			setBamFileRegionThrow(bReader, tallyRegion);
-			while (bReader.GetNextAlignment(bAln)) {
-				//same pre-filters as the extraction loop below so the tally describes the reads that get written
-				if (!bAln.IsPrimaryAlignment()) {
-					continue;
-				}
-				if (!extractPars.keepMarkedDuplicate_ && bAln.IsDuplicate()) {
-					continue;
-				}
-				if (extractPars.removeImproperPairs_ && bAln.IsPaired() && !bAln.IsProperPair()) {
-					bool bothMapped = bAln.IsMapped() && bAln.IsMateMapped();
-					if (!extractPars.keepImproperMateUnmapped_ || bothMapped) {
-						continue;
-					}
-				}
-				if (!StrandBiasKmerCorrector::alnEligible(bAln) || bAln.QueryBases.size() < sbPars.kLen_) {
-					continue;
-				}
-				std::string plusSeq = StrandBiasKmerCorrector::alnIsPlusOriented(bAln) ? bAln.QueryBases : seqUtil::reverseComplement(bAln.QueryBases, "DNA");
-				//tally on the reads as they would look after the passes found so far
-				corrector.applyToSeq(plusSeq);
-				corrector.tallySeq(table, plusSeq, StrandBiasKmerCorrector::alnSeqStrandIsReverse(bAln));
+	for (const auto & region : regions) {
+		GenomicRegion tallyRegion = region;
+		if (sbPars.padRegionByK_) {
+			tallyRegion.start_ = tallyRegion.start_ > sbPars.kLen_ ? tallyRegion.start_ - sbPars.kLen_ : 0;
+			auto refSearch = refNameToId.find(region.chrom_);
+			if (refSearch != refNameToId.end()) {
+				tallyRegion.end_ = std::min<size_t>(tallyRegion.end_ + sbPars.kLen_, refData[refSearch->second].RefLength);
 			}
 		}
-		auto found = corrector.findCorrections(table);
+		setBamFileRegionThrow(bReader, tallyRegion);
+		while (bReader.GetNextAlignment(bAln)) {
+			//same pre-filters as the extraction loop below so the tally describes the reads that get written
+			if (!bAln.IsPrimaryAlignment()) {
+				continue;
+			}
+			if (!extractPars.keepMarkedDuplicate_ && bAln.IsDuplicate()) {
+				continue;
+			}
+			if (extractPars.removeImproperPairs_ && bAln.IsPaired() && !bAln.IsProperPair()) {
+				bool bothMapped = bAln.IsMapped() && bAln.IsMateMapped();
+				if (!extractPars.keepImproperMateUnmapped_ || bothMapped) {
+					continue;
+				}
+			}
+			if (!StrandBiasKmerCorrector::alnEligible(bAln) || bAln.QueryBases.size() < sbPars.kLen_) {
+				continue;
+			}
+			if (bAln.Qualities.size() != bAln.QueryBases.size()) {
+				continue; //no usable per-base qualities
+			}
+			StrandBiasKmerCorrector::BufferedRead rd;
+			rd.reverseStrand_ = StrandBiasKmerCorrector::alnSeqStrandIsReverse(bAln);
+			if (StrandBiasKmerCorrector::alnIsPlusOriented(bAln)) {
+				rd.seq_ = bAln.QueryBases;
+				rd.quals_.reserve(bAln.Qualities.size());
+				for (const auto c : bAln.Qualities) {
+					rd.quals_.emplace_back(static_cast<uint8_t>(c - SangerQualOffset));
+				}
+			} else {
+				rd.seq_ = seqUtil::reverseComplement(bAln.QueryBases, "DNA");
+				rd.quals_.reserve(bAln.Qualities.size());
+				for (auto it = bAln.Qualities.rbegin(); it != bAln.Qualities.rend(); ++it) {
+					rd.quals_.emplace_back(static_cast<uint8_t>(*it - SangerQualOffset));
+				}
+			}
+			buffer.emplace_back(std::move(rd));
+		}
+	}
+	if (buffer.empty()) {
+		return;
+	}
+	uint32_t rescued = 0;
+	for (uint32_t pass = 0; pass < sbPars.maxPasses_; ++pass) {
+		StrandBiasKmerCorrector::KmerTable table;
+		for (const auto & rd : buffer) {
+			corrector.tallySeq(table, rd.seq_, rd.reverseStrand_);
+		}
+		auto candidates = corrector.findCandidates(table);
+		if (candidates.empty()) {
+			break;
+		}
+		auto quals = corrector.collectOffsetQuality(buffer, candidates);
+		auto found = corrector.buildPass(candidates, table, quals, rescued);
 		if (found.corrections_.empty()) {
 			break;
 		}
 		corrector.addPass(std::move(found));
+		//apply to the buffer so the next pass tallies corrected reads, exactly as the write path will see them
+		for (auto & rd : buffer) {
+			corrector.applyToSeq(rd.seq_);
+		}
 	}
+	corrector.addQualityRescued(rescued);
 }
 
 BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMapping(
