@@ -63,6 +63,54 @@ struct StrandBiasKmerCorrectionPars {
 	//! test -- are relaxed. One-sidedness, the VAF ratio, partner dominance and the minor-strand
 	//! evidence guard are never relaxed.
 	bool useQualityRelax_{true};
+	//!@brief Require the quality collapse rather than only relaxing with it. Useful where strand
+	//! restriction alone is not sufficient evidence, such as multigene families, in which a genuine
+	//! rare paralog can have one sided coverage. In single-copy regions the strand and depth evidence
+	//! stands on its own, so this is off by default.
+	bool requireQualityDrop_{false};
+
+	//!@brief Also correct an adjacent two-base (doublet) artifact, where the same miscall lands on two
+	//! neighbouring positions on the same strand.
+	//!
+	//! The single-base criterion cannot reach these. A k-mer covering such a pair differs from the
+	//! true k-mer at two positions, so it has no Hamming-1 partner and is never proposed; only a
+	//! window ending between the two positions sees one of them alone, which is too few windows to
+	//! reach minVotes_. The single-base criterion is not inert there either, since it still removes
+	//! the reads carrying only one of the two miscalls, which can sharpen the remainder into a
+	//! consistent false haplotype.
+	//!
+	//! A doublet partner is considered only when no Hamming-1 partner can explain the k-mer, and the
+	//! partner margin is taken against the whole Hamming-1 neighbourhood so a single-base explanation
+	//! always wins. A doublet is then held to stricter evidence than a single: the depth and Fisher
+	//! guards must pass on their own with no quality relaxation, and the quality collapse is required
+	//! at both offsets.
+	bool doublet_{true};
+	//!@brief Require the same substitution at both offsets, which the artifact produces and two
+	//! independent adjacent variants generally do not. Turn off to allow a doublet whose two bases
+	//! change differently.
+	bool doubletRequireSameSubstitution_{true};
+
+	//!@brief Frequency-only mode: an alternative criterion that ignores strand entirely and corrects a
+	//! rare k-mer to a dominant one-off neighbour purely on a depth ratio. Intended for data where the
+	//! strand axis is unusable -- a stranded RNA-seq library, where strand collapses onto mate identity
+	//! -- and where the errors are in the template (reverse transcription, RNA) rather than the
+	//! basecall, so they carry normal quality and the strand/quality criteria cannot see them.
+	//!
+	//! It is NOT selective: it cannot distinguish an error from a real allele at the same frequency, so
+	//! it erases real variants below roughly 1/(minDepthRatio_ + 1) of their locus, which loses minor
+	//! strains and rare paralogs below that fraction. Off by default, and deliberately exclusive with
+	//! the strand criterion rather than combined with it.
+	bool frequencyOnly_{false};
+	double minDepthRatio_{10};                  //!< partner must be at least this many fold the candidate
+	uint32_t freqMinCandidateTotal_{1};         //!< a candidate may be as rare as a single read
+	uint32_t freqMinPartnerDepth_{10};          //!< but the partner needs real support before we trust the ratio
+	//!@brief Absolute ceiling on a frequency-mode candidate, regardless of the ratio; 0 disables it.
+	//! The depth ratio cannot separate a sequencing error from a real low-copy variant, and in a
+	//! tandem-repeat gene the two are indistinguishable by it, since a genuine repeat-copy variant
+	//! sits at a fraction of the gene's coverage and differs by one base in similar context. Error
+	//! mass is overwhelmingly singletons and doubletons, so a low ceiling keeps the correction while
+	//! leaving repeat-copy variation alone.
+	uint32_t freqMaxCandidateTotal_{3};
 	double qualDropMin_{8};                       //!< required Phred drop (other strand minus artifact strand) at the candidate's offset
 	uint32_t qualMinReads_{5};                    //!< partner reads needed on each strand before a drop is trusted
 	uint32_t relaxedPartnerMissingStrandDepth_{8};//!< partner depth required instead of minPartnerMissingStrandDepth_ when a drop is seen
@@ -87,8 +135,11 @@ public:
 	using KmerTable = std::unordered_map<uint64_t, StrandCounts>;
 
 	struct Edit {
-		uint32_t offset_{0}; //!< offset within the k-mer of the base to change
-		char to_{'N'};       //!< base to change it to (the partner's base)
+		uint32_t offset_{0};  //!< offset within the k-mer of the base to change
+		char to_{'N'};        //!< base to change it to (the partner's base)
+		uint32_t offset2_{0}; //!< second offset, for an adjacent doublet
+		char to2_{'N'};       //!< 'N' when this is a single-base edit
+		bool isDoublet() const { return 'N' != to2_; }
 	};
 
 	/**@brief A proposed correction before the guards that quality can relax have been resolved.*/
@@ -102,6 +153,9 @@ public:
 		double fisherPhred_{0};
 		bool failedDepth_{false};             //!< relaxable
 		bool failedFisher_{false};            //!< relaxable
+		uint32_t offset2_{0};                 //!< second offset, for an adjacent doublet
+		char to2_{'N'};                       //!< 'N' when this is a single-base candidate
+		bool isDoublet() const { return 'N' != to2_; }
 	};
 
 	/**@brief One region read held in genome plus orientation, so passes can re-tally without re-reading the BAM.*/
