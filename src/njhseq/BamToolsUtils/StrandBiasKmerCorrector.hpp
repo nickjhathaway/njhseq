@@ -100,10 +100,16 @@ struct StrandBiasKmerCorrectionPars {
 	//! guards must pass on their own with no quality relaxation, and the quality collapse is required
 	//! at both offsets.
 	bool doublet_{true};
-	//!@brief Require the same substitution at both offsets, which the artifact produces and two
-	//! independent adjacent variants generally do not. Turn off to allow a doublet whose two bases
-	//! change differently.
-	bool doubletRequireSameSubstitution_{true};
+	//!@brief Require the same substitution at both offsets of a doublet.
+	//!
+	//! Off by default, because requiring it blocks a real artifact class: adjacent pairs where one
+	//! base changes one way and its neighbour another, such as T to C alongside G to A. Those turned
+	//! out to be the dominant residue at two loci. Allowing them changed no haplotype across 90
+	//! control samples over 900 region-runs, cost nothing on a known-truth amplicon panel or on a
+	//! control mixture ladder down to 2% components, and left targets holding two genuinely adjacent
+	//! real variants byte-identical. One-sidedness, partner dominance and the quality collapse at both
+	//! offsets still apply, and they are what makes a doublet correction safe.
+	bool doubletRequireSameSubstitution_{false};
 
 	//!@brief Frequency-only mode: an alternative criterion that ignores strand entirely and corrects a
 	//! rare k-mer to a dominant one-off neighbour purely on a depth ratio. Intended for data where the
