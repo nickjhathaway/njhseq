@@ -43,6 +43,7 @@ Json::Value StrandBiasKmerCorrectionPars::toJson() const {
 	ret["partnerMargin_"] = njh::json::toJson(partnerMargin_);
 	ret["minVotes_"] = njh::json::toJson(minVotes_);
 	ret["maxMinorStrandReads_"] = njh::json::toJson(maxMinorStrandReads_);
+	ret["maxMinorStrandFrac_"] = njh::json::toJson(maxMinorStrandFrac_);
 	ret["maxPasses_"] = njh::json::toJson(maxPasses_);
 	ret["padRegionByK_"] = njh::json::toJson(padRegionByK_);
 	ret["useQualityRelax_"] = njh::json::toJson(useQualityRelax_);
@@ -418,7 +419,11 @@ StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::buildPass(const std::vect
 	if (!pars_.frequencyOnly_) {
 		//evidence that a base is genuinely present on both strands; meaningless without a strand axis
 		for (const auto & entry : table) {
-			if (entry.second.minor() > pars_.maxMinorStrandReads_) {
+			//the threshold scales with the k-mer's depth, so the veto means the same thing at 90x as
+			//at 650x rather than tightening as coverage rises
+			const double allowedMinor = std::max<double>(pars_.maxMinorStrandReads_,
+					pars_.maxMinorStrandFrac_ * entry.second.total());
+			if (entry.second.minor() > allowedMinor) {
 				ret.balanced_.insert(entry.first);
 			}
 		}

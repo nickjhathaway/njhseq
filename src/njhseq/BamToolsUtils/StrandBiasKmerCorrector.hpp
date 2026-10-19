@@ -53,6 +53,21 @@ struct StrandBiasKmerCorrectionPars {
 	double partnerMargin_{2};                     //!< best partner total must be at least this many fold the second best partner
 	uint32_t minVotes_{2};                        //!< a base is edited when at least this many k-mers covering it agree on the edit and none disagree
 	uint32_t maxMinorStrandReads_{1};             //!< block an edit if any k-mer covering the base has more than this many reads on its minor strand
+	//!@brief Scale that veto with the k-mer's own depth, blocking only when the minor strand holds
+	//! more than max(maxMinorStrandReads_, maxMinorStrandFrac_ * total) reads; 0 keeps the plain
+	//! absolute threshold.
+	//!
+	//! The veto exists to stop an edit where a covering k-mer is genuinely present on both strands, so
+	//! what matters is the share of that k-mer's reads on its minor strand, not the raw count. Held
+	//! absolute, it tightens as coverage rises: a k-mer that is 97% one sided carries about one minor
+	//! strand read at 90x and about four at 650x, so beyond a few hundred fold the artifact k-mer
+	//! vetoes its own correction and the correction quietly stops working.
+	//!
+	//! The default of 0.15 sits well below the share a genuinely two-sided allele carries, which is
+	//! usually 0.3 to 0.5, so a real allele still vetoes an edit. A smaller fraction barely helps,
+	//! because the artifact k-mer is itself the low-depth one: 5% of its own reads is little more
+	//! than the absolute threshold it replaces.
+	double maxMinorStrandFrac_{0.15};
 	uint32_t maxPasses_{5};                       //!< tally/correct passes, each pass re-tallies on the corrected reads; stops early when a pass proposes no new candidate k-mers
 	bool padRegionByK_{true};                     //!< tally reads from the region padded by k on both sides so edge positions keep partner depth
 
@@ -170,7 +185,7 @@ public:
 
 	struct Pass {
 		std::unordered_map<uint64_t, Edit> corrections_; //!< candidate k-mer hash -> edit
-		std::unordered_set<uint64_t> balanced_;          //!< k-mers with more than maxMinorStrandReads_ on their minor strand (evidence against an edit)
+		std::unordered_set<uint64_t> balanced_;          //!< k-mers whose minor strand exceeds the veto threshold (evidence against an edit)
 		uint32_t oneSidedKmers_{0};                      //!< number of one-sided k-mers considered
 	};
 
