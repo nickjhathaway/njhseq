@@ -27,6 +27,7 @@
 #include "njhseq/helpers/seqUtil.hpp"
 
 #include <boost/math/distributions/hypergeometric.hpp>
+#include <functional>
 
 namespace njhseq {
 
@@ -55,6 +56,12 @@ Json::Value StrandBiasKmerCorrectionPars::toJson() const {
 	ret["freqMinCandidateTotal_"] = njh::json::toJson(freqMinCandidateTotal_);
 	ret["freqMinPartnerDepth_"] = njh::json::toJson(freqMinPartnerDepth_);
 	ret["freqMaxCandidateTotal_"] = njh::json::toJson(freqMaxCandidateTotal_);
+	ret["freqCollapseDuplicates_"] = njh::json::toJson(freqCollapseDuplicates_);
+	ret["freqQualityOverride_"] = njh::json::toJson(freqQualityOverride_);
+	ret["freqQualityMinDepthRatio_"] = njh::json::toJson(freqQualityMinDepthRatio_);
+	ret["freqQualityHighQual_"] = njh::json::toJson(freqQualityHighQual_);
+	ret["freqQualityMaxHighQualShare_"] = njh::json::toJson(freqQualityMaxHighQualShare_);
+	ret["freqQualityMaxConfidentCalls_"] = njh::json::toJson(freqQualityMaxConfidentCalls_);
 	ret["qualDropMin_"] = njh::json::toJson(qualDropMin_);
 	ret["qualMinReads_"] = njh::json::toJson(qualMinReads_);
 	ret["relaxedPartnerMissingStrandDepth_"] = njh::json::toJson(relaxedPartnerMissingStrandDepth_);
@@ -177,17 +184,58 @@ void StrandBiasKmerCorrector::tallySeq(KmerTable & table, const std::string & pl
 	}
 }
 
+void StrandBiasKmerCorrector::tallyReads(KmerTable & table, const std::vector<BufferedRead> & reads) const {
+	if (!(pars_.frequencyOnly_ && pars_.freqCollapseDuplicates_)) {
+		for (const auto & rd : reads) {
+			tallySeq(table, rd.seq_, rd.reverseStrand_);
+		}
+		return;
+	}
+	//group the mates of each pair, keeping buffer order so which duplicate is counted is deterministic
+	std::vector<std::vector<uint32_t>> fragments;
+	std::unordered_map<uint64_t, uint32_t> fragmentIndex;
+	for (uint32_t i = 0; i < reads.size(); ++i) {
+		if (std::numeric_limits<uint64_t>::max() == reads[i].fragment_) {
+			fragments.emplace_back(std::vector<uint32_t>{i});
+			continue;
+		}
+		auto search = fragmentIndex.find(reads[i].fragment_);
+		if (search == fragmentIndex.end()) {
+			fragmentIndex.emplace(reads[i].fragment_, fragments.size());
+			fragments.emplace_back(std::vector<uint32_t>{i});
+		} else {
+			fragments[search->second].emplace_back(i);
+		}
+	}
+	std::unordered_set<std::string> seenFragments;
+	for (const auto & fragment : fragments) {
+		std::string key;
+		for (const auto idx : fragment) {
+			key += reads[idx].seq_;
+			key += reads[idx].reverseStrand_ ? "-" : "+";
+		}
+		if (!seenFragments.emplace(std::move(key)).second) {
+			continue; //a duplicate of an earlier fragment
+		}
+		for (const auto idx : fragment) {
+			tallySeq(table, reads[idx].seq_, reads[idx].reverseStrand_);
+		}
+	}
+}
+
 std::vector<StrandBiasKmerCorrector::Candidate> StrandBiasKmerCorrector::findCandidates(const KmerTable & table) const {
 	std::vector<Candidate> ret;
 	const uint32_t k = pars_.kLen_;
 	for (const auto & entry : table) {
 		const auto & cand = entry.second;
 		const uint32_t tot = cand.total();
+		bool overCap = false;
 		if (pars_.frequencyOnly_) {
 			if (tot < pars_.freqMinCandidateTotal_) {
 				continue;
 			}
-			if (pars_.freqMaxCandidateTotal_ > 0 && tot > pars_.freqMaxCandidateTotal_) {
+			overCap = pars_.freqMaxCandidateTotal_ > 0 && tot > pars_.freqMaxCandidateTotal_;
+			if (overCap && !pars_.freqQualityOverride_) {
 				continue; //too well supported to call an error; a repeat-copy variant looks like this
 			}
 		} else {
@@ -237,7 +285,8 @@ std::vector<StrandBiasKmerCorrector::Candidate> StrandBiasKmerCorrector::findCan
 		//not just the other doublets, so a plausible single explanation still blocks the doublet.
 		const bool singleUsable = ('N' != bestBase) && best.total() > tot
 				&& !(secondTotal > 0 && best.total() < pars_.partnerMargin_ * secondTotal);
-		if (!singleUsable && pars_.doublet_ && !pars_.frequencyOnly_) {
+		//in frequency mode a doublet is only reachable through the quality override (see freqQualityOverride_)
+		if (!singleUsable && pars_.doublet_ && (!pars_.frequencyOnly_ || pars_.freqQualityOverride_)) {
 			const uint32_t bestSingleTotal = ('N' == bestBase) ? 0 : best.total();
 			uint64_t dHash = 0;
 			StrandCounts dBest;
@@ -283,8 +332,24 @@ std::vector<StrandBiasKmerCorrector::Candidate> StrandBiasKmerCorrector::findCan
 					}
 				}
 			}
-			if ('N' != dBase && dBest.total() > tot
-					&& !(dSecond > 0 && dBest.total() < pars_.partnerMargin_ * dSecond)) {
+			const bool doubletUsable = 'N' != dBase && dBest.total() > tot
+					&& !(dSecond > 0 && dBest.total() < pars_.partnerMargin_ * dSecond);
+			if (doubletUsable && pars_.frequencyOnly_) {
+				//no depth-only path: a frequency-mode doublet always needs the quality drop at both offsets
+				if (dBest.total() >= pars_.freqMinPartnerDepth_
+						&& dBest.total() >= pars_.freqQualityMinDepthRatio_ * tot) {
+					Candidate dc;
+					dc.kmer_ = entry.first;
+					dc.partner_ = dHash;
+					dc.offset_ = dOffset;
+					dc.to_ = dBase;
+					dc.offset2_ = dOffset + 1;
+					dc.to2_ = dBase2;
+					dc.missingIsFwd_ = missingIsFwd;
+					dc.needsQuality_ = true;
+					ret.emplace_back(dc);
+				}
+			} else if (doubletUsable) {
 				const uint32_t partnerMissing = missingIsFwd ? dBest.fwd_ : dBest.rev_;
 				const uint32_t partnerPresent = missingIsFwd ? dBest.rev_ : dBest.fwd_;
 				const uint32_t candMissing = missingIsFwd ? cand.fwd_ : cand.rev_;
@@ -321,14 +386,17 @@ std::vector<StrandBiasKmerCorrector::Candidate> StrandBiasKmerCorrector::findCan
 			continue; //ambiguous partner: we cannot tell which neighbour to correct toward
 		}
 		if (pars_.frequencyOnly_) {
-			//depth ratio alone; strand, VAF ratio, Fisher and quality play no part
+			//depth ratio alone; quality is consulted only when the cap or the ratio refuses the candidate
 			if (best.total() < pars_.freqMinPartnerDepth_) {
 				continue;
 			}
-			if (best.total() < pars_.minDepthRatio_ * tot) {
+			const bool needsQuality = overCap || best.total() < pars_.minDepthRatio_ * tot;
+			if (needsQuality && !(pars_.freqQualityOverride_
+					&& best.total() >= pars_.freqQualityMinDepthRatio_ * tot)) {
 				continue;
 			}
 			Candidate fc;
+			fc.needsQuality_ = needsQuality;
 			fc.kmer_ = entry.first;
 			fc.partner_ = bestHash;
 			fc.offset_ = bestOffset;
@@ -369,12 +437,24 @@ std::vector<StrandBiasKmerCorrector::Candidate> StrandBiasKmerCorrector::findCan
 StrandBiasKmerCorrector::QualTable StrandBiasKmerCorrector::collectOffsetQuality(
 		const std::vector<BufferedRead> & reads, const std::vector<Candidate> & candidates) const {
 	QualTable ret;
-	if (candidates.empty() || pars_.frequencyOnly_) {
-		return ret; //frequency mode makes no use of quality
+	if (candidates.empty()) {
+		return ret;
 	}
 	//only the candidates whose acceptance depends on quality need measuring
 	std::unordered_map<uint64_t, std::set<uint32_t>> wanted;
 	for (const auto & c : candidates) {
+		if (pars_.frequencyOnly_) {
+			//frequency mode compares the candidate's own base with the partner's, so both k-mers are measured
+			if (c.needsQuality_) {
+				for (const auto kmer : {c.kmer_, c.partner_}) {
+					wanted[kmer].emplace(c.offset_);
+					if (c.isDoublet()) {
+						wanted[kmer].emplace(c.offset2_);
+					}
+				}
+			}
+			continue;
+		}
 		if (c.isDoublet()) {
 			//a doublet is only ever accepted with a collapse at both of its offsets, so both are needed
 			wanted[c.partner_].emplace(c.offset_);
@@ -405,8 +485,12 @@ StrandBiasKmerCorrector::QualTable StrandBiasKmerCorrector::collectOffsetQuality
 			}
 			for (const auto offset : search->second) {
 				auto & slot = ret[{h, offset}];
+				const uint8_t q = rd.quals_[pos + offset];
 				slot[rd.reverseStrand_ ? 1 : 0] += 1;
-				slot[rd.reverseStrand_ ? 3 : 2] += rd.quals_[pos + offset];
+				slot[rd.reverseStrand_ ? 3 : 2] += q;
+				if (q >= pars_.freqQualityHighQual_) {
+					slot[rd.reverseStrand_ ? 5 : 4] += 1;
+				}
 			}
 		}
 	}
@@ -446,7 +530,42 @@ StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::buildPass(const std::vect
 		const double drop = (c.missingIsFwd_ ? q[2] : q[3]) / nMissing - (c.missingIsFwd_ ? q[3] : q[2]) / nPresent;
 		return drop >= pars_.qualDropMin_;
 	};
+	//frequency-mode quality test at one offset: the candidate's base against the partner's
+	auto hasFreqDropAt = [this, &quals](const Candidate & c, uint32_t offset) {
+		auto candSearch = quals.find({c.kmer_, offset});
+		auto partnerSearch = quals.find({c.partner_, offset});
+		if (candSearch == quals.end() || partnerSearch == quals.end()) {
+			return false;
+		}
+		const auto & cq = candSearch->second;
+		const auto & pq = partnerSearch->second;
+		const double nCand = cq[0] + cq[1];
+		const double nPartner = pq[0] + pq[1];
+		if (nCand < 1 || nPartner < pars_.qualMinReads_) {
+			return false;
+		}
+		if ((pq[2] + pq[3]) / nPartner - (cq[2] + cq[3]) / nCand < pars_.qualDropMin_) {
+			return false;
+		}
+		if (cq[4] + cq[5] > pars_.freqQualityMaxConfidentCalls_) {
+			return false;
+		}
+		const double candHighShare = (cq[4] + cq[5]) / nCand;
+		const double partnerHighShare = (pq[4] + pq[5]) / nPartner;
+		return candHighShare <= pars_.freqQualityMaxHighQualShare_ * partnerHighShare;
+	};
 	for (const auto & c : candidates) {
+		if (pars_.frequencyOnly_) {
+			//the depth ratio was already required in findCandidates; quality only where it was relaxed
+			if (c.needsQuality_) {
+				if (!hasFreqDropAt(c, c.offset_) || (c.isDoublet() && !hasFreqDropAt(c, c.offset2_))) {
+					continue;
+				}
+				++qualityRescued;
+			}
+			ret.corrections_[c.kmer_] = Edit { c.offset_, c.to_, c.offset2_, c.to2_ };
+			continue;
+		}
 		if (c.isDoublet()) {
 			//stricter than a single on purpose: the depth and Fisher guards must pass on their own, with
 			//no relaxation path, and the quality collapse is required at both offsets
@@ -457,11 +576,6 @@ StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::buildPass(const std::vect
 				continue;
 			}
 			ret.corrections_[c.kmer_] = Edit { c.offset_, c.to_, c.offset2_, c.to2_ };
-			continue;
-		}
-		if (pars_.frequencyOnly_) {
-			//the depth ratio was already required in findCandidates
-			ret.corrections_[c.kmer_] = Edit { c.offset_, c.to_, 0, 'N' };
 			continue;
 		}
 		bool accept = !c.failedDepth_ && !c.failedFisher_;
@@ -522,6 +636,165 @@ StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::buildPass(const std::vect
 StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::findCorrections(const KmerTable & table) const {
 	uint32_t rescued = 0;
 	return buildPass(findCandidates(table), table, QualTable{}, rescued);
+}
+
+uint32_t StrandBiasKmerCorrector::vetoSupportedAlleles(Pass & pass, const std::vector<Candidate> & candidates,
+		const KmerTable & table, const QualTable & quals, const std::vector<BufferedRead> & reads) const {
+	if (!pars_.frequencyOnly_ || pass.corrections_.empty()) {
+		return 0;
+	}
+	std::unordered_map<uint64_t, const Candidate *> qualityBacked;
+	for (const auto & c : candidates) {
+		if (c.needsQuality_ && njh::in(c.kmer_, pass.corrections_)) {
+			qualityBacked.emplace(c.kmer_, &c);
+		}
+	}
+	const uint32_t k = pars_.kLen_;
+	auto supported = [this, &table, &pass](uint64_t h) {
+		if (njh::in(h, pass.corrections_)) {
+			return false;
+		}
+		auto search = table.find(h);
+		return search != table.end() && search->second.total() > pars_.freqMaxCandidateTotal_;
+	};
+	//quality-backed corrections that edit the same base of the same read are one variant
+	std::unordered_map<uint64_t, uint64_t> parent;
+	std::function<uint64_t(uint64_t)> findRoot = [&parent, &findRoot](uint64_t h) -> uint64_t {
+		auto search = parent.find(h);
+		if (search == parent.end() || search->second == h) {
+			return h;
+		}
+		const uint64_t root = findRoot(search->second);
+		parent[h] = root;
+		return root;
+	};
+	for (const auto & qb : qualityBacked) {
+		parent.emplace(qb.first, qb.first);
+	}
+	//per read: the bases quality-backed corrections edit, and which corrections edit them
+	struct ReadEdits {
+		uint32_t readIdx;
+		std::vector<std::pair<uint32_t, uint64_t>> baseKmers;
+	};
+	std::vector<ReadEdits> readEdits;
+	std::unordered_set<uint64_t> vetoed;
+	std::vector<uint64_t> hashes;
+	std::vector<bool> valid;
+	for (uint32_t readIdx = 0; readIdx < reads.size(); ++readIdx) {
+		const auto & rd = reads[readIdx];
+		if (rd.seq_.size() < k) {
+			continue;
+		}
+		const uint32_t nWindows = rd.seq_.size() - k + 1;
+		hashes.assign(nWindows, 0);
+		valid.assign(nWindows, false);
+		bool hasCorrection = false;
+		for (uint32_t pos = 0; pos < nWindows; ++pos) {
+			uint64_t h = 0;
+			valid[pos] = hashKmer(rd.seq_, pos, k, h);
+			hashes[pos] = h;
+			hasCorrection = hasCorrection || (valid[pos] && njh::in(h, pass.corrections_));
+		}
+		if (!hasCorrection) {
+			continue;
+		}
+		ReadEdits edits{readIdx, {}};
+		for (uint32_t pos = 0; pos < nWindows; ++pos) {
+			if (!valid[pos]) {
+				continue;
+			}
+			auto search = pass.corrections_.find(hashes[pos]);
+			if (search == pass.corrections_.end()) {
+				continue;
+			}
+			std::vector<uint32_t> editedBases{pos + search->second.offset_};
+			if (search->second.isDoublet()) {
+				editedBases.emplace_back(pos + search->second.offset2_);
+			}
+			if (njh::in(hashes[pos], qualityBacked)) {
+				edits.baseKmers.emplace_back(editedBases.front(), hashes[pos]);
+				continue;
+			}
+			//depth-only correction: removed if a covering window is above the cap and not itself a correction
+			if (0 == pars_.freqMaxCandidateTotal_ || njh::in(hashes[pos], vetoed)) {
+				continue;
+			}
+			bool veto = false;
+			for (const auto basePos : editedBases) {
+				const uint32_t firstWindow = basePos + 1 >= k ? basePos + 1 - k : 0;
+				const uint32_t lastWindow = std::min(basePos, nWindows - 1);
+				for (uint32_t w = firstWindow; w <= lastWindow && !veto; ++w) {
+					veto = valid[w] && supported(hashes[w]);
+				}
+			}
+			if (veto) {
+				vetoed.emplace(hashes[pos]);
+			}
+		}
+		if (!edits.baseKmers.empty()) {
+			std::sort(edits.baseKmers.begin(), edits.baseKmers.end());
+			for (uint32_t i = 1; i < edits.baseKmers.size(); ++i) {
+				if (edits.baseKmers[i].first == edits.baseKmers[i - 1].first) {
+					const uint64_t a = findRoot(edits.baseKmers[i].second);
+					const uint64_t b = findRoot(edits.baseKmers[i - 1].second);
+					if (a != b) {
+						parent[a] = b;
+					}
+				}
+			}
+			readEdits.emplace_back(std::move(edits));
+		}
+	}
+	//pool each variant's calls once per read and re-test them against the partners
+	std::unordered_map<uint64_t, std::array<double, 2>> variantCalls; //root -> {calls, confident calls}
+	std::unordered_set<uint64_t> countedThisRead;
+	for (const auto & edits : readEdits) {
+		const auto & rd = reads[edits.readIdx];
+		countedThisRead.clear();
+		for (const auto & baseKmer : edits.baseKmers) {
+			const uint64_t root = findRoot(baseKmer.second);
+			if (!countedThisRead.emplace(root).second || baseKmer.first >= rd.quals_.size()) {
+				continue;
+			}
+			auto & calls = variantCalls[root];
+			calls[0] += 1;
+			if (rd.quals_[baseKmer.first] >= pars_.freqQualityHighQual_) {
+				calls[1] += 1;
+			}
+		}
+	}
+	std::unordered_map<uint64_t, std::array<double, 2>> partnerCalls; //root -> {calls, confident calls}
+	for (const auto & qb : qualityBacked) {
+		auto search = quals.find({qb.second->partner_, qb.second->offset_});
+		if (search == quals.end()) {
+			continue;
+		}
+		auto & calls = partnerCalls[findRoot(qb.first)];
+		calls[0] += search->second[0] + search->second[1];
+		calls[1] += search->second[4] + search->second[5];
+	}
+	std::unordered_set<uint64_t> realVariants;
+	for (const auto & variant : variantCalls) {
+		auto partner = partnerCalls.find(variant.first);
+		if (partner == partnerCalls.end() || partner->second[0] <= 0 || variant.second[0] <= 0) {
+			continue;
+		}
+		const double candShare = variant.second[1] / variant.second[0];
+		const double partnerShare = partner->second[1] / partner->second[0];
+		if (variant.second[1] > pars_.freqQualityMaxConfidentCalls_
+				|| candShare > pars_.freqQualityMaxHighQualShare_ * partnerShare) {
+			realVariants.emplace(variant.first);
+		}
+	}
+	for (const auto & qb : qualityBacked) {
+		if (njh::in(findRoot(qb.first), realVariants)) {
+			vetoed.emplace(qb.first);
+		}
+	}
+	for (const auto h : vetoed) {
+		pass.corrections_.erase(h);
+	}
+	return vetoed.size();
 }
 
 void StrandBiasKmerCorrector::addPass(Pass pass) {

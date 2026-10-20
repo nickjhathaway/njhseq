@@ -29,6 +29,7 @@
 #include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 
 #include <array>
+#include <limits>
 #include <map>
 #include <set>
 
@@ -129,10 +130,25 @@ struct StrandBiasKmerCorrectionPars {
 	//! tandem-repeat gene the two are indistinguishable by it, since a genuine repeat-copy variant
 	//! sits at a fraction of the gene's coverage and differs by one base in similar context. Error
 	//! mass is overwhelmingly singletons and doubletons, so a low ceiling keeps the correction while
-	//! leaving repeat-copy variation alone.
+	//! leaving repeat-copy variation alone. Depth is in reads; see freqCollapseDuplicates_.
 	uint32_t freqMaxCandidateTotal_{3};
-	double qualDropMin_{8};                       //!< required Phred drop (other strand minus artifact strand) at the candidate's offset
-	uint32_t qualMinReads_{5};                    //!< partner reads needed on each strand before a drop is trusted
+	//!@brief Frequency mode: count a duplicate fragment once in k-mer depth.
+	//! A fragment is a duplicate when the full sequences of all its mates equal an earlier fragment's.
+	//! Mates of a fragment still count separately.
+	bool freqCollapseDuplicates_{true};
+	//!@brief Frequency mode: also correct a candidate over freqMaxCandidateTotal_, or with a depth ratio
+	//! between freqQualityMinDepthRatio_ and minDepthRatio_, when its differing base looks miscalled:
+	//! its mean quality is at least qualDropMin_ below the partner's (partner has qualMinReads_ calls),
+	//! its share of calls >= freqQualityHighQual_ is at most freqQualityMaxHighQualShare_ times the
+	//! partner's share, and it has at most freqQualityMaxConfidentCalls_ such calls. With doublet_, an
+	//! adjacent two-base candidate is admitted the same way, with the test required at both offsets.
+	bool freqQualityOverride_{true};
+	double freqQualityMinDepthRatio_{3};        //!< ratio required instead of minDepthRatio_ when the quality drop is seen
+	uint32_t freqQualityHighQual_{30};          //!< Phred at or above which a call is confident
+	double freqQualityMaxHighQualShare_{0.5};   //!< candidate's confident share must be at most this fraction of the partner's
+	uint32_t freqQualityMaxConfidentCalls_{3};  //!< maximum confident calls the candidate may have
+	double qualDropMin_{8};                       //!< required Phred drop at the candidate's offset: other strand minus artifact strand, or in frequency mode partner base minus candidate base
+	uint32_t qualMinReads_{5};                    //!< partner reads needed on each strand (in frequency mode, in total) before a drop is trusted
 	uint32_t relaxedPartnerMissingStrandDepth_{8};//!< partner depth required instead of minPartnerMissingStrandDepth_ when a drop is seen
 	double relaxedFisherPhred_{10};               //!< Fisher Phred required instead of fisherPhred_ when a drop is seen
 
@@ -175,6 +191,7 @@ public:
 		bool failedFisher_{false};            //!< relaxable
 		uint32_t offset2_{0};                 //!< second offset, for an adjacent doublet
 		char to2_{'N'};                       //!< 'N' when this is a single-base candidate
+		bool needsQuality_{false};            //!< frequency mode: accepted only if the quality test passes
 		bool isDoublet() const { return 'N' != to2_; }
 	};
 
@@ -183,10 +200,13 @@ public:
 		std::string seq_;
 		std::vector<uint8_t> quals_;
 		bool reverseStrand_{false};
+		uint64_t fragment_{std::numeric_limits<uint64_t>::max()}; //!< shared by the two mates of a pair; max for a read with no mate buffered
 	};
 
-	//!@brief (partner k-mer, offset) -> {n fwd, n rev, quality sum fwd, quality sum rev} of the base at that offset
-	using QualTable = std::map<std::pair<uint64_t, uint32_t>, std::array<double, 4>>;
+	//!@brief (k-mer, offset) -> {n fwd, n rev, quality sum fwd, quality sum rev} of the base at that offset;
+	//! keyed by the partner k-mer, and in frequency mode by the candidate k-mer as well; slots 4 and 5
+	//! count the calls at or above freqQualityHighQual_ {fwd, rev}
+	using QualTable = std::map<std::pair<uint64_t, uint32_t>, std::array<double, 6>>;
 
 	struct Pass {
 		std::unordered_map<uint64_t, Edit> corrections_; //!< candidate k-mer hash -> edit
@@ -217,6 +237,8 @@ public:
 
 	//pass building
 	void tallySeq(KmerTable & table, const std::string & plusSeq, bool reverseStrand) const;
+	/**@brief tally buffered reads; in frequency mode with freqCollapseDuplicates_, duplicate fragments are skipped*/
+	void tallyReads(KmerTable & table, const std::vector<BufferedRead> & reads) const;
 	/**@brief every one-sided k-mer with a dominant partner, with the relaxable guards recorded rather than applied*/
 	std::vector<Candidate> findCandidates(const KmerTable & table) const;
 	/**@brief mean quality of the partner's base at each candidate's offset, per strand, from the buffered reads*/
@@ -224,6 +246,17 @@ public:
 	/**@brief turn candidates into a pass, accepting those whose only failures are relaxable and that show a quality drop*/
 	Pass buildPass(const std::vector<Candidate> & candidates, const KmerTable & table, const QualTable & quals, uint32_t & qualityRescued) const;
 	Pass findCorrections(const KmerTable & table) const; //!< convenience: findCandidates + buildPass with no quality information
+	/**@brief Frequency mode: remove corrections that would edit a base other windows show to be real.
+	 *
+	 * A correction accepted on depth alone is removed when, in any buffered read, another window covering
+	 * the base it edits is above freqMaxCandidateTotal_ and is not itself a correction in this pass.
+	 * Quality-backed corrections that edit the same base of the same read are grouped into one variant;
+	 * the variant's calls are pooled once per read and, if the pooled calls fail the confident-call tests
+	 * against the partners, all of the variant's corrections are removed.
+	 * Returns the number of corrections removed.
+	 */
+	uint32_t vetoSupportedAlleles(Pass & pass, const std::vector<Candidate> & candidates, const KmerTable & table,
+			const QualTable & quals, const std::vector<BufferedRead> & reads) const;
 	void addPass(Pass pass);
 	bool hasCorrections() const;
 	uint32_t numPasses() const;
