@@ -63,11 +63,12 @@ struct StrandBiasKmerCorrectionPars {
 	//! strand read at 90x and about four at 650x, so beyond a few hundred fold the artifact k-mer
 	//! vetoes its own correction and the correction quietly stops working.
 	//!
-	//! The default of 0.15 sits well below the share a genuinely two-sided allele carries, which is
-	//! usually 0.3 to 0.5, so a real allele still vetoes an edit. A smaller fraction barely helps,
-	//! because the artifact k-mer is itself the low-depth one: 5% of its own reads is little more
-	//! than the absolute threshold it replaces.
-	double maxMinorStrandFrac_{0.15};
+	//! The fraction has to stay below the share a genuinely two-sided allele carries, which is usually
+	//! 0.3 to 0.5, so that a real allele still vetoes an edit; above about 0.25 real alleles start
+	//! being corrected away. A very small fraction achieves little, since the artifact k-mer is itself
+	//! the low-depth one and a few percent of its own reads is close to the absolute threshold it
+	//! replaces.
+	double maxMinorStrandFrac_{0.20};
 	uint32_t maxPasses_{5};                       //!< tally/correct passes, each pass re-tallies on the corrected reads; stops early when a pass proposes no new candidate k-mers
 	bool padRegionByK_{true};                     //!< tally reads from the region padded by k on both sides so edge positions keep partner depth
 
@@ -102,13 +103,11 @@ struct StrandBiasKmerCorrectionPars {
 	bool doublet_{true};
 	//!@brief Require the same substitution at both offsets of a doublet.
 	//!
-	//! Off by default, because requiring it blocks a real artifact class: adjacent pairs where one
-	//! base changes one way and its neighbour another, such as T to C alongside G to A. Those turned
-	//! out to be the dominant residue at two loci. Allowing them changed no haplotype across 90
-	//! control samples over 900 region-runs, cost nothing on a known-truth amplicon panel or on a
-	//! control mixture ladder down to 2% components, and left targets holding two genuinely adjacent
-	//! real variants byte-identical. One-sidedness, partner dominance and the quality collapse at both
-	//! offsets still apply, and they are what makes a doublet correction safe.
+	//! Off by default, because requiring it misses a real artifact class: adjacent pairs where one base
+	//! changes one way and its neighbour another, such as T to C alongside G to A. What keeps a doublet
+	//! correction safe is one-sidedness, partner dominance and the quality collapse required at both
+	//! offsets, not the substitution matching, so requiring it costs sensitivity without adding
+	//! protection. Turn it on to correct only pairs that change the same way.
 	bool doubletRequireSameSubstitution_{false};
 
 	//!@brief Frequency-only mode: an alternative criterion that ignores strand entirely and corrects a
