@@ -102,6 +102,9 @@ void BamExtractor::buildStrandBiasKmerCorrectionPasses(BamTools::BamReader & bRe
 		if (found.corrections_.empty()) {
 			break;
 		}
+		//record the longer windows the reads carry at this point, so each edit can be checked against
+		//sequence seen at its own position rather than against a positionless k-mer set
+		corrector.tallyValidationContext(found, buffer);
 		corrector.addPass(std::move(found));
 		//apply to the buffer so the next pass tallies corrected reads, exactly as the write path will see them
 		for (auto & rd : buffer) {

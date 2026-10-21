@@ -51,6 +51,8 @@ Json::Value StrandBiasKmerCorrectionPars::toJson() const {
 	ret["requireQualityDrop_"] = njh::json::toJson(requireQualityDrop_);
 	ret["doublet_"] = njh::json::toJson(doublet_);
 	ret["doubletRequireSameSubstitution_"] = njh::json::toJson(doubletRequireSameSubstitution_);
+	ret["requireCorrectedKmerObserved_"] = njh::json::toJson(requireCorrectedKmerObserved_);
+	ret["validationFlank_"] = njh::json::toJson(validationFlank_);
 	ret["frequencyOnly_"] = njh::json::toJson(frequencyOnly_);
 	ret["minDepthRatio_"] = njh::json::toJson(minDepthRatio_);
 	ret["freqMinCandidateTotal_"] = njh::json::toJson(freqMinCandidateTotal_);
@@ -513,6 +515,13 @@ StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::buildPass(const std::vect
 		}
 	}
 	ret.oneSidedKmers_ = candidates.size();
+	if (pars_.requireCorrectedKmerObserved_) {
+		//keep what the reads actually carried, so an edit's result can be checked against it
+		ret.observed_.reserve(table.size());
+		for (const auto & entry : table) {
+			ret.observed_.insert(entry.first);
+		}
+	}
 	//quality collapse at one offset of a partner k-mer, measured from the buffered reads
 	auto hasCollapseAt = [this, &quals](const Candidate & c, uint32_t offset) {
 		auto search = quals.find({c.partner_, offset});
@@ -631,6 +640,24 @@ StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::buildPass(const std::vect
 		}
 	}
 	return ret;
+}
+
+void StrandBiasKmerCorrector::tallyValidationContext(Pass & pass,
+		const std::vector<BufferedRead> & reads) const {
+	if (!pars_.requireCorrectedKmerObserved_ || 0 == pars_.validationFlank_) {
+		return;
+	}
+	const uint32_t len = validationLen();
+	std::hash<std::string> hasher;
+	for (const auto & rd : reads) {
+		if (rd.seq_.size() < len) {
+			continue;
+		}
+		const uint32_t nWindows = rd.seq_.size() - len + 1;
+		for (uint32_t pos = 0; pos < nWindows; ++pos) {
+			pass.observedContext_.insert(hasher(rd.seq_.substr(pos, len)));
+		}
+	}
 }
 
 StrandBiasKmerCorrector::Pass StrandBiasKmerCorrector::findCorrections(const KmerTable & table) const {
@@ -866,6 +893,98 @@ uint32_t StrandBiasKmerCorrector::applyPass(const Pass & pass, std::string & plu
 		}
 		out[basePos] = edit.first;
 		++edited;
+	}
+	if (edited > 0 && pars_.requireCorrectedKmerObserved_ && !pass.observed_.empty()) {
+		//an edit is individually toward an observed partner, but two edits inside one window can
+		//combine into a k-mer no read carried; revert the edits in any such window until stable
+		std::set<uint32_t> editedPositions;
+		for (uint32_t pos = 0; pos < out.size(); ++pos) {
+			if (out[pos] != plusSeq[pos]) {
+				editedPositions.insert(pos);
+			}
+		}
+		bool changed = true;
+		while (changed && !editedPositions.empty()) {
+			changed = false;
+			for (uint32_t w = 0; w < nWindows; ++w) {
+				bool touches = false;
+				for (const auto pos : editedPositions) {
+					if (pos >= w && pos < w + k) {
+						touches = true;
+						break;
+					}
+				}
+				if (!touches) {
+					continue;
+				}
+				uint64_t before = 0;
+				if (!hashKmer(plusSeq, w, k, before) || !njh::in(before, pass.observed_)) {
+					continue; //this window lies outside what was tallied, so there is nothing to check against
+				}
+				uint64_t h2 = 0;
+				if (!hashKmer(out, w, k, h2) || njh::in(h2, pass.observed_)) {
+					continue;
+				}
+				//this window's result was never observed, so undo the edits inside it
+				for (auto it = editedPositions.begin(); it != editedPositions.end();) {
+					if (*it >= w && *it < w + k) {
+						out[*it] = plusSeq[*it];
+						--edited;
+						it = editedPositions.erase(it);
+						changed = true;
+					} else {
+						++it;
+					}
+				}
+			}
+		}
+	}
+	if (edited > 0 && pars_.requireCorrectedKmerObserved_ && !pass.observedContext_.empty()) {
+		//the flank-anchored check: a longer window around the edit has to match sequence the reads
+		//carry, which pins the correction to this position rather than to another copy of a repeat
+		const uint32_t len = validationLen();
+		if (out.size() >= len) {
+			std::hash<std::string> hasher;
+			std::set<uint32_t> editedPositions;
+			for (uint32_t pos = 0; pos < out.size(); ++pos) {
+				if (out[pos] != plusSeq[pos]) {
+					editedPositions.insert(pos);
+				}
+			}
+			const uint32_t nLongWindows = out.size() - len + 1;
+			bool changed = true;
+			while (changed && !editedPositions.empty()) {
+				changed = false;
+				for (uint32_t w = 0; w < nLongWindows; ++w) {
+					bool touches = false;
+					for (const auto pos : editedPositions) {
+						if (pos >= w && pos < w + len) {
+							touches = true;
+							break;
+						}
+					}
+					if (!touches) {
+						continue;
+					}
+					if (!njh::in(hasher(plusSeq.substr(w, len)), pass.observedContext_)) {
+						continue; //nothing observed here to check against
+					}
+					if (njh::in(hasher(out.substr(w, len)), pass.observedContext_)) {
+						continue;
+					}
+					for (auto it = editedPositions.begin(); it != editedPositions.end();) {
+						if (*it >= w && *it < w + len) {
+							out[*it] = plusSeq[*it];
+							--edited;
+							it = editedPositions.erase(it);
+							changed = true;
+						} else {
+							++it;
+						}
+					}
+				}
+			}
+		}
 	}
 	if (edited > 0) {
 		plusSeq = out;

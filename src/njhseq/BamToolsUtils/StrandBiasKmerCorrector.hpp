@@ -111,6 +111,31 @@ struct StrandBiasKmerCorrectionPars {
 	//! protection. Turn it on to correct only pairs that change the same way.
 	bool doubletRequireSameSubstitution_{false};
 
+	//!@brief Refuse an edit whose result is a k-mer that no read carried.
+	//!
+	//! Each correction is individually toward an observed dominant partner, but a read can receive
+	//! edits at two positions inside one k-mer window, and the combination can be a sequence that
+	//! appears in no read. In a tandem repeat or a homopolymer this is a real risk, because a
+	//! shifted repeat phase is itself an abundant k-mer, so correcting toward it rewrites a read
+	//! into a phase rather than toward the truth and can manufacture a haplotype. Requiring the
+	//! result to have been observed keeps corrections inside the sequence space the reads support.
+	//!
+	//! Only windows whose pre-edit k-mer was itself observed are checked; a read reaching beyond the
+	//! tallied region has k-mers that were never counted, and those carry no information either way.
+	bool requireCorrectedKmerObserved_{true};
+
+	//!@brief Bases of flanking context, on each side of the corrected k-mer, that a correction's
+	//! result must also match in the reads; 0 checks the k-mer alone.
+	//!
+	//! The k-mer tally carries no position, so the dominant partner of a k-mer can be a k-mer whose
+	//! real home is elsewhere in the region, such as another copy of a tandem repeat or a shifted
+	//! phase of it. Correcting toward that partner imports sequence from the other location, which at
+	//! the read's own position is novel, and in a repeat the result can still be a k-mer that exists
+	//! somewhere, so checking the k-mer alone does not catch it. Requiring a longer window around the
+	//! edit to match what reads carry anchors the correction positionally: the flanks pin which copy
+	//! of the repeat the read belongs to.
+	uint32_t validationFlank_{8};
+
 	//!@brief Frequency-only mode: an alternative criterion that ignores strand entirely and corrects a
 	//! rare k-mer to a dominant one-off neighbour purely on a depth ratio. Intended for data where the
 	//! strand axis is unusable -- a stranded RNA-seq library, where strand collapses onto mate identity
@@ -210,6 +235,8 @@ public:
 
 	struct Pass {
 		std::unordered_map<uint64_t, Edit> corrections_; //!< candidate k-mer hash -> edit
+		std::unordered_set<uint64_t> observed_;          //!< every k-mer seen in the reads, for validating an edit's result
+		std::unordered_set<size_t> observedContext_;     //!< hashes of every longer window seen in the reads, for the flank-anchored check
 		std::unordered_set<uint64_t> balanced_;          //!< k-mers whose minor strand exceeds the veto threshold (evidence against an edit)
 		uint32_t oneSidedKmers_{0};                      //!< number of one-sided k-mers considered
 	};
@@ -246,6 +273,11 @@ public:
 	/**@brief turn candidates into a pass, accepting those whose only failures are relaxable and that show a quality drop*/
 	Pass buildPass(const std::vector<Candidate> & candidates, const KmerTable & table, const QualTable & quals, uint32_t & qualityRescued) const;
 	Pass findCorrections(const KmerTable & table) const; //!< convenience: findCandidates + buildPass with no quality information
+	//!@brief length of the window used by the flank-anchored check
+	uint32_t validationLen() const { return pars_.kLen_ + 2 * pars_.validationFlank_; }
+	/**@brief record every validation-length window of these reads, so an edit's result can be checked
+	 * against the sequence reads actually carry rather than against a positionless k-mer set*/
+	void tallyValidationContext(Pass & pass, const std::vector<BufferedRead> & reads) const;
 	/**@brief Frequency mode: remove corrections that would edit a base other windows show to be real.
 	 *
 	 * A correction accepted on depth alone is removed when, in any buffered read, another window covering
