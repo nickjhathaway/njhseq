@@ -103,7 +103,6 @@ void PairedCluster::calculateConsensus(aligner & alignerObj, bool setToConsensus
 		mateSeqBase_ = mateSeqBaseCon;
 	}
 	//std::cout << "calculateConsensus inbetween4" << std::endl;
-	setLetterCount();
 	//std::cout << "calculateConsensus inbetween5" << std::endl;
 	needToCalculateConsensus = false;
 	//std::cout << "calculateConsensus stop" << std::endl;

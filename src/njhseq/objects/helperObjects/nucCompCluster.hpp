@@ -38,8 +38,8 @@ public:
 	nucCompCluster(){};
 
 	template<typename T>
-	nucCompCluster(const T& firstRead, uint64_t readPos):
-	counter_(charCounter(firstRead.counter_.alphabet_)),
+	nucCompCluster(const T& firstRead, const std::vector<char> & alphabet, uint64_t readPos):
+	counter_(charCounter(alphabet)),
 	readCnt_(firstRead.seqBase_.cnt_) {
 		counter_.increaseCountByString(firstRead.seqBase_.seq_, firstRead.seqBase_.cnt_);
 		readPositions_.emplace_back(readPos);
@@ -47,8 +47,8 @@ public:
 	}
 
 	template<typename T>
-	nucCompCluster(const T& firstRead, uint64_t readPos, uint64_t minLen):
-	counter_(charCounter(firstRead.counter_.alphabet_)),
+	nucCompCluster(const T& firstRead, const std::vector<char> & alphabet, uint64_t readPos, uint64_t minLen):
+	counter_(charCounter(alphabet)),
 	readCnt_(firstRead.seqBase_.cnt_) {
 		counter_.increasePortion(firstRead.seqBase_.seq_,minLen, firstRead.seqBase_.cnt_);
 		readPositions_.emplace_back(readPos);
@@ -62,9 +62,8 @@ public:
 
 	static uint32_t readBufferMax_;
 
-	template<typename T>
-	bool compareRead(const T& read, double diffCutOff){
-		double sum = counter_.getFracDifference(read.counter_, counter_.alphabet_);
+	bool compareRead(const charCounter & readCounts, double diffCutOff){
+		double sum = counter_.getFracDifference(readCounts, counter_.alphabet_);
 		if(sum > diffCutOff){
 			return false;
 		}else{
@@ -132,11 +131,12 @@ void findBestNucComp(const T & read, uint64_t pos, const std::vector<char> & alp
 	bool found = false;
 	double lowestDifference = 1;
 	uint64_t bestPos = std::numeric_limits<uint64_t>::max();
+	const auto readCounts = read.getLetterCounts(alphabet);
   for(const auto compPos : iter::range(comps.size())){
-  	if(comps[compPos].compareRead(read, diffCutOff)){
+  	if(comps[compPos].compareRead(readCounts, diffCutOff)){
   		found = true;
   		if(findBest){
-  			double currentDiff = comps[compPos].counter_.getFracDifference(read.counter_, alphabet);
+  			double currentDiff = comps[compPos].counter_.getFracDifference(readCounts, alphabet);
   			if(currentDiff < lowestDifference){
   				lowestDifference = currentDiff;
   				bestPos = compPos;
@@ -148,7 +148,7 @@ void findBestNucComp(const T & read, uint64_t pos, const std::vector<char> & alp
   	}
   }
   if(!found){
-  	comps.emplace_back(nucCompCluster(read, pos));
+  	comps.emplace_back(nucCompCluster(read, alphabet, pos));
   }else if(findBest){
   	comps[bestPos].addRead(read, pos);
   }
@@ -159,11 +159,12 @@ void findBestNucComp(const T & read, uint64_t pos, uint64_t minLen,const std::ve
 	bool found = false;
 	double lowestDifference = 1;
 	uint64_t bestPos = std::numeric_limits<uint64_t>::max();
+	const auto readCounts = read.getLetterCounts(alphabet);
   for(const auto compPos : iter::range(comps.size())){
-  	if(comps[compPos].compareRead(read, diffCutOff)){
+  	if(comps[compPos].compareRead(readCounts, diffCutOff)){
   		found = true;
   		if(findBest){
-  			double currentDiff = comps[compPos].counter_.getFracDifference(read.counter_, alphabet);
+  			double currentDiff = comps[compPos].counter_.getFracDifference(readCounts, alphabet);
   			if(currentDiff < lowestDifference){
   				lowestDifference = currentDiff;
   				bestPos = compPos;
@@ -175,7 +176,7 @@ void findBestNucComp(const T & read, uint64_t pos, uint64_t minLen,const std::ve
   	}
   }
   if(!found){
-  	comps.emplace_back(nucCompCluster(read, pos, minLen));
+  	comps.emplace_back(nucCompCluster(read, alphabet, pos, minLen));
   }else if(findBest){
   	comps[bestPos].addRead(read, pos, minLen);
   }
@@ -195,7 +196,6 @@ std::vector<nucCompCluster>  clusterOnNucComp(std::vector<T> & reads,
 	uint64_t pos = 0;
   readVecSorter::sortReadVector(reads, "seqCondensed");
 	for(auto & read : reads ){
-		read.setLetterCount(alphabet);
   	if(pos % 5000 == 0 && verbose){
   		std::cout << "On " << pos << std::endl;
   	}
@@ -216,7 +216,6 @@ std::vector<nucCompCluster>  clusterOnNucComp(std::vector<T> & reads,
 	uint64_t pos = 0;
   readVecSorter::sortReadVector(reads, "seqCondensed");
 	for(auto & read : reads ){
-		read.setLetterCount(alphabet);
   	if(pos % 5000 == 0 && verbose){
   		std::cout << "On " << pos << std::endl;
   	}

@@ -242,8 +242,9 @@ charCounterArray getAverageLetterFraction(const std::vector<T>& reads,
                                        bool letterCounterSet = false) {
   charCounterArray mainCounter;
   for (auto& read : reads) {
-    for (const auto& letter : read.counter_.alphabet_) {
-      mainCounter.chars_[letter] += read.counter_.chars_[letter];
+    auto readCounts = read.getLetterCounts();
+    for (const auto& letter : readCounts.alphabet_) {
+      mainCounter.chars_[letter] += readCounts.chars_[letter];
     }
   }
   mainCounter.resetAlphabet(false);

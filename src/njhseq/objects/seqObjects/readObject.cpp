@@ -70,7 +70,7 @@ Json::Value readObject::toJson()const{
 	ret["averageErrorRate"] = njh::json::toJson(averageErrorRate);
 	ret["fractionAboveQualCheck_"] = njh::json::toJson(fractionAboveQualCheck_);
 	ret["remove"] = njh::json::toJson(remove);
-	ret["counter_"] = njh::json::toJson(counter_);
+	ret["counter_"] = njh::json::toJson(getLetterCounts());
 	ret["condensedSeq"] = njh::json::toJson(condensedSeq);
 	ret["condensedSeqQual"] = njh::json::toJson(condensedSeqQual);
 	ret["condensedSeqQualPos"] = njh::json::toJson(condensedSeqQualPos);
@@ -275,18 +275,20 @@ void readObject::checkSeqQual(std::ostream& outFile) const {
   outFile << std::endl;
 }
 
-// counter setters
-void readObject::setLetterCount() {
-	counter_.reset();
-	counter_.increaseCountByString(seqBase_.seq_, seqBase_.cnt_);
-	counter_.resetAlphabet(true);
-	counter_.setFractions();
+// letter counts
+charCounter readObject::getLetterCounts() const {
+	charCounter counter;
+	counter.increaseCountByString(seqBase_.seq_, seqBase_.cnt_);
+	counter.resetAlphabet(true);
+	counter.setFractions();
+	return counter;
 }
 
-void readObject::setLetterCount(const std::vector<char> & alph){
-	counter_ = charCounter(alph);
-	counter_.increaseCountByString(seqBase_.seq_, seqBase_.cnt_);
-	counter_.setFractions();
+charCounter readObject::getLetterCounts(const std::vector<char> & alph) const {
+	charCounter counter(alph);
+	counter.increaseCountByString(seqBase_.seq_, seqBase_.cnt_);
+	counter.setFractions();
+	return counter;
 }
 
 
@@ -427,10 +429,10 @@ readObject readObject::translateRet(bool complement, bool reverse, size_t start 
 }
 
 
-double readObject::getGCContent() {
-  setLetterCount();
-  counter_.calcGcContent();
-  return counter_.gcContent_;
+double readObject::getGCContent() const {
+  auto counter = getLetterCounts();
+  counter.calcGcContent();
+  return counter.gcContent_;
 }
 
 void readObject::adjustHomopolyerRunQualities() {

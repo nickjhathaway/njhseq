@@ -646,21 +646,18 @@ template <class T>
 void profiler::outputHighestGCContent(std::vector<T>& reads,
                                       std::ostream& out) {
   readObject highestGCContent;
+  double highestGC = 0;
   for (typename std::vector<T>::iterator iter = reads.begin();
        iter != reads.end(); ++iter) {
-    iter->setLetterCount();
-    iter->counter.setGcContent();
-    if (iter == reads.begin()) {
+    double currentGC = iter->getGCContent();
+    if (iter == reads.begin() || currentGC > highestGC) {
       highestGCContent = *iter;
-    } else {
-      if (iter->counter.gcContent > highestGCContent.counter_.gcContent_) {
-        highestGCContent = *iter;
-      }
+      highestGC = currentGC;
     }
   }
   // out<<">"<<highestGCContent.seqBase_.name_<<std::endl;
   out << highestGCContent.seqBase_.name_ << std::endl;
-  out << highestGCContent.counter_.gcContent_ * 100.00 << "%" << std::endl;
+  out << highestGC * 100.00 << "%" << std::endl;
 }
 
 template <class T>

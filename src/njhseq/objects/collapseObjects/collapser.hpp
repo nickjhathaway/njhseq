@@ -32,6 +32,7 @@
 #include "njhseq/objects/seqObjects/Clusters/cluster.hpp"
 #include "njhseq/objects/collapseObjects/opts.h"
 #include "njhseq/objects/dataContainers/tables/table.hpp"
+#include <optional>
 
 
 namespace njhseq {
@@ -123,6 +124,8 @@ void collapser::findMatch(CLUSTER &read,
   bool foundMatch = false;
   uint32_t bestSearching = 0;
   uint32_t bestClusterPos = std::numeric_limits<uint32_t>::max();
+  //only computed if needed for skipOnLetterCounterDifference_
+  std::optional<charCounter> readLetterCounts;
   for (const auto &clusPos : positions) {
     if (comparingReads[clusPos].remove) {
       continue;
@@ -150,8 +153,11 @@ void collapser::findMatch(CLUSTER &read,
     }
 
     if (opts_.skipOpts_.skipOnLetterCounterDifference_) {
-      double sum = read.counter_.getFracDifference(clus.counter_,
-      		read.counter_.alphabet_);
+      if (!readLetterCounts) {
+      	readLetterCounts = getRef(read).getLetterCounts();
+      }
+      double sum = readLetterCounts->getFracDifference(getRef(clus).getLetterCounts(),
+      		readLetterCounts->alphabet_);
       if (sum > opts_.skipOpts_.fractionDifferenceCutOff_) {
         continue;
       }

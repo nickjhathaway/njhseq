@@ -468,7 +468,6 @@ bool baseCluster::calculateConsensusTo(
 //				std::cout << __FILE__ << " " << __LINE__ << std::endl;
 				seqBase_.seq_ = calcConsensusInfo_.seq_;
 //				std::cout << __FILE__ << " " << __LINE__ << std::endl;
-				setLetterCount();
 			}
 			seqBase_.qual_ = calcConsensusInfo_.qual_;
 		}

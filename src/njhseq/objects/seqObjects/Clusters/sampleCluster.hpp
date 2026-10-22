@@ -68,7 +68,6 @@ class sampleCluster : public cluster {
 		  seqBase_.frac_ = getAveragedFrac(); //calculate average as the mean fraction between all samples
 		}
 
-		setLetterCount();
 		remove = false;
 		needToCalculateConsensus_ = false;
 	}

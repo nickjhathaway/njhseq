@@ -128,7 +128,6 @@ std::vector<nucCompCluster>  clusterOnNucComp(const SeqIOOptions & ioOptions,
   	throw std::runtime_error{ss.str()};
   }
 	while (reader.readNextRead(read)) {
-		read.setLetterCount(alphabet);
 		if (count % 5000 == 0 && verbose) {
 			std::cout << "On " << count << "\r";
 			std::cout.flush();

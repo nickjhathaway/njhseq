@@ -69,7 +69,6 @@ class clusterCollapser {
       }
     }
     identicalCluster::setIdneticalClusterQual(ret, repQual);
-    readVec::allSetLetterCount(ret);
     readVec::allUpdateName(ret);
     return ret;
   }

@@ -154,6 +154,18 @@ class cluster : public baseCluster {
 	};
   std::vector<cluster> breakoutClustersBasedOnSnps(aligner & alignerObj, const snpBreakoutPars& pars );
 
+	/**@brief Whether a snp passes the strand composition check, if the cluster has reads from both directions the snp needs to be found in both directions
+	 *
+	 * @param snpReadCount the read count supporting the snp
+	 * @param snpCompReadCount the read count supporting the snp from reverse complemented (_Comp) reads
+	 * @param compReadsInCluster the number of reverse complemented reads in the cluster
+	 * @param readsInCluster the number of reads in the cluster
+	 * @param compositionCutOff the fraction of the snp's reads from each direction has to be above this
+	 * @return true if it passes
+	 */
+	static bool snpPassesStrandComposition(double snpReadCount, double snpCompReadCount,
+			uint64_t compReadsInCluster, uint64_t readsInCluster, double compositionCutOff);
+
 	using size_type = baseReadObject::size_type;
 
 	virtual Json::Value toJson() const;

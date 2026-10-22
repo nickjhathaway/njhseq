@@ -108,6 +108,10 @@ public:
 	PreFilteringCutOffs preFiltCutOffs_;
 	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> oututSampClusToOldNameKey_;
 	std::map<std::string, std::shared_ptr<collapse::sampleCollapse>> sampleCollapses_;
+
+	/**@brief Thread safe lookup of a sample's collapse, sampleCollapses_ can be inserted into by other threads during setUpSample
+	 */
+	std::shared_ptr<collapse::sampleCollapse> getSampleCollapse(const std::string & sampleName);
 	std::unique_ptr<populationCollapse> popCollapse_;
 	std::unique_ptr<MultipleGroupMetaData> groupMetaData_;
 	std::unique_ptr<AllGroupDataPaths> groupDataPaths_;
@@ -259,7 +263,7 @@ public:
 			if(!keepSampleInfoInMemory_){
 				setUpSampleFromPrevious(sampleName);
 			}
-			auto sampPtr = sampleCollapses_.at(sampleName);
+			auto sampPtr = getSampleCollapse(sampleName);
 			std::vector<uint32_t> toBeRescued;
 			//iterator over haplotypes, determine if they should be considered for rescue, if they should be then check to see if they match a major haplotype
 			for(const auto excludedPos : iter::range(sampPtr->excluded_.clusters_.size())){

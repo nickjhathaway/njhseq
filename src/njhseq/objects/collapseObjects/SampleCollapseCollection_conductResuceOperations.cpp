@@ -65,7 +65,7 @@ bool SampleCollapseCollection::conductResuceOperations(const conductResuceOperat
 		}
 		// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 		// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-		auto sampPtr = sampleCollapses_.at(sampleName);
+		auto sampPtr = getSampleCollapse(sampleName);
 		for(uint32_t clusPos = 0;  clusPos < sampPtr->collapsed_.clusters_.size(); ++clusPos){
 			if(sampPtr->collapsed_.clusters_[clusPos].seqBase_.frac_ >= pars.majorHaplotypeFracForRescue_){
 				majorHaps.emplace(popCollapse_->collapsed_.clusters_[popCollapse_->collapsed_.subClustersPositions_.at(sampPtr->collapsed_.clusters_[clusPos].getStubName(true))].seqBase_.name_);
@@ -76,8 +76,9 @@ bool SampleCollapseCollection::conductResuceOperations(const conductResuceOperat
 			}
 		}
 		// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+		//nothing was changed so no need to write it back out
 		if(!keepSampleInfoInMemory_){
-			dumpSample(sampleName);
+			clearSample(sampleName);
 		}
 		// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	}
@@ -93,7 +94,7 @@ bool SampleCollapseCollection::conductResuceOperations(const conductResuceOperat
 			setUpSampleFromPrevious(sampleName);
 		}
 		// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-		auto sampPtr = sampleCollapses_.at(sampleName);
+		auto sampPtr = getSampleCollapse(sampleName);
 		std::vector<uint32_t> toBeRescued;
 		//iterator over haplotypes, determine if they should be considered for rescue, if they should be then check to see if they match a major haplotype
 		for(const auto excludedPos : iter::range(sampPtr->excluded_.clusters_.size())){
@@ -199,9 +200,12 @@ bool SampleCollapseCollection::conductResuceOperations(const conductResuceOperat
 		}
 		// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 		if(!keepSampleInfoInMemory_){
-			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-			dumpSample(sampleName);
-			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
+			//only write the sample back out if something was rescued
+			if(toBeRescued.empty()){
+				clearSample(sampleName);
+			}else{
+				dumpSample(sampleName);
+			}
 		}
 		// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 	}

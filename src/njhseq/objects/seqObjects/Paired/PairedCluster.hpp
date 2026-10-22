@@ -39,7 +39,6 @@ public:
 		firstReadName = firstRead.seqBase_.name_;
 		firstReadCount = firstRead.seqBase_.cnt_;
 		reads_.push_back(std::make_shared<PairedRead>(firstRead));
-		setLetterCount();
 		needToCalculateConsensus = false;
 		remove = false;
 		updateName();

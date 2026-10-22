@@ -53,21 +53,29 @@ void PairedRead::setBaseCountOnQualCheck(uint32_t qualCheck){
 }
 
 
-void PairedRead::setLetterCount() {
-	counter_.reset();
-	counter_.increaseCountByString(seqBase_.seq_, seqBase_.cnt_);
-	if(mateRComplemented_){
-		counter_.increaseCountByString(mateSeqBase_.seq_, seqBase_.cnt_);
-	}else{
-		counter_.increaseCountByString(seqUtil::reverseComplement(mateSeqBase_.seq_, "DNA"), seqBase_.cnt_);
-	}
-	counter_.resetAlphabet(true);
-	counter_.setFractions();
+charCounter PairedRead::getLetterCounts() const {
+	charCounter counter;
+	addLetterCounts(counter);
+	counter.resetAlphabet(true);
+	counter.setFractions();
+	return counter;
 }
 
-void PairedRead::setLetterCount(const std::vector<char> & alph){
-	counter_ = charCounter(alph);
-	setLetterCount();
+charCounter PairedRead::getLetterCounts(const std::vector<char> & alph) const {
+	charCounter counter(alph);
+	addLetterCounts(counter);
+	counter.resetAlphabet(true);
+	counter.setFractions();
+	return counter;
+}
+
+void PairedRead::addLetterCounts(charCounter & counter) const {
+	counter.increaseCountByString(seqBase_.seq_, seqBase_.cnt_);
+	if(mateRComplemented_){
+		counter.increaseCountByString(mateSeqBase_.seq_, seqBase_.cnt_);
+	}else{
+		counter.increaseCountByString(seqUtil::reverseComplement(mateSeqBase_.seq_, "DNA"), seqBase_.cnt_);
+	}
 }
 
 

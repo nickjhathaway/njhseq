@@ -519,7 +519,7 @@ void SampleCollapseCollection::clusterSample(const std::string & sampleName,
 	std::string sortBy = "fraction";
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
 
-	auto samp = sampleCollapses_.at(sampleName);
+	auto samp = getSampleCollapse(sampleName);
 	samp->cluster(collapserObj, colIters, sortBy, alignerObj);
 
 	samp->updateCollapsedInfos();
@@ -534,7 +534,7 @@ void SampleCollapseCollection::collapseLowFreqOneOffsSample(
 	std::string sortBy = "fraction";
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
 
-	auto samp = sampleCollapses_.at(sampleName);
+	auto samp = getSampleCollapse(sampleName);
 	samp->collapseLowFreqOneOffs(lowFreqMultiplier, alignerObj, collapserObj);
 
 	samp->updateCollapsedInfos();
@@ -544,7 +544,7 @@ void SampleCollapseCollection::collapseLowFreqOneOffsSample(
 
 void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
-	auto samp = sampleCollapses_.at(sampleName);
+	auto samp = getSampleCollapse(sampleName);
 	auto sampDir = njh::files::make_path(masterOutputDir_, "samplesOutput",
 			sampleName);
 	auto finalDir = njh::files::make_path(masterOutputDir_, "samplesOutput",
@@ -654,8 +654,14 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 	}
 }
 
+std::shared_ptr<collapse::sampleCollapse> SampleCollapseCollection::getSampleCollapse(const std::string & sampleName) {
+	std::lock_guard<std::mutex> lock(mut_);
+	return sampleCollapses_.at(sampleName);
+}
+
 void SampleCollapseCollection::clearSample(const std::string & sampleName) {
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
+	std::lock_guard<std::mutex> lock(mut_);
 	sampleCollapses_.at(sampleName) = nullptr;
 }
 
@@ -672,7 +678,7 @@ void SampleCollapseCollection::setPassingSamples(){
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampleName);
 		}
-		if(!njh::in(sampleName, lowRepCntSamples_) && sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_ >= preFiltCutOffs_.sampleMinReadCount){
+		if(!njh::in(sampleName, lowRepCntSamples_) && sampleCollapses_.at(sampleName)->collapsed_.info_.totalReadCount_ >= preFiltCutOffs_.sampleMinReadCount){
 			passingSamples_.emplace_back(sampleName);
 		}
 		if(!keepSampleInfoInMemory_){
@@ -694,8 +700,11 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 
 
 		if (njh::in(sampleName, lowRepCntSamples_)
-				|| sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_
+				|| sampleCollapses_.at(sampleName)->collapsed_.info_.totalReadCount_
 						< preFiltCutOffs_.sampleMinReadCount) {
+			if(!keepSampleInfoInMemory_){
+				clearSample(sampleName);
+			}
 			continue;
 		}
 
@@ -733,6 +742,8 @@ void SampleCollapseCollection::doPopulationClustering(
 		const std::vector<sampleCluster> & input, aligner & alignerObj,
 		const collapser & collapserObj, const CollapseIterations & popColIters) {
 
+	//release the previous population first so the old and new populations aren't in memory at the same time
+	popCollapse_ = nullptr;
 	popCollapse_ = std::make_unique<collapse::populationCollapse>(input, popNames_.populationName_);
 
 	popCollapse_->popCluster(collapserObj, popColIters, "fraction", alignerObj);
@@ -895,7 +906,12 @@ bool SampleCollapseCollection::excludeOneSampOnlyOneOffHaps(double fracCutOff, a
 		for(const auto clusPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
 			if(njh::in(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos].seqBase_.name_, sampClusters.second)){
 				bool oneOffAnother = false;
-				for(const auto & clus : sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_){
+				for(const auto otherPos : iter::range(sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_.size())){
+					//don't compare to itself, which would always be 0 events
+					if(otherPos == clusPos){
+						continue;
+					}
+					const auto & clus = sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[otherPos];
 					alignerObj.alignCacheGlobal(clus, sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos]);
 					alignerObj.profileAlignment(clus, sampleCollapses_.at(sampClusters.first)->collapsed_.clusters_[clusPos],
 							false, false, false);
@@ -1270,8 +1286,11 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 			setUpSampleFromPrevious(sampName);
 		}
 		if (njh::in(sampName, lowRepCntSamples_)
-				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+				|| sampleCollapses_.at(sampName)->collapsed_.info_.totalReadCount_
 						< preFiltCutOffs_.sampleMinReadCount) {
+			if(!keepSampleInfoInMemory_){
+				clearSample(sampName);
+			}
 			continue;
 		}
 		for(const auto & excluded : sampleCollapses_.at(sampName)->excluded_.clusters_){
@@ -1325,8 +1344,11 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 			setUpSampleFromPrevious(sampName);
 		}
 		if (njh::in(sampName, lowRepCntSamples_)
-				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+				|| sampleCollapses_.at(sampName)->collapsed_.info_.totalReadCount_
 						< preFiltCutOffs_.sampleMinReadCount) {
+			if(!keepSampleInfoInMemory_){
+				clearSample(sampName);
+			}
 			continue;
 		}
 		auto sampPtr = sampleCollapses_.at(sampName);
@@ -1458,8 +1480,11 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 			setUpSampleFromPrevious(sampName);
 		}
 		if (njh::in(sampName, lowRepCntSamples_)
-				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+				|| sampleCollapses_.at(sampName)->collapsed_.info_.totalReadCount_
 						< preFiltCutOffs_.sampleMinReadCount) {
+			if(!keepSampleInfoInMemory_){
+				clearSample(sampName);
+			}
 			continue;
 		}
 		if (maxRunCount
@@ -1477,8 +1502,11 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 			setUpSampleFromPrevious(sampName);
 		}
 		if (njh::in(sampName, lowRepCntSamples_)
-				|| sampleCollapses_[sampName]->collapsed_.info_.totalReadCount_
+				|| sampleCollapses_.at(sampName)->collapsed_.info_.totalReadCount_
 						< preFiltCutOffs_.sampleMinReadCount) {
+			if(!keepSampleInfoInMemory_){
+				clearSample(sampName);
+			}
 			continue;
 		}
 		for (const auto clusPos : iter::range(
@@ -1674,11 +1702,14 @@ void SampleCollapseCollection::outputRepAgreementInfo() {
 			setUpSampleFromPrevious(sampleName);
 		}
 		if (njh::in(sampleName, lowRepCntSamples_)
-				|| sampleCollapses_[sampleName]->collapsed_.info_.totalReadCount_
+				|| sampleCollapses_.at(sampleName)->collapsed_.info_.totalReadCount_
 						< preFiltCutOffs_.sampleMinReadCount) {
+			if(!keepSampleInfoInMemory_){
+				clearSample(sampleName);
+			}
 			continue;
 		}
-		auto & samp = *(sampleCollapses_[sampleName]);
+		auto & samp = *(sampleCollapses_.at(sampleName));
 		auto repInfoforSample = samp.collapsed_.getReplicateInfo();
 		for (const auto & row : repInfoforSample.content_) {
 			VecStr addingRow { sampleName };
@@ -1789,8 +1820,11 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(samp);
 		}
-		if(njh::in(samp, lowRepCntSamples_) || sampleCollapses_[samp]->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount
+		if(njh::in(samp, lowRepCntSamples_) || sampleCollapses_.at(samp)->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount
 				){
+			if(!keepSampleInfoInMemory_){
+				clearSample(samp);
+			}
 			continue;
 		}
 		std::unordered_map<std::string, double> popUidToFrac;
@@ -1824,10 +1858,10 @@ void SampleCollapseCollection::excludeOnFrac(const std::string & sampleName,
 		bool fracExcludeOnlyInFinalAverageFrac) {
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
 	if (fracExcludeOnlyInFinalAverageFrac) {
-		sampleCollapses_.at(sampleName)->excludeFraction(
+		getSampleCollapse(sampleName)->excludeFraction(
 				customCutOffsMap.at(sampleName), true);
 	} else {
-		sampleCollapses_.at(sampleName)->excludeFractionAnyRep(
+		getSampleCollapse(sampleName)->excludeFractionAnyRep(
 				customCutOffsMap.at(sampleName), true);
 	}
 }

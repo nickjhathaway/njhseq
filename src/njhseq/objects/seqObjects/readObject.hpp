@@ -59,8 +59,6 @@ class readObject : public baseReadObject {
   double fractionAboveQualCheck_;
   bool remove;
 
-  charCounter counter_;
-
   std::string condensedSeq;
   std::vector<uint32_t> condensedSeqQual;
   std::vector<std::pair<uint32_t, uint32_t>> condensedSeqQualPos;
@@ -97,9 +95,18 @@ class readObject : public baseReadObject {
 
   virtual double getQualCheck(uint32_t qualCutOff)const ;
   virtual void setBaseCountOnQualCheck(uint32_t qualCheck);
-  virtual void setLetterCount();
-  virtual void setLetterCount(const std::vector<char> & alph);
-  virtual double getGCContent();
+  /**@brief Count the letters in this read weighted by its count, computed on each call rather than stored since a charCounter is ~6kb
+   *
+   * @return the letter counts with the alphabet set to the letters present and fractions set
+   */
+  virtual charCounter getLetterCounts() const;
+  /**@brief Count the letters in this read weighted by its count using the given alphabet
+   *
+   * @param alph the alphabet to count with
+   * @return the letter counts with fractions set
+   */
+  virtual charCounter getLetterCounts(const std::vector<char> & alph) const;
+  virtual double getGCContent() const;
 
   virtual void createCondensedSeq();
 

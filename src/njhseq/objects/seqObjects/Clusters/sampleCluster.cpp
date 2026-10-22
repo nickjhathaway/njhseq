@@ -37,7 +37,6 @@ sampleCluster::sampleCluster(const seqInfo& initializerRead,
 	updateInfoWithRead(*this, 0);
 	remove = false;
 	needToCalculateConsensus_ = false;
-	setLetterCount();
 
 
 

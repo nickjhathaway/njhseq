@@ -46,8 +46,15 @@ public:
 	virtual double getQualCheck(uint32_t qualCutOff) const;
 
 	virtual void setBaseCountOnQualCheck(uint32_t qualCheck);
-  virtual void setLetterCount();
-  virtual void setLetterCount(const std::vector<char> & alph);
+  virtual charCounter getLetterCounts() const;
+  virtual charCounter getLetterCounts(const std::vector<char> & alph) const;
+private:
+  /**@brief Add the letters of the read and its mate, the mate in the same orientation as the first read
+   *
+   * @param counter the counter to add to
+   */
+  void addLetterCounts(charCounter & counter) const;
+public:
 
   virtual double getAverageErrorRate() const;
 

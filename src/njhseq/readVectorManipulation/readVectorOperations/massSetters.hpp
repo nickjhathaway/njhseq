@@ -50,21 +50,6 @@ void allSetCondensedSeqCount(std::vector<T>& reads) {
 }
 
 template <class T>
-void allSetLetterCount(std::vector<T>& reads) {
-  njh::for_each(reads, [](T& read) {
-  	getRef(read).setLetterCount();
-  	getRef(read).counter_.setFractions();
-  });
-}
-template <class T>
-void allSetLetterCount(std::vector<T>& reads, const std::vector<char> & alph) {
-  njh::for_each(reads, [&](T& read) {
-  	getRef(read).setLetterCount(alph);
-  	getRef(read).counter_.setFractions(alph);
-  });
-}
-
-template <class T>
 void allUpdateName(std::vector<T>& reads) {
   njh::for_each(reads, [](T& read) { getRef(read).updateName(); });
 }

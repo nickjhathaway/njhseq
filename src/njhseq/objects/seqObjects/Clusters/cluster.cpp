@@ -26,7 +26,6 @@ cluster::cluster() : baseCluster() { rejected_ = false; }
 
 cluster::cluster(const seqInfo &firstRead) : baseCluster(firstRead) {
   rejected_ = false;
-  setLetterCount();
 }
 
 
@@ -95,6 +94,20 @@ void cluster::outputInfoComp(const std::string& workingDir) const {
   return;
 }
 
+bool cluster::snpPassesStrandComposition(double snpReadCount, double snpCompReadCount,
+		uint64_t compReadsInCluster, uint64_t readsInCluster, double compositionCutOff) {
+	//if the entire cluster is one direction or the other (which might mean the extraction was in one direction anyways) then don't filter based on comp
+	if (0 == compReadsInCluster || readsInCluster == compReadsInCluster) {
+		return true;
+	}
+	if (snpReadCount <= 0) {
+		return false;
+	}
+	double compFrac = snpCompReadCount / snpReadCount;
+	//keep only if the snp's reads are found in both directions
+	return compFrac > compositionCutOff && compFrac < 1 - compositionCutOff;
+}
+
 std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 		const snpBreakoutPars& pars) {
 	std::vector<cluster>  ret;
@@ -119,7 +132,6 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 	auto comp_count = std::count_if(reads_.begin(), reads_.end(), [](const std::shared_ptr<readObject>& r) {
 		return njh::endsWith(r->seqBase_.name_, "_Comp");
 	});
-	double higher_cut_off = 1 - pars.rev_comp_composition_cut_off;
 	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	// std::cout << "pars.hardCutOff: " << pars.hardCutOff << std::endl;
 	// std::cout << "pars.hardSnpFreqCutOff: " << pars.hardSnpFreqCutOff << std::endl;
@@ -130,10 +142,16 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 	for (const auto & position : mismatches) {
 		for (const auto & base : position.second) {
 
-			double comp_perc = static_cast<double>(comp_count)/ static_cast<double>(reads_.size());
-			//if the entire cluster is one or the other (which might mean the extraction was in one direction anyways) then don't filter based on comp
-			//keep only if the percentage is above and below the cut-off
-			bool pass_comp = comp_count == reads_.size() || 0 != comp_count  || (comp_perc > pars.rev_comp_composition_cut_off && comp_perc < higher_cut_off);
+			double snpCompCount = 0;
+			auto compPosSearch = mismatches_cnt.find(position.first);
+			if (mismatches_cnt.end() != compPosSearch) {
+				auto compBaseSearch = compPosSearch->second.find(base.first);
+				if (compPosSearch->second.end() != compBaseSearch) {
+					snpCompCount = compBaseSearch->second;
+				}
+			}
+			bool pass_comp = snpPassesStrandComposition(base.second, snpCompCount,
+					comp_count, reads_.size(), pars.rev_comp_composition_cut_off);
 			if (base.second > pars.hardCutOff &&
 			    base.second / seqBase_.cnt_ > pars.hardSnpFreqCutOff &&
 			    pass_comp

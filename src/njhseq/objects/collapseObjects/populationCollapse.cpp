@@ -71,8 +71,9 @@ void populationCollapse::addInput(
 		const std::vector<sampleCluster> &inputClusters) {
 	input_ = clusterSet(inputClusters);
 
+	//like the constructor, don't give every cluster the population wide sampInfos, that is samples^2 infos
 	for (auto & i : input_.clusters_) {
-		i.setSampInfosTotals(input_.info_.infos_);
+		i.totalRepNumberInAnalysis_ = input_.info_.infos_.size();
 	}
 	for(auto & clus : input_.clusters_){
 		clus.updateSampInfosFracs();

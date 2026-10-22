@@ -842,6 +842,8 @@ comparison aligner::compareAlignment(
 				// ++numberOfGaps;
 				gappedBasesInB += newGap.size_;
 				handleGapCountingInB(newGap);
+				comp_.distances_.alignmentGaps_.insert(
+						std::make_pair(newGap.startPos_, newGap));
 			} else if (countEndGaps_) {
 				// ++numberOfGaps;
 				handleGapCountingInB(newGap);
