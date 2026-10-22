@@ -26,6 +26,7 @@
 
 
 #include "SampleCollapseCollection.hpp"
+#include <njhcpp/IO/BlockGzip.hpp>
 #include "njhseq/objects/seqObjects/Clusters/clusterUtils.hpp"
 
 
@@ -331,10 +332,71 @@ bfs::path SampleCollapseCollection::getHapIdTabPath() const {
 void SampleCollapseCollection::setUpSampleFromPrevious(
 		const std::string & sampleName) {
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
-	auto sampPtr = std::make_shared<sampleCollapse>(sampleName);
-	auto & samp = *sampPtr;
+	std::optional<SampleState> stored;
+	if (storeSampleStatesInMemory_) {
+		stored = sampleStates_.get(sampleName);
+	}
+	if (stored) {
+		loadSampleState(sampleName, *stored);
+	} else {
+		loadSampleState(sampleName, readSampleStateFromDisk(sampleName));
+	}
+}
+
+SampleState SampleCollapseCollection::readSampleStateFromDisk(
+		const std::string & sampleName) const {
 	auto sampleDir = njh::files::make_path(masterOutputDir_, "samplesOutput",
 			sampleName);
+	auto slurp = [](const bfs::path & fnp) {
+		InputStream in { InOptions(fnp) };
+		std::stringstream ss;
+		ss << in.rdbuf();
+		return ss.str();
+	};
+	SampleState state;
+	auto readSeqFile = [this, &slurp](const bfs::path & fnp, std::optional<std::string> & text) {
+		auto opts = SeqIOOptions(fnp, inputOptions_.inFormat_, true);
+		if (opts.inExists()) {
+			text = slurp(opts.firstName_);
+		}
+	};
+	readSeqFile(njh::files::make_path(sampleDir, "final/clusters/inputClusters" + inputOptions_.getOutExtension()), state.finalInputClusters_);
+	readSeqFile(njh::files::make_path(sampleDir, "excluded/clusters/inputClusters" + inputOptions_.getOutExtension()), state.excludedInputClusters_);
+	readSeqFile(njh::files::make_path(sampleDir, "final/", sampleName + inputOptions_.getOutExtension()), state.final_);
+	readSeqFile(njh::files::make_path(sampleDir, "excluded/", sampleName + inputOptions_.getOutExtension()), state.excluded_);
+	auto refCompFnp = njh::files::join(sampleDir.string(), "refCompInfos.tab.txt");
+	if (bfs::exists(refCompFnp)) {
+		state.refCompInfos_ = slurp(refCompFnp);
+	}
+	auto refCompExcludedFnp = njh::files::join(sampleDir.string(), "refCompInfosExcluded.tab.txt");
+	if (bfs::exists(refCompExcludedFnp)) {
+		state.refCompInfosExcluded_ = slurp(refCompExcludedFnp);
+	}
+	return state;
+}
+
+void SampleCollapseCollection::loadSampleState(const std::string & sampleName,
+		const SampleState & state) {
+	auto sampPtr = std::make_shared<sampleCollapse>(sampleName);
+	auto & samp = *sampPtr;
+
+	//only used for its stream parsing, reads the same way SeqInput reads the files
+	SeqInput parser(SeqIOOptions(bfs::path(""), inputOptions_.inFormat_, true));
+	auto readNextSeq = [this, &parser](std::istream & in, seqInfo & seq) {
+		switch (inputOptions_.inFormat_) {
+		case SeqIOOptions::inFormats::FASTQ:
+		case SeqIOOptions::inFormats::FASTQGZ:
+			return parser.readNextFastqStream(in, SangerQualOffset, seq, true);
+		case SeqIOOptions::inFormats::FASTA:
+		case SeqIOOptions::inFormats::FASTAGZ:
+			return parser.readNextFastaStream(in, seq, true);
+		default: {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error, sample states can only be read for fasta or fastq formats" << "\n";
+			throw std::runtime_error { ss.str() };
+		}
+		}
+	};
 
 	std::map<std::string, double> allSampCounts;
 	std::map<std::string, sampInfo> allSampInfos;
@@ -342,18 +404,11 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 	std::map<std::string, double> finalSampCounts;
 	std::map<std::string, sampInfo> finalSampInfos;
 
-//	auto finalClustersFiles = njh::files::filesInFolder(
-//			njh::files::make_path(sampleDir, "final/clusters"));
-//	auto excludedClustersFiles = njh::files::filesInFolder(
-//			njh::files::make_path(sampleDir, "excluded/clusters"));
 	seqInfo seq;
-	auto finalClustersFileOpts = SeqIOOptions(njh::files::make_path(sampleDir, "final/clusters/inputClusters" + inputOptions_.getOutExtension()),
-			inputOptions_.inFormat_, true);
 	std::unordered_map<std::string, std::vector<seqInfo>> finalClusterInputClusters;
-	if(finalClustersFileOpts.inExists()){
-		SeqInput reader(finalClustersFileOpts);
-		reader.openIn();
-		while (reader.readNextRead(seq)) {
+	if(state.finalInputClusters_){
+		std::istringstream in(*state.finalInputClusters_);
+		while (readNextSeq(in, seq)) {
 			allSampCounts[seq.getOwnSampName()] += seq.cnt_;
 			finalSampCounts[seq.getOwnSampName()] += seq.cnt_;
 			MetaDataInName seqMeta(seq.name_);
@@ -367,60 +422,40 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 			finalClusterInputClusters[topClusterName].emplace_back(seq);
 		}
 	}
+	auto readRefComp = [](const std::string & text) {
+		MapStrStr ret;
+		std::istringstream in(text);
+		table refCompTab(in, "\t", true);
+		for (const auto & row : refCompTab.content_) {
+			ret[row[refCompTab.getColPos("read")]] =
+					row[refCompTab.getColPos("bestExpected")];
+		}
+		return ret;
+	};
 	MapStrStr refCompInfosCollapsed;
 	MapStrStr refCompInfosExcluded;
-	if (bfs::exists(
-			njh::files::join(sampleDir.string(), "refCompInfos.tab.txt"))) {
-		table refCompTab(
-				njh::files::join(sampleDir.string(), "refCompInfos.tab.txt"), "\t",
-				true);
-		//std::cout << __PRETTY_FUNCTION__ << " " << sampleName << std::endl;
-		for (const auto & row : refCompTab.content_) {
-			//std::cout << "\t" << row[refCompTab.getColPos("read")] << " :  " <<  row[refCompTab.getColPos("bestExpected")] << std::endl;
-			refCompInfosCollapsed[row[refCompTab.getColPos("read")]] =
-					row[refCompTab.getColPos("bestExpected")];
-		}
+	if (state.refCompInfos_) {
+		refCompInfosCollapsed = readRefComp(*state.refCompInfos_);
 	}
-
-	if (bfs::exists(
-			njh::files::join(sampleDir.string(), "refCompInfosExcluded.tab.txt"))) {
-		table refCompTab(
-				njh::files::join(sampleDir.string(), "refCompInfosExcluded.tab.txt"), "\t",
-				true);
-		//std::cout << __PRETTY_FUNCTION__ << " " << sampleName << std::endl;
-		for (const auto & row : refCompTab.content_) {
-			//std::cout << "\t" << row[refCompTab.getColPos("read")] << " :  " <<  row[refCompTab.getColPos("bestExpected")] << std::endl;
-			refCompInfosExcluded[row[refCompTab.getColPos("read")]] =
-					row[refCompTab.getColPos("bestExpected")];
-		}
+	if (state.refCompInfosExcluded_) {
+		refCompInfosExcluded = readRefComp(*state.refCompInfosExcluded_);
 	}
 	std::unordered_map<std::string, std::vector<seqInfo>> excludedInputClusters;
-	auto excludedClustersFileOpts = SeqIOOptions(
-			njh::files::make_path(sampleDir,
-					"excluded/clusters/inputClusters" + inputOptions_.getOutExtension()),
-			inputOptions_.inFormat_, true);
-	if (excludedClustersFileOpts.inExists()) {
-		SeqInput reader(excludedClustersFileOpts);
-		reader.openIn();
-		while (reader.readNextRead(seq)) {
+	if (state.excludedInputClusters_) {
+		std::istringstream in(*state.excludedInputClusters_);
+		while (readNextSeq(in, seq)) {
 			allSampCounts[seq.getOwnSampName()] += seq.cnt_;
 			MetaDataInName seqMeta(seq.name_);
 			auto topClusterName = seqMeta.getMeta("TopClusterName");
 			seqMeta.removeMeta("TopClusterName");
 			if(seqMeta.meta_.empty()){
-//				std::cout << seq.name_ << std::endl;
 				MetaDataInName::removeMetaDataInName(seq.name_);
-//				std::cout << seq.name_ << std::endl;
-//				exit(1);
-
 			}else{
 				seqMeta.resetMetaInName(seq.name_);
 			}
 			excludedInputClusters[topClusterName].emplace_back(seq);
 		}
 	}
-
-
 
 	for (const auto & sCount : allSampCounts) {
 		allSampInfos[sCount.first] = sampInfo(sCount.first, sCount.second);
@@ -430,39 +465,15 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 		finalSampInfos[sCount.first] = sampInfo(sCount.first, sCount.second);
 	}
 
-	//add in the total counts for any of the runs that did not make it into the final counts
-	// this happens for instance if you have 3 replicates and are accepting only 2 replicates and one of those replicates
-	// all end up in excluded
 	for(const auto & info : allSampInfos) {
 		if(njh::notIn(info.first, finalSampInfos)) {
-			// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
 			finalSampInfos[info.first] = sampInfo(info.first, info.second.runReadCnt_);
 		}
 	}
 
-
-	auto finalFileOpts = SeqIOOptions(
-			njh::files::make_path(sampleDir, "final/",
-					sampleName + inputOptions_.getOutExtension()).string(),
-			inputOptions_.inFormat_, true);
-
-
-	auto excludedFileOpts = SeqIOOptions(
-			njh::files::make_path(sampleDir, "excluded/",
-					sampleName + inputOptions_.getOutExtension()).string(),
-			inputOptions_.inFormat_, true);
-
-	seqInfo subInfo;
-	if(finalFileOpts.inExists()){
-		SeqInput reader(finalFileOpts);
-		reader.openIn();
-		while (reader.readNextRead(seq)) {
-//			auto finalSubFileOpts = SeqIOOptions(
-//					njh::files::make_path(sampleDir, "final/clusters",
-//							seq.name_ + inputOptions_.getOutExtension()).string(),
-//					inputOptions_.inFormat_, true);
-//			SeqInput subReader(finalSubFileOpts);
-//			auto subReads = subReader.readAllReads<seqInfo>();
+	if(state.final_){
+		std::istringstream in(*state.final_);
+		while (readNextSeq(in, seq)) {
 			samp.collapsed_.clusters_.emplace_back(
 					sampleCluster(seq, finalClusterInputClusters.at(seq.name_), finalSampInfos));
 			samp.collapsed_.clusters_.back().expectsString =
@@ -473,16 +484,9 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 			}
 		}
 	}
-	if(excludedFileOpts.inExists()){
-		SeqInput reader(excludedFileOpts);
-		reader.openIn();
-		while (reader.readNextRead(seq)) {
-//			auto excludedSubFileOpts = SeqIOOptions(
-//					njh::files::make_path(sampleDir, "excluded/clusters",
-//							seq.name_ + inputOptions_.getOutExtension()).string(),
-//					inputOptions_.inFormat_, true);
-//			SeqInput subReader(excludedSubFileOpts);
-//			auto subReads = subReader.readAllReads<seqInfo>();
+	if(state.excluded_){
+		std::istringstream in(*state.excluded_);
+		while (readNextSeq(in, seq)) {
 			samp.excluded_.clusters_.emplace_back(
 					sampleCluster(seq, excludedInputClusters.at(seq.name_), allSampInfos));
 			samp.excluded_.clusters_.back().expectsString =
@@ -494,23 +498,12 @@ void SampleCollapseCollection::setUpSampleFromPrevious(
 		}
 	}
 
-	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-	// std::cout << "samp.collapsed_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.collapsed_.info_.infos_), ", ") << std::endl;
-	// std::cout << "samp.excluded_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.excluded_.info_.infos_), ", ") << std::endl;
-	// std::cout << "samp.input_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.input_.info_.infos_), ", ") << std::endl;
-
-
 	samp.updateExclusionInfos();
 	samp.updateInitialInfos();
 	samp.updateCollapsedInfos();
-	// std::cout << __FILE__ << " " << __PRETTY_FUNCTION__ << " " << __LINE__ << std::endl;
-	// std::cout << "samp.collapsed_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.collapsed_.info_.infos_), ", ") << std::endl;
-	// std::cout << "samp.excluded_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.excluded_.info_.infos_), ", ") << std::endl;
-	// std::cout << "samp.input_.info_.infos_ names: " << njh::conToStr(njh::getVecOfMapKeys(samp.input_.info_.infos_), ", ") << std::endl;
 
+	std::lock_guard<std::mutex> lock(mut_);
 	sampleCollapses_[sampleName] = sampPtr;
-
-
 }
 
 void SampleCollapseCollection::clusterSample(const std::string & sampleName,
@@ -545,6 +538,90 @@ void SampleCollapseCollection::collapseLowFreqOneOffsSample(
 void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 	checkForSampleThrow(__PRETTY_FUNCTION__, sampleName);
 	auto samp = getSampleCollapse(sampleName);
+	auto state = createSampleState(*samp);
+	if (storeSampleStatesInMemory_) {
+		sampleStates_.set(sampleName, std::move(state));
+	} else {
+		writeSampleState(sampleName, state);
+	}
+	if(!keepSampleInfoInMemory_){
+		clearSample(sampleName);
+	}
+}
+
+SampleState SampleCollapseCollection::createSampleState(
+		const sampleCollapse & samp) const {
+	auto writeSeq = [this](std::ostream & out, const seqInfo & seq) {
+		switch (inputOptions_.outFormat_) {
+		case SeqIOOptions::outFormats::FASTQ:
+		case SeqIOOptions::outFormats::FASTQGZ:
+			seq.outPutFastq(out);
+			break;
+		case SeqIOOptions::outFormats::FASTA:
+		case SeqIOOptions::outFormats::FASTAGZ:
+			seq.outPutSeq(out);
+			break;
+		default: {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error, sample states can only be written for fasta or fastq formats" << "\n";
+			throw std::runtime_error { ss.str() };
+		}
+		}
+	};
+	//the clusters and their sub clusters marked with the name of the cluster they belong to
+	auto serializeClusters = [&writeSeq](const std::vector<sampleCluster> & clusters,
+			std::optional<std::string> & clustersText, std::optional<std::string> & inputClustersText) {
+		if (clusters.empty()) {
+			return;
+		}
+		std::stringstream clustersOut;
+		std::stringstream inputClustersOut;
+		for (const auto & clus : clusters) {
+			writeSeq(clustersOut, clus.seqBase_);
+			for(auto & subClus : clus.reads_){
+				MetaDataInName subClusMeta;
+				bool hadMeta = false;
+				if(MetaDataInName::nameHasMetaData(subClus->seqBase_.name_)){
+					subClusMeta.processNameForMeta(subClus->seqBase_.name_, true);
+					hadMeta = true;
+				}
+				auto writeCluster = subClus->seqBase_;
+				subClusMeta.addMeta("TopClusterName", clus.seqBase_.name_);
+				if(hadMeta){
+					subClusMeta.resetMetaInName(writeCluster.name_);
+				}else{
+					subClusMeta.resetMetaInName(writeCluster.name_, writeCluster.name_.rfind("_t"));
+				}
+				writeSeq(inputClustersOut, writeCluster);
+			}
+		}
+		clustersText = clustersOut.str();
+		inputClustersText = inputClustersOut.str();
+	};
+	SampleState state;
+	serializeClusters(samp.collapsed_.clusters_, state.final_, state.finalInputClusters_);
+	serializeClusters(samp.excluded_.clusters_, state.excluded_, state.excludedInputClusters_);
+
+	if (!samp.collapsed_.clusters_.empty()
+			&& "" != samp.collapsed_.clusters_.front().expectsString) {
+		auto refCompText = [](const std::vector<sampleCluster> & clusters) {
+			std::map<std::string, std::string> refCompInfos;
+			for (const auto & clus : clusters) {
+				refCompInfos[clus.seqBase_.name_] = clus.expectsString;
+			}
+			table refCompTab(refCompInfos, VecStr { "read", "bestExpected" });
+			std::stringstream out;
+			refCompTab.outPutContents(out, "\t");
+			return out.str();
+		};
+		state.refCompInfos_ = refCompText(samp.collapsed_.clusters_);
+		state.refCompInfosExcluded_ = refCompText(samp.excluded_.clusters_);
+	}
+	return state;
+}
+
+void SampleCollapseCollection::writeSampleState(const std::string & sampleName,
+		const SampleState & state) const {
 	auto sampDir = njh::files::make_path(masterOutputDir_, "samplesOutput",
 			sampleName);
 	auto finalDir = njh::files::make_path(masterOutputDir_, "samplesOutput",
@@ -559,99 +636,47 @@ void SampleCollapseCollection::dumpSample(const std::string & sampleName) {
 	njh::files::makeDir(njh::files::MkdirPar(sampDir.string(), true));
 	njh::files::makeDirP(njh::files::MkdirPar(finalClustersDir.string()));
 	njh::files::makeDirP(njh::files::MkdirPar(excludedClusteredDir.string()));
-	//final
-	if(!samp->collapsed_.clusters_.empty()){
-		SeqIOOptions finalOutOpts(
-				njh::files::join(finalDir.string(), sampleName).string()
-						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
-		SeqOutput::write(samp->collapsed_.clusters_, finalOutOpts);
-		SeqIOOptions clusOutOpts(
-				njh::files::make_path(finalClustersDir.string(), "inputClusters").string()
-						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
-		clusOutOpts.out_.overWriteFile_ = true;
-		SeqOutput inputClustersWriter(clusOutOpts);
-		inputClustersWriter.openOut();
-		for (const auto & clus : samp->collapsed_.clusters_) {
-			for(auto & subClus : clus.reads_){
-				MetaDataInName subClusMeta;
-				bool hadMeta = false;
-				if(MetaDataInName::nameHasMetaData(subClus->seqBase_.name_)){
-					subClusMeta.processNameForMeta(subClus->seqBase_.name_, true);
-					hadMeta = true;
-				}
-				auto writeCluster = subClus->seqBase_;
-				subClusMeta.addMeta("TopClusterName", clus.seqBase_.name_);
-				if(hadMeta){
-					subClusMeta.resetMetaInName(writeCluster.name_);
-				}else{
-					subClusMeta.resetMetaInName(writeCluster.name_, writeCluster.name_.rfind("_t"));
-				}
-				inputClustersWriter.write(writeCluster);
-			}
+
+	auto writeSeqText = [this](const std::string & fnp, const std::string & text, bool overWrite) {
+		SeqIOOptions outOpts(fnp, inputOptions_.outFormat_);
+		outOpts.out_.overWriteFile_ = overWrite;
+		SeqOutput writer(outOpts);
+		writer.openOut();
+		if (!text.empty()) {
+			//writeNoCheck adds the final new line back
+			writer.writeNoCheck(text.substr(0, text.size() - 1));
 		}
+	};
+	if (state.final_) {
+		writeSeqText(njh::files::join(finalDir.string(), sampleName).string() + inputOptions_.getOutExtension(),
+				*state.final_, false);
+		writeSeqText(njh::files::make_path(finalClustersDir.string(), "inputClusters").string() + inputOptions_.getOutExtension(),
+				*state.finalInputClusters_, true);
 	}
-
-	//excluded
-	if(!samp->excluded_.clusters_.empty()){
-		SeqIOOptions excluddOutOpts(
-				njh::files::join(excludedDir.string(), sampleName).string()
-						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
-		SeqOutput::write(samp->excluded_.clusters_, excluddOutOpts);
-
-		SeqIOOptions clusOutOpts(
-				njh::files::make_path(excludedClusteredDir.string(), "inputClusters").string()
-						+ inputOptions_.getOutExtension(), inputOptions_.outFormat_);
-		clusOutOpts.out_.overWriteFile_ = true;
-		SeqOutput inputClustersWriter(clusOutOpts);
-		inputClustersWriter.openOut();
-		for (const auto & clus : samp->excluded_.clusters_) {
-			for(auto & subClus : clus.reads_){
-				MetaDataInName subClusMeta;
-				bool hadMeta = false;
-				if(MetaDataInName::nameHasMetaData(subClus->seqBase_.name_)){
-					subClusMeta.processNameForMeta(subClus->seqBase_.name_, true);
-					hadMeta = true;
-				}
-				auto writeCluster = subClus->seqBase_;
-				subClusMeta.addMeta("TopClusterName", clus.seqBase_.name_);
-				if(hadMeta){
-					subClusMeta.resetMetaInName(writeCluster.name_);
-				}else{
-					subClusMeta.resetMetaInName(writeCluster.name_, writeCluster.name_.rfind("_t"));
-				}
-				inputClustersWriter.write(writeCluster);
-			}
-		}
+	if (state.excluded_) {
+		writeSeqText(njh::files::join(excludedDir.string(), sampleName).string() + inputOptions_.getOutExtension(),
+				*state.excluded_, false);
+		writeSeqText(njh::files::make_path(excludedClusteredDir.string(), "inputClusters").string() + inputOptions_.getOutExtension(),
+				*state.excludedInputClusters_, true);
 	}
-	if (!samp->collapsed_.clusters_.empty()
-			&& "" != samp->collapsed_.clusters_.front().expectsString) {
-		std::map<std::string, std::string> refCompInfos;
-		for (const auto & clus : samp->collapsed_.clusters_) {
-			refCompInfos[clus.seqBase_.name_] = clus.expectsString;
-		}
-
-
-		table refCompTab(refCompInfos, VecStr { "read", "bestExpected" });
-		refCompTab.outPutContents(
-				TableIOOpts(
-						OutOptions(
-								njh::files::join(sampDir.string(), "refCompInfos.tab.txt")),
-						"\t", true));
-
-		std::map<std::string, std::string> refCompInfosExcluded;
-		for (const auto & clus : samp->excluded_.clusters_) {
-			refCompInfosExcluded[clus.seqBase_.name_] = clus.expectsString;
-		}
-		table refCompExcludedTab(refCompInfosExcluded, VecStr { "read", "bestExpected" });
-		refCompExcludedTab.outPutContents(
-				TableIOOpts(
-						OutOptions(
-								njh::files::join(sampDir.string(), "refCompInfosExcluded.tab.txt")),
-						"\t", true));
+	if (state.refCompInfos_) {
+		OutputStream out(OutOptions(njh::files::join(sampDir.string(), "refCompInfos.tab.txt")));
+		out << *state.refCompInfos_;
 	}
-	if(!keepSampleInfoInMemory_){
-		clearSample(sampleName);
+	if (state.refCompInfosExcluded_) {
+		OutputStream out(OutOptions(njh::files::join(sampDir.string(), "refCompInfosExcluded.tab.txt")));
+		out << *state.refCompInfosExcluded_;
 	}
+}
+
+void SampleCollapseCollection::writeSampleStatesToDisk() const {
+	for (const auto & sampleName : sampleStates_.samples()) {
+		writeSampleState(sampleName, *sampleStates_.get(sampleName));
+	}
+}
+
+const SampleStateStore & SampleCollapseCollection::sampleStates() const {
+	return sampleStates_;
 }
 
 std::shared_ptr<collapse::sampleCollapse> SampleCollapseCollection::getSampleCollapse(const std::string & sampleName) {
@@ -1267,10 +1292,125 @@ table SampleCollapseCollection::genPopulationCollapseInfo() const {
 	return ret;
 }
 
-void SampleCollapseCollection::printSampleCollapseInfo(const bfs::path& fileName){
+void SampleCollapseCollection::printSampleCollapseInfo(const bfs::path& fileName, bool indexBySample){
 	auto sampTab = genSampleCollapseInfo(popNames_.samples_);
 	bool zip = njh::endsWith(fileName.string(), ".gz");
-	sampTab.outPutContents(TableIOOpts(OutOptions(fileName.string(), zip ? ".gz" : ".txt"), "\t", true));
+	if (zip && indexBySample) {
+		//rows are already grouped by sample, the first column
+		njh::BlockGzipOutputStream writer(fileName, false);
+		writer << vectorToString(sampTab.columnNames_, "\t") << "\n";
+		auto sampleCol = sampTab.getColPos("s_Sample");
+		std::string currentSample;
+		for (const auto & row : sampTab.content_) {
+			if (row[sampleCol] != currentSample) {
+				if (!currentSample.empty()) {
+					writer.endBlock();
+				}
+				currentSample = row[sampleCol];
+				writer.startBlock(currentSample);
+			}
+			writer << vectorToString(row, "\t") << "\n";
+		}
+		writer.closeBlocks();
+	} else {
+		sampTab.outPutContents(TableIOOpts(OutOptions(fileName.string(), zip ? ".gz" : ".txt"), "\t", true));
+	}
+}
+
+void SampleCollapseCollection::printSampleClustersInfo(const bfs::path& fileName){
+	njh::BlockGzipOutputStream writer(fileName, false);
+	writer << njh::conToStr(VecStr{"s_Sample", "c_status", "c_name", "c_ReadCnt", "c_frac", "c_RepCnt", "c_excludedReasons", "c_seq", "c_qual"}, "\t") << "\n";
+	for (const auto & sampName : popNames_.samples_) {
+		if(!keepSampleInfoInMemory_){
+			if (sampleStates_.has(sampName) || bfs::exists(njh::files::make_path(masterOutputDir_, "samplesOutput", sampName))) {
+				setUpSampleFromPrevious(sampName);
+			} else {
+				continue;
+			}
+		}
+		std::shared_ptr<sampleCollapse> sampPtr;
+		{
+			std::lock_guard<std::mutex> lock(mut_);
+			auto search = sampleCollapses_.find(sampName);
+			if (sampleCollapses_.end() != search) {
+				sampPtr = search->second;
+			}
+		}
+		if (nullptr == sampPtr) {
+			continue;
+		}
+		std::stringstream block;
+		auto addRows = [&block, &sampName](const std::vector<sampleCluster> & clusters, const std::string & status) {
+			for (const auto & clus : clusters) {
+				VecStr excludedReasons;
+				if (clus.seqBase_.nameHasMetaData()) {
+					MetaDataInName meta(clus.seqBase_.name_);
+					for (const auto & m : meta.meta_) {
+						if (njh::beginsWith(m.first, "Exclude")) {
+							excludedReasons.emplace_back(m.first);
+						}
+					}
+				}
+				block << sampName
+						<< "\t" << status
+						<< "\t" << clus.seqBase_.name_
+						<< "\t" << clus.seqBase_.cnt_
+						<< "\t" << clus.seqBase_.frac_
+						<< "\t" << clus.numberOfRuns()
+						<< "\t" << njh::conToStr(excludedReasons, ",")
+						<< "\t" << clus.seqBase_.seq_
+						<< "\t" << clus.seqBase_.getFastqQualString(SangerQualOffset) << "\n";
+			}
+		};
+		addRows(sampPtr->collapsed_.clusters_, "final");
+		addRows(sampPtr->excluded_.clusters_, "excluded");
+		if (!block.str().empty()) {
+			writer.writeBlock(sampName, block.str());
+		}
+		if(!keepSampleInfoInMemory_){
+			clearSample(sampName);
+		}
+	}
+	writer.closeBlocks();
+}
+
+void SampleCollapseCollection::printSampleInputClusters(const bfs::path& fileName){
+	njh::BlockGzipOutputStream writer(fileName, false);
+	for (const auto & sampName : popNames_.samples_) {
+		auto state = getCurrentSampleState(sampName);
+		std::string text;
+		if (state.finalInputClusters_) {
+			text += *state.finalInputClusters_;
+		}
+		if (state.excludedInputClusters_) {
+			text += *state.excludedInputClusters_;
+		}
+		if (!text.empty()) {
+			writer.writeBlock(sampName, text);
+		}
+	}
+	writer.closeBlocks();
+}
+
+SampleState SampleCollapseCollection::getCurrentSampleState(const std::string & sampleName) {
+	if (keepSampleInfoInMemory_) {
+		std::shared_ptr<sampleCollapse> sampPtr;
+		{
+			std::lock_guard<std::mutex> lock(mut_);
+			auto search = sampleCollapses_.find(sampleName);
+			if (sampleCollapses_.end() != search) {
+				sampPtr = search->second;
+			}
+		}
+		return nullptr == sampPtr ? SampleState{} : createSampleState(*sampPtr);
+	}
+	if (storeSampleStatesInMemory_) {
+		auto stored = sampleStates_.get(sampleName);
+		if (stored) {
+			return *stored;
+		}
+	}
+	return readSampleStateFromDisk(sampleName);
 }
 
 

@@ -99,9 +99,11 @@ private:
 	bfs::path samplesOutputDir_;
 	bfs::path populationOutputDir_;
 	std::mutex mut_;
+	SampleStateStore sampleStates_;
 public:
 	PopNamesInfo popNames_{"", VecStr{}, VecStr{}};
 	bool keepSampleInfoInMemory_{false};
+	bool storeSampleStatesInMemory_{false}; /**< dumpSample keeps the sample's files in memory rather than writing them, writeSampleStatesToDisk() writes them*/
 	bool development_{false};
 	VecStr passingSamples_;
 	VecStr lowRepCntSamples_;
@@ -148,8 +150,47 @@ public:
 
 	void dumpSample(const std::string & sampleName);
 
+	/**@brief Write out the samplesOutput/<sample>/ files for all samples dumped while storeSampleStatesInMemory_ was on
+	 *
+	 */
+	void writeSampleStatesToDisk() const;
+
+	/**@brief the in memory sample states
+	 *
+	 * @return the store
+	 */
+	const SampleStateStore & sampleStates() const;
+
 	void clearSample(const std::string & sampleName);
 	void clearSamples(const VecStr & sampleNames);
+
+private:
+	/**@brief Serialize a sample to the text that is written to samplesOutput/<sample>/
+	 *
+	 * @param samp the sample
+	 * @return the serialized state
+	 */
+	SampleState createSampleState(const sampleCollapse & samp) const;
+	/**@brief Write the state of a sample to samplesOutput/<sample>/, replacing the directory
+	 *
+	 * @param sampleName the sample
+	 * @param state the state to write
+	 */
+	void writeSampleState(const std::string & sampleName, const SampleState & state) const;
+	SampleState readSampleStateFromDisk(const std::string & sampleName) const;
+	/**@brief The serialized state of a sample from wherever it currently is, in memory as a sample, in the store, or on disk
+	 *
+	 * @param sampleName the sample
+	 * @return the state, empty if the sample has no state anywhere
+	 */
+	SampleState getCurrentSampleState(const std::string & sampleName);
+	/**@brief Rebuild a sample from its serialized state and put it in sampleCollapses_
+	 *
+	 * @param sampleName the sample
+	 * @param state the state
+	 */
+	void loadSampleState(const std::string & sampleName, const SampleState & state);
+public:
 
 	bfs::path getSampleFinalHapsPath(const std::string & sampleName) const;
 	bfs::path getPopFinalHapsPath() const;
@@ -193,8 +234,25 @@ public:
 	void printPopulationCollapseInfo(const bfs::path& fileName) const;
 	table genPopulationCollapseInfo() const;
 
-	void printSampleCollapseInfo(const bfs::path& fileName);
+	/**@brief Write the selected clusters info table
+	 *
+	 * @param fileName the file to write
+	 * @param indexBySample if the file is gzipped, write each sample's rows as its own gzip member and index them so a sample can be read on its own (see njh::BlockGzipOutputStream)
+	 */
+	void printSampleCollapseInfo(const bfs::path& fileName, bool indexBySample = false);
 	table genSampleCollapseInfo(const std::set<std::string> & samples);
+
+	/**@brief Write a table of every sample's final and excluded clusters with their sequences and qualities, each sample's rows a separate indexed gzip member
+	 *
+	 * @param fileName the gzipped file to write
+	 */
+	void printSampleClustersInfo(const bfs::path& fileName);
+
+	/**@brief Write the sub clusters (the per replicate input clusters) of every sample's final and excluded clusters, named with TopClusterName of the cluster they belong to, each sample a separate indexed gzip member
+	 *
+	 * @param fileName the gzipped file to write
+	 */
+	void printSampleInputClusters(const bfs::path& fileName);
 
 	void printAllSubClusterInfo(const OutOptions& outOpts, bool skipExcludeReadCntCutOff = true);
 

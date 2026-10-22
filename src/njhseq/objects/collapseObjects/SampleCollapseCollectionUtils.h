@@ -27,4 +27,5 @@
 
 #include "njhseq/objects/collapseObjects/SampleCollapseCollectionUtils/PopNamesInfo.hpp"
 #include "njhseq/objects/collapseObjects/SampleCollapseCollectionUtils/AllGroupDataPaths.hpp"
+#include "njhseq/objects/collapseObjects/SampleCollapseCollectionUtils/SampleStateStore.hpp"
 
