@@ -639,7 +639,7 @@ comparison baseCluster::getComparison(baseCluster & read, aligner & alignerObj, 
 
 bool baseCluster::compare(baseCluster & read, aligner & alignerObj,
 		const IterPar & runParams, const CollapserOpts & collapserOptsObj) {
-	//comparisons aren't cached, the aligner caches the alignments and re-scoring one is cheap
+	//the alignment comes from the aligner's cache when it's been done before, the comparison is re-scored each time
 	if(collapserOptsObj.alignOpts_.noAlign_){
 		alignerObj.noAlignSetAndScore(seqBase_, read.seqBase_);
 	}else{

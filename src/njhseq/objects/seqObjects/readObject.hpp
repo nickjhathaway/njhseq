@@ -95,7 +95,7 @@ class readObject : public baseReadObject {
 
   virtual double getQualCheck(uint32_t qualCutOff)const ;
   virtual void setBaseCountOnQualCheck(uint32_t qualCheck);
-  /**@brief Count the letters in this read weighted by its count, computed on each call rather than stored since a charCounter is ~6kb
+  /**@brief Count the letters in this read weighted by its count, computed on each call
    *
    * @return the letter counts with the alphabet set to the letters present and fractions set
    */

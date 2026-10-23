@@ -103,7 +103,7 @@ private:
 public:
 	PopNamesInfo popNames_{"", VecStr{}, VecStr{}};
 	bool keepSampleInfoInMemory_{false};
-	bool storeSampleStatesInMemory_{false}; /**< dumpSample keeps the sample's files in memory rather than writing them, writeSampleStatesToDisk() writes them*/
+	bool storeSampleStatesInMemory_{false}; /**< dumpSample keeps the sample's files in memory, writeSampleStatesToDisk() writes them*/
 	bool development_{false};
 	VecStr passingSamples_;
 	VecStr lowRepCntSamples_;
