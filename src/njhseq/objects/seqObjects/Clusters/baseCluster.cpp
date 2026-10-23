@@ -503,7 +503,6 @@ bool baseCluster::calculateConsensusTo(
 			break;
 		}
 	}
-	previousErrorChecks_.clear();
 	needToCalculateConsensus_ = false;
 	if(reads_.size() > 2){
 		//exit(1);
@@ -640,94 +639,19 @@ comparison baseCluster::getComparison(baseCluster & read, aligner & alignerObj, 
 
 bool baseCluster::compare(baseCluster & read, aligner & alignerObj,
 		const IterPar & runParams, const CollapserOpts & collapserOptsObj) {
-	bool ret = false;
-	if (previousErrorChecks_.find(read.firstReadName_) != previousErrorChecks_.end()
-			&& read.previousErrorChecks_.find(firstReadName_)
-			!= read.previousErrorChecks_.end()) {
-//
-//		if("[hap=Chi.0[PCRRound=1];idNum=03;mutated=false]" == firstReadName_ && read.seqBase_.cnt_ > 1000){
-//			std::cout << njh::bashCT::blue;
-//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//			std::cout << "runParams: " << runParams.iterNumber_ << std::endl;
-//			std::cout << "\tseqBase_.name_     : " << seqBase_.name_ << std::endl;
-//			std::cout << "\tfirstReadName_     : " << firstReadName_ << std::endl;
-//			std::cout << "\tread.seqBase_.name_: " << read.seqBase_.name_ << std::endl;
-//			std::cout << "\tread.firstReadName_: " << read.firstReadName_ << std::endl;
-//			std::cout << "\t" << toSlimJsonErrors(read.previousErrorChecks_.at(firstReadName_)) << std::endl;
-//			std::cout << "\tqueryName_:" << read.previousErrorChecks_.at(firstReadName_).queryName_ << std::endl;
-//			std::cout << "\trefName_  :" << read.previousErrorChecks_.at(firstReadName_).refName_ << std::endl;
-//
-//			std::cout << njh::bashCT::reset;
-//		}
-//		if("[hap=Chi.1[PCRRound=1];idNum=07;mutated=false]" == firstReadName_ && read.seqBase_.cnt_ > 1000){
-//			std::cout << njh::bashCT::cyan;
-//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//			std::cout << "runParams: " << runParams.iterNumber_ << std::endl;
-//			std::cout << "\tseqBase_.name_     : " << seqBase_.name_ << std::endl;
-//			std::cout << "\tfirstReadName_     : " << firstReadName_ << std::endl;
-//			std::cout << "\tread.seqBase_.name_: " << read.seqBase_.name_ << std::endl;
-//			std::cout << "\tread.firstReadName_: " << read.firstReadName_ << std::endl;
-//			std::cout << "\t" << toSlimJsonErrors(read.previousErrorChecks_.at(firstReadName_)) << std::endl;
-//			std::cout << "\tqueryName_:" << read.previousErrorChecks_.at(firstReadName_).queryName_ << std::endl;
-//			std::cout << "\trefName_  :" << read.previousErrorChecks_.at(firstReadName_).refName_ << std::endl;
-//			std::cout << njh::bashCT::reset;
-//		}
-		ret = runParams.passErrorCheck(read.previousErrorChecks_.at(firstReadName_));
-		//if(read.previousErrorChecks_.at(firstReadName_).distances_.eventBasedIdentity_ > .95 and read.seqBase_.cnt_ == 1 and !ret){
-		//	std::cout << toSlimJsonErrors(read.previousErrorChecks_.at(firstReadName_)) << std::endl;
-		//}
-	} else {
-    if(collapserOptsObj.alignOpts_.noAlign_){
-    	alignerObj.noAlignSetAndScore(seqBase_, read.seqBase_);
-    }else{
-    //	alignerObj.alignCacheGlobal(seqBase_, read.seqBase_);
-    	alignerObj.alignCacheGlobalDiag(seqBase_, read.seqBase_);
-    }
-		comparison currentProfile = alignerObj.compareAlignment(seqBase_, read.seqBase_,
-				 collapserOptsObj.kmerOpts_.checkKmers_);
-//		if("[hap=Chi.0[PCRRound=1];idNum=03;mutated=false]" == firstReadName_ && read.seqBase_.cnt_ > 1000){
-//			std::cout << njh::bashCT::green;
-//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//			std::cout << "runParams: " << runParams.iterNumber_ << std::endl;
-//			std::cout << "\tseqBase_.name_     : " << seqBase_.name_ << std::endl;
-//			std::cout << "\tfirstReadName_     : " << firstReadName_ << std::endl;
-//			std::cout << "\tread.seqBase_.name_: " << read.seqBase_.name_ << std::endl;
-//			std::cout << "\tread.firstReadName_: " << read.firstReadName_ << std::endl;
-//			std::cout << "\t" << toSlimJsonErrors(currentProfile) << std::endl;
-//			std::cout << njh::bashCT::reset;
-//		}
-//		if("[hap=Chi.1[PCRRound=1];idNum=07;mutated=false]" == firstReadName_ && read.seqBase_.cnt_ > 1000){
-//			std::cout << njh::bashCT::purple;
-//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
-//			std::cout << "runParams: " << runParams.iterNumber_ << std::endl;
-//			std::cout << "\tseqBase_.name_     : " << seqBase_.name_ << std::endl;
-//			std::cout << "\tfirstReadName_     : " << firstReadName_ << std::endl;
-//			std::cout << "\tread.seqBase_.name_: " << read.seqBase_.name_ << std::endl;
-//			std::cout << "\tread.firstReadName_: " << read.firstReadName_ << std::endl;
-//			std::cout << "\t" << toSlimJsonErrors(currentProfile) << std::endl;
-//			std::cout << njh::bashCT::reset;
-//		}
-		if (currentProfile.distances_.query_.coverage_ < 0.50
-				|| currentProfile.distances_.ref_.coverage_< 0.50) {
-			ret = false;
-		} else {
-			read.previousErrorChecks_[firstReadName_] = currentProfile;
-			previousErrorChecks_[read.firstReadName_] = currentProfile;
-			//std::stringstream ss;
-			//ss << njh::json::toJson(currentProfile) << std::endl;;
-			//std::cout << njh::removeAllWhitespace(ss.str()) << std::endl;;
-			//ss.str("");
-			//ss << njh::json::toJson(runParams.errors_) << std::endl;
-			//std::cout << njh::removeAllWhitespace(ss.str()) << std::endl;;
-			ret = runParams.passErrorCheck(currentProfile);
-			//if (currentProfile.distances_.eventBasedIdentity_ > .95
-			//		&& read.seqBase_.cnt_ == 1 and !ret) {
-			//	std::cout << toSlimJsonErrors(currentProfile) << std::endl;
-			//}
-			//std::cout << ret << std::endl;
-		}
+	//comparisons aren't cached, the aligner caches the alignments and re-scoring one is cheap
+	if(collapserOptsObj.alignOpts_.noAlign_){
+		alignerObj.noAlignSetAndScore(seqBase_, read.seqBase_);
+	}else{
+		alignerObj.alignCacheGlobalDiag(seqBase_, read.seqBase_);
 	}
-	return ret;
+	comparison currentProfile = alignerObj.compareAlignment(seqBase_, read.seqBase_,
+			 collapserOptsObj.kmerOpts_.checkKmers_);
+	if (currentProfile.distances_.query_.coverage_ < 0.50
+			|| currentProfile.distances_.ref_.coverage_< 0.50) {
+		return false;
+	}
+	return runParams.passErrorCheck(currentProfile);
 }
 
 bool baseCluster::isClusterCompletelyChimeric() {
@@ -824,7 +748,6 @@ Json::Value baseCluster::toJson() const {
 	ret["firstReadName_"] = njh::json::toJson(firstReadName_);
 	ret["firstReadCount_"] = njh::json::toJson(firstReadCount_);
 	ret["reads_"] = njh::json::toJson(reads_);
-	ret["previousErrorChecks_"] = njh::json::toJson(previousErrorChecks_);
 	ret["noWeightConsensus_"] = njh::json::toJson(noWeightConsensus_);
 	ret["calcConsensusInfo_"] = njh::json::toJson(calcConsensusInfo_);
 

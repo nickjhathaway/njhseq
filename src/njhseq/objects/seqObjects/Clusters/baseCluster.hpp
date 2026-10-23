@@ -49,7 +49,6 @@ class baseCluster : public readObject {
   std::string firstReadName_;
   double firstReadCount_;
   std::vector<std::shared_ptr<readObject>> reads_;
-  std::map<std::string, comparison> previousErrorChecks_;
   bool needToCalculateConsensus_;
 
   bool noWeightConsensus_{false};
