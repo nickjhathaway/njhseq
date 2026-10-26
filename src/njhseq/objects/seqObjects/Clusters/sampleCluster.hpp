@@ -153,11 +153,24 @@ class sampleCluster : public cluster {
 
   void resetInfos();
 
+  /**@brief Keep a running sum of the reads' fractions for addRead() until stopReadFracSum(), so each addRead() doesn't re-add every sample's fractions.
+   * Only for a stretch where reads are added by addRead() and nothing else changes the reads or their fractions, e.g. one collapse pass,
+   * the resulting fraction is getAveragedFrac() apart from the order the fractions are added in
+   */
+  void startReadFracSum();
+  /**@brief addRead() goes back to getAveragedFrac()
+   *
+   */
+  void stopReadFracSum();
+
   std::unordered_map<std::string, std::unordered_map<std::string, double>> getRepDisagreement() const;
 
 protected:
   std::map<std::string, std::vector<uint32_t>> sampleClusters_;
   std::map<std::string, sampInfo> sampInfos_;
+
+  bool readFracSumOn_{false}; /**< whether addRead() keeps readFracSum_, see startReadFracSum()*/
+  double readFracSum_{0}; /**< the sum of the reads' fractions while readFracSumOn_*/
 public:
 
   uint32_t totalRepNumberInAnalysis_{std::numeric_limits<uint32_t>::max()};

@@ -1637,6 +1637,8 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 		}
 	}
 
+	//the population cluster columns are the same for every sample cluster in a population cluster, so they're made once per population cluster
+	std::unordered_map<uint32_t, std::string> popInfoByPopPos;
 	for (const auto& sampName : samples) {
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampName);
@@ -1655,16 +1657,20 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 			const auto & clus =
 					sampleCollapses_.at(sampName)->collapsed_.clusters_[clusPos];
 
-
+			auto popPos = popCollapse_->collapsed_.subClustersPositions_.at(clus.getStubName(true));
+			auto popInfo = popInfoByPopPos.find(popPos);
+			if (popInfoByPopPos.end() == popInfo) {
+				popInfo = popInfoByPopPos.emplace(popPos,
+						popCollapse_->collapsed_.clusters_[popPos].getPopInfo(
+								popCollapse_->collapsed_.info_.totalReadCount_,
+								popCollapse_->collapsed_.info_.numberOfClusters_,
+								popCollapse_->collapsed_.info_.infos_.size(), delim)).first;
+			}
 
 			std::stringstream rowStream;
 			rowStream  << sampName
 					<< delim << popCollapse_->populationName_
-					<< delim << popCollapse_->collapsed_.clusters_[popCollapse_->collapsed_.subClustersPositions_.at(
-							clus.getStubName(true))].getPopInfo(
-							popCollapse_->collapsed_.info_.totalReadCount_,
-							popCollapse_->collapsed_.info_.numberOfClusters_,
-							popCollapse_->collapsed_.info_.infos_.size(), delim)
+					<< delim << popInfo->second
 							<< delim << sampleCollapses_.at(sampName)->getSimpleSampInfo(delim);
 			if(nullptr != groupMetaData_){
 				for(const auto & group : groupMetaData_->groupData_){

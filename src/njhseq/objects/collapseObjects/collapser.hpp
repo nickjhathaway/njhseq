@@ -37,6 +37,14 @@
 
 namespace njhseq {
 
+/**@brief whether a cluster type keeps a running fraction sum, sampleCluster::startReadFracSum()/stopReadFracSum()
+ *
+ */
+template<typename T, typename = void>
+struct hasReadFracSum : std::false_type {};
+template<typename T>
+struct hasReadFracSum<T, std::void_t<decltype(std::declval<T&>().startReadFracSum()), decltype(std::declval<T&>().stopReadFracSum())>> : std::true_type {};
+
 
 
 struct SnapShotsOpts {
@@ -253,6 +261,14 @@ void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
 	}
 	uint32_t clusterCounter = 0;
 	size_t amountAdded = 0;
+	//during the pass clusters only change through addRead(), so their fractions can be kept as running sums
+	if constexpr (hasReadFracSum<CLUSTER>::value) {
+		for (const auto & pos : positions) {
+			if (!comparingReads[pos].remove) {
+				comparingReads[pos].startReadFracSum();
+			}
+		}
+	}
 	for (const auto &reverseReadPos : iter::reversed(positions)) {
 		auto & reverseRead = comparingReads[reverseReadPos];
 		if (reverseRead.remove) {
@@ -267,6 +283,11 @@ void collapser::collapseWithParameters(std::vector<CLUSTER> &comparingReads,
 		}
 		findMatch(reverseRead, comparingReads, positions, runParams, amountAdded,
 				alignerObj);
+	}
+	if constexpr (hasReadFracSum<CLUSTER>::value) {
+		for (const auto & pos : positions) {
+			comparingReads[pos].stopReadFracSum();
+		}
 	}
 
 	njh::stopWatch watch;

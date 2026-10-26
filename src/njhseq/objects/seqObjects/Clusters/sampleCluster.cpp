@@ -52,13 +52,31 @@ void sampleCluster::addRead(const sampleCluster& cr) {
   	}
   	updateInfoWithRead(*read, reads_.size());
     reads_.push_back(read);
+    if (readFracSumOn_) {
+    	readFracSum_ += read->seqBase_.frac_;
+    }
   }
   // update the fraction and totalCounts
   seqBase_.cnt_ += cr.seqBase_.cnt_;
-  seqBase_.frac_ = getAveragedFrac(); //calculate average as the mean fraction between all samples
+  //calculate average as the mean fraction between all samples
+  if (readFracSumOn_) {
+  	seqBase_.frac_ = (sampleClusters_.empty() && sampInfos_.empty()) ? 0 :
+  			readFracSum_/std::min<uint32_t>(totalRepNumberInAnalysis_, sampInfos_.size());
+  } else {
+  	seqBase_.frac_ = getAveragedFrac();
+  }
   updateName();
   //consider putting in parameters to determine if
   needToCalculateConsensus_ = true;
+}
+
+void sampleCluster::startReadFracSum() {
+	readFracSum_ = getCumulativeFrac();
+	readFracSumOn_ = true;
+}
+
+void sampleCluster::stopReadFracSum() {
+	readFracSumOn_ = false;
 }
 
 void sampleCluster::updateInfoWithRead(const readObject& read, uint32_t pos) {
@@ -134,25 +152,17 @@ double sampleCluster::getCumulativeFrac() const {
 }
 
 double sampleCluster::getAveragedFrac() const {
-  std::vector<double> fracs;
-  for(const auto & samp : sampleClusters_){
-  	double fracSum = 0;
-  	for(const auto & clusPos : samp.second){
-  		fracSum += reads_[clusPos]->seqBase_.frac_;
-  	}
-  	fracs.emplace_back(fracSum);
-  }
-  for(const auto & sampInfo : sampInfos_){
-  	if(!njh::in(sampInfo.first, sampleClusters_)){
-  		fracs.emplace_back(0);
-  	}
-  }
-  if(0 == fracs.size()){
+  //samples in sampInfos_ without clusters count as 0 in the average, they're in the divisor only
+  if(sampleClusters_.empty() && sampInfos_.empty()){
   	return 0;
   }
   double fracSum = 0;
-  for(const auto frac : fracs){
-  	fracSum +=frac;
+  for(const auto & samp : sampleClusters_){
+  	double sampFracSum = 0;
+  	for(const auto & clusPos : samp.second){
+  		sampFracSum += reads_[clusPos]->seqBase_.frac_;
+  	}
+  	fracSum += sampFracSum;
   }
 	return fracSum/std::min<uint32_t>(totalRepNumberInAnalysis_, sampInfos_.size());
   // return fracSum/std::min<uint32_t>(totalRepNumberInAnalysis_, numberOfRuns());
@@ -261,6 +271,7 @@ void sampleCluster::updateFractionInfo() {
   		reads_[pos]->seqBase_.frac_ = reads_[pos]->seqBase_.cnt_/sampInfos_[samp.first].runReadCnt_;
   	}
   }
+  stopReadFracSum();
 
   seqBase_.frac_ = getAveragedFrac();
   updateName();
