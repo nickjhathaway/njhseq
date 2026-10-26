@@ -82,8 +82,9 @@ inline bool IsMateReverseStrand(uint32_t flag) {
 inline bool IsPaired(uint32_t flag) {
 	return ((flag & 0x0001) != 0);
 }
+//neither secondary (0x100) nor supplementary (0x800), the same as BamTools::BamAlignment::IsPrimaryAlignment()
 inline bool IsPrimaryAlignment(uint32_t flag) {
-	return ((flag & 0x0100) == 0);
+	return ((flag & (0x0100 | 0x0800)) == 0);
 }
 inline bool IsProperPair(uint32_t flag) {
 	return ((flag & 0x0002) != 0);

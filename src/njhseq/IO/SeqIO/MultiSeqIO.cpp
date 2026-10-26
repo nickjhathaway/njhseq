@@ -158,7 +158,8 @@ void MultiSeqIO::openOut(const std::string & uid){
 //	std::cout <<__FILE__ << " " << __LINE__ << std::endl;
 	containsReaderThrow(uid);
 //	std::cout <<__PRETTY_FUNCTION__ << 2 << std::endl;
-	mut_.lock();
+	//held until the end of the function, including when opening throws
+	std::lock_guard<std::mutex> allLock(mut_);
 //	std::cout <<__FILE__ << " " << __LINE__ << std::endl;
 	std::lock_guard<std::mutex> lock(readIos_.at(uid)->mut_);
 //	std::cout <<__PRETTY_FUNCTION__ << 3 << std::endl;
@@ -195,7 +196,6 @@ void MultiSeqIO::openOut(const std::string & uid){
 //	std::cout <<__PRETTY_FUNCTION__ << 13 << std::endl;
 	++openPriorityCounts_[uid];
 //	std::cout <<__PRETTY_FUNCTION__ << 14 << std::endl;
-	mut_.unlock();
 //	std::cout <<__PRETTY_FUNCTION__ << 15 << std::endl;
 }
 
