@@ -262,9 +262,9 @@ void table::populateTable(std::istream & in, const std::string &inDelim, bool he
 	uint32_t lineCount = 0;
 	while(njh::files::crossPlatGetline(in, currentLine)){
 		if(lineCount == 0 && header){
-			columnNames_ = tokenizeString(currentLine, inDelim_, true);
+			columnNames_ = tokenizeLine(currentLine, inDelim_);
 		}else{
-			content_.emplace_back(tokenizeString(currentLine, inDelim_, true));
+			content_.emplace_back(tokenizeLine(currentLine, inDelim_));
 		}
 		++lineCount;
 	}
@@ -494,6 +494,65 @@ table table::getRows(const std::vector<uint32_t> &specificRowPositions) const{
   return table(getTargetsAtPositions(content_, specificRowPositions),
                columnNames_);
 }
+VecStr table::tokenizeLine(const std::string & line, const std::string & delim) {
+	if (delim != ",") {
+		return tokenizeString(line, delim, true);
+	}
+	VecStr toks;
+	std::string current;
+	bool inQuotes = false;
+	for (size_t i = 0; i < line.size(); ++i) {
+		const char c = line[i];
+		if (inQuotes) {
+			if ('"' == c) {
+				if (i + 1 < line.size() && '"' == line[i + 1]) {
+					current.push_back('"');
+					++i;
+				} else {
+					inQuotes = false;
+				}
+			} else {
+				current.push_back(c);
+			}
+		} else if ('"' == c && current.empty()) {
+			inQuotes = true;
+		} else if (',' == c) {
+			toks.emplace_back(std::move(current));
+			current.clear();
+		} else {
+			current.push_back(c);
+		}
+	}
+	toks.emplace_back(std::move(current));
+	return toks;
+}
+
+std::string table::joinRow(const VecStr & row, const std::string & delim) {
+	if (delim != ",") {
+		return vectorToString(row, delim);
+	}
+	std::string ret;
+	for (const auto pos : iter::range(row.size())) {
+		if (0 != pos) {
+			ret.push_back(',');
+		}
+		const auto & el = row[pos];
+		if (std::string::npos == el.find_first_of(",\"\n\r")) {
+			ret.append(el);
+		} else {
+			ret.push_back('"');
+			for (const char c : el) {
+				if ('"' == c) {
+					ret.push_back('"');
+				}
+				ret.push_back(c);
+			}
+			ret.push_back('"');
+		}
+	}
+	return ret;
+}
+
 void table::outPutContents(TableIOOpts options) const {
   if ("tab" ==  options.outDelim_ ) {
     options.outDelim_ = "\t";
@@ -514,9 +573,11 @@ void table::outPutContents(TableIOOpts options) const {
   	bool writeHeader = hasHeader_ && !( bfs::exists(options.out_.outName()) && options.out_.append_);
     OutputStream outFile(options.out_);
     if (writeHeader) {
-    	outFile << vectorToString(columnNames_, options.outDelim_) << "\n";
+    	outFile << joinRow(columnNames_, options.outDelim_) << "\n";
     }
-    outputVectorOfVectors(content_, options.outDelim_, outFile);
+    for (const auto & row : content_) {
+      outFile << joinRow(row, options.outDelim_) << "\n";
+    }
     outFile.flush();
   }
 }
@@ -528,9 +589,11 @@ void table::outPutContents(std::ostream &out, std::string delim) const {
     delim = " ";
   }
   if (hasHeader_) {
-    out << vectorToString(columnNames_, delim) << "\n";
+    out << joinRow(columnNames_, delim) << "\n";
   }
-  outputVectorOfVectors(content_, delim, out);
+  for (const auto & row : content_) {
+    out << joinRow(row, delim) << "\n";
+  }
 }
 
 void table::sortTable(const std::string &firstColumn,

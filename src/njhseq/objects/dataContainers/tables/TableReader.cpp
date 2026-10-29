@@ -35,14 +35,14 @@ TableReader::TableReader(TableIOOpts tabOpts): tabOpts_(std::move(tabOpts)){
 		if(tabOpts_.hasHeader_){
 			std::string currentLine;
 			njh::files::crossPlatGetline(*in_, currentLine);
-			auto toks = tokenizeString(currentLine, tabOpts_.inDelim_, true);
+			auto toks = table::tokenizeLine(currentLine, tabOpts_.inDelim_);
 			header_ = table(toks);
 		}
 	} else {
 		njh::files::checkExistenceThrow(tabOpts_.in_.inFilename_);
 		std::string currentLine = njh::files::getFirstLine(tabOpts_.in_.inFilename_);
 		//std::cout << currentLine << std::endl;
-		auto toks = tokenizeString(currentLine, tabOpts_.inDelim_, true);
+		auto toks = table::tokenizeLine(currentLine, tabOpts_.inDelim_);
 		VecStr columnNames;
 		if (!tabOpts_.hasHeader_) {
 			for (const auto i : iter::range(toks.size())) {
@@ -83,7 +83,7 @@ bool TableReader::getNextRow(VecStr & row){
 	std::string currentLine;
 	row.clear();
 	if(njh::files::crossPlatGetline(*in_, currentLine)){
-		row = tokenizeString(currentLine, tabOpts_.inDelim_, true);
+		row = table::tokenizeLine(currentLine, tabOpts_.inDelim_);
 		//if this is the first line when reading from STDIN without a header, need to set the column names
 		if(0 == header_.nCol() && "STDIN" == tabOpts_.in_.inFilename_ && !tabOpts_.hasHeader_){
 			for (const auto i : iter::range(row.size())) {

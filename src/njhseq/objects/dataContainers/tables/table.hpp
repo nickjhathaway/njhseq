@@ -196,6 +196,15 @@ public:
 	// outputs
 	void outPutContents(TableIOOpts options) const;
 	void outPutContents(std::ostream &out, std::string delim) const;
+
+	/**@b Split a line on a delimiter; if the delimiter is a comma, commas inside double quotes are
+	 * not split on and the enclosing quotes are removed ("" within quotes becomes a literal ")
+	 */
+	static VecStr tokenizeLine(const std::string & line, const std::string & delim);
+	/**@b Join a row with the delimiter; if the delimiter is a comma, elements containing a comma,
+	 * quote or newline are wrapped in double quotes (with internal quotes doubled)
+	 */
+	static std::string joinRow(const VecStr & row, const std::string & delim);
 	void outPutContentOrganized(std::ostream &out) const;
 	// extracting columns
 	table getColumns(const VecStr &specificColumnNames) const;
