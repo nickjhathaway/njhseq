@@ -174,7 +174,7 @@ public:
 
 		template<typename T>
 		void addFiledDefaultValue(const std::string & field, const T & defaultValue, bool replace = true) {
-			std::regex blankDataPattern("\\.(,\\.)*");
+			static const std::regex blankDataPattern("\\.(,\\.)*");
 			for(auto & rec : sampleFormatInfos_) {
 				//check if all other fields are empty, then replace with an empty value
 				bool allBlanks = true;

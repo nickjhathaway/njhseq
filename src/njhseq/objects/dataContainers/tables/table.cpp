@@ -789,8 +789,8 @@ void table::naturlSortTable(const std::string &byThisColumn, bool decending){
 	struct NameWithNameSplit {
 		explicit NameWithNameSplit(std::string  name):
 						name_(std::move(name)){
-			const std::regex regPat_{"([A-Za-z0-9\\.]+)" };
-			const std::regex subPat_ {"([A-Za-z]*)([0-9\\.]*)"};
+			static const std::regex regPat_{"([A-Za-z0-9\\.]+)" };
+			static const std::regex subPat_ {"([A-Za-z]*)([0-9\\.]*)"};
 
 			nameToks_ = njh::tokStrOnMatchRegex(name_, regPat_);
 			for(const auto & nameTok : nameToks_) {
@@ -813,9 +813,23 @@ void table::naturlSortTable(const std::string &byThisColumn, bool decending){
 
 	auto colPos = getColPos(byThisColumn);
 
-	njh::sort(content_, [&colPos](const VecStr & row1, const VecStr & row2) {
-		const NameWithNameSplit seq1(row1[colPos]);
-		const NameWithNameSplit seq2(row2[colPos]);
+	struct RowWithNameSplit {
+		RowWithNameSplit(NameWithNameSplit split, VecStr row) :
+				split_(std::move(split)), row_(std::move(row)) {
+		}
+		NameWithNameSplit split_;
+		VecStr row_;
+	};
+	std::vector<RowWithNameSplit> rowsWithSplit;
+	rowsWithSplit.reserve(content_.size());
+	for (auto & row : content_) {
+		NameWithNameSplit split(row[colPos]);
+		rowsWithSplit.emplace_back(std::move(split), std::move(row));
+	}
+
+	njh::sort(rowsWithSplit, [](const RowWithNameSplit & row1, const RowWithNameSplit & row2) {
+		const NameWithNameSplit & seq1 = row1.split_;
+		const NameWithNameSplit & seq2 = row2.split_;
 		// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		// std::cout << "seq1.name_: " << seq1.name_  << std::endl;
 		// std::cout << "seq1.nameToks_: " << njh::conToStr(seq1.nameToks_, ",")  << std::endl;
@@ -845,6 +859,9 @@ void table::naturlSortTable(const std::string &byThisColumn, bool decending){
 		// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 		return seq1.subNameToks_.size() < seq2.subNameToks_.size();
 	});
+	for (uint32_t pos = 0; pos < rowsWithSplit.size(); ++pos) {
+		content_[pos] = std::move(rowsWithSplit[pos].row_);
+	}
 
 	if(decending){
 		njh::reverse(content_);

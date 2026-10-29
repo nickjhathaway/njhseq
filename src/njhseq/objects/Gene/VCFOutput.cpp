@@ -62,7 +62,6 @@ void VCFOutput::VCFRecord::autoAddTYPEField() {
 void VCFOutput::VCFRecord::autoAdd_AN_AC_AF_InfoFields() {
 	std::unordered_map<std::string, uint32_t> alleleCounts;
 	uint32_t AN = 0;
-	std::regex blankDataPattern("\\.(,\\.)*");
 	for (auto& samp: sampleFormatInfos_) {
 		if (!samp.second.containsMeta("GT")) {
 			std::stringstream ss;
@@ -120,7 +119,6 @@ void VCFOutput::VCFRecord::autoAdd_AN_AC_AF_InfoFields() {
 
 void VCFOutput::VCFRecord::autoAddWeightedAFRealField() {
 	std::vector<double> weighted_real_afs(alts_.size(), 0); //total read per each alt observation
-	std::regex blankDataPattern("\\.(,\\.)*");
 	double reference_sum = 0;
 	for (auto &samp: sampleFormatInfos_) {
 		if (!samp.second.containsMeta("DP") || !samp.second.containsMeta("AD")) {
@@ -158,7 +156,6 @@ void VCFOutput::VCFRecord::autoAddTotalDP_RO_AO_InfoFields() {
 	uint32_t totalDP = 0;
 	uint32_t totalRO = 0; //total reads for reference
 	std::vector<uint32_t> totalAOs(alts_.size(), 0); //total read per each alt observation
-	std::regex blankDataPattern("\\.(,\\.)*");
 	for (auto &samp: sampleFormatInfos_) {
 		if (!samp.second.containsMeta("DP") || !samp.second.containsMeta("AD")) {
 			std::stringstream ss;
@@ -194,7 +191,7 @@ void VCFOutput::VCFRecord::autoAddTotalDP_RO_AO_InfoFields() {
 
 void VCFOutput::VCFRecord::addGTField(uint32_t ploidy) {
 	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
-	std::regex blankDataPattern("[\\.0](,[\\.0])*");
+	static const std::regex blankDataPattern("[\\.0](,[\\.0])*");
 	for (auto &samp: sampleFormatInfos_) {
 		if (!samp.second.containsMeta("AD")) {
 			std::stringstream ss;
