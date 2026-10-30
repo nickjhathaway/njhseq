@@ -1,4 +1,5 @@
 #include "cluster.hpp"
+#include <boost/math/distributions/binomial.hpp>
 //
 // njhseq - A library for analyzing sequence data
 // Copyright (C) 2012-2018 Nicholas Hathaway <nicholas.hathaway@umassmed.edu>,
@@ -95,17 +96,92 @@ void cluster::outputInfoComp(const std::string& workingDir) const {
 }
 
 bool cluster::snpPassesStrandComposition(double snpReadCount, double snpCompReadCount,
-		uint64_t compReadsInCluster, uint64_t readsInCluster, double compositionCutOff) {
+		double compReadsInCluster, double readsInCluster, double pValueCutOff) {
 	//if the entire cluster is one direction or the other (which might mean the extraction was in one direction anyways) then don't filter based on comp
-	if (0 == compReadsInCluster || readsInCluster == compReadsInCluster) {
+	if (compReadsInCluster <= 0 || compReadsInCluster >= readsInCluster) {
 		return true;
 	}
-	if (snpReadCount <= 0) {
+	const auto trials = static_cast<uint64_t>(std::round(snpReadCount));
+	if (0 == trials) {
 		return false;
 	}
-	double compFrac = snpCompReadCount / snpReadCount;
-	//keep only if the snp's reads are found in both directions
-	return compFrac > compositionCutOff && compFrac < 1 - compositionCutOff;
+	const auto compSuccesses = std::min(trials, static_cast<uint64_t>(std::round(snpCompReadCount)));
+	//two sided exact binomial test, the summed probability of every outcome no more likely than the observed one
+	boost::math::binomial_distribution<double> dist(static_cast<double>(trials), compReadsInCluster / readsInCluster);
+	const double observedProb = boost::math::pdf(dist, static_cast<double>(compSuccesses));
+	const double relErr = 1 + 1e-7;
+	double pValue = 0;
+	for (uint64_t successes = 0; successes <= trials; ++successes) {
+		const double prob = boost::math::pdf(dist, static_cast<double>(successes));
+		if (prob <= observedProb * relErr) {
+			pValue += prob;
+		}
+	}
+	return std::min(1.0, pValue) >= pValueCutOff;
+}
+
+double cluster::snpBackgroundErrorRate(std::vector<double> mismatchRates, uint64_t possibleMismatches,
+		double quantile, double minErrorRate) {
+	//mismatchRates holds only the observed mismatches, the rest of the possible mismatches have a rate of 0
+	double rate = 0;
+	if (possibleMismatches > 0 && !mismatchRates.empty()) {
+		std::sort(mismatchRates.begin(), mismatchRates.end());
+		const uint64_t total = std::max<uint64_t>(possibleMismatches, mismatchRates.size());
+		const uint64_t zeros = total - mismatchRates.size();
+		const auto quantilePos = static_cast<uint64_t>(std::floor(std::clamp(quantile, 0.0, 1.0) * static_cast<double>(total - 1)));
+		if (quantilePos >= zeros) {
+			rate = mismatchRates[quantilePos - zeros];
+		}
+	}
+	return std::max(rate, minErrorRate);
+}
+
+bool cluster::snpAboveBackgroundError(double snpReadCount, double readCount, double errorRate, double pValueCutOff) {
+	const auto trials = static_cast<uint64_t>(std::round(readCount));
+	const auto successes = std::min(trials, static_cast<uint64_t>(std::round(snpReadCount)));
+	if (0 == trials || 0 == successes) {
+		return false;
+	}
+	if (errorRate >= 1) {
+		return false;
+	}
+	//upper tail, the chance of seeing at least this many reads with the snp from errors alone
+	boost::math::binomial_distribution<double> dist(static_cast<double>(trials), errorRate);
+	const double pValue = boost::math::cdf(boost::math::complement(dist, static_cast<double>(successes - 1)));
+	return pValue < pValueCutOff;
+}
+
+bool cluster::snpPassesBreakoutCutOffs(double snpReadCount, double readCount, const snpBreakoutPars & pars,
+		double backgroundErrorRate, double errorModelPValueCutOff) {
+	const bool passCounts = snpReadCount > pars.hardCutOff &&
+			snpReadCount / readCount > pars.hardSnpFreqCutOff;
+	if (!pars.useErrorModel) {
+		return passCounts;
+	}
+	const bool passErrorModel = snpReadCount >= pars.errorModelMinCount &&
+			snpAboveBackgroundError(snpReadCount, readCount, backgroundErrorRate, errorModelPValueCutOff);
+	return pars.errorModelAsFilter ? passCounts && passErrorModel : passErrorModel;
+}
+
+bool cluster::readIsRevComp(const std::string & name) {
+	std::string_view nameView(name);
+	//strip one trailing count (_t) or fraction (_f) that collapsing can add after the extractor's _Comp, numbers can be in scientific notation (e.g. _t1e+06)
+	const auto lastUnderscore = nameView.rfind('_');
+	if (std::string_view::npos != lastUnderscore && lastUnderscore + 2 < nameView.size()
+			&& ('t' == nameView[lastUnderscore + 1] || 'f' == nameView[lastUnderscore + 1])) {
+		const auto number = nameView.substr(lastUnderscore + 2);
+		const bool allNumberChars = std::all_of(number.begin(), number.end(), [](char c) {
+			return std::isdigit(static_cast<unsigned char>(c)) || '.' == c || 'e' == c || 'E' == c || '+' == c || '-' == c;
+		});
+		const bool hasDigit = std::any_of(number.begin(), number.end(), [](char c) {
+			return std::isdigit(static_cast<unsigned char>(c));
+		});
+		if (allNumberChars && hasDigit) {
+			nameView = nameView.substr(0, lastUnderscore);
+		}
+	}
+	const std::string_view compMark("_Comp");
+	return nameView.size() >= compMark.size() && nameView.substr(nameView.size() - compMark.size()) == compMark;
 }
 
 std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
@@ -114,48 +190,75 @@ std::vector<cluster> cluster::breakoutClustersBasedOnSnps(aligner & alignerObj,
 	//log snp information
 	// std::cout << seqBase_.name_ << std::endl;
 	std::unordered_map<uint32_t, std::unordered_map<char, double>> mismatches;
-	std::unordered_map<uint32_t, std::unordered_map<char, double>> mismatches_cnt;
+	//the strand test uses every read with the snp regardless of quality since base quality can differ by strand and would make a real snp look strand biased
+	std::unordered_map<uint32_t, std::unordered_map<char, double>> allQualMismatches;
+	std::unordered_map<uint32_t, std::unordered_map<char, double>> allQualMismatches_comp;
 	for (const auto subReadPos : iter::range(reads_.size())) {
 		const auto & subRead = reads_[subReadPos];
 		alignerObj.alignCache(*this, subRead, false);
 		//count gaps and mismatches and get identity
 		alignerObj.profilePrimerAlignment(*this, subRead);
+		const bool subReadIsRevComp = readIsRevComp(subRead->seqBase_.name_);
 		for (const auto & m : alignerObj.comp_.distances_.mismatches_) {
+			allQualMismatches[m.second.refBasePos][m.second.seqBase] += subRead->seqBase_.cnt_;
+			if (subReadIsRevComp) {
+				allQualMismatches_comp[m.second.refBasePos][m.second.seqBase] += subRead->seqBase_.cnt_;
+			}
 			if (m.second.highQualityJustSeq(pars.qScorePars)) {
 				mismatches[m.second.refBasePos][m.second.seqBase] += subRead->seqBase_.cnt_;
-				if (njh::endsWith(subRead->seqBase_.name_, "_Comp")) {
-					mismatches_cnt[m.second.refBasePos][m.second.seqBase] += subRead->seqBase_.cnt_;
-				}
 			}
 		}
 	}
-	auto comp_count = std::count_if(reads_.begin(), reads_.end(), [](const std::shared_ptr<readObject>& r) {
-		return njh::endsWith(r->seqBase_.name_, "_Comp");
-	});
+	//read counts rather than sub read counts so they're on the same scale as the snp counts
+	double compReadCount = 0;
+	double readCount = 0;
+	for (const auto & subRead : reads_) {
+		readCount += subRead->seqBase_.cnt_;
+		if (readIsRevComp(subRead->seqBase_.name_)) {
+			compReadCount += subRead->seqBase_.cnt_;
+		}
+	}
 	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	// std::cout << "pars.hardCutOff: " << pars.hardCutOff << std::endl;
 	// std::cout << "pars.hardSnpFreqCutOff: " << pars.hardSnpFreqCutOff << std::endl;
 	// std::cout << "pars.snpFreqCutOff: " << pars.snpFreqCutOff << std::endl;
 	// std::cout << "mismatches.size(): " << mismatches.size() << std::endl;
 
+	//with the error model, the background error rate is a high quantile of every position's and alternative base's mismatch rate (most are 0)
+	double backgroundErrorRate = 0;
+	double errorModelPValueCutOff = 0;
+	if (pars.useErrorModel) {
+		std::vector<double> mismatchRates;
+		for (const auto & position : mismatches) {
+			for (const auto & base : position.second) {
+				mismatchRates.emplace_back(base.second / seqBase_.cnt_);
+			}
+		}
+		const uint64_t possibleMismatches = 3 * len(seqBase_);
+		backgroundErrorRate = snpBackgroundErrorRate(mismatchRates, possibleMismatches,
+				pars.errorModelQuantile, pars.errorModelMinErrorRate);
+		//bonferroni correction for testing every position and alternative base
+		errorModelPValueCutOff = pars.errorModelPValueCutOff / static_cast<double>(std::max<uint64_t>(1, possibleMismatches));
+	}
+
 	std::unordered_map<uint32_t, std::unordered_map<char, double>> mismatchesAboveCutOff;
 	for (const auto & position : mismatches) {
 		for (const auto & base : position.second) {
 
+			const double snpAllQualCount = allQualMismatches[position.first][base.first];
 			double snpCompCount = 0;
-			auto compPosSearch = mismatches_cnt.find(position.first);
-			if (mismatches_cnt.end() != compPosSearch) {
+			auto compPosSearch = allQualMismatches_comp.find(position.first);
+			if (allQualMismatches_comp.end() != compPosSearch) {
 				auto compBaseSearch = compPosSearch->second.find(base.first);
 				if (compPosSearch->second.end() != compBaseSearch) {
 					snpCompCount = compBaseSearch->second;
 				}
 			}
-			bool pass_comp = snpPassesStrandComposition(base.second, snpCompCount,
-					comp_count, reads_.size(), pars.rev_comp_composition_cut_off);
-			if (base.second > pars.hardCutOff &&
-			    base.second / seqBase_.cnt_ > pars.hardSnpFreqCutOff &&
-			    pass_comp
-			) {
+			bool pass_comp = snpPassesStrandComposition(snpAllQualCount, snpCompCount,
+					compReadCount, readCount, pars.strandBiasPValueCutOff);
+			const bool passCountAndFreq = snpPassesBreakoutCutOffs(base.second, seqBase_.cnt_, pars,
+					backgroundErrorRate, errorModelPValueCutOff);
+			if (passCountAndFreq && pass_comp) {
 				// std::cout << position.first << "\t" << base.first << '\t' << base.second << '\t' << base.second/seqBase_.cnt_<< std::endl;
 				mismatchesAboveCutOff[position.first][base.first] = base.second;
 			}

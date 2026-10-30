@@ -407,10 +407,10 @@ bool seqSetUp::processJustReadInNames(SeqIOOptions & opts, const VecStr & format
 		}
 	}
 	if(commands_.hasFlagCaseInsenNoDash("--fastagz")){
-		if(njh::has(formats, "--fastqgz", formatChecker) ) {
+		if(njh::has(formats, "--fastagz", formatChecker) ) {
 			opts.inFormat_ = SeqIOOptions::inFormats::FASTAGZ;
 			opts.outFormat_ = SeqIOOptions::outFormats::FASTAGZ;
-			readInFormatsFound.emplace_back("--fastqgz");
+			readInFormatsFound.emplace_back("--fastagz");
 		}
 	}
 	if(readInFormatsFound.size() > 1){

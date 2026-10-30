@@ -63,10 +63,10 @@ class sampleCluster : public cluster {
 			sampleClusters_[getSeqBase(seq).getOwnSampName()].push_back(reads_.size());
 			sampInfos_[getSeqBase(seq).getOwnSampName()].update(getSeqBase(seq));
 			reads_.emplace_back(std::make_shared<readObject>(getSeqBase(seq)));
-		  // update the fraction and totalCounts
 		  seqBase_.cnt_ += getSeqBase(seq).cnt_;
-		  seqBase_.frac_ = getAveragedFrac(); //calculate average as the mean fraction between all samples
 		}
+		//the mean fraction between all samples, computed once after all reads are added
+		seqBase_.frac_ = getAveragedFrac();
 
 		remove = false;
 		needToCalculateConsensus_ = false;

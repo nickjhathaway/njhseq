@@ -1319,7 +1319,7 @@ void SampleCollapseCollection::printSampleCollapseInfo(const bfs::path& fileName
 
 void SampleCollapseCollection::printSampleClustersInfo(const bfs::path& fileName){
 	njh::BlockGzipOutputStream writer(fileName, false);
-	writer << njh::conToStr(VecStr{"s_Sample", "c_status", "c_name", "c_ReadCnt", "c_frac", "c_RepCnt", "c_excludedReasons", "c_seq", "c_qual"}, "\t") << "\n";
+	writer << njh::conToStr(VecStr{"s_Sample", "p_name", "c_status", "c_name", "c_ReadCnt", "c_frac", "c_RepCnt", "c_excludedReasons", "c_seq", "c_qual"}, "\t") << "\n";
 	for (const auto & sampName : popNames_.samples_) {
 		if(!keepSampleInfoInMemory_){
 			if (sampleStates_.has(sampName) || bfs::exists(njh::files::make_path(masterOutputDir_, "samplesOutput", sampName))) {
@@ -1339,8 +1339,15 @@ void SampleCollapseCollection::printSampleClustersInfo(const bfs::path& fileName
 		if (nullptr == sampPtr) {
 			continue;
 		}
+		//samples left out of population clustering (as in genSampleCollapseInfo) have every row marked with why
+		std::string sampleExcludedReason;
+		if (njh::in(sampName, lowRepCntSamples_)) {
+			sampleExcludedReason = "ExcludeSampleReplicatesBelowMinReadCount";
+		} else if (sampPtr->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount) {
+			sampleExcludedReason = "ExcludeSampleBelowMinReadCount";
+		}
 		std::stringstream block;
-		auto addRows = [&block, &sampName](const std::vector<sampleCluster> & clusters, const std::string & status) {
+		auto addRows = [&block, &sampName, &sampleExcludedReason, this](const std::vector<sampleCluster> & clusters, const std::string & status) {
 			for (const auto & clus : clusters) {
 				VecStr excludedReasons;
 				if (clus.seqBase_.nameHasMetaData()) {
@@ -1351,8 +1358,12 @@ void SampleCollapseCollection::printSampleClustersInfo(const bfs::path& fileName
 						}
 					}
 				}
+				if (!sampleExcludedReason.empty()) {
+					excludedReasons.emplace_back(sampleExcludedReason);
+				}
 				block << sampName
-						<< "\t" << status
+						<< "\t" << popNames_.populationName_
+						<< "\t" << ("final" == status && !sampleExcludedReason.empty() ? std::string("sampleExcluded") : status)
 						<< "\t" << clus.seqBase_.name_
 						<< "\t" << clus.seqBase_.cnt_
 						<< "\t" << clus.seqBase_.frac_

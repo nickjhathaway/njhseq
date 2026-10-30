@@ -348,7 +348,7 @@ int ManipulateTableRunner::tableExtractCriteria(
 	auto colPos = inTable.header_.getColPos(columnName);
 	while(inTable.getNextRow(row)){
 		if(comp(row[colPos])){
-			out << njh::conToStr(row, setUp.ioOptions_.outDelim_) << "\n";
+			out << table::joinRow(row, setUp.ioOptions_.outDelim_) << "\n";
 		}
 	}
 
@@ -652,7 +652,7 @@ int ManipulateTableRunner::tableExtractColumns(const njh::progutils::CmdArgs & i
   	tabReader.header_.checkForColumnsThrow(extractColumns,__PRETTY_FUNCTION__);
 
   	OutputStream out(setUp.ioOptions_.out_);
-  	out << njh::conToStr(outColNames, setUp.ioOptions_.outDelim_) << "\n";
+  	out << table::joinRow(outColNames, setUp.ioOptions_.outDelim_) << "\n";
   	VecStr row;
   	std::vector<uint32_t> columnPositions;
   	columnPositions.reserve(extractColumns.size());
@@ -962,9 +962,9 @@ int ManipulateTableRunner::splitTable(
 		std::string colVal = line[tabReader.header_.getColPos(column)];
 		if(!writer.containsReader(colVal)){
 			writer.addOutputStream(colVal, OutOptions(njh::files::make_path(setUp.directoryName_, colVal + tabReader.tabOpts_.out_.outExtention_)));
-			writer.add(colVal, njh::conToStr(tabReader.header_.columnNames_, tabReader.tabOpts_.outDelim_));
+			writer.add(colVal, table::joinRow(tabReader.header_.columnNames_, tabReader.tabOpts_.outDelim_));
 		}
-		writer.add(colVal, njh::conToStr(line, tabReader.tabOpts_.outDelim_));
+		writer.add(colVal, table::joinRow(line, tabReader.tabOpts_.outDelim_));
 	}
 	table inTab(setUp.ioOptions_);
 	return 0;
@@ -1117,10 +1117,10 @@ int ManipulateTableRunner::rBind(
 		{
 			VecStr row;
 			if(setUp.ioOptions_.hasHeader_){
-				out << njh::conToStr(firstTable.header_.columnNames_, setUp.ioOptions_.outDelim_) << '\n';
+				out << table::joinRow(firstTable.header_.columnNames_, setUp.ioOptions_.outDelim_) << '\n';
 			}
 			while(firstTable.getNextRow(row)){
-				out << njh::conToStr(row, setUp.ioOptions_.outDelim_) << '\n';
+				out << table::joinRow(row, setUp.ioOptions_.outDelim_) << '\n';
 			}
 		}
 		for (const auto &file : allFiles) {
@@ -1154,7 +1154,7 @@ int ManipulateTableRunner::rBind(
 					throw std::runtime_error{ss.str()};
 				}
 				while(currentTable.getNextRow(row)){
-					out << njh::conToStr(row, setUp.ioOptions_.outDelim_) << '\n';
+					out << table::joinRow(row, setUp.ioOptions_.outDelim_) << '\n';
 				}
 			}
 		}

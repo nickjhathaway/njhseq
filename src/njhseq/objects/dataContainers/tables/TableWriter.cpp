@@ -27,7 +27,7 @@ void TableWriter::writeRow(VecStr & row){
 		ss << "row: " << njh::conToStr(row, "\t") << "\n";
 		throw std::runtime_error{ss.str()};
 	}
-	*out_ << njh::conToStr(row, tabOpts_.outDelim_) << "\n";
+	*out_ << table::joinRow(row, tabOpts_.outDelim_) << "\n";
 }
 
 

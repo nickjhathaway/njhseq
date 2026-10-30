@@ -5,7 +5,13 @@ ROOT = $(realpath ..)
 include $(ROOT)/compfile.mk
 include $(ROOT)/makefile-common.mk
 
-COMLIBS += -I$(ROOT)/src -I$(ROOT)/test/catch2
+COMLIBS += -I$(ROOT)/src
+
+#Catch2 comes from the catch2 package's include path in makefile-common.mk (through njhcpp), its amalgamated source is compiled here
+CATCH_DIR = $(firstword $(foreach d,$(patsubst -I%,%,$(filter -I%,$(COMLIBS))),$(if $(wildcard $(d)/catch_amalgamated.cpp),$(d))))
+ifeq (,$(CATCH_DIR))
+$(error catch_amalgamated.cpp not found in COMLIBS, re-run ./configure.py and ./setup.py so catch2 is in makefile-common.mk)
+endif
 
 LIB_OBJ_DIR = $(ROOT)/build/$(CXXOUTNAME)Build
 LIB_OBJ = $(filter-out $(LIB_OBJ_DIR)/src/main.o, $(shell find $(LIB_OBJ_DIR) -name '*.o'))
@@ -30,9 +36,9 @@ build/unit/%.o: unit/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(CXXOPT) $(COMLIBS) -c $< -o $@
 
-$(CATCH_OBJ): catch2/catch_amalgamated.cpp catch2/catch_amalgamated.hpp
+$(CATCH_OBJ): $(CATCH_DIR)/catch_amalgamated.cpp $(CATCH_DIR)/catch_amalgamated.hpp
 	@mkdir -p build
-	$(CXX) $(CXXFLAGS) $(CXXOPT) -I$(ROOT)/test/catch2 -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CXXOPT) -I$(CATCH_DIR) -c $< -o $@
 
 clean:
 	rm -rf build bin

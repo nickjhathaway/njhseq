@@ -242,7 +242,8 @@ public:
 	void printSampleCollapseInfo(const bfs::path& fileName, bool indexBySample = false);
 	table genSampleCollapseInfo(const std::set<std::string> & samples);
 
-	/**@brief Write a table of every sample's final and excluded clusters with their sequences and qualities, each sample's rows a separate indexed gzip member
+	/**@brief Write a table of every sample's final and excluded clusters with their sequences and qualities, each sample's rows a separate indexed gzip member.
+	 * Clusters of samples left out of population clustering (all replicates or the sample's total read count under the read count cut offs) have the status sampleExcluded instead of final, and every row of those samples has the reason in c_excludedReasons
 	 *
 	 * @param fileName the gzipped file to write
 	 */

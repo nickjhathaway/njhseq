@@ -149,22 +149,68 @@ class cluster : public baseCluster {
 		double hardSnpFreqCutOff = 0; //! range 0-1, only use snps with frequencies above this number
   	uint32_t hardCutOff = 3; //! there needs to be at least this many reads with the snp to count
   	double clusterFreqCutOff = 0.01; //! should be greater than this internal cluster frequency to breakout a new cluster
-  	double rev_comp_composition_cut_off = 0.20; //! snps should have more than this percentage in one direction if both directions are present in the cluster
+  	double strandBiasPValueCutOff = 0.01; //! if the cluster has reads from both directions, snps whose reverse complement read count is this unlikely (two sided binomial p-value) given the cluster's composition are not used
+		bool useErrorModel = false; //! instead of hardCutOff and hardSnpFreqCutOff, use snps whose read count is significantly more than the cluster's background error rate would give
+		double errorModelPValueCutOff = 0.01; //! upper tail binomial p-value cut off for the error model, bonferroni corrected for the number of positions and alternative bases
+		double errorModelQuantile = 0.95; //! the background error rate is this quantile of the mismatch rates of every position and alternative base
+		double errorModelMinErrorRate = 0.001; //! the background error rate is at least this
+		uint32_t errorModelMinCount = 3; //! with the error model a snp still needs at least this many reads
+		bool errorModelAsFilter = false; //! with the error model, snps also have to pass hardCutOff and hardSnpFreqCutOff, so the error model only removes snps
 		QualScorePars qScorePars;
 	};
   std::vector<cluster> breakoutClustersBasedOnSnps(aligner & alignerObj, const snpBreakoutPars& pars );
 
-	/**@brief Whether a snp passes the strand composition check, if the cluster has reads from both directions the snp needs to be found in both directions
+	/**@brief Whether a snp passes the strand composition check. If the cluster has reads from both directions, the snp's reverse complement read count is tested against the cluster's reverse complement fraction with a two sided exact binomial test and fails if it's significantly biased to one direction
 	 *
 	 * @param snpReadCount the read count supporting the snp
 	 * @param snpCompReadCount the read count supporting the snp from reverse complemented (_Comp) reads
-	 * @param compReadsInCluster the number of reverse complemented reads in the cluster
-	 * @param readsInCluster the number of reads in the cluster
-	 * @param compositionCutOff the fraction of the snp's reads from each direction has to be above this
+	 * @param compReadsInCluster the read count of reverse complemented reads in the cluster
+	 * @param readsInCluster the read count of the cluster
+	 * @param pValueCutOff the snp fails if the binomial p-value is below this
 	 * @return true if it passes
 	 */
 	static bool snpPassesStrandComposition(double snpReadCount, double snpCompReadCount,
-			uint64_t compReadsInCluster, uint64_t readsInCluster, double compositionCutOff);
+			double compReadsInCluster, double readsInCluster, double pValueCutOff);
+
+	/**@brief Whether a read was reverse complemented during extraction. The extractors append _Comp and later steps can append a count (_t) or fraction (_f) after it, so the name has to end in _Comp or _Comp followed by one _t or _f number
+	 *
+	 * @param name the read name
+	 * @return true if the name ends in _Comp, optionally followed by _t<number> or _f<number>
+	 */
+	static bool readIsRevComp(const std::string & name);
+
+	/**@brief The background error rate for the snp error model, a quantile of the mismatch rates of every possible position and alternative base
+	 *
+	 * @param mismatchRates the rates of the observed mismatches, the possible mismatches not given are counted as 0
+	 * @param possibleMismatches the number of possible mismatches (3 times the length of the sequence)
+	 * @param quantile the quantile to use
+	 * @param minErrorRate the rate returned is at least this
+	 * @return the background error rate
+	 */
+	static double snpBackgroundErrorRate(std::vector<double> mismatchRates, uint64_t possibleMismatches,
+			double quantile, double minErrorRate);
+
+	/**@brief Whether a snp's read count is significantly more than errors alone would give, upper tail binomial test
+	 *
+	 * @param snpReadCount the read count with the snp
+	 * @param readCount the read count of the cluster
+	 * @param errorRate the background error rate
+	 * @param pValueCutOff passes if the p-value is below this (already corrected for multiple testing)
+	 * @return true if it passes
+	 */
+	static bool snpAboveBackgroundError(double snpReadCount, double readCount, double errorRate, double pValueCutOff);
+
+	/**@brief Whether a snp passes the breakout's read count cut offs: hardCutOff and hardSnpFreqCutOff, or with useErrorModel the error model instead, or both when errorModelAsFilter is also set
+	 *
+	 * @param snpReadCount the read count with the snp
+	 * @param readCount the read count of the cluster
+	 * @param pars the breakout parameters
+	 * @param backgroundErrorRate the error model's background error rate
+	 * @param errorModelPValueCutOff the error model's p-value cut off (already corrected for multiple testing)
+	 * @return true if it passes
+	 */
+	static bool snpPassesBreakoutCutOffs(double snpReadCount, double readCount, const snpBreakoutPars & pars,
+			double backgroundErrorRate, double errorModelPValueCutOff);
 
 	using size_type = baseReadObject::size_type;
 
