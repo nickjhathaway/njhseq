@@ -18,22 +18,16 @@
 
 namespace njhseq {
 
-/**@brief One k-mer -> set(s) index over named k-mer sets, replacing a probe of every set per k-mer.
+/**@brief One k-mer -> set(s) index over named k-mer sets.
  *
- * Classifying a read against named k-mer sets is normally done by taking each of the read's k-mers
- * and asking every set whether it holds it, which costs one hash-set lookup per set per k-mer. This
- * inverts that: a single lookup per read k-mer names the set, or the sets, that hold it. The work
- * drops by roughly the number of sets, and the counts produced are identical, so the saving grows
- * with how many sets there are.
+ * A single lookup per k-mer gives the set, or the sets, that hold it, so the cost of looking up a
+ * read's k-mers doesn't grow with the number of sets.
  *
- * K-mers shared between sets are a first-class case rather than a fallback. A shared k-mer's entry
- * carries SHARED_FLAG and indexes a list of every owning set, so a caller can either increment all
- * of them (`tallyAll`, matching a per-set loop with no break) or take the first (`firstSet`,
- * matching a per-set loop that breaks on the first match). Which of those a caller wants depends on
- * the loop it is replacing, so this makes no choice for it.
+ * A k-mer held by more than one set has an entry flagged with SHARED_FLAG that indexes the list of
+ * every set holding it. `tallyAll` increments all of those sets and `firstSet` returns the first.
  *
- * Sets are keyed by address: `get` caches the index built for a given map and `usable` re-validates
- * it cheaply, so a caller whose sets change between iterations gets a rebuilt index automatically.
+ * Indexes are keyed by the address of the set map: `get` caches the index built for a map and
+ * `usable` checks that it still matches, so an index is rebuilt when its sets change.
  */
 class KmerSetInvertedIndex {
 public:
@@ -52,11 +46,9 @@ public:
 	size_t totalKmers_{0};
 	size_t nSharedKmers_{0};   //!< how many k-mers appear in more than one set, for reporting
 
-	/**@brief Cheap check that this index still describes the given sets.
+	/**@brief Whether this index still describes the given sets, checked by map address, set count and total k-mers.
 	 *
-	 * Catches the common ways sets change without walking them: a different map, a set added or
-	 * removed, or k-mers added or removed. It cannot catch a change that leaves both the set count and
-	 * the k-mer total untouched, so a caller that mutates sets in place that way must rebuild.
+	 * A change that keeps both the set count and the k-mer total isn't detected.
 	 */
 	bool usable(const SetMap & sets) const {
 		if (builtFrom_ != &sets || nSets_ != sets.size() || setNames_.size() != sets.size()) {
@@ -69,7 +61,7 @@ public:
 		return total == totalKmers_;
 	}
 
-	/**@brief Increment every set that holds this k-mer. Matches a per-set loop with no break. */
+	/**@brief Increment every set that holds this k-mer. */
 	template<typename COUNTMAP>
 	void tallyAll(uint64_t hash, COUNTMAP & into) const {
 		auto search = kmerToSet_.find(hash);
@@ -85,7 +77,40 @@ public:
 		}
 	}
 
-	/**@brief The index of the first set holding this k-mer, or NO_SET. Matches a loop that breaks. */
+	/**@brief Increment every set that holds this k-mer in allInto, and also in uniqueInto when only one set holds it. */
+	template<typename COUNTMAP>
+	void tallyAllAndUnique(uint64_t hash, COUNTMAP & allInto, COUNTMAP & uniqueInto) const {
+		auto search = kmerToSet_.find(hash);
+		if (search == kmerToSet_.end()) {
+			return;
+		}
+		if (search->second & SHARED_FLAG) {
+			for (const auto idx : sharedSets_[search->second & ~SHARED_FLAG]) {
+				++allInto[setNames_[idx]];
+			}
+		} else {
+			++allInto[setNames_[search->second]];
+			++uniqueInto[setNames_[search->second]];
+		}
+	}
+
+	/**@brief tallyAllAndUnique with counts held by set index, the order of setNames_; both vectors must have nSets_ elements. */
+	void tallyAllAndUniqueByIndex(uint64_t hash, std::vector<uint32_t> & allCounts, std::vector<uint32_t> & uniqueCounts) const {
+		auto search = kmerToSet_.find(hash);
+		if (search == kmerToSet_.end()) {
+			return;
+		}
+		if (search->second & SHARED_FLAG) {
+			for (const auto idx : sharedSets_[search->second & ~SHARED_FLAG]) {
+				++allCounts[idx];
+			}
+		} else {
+			++allCounts[search->second];
+			++uniqueCounts[search->second];
+		}
+	}
+
+	/**@brief The index of the first set holding this k-mer, or NO_SET. */
 	uint32_t firstSet(uint64_t hash) const {
 		auto search = kmerToSet_.find(hash);
 		if (search == kmerToSet_.end()) {
