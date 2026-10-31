@@ -217,6 +217,8 @@ public:
 		uint32_t softClipHardCutOff_{std::numeric_limits<uint32_t>::max()};//! by default can soft clip all
 
 		double percentSubSample_{1};//! should be 0 to 1, sub sample region
+		uint64_t subSampleSeed_{0};//! seed for picking reads when sub sampling
+		bool subSampleSeedSet_{false};//! whether subSampleSeed_ was given, otherwise a random seed is used
 
 		bool removeImproperPairs_{false};
 		bool keepImproperMateUnmapped_{false};

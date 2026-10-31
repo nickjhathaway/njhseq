@@ -124,6 +124,9 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 
 
 	njh::randomGenerator rGen;
+	if (extractPars.subSampleSeedSet_) {
+		rGen.seedNum(extractPars.subSampleSeed_);
+	}
 	std::function<bool()> subSamplingFunction;
 	if(extractPars.percentSubSample_ == 1){
 		subSamplingFunction = [](){

@@ -41,29 +41,11 @@ class alignCalc {
    *(global) style alignment
    */
   static int32_t needleMaximum(int32_t u, int32_t l, int32_t d, char& p) {
-    if (u == l && u == d) {
-      p = 'B';
-      return u;
-    } else if (u >= l && u >= d) {
-      if (u == l) {
-        p = 'B';
-        return u;
-      } else {
-        p = 'U';
-        return u;
-      }
-    } else if (l >= u && l >= d) {
-      if (l == u) {
-        p = 'B';
-        return l;
-      } else {
-        p = 'L';
-        return l;
-      }
-    } else {
-      p = 'D';
-      return d;
-    }
+    //up wins ties (B when up and left tie), then left, then diagonal; written without branches on the scores
+    const bool upBest = (u >= l) & (u >= d);
+    const bool leftBest = !upBest & (l >= d);
+    p = upBest ? (u == l ? 'B' : 'U') : (leftBest ? 'L' : 'D');
+    return upBest ? u : (leftBest ? l : d);
   }
 
 

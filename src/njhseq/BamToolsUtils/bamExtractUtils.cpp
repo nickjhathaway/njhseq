@@ -3542,6 +3542,8 @@ Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const
 	ret["threePrimeTrim_"] = njh::json::toJson(threePrimeTrim_);
 	ret["writeAll_"] = njh::json::toJson(writeAll_);
 	ret["percentSubSample_"] = njh::json::toJson(percentSubSample_);
+	ret["subSampleSeed_"] = njh::json::toJson(subSampleSeed_);
+	ret["subSampleSeedSet_"] = njh::json::toJson(subSampleSeedSet_);
 	ret["strandBiasKmerCorrection_"] = njh::json::toJson(strandBiasKmerCorrection_);
 	return ret;
 }
