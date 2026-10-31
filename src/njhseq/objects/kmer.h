@@ -37,5 +37,6 @@
 #include "njhseq/objects/kmer/KmerGatherer.hpp"
 #include "njhseq/objects/kmer/KmerSetInvertedIndex.hpp"
 #include "njhseq/objects/kmer/KmerCollectionReadMatcher.hpp"
+#include "njhseq/objects/kmer/KmerCollectionIO.hpp"
 
 

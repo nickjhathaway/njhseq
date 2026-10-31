@@ -155,9 +155,38 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getFilteredHas
 			reader.openIn();
 			seqInfo seq;
 			while (reader.readNextRead(seq)) {
-				addHashedKmers(seq.seq_, true, kmers);
+				addFilteredHashedKmers(seq.seq_, kmers);
 			}
 		});
+}
+
+std::unordered_map<std::string, std::unordered_set<uint64_t>> KmerGatherer::getFilteredHashedKmerCollectionsFromSeqInputs(
+		const std::unordered_map<std::string, SeqIOOptions> & seqInputs) const {
+	checkKmerLengthForHashing(__PRETTY_FUNCTION__);
+	//each collection is filled by one thread, so every entry is created first and only looked up while threaded
+	std::unordered_map<std::string, std::unordered_set<uint64_t>> ret;
+	for (const auto & input : seqInputs) {
+		ret[input.first];
+	}
+	njh::concurrent::LockableQueue<std::string> nameQueue(njh::getVecOfMapKeys(seqInputs));
+	std::function<void()> gather = [this, &seqInputs, &nameQueue, &ret]() {
+		std::string name;
+		while (nameQueue.getVal(name)) {
+			auto inOpts = seqInputs.at(name);
+			if (pars_.allUpper_) {
+				inOpts.lowerCaseBases_ = "upper";
+			}
+			auto & kmers = ret.at(name);
+			SeqInput reader(inOpts);
+			reader.openIn();
+			seqInfo seq;
+			while (reader.readNextRead(seq)) {
+				addFilteredHashedKmers(seq.seq_, kmers);
+			}
+		}
+	};
+	njh::concurrent::runVoidFunctionThreaded(gather, pars_.numThreads_);
+	return ret;
 }
 
 std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getFilteredHashedKmerCollectionsFromTwobits(
@@ -172,7 +201,7 @@ std::unordered_map<std::string, std::set<uint64_t>> KmerGatherer::getFilteredHas
 			if (pars_.allUpper_) {
 				njh::strToUpper(buffer);
 			}
-			addHashedKmers(buffer, true, kmers);
+			addFilteredHashedKmers(buffer, kmers);
 		});
 }
 

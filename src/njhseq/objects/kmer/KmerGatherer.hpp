@@ -82,6 +82,30 @@ public:
 	[[nodiscard]] std::unordered_map<std::string, std::unordered_set<uint64_t>> getHashedKmerCollectionsFromSeqs(const std::unordered_map<std::string, std::vector<T>> & seqs) const;
 
 	/**
+	 * @brief Gather one collection of hashed k-mers per named sequence input, keeping only k-mers that pass passesFilters()
+	 * @param seqInputs collection name to the sequences to read, any format SeqInput reads, lower case bases are upper cased if pars_.allUpper_ is set
+	 * @return collection name to its distinct hashed k-mers, every input is present even if it has no k-mers
+	 */
+	[[nodiscard]] std::unordered_map<std::string, std::unordered_set<uint64_t>> getFilteredHashedKmerCollectionsFromSeqInputs(const std::unordered_map<std::string, SeqIOOptions> & seqInputs) const;
+
+	/**
+	 * @brief Add the hashed k-mers of a sequence that pass passesFilters() and, unless pars_.noRevComp_, their reverse complements
+	 * @param seq the sequence, used as is
+	 * @param kmers std::set or std::unordered_set of hashed k-mers to add to
+	 */
+	template<typename KMERS>
+	void addFilteredHashedKmers(const std::string & seq, KMERS & kmers) const;
+
+	/**
+	 * @brief Add the hashed k-mers of a sequence that pass passesFilters() to kmers and their reverse complements to revCompKmers, pars_.noRevComp_ is not used
+	 * @param seq the sequence, used as is
+	 * @param kmers std::set or std::unordered_set of hashed k-mers to add the forward strand k-mers to
+	 * @param revCompKmers where to add the reverse complements, can be the same container as kmers
+	 */
+	template<typename KMERS>
+	void addFilteredHashedKmers(const std::string & seq, KMERS & kmers, KMERS & revCompKmers) const;
+
+	/**
 	 * @brief Whether a k-mer only contains allowable characters and has an entropy above the entropy filter, the entropy check is skipped when the filter is 0 or below
 	 * @param kmer the k-mer to check
 	 * @return true if the k-mer passes both filters
@@ -147,11 +171,12 @@ private:
 	void addKmers(const std::string & seq, std::set<std::string> & kmers) const;
 
 	/**
-	 * @brief Add the hashed k-mers of a sequence and, unless pars_.noRevComp_, of its reverse complement
+	 * @brief Add the hashed k-mers of a sequence to kmers, then the reverse complements of those k-mers to revCompKmers
 	 * @param filter only add k-mers that pass passesFilters(), judged on the forward strand k-mer
+	 * @param revCompKmers where to add the reverse complements, nullptr to skip them, can point to kmers
 	 */
 	template<typename KMERS>
-	void addHashedKmers(const std::string & seq, bool filter, KMERS & kmers) const;
+	void addHashedKmers(const std::string & seq, bool filter, KMERS & kmers, KMERS * revCompKmers) const;
 
 	/**
 	 * @brief Run addWorkKmers over each work item on pars_.numThreads_ threads, each thread fills its own collections that are then merged
@@ -170,19 +195,39 @@ private:
 
 
 template<typename KMERS>
-void KmerGatherer::addHashedKmers(const std::string & seq, bool filter, KMERS & kmers) const {
+void KmerGatherer::addHashedKmers(const std::string & seq, bool filter, KMERS & kmers, KMERS * revCompKmers) const {
 	if (seq.size() < pars_.kmerLength_) {
 		return;
 	}
-	for (uint32_t pos = 0; pos < seq.size() - pars_.kmerLength_ + 1; ++pos) {
+	const uint32_t kmerCount = seq.size() - pars_.kmerLength_ + 1;
+	//positions whose k-mer passed the filter, reused for the reverse complements
+	std::vector<bool> passed(nullptr != revCompKmers && filter ? kmerCount : 0, false);
+	for (uint32_t pos = 0; pos < kmerCount; ++pos) {
 		if (filter && !passesFilters(seq.substr(pos, pars_.kmerLength_))) {
 			continue;
 		}
+		if (!passed.empty()) {
+			passed[pos] = true;
+		}
 		kmers.emplace(hasher_.hash(seq, pos, pars_.kmerLength_));
-		if (!pars_.noRevComp_) {
-			kmers.emplace(hasher_.revCompHash(seq, pos, pars_.kmerLength_));
+	}
+	if (nullptr != revCompKmers) {
+		for (uint32_t pos = 0; pos < kmerCount; ++pos) {
+			if (!filter || passed[pos]) {
+				revCompKmers->emplace(hasher_.revCompHash(seq, pos, pars_.kmerLength_));
+			}
 		}
 	}
+}
+
+template<typename KMERS>
+void KmerGatherer::addFilteredHashedKmers(const std::string & seq, KMERS & kmers) const {
+	addHashedKmers(seq, true, kmers, pars_.noRevComp_ ? nullptr : &kmers);
+}
+
+template<typename KMERS>
+void KmerGatherer::addFilteredHashedKmers(const std::string & seq, KMERS & kmers, KMERS & revCompKmers) const {
+	addHashedKmers(seq, true, kmers, &revCompKmers);
 }
 
 template<typename COLLECTION, typename WORK, typename FUNC>
@@ -215,9 +260,9 @@ std::unordered_map<std::string, std::unordered_set<uint64_t>> KmerGatherer::getH
 				if (pars_.allUpper_) {
 					auto upperSeq = getSeqBase(seq).seq_;
 					njh::strToUpper(upperSeq);
-					addHashedKmers(upperSeq, false, kmers);
+					addHashedKmers(upperSeq, false, kmers, pars_.noRevComp_ ? nullptr : &kmers);
 				} else {
-					addHashedKmers(getSeqBase(seq).seq_, false, kmers);
+					addHashedKmers(getSeqBase(seq).seq_, false, kmers, pars_.noRevComp_ ? nullptr : &kmers);
 				}
 			}
 		});

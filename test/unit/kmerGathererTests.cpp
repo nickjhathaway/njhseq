@@ -58,6 +58,38 @@ const std::map<std::string, std::set<uint64_t>> exampleUnique{
 		{"c", {6, 7}},
 		{"d", {}}};
 
+struct TempDir {
+	TempDir() : dir_(bfs::temp_directory_path() / bfs::unique_path("njhseqTest-%%%%-%%%%")) {
+		bfs::create_directories(dir_);
+	}
+	~TempDir() {
+		bfs::remove_all(dir_);
+	}
+	bfs::path dir_;
+};
+
+//reference: filtered forward strand k-mers of a sequence, then the reverse complements of those k-mers
+template<typename KMERS>
+void addFilteredReference(const KmerGatherer & gatherer, const std::string & seq, bool revComp, KMERS & kmers) {
+	SimpleKmerHash hasher;
+	const uint32_t klen = gatherer.pars_.kmerLength_;
+	if (seq.size() < klen) {
+		return;
+	}
+	for (uint32_t pos = 0; pos + klen <= seq.size(); ++pos) {
+		if (gatherer.passesFilters(seq.substr(pos, klen))) {
+			kmers.emplace(hasher.hash(seq.substr(pos, klen)));
+		}
+	}
+	if (revComp) {
+		for (uint32_t pos = 0; pos + klen <= seq.size(); ++pos) {
+			if (gatherer.passesFilters(seq.substr(pos, klen))) {
+				kmers.emplace(hasher.revCompHash(seq.substr(pos, klen)));
+			}
+		}
+	}
+}
+
 }  // namespace
 
 TEMPLATE_TEST_CASE("filterToKmersUniqueToEachCollection keeps k-mers found in only one collection", "[kmer][KmerGatherer]",
@@ -228,6 +260,88 @@ TEST_CASE("passesFilters rejects disallowed characters and low entropy", "[kmer]
 	REQUIRE_FALSE(gatherer.passesFilters("ACGNACGT"));
 	REQUIRE_FALSE(gatherer.passesFilters("acgtacgt"));
 	REQUIRE_FALSE(gatherer.passesFilters("AAAAAAAT"));
+}
+
+TEST_CASE("addFilteredHashedKmers adds filtered k-mers then their reverse complements", "[kmer][KmerGatherer]") {
+	const std::string seq = "ACGTTGCAAGAAAAAAAAAACCNGTAGGCATCGTTAgcatcg";
+	KmerGatherer::KmerGathererPars pars;
+	pars.kmerLength_ = 7;
+	pars.entropyFilter_ = 1.2;
+	for (bool noRevComp : {true, false}) {
+		pars.noRevComp_ = noRevComp;
+		KmerGatherer gatherer(pars);
+		std::unordered_set<uint64_t> kmers;
+		std::unordered_set<uint64_t> expected;
+		gatherer.addFilteredHashedKmers(seq, kmers);
+		addFilteredReference(gatherer, seq, !noRevComp, expected);
+		REQUIRE(kmers == expected);
+		//same insertion order, so the same iteration order
+		REQUIRE(std::vector<uint64_t>(kmers.begin(), kmers.end()) == std::vector<uint64_t>(expected.begin(), expected.end()));
+
+		std::set<uint64_t> forward;
+		std::set<uint64_t> revComp;
+		gatherer.addFilteredHashedKmers(seq, forward, revComp);
+		std::set<uint64_t> expectedForward;
+		std::set<uint64_t> expectedBoth;
+		addFilteredReference(gatherer, seq, false, expectedForward);
+		addFilteredReference(gatherer, seq, true, expectedBoth);
+		REQUIRE(forward == expectedForward);
+		std::set<uint64_t> both = forward;
+		both.insert(revComp.begin(), revComp.end());
+		REQUIRE(both == expectedBoth);
+		REQUIRE(revComp.size() == forward.size());
+
+		std::set<uint64_t> sameContainer;
+		gatherer.addFilteredHashedKmers(seq, sameContainer, sameContainer);
+		REQUIRE(sameContainer == expectedBoth);
+	}
+	std::set<uint64_t> none;
+	KmerGatherer(pars).addFilteredHashedKmers("ACGT", none);
+	REQUIRE(none.empty());
+}
+
+TEST_CASE("getFilteredHashedKmerCollectionsFromSeqInputs gathers one filtered collection per input", "[kmer][KmerGatherer]") {
+	TempDir tmp;
+	const std::map<std::string, VecStr> seqsPerInput{
+			{"one", {"ACGTTGCAAGAAAAAAAAAACCNGTAGG", "catcgttaGCATCGGATC"}},
+			{"two", {"TTGACCGGTAACGTAGCTTAGCAGGT"}},
+			{"short", {"ACG"}}};
+	std::unordered_map<std::string, SeqIOOptions> inputs;
+	for (const auto & input : seqsPerInput) {
+		auto fnp = tmp.dir_ / (input.first + ".fasta");
+		std::ofstream out(fnp.string());
+		for (const auto & seq : input.second) {
+			out << ">" << input.first << "\n" << seq << "\n";
+		}
+		inputs[input.first] = SeqIOOptions::genFastaIn(fnp);
+	}
+	KmerGatherer::KmerGathererPars pars;
+	pars.kmerLength_ = 7;
+	pars.entropyFilter_ = 1.2;
+	for (bool allUpper : {false, true}) {
+		for (bool noRevComp : {true, false}) {
+			for (uint32_t numThreads : {1U, 3U}) {
+				pars.allUpper_ = allUpper;
+				pars.noRevComp_ = noRevComp;
+				pars.numThreads_ = numThreads;
+				KmerGatherer gatherer(pars);
+				auto collections = gatherer.getFilteredHashedKmerCollectionsFromSeqInputs(inputs);
+				REQUIRE(collections.size() == 3);
+				for (const auto & input : seqsPerInput) {
+					std::unordered_set<uint64_t> expected;
+					for (auto seq : input.second) {
+						if (allUpper) {
+							njh::strToUpper(seq);
+						}
+						addFilteredReference(gatherer, seq, !noRevComp, expected);
+					}
+					REQUIRE(collections.at(input.first) == expected);
+					REQUIRE(std::vector<uint64_t>(collections.at(input.first).begin(), collections.at(input.first).end()) == std::vector<uint64_t>(expected.begin(), expected.end()));
+				}
+				REQUIRE(collections.at("short").empty());
+			}
+		}
+	}
 }
 
 TEST_CASE("passesFilters skips the entropy check when the entropy filter is 0", "[kmer][KmerGatherer]") {
