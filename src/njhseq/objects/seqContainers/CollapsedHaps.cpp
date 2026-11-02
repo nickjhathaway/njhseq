@@ -385,7 +385,7 @@ CollapsedHaps::GenPopMeasuresRes CollapsedHaps::getGeneralMeasuresOfDiversity(co
 	auto reads_total_per_sample = getSampleReadCnts();
 	for (const auto seq_pos : iter::range(seqs_.size())) {
 		weightedSeqs.emplace_back(seqs_[seq_pos]->name_, seqs_[seq_pos]->seq_);
-		weightedSeqs.back().cnt_ += seqs_[seq_pos]->cnt_;
+		weightedSeqs.back().cnt_ = seqs_[seq_pos]->cnt_;
 		weightedSeqs.back().frac_ = 0;
 		for (const auto & name : names_[seq_pos]) {
 			weightedSeqs.back().frac_ += static_cast<double>(getReadCountFromSeqName(name))/reads_total_per_sample[getSampleNameFromSeqName(name, possibleSampleMetaFields_)];
