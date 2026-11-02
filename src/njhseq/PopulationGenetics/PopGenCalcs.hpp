@@ -190,8 +190,9 @@ public:
 		double weighted_prob_{0};
 
 		static double getTotalWeightedPopCount(const std::vector<PopHapInfo>& hapsForPopulation) {
-			return std::accumulate(hapsForPopulation.begin(), hapsForPopulation.end(), 0,
-			                       [](uint32_t weighted_count, const PopHapInfo& hap) {
+			//accumulate into a double, the weighted counts are fractional
+			return std::accumulate(hapsForPopulation.begin(), hapsForPopulation.end(), 0.0,
+			                       [](double weighted_count, const PopHapInfo& hap) {
 				                       return weighted_count + hap.weighted_count_;
 			                       });
 		}
@@ -241,7 +242,7 @@ public:
 	static DiversityMeasures getGeneralMeasuresOfDiversity(const std::vector<T> & haps, bool by_unweighted_counts = false){
 
 		std::unordered_map<std::string, uint32_t> popCounts;
-		std::unordered_map<std::string, uint32_t> popCountsWeighted;
+		std::unordered_map<std::string, double> popCountsWeighted;
 		for(const auto & seq : haps){
 			popCounts[getSeqBase(seq).seq_] += getSeqBase(seq).cnt_;
 		}

@@ -597,7 +597,8 @@ std::unordered_map<std::string, uint32_t> CollapsedHaps::getSampleReadCnts() con
 	std::unordered_map<std::string, uint32_t> ret;
 	for(const auto & subNames : names_){
 		for(const auto & name : subNames){
-			ret[getSampleNameFromSeqName(name, possibleSampleMetaFields_)] = getReadCountFromSeqName(name, possibleReadCountMetaFields_);
+			//readCount is per haplotype, so a sample's total is the sum over all of its haplotypes
+			ret[getSampleNameFromSeqName(name, possibleSampleMetaFields_)] += getReadCountFromSeqName(name, possibleReadCountMetaFields_);
 		}
 	}
 	return ret;
