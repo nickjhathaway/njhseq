@@ -6,6 +6,34 @@
 
 namespace njhseq {
 
+namespace {
+/**
+ * \brief generate the INFO column for a record in the header's INFO order, keys the record doesn't have are left off and "." is used when there are none
+ */
+std::string genInfoColumn(const std::map<std::string, VCFOutput::InfoEntry> & infoEntries, const MetaDataInName & info) {
+	std::string infoOut;
+	for (const auto & infoKey: infoEntries) {
+		const auto & id = infoKey.second.id_;
+		const auto search = info.meta_.find(id);
+		if (info.meta_.end() == search) {
+			continue;
+		}
+		if(!infoOut.empty()) {
+			infoOut +=";";
+		}
+		if (infoKey.second.type_ == "Flag") {
+			infoOut += id;
+		} else {
+			infoOut += id + "=" + search->second;
+		}
+	}
+	if(infoOut.empty()) {
+		infoOut = ".";
+	}
+	return infoOut;
+}
+}  // namespace
+
 bool VCFOutput::isCommaSepSingleChars(const std::string & val, const std::string & allowed) {
 	if (val.empty() || 0 == val.size() % 2) {
 		return false;
@@ -123,7 +151,8 @@ void VCFOutput::VCFRecord::autoAdd_AN_AC_AF_InfoFields() {
 		}
 		//if missing from the counts will default to zero
 		ACs += estd::to_string(alleleCounts[estd::to_string(pos)]);
-		afs.emplace_back(alleleCounts[estd::to_string(pos)] / static_cast<double>(AN));
+		//no called genotypes gives an AF of 0
+		afs.emplace_back(0 == AN ? 0.0 : alleleCounts[estd::to_string(pos)] / static_cast<double>(AN));
 	}
 	// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 	info_.addMeta("AN", AN, true);
@@ -148,6 +177,9 @@ void VCFOutput::VCFRecord::autoAddWeightedAFRealField() {
 		}
 		if("." != DPSearch->second) {
 			double DP = njh::StrToNumConverter::stoToNum<uint32_t>(DPSearch->second);
+			if(0 == DP) {
+				continue;
+			}
 			auto AD_toks = tokenizeString(ADSearch->second, ",");
 			if(AD_toks.size() != 1 + alts_.size()) {
 				std::stringstream ss;
@@ -164,8 +196,11 @@ void VCFOutput::VCFRecord::autoAddWeightedAFRealField() {
 		}
 	}
 	auto weighted_real_afs_sum = vectorSum(weighted_real_afs) + reference_sum;
-	for (auto & af : weighted_real_afs) {
-		af /= weighted_real_afs_sum;
+	//no samples with depth leaves the AFs at 0
+	if(weighted_real_afs_sum > 0) {
+		for (auto & af : weighted_real_afs) {
+			af /= weighted_real_afs_sum;
+		}
 	}
 	info_.addMeta("AF_REAL", njh::conToStr(weighted_real_afs, ","), true);
 }
@@ -663,24 +698,7 @@ void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut, const std::vector<Genomic
 		<< "\t" << njh::conToStr(rec.alts_, ",")
 		<< "\t" << (rec.qual_ == std::numeric_limits<uint32_t>::max() ? "." : estd::to_string(rec.qual_))
 		<< "\t" << rec.filter_;
-		std::string infoOut;
-		for (const auto & infoKey: infoEntries_) {
-			const auto & info = infoKey.second;
-			if (infoKey.second.type_ == "Flag") {
-				if (rec.info_.containsMeta(info.id_)) {
-					if(!infoOut.empty()) {
-						infoOut +=";";
-					}
-					infoOut += info.id_;
-				}
-			} else {
-				if(!infoOut.empty()) {
-					infoOut +=";";
-				}
-				infoOut += info.id_ + "=" + rec.info_.getMeta(info.id_);
-			}
-		}
-		vcfOut << "\t" << infoOut;
+		vcfOut << "\t" << genInfoColumn(infoEntries_, rec.info_);
 		vcfOut << std::endl;
 	}
 }
@@ -820,25 +838,7 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 			<< "\t" << njh::conToStr(rec.alts_, ",")
 			<< "\t" << (rec.qual_ == std::numeric_limits<uint32_t>::max() ? "." : estd::to_string(rec.qual_))
 			<< "\t" << rec.filter_;
-			std::string infoOut;
-			for (const auto & infoKey: infoEntries_) {
-				const auto & info = infoKey.second;
-
-				if (infoKey.second.type_ == "Flag") {
-					if (rec.info_.containsMeta(info.id_)) {
-						if(!infoOut.empty()) {
-							infoOut +=";";
-						}
-						infoOut += info.id_;
-					}
-				} else {
-					if(!infoOut.empty()) {
-						infoOut +=";";
-					}
-					infoOut += info.id_ + "=" + rec.info_.getMeta(info.id_);
-				}
-			}
-			vcfOut << "\t" << infoOut;
+			vcfOut << "\t" << genInfoColumn(infoEntries_, rec.info_);
 			vcfOut << "\t" << formatOut;
 			if(samplesSorted) {
 				for(const auto & sample : rec.sampleFormatInfos_) {
@@ -969,7 +969,8 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedData(const std::string 
 		throw std::runtime_error{ss.str()};
 	}
 
-	auto infoToks = tokenizeString(toks[7], ";");
+	//"." is an empty INFO column
+	const auto infoToks = "." == toks[7] ? VecStr{} : tokenizeString(toks[7], ";");
 	for(const auto & infoTok : infoToks) {
 		std::string key;
 		std::string val;
@@ -1121,7 +1122,7 @@ void VCFOutput::addInRecordsFixedDataFromFile(std::istream & in) {
 	std::string line;
 	// uint32_t count = 0;
 	while(njh::files::crossPlatGetline(in, line)) {
-		if(line.front() != '#') {
+		if(!line.empty() && line.front() != '#') {
 			// std::cout << count++ << std::endl;
 			records_.emplace_back(processRecordLineForFixedData(line));
 		}
@@ -1132,7 +1133,7 @@ void VCFOutput::addInRecordsFromFile(std::istream & in) {
 	std::string line;
 	// uint32_t count = 0;
 	while(njh::files::crossPlatGetline(in, line)) {
-		if(line.front() != '#') {
+		if(!line.empty() && line.front() != '#') {
 			// std::cout << count++ << std::endl;
 			records_.emplace_back(processRecordLineForFixedDataAndSampleMetaData(line));
 		}
@@ -1159,14 +1160,16 @@ VCFOutput VCFOutput::readInHeader(const bfs::path & fnp) {
 		ss << __PRETTY_FUNCTION__ << ", error " << "should have more than just: " << firstLine << "\n";
 		throw std::runtime_error{ss.str()};
 	}
-	auto version = firstLine.substr(firstLine.find_first_not_of("##fileformat="));
+	auto version = firstLine.substr(std::string("##fileformat=").size());
 	VCFOutput ret;
 	ret.vcfFormatVersion_ = version;
 	InputStream input(fnp);
 	std::string line;
+	bool foundHeaderLine = false;
 	while(njh::files::crossPlatGetline(input, line)) {
 		if(!njh::beginsWith(line, "##")) {
 			if(njh::beginsWith(line, "#CHROM")) {
+				foundHeaderLine = true;
 				//header file
 				auto toks = tokenizeString(line, "\t");
 				if(toks.size() < 8) {
@@ -1420,7 +1423,11 @@ VCFOutput VCFOutput::readInHeader(const bfs::path & fnp) {
 			}
 		}
 	}
-
+	if(!foundHeaderLine) {
+		std::stringstream ss;
+		ss << __PRETTY_FUNCTION__ << ", error " << fnp << " has no #CHROM header line after the ## meta lines" << "\n";
+		throw std::runtime_error{ss.str()};
+	}
 
 	return ret;
 }

@@ -130,7 +130,7 @@ public:
 			}
 
 			[[nodiscard]] bool overlaps(const PosStartSize& other) const {
-				return (other.end() > start_ && other.end() <= end()) || (other.start_ >= start_ && other.start_ < end());
+				return other.start_ < end() && start_ < other.end();
 			}
 
 			[[nodiscard]] bool withinDist(const PosStartSize& other, uint32_t dist) const {
@@ -350,7 +350,12 @@ public:
 		[[nodiscard]] std::map<std::string, std::string> translated_genAATypedStrOnlyPopVariant() const;
 
 		VecStr seqsUnableToBeMapped_;
-		VecStr seqsTranslationFiltered_;
+		VecStr seqsTranslationFiltered_;/**< seqs aligned to a coding gene that no gene could translate, sorted, set by setSeqsTranslationFiltered() */
+
+		/**
+		 * \brief set seqsTranslationFiltered_ to the seqs in it or in filteredOffTranslations_ that have no translation in translations_, run after all translations are added
+		 */
+		void setSeqsTranslationFiltered();
 
 		[[nodiscard]] std::set<std::string> getAllSeqNames() const;
 
@@ -509,7 +514,7 @@ public:
 	                                                                uint32_t len);
 
 	/**
-	 * \brief translate an alignment with each gene in geneIds, adding to ret.translations_, ret.filteredOffTranslations_ or ret.seqsTranslationFiltered_
+	 * \brief translate an alignment with each gene in geneIds, adding to ret.translations_, ret.filteredOffTranslations_ or ret.seqsTranslationFiltered_, call ret.setSeqsTranslationFiltered() after all alignments
 	 * \param seqName the name of the aligned sequence
 	 * \param realigned the alignment to the genome
 	 * \param geneIds the genes to translate with, must all be in setUp.genes
@@ -541,6 +546,20 @@ public:
 	                        const RunPars & rPars,
 	                        njh::stopWatch & watch,
 	                        TranslatorByAlignmentResult & ret);
+
+	/**
+	 * \brief call the protein variants and type the sequences by amino acid, run after all translations are in ret, called by callVariantsForRun()
+	 * \param locs the known locations to always report
+	 * \param sampReadCountsForHaps the sample read counts per seq
+	 * \param rPars the parameters for this run
+	 * \param watch timer to log laps to
+	 * \param ret the results to add to
+	 */
+	void callProteinVariantsForRun(const GetGenomicLocationsForAminoAcidPositionsRet & locs,
+	                               const std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> & sampReadCountsForHaps,
+	                               const RunPars & rPars,
+	                               njh::stopWatch & watch,
+	                               TranslatorByAlignmentResult & ret);
 
 };
 
@@ -600,7 +619,9 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		callVariantsForRun(minMaxPositionsPerChrom, tReader, setUp.locs, sampReadCountsForHaps, rPars, watch, ret);
 	}
 
-	OutputStream timeLogOut(njh::files::make_path(pars_.workingDirtory_, "timeLog.txt"));
+	OutOptions timeLogOpts(njh::files::make_path(pars_.workingDirtory_, "timeLog.txt"));
+	timeLogOpts.overWriteFile_ = true;
+	OutputStream timeLogOut(timeLogOpts);
 	watch.logLapTimes(timeLogOut, true, 6, true);
 	return ret;
 }

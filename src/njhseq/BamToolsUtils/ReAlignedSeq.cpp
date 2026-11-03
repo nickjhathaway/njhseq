@@ -72,29 +72,6 @@ ReAlignedSeq ReAlignedSeq::genRealignment(const BamTools::BamAlignment & bAln,
 	readVec::getMaxLength(qSeq, maxLen);
 	readVec::getMaxLength(rSeq, maxLen);
 	alignerObj.parts_.setMaxSize(maxLen);
-	// if(pars.adjustLongDinucleotideRepeats) {
-	// 	SimpleTandemRepeatFinder::SimpleTRFinderLocsPars repeatPars;
-	// 	repeatPars.minRepeatUnitSize = 2;
-	// 	repeatPars.maxRepeatUnitSize = 2;
-	// 	SimpleTandemRepeatFinder finder(repeatPars);
-	// 	auto refSeqTandems = finder.getSimpleTRFinderLocs(rSeq.seq_);
-	// 	auto querySeqTandems = finder.getSimpleTRFinderLocs(qSeq.seq_);
-	//
-	// 	std::cout << "ref seqs Tandems: " << std::endl;
-	// 	for(const auto & rSeqTandem : refSeqTandems) {
-	// 		std::cout << "\trSeqTandem.repeatSeq_ " <<  rSeqTandem.repeatSeq_ << std::endl;
-	// 		std::cout << "\trSeqTandem.repeatNumber_ " <<  rSeqTandem.repeatNumber_ << std::endl;
-	// 		std::cout << "\trSeqTandem.fullRepeatSeq_ " <<  rSeqTandem.fullRepeatSeq_ << std::endl;
-	// 		std::cout << "\trSeqTandem.len_ " <<  rSeqTandem.len_ << std::endl;
-	// 	}
-	// 	std::cout << "query seqs Tandems : " << std::endl;
-	// 	for(const auto & qSeqTandem : querySeqTandems) {
-	// 		std::cout << "\tqSeqTandem.repeatSeq_ " <<  qSeqTandem.repeatSeq_ << std::endl;
-	// 		std::cout << "\tqSeqTandem.repeatNumber_ " <<  qSeqTandem.repeatNumber_ << std::endl;
-	// 		std::cout << "\tqSeqTandem.fullRepeatSeq_ " <<  qSeqTandem.fullRepeatSeq_ << std::endl;
-	// 		std::cout << "\tqSeqTandem.len_ " <<  qSeqTandem.len_ << std::endl;
-	// 	}
-	// }
 	alignerObj.alignCacheGlobal(rSeq, qSeq);
 	uint32_t queryAlnStart = alignerObj.alignObjectB_.seqBase_.seq_.find_first_not_of('-');
 	uint32_t queryAlnLastBase = alignerObj.alignObjectB_.seqBase_.seq_.find_last_not_of('-');

@@ -151,7 +151,7 @@ char TranslatorByAlignment::VariantsInfo::getBaseForGenomicRegion(const uint32_t
 		throw std::runtime_error{ss.str()};
 	}
 	uint32_t relativePos = pos -region_.chromStart_;
-	if(relativePos > len(seqBase_)){
+	if(relativePos >= len(seqBase_)){
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error " << "position: " << pos << ", relative position: " << relativePos << " is out of range, seq size is: " << len(seqBase_)<< "\n";
 		throw std::runtime_error{ss.str()};
@@ -1706,12 +1706,6 @@ std::unordered_map<std::string, TranslatorByAlignment::TranslateSeqRes> Translat
 }
 
 TranslatorByAlignment::TranslatorByAlignment(TranslatorByAlignmentPars  pars): pars_(std::move(pars)){
-	njh::sys::requireExternalProgramThrow("samtools");
-	if(!pars_.useLastz_){
-		njh::sys::requireExternalProgramThrow("bowtie2");
-	}else{
-		njh::sys::requireExternalProgramThrow("lastz");
-	}
 	VecStr warnings;
 	if(!pars_.knownAminoAcidMutationsFnp_.empty()){
 		if(!pars_.knownAminoAcidMutationsFnp_.empty()){
@@ -1738,6 +1732,9 @@ TranslatorByAlignment::TranslatorByAlignment(TranslatorByAlignmentPars  pars): p
 				}
 				auto transciprtId = row[knownAminoAcidChanges.getColPos("transcriptid")];
 				auto aaPosition = njh::StrToNumConverter::stoToNum<uint32_t>(row[knownAminoAcidChanges.getColPos("aaposition")]);
+				if(0 == aaPosition){
+					warnings.emplace_back(njh::pasteAsStr("aaposition is 1-based and can't be 0, for transcriptID: ", transciprtId));
+				}
 				if(njh::in(aaPosition, knownAminoAcidPositions_[transciprtId])){
 					warnings.emplace_back(njh::pasteAsStr("already have aaposition ", aaPosition, " for transcriptID: ", transciprtId));
 				}
@@ -1754,7 +1751,7 @@ TranslatorByAlignment::TranslatorByAlignment(TranslatorByAlignmentPars  pars): p
 	}
 	if(!warnings.empty()){
 		std::stringstream ss;
-		ss << __PRETTY_FUNCTION__ << ", error " << "found repeat amino acid positions "<< "\n";
+		ss << __PRETTY_FUNCTION__ << ", error " << "found the following errors in the known amino acid positions "<< "\n";
 		for(const auto & warn : warnings){
 			ss << warn << std::endl;
 		}
@@ -2255,17 +2252,13 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeSeqLocationsTransl
 			out << seqs.second.genBedRec().toDelimStrWithExtra()<< std::endl;
 		}
 	}
-	auto filteredSeqName = getVectorOfMapKeys(translations_);
-	njh::sort(filteredSeqName);
-	for(const auto & filtName : filteredSeqName){
-		if(!njh::in(filtName, filteredSeqName)){
-			out << "*"
-					<< "\t" << "*"
-					<< "\t" << "*"
-					<< "\t" << filtName
-					<< "\t" << "*"
-					<< "\t" << "*" << std::endl;
-		}
+	for(const auto & filtName : iter::sorted(seqsTranslationFiltered_)){
+		out << "*"
+				<< "\t" << "*"
+				<< "\t" << "*"
+				<< "\t" << filtName
+				<< "\t" << "*"
+				<< "\t" << "*" << std::endl;
 	}
 	for(const auto & pop : iter::sorted(seqsUnableToBeMapped_)){
 		out << "*"
@@ -2277,6 +2270,19 @@ void TranslatorByAlignment::TranslatorByAlignmentResult::writeSeqLocationsTransl
 	}
 }
 
+
+void TranslatorByAlignment::TranslatorByAlignmentResult::setSeqsTranslationFiltered() {
+	std::set<std::string> filtered(seqsTranslationFiltered_.begin(), seqsTranslationFiltered_.end());
+	for(const auto & filteredOff : filteredOffTranslations_){
+		filtered.emplace(filteredOff.first);
+	}
+	seqsTranslationFiltered_.clear();
+	for(const auto & seqName : filtered){
+		if(!njh::in(seqName, translations_)){
+			seqsTranslationFiltered_.emplace_back(seqName);
+		}
+	}
+}
 
 std::set<std::string> TranslatorByAlignment::TranslatorByAlignmentResult::getAllSeqNames() const {
 	std::set<std::string> ret;
@@ -2386,7 +2392,6 @@ TranslatorByAlignment::RunSetUp TranslatorByAlignment::setUpGenesForRun(const st
 		bool failFilter = false;
 		for(const auto & transcript : gene.second->mRNAs_){
 			if(njh::in(njh::strToLowerRet(transcript->type_), VecStr{"rrna", "trna", "snorna","snrna","ncrna"}) ){
-				transcript->writeGffRecord(std::cout);
 				failFilter = true;
 				break;
 			}
@@ -2434,9 +2439,8 @@ void TranslatorByAlignment::addTranslationsForAlignment(const std::string & seqN
 			}
 		} catch (std::exception & e) {
 			//Generally if an exception happen while attempting to translate alignment is mangled
-			if(!njh::in(seqName, ret.translations_)){
-				ret.seqsTranslationFiltered_.emplace_back(seqName);
-			}
+			//kept only if no other gene translates it, see setSeqsTranslationFiltered()
+			ret.seqsTranslationFiltered_.emplace_back(seqName);
 		}
 	}
 }
@@ -2448,12 +2452,7 @@ void TranslatorByAlignment::callVariantsForRun(const std::unordered_map<std::str
 	const RunPars & rPars,
 	njh::stopWatch & watch,
 	TranslatorByAlignmentResult & ret) {
-	//list the seqs no tran
-	for(const auto & filteredOff : ret.filteredOffTranslations_){
-		if(!njh::in(filteredOff.first, ret.translations_)){
-			ret.seqsTranslationFiltered_.emplace_back(filteredOff.first);
-		}
-	}
+	ret.setSeqsTranslationFiltered();
 
 	watch.startNewLap("set up for variant calling");
 	//index snps
@@ -2528,12 +2527,19 @@ void TranslatorByAlignment::callVariantsForRun(const std::unordered_map<std::str
 	for (auto& varPerChrom: ret.seqVariants_) {
 		varPerChrom.second.setComplexFinals(rPars, complexPositionsPerChrom.at(varPerChrom.first));
 	}
+	callProteinVariantsForRun(locs, sampReadCountsForHaps, rPars, watch, ret);
+}
 
+void TranslatorByAlignment::callProteinVariantsForRun(const GetGenomicLocationsForAminoAcidPositionsRet & locs,
+	const std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> & sampReadCountsForHaps,
+	const RunPars & rPars,
+	njh::stopWatch & watch,
+	TranslatorByAlignmentResult & ret) {
 	//index amino acid changes per transcript
 	watch.startNewLap("protein variant calling");
 	for(const auto & seqName : ret.translations_){
 		for(const auto & transcript : seqName.second){
-			if(countOccurences(transcript.second.queryAlnTranslation_.seq_, "*") > 1){
+			if(countOccurences(transcript.second.queryAlnTranslation_.seq_, "*") > pars_.allowableStopCodons_){
 				//should log which ones have messed up translations
 			} else {
 				auto popCount = njh::mapAt(sampReadCountsForHaps, seqName.first).size();
@@ -2640,6 +2646,12 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		const SeqIOOptions & seqOpts,
 		const std::unordered_map<std::string, std::unordered_map<std::string, uint32_t>> & sampReadCountsForHaps,
 		const RunPars & rPars){
+	njh::sys::requireExternalProgramThrow("samtools");
+	if(!pars_.useLastz_){
+		njh::sys::requireExternalProgramThrow("bowtie2");
+	}else{
+		njh::sys::requireExternalProgramThrow("lastz");
+	}
 	njh::stopWatch watch;
 	TranslatorByAlignmentResult ret;
 	std::vector<bfs::path> fnpsToRemove;
@@ -2714,10 +2726,7 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 		std::unordered_map<std::string, std::vector<std::string>> alnRegionToGeneIds;
 		for(const auto & gCount : regionsCounter.counts_){
 			for (const auto & g : genesByChrom[gCount.second.region_.chrom_]) {
-				//a gene is listed once per transcript, so it is translated once per transcript
-				for(uint32_t transcriptCount = 0; transcriptCount < g.second->mRNAs_.size(); ++transcriptCount){
-					alnRegionToGeneIds[gCount.second.region_.createUidFromCoords()].emplace_back(g.first);
-				}
+				alnRegionToGeneIds[gCount.second.region_.createUidFromCoords()].emplace_back(g.first);
 			}
 		}
 		BamTools::BamReader bReader;
@@ -2735,9 +2744,8 @@ TranslatorByAlignment::TranslatorByAlignmentResult TranslatorByAlignment::run(
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_ = std::min(minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_,balnGenomicRegion.start_);
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_ = std::max(minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_,balnGenomicRegion.end_);
 				const uint32_t alnLen = bAln.GetEndPosition() - bAln.Position;
-				auto reAlignPars = genRealignParsForLength(rPars.realnPars, averageLen, alnLen);
-				reAlignPars.adjustLongDinucleotideRepeats = true;
-				auto results = ReAlignedSeq::genRealignment(bAln, refData, aligners.forLength(averageLen, alnLen), chromLengths, tReader, reAlignPars);
+				auto results = ReAlignedSeq::genRealignment(bAln, refData, aligners.forLength(averageLen, alnLen), chromLengths, tReader,
+					genRealignParsForLength(rPars.realnPars, averageLen, alnLen));
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].minPos_ = std::min(minMaxPositionsPerChrom[results.gRegion_.chrom_].minPos_,results.gRegion_.start_);
 				minMaxPositionsPerChrom[balnGenomicRegion.chrom_].maxPos_ = std::max(minMaxPositionsPerChrom[results.gRegion_.chrom_].maxPos_,results.gRegion_.end_);
 				ret.seqAlns_[bAln.Name].emplace_back(results);
@@ -2779,7 +2787,13 @@ std::unordered_map<std::string, std::set<uint32_t>> TranslatorByAlignment::readI
 			})){
 				continue;
 			}
-			knownMutationsLocationsMap[row[knownAminoAcidChanges.getColPos("transcriptid")]].emplace(njh::StrToNumConverter::stoToNum<uint32_t>(row[knownAminoAcidChanges.getColPos("aaposition")]));
+			const auto aaPosition = njh::StrToNumConverter::stoToNum<uint32_t>(row[knownAminoAcidChanges.getColPos("aaposition")]);
+			if(0 == aaPosition){
+				std::stringstream ss;
+				ss << __PRETTY_FUNCTION__ << ", error " << "aaposition is 1-based and can't be 0, transcript: " << row[knownAminoAcidChanges.getColPos("transcriptid")] << " in " << knownAminoAcidChangesFnp << "\n";
+				throw std::runtime_error{ss.str()};
+			}
+			knownMutationsLocationsMap[row[knownAminoAcidChanges.getColPos("transcriptid")]].emplace(aaPosition);
 		}
 	}
 	return knownMutationsLocationsMap;
