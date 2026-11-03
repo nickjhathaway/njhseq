@@ -324,6 +324,37 @@ public:
 
 	[[nodiscard]] table countGroupColumns(const VecStr & subColumns, const std::string & countColumnName = "n") const;
 
+	/**
+	 * \brief counts rows by their values in a set of columns one row at a time, giving the same table as countGroupColumns without needing all the rows in memory
+	 */
+	class GroupColumnsCounter {
+	public:
+		/**
+		 * \param header a table with the column names of the rows that will be added
+		 * \param subColumns the columns to group by
+		 * \param countColumnName the name of the count column in the generated table
+		 */
+		GroupColumnsCounter(const table & header, VecStr subColumns, std::string countColumnName = "n");
+
+		/**
+		 * \brief count a row, rows should be added in the order they would be in the table
+		 * \param row the row to count
+		 */
+		void addRow(const VecStr & row);
+
+		/**
+		 * \brief generate the counts table, the group columns followed by the count column, rows natural sorted by the group values
+		 * \return the counts table
+		 */
+		[[nodiscard]] table genTable() const;
+
+	private:
+		VecStr subColumns_;
+		std::vector<uint32_t> subColumnPositions_;
+		std::string countColumnName_;
+		std::unordered_map<std::string, uint32_t> counts_;
+	};
+
 	table getStatsTable() const;
 	table aggregateSimple(const std::string &columnName,
 			const std::string &function, bool addZeros = true);

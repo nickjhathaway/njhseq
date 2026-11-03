@@ -6,6 +6,22 @@
 
 namespace njhseq {
 
+bool VCFOutput::isCommaSepSingleChars(const std::string & val, const std::string & allowed) {
+	if (val.empty() || 0 == val.size() % 2) {
+		return false;
+	}
+	for (size_t pos = 0; pos < val.size(); ++pos) {
+		if (0 == pos % 2) {
+			if (std::string::npos == allowed.find(val[pos])) {
+				return false;
+			}
+		} else if (',' != val[pos]) {
+			return false;
+		}
+	}
+	return true;
+}
+
 uint32_t VCFOutput::VCFRecord::getNumberOfAlleles() const {
 	return 1 + alts_.size();
 }
@@ -63,16 +79,16 @@ void VCFOutput::VCFRecord::autoAdd_AN_AC_AF_InfoFields() {
 	std::unordered_map<std::string, uint32_t> alleleCounts;
 	uint32_t AN = 0;
 	for (auto& samp: sampleFormatInfos_) {
-		if (!samp.second.containsMeta("GT")) {
+		const auto GTSearch = samp.second.meta_.find("GT");
+		if (samp.second.meta_.end() == GTSearch) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " <<
 					" need to have field GT in field if going to add total AN, AC, and AF fields " << "\n";
 			ss << "Current fields are : " << njh::conToStr(njh::getVecOfMapKeys(samp.second.meta_), ",") << "\n";
 			throw std::runtime_error{ss.str()};
 		}
-		if ("." != samp.second.getMeta("GT")) {
-			auto GT = samp.second.getMeta("GT");
-			auto GT_toks = tokenizeString(GT, "/");
+		if ("." != GTSearch->second) {
+			auto GT_toks = tokenizeString(GTSearch->second, "/");
 			for (const auto& tok: GT_toks) {
 				++alleleCounts[tok];
 				++AN;
@@ -121,16 +137,18 @@ void VCFOutput::VCFRecord::autoAddWeightedAFRealField() {
 	std::vector<double> weighted_real_afs(alts_.size(), 0); //total read per each alt observation
 	double reference_sum = 0;
 	for (auto &samp: sampleFormatInfos_) {
-		if (!samp.second.containsMeta("DP") || !samp.second.containsMeta("AD")) {
+		const auto DPSearch = samp.second.meta_.find("DP");
+		const auto ADSearch = samp.second.meta_.find("AD");
+		if (samp.second.meta_.end() == DPSearch || samp.second.meta_.end() == ADSearch) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " <<
 					" need to have field DP and AD in field if going to add weighted AF_REAL " << "\n";
 			ss << "Current fields are : " << njh::conToStr(njh::getVecOfMapKeys(samp.second.meta_), ",") << "\n";
 			throw std::runtime_error{ss.str()};
 		}
-		if("." != samp.second.getMeta("DP")) {
-			double DP = samp.second.getMeta<uint32_t>("DP");
-			auto AD_toks = tokenizeString(samp.second.getMeta("AD"), ",");
+		if("." != DPSearch->second) {
+			double DP = njh::StrToNumConverter::stoToNum<uint32_t>(DPSearch->second);
+			auto AD_toks = tokenizeString(ADSearch->second, ",");
 			if(AD_toks.size() != 1 + alts_.size()) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error " << "AD_toks.size(): " << AD_toks.size() << " does not equal the alts_ and ref size: " << 1 + alts_.size() << "\n";
@@ -157,16 +175,18 @@ void VCFOutput::VCFRecord::autoAddTotalDP_RO_AO_InfoFields() {
 	uint32_t totalRO = 0; //total reads for reference
 	std::vector<uint32_t> totalAOs(alts_.size(), 0); //total read per each alt observation
 	for (auto &samp: sampleFormatInfos_) {
-		if (!samp.second.containsMeta("DP") || !samp.second.containsMeta("AD")) {
+		const auto DPSearch = samp.second.meta_.find("DP");
+		const auto ADSearch = samp.second.meta_.find("AD");
+		if (samp.second.meta_.end() == DPSearch || samp.second.meta_.end() == ADSearch) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " <<
 					" need to have field DP and AD in field if going to add total DP, RO, and AO fields " << "\n";
 			ss << "Current fields are : " << njh::conToStr(njh::getVecOfMapKeys(samp.second.meta_), ",") << "\n";
 			throw std::runtime_error{ss.str()};
 		}
-		if("." != samp.second.getMeta("DP")) {
-			totalDP += samp.second.getMeta<uint32_t>("DP");
-			auto AD_toks = tokenizeString(samp.second.getMeta("AD"), ",");
+		if("." != DPSearch->second) {
+			totalDP += njh::StrToNumConverter::stoToNum<uint32_t>(DPSearch->second);
+			auto AD_toks = tokenizeString(ADSearch->second, ",");
 			if(AD_toks.size() != 1 + alts_.size()) {
 				std::stringstream ss;
 				ss << __PRETTY_FUNCTION__ << ", error " << "AD_toks.size(): " << AD_toks.size() << " does not equal the alts_ and ref size: " << 1 + alts_.size() << "\n";
@@ -191,17 +211,18 @@ void VCFOutput::VCFRecord::autoAddTotalDP_RO_AO_InfoFields() {
 
 void VCFOutput::VCFRecord::addGTField(uint32_t ploidy) {
 	// std::cout << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << std::endl;
-	static const std::regex blankDataPattern("[\\.0](,[\\.0])*");
 	for (auto &samp: sampleFormatInfos_) {
-		if (!samp.second.containsMeta("AD")) {
+		const auto ADSearch = samp.second.meta_.find("AD");
+		if (samp.second.meta_.end() == ADSearch) {
 			std::stringstream ss;
 			ss << __PRETTY_FUNCTION__ << " " << __FILE__ << " " << __LINE__ << ", error " <<
 					" need to have field AD in field if going to add GT field " << "\n";
 			ss << "Current fields are : " << njh::conToStr(njh::getVecOfMapKeys(samp.second.meta_), ",") << "\n";
 			throw std::runtime_error{ss.str()};
 		}
-		auto raw_AD = samp.second.getMeta("AD");
-		if (std::regex_match(raw_AD, blankDataPattern)) {
+		const auto & raw_AD = ADSearch->second;
+		//all depths are missing or zero
+		if (isCommaSepSingleChars(raw_AD, ".0")) {
 			samp.second.addMeta("GT", ".", true);
 		} else {
 			std::vector<uint32_t> depths(1 + alts_.size());
@@ -268,7 +289,13 @@ void VCFOutput::VCFRecord::addGTField(uint32_t ploidy) {
 			}
 
 			njh::sort(gts);
-			auto GT = njh::conToStr(gts, "/");
+			std::string GT;
+			for (const auto gt : gts) {
+				if (!GT.empty()) {
+					GT += "/";
+				}
+				GT += std::to_string(gt);
+			}
 			samp.second.addMeta("GT", GT, true);
 			// std::cout << "GT: " << GT << std::endl;
 			// std::cout << std::endl;
@@ -613,8 +640,9 @@ void VCFOutput::writeOutFixedOnly(std::ostream&vcfOut, const std::vector<Genomic
 		if(!selectRegions.empty()) {
 			// //std::cout << __FILE__ << " " << __LINE__ << std::endl;
 			bool overlaps = false;
+			const auto recRegion = rec.genRegion();
 			for(const auto & reg : selectRegions) {
-				if(reg.overlaps(rec.genRegion())) {
+				if(reg.overlaps(recRegion)) {
 					overlaps = true;
 					break;
 				}
@@ -690,10 +718,16 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 	//vcfOut << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 	vcfOut << njh::conToStr(headerNonSampleFields_, "\t") << "\t" << njh::conToStr(samples_, "\t") << std::endl;
 	if(!records_.empty()) {
-		const auto firstSetOfSamples = njh::vecToSet(getVectorOfMapKeys(records_.front().sampleFormatInfos_));
-		const auto firstSetOfSamplesVec = VecStr(firstSetOfSamples.begin(), firstSetOfSamples.end());
 		std::set<std::string> headerSamplesSet(samples_.begin(), samples_.end());
-		if(firstSetOfSamples != headerSamplesSet) {
+		//sampleFormatInfos_ is sorted by sample name so it can be compared to the sorted header samples directly
+		auto recordHasSamples = [](const VCFRecord & rec, const std::set<std::string> & samples) {
+			return rec.sampleFormatInfos_.size() == samples.size() &&
+			       std::equal(rec.sampleFormatInfos_.begin(), rec.sampleFormatInfos_.end(), samples.begin(),
+			                  [](const auto & sampInfo, const std::string & samp) { return sampInfo.first == samp; });
+		};
+		if(!recordHasSamples(records_.front(), headerSamplesSet)) {
+			const auto firstSetOfSamples = njh::vecToSet(getVectorOfMapKeys(records_.front().sampleFormatInfos_));
+			const auto firstSetOfSamplesVec = VecStr(firstSetOfSamples.begin(), firstSetOfSamples.end());
 			std::vector<std::string> uniqueTo1;
 			std::vector<std::string> uniqueTo2;
 			std::vector<std::string> inBoth;
@@ -712,9 +746,11 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 			ss << "samples only in record: " << njh::conToStr(uniqueTo2, "\t") << "\n";
 			throw std::runtime_error{ss.str()};
 		}
+		//every record has the header samples since the first record does
 		for(const auto & rec : records_) {
-			auto currentSetOfSamples = njh::vecToSet(getVectorOfMapKeys(rec.sampleFormatInfos_));
-			if(firstSetOfSamples != currentSetOfSamples) {
+			if(!recordHasSamples(rec, headerSamplesSet)) {
+				const auto firstSetOfSamples = headerSamplesSet;
+				auto currentSetOfSamples = njh::vecToSet(getVectorOfMapKeys(rec.sampleFormatInfos_));
 				std::vector<std::string> uniqueTo1;
 				std::vector<std::string> uniqueTo2;
 				std::vector<std::string> inBoth;
@@ -742,11 +778,32 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 		formatOut += format.id_;
 	}
 	if(!records_.empty()) {
+		//records were checked above to have exactly the header samples, so when the header is sorted the samples can be read in map order
+		const bool samplesSorted = samples_.end() == std::adjacent_find(samples_.begin(), samples_.end(),
+		                                                                [](const std::string & s1, const std::string & s2) { return !(s1 < s2); });
+		auto writeSampleFormats = [&vcfOut,&formatOutputOrder,this](const MetaDataInName & sample) {
+			std::string formatOutForSample;
+			for (const auto & infoKey: formatOutputOrder) {
+				const auto & format = formatEntries_.at(infoKey);
+				if(!formatOutForSample.empty()) {
+					formatOutForSample +=":";
+				}
+				const auto search = sample.meta_.find(format.id_);
+				if(sample.meta_.end() == search) {
+					//throws the missing field error
+					formatOutForSample += sample.getMeta(format.id_);
+				} else {
+					formatOutForSample += search->second;
+				}
+			}
+			vcfOut << "\t" << formatOutForSample;
+		};
 		for(const auto & rec : records_) {
 			if(!selectRegions.empty()) {
 				bool overlaps = false;
+				const auto recRegion = rec.genRegion();
 				for(const auto & reg : selectRegions) {
-					if(reg.overlaps(rec.genRegion())) {
+					if(reg.overlaps(recRegion)) {
 						overlaps = true;
 						break;
 					}
@@ -783,17 +840,14 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 			}
 			vcfOut << "\t" << infoOut;
 			vcfOut << "\t" << formatOut;
-			for(const auto & sampleName : samples_) {
-				const auto & sample = rec.sampleFormatInfos_.at(sampleName);
-				std::string formatOutForSample;
-				for (const auto & infoKey: formatOutputOrder) {
-					const auto & format = formatEntries_.at(infoKey);
-					if(!formatOutForSample.empty()) {
-						formatOutForSample +=":";
-					}
-					formatOutForSample += sample.getMeta(format.id_);
+			if(samplesSorted) {
+				for(const auto & sample : rec.sampleFormatInfos_) {
+					writeSampleFormats(sample.second);
 				}
-				vcfOut << "\t" << formatOutForSample;
+			} else {
+				for(const auto & sampleName : samples_) {
+					writeSampleFormats(rec.sampleFormatInfos_.at(sampleName));
+				}
 			}
 			vcfOut << std::endl;
 		}
@@ -823,11 +877,34 @@ Json::Value VCFOutput::headerToJson() const {
 }
 
 void VCFOutput::addInBlnaksForAnyMissingSamples(const std::set<std::string>& samples) {
-	std::set<std::string> missingSamples;
+	//the final samples are the header samples, the requested samples, and any sample in a record
+	std::set<std::string> allSamples(samples.begin(), samples.end());
+	njh::addVecToSet(samples_, allSamples);
+	for(const auto & record : records_) {
+		//both are sorted so walk them together and only insert the samples not already present
+		auto allSample = allSamples.begin();
+		for(const auto & sampInfo : record.sampleFormatInfos_) {
+			while(allSamples.end() != allSample && *allSample < sampInfo.first) {
+				++allSample;
+			}
+			if(allSamples.end() == allSample || *allSample != sampInfo.first) {
+				allSample = allSamples.emplace_hint(allSample, sampInfo.first);
+			}
+			++allSample;
+		}
+	}
 	for(auto & record : records_) {
-		for(const auto & samp : samples) {
-			if(njh::notIn(samp, record.sampleFormatInfos_)) {
-				MetaDataInName emptyMeta;
+		//the blank entry only depends on the record's number of alleles so it's made once per record
+		std::optional<MetaDataInName> emptyMeta;
+		//allSamples contains every sample in the record and both are sorted, so walk them together
+		auto recordSample = record.sampleFormatInfos_.begin();
+		for(const auto & samp : allSamples) {
+			if(record.sampleFormatInfos_.end() != recordSample && recordSample->first == samp) {
+				++recordSample;
+				continue;
+			}
+			if(!emptyMeta) {
+				emptyMeta = MetaDataInName();
 				for(const auto & format : formatEntries_) {
 					uint32_t numberOfVals = 1;
 					if(njh::strAllDigits(format.second.number_)) {
@@ -837,23 +914,24 @@ void VCFOutput::addInBlnaksForAnyMissingSamples(const std::set<std::string>& sam
 					}else if(format.second.number_ == "A") {
 						numberOfVals = record.alts_.size();
 					}
-					emptyMeta.addMeta(format.first, njh::conToStr(VecStr{numberOfVals, "."}, ",") );
+					emptyMeta->addMeta(format.first, njh::conToStr(VecStr{numberOfVals, "."}, ",") );
 				}
-				record.sampleFormatInfos_.emplace(samp, emptyMeta);
-				missingSamples.emplace(samp);
 			}
+			record.sampleFormatInfos_.emplace_hint(recordSample, samp, *emptyMeta);
 		}
 	}
-	njh::addVecToSet(samples_, missingSamples);
-	samples_ = VecStr(missingSamples.begin(), missingSamples.end());
+	samples_ = VecStr(allSamples.begin(), allSamples.end());
 }
 
 
 
 
 VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedData(const std::string & line) const {
+	return processRecordLineForFixedData(line, tokenizeString(line, "\t"));
+}
+
+VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedData(const std::string & line, const VecStr & toks) const {
 	VCFRecord rec;
-	auto toks = tokenizeString(line, "\t");
 	if(toks.size() != expectedColumnNumber()) {
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ", error " << "expected " << expectedColumnNumber() <<" not " << toks.size() << "\n";
@@ -954,8 +1032,8 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedData(const std::string 
 VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedDataAndSampleMetaData(const std::string & line) const {
 
 
-	auto rec = processRecordLineForFixedData(line);
-	auto toks = tokenizeString(line, "\t");
+	const auto toks = tokenizeString(line, "\t");
+	auto rec = processRecordLineForFixedData(line, toks);
 	//safety checks already done above
 	//format
 	if(toks.size() > 8) {
@@ -974,6 +1052,15 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedDataAndSampleMetaData(c
 		}
 
 		if(toks.size() > 9) {
+			//the Number for each FORMAT key in this line
+			std::vector<const std::string *> formatNumbers;
+			std::vector<bool> formatNumberIsDigits;
+			formatNumbers.reserve(formatToks.size());
+			formatNumberIsDigits.reserve(formatToks.size());
+			for(const auto & f : formatToks) {
+				formatNumbers.emplace_back(&formatEntries_.at(f).number_);
+				formatNumberIsDigits.emplace_back(njh::strAllDigits(formatEntries_.at(f).number_));
+			}
 			//process samples
 			for(const auto pos : iter::range(9UL, toks.size())) {
 				auto sampleToks = tokenizeString(toks[pos], ":");
@@ -983,13 +1070,14 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedDataAndSampleMetaData(c
 					ss << "sample info: " << toks[pos] << "\n";
 					throw std::runtime_error{ss.str()};
 				}
-				auto sampleName = samples_[pos - 9];
+				const auto & sampleName = samples_[pos - 9];
 				MetaDataInName sampleInfo;
 				for(const auto & e : iter::enumerate(sampleToks)) {
 					auto valCount = 1 + countOccurences(e.element, ",");
 					const auto & key = formatToks[e.index];
 					const auto & val = e.element;
-					if(formatEntries_.at(key).number_ == "A") {
+					const auto & number = *formatNumbers[e.index];
+					if(number == "A") {
 						if(valCount != rec.alts_.size()) {
 							std::stringstream ss;
 							ss << __PRETTY_FUNCTION__ << ", error " << "info entry " << key << " should have " << rec.alts_.size() << " but has " << valCount << " instead " << "\n";
@@ -998,7 +1086,7 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedDataAndSampleMetaData(c
 							ss << "line: " << line << "\n";
 							throw std::runtime_error{ss.str()};
 						}
-					} else if (formatEntries_.at(key).number_ == "R") {
+					} else if (number == "R") {
 						if(valCount != rec.alts_.size() + 1) {
 							std::stringstream ss;
 							ss << __PRETTY_FUNCTION__ << ", error " << "info entry " << key << " should have " << rec.alts_.size() + 1 << " but has " << valCount << " instead " << "\n";
@@ -1007,10 +1095,10 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedDataAndSampleMetaData(c
 							ss << "line: " << line << "\n";
 							throw std::runtime_error{ss.str()};
 						}
-					} else if (njh::strAllDigits(formatEntries_.at(key).number_)) {
-						if(njh::pasteAsStr(valCount) != formatEntries_.at(key).number_) {
+					} else if (formatNumberIsDigits[e.index]) {
+						if(std::to_string(valCount) != number) {
 							std::stringstream ss;
-							ss << __PRETTY_FUNCTION__ << ", error " << "info entry " << key << " should have " << formatEntries_.at(key).number_ << " but has " << valCount << " instead " << "\n";
+							ss << __PRETTY_FUNCTION__ << ", error " << "info entry " << key << " should have " << number << " but has " << valCount << " instead " << "\n";
 							ss << "key: " << key << "\n";
 							ss << "val: " << val << "\n";
 							ss << "line: " << line << "\n";
@@ -1019,7 +1107,8 @@ VCFOutput::VCFRecord VCFOutput::processRecordLineForFixedDataAndSampleMetaData(c
 					}
 					sampleInfo.addMeta(formatToks[e.index], e.element);
 				}
-				rec.sampleFormatInfos_.emplace(sampleName, sampleInfo);
+				//header samples are usually sorted, so the end is usually the right insertion point
+				rec.sampleFormatInfos_.emplace_hint(rec.sampleFormatInfos_.end(), sampleName, std::move(sampleInfo));
 			}
 		}
 	}

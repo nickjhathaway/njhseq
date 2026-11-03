@@ -1499,23 +1499,40 @@ table table::countColumn(const std::vector<uint32_t> & colPositions){
 
 table table::countGroupColumns(const VecStr & subColumns, const std::string & countColumnName) const {
 	checkForColumnsThrow(subColumns, __PRETTY_FUNCTION__);
-	table ret(concatVecs(subColumns, {countColumnName}));
-	std::unordered_map<std::string, uint32_t> counts;
+	GroupColumnsCounter counter(*this, subColumns, countColumnName);
 	for(const auto & row : content_) {
-		std::string rowID;
-		for(const auto & col : subColumns) {
-			if(!rowID.empty()) {
-				rowID += "SPLITONTHIS";
-			}
-			rowID += row[getColPos(col)];
-		}
-		++counts[rowID];
+		counter.addRow(row);
 	}
-	auto keys = getVectorOfMapKeys(counts);
+	return counter.genTable();
+}
+
+table::GroupColumnsCounter::GroupColumnsCounter(const table & header, VecStr subColumns, std::string countColumnName) :
+		subColumns_(std::move(subColumns)), countColumnName_(std::move(countColumnName)) {
+	header.checkForColumnsThrow(subColumns_, __PRETTY_FUNCTION__);
+	subColumnPositions_.reserve(subColumns_.size());
+	for(const auto & col : subColumns_) {
+		subColumnPositions_.emplace_back(header.getColPos(col));
+	}
+}
+
+void table::GroupColumnsCounter::addRow(const VecStr & row) {
+	std::string rowID;
+	for(const auto pos : subColumnPositions_) {
+		if(!rowID.empty()) {
+			rowID += "SPLITONTHIS";
+		}
+		rowID += row[pos];
+	}
+	++counts_[rowID];
+}
+
+table table::GroupColumnsCounter::genTable() const {
+	table ret(concatVecs(subColumns_, {countColumnName_}));
+	auto keys = getVectorOfMapKeys(counts_);
 	njh::naturalSortNameSet(keys);
 	for(const auto & key : keys) {
 		auto toks = tokenizeString(key, "SPLITONTHIS");
-		toks.emplace_back(estd::to_string(counts[key]));
+		toks.emplace_back(estd::to_string(counts_.at(key)));
 		ret.addRow(toks);
 	}
 	return ret;

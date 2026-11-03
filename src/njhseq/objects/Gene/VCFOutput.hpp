@@ -30,6 +30,14 @@ Info field: - additional information: (String, no whitespace, semicolons, or equ
 
 	*/
 public:
+	/**
+	 * \brief whether val is one or more single characters from allowed separated by commas, e.g. ".,0,." for allowed ".0"
+	 * \param val the value to check
+	 * \param allowed the characters allowed
+	 * \return true if val matches
+	 */
+	static bool isCommaSepSingleChars(const std::string & val, const std::string & allowed);
+
 	std::string vcfFormatVersion_{"VCFv4.4"};
 	struct InfoEntry {
 		InfoEntry() = default;
@@ -174,12 +182,11 @@ public:
 
 		template<typename T>
 		void addFiledDefaultValue(const std::string & field, const T & defaultValue, bool replace = true) {
-			static const std::regex blankDataPattern("\\.(,\\.)*");
 			for(auto & rec : sampleFormatInfos_) {
 				//check if all other fields are empty, then replace with an empty value
 				bool allBlanks = true;
 				for(const auto & otherFormat : rec.second.meta_) {
-					if(!std::regex_match(otherFormat.second, blankDataPattern)) {
+					if(!isCommaSepSingleChars(otherFormat.second, ".")) {
 						allBlanks = false;
 						break;
 					}
@@ -285,6 +292,13 @@ public:
  */
 	void addInRecordsFixedDataFromFile(std::istream & in);
 	[[nodiscard]] VCFRecord processRecordLineForFixedData(const std::string & line) const;
+	/**
+	 * \brief process the first 8 columns of a record line that has already been split on tabs
+	 * \param line the full line, used in error messages
+	 * \param toks the line split on tabs
+	 * \return the record with the fixed fields filled in
+	 */
+	[[nodiscard]] VCFRecord processRecordLineForFixedData(const std::string & line, const VecStr & toks) const;
 	[[nodiscard]] VCFRecord processRecordLineForFixedDataAndSampleMetaData(const std::string & line) const;
 
 	[[nodiscard]] size_t expectedColumnNumber() const;

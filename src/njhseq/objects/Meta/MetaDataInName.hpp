@@ -38,7 +38,7 @@ public:
 
 	template<typename T>
 	void addMeta(const std::string & key, const T & val, bool replace = false) {
-		if (containsMeta(key) && !replace) {
+		if (!replace && containsMeta(key)) {
 			std::stringstream ss;
 			ss << "Error in " << njh::bashCT::bold << __PRETTY_FUNCTION__
 					<< njh::bashCT::reset << " attempting to add meta, "
@@ -47,7 +47,13 @@ public:
 					<< std::endl;
 			throw std::runtime_error { ss.str() };
 		} else {
-			meta_[key] = estd::to_string(val);
+			using DecayedT = std::decay_t<T>;
+			//strings are stored as is, everything else goes through its stream operator
+			if constexpr (std::is_same_v<DecayedT, std::string> || std::is_same_v<DecayedT, const char*> || std::is_same_v<DecayedT, char*>) {
+				meta_[key] = val;
+			} else {
+				meta_[key] = estd::to_string(val);
+			}
 		}
 	}
 
