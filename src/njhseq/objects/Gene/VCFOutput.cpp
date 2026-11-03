@@ -8,6 +8,13 @@ namespace njhseq {
 
 namespace {
 /**
+ * \brief whether a header value is already wrapped in double quotes
+ */
+bool isQuoted(const std::string & val) {
+	return val.size() >= 2 && '"' == val.front() && '"' == val.back();
+}
+
+/**
  * \brief generate the INFO column for a record in the header's INFO order, keys the record doesn't have are left off and "." is used when there are none
  */
 std::string genInfoColumn(const std::map<std::string, VCFOutput::InfoEntry> & infoEntries, const MetaDataInName & info) {
@@ -391,21 +398,21 @@ Json::Value VCFOutput::ContigEntry::toJson() const {
 
 GenomicRegion VCFOutput::VCFRecord::genRegion() const {
 	uint32_t start = pos_ - 1;
-	uint32_t end = pos_;
-	if(std::all_of(alts_.begin(), alts_.end(), [this](const std::string& alt) {
-		return ref_.size() == alt.size();
-	})) {
-		end = start + ref_.size();
-	} else if (ref_.size() == 1 && !std::all_of(alts_.begin(), alts_.end(), [](const std::string& alt) {
+	uint32_t end = start + ref_.size();
+	//a deletion keeps the anchor base and the end of the ref
+	const bool pureDeletion = ref_.size() > 1 && std::all_of(alts_.begin(), alts_.end(), [this](const std::string& alt) {
+		return !alt.empty() && alt.size() < ref_.size() && alt.front() == ref_.front() && njh::endsWith(ref_, alt.substr(1));
+	});
+	if (ref_.size() == 1 && !std::all_of(alts_.begin(), alts_.end(), [](const std::string& alt) {
 		return alt.size() == 1;
 	})) {
 		//insertion, will give the region right before and right after the insertion
 		end += 1;
-	} else if (ref_.size() > 1) {
-		//should only be deletions
-		start += 1; //increase start to go actual deleted base
-		end = start - 1 + ref_.size();
+	} else if (pureDeletion) {
+		//only the deleted bases, skipping the anchor base
+		start += 1;
 	}
+	//anything else (snps, mnps, complex records) is the full ref span
 	std::string uid = njh::pasteAsStr(chrom_, "-", start, "-", end);
 	if(id_ != ".") {
 		uid = id_;
@@ -540,21 +547,21 @@ void VCFOutput::writeOutHeaderFieldsOtherThanFormat(std::ostream & vcfOut) const
 			vcfOut << "," << "md5=" << contig.md5_;
 		}
 		if(!contig.assembly_.empty()) {
-			if(contig.assembly_.front() == '"' && contig.assembly_.back() == '"') {
+			if(isQuoted(contig.assembly_)) {
 				vcfOut << "," << "assembly=" << contig.assembly_ << "";
 			}else {
 				vcfOut << "," << "assembly=\"" << contig.assembly_ << "\"";
 			}
 		}
 		if(!contig.species_.empty()) {
-			if(contig.species_.front() == '"' && contig.species_.back() == '"') {
+			if(isQuoted(contig.species_)) {
 				vcfOut << "," << "species=" << contig.species_ << "";
 			} else {
 				vcfOut << "," << "species=\"" << contig.species_ << "\"";
 			}
 		}
 		for(const auto & others : contig.otherKeysValues_) {
-			if((std::string::npos != others.second.find(',') || njh::strHasWhitesapce(others.second)) && !(others.second.front() == '"' && others.second.back() == '"') ) {
+			if((std::string::npos != others.second.find(',') || njh::strHasWhitesapce(others.second)) && !(isQuoted(others.second)) ) {
 				vcfOut << "," << others.first << "=" << "\"" << others.second << "\"";
 			} else {
 				vcfOut << "," << others.first << "=" << others.second;
@@ -569,20 +576,20 @@ void VCFOutput::writeOutHeaderFieldsOtherThanFormat(std::ostream & vcfOut) const
 		<< "ID=" << info.id_
 		<< ","<< "Number=" << info.number_
 		<< "," << "Type=" << info.type_;
-		if(info.description_.front() == '"' && info.description_.back() == '"') {
+		if(isQuoted(info.description_)) {
 			vcfOut << "," << "Description=" << info.description_ << "";
 		} else {
 			vcfOut << "," << "Description=\"" << info.description_ << "\"";
 		}
 		if(!info.source_.empty()) {
-			if(info.source_.front() == '"' && info.source_.back() == '"') {
+			if(isQuoted(info.source_)) {
 				vcfOut << "," << "Source=" << info.source_ << "";
 			} else {
 				vcfOut << "," << "Source=\"" << info.source_ << "\"";
 			}
 		}
 		if(!info.version_.empty()) {
-			if(info.version_.front() == '"' && info.version_.back() == '"') {
+			if(isQuoted(info.version_)) {
 				vcfOut << "," << "Version=" << info.version_ << "";
 			} else {
 				vcfOut << "," << "Version=\"" << info.version_ << "\"";
@@ -595,7 +602,7 @@ void VCFOutput::writeOutHeaderFieldsOtherThanFormat(std::ostream & vcfOut) const
 	for (const auto& info: filterEntries_) {
 		vcfOut << "##FILTER=<"
 				<< "ID=" << info.id_;
-		if (info.description_.front() == '"' && info.description_.back() == '"') {
+		if (isQuoted(info.description_)) {
 			vcfOut << "," << "Description=" << info.description_ << "";
 		} else {
 			vcfOut << "," << "Description=\"" << info.description_ << "\"";
@@ -618,7 +625,7 @@ void VCFOutput::writeOutHeaderFieldsOtherThanFormat(std::ostream & vcfOut) const
 			if(!first) {
 				vcfOut << ",";
 			}
-			if((std::string::npos != valuePairs.second.find(',') || njh::strHasWhitesapce(valuePairs.second)) && !(valuePairs.second.front() == '"' && valuePairs.second.back() == '"') ) {
+			if((std::string::npos != valuePairs.second.find(',') || njh::strHasWhitesapce(valuePairs.second)) && !(isQuoted(valuePairs.second)) ) {
 				vcfOut << valuePairs.first << "=" << "\"" << valuePairs.second << "\"";
 			} else {
 				vcfOut << valuePairs.first << "=" << valuePairs.second;
@@ -724,7 +731,7 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 		<< "ID=" << info.id_
 		<< ","<< "Number=" << info.number_
 		<< "," << "Type=" << info.type_;
-		if(info.description_.front() == '"' && info.description_.back() == '"') {
+		if(isQuoted(info.description_)) {
 			vcfOut << "," << "Description=" << info.description_ << "";
 		} else {
 			vcfOut << "," << "Description=\"" << info.description_ << "\"";
@@ -808,8 +815,8 @@ void VCFOutput::writeOutFixedAndSampleMeta(std::ostream& vcfOut, const std::vect
 				}
 				const auto search = sample.meta_.find(format.id_);
 				if(sample.meta_.end() == search) {
-					//throws the missing field error
-					formatOutForSample += sample.getMeta(format.id_);
+					//missing value, e.g. a FORMAT field only some of the combined files had
+					formatOutForSample += ".";
 				} else {
 					formatOutForSample += search->second;
 				}
@@ -1314,6 +1321,12 @@ VCFOutput VCFOutput::readInHeader(const bfs::path & fnp) {
 				std::unordered_map<std::string, std::string> valuePairs;
 				for(const auto & tok : toks) {
 					auto equalPos = tok.find_first_of('=');
+					if(std::string::npos == equalPos) {
+						std::stringstream ss;
+						ss << __PRETTY_FUNCTION__ << ", error " << "meta field entry " << tok << " has no =, values with commas need to be in quotes, error for line: " << "\n";
+						ss << line << "\n";
+						throw std::runtime_error{ss.str()};
+					}
 					auto key = tok.substr(0, equalPos	);
 					auto value = tok.substr(equalPos + 1);
 					value = njh::replaceString(value, "COMMA_IN_BETWEEN_QUOTES", ",");
@@ -1767,8 +1780,40 @@ VCFOutput VCFOutput::comnbineVCFs(const std::vector<bfs::path> &vcfsFnps,
 	auto combined = readInVcf(uniqueVcfFnps.front());
 	for (const auto idx : iter::range<size_t>(1, uniqueVcfFnps.size())) {
 		auto currentVcf = readInVcf(uniqueVcfFnps[idx]);
-		//add in header
-		//given we know what generated these vcf files there's not need to check the FORMAT, FILTER, or INFO tags
+		//add in header lines the combined header doesn't have yet, an INFO or FORMAT with the same ID must match
+		auto addEntries = [&uniqueVcfFnps, &idx](auto & combinedEntries, const auto & currentEntries, const std::string & entryType) {
+			for (const auto & entry : currentEntries) {
+				const auto search = combinedEntries.find(entry.first);
+				if (combinedEntries.end() == search) {
+					combinedEntries.emplace(entry);
+				} else if (!(search->second == entry.second)) {
+					std::stringstream ss;
+					ss << __PRETTY_FUNCTION__ << ", error " << entryType << " " << entry.first << " in " << uniqueVcfFnps[idx]
+					   << " doesn't match the definition in the files before it" << "\n";
+					throw std::runtime_error{ss.str()};
+				}
+			}
+		};
+		addEntries(combined.infoEntries_, currentVcf.infoEntries_, "INFO");
+		addEntries(combined.formatEntries_, currentVcf.formatEntries_, "FORMAT");
+		for (const auto & filter : currentVcf.filterEntries_) {
+			if (std::none_of(combined.filterEntries_.begin(), combined.filterEntries_.end(),
+			                 [&filter](const FilterEntry & other) { return other.id_ == filter.id_; })) {
+				combined.filterEntries_.emplace_back(filter);
+			}
+		}
+		for (const auto & other : currentVcf.otherHeaderMetaFields_) {
+			const auto range = combined.otherHeaderMetaFields_.equal_range(other.first);
+			if (std::none_of(range.first, range.second,
+			                 [&other](const auto & existing) { return existing.second.meta_ == other.second.meta_; })) {
+				combined.otherHeaderMetaFields_.emplace(other);
+			}
+		}
+		for (const auto & other : currentVcf.otherHeaderValuePairs_) {
+			if (!njh::in(other.first, combined.otherHeaderValuePairs_)) {
+				combined.otherHeaderValuePairs_.emplace(other);
+			}
+		}
 
 		//add in new contigs if any
 		for (const auto & contig : currentVcf.contigEntries_) {

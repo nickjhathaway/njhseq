@@ -56,7 +56,8 @@ public:
 
 	struct getComplexPositionsPars{
 		uint32_t withinDist = 15;
-		double fractionOfCoveredSamples = 0.95;
+		double fractionOfCoveredSamples = 0.95;/**<fraction of samples that must cover a position for it to be linked into a complex variant */
+		double fractionOfSamplesCoveringSpan = 0.5;/**<fraction of samples that must cover a complex variant's full span to report it */
 	};
 
 	struct RunPars {
@@ -152,6 +153,18 @@ public:
 
 		std::vector<PosStartSize> getComplexPositions(const getComplexPositionsPars & pars);
 
+		struct SpanCoverage {
+			uint32_t depth_{0};/**< the haplotype count covering the whole span */
+			std::set<std::string> samples_;/**< the samples with a haplotype covering the whole span */
+		};
+		/**
+		 * \brief the coverage of a complex variant from the haplotypes that cover its whole span, both ref and alts (including alts filtered from complexFinal)
+		 * \param pos the start of the complex variant
+		 * \param ref the reference sequence of the complex variant
+		 * \return the depth and samples covering the span
+		 */
+		[[nodiscard]] SpanCoverage getComplexSpanCoverage(uint32_t pos, const std::string & ref) const;
+
 
 		void addVariantInfo(const std::string& alignedRefSeq,
 		                    const std::string& alignedQuerySeq,
@@ -166,11 +179,11 @@ public:
 		                           const std::unordered_map<std::string, uint32_t>& sampleReadCnts,
 		                           const comparison& comp,
 		                           uint32_t offSetStart,
-		                           std::vector<PosStartSize> complexPositions);
+		                           const std::vector<PosStartSize> & complexPositions);
 
 
 		void setFinals(const RunPars& rPars);
-		void setComplexFinals(const RunPars& rPars, std::vector<PosStartSize> complexPositions);
+		void setComplexFinals(const RunPars& rPars, const std::vector<PosStartSize> & complexPositions);
 
 
 		[[nodiscard]] char getBaseForGenomicRegionNoCheck(const uint32_t pos) const;
@@ -445,7 +458,7 @@ public:
 
 	struct GetGenomicLocationsForAminoAcidPositionsRet {
 		std::vector<Bed6RecordCore> genomicLocs; //! zero-based positioning
-		std::vector<Bed6RecordCore> transcriptLocs; //! one-based positioning
+		std::vector<Bed6RecordCore> transcriptLocs; //! zero-based positioning
 	};
 
 	static GetGenomicLocationsForAminoAcidPositionsRet getGenomicLocationsForAminoAcidPositions(

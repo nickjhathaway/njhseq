@@ -11,7 +11,7 @@ namespace njhseq {
 class VCFOutput {
 
 	/**
-	 * Class was defined trying to conform to the standards laid out by https://samtools.github.io/hts-specs/VCFv4.2.pdf, accessed on 2023-12-17
+	 * Class was defined trying to conform to the standards laid out by https://samtools.github.io/hts-specs/VCFv4.4.pdf
 	 **/
 
 	/**
@@ -54,7 +54,7 @@ public:
 		/**
 		 * \brief description of the number of elements in this entry
 		 *
-		 * per VCR 4.4 standards
+		 * per VCF 4.4 standards
 		 * • If the field has one value per alternate allele then this value should be ‘A’.
        • If the field has one value for each possible allele (including the reference), then this value should be ‘R’.
        • If the field has one value for each possible genotype (more relevant to the FORMAT tags) then this value should be ‘G’.
@@ -94,7 +94,7 @@ public:
 		/**
 		 * \brief description of the number of elements in this entry
 		 *
-		 * per VCR 4.2 standards
+		 * per VCF 4.4 standards
 		 * • If the field has one value per alternate allele then this value should be ‘A’.
 			 • If the field has one value for each possible allele (including the reference), then this value should be ‘R’.
 			 • If the field has one value for each possible genotype (more relevant to the FORMAT tags) then this value should be ‘G’.
@@ -168,7 +168,7 @@ public:
 		std::string id_{"."};/**<id for this variant */
 		std::string ref_;/**<reference sequence for this variant */
 		VecStr alts_;/**<all the alternative alleles */
-		uint32_t qual_{40};/**<the quality for this variant */
+		uint32_t qual_{40};/**<the quality for this variant, the records made by TranslatorByAlignment always use 40 (as does their GQ), it isn't a computed quality */
 		std::string filter_{"PASS"};/**<whether or not this variant passes QC checks */
 
 		MetaDataInName info_;/**<the info entry for this variant */
