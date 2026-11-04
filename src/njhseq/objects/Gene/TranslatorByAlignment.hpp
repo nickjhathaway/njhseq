@@ -12,6 +12,7 @@
 
 
 #include <utility>
+#include <functional>
 
 #include "njhseq/objects/BioDataObject.h"
 #include "njhseq/GenomeUtils.h"
@@ -205,8 +206,11 @@ public:
 
 		void writeSNPTable(const OutOptions &snpTabOutOpts) const;
 
+		/**@brief number of segregating sites in the final calls, snps and insertions at their positions, overlapping deletions as one site
+		 */
 		[[nodiscard]] uint32_t getFinalNumberOfSegregatingSites() const;
 		[[nodiscard]] uint32_t getFinalNumberOfSegregatingSites(const std::set<std::string> & for_samples) const;
+		[[nodiscard]] uint32_t countSegregatingSites(const std::function<bool(const posAlleleCountSamples &)> & include) const;
 
 		/**@brief write out info for positions, will throw if no info present
 		 *
@@ -361,6 +365,7 @@ public:
 		[[nodiscard]] std::map<std::string, std::string> translated_genAATypedStr() const;
 		[[nodiscard]] std::map<std::string, std::string> translated_genAATypedStrOnlyKnowns() const;
 		[[nodiscard]] std::map<std::string, std::string> translated_genAATypedStrOnlyPopVariant() const;
+		void addUnmappableAndUntranslatable(std::map<std::string, std::string> & typed) const;
 
 		VecStr seqsUnableToBeMapped_;
 		VecStr seqsTranslationFiltered_;/**< seqs aligned to a coding gene that no gene could translate, sorted, set by setSeqsTranslationFiltered() */

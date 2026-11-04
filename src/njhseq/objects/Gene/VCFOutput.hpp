@@ -172,31 +172,58 @@ public:
 		std::string filter_{"PASS"};/**<whether or not this variant passes QC checks */
 
 		MetaDataInName info_;/**<the info entry for this variant */
-		std::map<std::string, MetaDataInName> sampleFormatInfos_;/**<the sample info for this variant */
+
+		VecStr formatKeys_;/**<the FORMAT keys of the sample values, in the order they are stored in sampleValues_ */
+		VecStr sampleValues_;/**<one entry per sample, in the order of VCFOutput::samples_, the values for formatKeys_ joined by ':' */
+
+		/**
+		 * \brief the position of key in formatKeys_
+		 * \return the position or std::string::npos if the record doesn't have key
+		 */
+		[[nodiscard]] size_t formatKeyIndex(const std::string & key) const;
+		/**
+		 * \brief split a sample's values on ':', the views point into values
+		 */
+		[[nodiscard]] static std::vector<std::string_view> splitSampleValues(const std::string & values);
+		/**
+		 * \brief the value of key for the sample at sampleIndex, will throw if the record doesn't have key
+		 */
+		[[nodiscard]] std::string getSampleField(size_t sampleIndex, const std::string & key) const;
+		/**
+		 * \brief the values of the sample at sampleIndex as meta, keyed by the FORMAT keys
+		 */
+		[[nodiscard]] MetaDataInName getSampleMeta(size_t sampleIndex) const;
+		/**
+		 * \brief set the values of the sample at sampleIndex, keys new to the record are added with "." for the other samples and keys meta doesn't have are set to "."
+		 */
+		void setSampleMeta(size_t sampleIndex, const MetaDataInName & meta);
+		/**
+		 * \brief set key to values (one per sample), adding key if the record doesn't have it
+		 * \param key the FORMAT key
+		 * \param values a value for each sample
+		 * \param atFront when adding key put it before the other keys rather than after
+		 */
+		void setFormatValues(const std::string & key, const VecStr & values, bool atFront = false);
 
 		void addGTField(uint32_t ploidy = 2);
 		void autoAddTYPEField();
 		void autoAddTotalDP_RO_AO_InfoFields();
-		void autoAddWeightedAFRealField();
+		/**
+		 * \brief add the AF_REAL info field, the per sample frequencies are summed in sampleOrder (all samples in index order if empty)
+		 */
+		void autoAddWeightedAFRealField(const std::vector<size_t> & sampleOrder = {});
 		void autoAdd_AN_AC_AF_InfoFields();
 
+		/**
+		 * \brief set field to defaultValue for every sample, or to "." for samples whose other values are all missing
+		 */
+		void addFieldDefaultValue(const std::string & field, const std::string & defaultValue, bool replace = true);
+
 		template<typename T>
-		void addFiledDefaultValue(const std::string & field, const T & defaultValue, bool replace = true) {
-			for(auto & rec : sampleFormatInfos_) {
-				//check if all other fields are empty, then replace with an empty value
-				bool allBlanks = true;
-				for(const auto & otherFormat : rec.second.meta_) {
-					if(!isCommaSepSingleChars(otherFormat.second, ".")) {
-						allBlanks = false;
-						break;
-					}
-				}
-				if(allBlanks) {
-					rec.second.addMeta(field, ".", replace);
-				} else {
-					rec.second.addMeta(field, defaultValue, replace);
-				}
-			}
+		void addFieldDefaultValue(const std::string & field, const T & defaultValue, bool replace = true) {
+			MetaDataInName asStr;
+			asStr.addMeta(field, defaultValue);
+			addFieldDefaultValue(field, asStr.getMeta(field), replace);
 		}
 
 		[[nodiscard]] uint32_t getNumberOfAlleles() const ;
@@ -227,7 +254,7 @@ public:
 			formatEntries_[field] = formatEntry;
 		}
 		njh::for_each(
-			records_, [&field,&defaultValue,&replace](auto& rec) { rec.addFiledDefaultValue(field, defaultValue, replace); });
+			records_, [&field,&defaultValue,&replace](auto& rec) { rec.addFieldDefaultValue(field, defaultValue, replace); });
 	}
 
 	template<typename T>
@@ -303,24 +330,37 @@ public:
 
 	[[nodiscard]] size_t expectedColumnNumber() const;
 
-	void addInBlnaksForAnyMissingSamples(const std::set<std::string>& samples);
+	/**
+	 * \brief add samples to samples_, keeping it sorted, and give every record blank values for the samples it doesn't have
+	 */
+	void addInBlanksForAnyMissingSamples(const std::set<std::string>& samples);
+
+	/**
+	 * \brief re-order every record's sample values from samples_ to newSamples (which must contain samples_), samples new to a record get blank values for every FORMAT entry, then set samples_ to newSamples
+	 */
+	void alignSamples(const VecStr & newSamples);
+
+	/**
+	 * \brief the index of each sample in samples_
+	 */
+	[[nodiscard]] std::unordered_map<std::string, size_t> getSampleIndexes() const;
 
 
 	[[nodiscard]] Json::Value headerToJson() const;
 
 
-	struct comnbineVCFsPars{
+	struct combineVCFsPars{
 		bool doNotRescueVariantCallsAcrossTargets{false};
 		bool combinedOverlappingCallsAcrossTargets{false};
 
 		uint32_t ploidy{2};
 	};
-	static VCFOutput comnbineVCFs(const std::vector<bfs::path> & vcfsFnps,
+	static VCFOutput combineVCFs(const std::vector<bfs::path> & vcfsFnps,
 		const std::set<std::string> & sampleNamesSet,
-		const comnbineVCFsPars & pars);
+		const combineVCFsPars & pars);
 
-	static VCFOutput comnbineVCFs(const std::vector<bfs::path> & vcfsFnps,
-	const comnbineVCFsPars & pars);
+	static VCFOutput combineVCFs(const std::vector<bfs::path> & vcfsFnps,
+	const combineVCFsPars & pars);
 
 };
 
