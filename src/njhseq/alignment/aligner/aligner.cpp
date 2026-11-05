@@ -124,6 +124,20 @@ void aligner::alignScoreGlobalNoInternalGaps(const std::string& firstSeq,
 	++numberOfAlingmentsDone_;
 }
 
+void aligner::alignScoreCacheGlobalNoInternalGaps(const std::string& firstSeq,
+		const std::string& secondSeq) {
+	//kept apart from alignScoreCacheGlobal since the same sequences would align differently when internal gaps are allowed
+	auto & holder = alnHolder_.globalHolder_[parts_.gapScores_.uniqueIdentifer_ + "-noInternalGaps"];
+	if (holder.getAlnInfo(firstSeq, secondSeq, parts_.gHolder_)) {
+		parts_.score_ = parts_.gHolder_.score_;
+		comp_.alnScore_ = parts_.score_;
+	} else {
+		alignCalc::runNeedleOnlyEndGapsSave(firstSeq, secondSeq, parts_);
+		holder.addAlnInfo(firstSeq, secondSeq, parts_.gHolder_);
+		++numberOfAlingmentsDone_;
+	}
+}
+
 
 void aligner::alignScoreCacheGlobal(const std::string& firstSeq,
 		const std::string& secondSeq) {
@@ -250,6 +264,11 @@ void aligner::alignReg(const seqInfo & ref, const seqInfo & read, bool local){
 
 void aligner::alignRegGlobalNoInternalGaps(const seqInfo & ref, const seqInfo & read){
 	alignScoreGlobalNoInternalGaps(ref.seq_, read.seq_);
+	rearrangeObjsGlobal(ref, read);
+}
+
+void aligner::alignCacheGlobalNoInternalGaps(const seqInfo & ref, const seqInfo & read){
+	alignScoreCacheGlobalNoInternalGaps(ref.seq_, read.seq_);
 	rearrangeObjsGlobal(ref, read);
 }
 
