@@ -7,6 +7,36 @@
 #include "njhseq/concurrency/PairwisePairFactory.hpp"
 
 namespace njhseq {
+
+namespace {
+uint32_t dimerBaseIndex(const char base) {
+	switch (base) {
+		case 'A': return 0;
+		case 'C': return 1;
+		case 'G': return 2;
+		case 'T': return 3;
+		default: {
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__ << ", error " << "can only score A, C, G or T, found: " << base << "\n";
+			throw std::runtime_error{ss.str()};
+		}
+	}
+}
+
+std::vector<uint32_t> dimerBaseIndexes(const std::string &seq) {
+	std::vector<uint32_t> indexes;
+	indexes.reserve(seq.size());
+	for (const auto &base: seq) {
+		indexes.emplace_back(dimerBaseIndex(base));
+	}
+	return indexes;
+}
+
+uint32_t dimerDoubletIndex(const uint32_t top1, const uint32_t top2, const uint32_t bottom1, const uint32_t bottom2) {
+	return (top1 << 6U) | (top2 << 4U) | (bottom1 << 2U) | bottom2;
+}
+}  // namespace
+
 PrimerDimerUtils::PrimerDimerUtils() {
 
 	//create scoring matrix
@@ -30,6 +60,17 @@ PrimerDimerUtils::PrimerDimerUtils() {
 	//update single match scores
 	for (const auto &singleMatch: singleMismatchScores) {
 		scoringMatrix_[singleMatch.first] = singleMatch.second;
+	}
+	//the table only has match-then-mismatch doublets, so read mismatch-then-match doublets from the other strand
+	for (const auto &doub1: doubles) {
+		for (const auto &doub2: doubles) {
+			const bool flip = doub1[0] != doub2[0] && doub1[1] == doub2[1];
+			const auto key = flip ?
+					njh::pasteAsStr(seqUtil::reverseComplement(doub2, "DNA"), "/", seqUtil::reverseComplement(doub1, "DNA")) :
+					njh::pasteAsStr(doub1, "/", doub2);
+			proofreadingDoubletScores_[dimerDoubletIndex(dimerBaseIndex(doub1[0]), dimerBaseIndex(doub1[1]),
+					dimerBaseIndex(doub2[0]), dimerBaseIndex(doub2[1]))] = scoringMatrix_.at(key);
+		}
 	}
 }
 
@@ -155,11 +196,54 @@ double PrimerDimerUtils::computeDimerScore(const std::string &shorter, const std
 }
 
 double PrimerDimerUtils::computeDimerScoreTop(const std::string &str1, const std::string &str2) const{
-	if (str1.size() >= str2.size()) {
+	if (str1.size() > str2.size()) {
 		return (computeDimerScore(seqUtil::reverseComplement(str2, "DNA"), str1));
-	} else {
+	} else if (str1.size() < str2.size() || str1 == str2) {
 		return (computeDimerScore(seqUtil::reverseComplement(str1, "DNA"), str2));
 	}
+	//doublets are only read in one direction, so at equal lengths take the lower of both orders to not depend on input order
+	return std::min(computeDimerScore(seqUtil::reverseComplement(str2, "DNA"), str1),
+									computeDimerScore(seqUtil::reverseComplement(str1, "DNA"), str2));
+}
+
+double PrimerDimerUtils::computeProofreadingDimerScore(const std::string &str1, const std::string &str2) const {
+	//a fixed order so a tie between stacked stretches can't make the score depend on input order
+	const auto top = dimerBaseIndexes(str1 <= str2 ? str1 : str2);
+	const auto bottom = dimerBaseIndexes(seqUtil::reverseComplement(str1 <= str2 ? str2 : str1, "DNA"));
+	const auto lenTop = static_cast<int32_t>(top.size());
+	const auto lenBottom = static_cast<int32_t>(bottom.size());
+	double bestScore = 0;
+	//offset is the position on top of the first bottom base, which is the bottom primer's 3' base
+	for (int32_t offset = 2 - lenBottom; offset <= lenTop - 2; ++offset) {
+		const int32_t overlapStart = std::max(0, offset);
+		const int32_t overlapStop = std::min(lenTop, offset + lenBottom);
+		double current = 0;
+		int32_t currentStart = overlapStart;
+		double registerBest = 0;
+		int32_t registerStart = overlapStart;
+		int32_t registerLast = overlapStart;
+		for (int32_t pos = overlapStart; pos + 1 < overlapStop; ++pos) {
+			const auto doubletScore = proofreadingDoubletScores_[dimerDoubletIndex(top[pos], top[pos + 1], bottom[pos - offset], bottom[pos + 1 - offset])];
+			//a stretch that sums to zero ends here; the tolerance is because the sum is floating point
+			if (current < -1e-9) {
+				current += doubletScore;
+			} else {
+				current = doubletScore;
+				currentStart = pos;
+			}
+			if (current < registerBest) {
+				registerBest = current;
+				registerStart = currentStart;
+				registerLast = pos + 1;
+			}
+		}
+		const auto unpairedTop = lenTop - 1 - registerLast;
+		const auto unpairedBottom = registerStart - offset;
+		if (registerBest < bestScore && static_cast<uint32_t>(std::min(unpairedTop, unpairedBottom)) <= proofreadingMaxUnpaired3Prime_) {
+			bestScore = registerBest;
+		}
+	}
+	return bestScore;
 }
 
 
@@ -233,14 +317,27 @@ std::unordered_map<std::string, double>PrimerDimerUtils::singleMismatchScores = 
 				{"TT/TA", 0.68}};
 
 std::vector<std::vector<double>> PrimerDimerUtils::computeFullScoreMatrix(const std::vector<seqInfo> & primers, uint32_t numThreads) const{
+	return computeFullMatrix(primers, numThreads, [this](const std::string &str1, const std::string &str2) {
+		return computeDimerScoreTop(str1, str2);
+	});
+}
+
+std::vector<std::vector<double>> PrimerDimerUtils::computeFullProofreadingScoreMatrix(const std::vector<seqInfo> & primers, uint32_t numThreads) const{
+	return computeFullMatrix(primers, numThreads, [this](const std::string &str1, const std::string &str2) {
+		return computeProofreadingDimerScore(str1, str2);
+	});
+}
+
+std::vector<std::vector<double>> PrimerDimerUtils::computeFullMatrix(const std::vector<seqInfo> & primers, uint32_t numThreads,
+		const std::function<double(const std::string &, const std::string &)> & scorer) const{
 	std::vector<std::vector<double>> scores(primers.size(), std::vector<double>(primers.size(), 0.0));
 	PairwisePairFactory pFac(primers.size());
 
-	std::function<void()> computeDim = [&pFac, &scores, this, &primers]() {
+	std::function<void()> computeDim = [&pFac, &scores, &scorer, &primers]() {
 		PairwisePairFactory::PairwisePairVec pairs;
 		while (pFac.setNextPairs(pairs, 300)) {
 			for(const auto & pair : pairs.pairs_){
-				scores[pair.row_][pair.col_] = computeDimerScoreTop(primers[pair.row_].seq_, primers[pair.col_].seq_);
+				scores[pair.row_][pair.col_] = scorer(primers[pair.row_].seq_, primers[pair.col_].seq_);
 				scores[pair.col_][pair.row_] = scores[pair.row_][pair.col_];
 			}
 		}
@@ -248,7 +345,7 @@ std::vector<std::vector<double>> PrimerDimerUtils::computeFullScoreMatrix(const 
 	njh::concurrent::runVoidFunctionThreaded(computeDim, numThreads);
 	//pair factory doesn't produce the self comparison so take a quick run through the diagonal
 	for (const auto i: iter::range(primers.size())) {
-		scores[i][i] = computeDimerScoreTop(primers[i].seq_, primers[i].seq_);
+		scores[i][i] = scorer(primers[i].seq_, primers[i].seq_);
 	}
 //	for (const auto i: iter::range(primers.size())) {
 //		std::cout << "\ri:" << i << ", " << static_cast<double>(i) / primers.size() * 100.0;
