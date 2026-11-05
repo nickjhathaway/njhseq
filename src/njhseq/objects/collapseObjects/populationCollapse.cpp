@@ -184,6 +184,9 @@ void populationCollapse::renameToOtherPopNames(const std::vector<readObject> &pr
 	for (const auto & name : names) {
 		allIds[name] = 0;
 	}
+	//end gaps are free so the two sequences can pass the error profile by overlapping by only a few bases at their ends,
+	//the shorter of the two has to be mostly covered by the alignment to count as the same sequence
+	const double minCoverageOfShorter = 0.90;
   for (auto &clus : collapsed_.clusters_) {
   	bool chimeric = clus.seqBase_.isChimeric();
     double bestScore = 0;
@@ -191,7 +194,8 @@ void populationCollapse::renameToOtherPopNames(const std::vector<readObject> &pr
     for (const auto refPos : iter::range(previousPop.size())) {
       alignerObj.alignCache(previousPop[refPos], clus, false);
       alignerObj.profilePrimerAlignment(previousPop[refPos], clus);
-      if(allowableErrors.passErrorProfile(alignerObj.comp_) && alignerObj.parts_.score_ > bestScore) {
+      const double coverageOfShorter = std::max(alignerObj.comp_.distances_.ref_.coverage_, alignerObj.comp_.distances_.query_.coverage_);
+      if(allowableErrors.passErrorProfile(alignerObj.comp_) && coverageOfShorter >= minCoverageOfShorter && alignerObj.parts_.score_ > bestScore) {
         bestScore = alignerObj.parts_.score_;
         bestRefPos = refPos;
       }
