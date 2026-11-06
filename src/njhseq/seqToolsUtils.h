@@ -29,6 +29,7 @@
 
 #include "njhseq/seqToolsUtils/determinators.h"
 #include "njhseq/seqToolsUtils/ExtractionStator.hpp"
+#include "njhseq/seqToolsUtils/FoldbackDetector.hpp"
 #include "njhseq/seqToolsUtils/RefDetermination.h"
 #include "njhseq/seqToolsUtils/tandemRepeatUtils.hpp"
 
