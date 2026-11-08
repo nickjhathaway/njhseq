@@ -140,6 +140,62 @@ Json::Value intersectBedLocsWtihGffRecords(
 	return ret;
 }
 
+/**
+ * \brief get the gff records that overlap each bed by at least 1 base, strand isn't considered
+ *
+ * \param beds the regions to intersect
+ * \param gffFnp the gff to read
+ * \param selectFeatures only use these gff features, if empty all features are used
+ * \return the overlapping records by the position of the bed in beds, beds without any overlaps have no entry
+ */
+template <typename BEDREC>
+std::unordered_map<uint32_t, std::vector<GFFCore>> getGffRecordsIntersectWithBeds(
+		std::vector<BEDREC> & beds,
+		const bfs::path & gffFnp,
+		const VecStr & selectFeatures = VecStr{"gene", "protein_coding_gene"}){
+	std::unordered_map<uint32_t, std::vector<GFFCore>> ret;
+
+	std::unordered_map<std::string, std::vector<uint32_t>> bedsByChrome;
+
+	BioDataFileIO<GFFCore> reader { IoOptions(InOptions(gffFnp)) };
+	reader.openIn();
+	// uint32_t count = 0;
+	std::string line;
+	std::shared_ptr<GFFCore> gRecord = reader.readNextRecord();
+	for (const auto bPos : iter::range(beds.size())) {
+		bedsByChrome[getRef(beds[bPos]).chrom_].emplace_back(bPos);
+	}
+
+	while (nullptr != gRecord) {
+		if (selectFeatures.empty() || njh::in(gRecord->type_, selectFeatures)) {
+			for (auto & inputRegionPos : bedsByChrome[gRecord->seqid_]) {
+				if (Bed3RecordCore::getOverlapLen(getRef(beds[inputRegionPos]).chrom_,
+					getRef(beds[inputRegionPos]).chromStart_,
+					getRef(beds[inputRegionPos]).chromEnd_,
+					gRecord->seqid_,
+					gRecord->start_ - 1,
+					gRecord->end_) >=1){
+					ret[inputRegionPos].emplace_back(*gRecord);
+				}
+			}
+		}
+		bool end = false;
+		while ('#' == reader.inFile_->peek()) {
+			if (njh::files::nextLineBeginsWith(*reader.inFile_, "##FASTA")) {
+				end = true;
+				break;
+			}
+			njh::files::crossPlatGetline(*reader.inFile_, line);
+		}
+		if (end) {
+			break;
+		}
+		gRecord = reader.readNextRecord();
+		// ++count;
+	}
+	return ret;
+}
+
 // template <typename T>
 std::set<std::string> getFeatureIdsFromOverlappingRegions(const std::vector<GenomicRegion> & regions,
 	//std::function<const GenomicRegion&(const T &)> regionGetterFunc,

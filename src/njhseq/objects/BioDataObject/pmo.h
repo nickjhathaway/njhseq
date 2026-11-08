@@ -5,3 +5,4 @@
 //
 
 #include "njhseq/objects/BioDataObject/pmo/pmo.hpp"
+#include "njhseq/objects/BioDataObject/pmo/pmoUtils.hpp"

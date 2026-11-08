@@ -27,6 +27,8 @@
 
 #include "SampleCollapseCollection.hpp"
 #include <njhcpp/IO/BlockGzip.hpp>
+#include "njhseq/objects/BioDataObject/pmo.h"
+#include "njhseq/objects/dataContainers/tables/TableReader.hpp"
 #include "njhseq/objects/seqObjects/Clusters/clusterUtils.hpp"
 
 
@@ -1383,6 +1385,106 @@ void SampleCollapseCollection::printSampleClustersInfo(const bfs::path& fileName
 		}
 	}
 	writer.closeBlocks();
+}
+
+pmo::PortableMicrohaplotypeObject SampleCollapseCollection::genMinimumPMO(const MinimumPmoPars & pars) const {
+	TableReader reader(TableIOOpts(InOptions(getSampInfoPath()), "\t", true));
+	const auto sampleCol = reader.header_.getColPos("s_Sample");
+	const auto popUidCol = reader.header_.getColPos("h_popUID");
+	const auto seqCol = reader.header_.getColPos("h_Consensus");
+	const auto readCntCol = reader.header_.getColPos("c_ReadCnt");
+
+	std::map<std::string, std::string> seqByPopUid;
+	std::map<std::string, std::map<std::string, double>> readsBySampleBySeq;
+	VecStr row;
+	while (reader.getNextRow(row)) {
+		seqByPopUid[row[popUidCol]] = row[seqCol];
+		readsBySampleBySeq[row[sampleCol]][row[seqCol]] += njh::StrToNumConverter::stoToNum<double>(row[readCntCol]);
+	}
+
+	pmo::PortableMicrohaplotypeObject ret;
+	auto today = njh::getCurrentDate();
+	ret.pmo_header_.pmo_version_ = pmo::PMO_SCHEMA_VERSION;
+	ret.pmo_header_.creation_date_ = today.substr(0, today.find('_'));
+	pmo::PmoGenerationMethod generationMethod;
+	generationMethod.program_name_ = pars.programName_;
+	generationMethod.program_version_ = pars.programVersion_;
+	ret.pmo_header_.generation_method_ = generationMethod;
+
+	pmo::TargetInfo target;
+	target.target_name_ = popNames_.populationName_;
+	target.forward_primer_.seq_ = pars.forwardPrimer_;
+	target.reverse_primer_.seq_ = pars.reversePrimer_;
+	if (pars.fakePrimers_) {
+		target.target_attributes_ = VecStr{pmo::PMO_FAKE_PRIMERS_ATTRIBUTE};
+	}
+	ret.target_info_.emplace_back(target);
+
+	pmo::ReactionInfo reaction;
+	reaction.reaction_name_ = "full";
+	reaction.panel_targets_.emplace_back(0);
+	pmo::PanelInfo panel;
+	panel.panel_name_ = pars.panelName_.empty() ? popNames_.populationName_ : pars.panelName_;
+	panel.reactions_.emplace_back(reaction);
+	ret.panel_info_.emplace_back(panel);
+
+	//one representative per sequence, in population order
+	pmo::RepresentativeMicrohaplotypesForTarget representatives;
+	representatives.target_id_ = 0;
+	std::unordered_map<std::string, uint32_t> mhapIdBySeq;
+	for (const auto & popUid : seqByPopUid) {
+		if (!njh::in(popUid.second, mhapIdBySeq)) {
+			mhapIdBySeq[popUid.second] = representatives.microhaplotypes_.size();
+			pmo::RepresentativeMicrohaplotype mhap;
+			mhap.seq_ = popUid.second;
+			mhap.microhaplotype_name_ = popUid.first;
+			representatives.microhaplotypes_.emplace_back(mhap);
+		}
+	}
+	ret.representative_microhaplotypes_.targets_.emplace_back(representatives);
+
+	pmo::DetectedMicrohaplotypes detected;
+	for (const auto & sample : popNames_.samples_) {
+		const uint32_t sampleId = ret.library_sample_info_.size();
+		pmo::SpecimenInfo specimen;
+		specimen.specimen_name_ = sample;
+		ret.specimen_info_.emplace_back(specimen);
+		pmo::LibrarySampleInfo library;
+		library.library_sample_name_ = sample;
+		library.specimen_id_ = sampleId;
+		library.panel_id_ = 0;
+		ret.library_sample_info_.emplace_back(library);
+
+		auto sampleReads = readsBySampleBySeq.find(sample);
+		if (readsBySampleBySeq.end() == sampleReads) {
+			continue;
+		}
+		std::map<uint32_t, uint32_t> readsByMhapId;
+		for (const auto & seqReads : sampleReads->second) {
+			readsByMhapId[mhapIdBySeq.at(seqReads.first)] = static_cast<uint32_t>(std::round(seqReads.second));
+		}
+		pmo::DetectedMicrohaplotypesForTarget targetResult;
+		targetResult.mhaps_target_id_ = 0;
+		for (const auto & mhapReads : readsByMhapId) {
+			pmo::MicrohaplotypeForTarget mhap;
+			mhap.mhap_id_ = mhapReads.first;
+			mhap.reads_ = mhapReads.second;
+			targetResult.mhaps_.emplace_back(mhap);
+		}
+		pmo::DetectedMicrohaplotypesForSample sampleResult;
+		sampleResult.library_sample_id_ = sampleId;
+		sampleResult.target_results_.emplace_back(targetResult);
+		detected.library_samples_.emplace_back(sampleResult);
+	}
+	ret.detected_microhaplotypes_.emplace_back(detected);
+	ret.validate();
+	return ret;
+}
+
+void SampleCollapseCollection::writeMinimumPMO(const bfs::path & fileName, const MinimumPmoPars & pars) const {
+	OutOptions outOpts(fileName, njh::endsWith(fileName.string(), ".gz") ? ".gz" : ".json");
+	outOpts.overWriteFile_ = true;
+	pmo::writePmo(genMinimumPMO(pars), outOpts);
 }
 
 void SampleCollapseCollection::printSampleInputClusters(const bfs::path& fileName){

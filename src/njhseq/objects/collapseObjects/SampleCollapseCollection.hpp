@@ -33,6 +33,10 @@
 
 
 namespace njhseq {
+namespace pmo {
+class PortableMicrohaplotypeObject;
+}  // namespace pmo
+
 namespace collapse {
 
 
@@ -248,6 +252,34 @@ public:
 	 * @param fileName the gzipped file to write
 	 */
 	void printSampleClustersInfo(const bfs::path& fileName);
+
+	/**@brief What a minimum PMO needs that isn't known from the clustering
+	 *
+	 */
+	struct MinimumPmoPars {
+		std::string forwardPrimer_;
+		std::string reversePrimer_;
+		bool fakePrimers_{false}; /**< the primers aren't real, e.g. taken from a reference, marked in target_attributes*/
+		std::string panelName_; /**< defaults to the population name if empty*/
+		std::string programName_;
+		std::string programVersion_;
+	};
+
+	/**@brief Generate a PMO with only the required fields, one panel with this population as its target, from selectedClustersInfo.tab.txt.gz
+	 *
+	 * Every sample is listed as a specimen and a library sample, only samples with final haplotypes are in detected_microhaplotypes.
+	 *
+	 * @param pars the primers and names to use
+	 * @return the validated PMO
+	 */
+	[[nodiscard]] pmo::PortableMicrohaplotypeObject genMinimumPMO(const MinimumPmoPars & pars) const;
+
+	/**@brief Write the PMO from genMinimumPMO
+	 *
+	 * @param fileName the file to write, gzipped if it ends in .gz
+	 * @param pars the primers and names to use
+	 */
+	void writeMinimumPMO(const bfs::path & fileName, const MinimumPmoPars & pars) const;
 
 	/**@brief Write the sub clusters (the per replicate input clusters) of every sample's final and excluded clusters, named with TopClusterName of the cluster they belong to, each sample a separate indexed gzip member
 	 *

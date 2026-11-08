@@ -27,6 +27,7 @@
 
 
 #include "njhseq/ProgramRunners/ManipulateTableRunner.hpp"
+#include "njhseq/ProgramRunners/PmoRunner.hpp"
 
 
 

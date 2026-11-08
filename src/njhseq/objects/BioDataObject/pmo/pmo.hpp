@@ -21,6 +21,13 @@ inline constexpr const char* PMO_NA_TOKENS_ARR[] = { PMO_NA_TOKENS };
 inline constexpr std::size_t PMO_NA_TOKENS_COUNT = sizeof(PMO_NA_TOKENS_ARR) / sizeof(const char*);
 
 namespace njhseq::pmo {
+
+//the PMO schema version these classes follow and that's written to pmo_header.pmo_version, needs updating every time a new schema version is released
+inline constexpr const char* PMO_SCHEMA_VERSION = "1.1.0";
+
+//in target_attributes for targets whose primers aren't real, e.g. they were taken from a reference because the format requires primers
+inline constexpr const char* PMO_FAKE_PRIMERS_ATTRIBUTE = "fake_primers";
+
 class BioMethod;
 class BioinformaticsMethodInfo;
 class BioinformaticsRunInfo;
