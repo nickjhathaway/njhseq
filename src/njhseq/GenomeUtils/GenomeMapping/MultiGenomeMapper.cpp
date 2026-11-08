@@ -151,6 +151,35 @@ MultiGenomeMapper::IntersectedProteinInfo::IntersectedProteinInfo(std::string ge
 	description_(std::move(desc)) {
 }
 
+std::pair<uint32_t, uint32_t> MultiGenomeMapper::getAARangeForRegion(
+	const std::unordered_map<uint32_t, GeneSeqInfo::GenePosInfo>& posInfos,
+	const uint32_t chromStart,
+	const uint32_t chromEnd,
+	const bool requireFullCodon) {
+	const uint32_t noAA = std::numeric_limits<uint32_t>::max();
+	std::unordered_map<uint32_t, uint32_t> basesPerAA;
+	for (uint32_t pos = chromStart; pos < chromEnd; ++pos) {
+		const auto posInfo = posInfos.find(pos);
+		//introns and positions outside of the transcript have no amino acid
+		if (posInfos.end() != posInfo && noAA != posInfo->second.aaPos_) {
+			++basesPerAA[posInfo->second.aaPos_];
+		}
+	}
+	uint32_t aaStartPos = noAA;
+	uint32_t aaStopPos = 0;
+	for (const auto& aa : basesPerAA) {
+		if (!requireFullCodon || 3 == aa.second) {
+			aaStartPos = std::min(aaStartPos, aa.first);
+			aaStopPos = std::max(aaStopPos, aa.first);
+		}
+	}
+	if (noAA == aaStartPos) {
+		return {noAA, noAA};
+	}
+	//make 1 based
+	return {aaStartPos + 1, aaStopPos + 1};
+}
+
 
 MultiGenomeMapper::inputParameters::inputParameters() {
 	gffIntersectPars_.selectFeatures_ = {"gene", "pseudogene", "protein_coding_gene"};

@@ -156,11 +156,43 @@ public:
 	seqInfo extractGenomeRegion(const std::string & genome, const GenomicRegion & region) const;
 
 
+	/**
+	 * \brief get the amino acids of a transcript that are covered by a genomic region
+	 *
+	 * \param posInfos the positions of the transcript by genomic position, see GeneSeqInfo::getInfosByGDNAPos()
+	 * \param chromStart the start of the region, 0-based
+	 * \param chromEnd the end of the region, 0-based and exclusive
+	 * \param requireFullCodon if true all 3 bases of a codon have to be in the region for its amino acid to count, otherwise 1 base is enough
+	 * \return the first and last amino acids, 1-based and inclusive; both are std::numeric_limits<uint32_t>::max() if no amino acids are covered e.g. the region is completely within an intron
+	 */
+	static std::pair<uint32_t, uint32_t> getAARangeForRegion(
+		const std::unordered_map<uint32_t, GeneSeqInfo::GenePosInfo>& posInfos,
+		uint32_t chromStart,
+		uint32_t chromEnd,
+		bool requireFullCodon = false);
+
 	template <typename BEDREC>
 	std::unordered_map<std::string, std::vector<IntersectedProteinInfo>> addIntersectingGeneInfosToLocs(
 		std::vector<BEDREC>& regions,
 		const std::string&genome,
-		const std::string&gffExtraAttributesStr = "description");
+		const std::string&gffExtraAttributesStr = "description",
+		bool requireFullCodon = false);
+
+	/**
+	 * \brief get the protein info for every transcript of every gene overlapping the regions, this doesn't need a loaded genome and doesn't change the regions
+	 *
+	 * \param regions the regions to intersect
+	 * \param pars the gff to use and the features to select
+	 * \param twoBitFnp the two bit file of the genome the gff is for
+	 * \param requireFullCodon if true all 3 bases of a codon have to be in the region for its amino acid to count, otherwise 1 base is enough
+	 * \return the protein infos by the position of the region in regions, regions without any overlapping genes have no entry
+	 */
+	template <typename BEDREC>
+	static std::unordered_map<uint32_t, std::vector<IntersectedProteinInfo>> addIntersectingGeneInfosToLocs(
+		std::vector<BEDREC>& regions,
+		const intersectBedLocsWtihGffRecordsPars& pars,
+		const bfs::path& twoBitFnp,
+		bool requireFullCodon = false);
 
 	struct getRefSeqsWithPrimaryGenomePars{
 		BioCmdsUtils::LastZPars lzPars;
@@ -205,7 +237,8 @@ std::unordered_map<std::string, std::vector<MultiGenomeMapper::IntersectedProtei
 MultiGenomeMapper::addIntersectingGeneInfosToLocs(
 	std::vector<BEDREC>&regions,
 	const std::string&genome,
-	const std::string&gffExtraAttributesStr) {
+	const std::string&gffExtraAttributesStr,
+	const bool requireFullCodon) {
 	checkForGenomeThrow(genome, __PRETTY_FUNCTION__);
 	std::unordered_map<std::string, std::vector<IntersectedProteinInfo>> ret;
 
@@ -232,7 +265,7 @@ MultiGenomeMapper::addIntersectingGeneInfosToLocs(
 			genes[gene.first] = gene.second;
 		}
 	}
-	for (const auto&reg: regions) {
+	for (auto&reg: regions) {
 		if (getRef(reg).extraFields_.empty()) {
 			continue;
 		}
@@ -253,38 +286,11 @@ MultiGenomeMapper::addIntersectingGeneInfosToLocs(
 				auto infos = gene->generateGeneSeqInfo(tReader, false);
 				auto detailedName = gene->getGeneDetailedName();
 				for (const auto&info: infos) {
-					auto posInfos = info.second->getInfosByGDNAPos();
-
-					auto minPos = vectorMinimum(getVectorOfMapKeys(posInfos));
-					auto maxPos = vectorMaximum(getVectorOfMapKeys(posInfos));
-					auto startPos = std::max(minPos, getRef(reg).chromStart_);
-					auto stopPos = std::min(maxPos, getRef(reg).chromEnd_);
-					if (stopPos == getRef(reg).chromEnd_) {
-						stopPos = getRef(reg).chromEnd_ - 1;
-					}
-					//stop position is inclusive
-					uint32_t aaStartPos = std::numeric_limits<uint32_t>::max();
-					uint32_t aaStopPos = 0;
-
-					for (const auto posInGene: iter::range(startPos, stopPos + 1)) {
-						if (std::numeric_limits<uint32_t>::max() != posInfos[posInGene].aaPos_) {
-							if (posInfos[posInGene].aaPos_ < aaStartPos) {
-								aaStartPos = posInfos[posInGene].aaPos_;
-							}
-							if (posInfos[posInGene].aaPos_ > aaStopPos) {
-								aaStopPos = posInfos[posInGene].aaPos_;
-							}
-						}
-					}
-					//if the region is completely within the intron the final stop and stops will be max() and 0;
-					if (std::numeric_limits<uint32_t>::max() == aaStartPos) {
-						aaStopPos = std::numeric_limits<uint32_t>::max();
-					}
-					else {
-						//make 1 based
-						++aaStopPos;
-						++aaStartPos;
-					}
+					const auto [aaStartPos, aaStopPos] = getAARangeForRegion(
+						info.second->getInfosByGDNAPos(),
+						getRef(reg).chromStart_,
+						getRef(reg).chromEnd_,
+						requireFullCodon);
 					geneMeta.addMeta(info.first + "-AAStart", aaStartPos);
 					geneMeta.addMeta(info.first + "-AAStop", aaStopPos);
 					std::string description;
@@ -306,7 +312,7 @@ MultiGenomeMapper::addIntersectingGeneInfosToLocs(
 					if (gene->gene_->hasAttr("Name") && "NA" != gene->gene_->getAttr("Name") && !gene->gene_->getAttr("Name").empty()) {
 						geneName = gene->gene_->getAttr("Name");
 					}
-					ret[getRef(reg).name_].emplace_back(geneMeta.getMeta("ID"), geneName, aaStartPos, aaStopPos, description);
+					ret[getRef(reg).name_].emplace_back(info.second->geneID_, info.second->transcriptID_, geneName, aaStartPos, aaStopPos, description);
 				}
 			}
 			if (!replacement.empty()) {
@@ -315,6 +321,65 @@ MultiGenomeMapper::addIntersectingGeneInfosToLocs(
 			replacement += geneMeta.createMetaName();
 		}
 		getRef(reg).extraFields_.back() = replacement;
+	}
+	return ret;
+}
+
+template<typename BEDREC>
+std::unordered_map<uint32_t, std::vector<MultiGenomeMapper::IntersectedProteinInfo>>
+MultiGenomeMapper::addIntersectingGeneInfosToLocs(
+	std::vector<BEDREC>&regions,
+	const intersectBedLocsWtihGffRecordsPars&pars,
+	const bfs::path&twoBitFnp,
+	const bool requireFullCodon) {
+	std::unordered_map<uint32_t, std::vector<IntersectedProteinInfo>> ret;
+	auto gffRecords = getGffRecordsIntersectWithBeds(regions, pars.gffFnp_, pars.selectFeatures_);
+	std::set<std::string> rawReneIdsSet;
+	for (const auto&gRecForBed: gffRecords) {
+		for (const auto&g: gRecForBed.second) {
+			rawReneIdsSet.insert(g.getIDAttr());
+		}
+	}
+
+	auto rawGenes = GeneFromGffs::getGenesFromGffForIds(pars.gffFnp_, rawReneIdsSet);
+	std::unordered_map<std::string, std::shared_ptr<GeneFromGffs>> genes;
+	for (const auto&gene: rawGenes) {
+		bool failFilter = false;
+		for (const auto&transcript: gene.second->mRNAs_) {
+			if (njh::in(njh::strToLowerRet(transcript->type_), VecStr{"rrna", "trna", "snorna", "snrna", "ncrna"})) {
+				failFilter = true;
+				break;
+			}
+		}
+		if (!failFilter) {
+			genes[gene.first] = gene.second;
+		}
+	}
+	for (const auto&regPos: iter::range(regions.size())) {
+		if (njh::notIn(regPos, gffRecords)) {
+			continue;
+		}
+		for (const auto&gffRec: gffRecords[regPos]) {
+			if (njh::in(gffRec.getIDAttr(), genes)) {
+				TwoBit::TwoBitFile tReader(twoBitFnp);
+				const auto&gene = njh::mapAt(genes, gffRec.getIDAttr());
+				auto infos = gene->generateGeneSeqInfo(tReader, false);
+				auto detailedName = gene->getGeneDetailedName();
+				for (const auto&info: infos) {
+					const auto [aaStartPos, aaStopPos] = getAARangeForRegion(
+						info.second->getInfosByGDNAPos(),
+						getRef(regions[regPos]).chromStart_,
+						getRef(regions[regPos]).chromEnd_,
+						requireFullCodon);
+					std::string geneName = gffRec.getIDAttr();
+					if (gene->gene_->hasAttr("Name") && "NA" != gene->gene_->getAttr("Name") && !gene->gene_->getAttr("Name").empty()) {
+						geneName = gene->gene_->getAttr("Name");
+					}
+					ret[regPos].emplace_back(info.second->geneID_, info.second->transcriptID_, geneName, aaStartPos, aaStopPos, detailedName[info.first]);
+					ret[regPos].back().allMeta_.meta_ = gffRec.attributes_;
+				}
+			}
+		}
 	}
 	return ret;
 }
