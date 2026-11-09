@@ -79,7 +79,80 @@ std::map<std::tuple<std::string, std::string, std::string>, uint32_t> callsOf(co
 	}
 	return ret;
 }
+
+GenomeInfo genome(const std::string & name) {
+	GenomeInfo ret;
+	ret.name_ = name;
+	ret.genome_version_ = "v1";
+	ret.url_ = "NA";
+	return ret;
+}
+
+GenomicLocation location(uint32_t genomeId, const std::string & chrom, uint32_t start, const std::string & alt) {
+	GenomicLocation ret;
+	ret.genome_id_ = genomeId;
+	ret.chrom_ = chrom;
+	ret.start_ = start;
+	ret.end_ = start + 1;
+	ret.alt_seq_ = alt;
+	return ret;
+}
+
+ProteinVariant proteinVariant(uint32_t genomeId, uint32_t aaPos, const std::string & aa) {
+	ProteinVariant ret;
+	ret.protein_location_ = location(genomeId, "transcript1", aaPos, aa);
+	ret.codon_genomic_location_ = location(genomeId, "chr1", 100 + aaPos * 3, "AAA");
+	return ret;
+}
 }  // namespace
+
+TEST_CASE("mergeMinimumPmos carries over genomes and haplotype variants", "[pmoUtils]") {
+	auto pmo1 = onePmo("tar1", {{"s1", "AAAA", 10}});
+	pmo1.targeted_genomes_ = std::vector<GenomeInfo>{genome("g1")};
+	pmo1.representative_microhaplotypes_.targets_[0].microhaplotypes_[0].associated_seq_variants_ = std::vector<GenomicLocation>{location(0, "chr1", 5, "T")};
+	pmo1.representative_microhaplotypes_.targets_[0].microhaplotypes_[0].associated_protein_variants_ = std::vector<ProteinVariant>{proteinVariant(0, 7, "K")};
+	//genome g1 is the second genome in this one
+	auto pmo2 = onePmo("tar2", {{"s1", "CCCC", 5}});
+	pmo2.targeted_genomes_ = std::vector<GenomeInfo>{genome("g2"), genome("g1")};
+	pmo2.representative_microhaplotypes_.targets_[0].microhaplotypes_[0].associated_seq_variants_ = std::vector<GenomicLocation>{location(1, "chr1", 9, "G"), location(0, "chr9", 3, "A")};
+	pmo2.target_info_[0].insert_location_ = location(1, "chr1", 0, "A");
+	auto merged = mergeMinimumPmos({pmo1, pmo2}, mergeMethod());
+
+	REQUIRE(2 == merged.targeted_genomes_.value().size());
+	REQUIRE("g1" == merged.targeted_genomes_.value()[0].name_);
+	REQUIRE("g2" == merged.targeted_genomes_.value()[1].name_);
+	const auto & reps = merged.representative_microhaplotypes_.targets_;
+	REQUIRE(0 == reps[0].microhaplotypes_[0].associated_seq_variants_.value()[0].genome_id_);
+	REQUIRE(0 == reps[0].microhaplotypes_[0].associated_protein_variants_.value()[0].protein_location_.genome_id_);
+	REQUIRE(0 == reps[0].microhaplotypes_[0].associated_protein_variants_.value()[0].codon_genomic_location_.value().genome_id_);
+	const auto & tar2Variants = reps[1].microhaplotypes_[0].associated_seq_variants_.value();
+	REQUIRE(0 == tar2Variants[0].genome_id_);
+	REQUIRE("chr1" == tar2Variants[0].chrom_);
+	REQUIRE(1 == tar2Variants[1].genome_id_);
+	REQUIRE("chr9" == tar2Variants[1].chrom_);
+	REQUIRE(0 == merged.target_info_[1].insert_location_.value().genome_id_);
+}
+
+TEST_CASE("mergeMinimumPmos keeps the variants of a haplotype from every PMO once", "[pmoUtils]") {
+	auto pmo1 = onePmo("tar1", {{"s1", "AAAA", 10}});
+	pmo1.targeted_genomes_ = std::vector<GenomeInfo>{genome("g1")};
+	pmo1.representative_microhaplotypes_.targets_[0].microhaplotypes_[0].associated_protein_variants_ = std::vector<ProteinVariant>{proteinVariant(0, 7, "K")};
+	auto pmo2 = onePmo("tar1", {{"s2", "AAAA", 5}});
+	pmo2.targeted_genomes_ = std::vector<GenomeInfo>{genome("g1")};
+	pmo2.representative_microhaplotypes_.targets_[0].microhaplotypes_[0].associated_protein_variants_ = std::vector<ProteinVariant>{proteinVariant(0, 7, "K"), proteinVariant(0, 9, "N")};
+	auto merged = mergeMinimumPmos({pmo1, pmo2}, mergeMethod());
+	REQUIRE(1 == merged.targeted_genomes_.value().size());
+	const auto & variants = merged.representative_microhaplotypes_.targets_[0].microhaplotypes_[0].associated_protein_variants_.value();
+	REQUIRE(2 == variants.size());
+	REQUIRE(7 == variants[0].protein_location_.start_);
+	REQUIRE(9 == variants[1].protein_location_.start_);
+}
+
+TEST_CASE("mergeMinimumPmos errors on a genome id with no genome", "[pmoUtils]") {
+	auto pmo1 = onePmo("tar1", {{"s1", "AAAA", 10}});
+	pmo1.representative_microhaplotypes_.targets_[0].microhaplotypes_[0].associated_seq_variants_ = std::vector<GenomicLocation>{location(0, "chr1", 5, "T")};
+	REQUIRE_THROWS_WITH(mergeMinimumPmos({pmo1}, mergeMethod()), Catch::Matchers::ContainsSubstring("refers to genome 0"));
+}
 
 TEST_CASE("mergeMinimumPmos merges per target PMOs over the same samples", "[pmoUtils]") {
 	auto pmo1 = onePmo("tar1", {{"s1", "AAAA", 10}, {"s2", "AAAA", 5}, {"s2", "CCCC", 7}});

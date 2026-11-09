@@ -25,7 +25,7 @@ int PmoRunner::mergeMinimumPmos(const njh::progutils::CmdArgs & inputCommands) {
 	std::string programVersion = "1";
 	OutOptions outOpts(bfs::path(""), ".json.gz");
 	seqSetUp setUp(inputCommands);
-	setUp.description_ = "Merge minimum PMOs, for example PMOs per target over the same samples, into one PMO, PMOs with project, sequencing, bioinformatics, genome or read count sections are refused";
+	setUp.description_ = "Merge minimum PMOs, for example PMOs per target over the same samples, into one PMO, genomes and haplotype variants are carried over, PMOs with project, sequencing, bioinformatics or read count sections are refused";
 	setUp.examples_.emplace_back("MASTERPROGRAM SUBPROGRAM --pmos target1_PMO.json.gz,target2_PMO.json.gz --out merged");
 	setUp.examples_.emplace_back("MASTERPROGRAM SUBPROGRAM --contains _PMO.json.gz --out merged");
 	setUp.setOption(pmoFnps, "--pmos", "A list of PMO files to merge", false);

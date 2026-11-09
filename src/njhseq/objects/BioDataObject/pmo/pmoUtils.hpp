@@ -26,8 +26,9 @@ void writePmo(const PortableMicrohaplotypeObject & pmoObj, const OutOptions & ou
 /**@brief Merge minimum PMOs one at a time so they don't all have to be in memory, targets, panels, specimens and library samples with the same name become one and everything else is added
  *
  * This is for combining PMOs per target over the same samples as well as PMOs over different samples.
+ * Genomes with the same name and version become one, and a haplotype in more than one PMO keeps the variants from all of them.
  * add throws if the same name has conflicting information, if a library sample has results for the same target more than once,
- * or if a PMO has project, sequencing, bioinformatics, genome or read count sections, which is what makes them more than minimum PMOs.
+ * or if a PMO has project, sequencing, bioinformatics or read count sections.
  */
 class MinimumPmoMerger {
 public:
@@ -47,6 +48,7 @@ public:
 private:
 	PortableMicrohaplotypeObject merged_;
 	DetectedMicrohaplotypes detected_;
+	std::unordered_map<std::string, uint32_t> genomeIds_;
 	std::unordered_map<std::string, uint32_t> targetIds_;
 	std::unordered_map<std::string, uint32_t> panelIds_;
 	std::unordered_map<std::string, uint32_t> specimenIds_;

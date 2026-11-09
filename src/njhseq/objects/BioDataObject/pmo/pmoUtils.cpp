@@ -35,6 +35,27 @@ nlohmann::json mergeFields(nlohmann::json base, const nlohmann::json & other, co
 	}
 	return base;
 }
+
+//add the entries of other missing from base
+template<typename T>
+void addMissing(std::optional<std::vector<T>> & base, const std::optional<std::vector<T>> & other) {
+	if (!other.has_value()) {
+		return;
+	}
+	if (!base.has_value()) {
+		base = other;
+		return;
+	}
+	std::set<std::string> current;
+	for (const auto & entry : base.value()) {
+		current.emplace(entry.to_json().dump());
+	}
+	for (const auto & entry : other.value()) {
+		if (current.emplace(entry.to_json().dump()).second) {
+			base->emplace_back(entry);
+		}
+	}
+}
 }  // namespace
 
 MinimumPmoMerger::MinimumPmoMerger(const PmoGenerationMethod & generationMethod) {
@@ -47,15 +68,65 @@ MinimumPmoMerger::MinimumPmoMerger(const PmoGenerationMethod & generationMethod)
 void MinimumPmoMerger::add(const PortableMicrohaplotypeObject & pmoObj) {
 	if (pmoObj.project_info_.has_value() || pmoObj.sequencing_info_.has_value()
 			|| pmoObj.bioinformatics_methods_info_.has_value() || pmoObj.bioinformatics_run_info_.has_value()
-			|| pmoObj.targeted_genomes_.has_value() || pmoObj.read_counts_by_stage_.has_value()) {
-		throwConflict("only minimum PMOs can be merged, this PMO has project, sequencing, bioinformatics, genome or read count sections");
+			|| pmoObj.read_counts_by_stage_.has_value()) {
+		throwConflict("only minimum PMOs can be merged, this PMO has project, sequencing, bioinformatics or read count sections");
 	}
+	//genomes with the same name and version become one
+	std::vector<uint32_t> genomeMap;
+	if (pmoObj.targeted_genomes_.has_value()) {
+		for (const auto & genome : pmoObj.targeted_genomes_.value()) {
+			const auto key = genome.name_ + "\t" + genome.genome_version_;
+			auto search = genomeIds_.find(key);
+			if (genomeIds_.end() == search) {
+				if (!merged_.targeted_genomes_.has_value()) {
+					merged_.targeted_genomes_ = std::vector<GenomeInfo>{};
+				}
+				search = genomeIds_.emplace(key, merged_.targeted_genomes_->size()).first;
+				merged_.targeted_genomes_->emplace_back(genome);
+			} else {
+				auto & current = merged_.targeted_genomes_->at(search->second);
+				current = GenomeInfo::from_json(mergeFields(current.to_json(), genome.to_json(), "genome " + genome.name_ + " " + genome.genome_version_));
+			}
+			genomeMap.emplace_back(search->second);
+		}
+	}
+	auto mapGenome = [&genomeMap](GenomicLocation & loc) {
+		if (loc.genome_id_ >= genomeMap.size()) {
+			throwConflict(njh::pasteAsStr("a genomic location refers to genome ", loc.genome_id_, " but there are only ", genomeMap.size(), " targeted_genomes"));
+		}
+		loc.genome_id_ = genomeMap[loc.genome_id_];
+	};
+	auto mapGenomes = [&mapGenome](RepresentativeMicrohaplotype & mhap) {
+		if (mhap.associated_protein_variants_.has_value()) {
+			for (auto & variant : mhap.associated_protein_variants_.value()) {
+				mapGenome(variant.protein_location_);
+				if (variant.codon_genomic_location_.has_value()) {
+					mapGenome(variant.codon_genomic_location_.value());
+				}
+			}
+		}
+		if (mhap.associated_seq_variants_.has_value()) {
+			for (auto & variant : mhap.associated_seq_variants_.value()) {
+				mapGenome(variant);
+			}
+		}
+	};
+
 	std::vector<uint32_t> targetMap;
 	for (const auto & target : pmoObj.target_info_) {
 		auto search = targetIds_.find(target.target_name_);
 		if (targetIds_.end() == search) {
 			search = targetIds_.emplace(target.target_name_, merged_.target_info_.size()).first;
-			merged_.target_info_.emplace_back(target);
+			auto newTarget = target;
+			if (newTarget.insert_location_.has_value()) {
+				mapGenome(newTarget.insert_location_.value());
+			}
+			if (newTarget.markers_of_interest_.has_value()) {
+				for (auto & marker : newTarget.markers_of_interest_.value()) {
+					mapGenome(marker.marker_location_);
+				}
+			}
+			merged_.target_info_.emplace_back(newTarget);
 		} else {
 			const auto & current = merged_.target_info_[search->second];
 			if (current.forward_primer_.seq_ != target.forward_primer_.seq_ || current.reverse_primer_.seq_ != target.reverse_primer_.seq_) {
@@ -142,21 +213,30 @@ void MinimumPmoMerger::add(const PortableMicrohaplotypeObject & pmoObj) {
 			RepresentativeMicrohaplotypesForTarget newTarget;
 			newTarget.target_id_ = targetId;
 			newTarget.mhap_location_ = representatives.mhap_location_;
+			if (newTarget.mhap_location_.has_value()) {
+				mapGenome(newTarget.mhap_location_.value());
+			}
 			merged_.representative_microhaplotypes_.targets_.emplace_back(newTarget);
 		}
 		repPosMap.emplace_back(repSearch->second);
 		auto & mhaps = merged_.representative_microhaplotypes_.targets_[repSearch->second].microhaplotypes_;
 		mhapIdMap.emplace_back();
 		for (const auto & mhap : representatives.microhaplotypes_) {
+			auto newMhap = mhap;
+			mapGenomes(newMhap);
 			auto seqSearch = mhapIdBySeq_[targetId].find(mhap.seq_);
 			if (mhapIdBySeq_[targetId].end() == seqSearch) {
 				seqSearch = mhapIdBySeq_[targetId].emplace(mhap.seq_, mhaps.size()).first;
-				auto newMhap = mhap;
 				//names from separate runs can be reused for different sequences, those are left unnamed
 				if (newMhap.microhaplotype_name_.has_value() && !mhapNames_[targetId].emplace(newMhap.microhaplotype_name_.value()).second) {
 					newMhap.microhaplotype_name_.reset();
 				}
 				mhaps.emplace_back(newMhap);
+			} else {
+				//the same sequence from another PMO, keep variants from both
+				auto & current = mhaps[seqSearch->second];
+				addMissing(current.associated_protein_variants_, newMhap.associated_protein_variants_);
+				addMissing(current.associated_seq_variants_, newMhap.associated_seq_variants_);
 			}
 			mhapIdMap.back().emplace_back(seqSearch->second);
 		}

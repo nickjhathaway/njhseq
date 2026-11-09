@@ -27,6 +27,7 @@
 
 
 #include "njhseq/PopulationGeneticsUtils/PopGenUtils.hpp"
+#include "njhseq/PopulationGeneticsUtils/PmoVariantCalls.hpp"
 
 
 
