@@ -136,6 +136,12 @@ SampleCollapseCollection::SampleCollapseCollection(const Json::Value & coreJson)
 			[](const Json::Value & val){ return val.asString();});
 	lowRepCntSamples_ = njh::json::jsonArrayToVec<std::string>(coreJson["lowRepCntSamples_"],
 				[](const Json::Value & val){ return val.asString();});
+	//older directories don't have this
+	if (coreJson.isMember("otherExcludedSamples_")) {
+		for (const auto & samp : coreJson["otherExcludedSamples_"].getMemberNames()) {
+			otherExcludedSamples_[samp] = coreJson["otherExcludedSamples_"][samp].asString();
+		}
+	}
 
 	//load in group meta data if it is available
 	if(bfs::exists(njh::files::make_path(masterOutputDir_, "groups", "groupMetaData.json"))){
@@ -699,13 +705,32 @@ void SampleCollapseCollection::clearSamples(const VecStr & sampleNames) {
 }
 
 
+void SampleCollapseCollection::excludeSample(const std::string & sampleName, const std::string & reason){
+	std::lock_guard<std::mutex> lock(mut_);
+	otherExcludedSamples_[sampleName] = reason;
+}
+
+std::string SampleCollapseCollection::getSampleExcludedReason(const std::string & sampleName) const {
+	if (njh::in(sampleName, lowRepCntSamples_)) {
+		return "ExcludeSampleReplicatesBelowMinReadCount";
+	}
+	if (sampleCollapses_.at(sampleName)->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount) {
+		return "ExcludeSampleBelowMinReadCount";
+	}
+	auto other = otherExcludedSamples_.find(sampleName);
+	if (otherExcludedSamples_.end() != other) {
+		return other->second;
+	}
+	return "";
+}
+
 void SampleCollapseCollection::setPassingSamples(){
 	passingSamples_.clear();
 	for (const auto & sampleName : popNames_.samples_) {
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampleName);
 		}
-		if(!njh::in(sampleName, lowRepCntSamples_) && sampleCollapses_.at(sampleName)->collapsed_.info_.totalReadCount_ >= preFiltCutOffs_.sampleMinReadCount){
+		if(getSampleExcludedReason(sampleName).empty()){
 			passingSamples_.emplace_back(sampleName);
 		}
 		if(!keepSampleInfoInMemory_){
@@ -726,9 +751,7 @@ std::vector<sampleCluster> SampleCollapseCollection::createPopInput() {
 		}
 
 
-		if (njh::in(sampleName, lowRepCntSamples_)
-				|| sampleCollapses_.at(sampleName)->collapsed_.info_.totalReadCount_
-						< preFiltCutOffs_.sampleMinReadCount) {
+		if (!getSampleExcludedReason(sampleName).empty()) {
 			if(!keepSampleInfoInMemory_){
 				clearSample(sampleName);
 			}
@@ -1342,12 +1365,7 @@ void SampleCollapseCollection::printSampleClustersInfo(const bfs::path& fileName
 			continue;
 		}
 		//samples left out of population clustering (as in genSampleCollapseInfo) have every row marked with why
-		std::string sampleExcludedReason;
-		if (njh::in(sampName, lowRepCntSamples_)) {
-			sampleExcludedReason = "ExcludeSampleReplicatesBelowMinReadCount";
-		} else if (sampPtr->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount) {
-			sampleExcludedReason = "ExcludeSampleBelowMinReadCount";
-		}
+		std::string sampleExcludedReason = getSampleExcludedReason(sampName);
 		std::stringstream block;
 		auto addRows = [&block, &sampName, &sampleExcludedReason, this](const std::vector<sampleCluster> & clusters, const std::string & status) {
 			for (const auto & clus : clusters) {
@@ -1538,9 +1556,7 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampName);
 		}
-		if (njh::in(sampName, lowRepCntSamples_)
-				|| sampleCollapses_.at(sampName)->collapsed_.info_.totalReadCount_
-						< preFiltCutOffs_.sampleMinReadCount) {
+		if (!getSampleExcludedReason(sampName).empty()) {
 			if(!keepSampleInfoInMemory_){
 				clearSample(sampName);
 			}
@@ -1596,9 +1612,7 @@ void SampleCollapseCollection::printAllSubClusterInfo(const OutOptions& outOpts,
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampName);
 		}
-		if (njh::in(sampName, lowRepCntSamples_)
-				|| sampleCollapses_.at(sampName)->collapsed_.info_.totalReadCount_
-						< preFiltCutOffs_.sampleMinReadCount) {
+		if (!getSampleExcludedReason(sampName).empty()) {
 			if(!keepSampleInfoInMemory_){
 				clearSample(sampName);
 			}
@@ -1732,9 +1746,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampName);
 		}
-		if (njh::in(sampName, lowRepCntSamples_)
-				|| sampleCollapses_.at(sampName)->collapsed_.info_.totalReadCount_
-						< preFiltCutOffs_.sampleMinReadCount) {
+		if (!getSampleExcludedReason(sampName).empty()) {
 			if(!keepSampleInfoInMemory_){
 				clearSample(sampName);
 			}
@@ -1756,9 +1768,7 @@ table SampleCollapseCollection::genSampleCollapseInfo(
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampName);
 		}
-		if (njh::in(sampName, lowRepCntSamples_)
-				|| sampleCollapses_.at(sampName)->collapsed_.info_.totalReadCount_
-						< preFiltCutOffs_.sampleMinReadCount) {
+		if (!getSampleExcludedReason(sampName).empty()) {
 			if(!keepSampleInfoInMemory_){
 				clearSample(sampName);
 			}
@@ -1960,9 +1970,7 @@ void SampleCollapseCollection::outputRepAgreementInfo() {
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(sampleName);
 		}
-		if (njh::in(sampleName, lowRepCntSamples_)
-				|| sampleCollapses_.at(sampleName)->collapsed_.info_.totalReadCount_
-						< preFiltCutOffs_.sampleMinReadCount) {
+		if (!getSampleExcludedReason(sampleName).empty()) {
 			if(!keepSampleInfoInMemory_){
 				clearSample(sampleName);
 			}
@@ -2051,6 +2059,7 @@ Json::Value SampleCollapseCollection::toJsonCore() const{
 	ret["popNames_"] = njh::json::toJson(popNames_);
 	ret["passingSamples_"] = njh::json::toJson(passingSamples_);
 	ret["lowRepCntSamples_"] = njh::json::toJson(lowRepCntSamples_);
+	ret["otherExcludedSamples_"] = njh::json::toJson(otherExcludedSamples_);
 	ret["preFiltCutOffs_"] = njh::json::toJson(preFiltCutOffs_);
 	return ret;
 }
@@ -2079,8 +2088,7 @@ table SampleCollapseCollection::genHapIdTable(const std::set<std::string> & samp
 		if(!keepSampleInfoInMemory_){
 			setUpSampleFromPrevious(samp);
 		}
-		if(njh::in(samp, lowRepCntSamples_) || sampleCollapses_.at(samp)->collapsed_.info_.totalReadCount_ < preFiltCutOffs_.sampleMinReadCount
-				){
+		if (!getSampleExcludedReason(samp).empty()) {
 			if(!keepSampleInfoInMemory_){
 				clearSample(samp);
 			}

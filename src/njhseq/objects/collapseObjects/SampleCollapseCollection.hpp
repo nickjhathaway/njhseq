@@ -111,6 +111,20 @@ public:
 	bool development_{false};
 	VecStr passingSamples_;
 	VecStr lowRepCntSamples_;
+	//samples left out of population clustering for any other reason, sample -> the Exclude reason reported for its clusters
+	std::map<std::string, std::string> otherExcludedSamples_;
+
+	/**@brief leave a sample out of population clustering, its clusters are reported with the reason
+	 * @param sampleName the sample
+	 * @param reason the reason, should start with Exclude so it reads like the cluster exclusion reasons
+	 */
+	void excludeSample(const std::string & sampleName, const std::string & reason);
+
+	/**@brief why a sample is left out of population clustering
+	 * @param sampleName the sample, has to be set up
+	 * @return the reason, empty if it isn't left out
+	 */
+	std::string getSampleExcludedReason(const std::string & sampleName) const;
 	PreFilteringCutOffs preFiltCutOffs_;
 	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> oututSampClusToOldNameKey_;
 	std::map<std::string, std::shared_ptr<collapse::sampleCollapse>> sampleCollapses_;
