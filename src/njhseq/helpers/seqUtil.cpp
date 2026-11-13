@@ -229,255 +229,102 @@ void seqUtil::printOutReversePalindromes(
   }
 }
 
-// forceStartM means if the string starts AUG, GUG, UUG, AUU, or CUG, then
-// put M (start codon) at the beginning.
+namespace {
+
+/**@brief Bit mask of the bases an IUPAC nucleotide code can stand for (T/U=1, C=2, A=4, G=8), 0 for anything that isn't a nucleotide code
+ *
+ */
+uint8_t iupacBaseMask(const char base) {
+	switch (toupper(static_cast<unsigned char>(base))) {
+		case 'T': case 'U': return 1;
+		case 'C': return 2;
+		case 'A': return 4;
+		case 'G': return 8;
+		case 'Y': return 1 | 2;
+		case 'R': return 4 | 8;
+		case 'W': return 1 | 4;
+		case 'S': return 2 | 8;
+		case 'K': return 1 | 8;
+		case 'M': return 2 | 4;
+		case 'B': return 1 | 2 | 8;
+		case 'D': return 1 | 4 | 8;
+		case 'H': return 1 | 2 | 4;
+		case 'V': return 2 | 4 | 8;
+		case 'N': return 1 | 2 | 4 | 8;
+		default:  return 0;
+	}
+}
+
+/**@brief Translate one codon with the standard genetic code (NCBI table 1)
+ *
+ * Ambiguous IUPAC codes are expanded, the amino acid is returned only if every expansion gives the same one (e.g. GCN -> A, AAR -> K), otherwise X.
+ * Gaps and characters that aren't nucleotide codes give X.
+ */
+char translateCodon(const char b1, const char b2, const char b3) {
+	//bases ordered T, C, A, G, codon index = 16 * first + 4 * second + third
+	static constexpr char standardCode[] = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
+	const uint8_t m1 = iupacBaseMask(b1);
+	const uint8_t m2 = iupacBaseMask(b2);
+	const uint8_t m3 = iupacBaseMask(b3);
+	if (0 == m1 || 0 == m2 || 0 == m3) {
+		return 'X';
+	}
+	char aa = '\0';
+	for (uint32_t first = 0; first < 4; ++first) {
+		if (!(m1 & (1u << first))) continue;
+		for (uint32_t second = 0; second < 4; ++second) {
+			if (!(m2 & (1u << second))) continue;
+			for (uint32_t third = 0; third < 4; ++third) {
+				if (!(m3 & (1u << third))) continue;
+				const char candidate = standardCode[16 * first + 4 * second + third];
+				if ('\0' == aa) {
+					aa = candidate;
+				} else if (aa != candidate) {
+					return 'X';
+				}
+			}
+		}
+	}
+	return aa;
+}
+
+/**@brief Whether this is one of the known start codons, AUG, GUG, UUG, AUU, or CUG (T or U, any case)
+ *
+ */
+bool isStartCodon(const char b1, const char b2, const char b3) {
+	const auto norm = [](const char base) {
+		const char up = static_cast<char>(toupper(static_cast<unsigned char>(base)));
+		return 'T' == up ? 'U' : up;
+	};
+	const std::string codon{norm(b1), norm(b2), norm(b3)};
+	return "AUG" == codon || "GUG" == codon || "UUG" == codon || "AUU" == codon || "CUG" == codon;
+}
+
+}  // namespace
+
 std::string seqUtil::convertOneCodon(const std::string &codon) {
   if (codon.size() != 3) {
     std::cout << "codon needs to be three bases long" << std::endl;
     return "";
   }
-  size_t numChar = codon.size();
-  std::string outSeq("");
-  outSeq.resize(numChar / 3);  // numChar is exactly divisible by 3.
-  // In below, cB is currentBase.
-  char cB[3], newBase;
-  std::string cBstring = "   ";
-  int i = 0;
-  cB[0] = static_cast<char>(toupper(codon[i]));
-  cB[1] = static_cast<char>(toupper(codon[i + 1]));
-  cB[2] = static_cast<char>(toupper(codon[i + 2]));
-  if (cB[0] == 'T') {
-    cB[0] = 'U';
-  }
-  if (cB[1] == 'T') {
-    cB[1] = 'U';
-  }
-  if (cB[2] == 'T') {
-    cB[2] = 'U';
-  }
-  newBase = '0';  // We'll designate * as Stop,
-  // and 1 as error.
-  if (cB[0] == 'U') {
-    if (cB[1] == 'U') {
-      if (cB[2] == 'U' || cB[2] == 'C') {
-        newBase = 'F';
-      } else {
-        newBase = 'L';
-      }
-    } else if (cB[1] == 'C') {
-      newBase = 'S';
-    } else if (cB[1] == 'A') {
-      if (cB[2] == 'U' || cB[2] == 'C') {
-        newBase = 'Y';
-      } else {
-        newBase = '*';
-      }
-    } else  // cB[1] == 'G'
-    {
-      if (cB[2] == 'U' || cB[2] == 'C') {
-        newBase = 'C';
-      } else if (cB[2] == 'A') {
-        newBase = '*';
-      } else {
-        newBase = 'W';
-      }
-    }
-  } else if (cB[0] == 'C') {
-    if (cB[1] == 'U') {
-      newBase = 'L';
-    } else if (cB[1] == 'C') {
-      newBase = 'P';
-    } else if (cB[1] == 'A') {
-      if (cB[2] == 'U' || cB[2] == 'C') {
-        newBase = 'H';
-      } else if (cB[2] == 'A') {
-        newBase = 'Q';
-      } else {
-        newBase = 'Q';
-      }
-    } else  // cB[1] == 'G'
-    {
-      newBase = 'R';
-    }
-  } else if (cB[0] == 'A') {
-    if (cB[1] == 'U') {
-      if (cB[2] == 'G') {
-        newBase = 'M';
-      } else {
-        newBase = 'I';
-      }
-    } else if (cB[1] == 'C') {
-      newBase = 'T';
-    } else if (cB[1] == 'A') {
-      if (cB[2] == 'U' || cB[2] == 'C') {
-        newBase = 'N';
-      } else {
-        newBase = 'K';
-      }
-    } else  // cB[1] == 'G'
-    {
-      if (cB[2] == 'U' || cB[2] == 'C') {
-        newBase = 'S';
-      } else {
-        newBase = 'R';
-      }
-    }
-  } else  // cb[0] == 'G'
-  {
-    if (cB[1] == 'U') {
-      newBase = 'V';
-    } else if (cB[1] == 'C') {
-      newBase = 'A';
-    } else if (cB[1] == 'A') {
-      if (cB[2] == 'U' || cB[2] == 'C') {
-        newBase = 'D';
-      } else {
-        newBase = 'E';
-      }
-    } else  // cB[1] == 'G'
-    {
-      newBase = 'G';
-    }
-  }
-
-  outSeq[0] = newBase;
-  return outSeq;
+  return std::string(1, translateCodon(codon[0], codon[1], codon[2]));
 }
 
+// forceStartM means if the string starts AUG, GUG, UUG, AUU, or CUG, then
+// put M (start codon) at the beginning.
 std::string seqUtil::convertToProtein(const std::string &seq, size_t start,
                                       bool forceStartM) {
-
-  size_t numChar = seq.size() > start ? seq.size() - start : seq.size();
-
-  std::string outSeq("");
-  if(numChar < 3){
-  		return outSeq;
+  if (seq.size() < start + 3) {
+    return "";
   }
-  outSeq.resize(numChar / 3);  // numChar is exactly divisible by 3.
-  // In below, cB is currentBase.
-  char cB[3];
-	char newBase;
-
-//  std::cout << "seq: " << seq << std::endl;
-
-  for (size_t i = start; i < seq.size() - 2; i += 3) {
-//  	std::cout << "i: " << i << ", outSeq: " << outSeq << std::endl;
-    cB[0] = static_cast<char>(toupper(seq[i]));
-    cB[1] = static_cast<char>(toupper(seq[i + 1]));
-    cB[2] = static_cast<char>(toupper(seq[i + 2]));
-//    std::cout << "\tcB:" << cB << std::endl;
-    if (cB[0] == 'T') {
-      cB[0] = 'U';
-    }
-    if (cB[1] == 'T') {
-      cB[1] = 'U';
-    }
-    if (cB[2] == 'T') {
-      cB[2] = 'U';
-    }
-    newBase = '0';  // We'll designate * as Stop,
-    // and 1 as error.
-    if(cB[0] == '-' || cB[1] == '-' || cB[2] == '-'){
-    	newBase = 'X';
-    } else if (cB[0] == 'U') {
-      if (cB[1] == 'U') {
-        if (cB[2] == 'U' || cB[2] == 'C') {
-          newBase = 'F';
-        } else {
-          newBase = 'L';
-        }
-      } else if (cB[1] == 'C') {
-        newBase = 'S';
-      } else if (cB[1] == 'A') {
-        if (cB[2] == 'U' || cB[2] == 'C') {
-          newBase = 'Y';
-        } else {
-          newBase = '*';
-        }
-      } else  // cB[1] == 'G'
-      {
-        if (cB[2] == 'U' || cB[2] == 'C') {
-          newBase = 'C';
-        } else if (cB[2] == 'A') {
-          newBase = '*';
-        } else {
-          newBase = 'W';
-        }
-      }
-    } else if (cB[0] == 'C') {
-      if (cB[1] == 'U') {
-        newBase = 'L';
-      } else if (cB[1] == 'C') {
-        newBase = 'P';
-      } else if (cB[1] == 'A') {
-        if (cB[2] == 'U' || cB[2] == 'C') {
-          newBase = 'H';
-        } else if (cB[2] == 'A') {
-          newBase = 'Q';
-        } else {
-          newBase = 'Q';
-        }
-      } else  // cB[1] == 'G'
-      {
-        newBase = 'R';
-      }
-    } else if (cB[0] == 'A') {
-      if (cB[1] == 'U') {
-        if (cB[2] == 'G') {
-          newBase = 'M';
-        } else {
-          newBase = 'I';
-        }
-      } else if (cB[1] == 'C') {
-        newBase = 'T';
-      } else if (cB[1] == 'A') {
-        if (cB[2] == 'U' || cB[2] == 'C') {
-          newBase = 'N';
-        } else {
-          newBase = 'K';
-        }
-      } else  // cB[1] == 'G'
-      {
-        if (cB[2] == 'U' || cB[2] == 'C') {
-          newBase = 'S';
-        } else {
-          newBase = 'R';
-        }
-      }
-		} else  // cb[0] == 'G'
-		{
-			if (cB[1] == 'U') {
-				newBase = 'V';
-			} else if (cB[1] == 'C') {
-				newBase = 'A';
-			} else if (cB[1] == 'A') {
-				if (cB[2] == 'U' || cB[2] == 'C') {
-					newBase = 'D';
-				} else {
-					newBase = 'E';
-				}
-			} else  // cB[1] == 'G'
-			{
-				newBase = 'G';
-			}
-		}
-
-    if (forceStartM && (i == start)) {
-    	std::string cBstring = "   ";
-      cBstring[0] = cB[0];
-      cBstring[1] = cB[1];
-      cBstring[2] = cB[2];
-      // Below are all the known start codons.
-      if ((cBstring == "AUG") || (cBstring == "GUG") || (cBstring == "UUG") ||
-          (cBstring == "AUU") || (cBstring == "CUG")) {
-        newBase = 'M';
-      }
+  std::string outSeq((seq.size() - start) / 3, 'X');
+  for (size_t i = start; i + 2 < seq.size(); i += 3) {
+    char newBase = translateCodon(seq[i], seq[i + 1], seq[i + 2]);
+    if (forceStartM && i == start && isStartCodon(seq[i], seq[i + 1], seq[i + 2])) {
+      newBase = 'M';
     }
     outSeq[(i - start) / 3] = newBase;
   }
-
-//	std::cout << "final outSeq: " << outSeq << std::endl;
-
   return outSeq;
 }
 
