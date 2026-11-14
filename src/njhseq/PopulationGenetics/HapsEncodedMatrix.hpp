@@ -41,7 +41,28 @@ public:
     uint32_t minNumOfTargets = std::numeric_limits<uint32_t>::max();
 	};
 
+	/**@brief one input row, a haplotype found in a sample for a target and its within sample relative abundance
+	 *
+	 */
+	struct SampTarHapAbund {
+		std::string samp_;
+		std::string tar_;
+		std::string hap_;
+		double relAbund_{0};
+	};
+
+	/**@brief encode from pars.tableFnp, reading the pars column names
+	 *
+	 * @param pars the table, column names and sample/target selection
+	 */
 	HapsEncodedMatrix(const SetWithExternalPars & pars);
+
+	/**@brief encode from rows already in memory, tableFnp and the column names in pars aren't used
+	 *
+	 * @param rows the haplotypes found per sample per target
+	 * @param pars the sample/target selection and other settings
+	 */
+	HapsEncodedMatrix(const std::vector<SampTarHapAbund> & rows, const SetWithExternalPars & pars);
 
 	SetWithExternalPars pars_;
 
@@ -71,6 +92,34 @@ public:
 	bool encodeKeysSet_{false};
 
 	std::shared_ptr<MultipleGroupMetaData> meta_;
+
+	struct EncodedRelAbund {
+		uint32_t sampIndex_;
+		uint32_t hapIndex_;
+		double relAbund_;
+	};
+	std::vector<EncodedRelAbund> encodedRelAbunds_; //! the input relative abundance of each encoded row, used by add_relative_abundance()
+
+	/**@brief calls the visitor with each input row's sample, target, haplotype and relative abundance
+	 *
+	 */
+	using RowVisitor = std::function<void(const std::string & samp, const std::string & tar, const std::string & hap, double relAbund)>;
+	using RowSource = std::function<void(const RowVisitor & visitor)>;
+
+	/**@brief whether a sample/target passes the select and exclude settings in pars_
+	 *
+	 */
+	[[nodiscard]] bool keepSampTar(const std::string & samp, const std::string & tar) const;
+
+	/**@brief encode the rows from source that pass keepSampTar(), source is read twice, then apply minNumOfTargets and majorOnly
+	 *
+	 */
+	void encodeFrom(const RowSource & source);
+
+	/**@brief encode the rows from source that pass keepSampTar(), source is read twice
+	 *
+	 */
+	void encodeRows(const RowSource & source);
 
 
 	struct SampTarHap {

@@ -27,6 +27,7 @@
 
 #include "njhseq/PopulationGenetics/PopGenCalcs.hpp"
 #include "njhseq/PopulationGenetics/HapsEncodedMatrix.hpp"
+#include "njhseq/PopulationGenetics/HapsSampleClustering.hpp"
 
 
 

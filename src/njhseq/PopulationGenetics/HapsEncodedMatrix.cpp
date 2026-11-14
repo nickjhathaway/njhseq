@@ -34,126 +34,89 @@ void HapsEncodedMatrix::SetWithExternalPars::setDefaults(seqSetUp & setUp){
 
 
 HapsEncodedMatrix::HapsEncodedMatrix(const SetWithExternalPars & pars): pars_(pars){
-	TableReader hapTab(TableIOOpts(InOptions(pars.tableFnp), "\t", true));
-	hapTab.header_.checkForColumnsThrow(VecStr{pars.sampleCol, pars.targetNameCol, pars.popIDCol, pars.relAbundCol}, __PRETTY_FUNCTION__);
-
-
-	//set all info
 	{
-		//read in first to gather information on the table
+		TableReader hapTab(TableIOOpts(InOptions(pars_.tableFnp), "\t", true));
+		hapTab.header_.checkForColumnsThrow(VecStr{pars_.sampleCol, pars_.targetNameCol, pars_.popIDCol, pars_.relAbundCol}, __PRETTY_FUNCTION__);
+	}
+	encodeFrom([this](const RowVisitor & visitor){
+		TableReader hapTab(TableIOOpts(InOptions(pars_.tableFnp), "\t", true));
+		const auto sampPos = hapTab.header_.getColPos(pars_.sampleCol);
+		const auto tarPos = hapTab.header_.getColPos(pars_.targetNameCol);
+		const auto hapPos = hapTab.header_.getColPos(pars_.popIDCol);
+		const auto relAbundPos = hapTab.header_.getColPos(pars_.relAbundCol);
 		VecStr row;
 		while(hapTab.getNextRow(row)){
-
-			const auto &  samp = row[hapTab.header_.getColPos(pars.sampleCol)];
-			const auto &  tar = row[hapTab.header_.getColPos(pars.targetNameCol)];
-			if(!pars.selectSamples.empty() && !njh::in(samp, pars.selectSamples)){
-				continue;
-			}
-		  if(!pars.exclude_samples.empty() && njh::in(samp, pars.exclude_samples)){
-		    continue;
-		  }
-			if(!pars.selectTargets.empty() && !njh::in(tar, pars.selectTargets)){
-				continue;
-			}
-		  if(!pars.exclude_targets.empty() && njh::in(tar, pars.exclude_targets)){
-		    continue;
-		  }
-			const auto & hapName = row[hapTab.header_.getColPos(pars.popIDCol)];
-			addSampTarHapForEncoding(samp, tar, hapName);
+			visitor(row[sampPos], row[tarPos], row[hapPos], njh::StrToNumConverter::stoToNum<double>(row[relAbundPos]));
 		}
+	});
+}
+
+HapsEncodedMatrix::HapsEncodedMatrix(const std::vector<SampTarHapAbund> & rows, const SetWithExternalPars & pars): pars_(pars){
+	encodeFrom([&rows](const RowVisitor & visitor){
+		for(const auto & row : rows){
+			visitor(row.samp_, row.tar_, row.hap_, row.relAbund_);
+		}
+	});
+}
+
+bool HapsEncodedMatrix::keepSampTar(const std::string & samp, const std::string & tar) const{
+	if(!pars_.selectSamples.empty() && !njh::in(samp, pars_.selectSamples)){
+		return false;
 	}
-	//set encoding
+	if(!pars_.exclude_samples.empty() && njh::in(samp, pars_.exclude_samples)){
+		return false;
+	}
+	if(!pars_.selectTargets.empty() && !njh::in(tar, pars_.selectTargets)){
+		return false;
+	}
+	if(!pars_.exclude_targets.empty() && njh::in(tar, pars_.exclude_targets)){
+		return false;
+	}
+	return true;
+}
+
+void HapsEncodedMatrix::encodeRows(const RowSource & source){
+	sampNames_.clear();
+	tarNames_.clear();
+	hapNamesForTars_.clear();
+	encodedRelAbunds_.clear();
+	//first pass gathers the names, second encodes
+	source([this](const std::string & samp, const std::string & tar, const std::string & hap, double){
+		if(keepSampTar(samp, tar)){
+			addSampTarHapForEncoding(samp, tar, hap);
+		}
+	});
 	setEncodeKeys();
-	//re-read and encode
-	{
-		TableReader reReadHapTab(TableIOOpts(InOptions(pars.tableFnp), "\t", true));
-		VecStr row;
-		while(reReadHapTab.getNextRow(row)){
-			const auto &  samp = row[reReadHapTab.header_.getColPos(pars.sampleCol)];
-			const auto &  tar = row[reReadHapTab.header_.getColPos(pars.targetNameCol)];
-			if(!pars.selectSamples.empty() && !njh::in(samp, pars.selectSamples)){
-				continue;
-			}
-			if(!pars.selectTargets.empty() && !njh::in(tar, pars.selectTargets)){
-				continue;
-			}
-			const auto &  hapName = row[reReadHapTab.header_.getColPos(pars.popIDCol)];
-			//auto rBund = njh::StrToNumConverter::stoToNum<double>(row[reReadHapTab.header_.getColPos(pars.relAbundCol)]); //doing nothing right now with this
-			encodeSampTarHap(samp, tar, hapName);
+	source([this](const std::string & samp, const std::string & tar, const std::string & hap, double relAbund){
+		if(keepSampTar(samp, tar)){
+			encodeSampTarHap(samp, tar, hap);
+			encodedRelAbunds_.emplace_back(EncodedRelAbund{sampNamesKey_.at(samp), tarStart_[tarNameKey_.at(tar)] + hapNamesKey_.at(tar).at(hap), relAbund});
 		}
+	});
+}
+
+void HapsEncodedMatrix::encodeFrom(const RowSource & source){
+	encodeRows(source);
+	if(std::numeric_limits<uint32_t>::max() != pars_.minNumOfTargets){
+		auto numTargetsPerSample = getNumberTargetsPerSample();
+		std::unordered_set<std::string> filteredSamples;
+		for (const auto &count: numTargetsPerSample) {
+			if (count.second >= pars_.minNumOfTargets) {
+				filteredSamples.emplace(count.first);
+			}
+		}
+		if(filteredSamples.empty()){
+			std::stringstream ss;
+			ss << __PRETTY_FUNCTION__  << " " << __LINE__ << "\n";
+			ss << "Error, no filters above the sample min count: " << pars_.minNumOfTargets << "\n";
+			throw std::runtime_error { ss.str() };
+		}
+		pars_.selectSamples = filteredSamples;
+		encodeRows(source);
 	}
-
-  if(std::numeric_limits<uint32_t>::max() != pars.minNumOfTargets){
-    auto numTargetsPerSample = getNumberTargetsPerSample();
-    std::unordered_set<std::string> filteredSamples;
-    for (const auto &count: numTargetsPerSample) {
-      if (count.second >= pars_.minNumOfTargets) {
-        filteredSamples.emplace(count.first);
-      }
-    }
-    if(filteredSamples.empty()){
-      std::stringstream ss;
-      ss << __PRETTY_FUNCTION__  << " " << __LINE__ << "\n";
-      ss << "Error, no filters above the sample min count: " << pars_.minNumOfTargets << "\n";
-      throw std::runtime_error { ss.str() };
-    }
-    pars_.selectSamples = filteredSamples;
-    resetEncoding();
-    //set all info
-    {
-      //read in first to gather information on the table
-      VecStr row;
-      while(hapTab.getNextRow(row)){
-        const auto &  samp = row[hapTab.header_.getColPos(pars_.sampleCol)];
-        const auto &  tar = row[hapTab.header_.getColPos(pars_.targetNameCol)];
-        if(!pars_.selectSamples.empty() && !njh::in(samp, pars_.selectSamples)){
-          continue;
-        }
-        if(!pars_.exclude_samples.empty() && njh::in(samp, pars_.exclude_samples)){
-          continue;
-        }
-        if(!pars_.selectTargets.empty() && !njh::in(tar, pars_.selectTargets)){
-          continue;
-        }
-        if(!pars_.exclude_targets.empty() && njh::in(tar, pars_.exclude_targets)){
-          continue;
-        }
-        const auto &  hapName = row[hapTab.header_.getColPos(pars_.popIDCol)];
-        addSampTarHapForEncoding(samp, tar, hapName);
-      }
-    }
-    //set encoding
-    setEncodeKeys();
-    //re-read and encode
-    {
-      TableReader reReadHapTab(TableIOOpts(InOptions(pars_.tableFnp), "\t", true));
-      VecStr row;
-      while(reReadHapTab.getNextRow(row)){
-        const auto &  samp = row[reReadHapTab.header_.getColPos(pars_.sampleCol)];
-        const auto &  tar = row[reReadHapTab.header_.getColPos(pars_.targetNameCol)];
-        if(!pars_.selectSamples.empty() && !njh::in(samp, pars_.selectSamples)){
-          continue;
-        }
-        if(!pars_.exclude_samples.empty() && njh::in(samp, pars_.exclude_samples)){
-          continue;
-        }
-        if(!pars_.selectTargets.empty() && !njh::in(tar, pars_.selectTargets)){
-          continue;
-        }
-        if(!pars_.exclude_targets.empty() && njh::in(tar, pars_.exclude_targets)){
-          continue;
-        }
-        const auto &  hapName = row[reReadHapTab.header_.getColPos(pars_.popIDCol)];
-        //auto rBund = njh::StrToNumConverter::stoToNum<double>(row[reReadHapTab.header_.getColPos(pars_.relAbundCol)]); //doing nothing right now with this
-        encodeSampTarHap(samp, tar, hapName);
-      }
-    }
-
-  }
 
 	if(pars_.majorOnly){
-	  add_relative_abundance();
-//			std::cout << __FILE__ << " " << __LINE__ << std::endl;
+		add_relative_abundance();
 		//now determine the major hap per sample per target
 		for(const auto sampIndex : iter::range(sampNamesVec_.size())){
 			for(const auto targetIndex : iter::range(tarNamesVec_.size())){
@@ -163,9 +126,6 @@ HapsEncodedMatrix::HapsEncodedMatrix(const SetWithExternalPars & pars): pars_(pa
 					uint32_t bestIndex = std::numeric_limits<uint32_t>::max();
 					//determine the highest rel abundance
 					for(const auto hapIndex : iter::range(tarStart_[targetIndex], tarStart_[targetIndex] + numberOfHapsPerTarget_[targetIndex]) ){
-//							if(hapsEncodeBySampRelAbund_[sampIndex][hapIndex] > 0 && hapsEncodeBySampRelAbund_[sampIndex][hapIndex] < 1){
-//								std::cout << hapsEncodeBySampRelAbund_[sampIndex][hapIndex] << std::endl;
-//							}
 						if(hapsEncodeBySampRelAbund_[sampIndex][hapIndex] > maxAbundance){
 							maxAbundance = hapsEncodeBySampRelAbund_[sampIndex][hapIndex];
 							bestIndex = hapIndex;
@@ -243,28 +203,8 @@ void HapsEncodedMatrix::add_relative_abundance() {
   for (const auto &samp: sampNames_) {
     hapsEncodeBySampRelAbund_[sampNamesKey_[samp]] = std::vector<double>(totalHaps_, 0);
   }
-  TableReader reReadHapTab(TableIOOpts(InOptions(pars_.tableFnp), "\t", true));
-  VecStr row;
-  while (reReadHapTab.getNextRow(row)) {
-    const auto &samp = row[reReadHapTab.header_.getColPos(pars_.sampleCol)];
-    const auto &tar = row[reReadHapTab.header_.getColPos(pars_.targetNameCol)];
-    if(!pars_.selectSamples.empty() && !njh::in(samp, pars_.selectSamples)){
-      continue;
-    }
-    if(!pars_.exclude_samples.empty() && njh::in(samp, pars_.exclude_samples)){
-      continue;
-    }
-    if(!pars_.selectTargets.empty() && !njh::in(tar, pars_.selectTargets)){
-      continue;
-    }
-    if(!pars_.exclude_targets.empty() && njh::in(tar, pars_.exclude_targets)){
-      continue;
-    }
-    const auto &hapName = row[reReadHapTab.header_.getColPos(pars_.popIDCol)];
-    auto rBund = njh::StrToNumConverter::stoToNum<double>(row[reReadHapTab.header_.getColPos(pars_.relAbundCol)]);
-    auto tKey = tarNameKey_[tar];
-    auto hKey = hapNamesKey_[tar][hapName];
-    hapsEncodeBySampRelAbund_[sampNamesKey_[samp]][tarStart_[tKey] + hKey] = rBund;
+  for (const auto & encoded : encodedRelAbunds_) {
+    hapsEncodeBySampRelAbund_[encoded.sampIndex_][encoded.hapIndex_] = encoded.relAbund_;
   }
   //now recalculate the relative abundance to be 0-1
   for (const auto pos: iter::range(sampNames_.size())) {
