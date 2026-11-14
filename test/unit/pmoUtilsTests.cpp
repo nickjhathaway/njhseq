@@ -1,9 +1,11 @@
 #include <catch_amalgamated.hpp>
 #include "njhseq/objects/BioDataObject/pmo/pmoUtils.hpp"
+#include <fstream>
 
 using njhseq::VecStr;
 using njhseq::table;
 using namespace njhseq::pmo;
+namespace bfs = njh::bfs;
 
 namespace {
 PmoGenerationMethod mergeMethod() {
@@ -256,4 +258,128 @@ TEST_CASE("addSpecimenMeta errors on bad values and duplicate samples", "[pmoUti
 		meta.content_.emplace_back(VecStr{"s1", "B"});
 		REQUIRE_THROWS_WITH(addSpecimenMeta(pmoObj, meta, "sample"), Catch::Matchers::ContainsSubstring("more than once"));
 	}
+}
+
+namespace {
+//genTargetInfoFromGenomes style locations and a gff, removed at the end of the test
+struct TargetLocationsFixture {
+	bfs::path dir_;
+	TargetLocationsFixture() :
+			dir_(bfs::temp_directory_path() / bfs::unique_path("njhseqPmoTargetGenomes-%%%%-%%%%")) {
+		bfs::create_directories(dir_ / "locations");
+		bfs::create_directories(dir_ / "gff");
+		const std::string header = "#chrom\tfullStart\tfullStop\tname\tlength\tstrand\tgenome\ttarget\tfPrimerStart\tfPrimerStop\terrorsInFPrimer\tinsertStart\tinsertStop\trPrimerStart\trPrimerStop\terrorsInRPrimer\n";
+		{
+			std::ofstream out((dir_ / "locations" / "GenA_infos.tab.txt").string());
+			out << header;
+			out << "chrA1\t100\t200\tx\t100\t+\tGenA\ttarA\t100\t120\t0\t120\t180\t180\t200\t0\n";
+			out << "chrA1\t500\t600\tx\t100\t-\tGenA\ttarB\t580\t600\t1\t520\t580\t500\t520\t1\n";
+			out << "chrA2\t10\t110\tx\t100\t+\tGenA\ttarC\t10\t30\t0\t30\t90\t90\t110\t0\n";
+		}
+		{
+			std::ofstream out((dir_ / "locations" / "GenB_infos.tab.txt").string());
+			out << header;
+			out << "chrB1\t1000\t1100\tx\t100\t-\tGenB\ttarB\t1080\t1100\t0\t1020\t1080\t1000\t1020\t0\n";
+			out << "chrB1\t2000\t2100\tx\t100\t+\tGenB\ttarC\t2000\t2020\t0\t2020\t2080\t2080\t2100\t0\n";
+		}
+		//a genome with no hits writes an empty table
+		std::ofstream((dir_ / "locations" / "GenC_infos.tab.txt").string());
+		{
+			std::ofstream out((dir_ / "gff" / "GenB.gff").string());
+			out << "##gff-version 3\n";
+			out << "chrB1\tsrc\tprotein_coding_gene\t1001\t1050\t.\t-\t.\tID=GENE1;Name=kelch13\n";
+			out << "chrB1\tsrc\tmRNA\t1001\t1050\t.\t-\t.\tID=GENE1.1;Parent=GENE1\n";
+			out << "chrB1\tsrc\tncRNA_gene\t1060\t1200\t.\t+\t.\tID=GENE2\n";
+			out << "chrB1\tsrc\tprotein_coding_gene\t1081\t1090\t.\t+\t.\tID=GENE3;Name=outside\n";
+		}
+	}
+	~TargetLocationsFixture() {
+		bfs::remove_all(dir_);
+	}
+};
+
+PortableMicrohaplotypeObject multiTargetPmo() {
+	return mergeMinimumPmos({
+		onePmo("tarA", {{"s1", "AAAA", 10}}),
+		onePmo("tarB", {{"s1", "CCCC", 10}}),
+		onePmo("tarB-R1", {{"s1", "GGGG", 10}}),
+		onePmo("tarC", {{"s1", "TTTT", 10}}),
+		onePmo("tarMissing", {{"s1", "ACAC", 10}})}, mergeMethod());
+}
+
+const TargetInfo & targetNamed(const PortableMicrohaplotypeObject & pmoObj, const std::string & name) {
+	return *std::find_if(pmoObj.target_info_.begin(), pmoObj.target_info_.end(), [&name](const TargetInfo & target) {
+		return target.target_name_ == name;
+	});
+}
+}  // namespace
+
+TEST_CASE("addTargetGenomeInfo places targets in their genomes with gene names", "[pmoUtils]") {
+	TargetLocationsFixture fixture;
+	auto pmoObj = multiTargetPmo();
+	//a genome already there from variant calling is reused
+	GenomeInfo existing;
+	existing.name_ = "GenB";
+	existing.genome_version_ = "v2";
+	existing.url_ = "NA";
+	pmoObj.targeted_genomes_ = std::vector<GenomeInfo>{existing};
+
+	AddTargetGenomeInfoPars pars;
+	pars.locationsDir_ = fixture.dir_ / "locations";
+	pars.gffDir_ = fixture.dir_ / "gff";
+	pars.preferredGenomes_ = VecStr{"GenA"};
+	auto results = addTargetGenomeInfo(pmoObj, pars);
+
+	REQUIRE(VecStr{"tarMissing"} == results.targetsNotFound_);
+	//everything found in GenA goes there
+	REQUIRE((std::map<std::string, uint32_t>{{"GenA", 4}}) == results.targetsPerGenome_);
+	//no gff for GenA
+	REQUIRE(0 == results.targetsWithGenes_);
+	REQUIRE(2 == pmoObj.targeted_genomes_->size());
+	REQUIRE("GenB" == pmoObj.targeted_genomes_->at(0).name_);
+	REQUIRE("v2" == pmoObj.targeted_genomes_->at(0).genome_version_);
+	REQUIRE("GenA" == pmoObj.targeted_genomes_->at(1).name_);
+
+	//only in GenA
+	const auto & tarA = targetNamed(pmoObj, "tarA");
+	REQUIRE(1 == tarA.insert_location_->genome_id_);
+	REQUIRE("chrA1" == tarA.insert_location_->chrom_);
+	REQUIRE(120 == tarA.insert_location_->start_);
+	REQUIRE(180 == tarA.insert_location_->end_);
+	REQUIRE(100 == tarA.forward_primer_.location_->start_);
+	REQUIRE("-" == tarA.reverse_primer_.location_->strand_.value());
+	REQUIRE_FALSE(tarA.gene_name_.has_value());
+
+	//in both, GenA is preferred so it's used even with primer errors
+	REQUIRE(1 == targetNamed(pmoObj, "tarB").insert_location_->genome_id_);
+	REQUIRE(1 == targetNamed(pmoObj, "tarC").insert_location_->genome_id_);
+}
+
+TEST_CASE("addTargetGenomeInfo picks the genome with the fewest primer errors and names overlapping genes", "[pmoUtils]") {
+	TargetLocationsFixture fixture;
+	auto pmoObj = multiTargetPmo();
+	AddTargetGenomeInfoPars pars;
+	pars.locationsDir_ = fixture.dir_ / "locations";
+	pars.gffDir_ = fixture.dir_ / "gff";
+	addTargetGenomeInfo(pmoObj, pars);
+
+	const auto & tarB = targetNamed(pmoObj, "tarB");
+	REQUIRE("GenB" == pmoObj.targeted_genomes_->at(tarB.insert_location_->genome_id_).name_);
+	REQUIRE("chrB1" == tarB.insert_location_->chrom_);
+	REQUIRE(1020 == tarB.insert_location_->start_);
+	REQUIRE(1080 == tarB.insert_location_->end_);
+	REQUIRE("-" == tarB.insert_location_->strand_.value());
+	REQUIRE("-" == tarB.forward_primer_.location_->strand_.value());
+	REQUIRE("+" == tarB.reverse_primer_.location_->strand_.value());
+	//genes in position order, NA for no Name, the mRNA isn't a gene and GENE3 starts at the insert's end
+	REQUIRE("GENE1:kelch13,GENE2:NA" == tarB.gene_name_.value());
+	//mates get the target's location
+	const auto & tarBR1 = targetNamed(pmoObj, "tarB-R1");
+	REQUIRE(tarB.insert_location_->to_json() == tarBR1.insert_location_->to_json());
+	REQUIRE(tarB.gene_name_ == tarBR1.gene_name_);
+
+	//same primer errors in both, by genome name
+	REQUIRE("GenA" == pmoObj.targeted_genomes_->at(targetNamed(pmoObj, "tarC").insert_location_->genome_id_).name_);
+	//still valid through json
+	REQUIRE_NOTHROW(PortableMicrohaplotypeObject::from_json(pmoObj.to_json()).validate());
 }

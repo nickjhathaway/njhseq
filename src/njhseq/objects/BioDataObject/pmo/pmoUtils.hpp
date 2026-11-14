@@ -88,4 +88,38 @@ struct AddSpecimenMetaResults {
  */
 AddSpecimenMetaResults addSpecimenMeta(PortableMicrohaplotypeObject & pmoObj, const table & meta, const std::string & sampleCol);
 
+/**@brief Where to find the target locations, genes and reference sequences for addTargetGenomeInfo
+ *
+ */
+struct AddTargetGenomeInfoPars {
+	bfs::path locationsDir_; /**< the locationsByGenome directory of SeekDeep genTargetInfoFromGenomes, its <genome>_infos.tab.txt tables are read*/
+	bfs::path gffDir_; /**< optional, <genome>.gff for the genes each insert overlaps, genomes without one get no gene_name*/
+	bfs::path genomeDir_; /**< optional, <genome>.2bit for the reference sequence of each insert*/
+	VecStr preferredGenomes_; /**< a target found in several genomes goes to the first of these it's in*/
+};
+
+/**@brief What addTargetGenomeInfo added
+ *
+ */
+struct AddTargetGenomeInfoResults {
+	std::map<std::string, uint32_t> targetsPerGenome_;
+	uint32_t targetsWithGenes_{0};
+	VecStr targetsNotFound_;
+};
+
+/**@brief Add each target's genome, insert and primer locations, and the genes the insert overlaps
+ *
+ * A target found in more than one genome goes to the first of preferredGenomes_ it's in, then the genome with the fewest primer errors,
+ * then a genome whose name starts the target name, then by genome name. Within a genome the hit with the fewest primer errors is used.
+ * The genome is added to targeted_genomes with its name as the name and version, reusing an entry with the same name.
+ * Targets clustered as separate mates (<target>-R1, <target>-R2) get the location of <target>.
+ * gene_name is GENE_ID:GENE_NAME of each gene in the gff the insert overlaps, comma separated, with NA for genes without a Name.
+ * Locations are 0-based with the end not included and on the target's strand, the reverse primer on the opposite strand.
+ *
+ * @param pmoObj the PMO to update
+ * @param pars where the target info is
+ * @return the targets added per genome and the targets that weren't found
+ */
+AddTargetGenomeInfoResults addTargetGenomeInfo(PortableMicrohaplotypeObject & pmoObj, const AddTargetGenomeInfoPars & pars);
+
 }  // namespace njhseq::pmo

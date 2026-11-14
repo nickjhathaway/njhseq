@@ -13,6 +13,7 @@ PmoRunner::PmoRunner() :
 		njh::progutils::ProgramRunner(
 				{ addFunc("mergeMinimumPmos", mergeMinimumPmos, false),
 					addFunc("addSpecimenMetaToPmo", addSpecimenMetaToPmo, false),
+					addFunc("addTargetGenomeInfoToPmo", addTargetGenomeInfoToPmo, false),
 					addFunc("validatePmo", validatePmo, false),
 				}, "Pmo", "1") {
 }
@@ -81,6 +82,34 @@ int PmoRunner::addSpecimenMetaToPmo(const njh::progutils::CmdArgs & inputCommand
 	std::cout << "specimens updated: " << results.specimensUpdated_ << std::endl;
 	if (!results.metaSamplesNotInPmo_.empty()) {
 		std::cerr << results.metaSamplesNotInPmo_.size() << " samples in " << metaFnp << " aren't in the PMO: " << njh::conToStr(results.metaSamplesNotInPmo_, ",") << std::endl;
+	}
+	pmo::writePmo(pmoObj, outOpts);
+	return 0;
+}
+
+int PmoRunner::addTargetGenomeInfoToPmo(const njh::progutils::CmdArgs & inputCommands) {
+	bfs::path pmoFnp;
+	pmo::AddTargetGenomeInfoPars pars;
+	OutOptions outOpts(bfs::path(""), ".json.gz");
+	seqSetUp setUp(inputCommands);
+	setUp.description_ = "Add each target's genome, insert and primer locations, and the genes its insert overlaps (gene_name as GENE_ID:GENE_NAME) to a PMO, from where SeekDeep genTargetInfoFromGenomes found the targets, targets can be in different genomes";
+	setUp.examples_.emplace_back("MASTERPROGRAM SUBPROGRAM --pmo allPMO.json.gz --locations genome_extraction/locationsByGenome --gffDir info/gff --genomeDir genomes --preferredGenomes Pf3D7 --out withGenomes");
+	setUp.setOption(pmoFnp, "--pmo", "The PMO file", true);
+	setUp.setOption(pars.locationsDir_, "--locations", "The locationsByGenome directory of SeekDeep genTargetInfoFromGenomes", true);
+	setUp.setOption(pars.gffDir_, "--gffDir", "Directory with <genome>.gff files for the genes the targets overlap");
+	setUp.setOption(pars.genomeDir_, "--genomeDir", "Directory with <genome>.2bit files for the reference sequence of each target");
+	setUp.setOption(pars.preferredGenomes_, "--preferredGenomes", "Genomes to use first, in order, for targets found in several genomes");
+	setUp.processWritingOptions(outOpts);
+	setUp.finishSetUp(std::cout);
+
+	auto pmoObj = pmo::readPmo(pmoFnp);
+	auto results = pmo::addTargetGenomeInfo(pmoObj, pars);
+	for (const auto & genome : results.targetsPerGenome_) {
+		std::cout << "targets in " << genome.first << ": " << genome.second << std::endl;
+	}
+	std::cout << "targets with genes: " << results.targetsWithGenes_ << std::endl;
+	if (!results.targetsNotFound_.empty()) {
+		std::cerr << results.targetsNotFound_.size() << " targets aren't in any genome in " << pars.locationsDir_ << ": " << njh::conToStr(results.targetsNotFound_, ",") << std::endl;
 	}
 	pmo::writePmo(pmoObj, outOpts);
 	return 0;

@@ -16,6 +16,7 @@ class PmoRunner : public njh::progutils::ProgramRunner {
 
   static int mergeMinimumPmos(const njh::progutils::CmdArgs & inputCommands);
   static int addSpecimenMetaToPmo(const njh::progutils::CmdArgs & inputCommands);
+  static int addTargetGenomeInfoToPmo(const njh::progutils::CmdArgs & inputCommands);
   static int validatePmo(const njh::progutils::CmdArgs & inputCommands);
 };
 
