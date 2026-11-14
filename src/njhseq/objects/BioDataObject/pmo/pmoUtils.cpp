@@ -6,6 +6,7 @@
 #include "njhseq/objects/BioDataObject/BioDataFileIO.hpp"
 #include "njhseq/objects/BioDataObject/GenomicRegion.hpp"
 #include "njhseq/utils/urlUtils.hpp"
+#include "njhseq/GenomeUtils/TargetGenomeAssignment.hpp"
 
 namespace njhseq::pmo {
 
@@ -356,50 +357,6 @@ AddSpecimenMetaResults addSpecimenMeta(PortableMicrohaplotypeObject & pmoObj, co
 }
 
 namespace {
-//a target's hit in a genome from genTargetInfoFromGenomes' <genome>_infos.tab.txt
-struct TargetHit {
-	std::string genome_;
-	std::string chrom_;
-	char strand_{'+'};
-	uint32_t insertStart_{0};
-	uint32_t insertEnd_{0};
-	uint32_t fwdStart_{0};
-	uint32_t fwdEnd_{0};
-	uint32_t revStart_{0};
-	uint32_t revEnd_{0};
-	uint32_t primerErrors_{0};
-};
-
-std::unordered_map<std::string, std::vector<TargetHit>> readTargetHits(const bfs::path & locationsDir) {
-	const std::string suffix = "_infos.tab.txt";
-	std::unordered_map<std::string, std::vector<TargetHit>> ret;
-	auto files = njh::files::listAllFiles(locationsDir, false, VecStr{suffix});
-	for (const auto & file : files) {
-		const auto fileName = file.first.filename().string();
-		if (file.second || !njh::endsWith(fileName, suffix) || 0 == bfs::file_size(file.first)) {
-			continue;
-		}
-		const auto genome = fileName.substr(0, fileName.size() - suffix.size());
-		table infos(file.first.string(), "\t", true);
-		for (const auto & row : infos) {
-			TargetHit hit;
-			hit.genome_ = genome;
-			hit.chrom_ = row[infos.getColPos("#chrom")];
-			hit.strand_ = row[infos.getColPos("strand")].front();
-			hit.insertStart_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infos.getColPos("insertStart")]);
-			hit.insertEnd_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infos.getColPos("insertStop")]);
-			hit.fwdStart_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infos.getColPos("fPrimerStart")]);
-			hit.fwdEnd_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infos.getColPos("fPrimerStop")]);
-			hit.revStart_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infos.getColPos("rPrimerStart")]);
-			hit.revEnd_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infos.getColPos("rPrimerStop")]);
-			hit.primerErrors_ = njh::StrToNumConverter::stoToNum<uint32_t>(row[infos.getColPos("errorsInFPrimer")])
-					+ njh::StrToNumConverter::stoToNum<uint32_t>(row[infos.getColPos("errorsInRPrimer")]);
-			ret[row[infos.getColPos("target")]].emplace_back(hit);
-		}
-	}
-	return ret;
-}
-
 //the genes of a gff by chromosome, as GENE_ID:GENE_NAME
 std::unordered_map<std::string, std::vector<std::pair<GenomicRegion, std::string>>> readGenes(const bfs::path & gffFnp) {
 	std::unordered_map<std::string, std::vector<std::pair<GenomicRegion, std::string>>> ret;
@@ -438,31 +395,21 @@ std::unordered_map<std::string, std::vector<std::pair<GenomicRegion, std::string
 }  // namespace
 
 AddTargetGenomeInfoResults addTargetGenomeInfo(PortableMicrohaplotypeObject & pmoObj, const AddTargetGenomeInfoPars & pars) {
-	const auto hitsByTarget = readTargetHits(pars.locationsDir_);
-	auto preferredRank = [&pars](const std::string & genome) {
-		auto search = std::find(pars.preferredGenomes_.begin(), pars.preferredGenomes_.end(), genome);
-		return static_cast<uint32_t>(std::distance(pars.preferredGenomes_.begin(), search));
-	};
+	const auto locations = TargetGenomeLocations::read(pars.locationsDir_);
+	TargetGenomeChoicePars choicePars;
+	choicePars.preferredGenomes_ = pars.preferredGenomes_;
+	const auto chosen = chooseTargetGenomes(locations, choicePars);
 	std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::pair<GenomicRegion, std::string>>>> genesByGenome;
 	std::unordered_map<std::string, std::unique_ptr<TwoBit::TwoBitFile>> twoBits;
 
 	AddTargetGenomeInfoResults ret;
 	for (auto & target : pmoObj.target_info_) {
-		auto hitsSearch = hitsByTarget.find(target.target_name_);
-		if (hitsByTarget.end() == hitsSearch && (njh::endsWith(target.target_name_, "-R1") || njh::endsWith(target.target_name_, "-R2"))) {
-			hitsSearch = hitsByTarget.find(target.target_name_.substr(0, target.target_name_.size() - 3));
-		}
-		if (hitsByTarget.end() == hitsSearch || hitsSearch->second.empty()) {
+		auto chosenSearch = chosen.find(locations.baseTarget(target.target_name_));
+		if (chosen.end() == chosenSearch) {
 			ret.targetsNotFound_.emplace_back(target.target_name_);
 			continue;
 		}
-		const auto & hit = *std::min_element(hitsSearch->second.begin(), hitsSearch->second.end(),
-				[&preferredRank, &target](const TargetHit & a, const TargetHit & b) {
-			const bool aPrefix = njh::beginsWith(target.target_name_, a.genome_);
-			const bool bPrefix = njh::beginsWith(target.target_name_, b.genome_);
-			return std::make_tuple(preferredRank(a.genome_), a.primerErrors_, !aPrefix, a.genome_, a.chrom_, a.insertStart_)
-					< std::make_tuple(preferredRank(b.genome_), b.primerErrors_, !bPrefix, b.genome_, b.chrom_, b.insertStart_);
-		});
+		const auto & hit = chosenSearch->second;
 
 		if (!pmoObj.targeted_genomes_.has_value()) {
 			pmoObj.targeted_genomes_ = std::vector<GenomeInfo>{};
@@ -481,7 +428,6 @@ AddTargetGenomeInfoResults addTargetGenomeInfo(PortableMicrohaplotypeObject & pm
 			genomeSearch = std::prev(genomes.end());
 		}
 		const uint32_t genomeId = std::distance(genomes.begin(), genomeSearch);
-		const auto otherStrand = '+' == hit.strand_ ? '-' : '+';
 		auto genLocation = [&genomeId, &hit](uint32_t start, uint32_t end, char strand) {
 			GenomicLocation loc;
 			loc.genome_id_ = genomeId;
@@ -491,7 +437,20 @@ AddTargetGenomeInfoResults addTargetGenomeInfo(PortableMicrohaplotypeObject & pm
 			loc.strand_ = std::string(1, strand);
 			return loc;
 		};
-		auto insert = genLocation(hit.insertStart_, hit.insertEnd_, hit.strand_);
+		//mates analyzed as separate targets cover their own window of the insert
+		uint32_t insertStart = hit.insertStart_;
+		uint32_t insertEnd = hit.insertEnd_;
+		char insertStrand = hit.strand_;
+		if (target.target_name_ != chosenSearch->first) {
+			const auto mateRegion = locations.innerRegion(target.target_name_, hit);
+			if (nullptr != mateRegion) {
+				insertStart = mateRegion->chromStart_;
+				insertEnd = mateRegion->chromEnd_;
+				insertStrand = mateRegion->strand_;
+			}
+		}
+		const GenomicRegion insertRegion(target.target_name_, hit.chrom_, insertStart, insertEnd, '-' == insertStrand);
+		auto insert = genLocation(insertStart, insertEnd, insertStrand);
 		if (!pars.genomeDir_.empty()) {
 			auto twoBitSearch = twoBits.find(hit.genome_);
 			if (twoBits.end() == twoBitSearch) {
@@ -499,13 +458,12 @@ AddTargetGenomeInfoResults addTargetGenomeInfo(PortableMicrohaplotypeObject & pm
 				twoBitSearch = twoBits.emplace(hit.genome_, bfs::exists(twoBitFnp) ? std::make_unique<TwoBit::TwoBitFile>(twoBitFnp) : nullptr).first;
 			}
 			if (nullptr != twoBitSearch->second) {
-				insert.ref_seq_ = GenomicRegion(target.target_name_, hit.chrom_, hit.insertStart_, hit.insertEnd_, '-' == hit.strand_)
-						.extractSeq(*twoBitSearch->second).seq_;
+				insert.ref_seq_ = insertRegion.extractSeq(*twoBitSearch->second).seq_;
 			}
 		}
 		target.insert_location_ = insert;
 		target.forward_primer_.location_ = genLocation(hit.fwdStart_, hit.fwdEnd_, hit.strand_);
-		target.reverse_primer_.location_ = genLocation(hit.revStart_, hit.revEnd_, otherStrand);
+		target.reverse_primer_.location_ = genLocation(hit.revStart_, hit.revEnd_, '+' == hit.strand_ ? '-' : '+');
 
 		target.gene_name_.reset();
 		if (!pars.gffDir_.empty()) {
@@ -518,7 +476,6 @@ AddTargetGenomeInfoResults addTargetGenomeInfo(PortableMicrohaplotypeObject & pm
 			VecStr geneNames;
 			auto chromSearch = genesSearch->second.find(hit.chrom_);
 			if (genesSearch->second.end() != chromSearch) {
-				const GenomicRegion insertRegion(target.target_name_, hit.chrom_, hit.insertStart_, hit.insertEnd_, '-' == hit.strand_);
 				for (const auto & gene : chromSearch->second) {
 					if (gene.first.overlaps(insertRegion) && !njh::in(gene.second, geneNames)) {
 						geneNames.emplace_back(gene.second);

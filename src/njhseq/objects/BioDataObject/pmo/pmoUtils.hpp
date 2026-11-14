@@ -112,7 +112,8 @@ struct AddTargetGenomeInfoResults {
  * A target found in more than one genome goes to the first of preferredGenomes_ it's in, then the genome with the fewest primer errors,
  * then a genome whose name starts the target name, then by genome name. Within a genome the hit with the fewest primer errors is used.
  * The genome is added to targeted_genomes with its name as the name and version, reusing an entry with the same name.
- * Targets clustered as separate mates (<target>-R1, <target>-R2) get the location of <target>.
+ * Targets clustered as separate mates (<target>-R1, <target>-R2) get their window of <target> from <genome>_inner.bed, R2 on the opposite strand,
+ * or all of <target> when the bed doesn't have it.
  * gene_name is GENE_ID:GENE_NAME of each gene in the gff the insert overlaps, comma separated, with NA for genes without a Name.
  * Locations are 0-based with the end not included and on the target's strand, the reverse primer on the opposite strand.
  *

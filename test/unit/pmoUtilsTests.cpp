@@ -1,5 +1,6 @@
 #include <catch_amalgamated.hpp>
 #include "njhseq/objects/BioDataObject/pmo/pmoUtils.hpp"
+#include "njhseq/GenomeUtils/TargetGenomeAssignment.hpp"
 #include <fstream>
 
 using njhseq::VecStr;
@@ -282,6 +283,14 @@ struct TargetLocationsFixture {
 			out << "chrB1\t1000\t1100\tx\t100\t-\tGenB\ttarB\t1080\t1100\t0\t1020\t1080\t1000\t1020\t0\n";
 			out << "chrB1\t2000\t2100\tx\t100\t+\tGenB\ttarC\t2000\t2020\t0\t2020\t2080\t2080\t2100\t0\n";
 		}
+		{
+			//tarB's mates, on the reverse strand R1 is at the end of the insert and R2 is on the other strand
+			std::ofstream out((dir_ / "locations" / "GenB_inner.bed").string());
+			out << "chrB1\t1020\t1080\ttarB\t60\t-\n";
+			out << "chrB1\t1020\t1050\ttarB-R2\t30\t+\n";
+			out << "chrB1\t1050\t1080\ttarB-R1\t30\t-\n";
+			out << "chrB1\t2020\t2080\ttarC\t60\t+\n";
+		}
 		//a genome with no hits writes an empty table
 		std::ofstream((dir_ / "locations" / "GenC_infos.tab.txt").string());
 		{
@@ -303,6 +312,7 @@ PortableMicrohaplotypeObject multiTargetPmo() {
 		onePmo("tarA", {{"s1", "AAAA", 10}}),
 		onePmo("tarB", {{"s1", "CCCC", 10}}),
 		onePmo("tarB-R1", {{"s1", "GGGG", 10}}),
+		onePmo("tarB-R2", {{"s1", "GGCC", 10}}),
 		onePmo("tarC", {{"s1", "TTTT", 10}}),
 		onePmo("tarMissing", {{"s1", "ACAC", 10}})}, mergeMethod());
 }
@@ -332,7 +342,7 @@ TEST_CASE("addTargetGenomeInfo places targets in their genomes with gene names",
 
 	REQUIRE(VecStr{"tarMissing"} == results.targetsNotFound_);
 	//everything found in GenA goes there
-	REQUIRE((std::map<std::string, uint32_t>{{"GenA", 4}}) == results.targetsPerGenome_);
+	REQUIRE((std::map<std::string, uint32_t>{{"GenA", 5}}) == results.targetsPerGenome_);
 	//no gff for GenA
 	REQUIRE(0 == results.targetsWithGenes_);
 	REQUIRE(2 == pmoObj.targeted_genomes_->size());
@@ -373,13 +383,48 @@ TEST_CASE("addTargetGenomeInfo picks the genome with the fewest primer errors an
 	REQUIRE("+" == tarB.reverse_primer_.location_->strand_.value());
 	//genes in position order, NA for no Name, the mRNA isn't a gene and GENE3 starts at the insert's end
 	REQUIRE("GENE1:kelch13,GENE2:NA" == tarB.gene_name_.value());
-	//mates get the target's location
+	//mates get their window of the target, R2 on the other strand, and the genes of their window
 	const auto & tarBR1 = targetNamed(pmoObj, "tarB-R1");
-	REQUIRE(tarB.insert_location_->to_json() == tarBR1.insert_location_->to_json());
-	REQUIRE(tarB.gene_name_ == tarBR1.gene_name_);
+	REQUIRE(1050 == tarBR1.insert_location_->start_);
+	REQUIRE(1080 == tarBR1.insert_location_->end_);
+	REQUIRE("-" == tarBR1.insert_location_->strand_.value());
+	REQUIRE("GENE2:NA" == tarBR1.gene_name_.value());
+	const auto & tarBR2 = targetNamed(pmoObj, "tarB-R2");
+	REQUIRE(1020 == tarBR2.insert_location_->start_);
+	REQUIRE(1050 == tarBR2.insert_location_->end_);
+	REQUIRE("+" == tarBR2.insert_location_->strand_.value());
+	REQUIRE("GENE1:kelch13" == tarBR2.gene_name_.value());
+	REQUIRE(tarB.forward_primer_.location_->to_json() == tarBR2.forward_primer_.location_->to_json());
 
 	//same primer errors in both, by genome name
 	REQUIRE("GenA" == pmoObj.targeted_genomes_->at(targetNamed(pmoObj, "tarC").insert_location_->genome_id_).name_);
 	//still valid through json
 	REQUIRE_NOTHROW(PortableMicrohaplotypeObject::from_json(pmoObj.to_json()).validate());
+}
+
+TEST_CASE("chooseTargetGenomes can be limited to the preferred genomes", "[pmoUtils]") {
+	TargetLocationsFixture fixture;
+	const auto locations = njhseq::TargetGenomeLocations::read(fixture.dir_ / "locations");
+	REQUIRE("tarB" == locations.baseTarget("tarB-R1"));
+	REQUIRE("tarA" == locations.baseTarget("tarA"));
+
+	njhseq::TargetGenomeChoicePars pars;
+	pars.preferredGenomes_ = VecStr{"GenB"};
+	SECTION("the others go to their best genome") {
+		const auto chosen = njhseq::chooseTargetGenomes(locations, pars);
+		REQUIRE(3 == chosen.size());
+		REQUIRE("GenA" == chosen.at("tarA").genome_);
+		REQUIRE("GenB" == chosen.at("tarB").genome_);
+		REQUIRE("GenB" == chosen.at("tarC").genome_);
+	}
+	SECTION("only the preferred") {
+		pars.onlyPreferred_ = true;
+		const auto chosen = njhseq::chooseTargetGenomes(locations, pars);
+		REQUIRE(2 == chosen.size());
+		REQUIRE_FALSE(njh::in(std::string("tarA"), chosen));
+		const auto region = locations.innerRegion("tarB-R2", chosen.at("tarB"));
+		REQUIRE(nullptr != region);
+		REQUIRE('+' == region->strand_);
+		REQUIRE(nullptr == locations.innerRegion("tarB-R2", chosen.at("tarC")));
+	}
 }

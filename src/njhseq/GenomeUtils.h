@@ -31,3 +31,4 @@
 #include "njhseq/GenomeUtils/GenomeMapping.h"
 #include "njhseq/GenomeUtils/GenomeUtils.hpp"
 #include "njhseq/GenomeUtils/GenomeRegionsGenerator.hpp"
+#include "njhseq/GenomeUtils/TargetGenomeAssignment.hpp"
