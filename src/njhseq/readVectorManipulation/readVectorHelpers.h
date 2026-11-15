@@ -29,3 +29,4 @@
 #include "njhseq/readVectorManipulation/readVectorHelpers/readVecSorter.hpp"
 #include "njhseq/readVectorManipulation/readVectorHelpers/readVecSplitter.hpp"
 #include "njhseq/readVectorManipulation/readVectorHelpers/readVecTrimmer.hpp"
+#include "njhseq/readVectorManipulation/readVectorHelpers/longestTranslation.hpp"

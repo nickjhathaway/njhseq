@@ -47,10 +47,9 @@ HapsSampleClustering::Measures::Measures(HapsEncodedMatrix::CCCRMSEResults cccRm
 }
 
 HapsSampleClustering::Measures HapsSampleClustering::calcMeasures(HapsEncodedMatrix & haps, uint32_t binSize, bool verbose){
-	haps.calcHapProbs();
 	haps.add_relative_abundance();
-	auto jaccard = std::move(haps.genIndexMeasures(binSize, verbose).byHapsTarShared);
-	return Measures{haps.calc_ccc_rmse_measures(binSize, verbose), std::move(jaccard)};
+	auto measures = haps.calcSharedTargetMeasures(binSize, verbose);
+	return Measures{std::move(measures.cccRmse), std::move(measures.jaccard)};
 }
 
 std::vector<std::vector<double>> HapsSampleClustering::distances(const Measures & measures, Measure measure, uint32_t numThreads){

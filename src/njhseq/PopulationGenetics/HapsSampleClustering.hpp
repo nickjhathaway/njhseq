@@ -50,7 +50,7 @@ public:
 		std::vector<std::vector<double>> jaccard_; /**< HapsEncodedMatrix::IndexResults::byHapsTarShared, NaN for samples sharing no targets*/
 	};
 
-	/**@brief calc hap probabilities and relative abundances on haps, then CCC, RMSE and Jaccard
+	/**@brief calc relative abundances on haps, then CCC, RMSE and Jaccard in one pass (HapsEncodedMatrix::calcSharedTargetMeasures())
 	 *
 	 * @param haps the encoded haplotypes
 	 * @param binSize the number of sample pairs each thread takes at a time

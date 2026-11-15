@@ -198,6 +198,19 @@ public:
 	IndexResults genIndexMeasures(uint32_t bin_batch_size = 1000, bool verbose = false) const;
   CCCRMSEResults calc_ccc_rmse_measures(uint32_t bin_batch_size = 1000, bool verbose = false) const;
 
+	struct SharedTargetMeasures {
+		explicit SharedTargetMeasures(const uint64_t numOfSamps);
+		CCCRMSEResults cccRmse; //! the same as calc_ccc_rmse_measures()
+		std::vector<std::vector<double>> jaccard; //! the same as genIndexMeasures() byHapsTarShared
+	};
+
+	/**@brief calc_ccc_rmse_measures() and the Jaccard on shared targets from genIndexMeasures() in one pass over the sample pairs, needs add_relative_abundance()
+	 *
+	 * @param bin_batch_size the number of sample pairs each thread takes at a time
+	 * @param verbose print progress
+	 */
+	SharedTargetMeasures calcSharedTargetMeasures(uint32_t bin_batch_size = 1000, bool verbose = false) const;
+
 	void writeAbsoluteHapSharedPerSamplePerTar(const OutOptions & outOptions, bool verbose = false) const;
 
 };

@@ -28,3 +28,5 @@
 #include "njhseq/utils/vectorUtils.hpp"
 #include "njhseq/utils/numUtils.hpp"
 #include "njhseq/utils/urlUtils.hpp"
+#include "njhseq/utils/kMeans.hpp"
+#include "njhseq/utils/distinctColors.hpp"

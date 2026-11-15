@@ -545,6 +545,94 @@ HapsEncodedMatrix::CCCRMSEResults HapsEncodedMatrix::calc_ccc_rmse_measures(uint
   return ret;
 }
 
+HapsEncodedMatrix::SharedTargetMeasures::SharedTargetMeasures(const uint64_t numOfSamps) :
+		cccRmse(numOfSamps),
+		jaccard(numOfSamps, std::vector<double>(numOfSamps)) {
+	for (uint64_t pos = 0; pos < numOfSamps; ++pos) {
+		jaccard[pos][pos] = 1;
+	}
+}
+
+HapsEncodedMatrix::SharedTargetMeasures HapsEncodedMatrix::calcSharedTargetMeasures(uint32_t bin_batch_size, bool verbose) const {
+  SharedTargetMeasures ret(sampNamesVec_.size());
+  for(size_t pos = 0; pos < sampNamesVec_.size(); ++pos){
+    ret.cccRmse.targets_shared[pos][pos] = vectorSum(targetsEncodeBySamp_[pos]);
+  }
+  PairwisePairFactory pFactor(sampNamesVec_.size());
+  njh::ProgressBar progpar(pFactor.totalCompares_);
+  if(verbose){
+    std::cout << "totalComps: " << pFactor.totalCompares_ << std::endl;
+  }
+  std::function<void()> compSamps = [&pFactor,
+        &progpar,
+        this,
+        &ret,
+        &verbose,
+        bin_batch_size]() {
+    PairwisePairFactory::PairwisePairVec pairVec;
+    //kept between pairs so they're only allocated once per thread
+    std::vector<double> row_values;
+    std::vector<double> col_values;
+    while(pFactor.setNextPairs(pairVec, bin_batch_size)) {
+      if(verbose){
+        progpar.outputProgAdd(std::cout, pairVec.pairs_.size(), true);
+      }
+      for(const auto & pair : pairVec.pairs_) {
+        row_values.clear();
+        col_values.clear();
+        const auto & rowTargets = targetsEncodeBySamp_[pair.row_];
+        const auto & colTargets = targetsEncodeBySamp_[pair.col_];
+        const auto & rowHaps = hapsEncodeBySamp_[pair.row_];
+        const auto & colHaps = hapsEncodeBySamp_[pair.col_];
+        const auto & rowRelAbund = hapsEncodeBySampRelAbund_[pair.row_];
+        const auto & colRelAbund = hapsEncodeBySampRelAbund_[pair.col_];
+        double sum = 0;
+        uint32_t targets_shared = 0;
+        uint32_t total_haps_shared = 0;
+        uint32_t totalSet = 0;
+        uint32_t totalShared = 0;
+        for(const auto tpos : iter::range(tarNamesVec_.size())) {
+          //2 if both samples have this target
+          if(2 == colTargets[tpos] + rowTargets[tpos]) {
+            ++targets_shared;
+            double haps_shared_for_target = 0;
+            for(const auto hapPos : iter::range(tarStart_[tpos], tarStart_[tpos] + numberOfHapsPerTarget_[tpos])) {
+              uint8_t res = colHaps[hapPos] + rowHaps[hapPos];
+              //either sample has this haplotype
+              if (res > 0) {
+                row_values.emplace_back(rowRelAbund[hapPos]);
+                col_values.emplace_back(colRelAbund[hapPos]);
+                sum += std::pow(colRelAbund[hapPos] - rowRelAbund[hapPos], 2);
+                ++haps_shared_for_target;
+                ++totalSet;
+                //both samples have this haplotype
+                if (2 == res) {
+                  ++totalShared;
+                }
+              }
+            }
+            total_haps_shared += haps_shared_for_target;
+          }
+        }
+        //for when there are no targets shared between samples
+        auto ccc_calc = row_values.size() > 0 ? ConcordanceCalculator::lins_ccc_point(row_values, col_values): 0.0;
+        auto rmse_calc = total_haps_shared > 0 ? std::sqrt(sum/total_haps_shared): 1.0; //making this 1 for now but really should be NA as it's not calculable for non-sharing samples
+        ret.cccRmse.rmse[pair.col_][pair.row_] = rmse_calc;
+        ret.cccRmse.rmse[pair.row_][pair.col_] = rmse_calc;
+        ret.cccRmse.ccc[pair.col_][pair.row_] = ccc_calc;
+        ret.cccRmse.ccc[pair.row_][pair.col_] = ccc_calc;
+        ret.cccRmse.targets_shared[pair.row_][pair.col_] = targets_shared;
+        ret.cccRmse.targets_shared[pair.col_][pair.row_] = targets_shared;
+        //NaN when no targets are shared, like genIndexMeasures()
+        ret.jaccard[pair.row_][pair.col_] = totalShared/static_cast<double>(totalSet);
+        ret.jaccard[pair.col_][pair.row_] = totalShared/static_cast<double>(totalSet);
+      }
+    }
+  };
+  njh::concurrent::runVoidFunctionThreaded(compSamps, pars_.numThreads);
+  return ret;
+}
+
 HapsEncodedMatrix::IndexResults HapsEncodedMatrix::genIndexMeasures(uint32_t bin_batch_size, bool verbose) const{
 	IndexResults ret(sampNames_.size());
 
