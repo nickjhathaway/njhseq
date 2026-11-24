@@ -237,7 +237,7 @@ MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
 		std::stringstream ss;
 		ss << __PRETTY_FUNCTION__ << ": error the id file "
 				<< njh::bashCT::boldRed(idFileFnp.string())
-				<< " should start with either target, gene, or id (case insensitive)\n";
+				<< " should start with either target, target_name, gene, or id (case insensitive)\n";
 		ss << "line: " << firstLine << "\n";
 		throw std::runtime_error { ss.str() };
 	}
@@ -254,7 +254,7 @@ MidDeterminator::MidDeterminator(const bfs::path & idFileFnp,
 		auto lowerLineToks = njh::tokenizeString(lowerLine, "whitespace");
 
 		if (lowerLineToks.size() > 1
-				&& ("gene" == lowerLineToks[0] || "target" == lowerLineToks[0])) {
+				&& ("gene" == lowerLineToks[0] || "target" == lowerLineToks[0] || "target_name" == lowerLineToks[0])) {
 			readingPrimers = true;
 			readingMids = false;
 		} else if (lowerLineToks.size() > 1 && "id" == lowerLineToks[0]) {

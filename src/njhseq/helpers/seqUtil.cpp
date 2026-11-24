@@ -600,6 +600,15 @@ VecStr seqUtil::findOpenFramesFromSeq(const std::string &seq) {
 
 
 
+namespace {
+/**@brief whether an id file line starts the primer section, its first column is gene, target or target_name (case insensitive)
+ */
+bool isPrimerSectionHeader(const std::string &firstColumn) {
+	auto lower = stringToLowerReturn(firstColumn);
+	return "gene" == lower || "target" == lower || "target_name" == lower;
+}
+}  // namespace
+
 table seqUtil::readBarcodes(const std::string &idFileName,
                             const std::string &fileDelim,
 														int &barcodeSize,
@@ -612,7 +621,7 @@ table seqUtil::readBarcodes(const std::string &idFileName,
   bool readingGene = false;
   bool readingBarcode = forceRead;
   for (const auto &row : inTab.content_) {
-    if (stringToLowerReturn(row[0]) == "gene") {
+    if (isPrimerSectionHeader(row[0])) {
       readingGene = true;
       readingBarcode = false;
       continue;
@@ -646,8 +655,7 @@ table seqUtil::readPrimers(const std::string &idFileName,
   bool readingGene = forceRead;
   bool readingBarcode = false;
   for (const auto &fIter : inTab.content_) {
-    if ("gene" == stringToLowerReturn(fIter[0]) ||
-    		"target" == stringToLowerReturn(fIter[0])) {
+    if (isPrimerSectionHeader(fIter[0])) {
       readingGene = true;
       readingBarcode = false;
       continue;
@@ -675,7 +683,7 @@ VecStr seqUtil::getBarcodesInOrderTheyAppear(const std::string &fileName) {
   bool readingGene = false;
   bool readingBarcodes = true;
   for (const auto &fIter : inTab.content_) {
-    if (fIter[0] == "gene") {
+    if (isPrimerSectionHeader(fIter[0])) {
       readingGene = true;
       readingBarcodes = false;
       continue;
