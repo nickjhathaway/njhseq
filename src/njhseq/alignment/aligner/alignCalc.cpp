@@ -28,11 +28,17 @@
 
 #include "alignCalc.hpp"
 
+#include <algorithm>
+
 
 namespace njhseq {
 
 void alignCalc::runSmithSave(const std::string& objA, const std::string& objB,
                          alnParts& parts) {
+	//the sequences can be longer than the size the matrix was made for, checked inline so there is no call unless it has to grow
+	if (std::max(objA.size(), objB.size()) + 1 >= parts.maxSize_) {
+		parts.setMaxSize(std::max(objA.size(), objB.size()) + 1);
+	}
   // std::cout << "doing smith reg" << std::endl;
   // std::cout<<"mark smith non simple"<<std::endl;
   /*if (currentSetUp_ != "smith") {
@@ -231,6 +237,10 @@ void alignCalc::runSmithSave(const std::string& objA, const std::string& objB,
 
 void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
                           alnParts& parts) {
+	//the sequences can be longer than the size the matrix was made for, checked inline so there is no call unless it has to grow
+	if (std::max(objA.size(), objB.size()) + 1 >= parts.maxSize_) {
+		parts.setMaxSize(std::max(objA.size(), objB.size()) + 1);
+	}
   parts.gHolder_.gapInfos_.clear();
   parts.gHolder_.addFromFile_ = false;
   // Create the alignment score matrix to do the alignment, a column for each
@@ -642,6 +652,10 @@ void alignCalc::runNeedleSave(const std::string& objA, const std::string& objB,
 
 void alignCalc::runNeedleOnlyEndGapsSave(const std::string& objA, const std::string& objB,
                           alnParts& parts) {
+	//the sequences can be longer than the size the matrix was made for, checked inline so there is no call unless it has to grow
+	if (std::max(objA.size(), objB.size()) + 1 >= parts.maxSize_) {
+		parts.setMaxSize(std::max(objA.size(), objB.size()) + 1);
+	}
 	//std::cout << __PRETTY_FUNCTION__ << " " << __LINE__ <<  std::endl;
 
   parts.gHolder_.gapInfos_.clear();
@@ -2060,6 +2074,10 @@ void alignCalc::runNeedleDiagonalSave(
 									uint32_t inputAlignmentBlockSize,
 									uint32_t inputAlignmentBlockWalkbackSize,
                    alnParts& parts) {
+	//the sequences can be longer than the size the matrix was made for, checked inline so there is no call unless it has to grow
+	if (std::max(objA.size(), objB.size()) + 1 >= parts.maxSize_) {
+		parts.setMaxSize(std::max(objA.size(), objB.size()) + 1);
+	}
 //  bool print = false;
 //  if("AGTGAAGAAGCAATGGTGCCTTTGGAAAGTATGTAGCTCTTAGTTAAGCTTTTATCTGGAAGGTGCTGGAGAAGGTCTGGGCACAGAGCTGGTTGGCTCCATGGTTTTGTGACCTGTGCCATGATTTGAGAAGTGCCCATAGGTAGAAATCCAGGATGACTATGGGGCTCGTTTTGTATGTTTCCTGCCTCTCAAGGATTACAGACCTGTCTCTCTGTTGTCCAATGACTCTAAAGAATTGCTTCATAGATTTTGTTCAGTTTCACAGCTTTCTATAAGAGAAGTTAAATATGATACCTGTTACTCCTTCATGGCCAGAACTGGAAGCTAAGCATGGGTTTGATGTCACGCAGACCTGGGTTTGGACCCCAGCTCTGCCCCTTAATGGCTCTGTGACCTAAAGCAGGTTATTTCATCTCTTTGAGCCTCAGTGTCTTTACCTAAGAAACAGCAGGTTATTGTGAGGACCAAATAAAACAAAGCACACTTAGC" == objA &&
 //  	 "TCAACATCACTAGGCAATAGGAATTTTTCAGCTCCATTTTAATCTTAAGGGACCACTGGTAATTTTAATTGGGTCTTGGATATTATATATTAAGATTTTGAGATATAATTTTAGGCTATGGGTGATTTTATTTTTTTTCCTGAGAAAGTGAAGTTTGCTTATTTTAGGCAACTGGGGTGAGGACATTAGTAATCCAAGGCCACTTTAAGCCAATCAGGTATTTATGTAATTTGAAGCTGGCCTTGATTCCCTACTATGGCTAGTTTGTTTTTAGTTTACTCTCACTCTTGGGGTATAGCCCTTCAAGTTCCCAGCCAAAAGCCTGGGGTGTTGGCCAAGGTTTGTTCTTCATTGAGGGCCCTGAGTACTAGTTTCTATCTGCCCAGATCCATAAGACTTGGTAAAAGCTCTCTTCAGCTCCTCAGCCTCTCAGCCCGGATGATGCATCAGACACACCTGGGACCCTCGGAGCTCCTGCTGTC" == objB){

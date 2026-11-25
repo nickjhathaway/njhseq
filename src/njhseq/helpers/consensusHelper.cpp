@@ -133,6 +133,23 @@ void consensusHelper::genConsensusFromCounters(seqInfo & info,
 		info.seq_.push_back(bestBase);
 		info.qual_.emplace_back(bestQuality);
 	}
+	// bases the reads have past the last reference base are keyed one past the last counter so the loop above never gets to them,
+	// add them if a majority of reads agree on the base
+	if (!counters.empty()) {
+		auto tailInserts = insertions.find(counters.rbegin()->first + 1);
+		if (tailInserts != insertions.end()) {
+			for (const auto & tailInsert : tailInserts->second) {
+				char bestBase = ' ';
+				uint32_t bestQuality = 0;
+				tailInsert.second.getBest(bestBase, bestQuality);
+				if (bestBase == ' ' || bestBase == '-' || tailInsert.second.chars_[bestBase] * 2 <= info.cnt_) {
+					break;
+				}
+				info.seq_.push_back(bestBase);
+				info.qual_.emplace_back(bestQuality);
+			}
+		}
+	}
 //	bool print =  info.name_ == "A0YIQC9601.0_f0.956522";
 //	if(print){
 //		info.outPutSeqAnsi(std::cout);
