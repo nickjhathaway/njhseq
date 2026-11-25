@@ -166,6 +166,14 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	for (auto pos : iter::range(refData.size())) {
 		refNameToId[refData[pos].RefName] = pos;
 	}
+	//decides which alignments pass soft clip filtering, by default only those under the hard and percentage cut offs
+	SoftClipFilter softClipFilter(extractPars.softClipFilter_, extractPars.softClipHardCutOff_, extractPars.softClipPercentageCutOff_, refData);
+	std::function<bool(const BamTools::BamAlignment &, bool)> keepClipWhenTrimming;
+	if (SoftClipFilterPars::TrimClips::drop != extractPars.softClipFilter_.trimClips_) {
+		keepClipWhenTrimming = [&softClipFilter](const BamTools::BamAlignment & aln, bool leading) {
+			return softClipFilter.keepClipWhenTrimming(aln, leading);
+		};
+	}
 
 	bfs::path outBam(njh::appendAsNeededRet(outOpts.outFilename_.string(), ".bam"));
 	BamTools::BamWriter bWriter;
@@ -256,7 +264,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	SeqOutput debugSinglesWriter(debugSinglsOpts);
 
 
-	auto writeMateFilteredOff = [&ret,&extractPars,&writer,&bWriter,&refData](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
+	auto writeMateFilteredOff = [&ret,&extractPars,&writer,&bWriter,&refData,&keepClipWhenTrimming](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
 		//unpaired read
 		++ret.mateFilteredOff_;
 		if (extractPars.originalOrientation_) {
@@ -280,28 +288,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //				readVecTrimmer::trimOffEndBases(outSeq, extractPars.threePrimeTrim_);
 //			}
 			if((len(outSeq) > region.getLen() || region.getLen() < 150 || extractPars.trimToRegion_) ){
-				seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
-				GenomicRegion balnRegion(bAln, refData);
-				uint32_t startRelative = region.start_ - balnRegion.start_;
-				uint32_t endRelative = region.end_ - balnRegion.start_;
-
-				seqInfo holderSeq(balnRegion.uid_, std::string(balnRegion.getLen(), 'N'));
-				auto alnInfo = bamAlnToAlnInfoLocal(bAln);
-				alignCalc::rearrangeLocal(holderSeq.seq_,  querySeq.seq_, '-'	, alnInfo.begin()->second);
-				alignCalc::rearrangeLocal(holderSeq.qual_, querySeq.qual_, 0	, alnInfo.begin()->second);
-
-				uint32_t startAln = 0;
-				if(region.start_ > balnRegion.start_){
-					startAln = getAlnPosForRealPos(holderSeq.seq_, startRelative);
-				}
-				uint32_t endAln = len(holderSeq);
-				if(region.end_ < balnRegion.end_){
-					endAln =  getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
-				}
-
-				auto outSeqTrimmed = querySeq.getSubRead(startAln, endAln - startAln);
-				outSeqTrimmed.removeGaps();
-				outSeq = outSeqTrimmed;
+				outSeq = trimAlnSeqToRegion(bAln, region, refData, keepClipWhenTrimming);
 			}
 			if(region.reverseSrand_){
 				outSeq.reverseComplementRead(false, true);
@@ -320,7 +307,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			bWriter.SaveAlignment(bAln);
 		}
 	};
-	auto writeMateFilteredOffSoftClip = [&ret,&extractPars,&writer,&bWriter,&refData](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
+	auto writeMateFilteredOffSoftClip = [&ret,&extractPars,&writer,&bWriter,&refData,&keepClipWhenTrimming](const BamTools::BamAlignment & bAln, const GenomicRegion & region){
 		//unpaired read
 		++ret.pairedReadsMateFailedSoftClip_;
 		if (extractPars.originalOrientation_) {
@@ -329,28 +316,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			seqInfo outSeq(bAln.Name, bAln.QueryBases, bAln.Qualities, SangerQualOffset);
 
 			if((len(outSeq) > region.getLen() || region.getLen() < 150 || extractPars.trimToRegion_) ){
-				seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
-				GenomicRegion balnRegion(bAln, refData);
-				uint32_t startRelative = region.start_ - balnRegion.start_;
-				uint32_t endRelative = region.end_ - balnRegion.start_;
-
-				seqInfo holderSeq(balnRegion.uid_, std::string(balnRegion.getLen(), 'N'));
-				auto alnInfo = bamAlnToAlnInfoLocal(bAln);
-				alignCalc::rearrangeLocal(holderSeq.seq_,  querySeq.seq_, '-'	, alnInfo.begin()->second);
-				alignCalc::rearrangeLocal(holderSeq.qual_, querySeq.qual_, 0	, alnInfo.begin()->second);
-
-				uint32_t startAln = 0;
-				if(region.start_ > balnRegion.start_){
-					startAln = getAlnPosForRealPos(holderSeq.seq_, startRelative);
-				}
-				uint32_t endAln = len(holderSeq);
-				if(region.end_ < balnRegion.end_){
-					endAln =  getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
-				}
-
-				auto outSeqTrimmed = querySeq.getSubRead(startAln, endAln - startAln);
-				outSeqTrimmed.removeGaps();
-				outSeq = outSeqTrimmed;
+				outSeq = trimAlnSeqToRegion(bAln, region, refData, keepClipWhenTrimming);
 			}
 
 			//put in the orientation of the output region
@@ -805,8 +771,8 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					bool bAlnPassAlnSize = getAlnLen(bAln) >= extractPars.minAlnMapSize_;
 					bool searchPassAlnSize  = getAlnLen(*search) >= extractPars.minAlnMapSize_;
 
-					bool bAlnPassSoftClipAmount = getSoftClipAmount(bAln) < extractPars.softClipHardCutOff_ && getSoftClipAmount(bAln)/static_cast<double>(bAln.QueryBases.size()) < extractPars.softClipPercentageCutOff_;
-					bool searchPassSoftClipAmount = getSoftClipAmount(*search) < extractPars.softClipHardCutOff_ && getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_;
+					bool bAlnPassSoftClipAmount = softClipFilter.passes(bAln, region);
+					bool searchPassSoftClipAmount = softClipFilter.passes(*search, *searchRegion);
 
 					// std::cout << "extractPars.softClipPercentageCutOff_: " << extractPars.softClipPercentageCutOff_ << std::endl;
 					// std::cout << "getSoftClipAmount(bAln): " << getSoftClipAmount(bAln) << std::endl;
@@ -833,83 +799,13 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 
 					if((len(bAlnSeq) > region.getLen() || region.getLen() < 150 || extractPars.trimToRegion_) && bAlnIn){
 
-						seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
-						GenomicRegion balnRegion(bAln, refData);
-
-						uint32_t startRelative = 0;
-						if(balnRegion.start_ < region.start_) {
-							startRelative = region.start_ - balnRegion.start_;
-						}
-//						uint32_t startRelative = region.start_ - balnRegion.start_;
-						uint32_t endRelative = region.end_ - balnRegion.start_;
-
-						seqInfo holderSeq(balnRegion.uid_, std::string(balnRegion.getLen(), 'N'));
-						auto alnInfo = bamAlnToAlnInfoLocal(bAln);
-						alignCalc::rearrangeLocal(holderSeq.seq_,  querySeq.seq_, '-'	, alnInfo.begin()->second);
-						alignCalc::rearrangeLocal(holderSeq.qual_, querySeq.qual_, 0	, alnInfo.begin()->second);
-
-						uint32_t startAln = 0;
-						if(region.start_ > balnRegion.start_){
-							startAln = getAlnPosForRealPos(holderSeq.seq_, startRelative);
-						}
-						uint32_t endAln = len(holderSeq);
-						if(region.end_ < balnRegion.end_){
-							endAln =  getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
-						}
-
-						auto outSeq = querySeq.getSubRead(startAln, endAln - startAln);
-						outSeq.removeGaps();
-						bAlnSeq = outSeq;
+						bAlnSeq = trimAlnSeqToRegion(bAln, region, refData, keepClipWhenTrimming);
 
 					}
 
 					if((len(searchSeq) > searchRegion->getLen() || searchRegion->getLen() < 150 || extractPars.trimToRegion_) && searchIn){
 
-						seqInfo querySeq = bamAlnToSeqInfo(*search, true);
-
-						GenomicRegion balnRegion(*search, refData);
-						//std::cout << njh::json::toJson(*search) << std::endl;
-//						std::cout << genCigarStr(*search) << std::endl;
-//
-//						std::cout << "searchRegion->genBedRecordCore().toDelimStrWithExtra(): " << std::endl;
-//						std::cout << searchRegion->genBedRecordCore().toDelimStrWithExtra() << std::endl;
-//						std::cout << balnRegion.genBedRecordCore().toDelimStrWithExtra() << std::endl;
-//						std::cout << "balnRegion.start_   : " << balnRegion.start_ << std::endl;
-//						std::cout << "searchRegion->start_: " << searchRegion->start_ << std::endl;
-//						std::cout << "balnRegion.start_ >= searchRegion->start_: " << njh::colorBool(balnRegion.start_ >= searchRegion->start_) << std::endl;
-						uint32_t startRelative = 0;
-						if(balnRegion.start_ < searchRegion->start_) {
-							startRelative = searchRegion->start_ - balnRegion.start_;
-						}
-						uint32_t endRelative = searchRegion->end_ - balnRegion.start_;
-
-						seqInfo holderSeq(balnRegion.uid_, std::string(balnRegion.getLen(), 'N'));
-						auto alnInfo = bamAlnToAlnInfoLocal(*search);
-						alignCalc::rearrangeLocal(holderSeq.seq_,  querySeq.seq_, '-'	, alnInfo.begin()->second);
-						alignCalc::rearrangeLocal(holderSeq.qual_, querySeq.qual_, 0	, alnInfo.begin()->second);
-
-//						std::cout << "searchRegion->getPercInRegion(*search, refData): " << searchRegion->getPercInRegion(*search, refData) << std::endl;
-//						holderSeq.outPutSeqAnsi(std::cout);
-//						searchSeq.outPutSeqAnsi(std::cout);
-//						querySeq.outPutSeqAnsi(std::cout);
-//						std::cout << "startRelative: " << startRelative << std::endl;
-//						std::cout << "endRelative: " << endRelative << std::endl;
-//						std::cout << "searchRegion->start_: " << searchRegion->start_ << std::endl;
-//						std::cout << "balnRegion.start_: " << balnRegion.start_ << std::endl;
-
-						uint32_t startAln = 0;
-						if(searchRegion->start_ > balnRegion.start_){
-							startAln = getAlnPosForRealPos(holderSeq.seq_, startRelative);
-						}
-
-						uint32_t endAln = len(holderSeq);
-						if(searchRegion->end_ < balnRegion.end_){
-							endAln =  getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
-						}
-
-						auto outSeq = querySeq.getSubRead(startAln, endAln - startAln);
-						outSeq.removeGaps();
-						searchSeq = outSeq;
+						searchSeq = trimAlnSeqToRegion(*search, *searchRegion, refData, keepClipWhenTrimming);
 
 //						if(balnRegion.start_ > searchRegion->start_){
 //							exit(1);
@@ -1207,7 +1103,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			} else {
 
 				if(region.getPercInRegion(bAln, refData) >= extractPars.percInRegion_ && getAlnLen(bAln) >= extractPars.minAlnMapSize_){
-					if(getSoftClipAmount(bAln) > extractPars.softClipHardCutOff_ || getSoftClipAmount(bAln)/static_cast<double>(bAln.QueryBases.size()) > extractPars.softClipPercentageCutOff_){
+					if(!softClipFilter.passes(bAln, region)){
 						if(subSamplingFunction()){
 							writeSingleFilteredSoftClip(bAln);
 						}
@@ -1222,30 +1118,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 										SangerQualOffset);
 
 								if((len(outSeq) > region.getLen() || region.getLen() < 150|| extractPars.trimToRegion_) ){
-									seqInfo querySeq = bamAlnToSeqInfo(bAln, true);
-									GenomicRegion balnRegion(bAln, refData);
-//									uint32_t startRelative = region.start_ - balnRegion.start_;
-									uint32_t startRelative = 0;
-									if (balnRegion.start_ < region.start_) {
-										startRelative = region.start_ - balnRegion.start_;
-									}
-//						uint32_t startRelative = region.start_ - balnRegion.start_;
-									uint32_t endRelative = region.end_ - balnRegion.start_;
-									seqInfo holderSeq(balnRegion.uid_, std::string(balnRegion.getLen(), 'N'));
-									auto alnInfo = bamAlnToAlnInfoLocal(bAln);
-									alignCalc::rearrangeLocal(holderSeq.seq_,  querySeq.seq_, '-'	, alnInfo.begin()->second);
-									alignCalc::rearrangeLocal(holderSeq.qual_, querySeq.qual_, 0	, alnInfo.begin()->second);
-									uint32_t startAln = 0;
-									if(region.start_ > balnRegion.start_){
-										startAln = getAlnPosForRealPos(holderSeq.seq_, startRelative);
-									}
-									uint32_t endAln = len(holderSeq);
-									if(region.end_ < balnRegion.end_){
-										endAln = getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
-									}
-									auto outTrimmedSeq = querySeq.getSubRead(startAln, endAln - startAln);
-									outTrimmedSeq.removeGaps();
-									outSeq = outTrimmedSeq;
+									outSeq = trimAlnSeqToRegion(bAln, region, refData, keepClipWhenTrimming);
 								}
 								//put in the orientation of the output region
 								if(region.reverseSrand_){
@@ -1450,7 +1323,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 				// std::cout << "getSoftClipAmount(*search): " << getSoftClipAmount(*search) << std::endl;
 				// std::cout << "\tgetSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
 
-				if(getSoftClipAmount(*search) < extractPars.softClipHardCutOff_ && getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_){
+				if(softClipFilter.passes(*search, *searchRegion)){
 					// std::cout << __FILE__ << " " << __LINE__ << std::endl;
 					// std::cout << "extractPars.removeInverseOrphans_: " << njh::colorBool(extractPars.removeInverseOrphans_) << std::endl;
 					// std::cout << "search->IsReverseStrand() == search->IsMateReverseStrand(): " << njh::colorBool(search->IsReverseStrand() == search->IsMateReverseStrand()) << std::endl;
@@ -1487,25 +1360,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							if (extractPars.originalOrientation_) {
 								if(subSamplingFunction()){
 									if((len(searchSeq) > searchRegion->getLen() || searchRegion->getLen() < 150) && searchIn){
-										seqInfo querySeq = bamAlnToSeqInfo(*search, true);
-										GenomicRegion balnRegion(*search, refData);
-										uint32_t startRelative = searchRegion->start_ - balnRegion.start_;
-										uint32_t endRelative = searchRegion->end_ - balnRegion.start_;
-										seqInfo holderSeq(balnRegion.uid_, std::string(balnRegion.getLen(), 'N'));
-										auto alnInfo = bamAlnToAlnInfoLocal(*search);
-										alignCalc::rearrangeLocal(holderSeq.seq_,  querySeq.seq_, '-'	, alnInfo.begin()->second);
-										alignCalc::rearrangeLocal(holderSeq.qual_, querySeq.qual_, 0	, alnInfo.begin()->second);
-										uint32_t startAln = 0;
-										if(searchRegion->start_ > balnRegion.start_){
-											startAln = getAlnPosForRealPos(holderSeq.seq_, startRelative);
-										}
-										uint32_t endAln = len(holderSeq);
-										if(searchRegion->end_ < balnRegion.end_){
-											endAln =  getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
-										}
-										auto outSeq = querySeq.getSubRead(startAln, endAln - startAln);
-										outSeq.removeGaps();
-										searchSeq = outSeq;
+										searchSeq = trimAlnSeqToRegion(*search, *searchRegion, refData, keepClipWhenTrimming);
 									}
 									if(search->IsReverseStrand()){
 										searchSeq.reverseComplementRead(false, true);
@@ -1516,25 +1371,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 							} else {
 								seqInfo searchSeq(search->Name, search->QueryBases, search->Qualities, SangerQualOffset);
 								if((len(searchSeq) > searchRegion->getLen() || searchRegion->getLen() < 150) && searchIn){
-									seqInfo querySeq = bamAlnToSeqInfo(*search, true);
-									GenomicRegion balnRegion(*search, refData);
-									uint32_t startRelative = searchRegion->start_ - balnRegion.start_;
-									uint32_t endRelative = searchRegion->end_ - balnRegion.start_;
-									seqInfo holderSeq(balnRegion.uid_, std::string(balnRegion.getLen(), 'N'));
-									auto alnInfo = bamAlnToAlnInfoLocal(*search);
-									alignCalc::rearrangeLocal(holderSeq.seq_,  querySeq.seq_, '-'	, alnInfo.begin()->second);
-									alignCalc::rearrangeLocal(holderSeq.qual_, querySeq.qual_, 0	, alnInfo.begin()->second);
-									uint32_t startAln = 0;
-									if(searchRegion->start_ > balnRegion.start_){
-										startAln = getAlnPosForRealPos(holderSeq.seq_, startRelative);
-									}
-									uint32_t endAln = len(holderSeq);
-									if(searchRegion->end_ < balnRegion.end_){
-										endAln = getAlnPosForRealPos(holderSeq.seq_, endRelative - 1) + 1;
-									}
-									auto outSeq = querySeq.getSubRead(startAln, endAln - startAln);
-									outSeq.removeGaps();
-									searchSeq = outSeq;
+									searchSeq = trimAlnSeqToRegion(*search, *searchRegion, refData, keepClipWhenTrimming);
 								}
 								if (searchRegion->reverseSrand_) {
 									searchSeq.reverseComplementRead(false, true);

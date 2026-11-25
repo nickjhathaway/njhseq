@@ -28,6 +28,7 @@
 #include "njhseq/objects/seqObjects/Paired/PairedRead.hpp"
 #include "njhseq/readVectorManipulation/readVectorHelpers/readChecker.hpp"
 #include "njhseq/BamToolsUtils/StrandBiasKmerCorrector.hpp"
+#include "njhseq/BamToolsUtils/SoftClipFilter.hpp"
 
 
 namespace njhseq {
@@ -215,6 +216,7 @@ public:
 
 		double softClipPercentageCutOff_{1};//! by default can soft clip all
 		uint32_t softClipHardCutOff_{std::numeric_limits<uint32_t>::max()};//! by default can soft clip all
+		SoftClipFilterPars softClipFilter_;//! how alignments that fail the soft clip cut offs are handled, by default they are all filtered
 
 		double percentSubSample_{1};//! should be 0 to 1, sub sample region
 		uint64_t subSampleSeed_{0};//! seed for picking reads when sub sampling

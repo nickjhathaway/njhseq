@@ -3523,6 +3523,7 @@ Json::Value BamExtractor::extractReadsWtihCrossRegionMappingPars::toJson() const
 	ret["renameSingles_"] = njh::json::toJson(renameSingles_);
 
 	ret["trimToRegion_"] = njh::json::toJson(trimToRegion_);
+	ret["softClipFilter_"] = softClipFilter_.toJson();
 	ret["percInRegion_"] = njh::json::toJson(percInRegion_);
 	ret["originalOrientation_"] = njh::json::toJson(originalOrientation_);
 	ret["throwAwayUnmappedMate_"] = njh::json::toJson(throwAwayUnmappedMate_);
