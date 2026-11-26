@@ -137,6 +137,22 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 			return rGen()  <= extractPars.percentSubSample_;
 		};
 	};
+	//sub sampling for reads that are filtered off and only written when writeAll_ is on, this uses its own generator
+	//so that writing them out doesn't use up draws from rGen and change which of the kept reads get sub sampled
+	njh::randomGenerator rGenWriteAllOnly;
+	if (extractPars.subSampleSeedSet_) {
+		rGenWriteAllOnly.seedNum(extractPars.subSampleSeed_);
+	}
+	std::function<bool()> writeAllOnlySubSamplingFunction;
+	if(extractPars.percentSubSample_ == 1){
+		writeAllOnlySubSamplingFunction = [](){
+			return true;
+		};
+	}else{
+		writeAllOnlySubSamplingFunction = [&rGenWriteAllOnly,&extractPars](){
+			return rGenWriteAllOnly()  <= extractPars.percentSubSample_;
+		};
+	};
 	BamTools::BamAlignment bAln;
 
 	//std::cout << "percInRegion: " << percInRegion << std::endl;
@@ -1331,7 +1347,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 						//write filtered orphan
 						++ret.orphansFilteredInverse_;
 						if(extractPars.writeAll_){
-							if(subSamplingFunction()){
+							if(writeAllOnlySubSamplingFunction()){
 								//i'm not sure this sub sampling function should be here.....
 								filteredInverseSinglesWriter.openWrite(bamAlnToSeqInfo(*search));
 							}
@@ -1397,7 +1413,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 	//						std::cout << "pass: " << njh::colorBool(pass) << std::endl;
 	//						std::cout <<  "searchIn: " <<njh::colorBool(searchIn) << std::endl;
 							if(extractPars.writeAll_){
-								if(subSamplingFunction()){
+								if(writeAllOnlySubSamplingFunction()){
 									singleFilteredWriter.openWrite(bamAlnToSeqInfo(*search));
 								}
 								bWriter.SaveAlignment(*search);
@@ -1408,7 +1424,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 					//write filterd orphan
 					++ret.orphansFilteredSoftCip_;
 					if(extractPars.writeAll_){
-						if(subSamplingFunction()){
+						if(writeAllOnlySubSamplingFunction()){
 							singleFilteredSoftClipWriter.openWrite(bamAlnToSeqInfo(*search));
 						}
 						bWriter.SaveAlignment(*search);
@@ -1428,7 +1444,7 @@ BamExtractor::ExtractedFilesOpts BamExtractor::extractReadsWtihCrossRegionMappin
 //				std::cout << "getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_: " << njh::colorBool(getSoftClipAmount(*search)/static_cast<double>(search->QueryBases.size()) < extractPars.softClipPercentageCutOff_) << std::endl;
 //				std::cout <<  "searchIn: " <<njh::colorBool(searchIn)  << std::endl;
 				if(extractPars.writeAll_){
-					if(subSamplingFunction()){
+					if(writeAllOnlySubSamplingFunction()){
 						singleFilteredWriter.openWrite(bamAlnToSeqInfo(*search));
 					}
 					bWriter.SaveAlignment(*search);
