@@ -23,7 +23,7 @@ int PmoRunner::mergeMinimumPmos(const njh::progutils::CmdArgs & inputCommands) {
 	bfs::path directory = "./";
 	std::string contains;
 	bool recursive = false;
-	std::string programVersion = "1";
+	std::string programVersion = inputCommands.runnerVersion_;
 	OutOptions outOpts(bfs::path(""), ".json.gz");
 	seqSetUp setUp(inputCommands);
 	setUp.description_ = "Merge minimum PMOs, for example PMOs per target over the same samples, into one PMO, genomes and haplotype variants are carried over, PMOs with project, sequencing, bioinformatics or read count sections are refused";
@@ -52,7 +52,7 @@ int PmoRunner::mergeMinimumPmos(const njh::progutils::CmdArgs & inputCommands) {
 	}
 	njh::sort(pmoFnps);
 	pmo::PmoGenerationMethod generationMethod;
-	generationMethod.program_name_ = njh::pasteAsStr(setUp.commands_.masterProgram_, " mergeMinimumPmos");
+	generationMethod.program_name_ = njh::pasteAsStr(setUp.commands_.runnerName_, " mergeMinimumPmos");
 	generationMethod.program_version_ = programVersion;
 	pmo::MinimumPmoMerger merger(generationMethod);
 	for (const auto & pmoFnp : pmoFnps) {
