@@ -40,6 +40,23 @@ nlohmann::json mergeFields(nlohmann::json base, const nlohmann::json & other, co
 	return base;
 }
 
+std::map<std::string, nlohmann::json> mergeExtras(const std::map<std::string, nlohmann::json> & base, const std::map<std::string, nlohmann::json> & other, const std::string & name) {
+	return mergeFields(nlohmann::json(base), nlohmann::json(other), name).get<std::map<std::string, nlohmann::json>>();
+}
+
+//a list section as json, null when it's missing
+template<typename T>
+nlohmann::json sectionJson(const std::optional<std::vector<T>> & section) {
+	nlohmann::json ret;
+	if (section.has_value()) {
+		ret = nlohmann::json::array();
+		for (const auto & entry : section.value()) {
+			ret.push_back(entry.to_json());
+		}
+	}
+	return ret;
+}
+
 //add the entries of other missing from base
 template<typename T>
 void addMissing(std::optional<std::vector<T>> & base, const std::optional<std::vector<T>> & other) {
@@ -70,11 +87,29 @@ MinimumPmoMerger::MinimumPmoMerger(const PmoGenerationMethod & generationMethod)
 }
 
 void MinimumPmoMerger::add(const PortableMicrohaplotypeObject & pmoObj) {
-	if (pmoObj.project_info_.has_value() || pmoObj.sequencing_info_.has_value()
-			|| pmoObj.bioinformatics_methods_info_.has_value() || pmoObj.bioinformatics_run_info_.has_value()
-			|| pmoObj.read_counts_by_stage_.has_value()) {
-		throwConflict("only minimum PMOs can be merged, this PMO has project, sequencing, bioinformatics or read count sections");
+	if (pmoObj.project_info_.has_value() || pmoObj.sequencing_info_.has_value()) {
+		throwConflict("only minimum PMOs can be merged, this PMO has project or sequencing sections");
 	}
+	//the bioinformatics sections have to be the same in every PMO, their one run is the run of the merged PMO
+	const nlohmann::json bioinformatics{
+		{"bioinformatics_methods_info", sectionJson(pmoObj.bioinformatics_methods_info_)},
+		{"bioinformatics_run_info", sectionJson(pmoObj.bioinformatics_run_info_)}};
+	const uint32_t runCount = pmoObj.bioinformatics_run_info_.has_value() ? pmoObj.bioinformatics_run_info_->size() : 0;
+	if (!bioinformatics_.has_value()) {
+		if (runCount > 1) {
+			throwConflict(njh::pasteAsStr("only PMOs with at most one bioinformatics run can be merged, this PMO has ", runCount));
+		}
+		bioinformatics_ = bioinformatics;
+		merged_.bioinformatics_methods_info_ = pmoObj.bioinformatics_methods_info_;
+		merged_.bioinformatics_run_info_ = pmoObj.bioinformatics_run_info_;
+	} else if (bioinformatics_.value() != bioinformatics) {
+		throwConflict("PMOs with different bioinformatics_methods_info or bioinformatics_run_info can't be merged");
+	}
+	auto checkRunId = [&runCount](const std::optional<uint32_t> & runId, const std::string & section) {
+		if (runId.has_value() && runId.value() >= runCount) {
+			throwConflict(njh::pasteAsStr(section, " refers to bioinformatics run ", runId.value(), " but there are only ", runCount, " bioinformatics_run_info"));
+		}
+	};
 	//genomes with the same name and version become one
 	std::vector<uint32_t> genomeMap;
 	if (pmoObj.targeted_genomes_.has_value()) {
@@ -247,6 +282,7 @@ void MinimumPmoMerger::add(const PortableMicrohaplotypeObject & pmoObj) {
 	}
 
 	for (const auto & run : pmoObj.detected_microhaplotypes_) {
+		checkRunId(run.bioinformatics_run_id_, "detected_microhaplotypes");
 		for (const auto & sampleResults : run.library_samples_) {
 			const auto libraryId = libraryMap.at(sampleResults.library_sample_id_);
 			auto detectedSearch = detectedPosByLibraryId_.find(libraryId);
@@ -274,10 +310,72 @@ void MinimumPmoMerger::add(const PortableMicrohaplotypeObject & pmoObj) {
 			}
 		}
 	}
+
+	//read counts are per library sample and per target_info entry, so they map like library_sample_info and target_info
+	if (pmoObj.read_counts_by_stage_.has_value()) {
+		if (!readCounts_.has_value()) {
+			readCounts_ = ReadCountsByStage{};
+		}
+		for (const auto & counts : pmoObj.read_counts_by_stage_.value()) {
+			checkRunId(counts.bioinformatics_run_id_, "read_counts_by_stage");
+			readCounts_->extras_ = mergeExtras(readCounts_->extras_, counts.extras_, "read_counts_by_stage");
+			for (const auto & libraryCounts : counts.read_counts_by_library_sample_by_stage_) {
+				if (libraryCounts.library_sample_id_ >= libraryMap.size()) {
+					throwConflict(njh::pasteAsStr("read counts refer to library sample ", libraryCounts.library_sample_id_, " but there are only ", libraryMap.size(), " library_sample_info"));
+				}
+				const auto libraryId = libraryMap[libraryCounts.library_sample_id_];
+				const auto & libraryName = merged_.library_sample_info_[libraryId].library_sample_name_;
+				auto countsSearch = readCountsPosByLibraryId_.find(libraryId);
+				if (readCountsPosByLibraryId_.end() == countsSearch) {
+					countsSearch = readCountsPosByLibraryId_.emplace(libraryId, readCounts_->read_counts_by_library_sample_by_stage_.size()).first;
+					ReadCountsByStageForLibrarySample newCounts;
+					newCounts.library_sample_id_ = libraryId;
+					newCounts.total_raw_count_ = libraryCounts.total_raw_count_;
+					readCounts_->read_counts_by_library_sample_by_stage_.emplace_back(newCounts);
+				}
+				auto & current = readCounts_->read_counts_by_library_sample_by_stage_[countsSearch->second];
+				if (current.total_raw_count_ != libraryCounts.total_raw_count_) {
+					throwConflict(njh::pasteAsStr("library sample ", libraryName, " has conflicting values for total_raw_count: ", current.total_raw_count_, " and ", libraryCounts.total_raw_count_));
+				}
+				current.extras_ = mergeExtras(current.extras_, libraryCounts.extras_, "read counts of library sample " + libraryName);
+				if (!libraryCounts.read_counts_for_targets_.has_value()) {
+					continue;
+				}
+				if (!current.read_counts_for_targets_.has_value()) {
+					current.read_counts_for_targets_ = std::vector<ReadCountsByStageForTarget>{};
+				}
+				for (const auto & targetCounts : libraryCounts.read_counts_for_targets_.value()) {
+					if (targetCounts.target_id_ >= targetMap.size()) {
+						throwConflict(njh::pasteAsStr("read counts of library sample ", libraryName, " refer to target ", targetCounts.target_id_, " but there are only ", targetMap.size(), " target_info"));
+					}
+					auto newCounts = targetCounts;
+					newCounts.target_id_ = targetMap[targetCounts.target_id_];
+					if (!readCountTargetsDoneByLibraryId_[libraryId].emplace(newCounts.target_id_).second) {
+						throwConflict("library sample " + libraryName + " has read counts for target " + merged_.target_info_[newCounts.target_id_].target_name_ + " more than once");
+					}
+					current.read_counts_for_targets_->emplace_back(newCounts);
+				}
+			}
+		}
+	}
 }
 
 PortableMicrohaplotypeObject MinimumPmoMerger::finish() {
+	const bool hasRun = merged_.bioinformatics_run_info_.has_value() && !merged_.bioinformatics_run_info_->empty();
+	if (hasRun) {
+		detected_.bioinformatics_run_id_ = 0;
+	}
 	merged_.detected_microhaplotypes_.emplace_back(detected_);
+	if (readCounts_.has_value()) {
+		auto & libraryCounts = readCounts_->read_counts_by_library_sample_by_stage_;
+		std::sort(libraryCounts.begin(), libraryCounts.end(), [](const ReadCountsByStageForLibrarySample & a, const ReadCountsByStageForLibrarySample & b) {
+			return a.library_sample_id_ < b.library_sample_id_;
+		});
+		if (hasRun) {
+			readCounts_->bioinformatics_run_id_ = 0;
+		}
+		merged_.read_counts_by_stage_ = std::vector<ReadCountsByStage>{std::move(readCounts_.value())};
+	}
 	merged_.validate();
 	return std::move(merged_);
 }

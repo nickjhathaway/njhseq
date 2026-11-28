@@ -27,8 +27,12 @@ void writePmo(const PortableMicrohaplotypeObject & pmoObj, const OutOptions & ou
  *
  * This is for combining PMOs per target over the same samples as well as PMOs over different samples.
  * Genomes with the same name and version become one, and a haplotype in more than one PMO keeps the variants from all of them.
- * add throws if the same name has conflicting information, if a library sample has results for the same target more than once,
- * or if a PMO has project, sequencing, bioinformatics or read count sections.
+ * read_counts_by_stage become one ReadCountsByStage with the library samples and targets mapped to the merged ids, sorted by library sample id.
+ * bioinformatics_methods_info and bioinformatics_run_info have to be the same in every PMO (or missing from all of them) and can have at most one run,
+ * which becomes the bioinformatics_run_id of the merged detected_microhaplotypes and read_counts_by_stage.
+ * add throws if the same name has conflicting information, if a library sample has results or read counts for the same target more than once,
+ * if a library sample has different total_raw_count in different PMOs, if the bioinformatics sections differ,
+ * or if a PMO has project or sequencing sections.
  */
 class MinimumPmoMerger {
 public:
@@ -58,6 +62,10 @@ private:
 	std::unordered_map<uint32_t, std::unordered_set<std::string>> mhapNames_;
 	std::unordered_map<uint32_t, uint32_t> detectedPosByLibraryId_;
 	std::unordered_map<uint32_t, std::set<uint32_t>> repPosDoneByLibraryId_;
+	std::optional<nlohmann::json> bioinformatics_; /**< the bioinformatics sections of the first PMO, the others have to match*/
+	std::optional<ReadCountsByStage> readCounts_;
+	std::unordered_map<uint32_t, uint32_t> readCountsPosByLibraryId_;
+	std::unordered_map<uint32_t, std::set<uint32_t>> readCountTargetsDoneByLibraryId_;
 };
 
 /**@brief Merge minimum PMOs, see MinimumPmoMerger
