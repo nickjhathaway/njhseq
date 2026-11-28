@@ -83,6 +83,58 @@ std::map<std::tuple<std::string, std::string, std::string>, uint32_t> callsOf(co
 	return ret;
 }
 
+//read counts by stage for every library sample of a PMO, one count per target, the umis go in the stage extras
+ReadCountsByStage readCountsFor(const PortableMicrohaplotypeObject & pmoObj, const std::vector<uint32_t> & targetIds, uint32_t reads) {
+	ReadCountsByStage ret;
+	for (size_t libraryId = 0; libraryId < pmoObj.library_sample_info_.size(); ++libraryId) {
+		ReadCountsByStageForLibrarySample libraryCounts;
+		libraryCounts.library_sample_id_ = libraryId;
+		libraryCounts.total_raw_count_ = 1000;
+		libraryCounts.read_counts_for_targets_ = std::vector<ReadCountsByStageForTarget>{};
+		for (const auto targetId : targetIds) {
+			ReadCountsByStageForTarget targetCounts;
+			targetCounts.target_id_ = targetId;
+			StageReadCounts stage;
+			stage.stage_ = "extracted";
+			stage.reads_ = reads;
+			stage.extras_["umis"] = reads / 10;
+			targetCounts.stages_.emplace_back(stage);
+			libraryCounts.read_counts_for_targets_->emplace_back(targetCounts);
+		}
+		ret.read_counts_by_library_sample_by_stage_.emplace_back(libraryCounts);
+	}
+	return ret;
+}
+
+void addBioinformatics(PortableMicrohaplotypeObject & pmoObj, const std::string & runName) {
+	BioMethod method;
+	method.program_ = "MIPWrangler";
+	method.program_version_ = "1";
+	BioinformaticsMethodInfo methods;
+	methods.methods_.emplace_back(method);
+	pmoObj.bioinformatics_methods_info_ = std::vector<BioinformaticsMethodInfo>{methods};
+	BioinformaticsRunInfo run;
+	run.bioinformatics_methods_id_ = 0;
+	run.bioinformatics_run_name_ = runName;
+	pmoObj.bioinformatics_run_info_ = std::vector<BioinformaticsRunInfo>{run};
+}
+
+//reads and umis per sample, target and stage by following the ids in a PMO
+std::map<std::tuple<std::string, std::string, std::string>, std::pair<uint32_t, uint32_t>> readCountsOf(const PortableMicrohaplotypeObject & pmoObj) {
+	std::map<std::tuple<std::string, std::string, std::string>, std::pair<uint32_t, uint32_t>> ret;
+	for (const auto & counts : pmoObj.read_counts_by_stage_.value()) {
+		for (const auto & libraryCounts : counts.read_counts_by_library_sample_by_stage_) {
+			for (const auto & targetCounts : libraryCounts.read_counts_for_targets_.value()) {
+				for (const auto & stage : targetCounts.stages_) {
+					ret[{pmoObj.library_sample_info_.at(libraryCounts.library_sample_id_).library_sample_name_,
+							pmoObj.target_info_.at(targetCounts.target_id_).target_name_, stage.stage_}] = {stage.reads_, stage.extras_.at("umis").get<uint32_t>()};
+				}
+			}
+		}
+	}
+	return ret;
+}
+
 GenomeInfo genome(const std::string & name) {
 	GenomeInfo ret;
 	ret.name_ = name;
@@ -227,6 +279,114 @@ TEST_CASE("MinimumPmoMerger gives the same results added one at a time", "[pmoUt
 	merger.add(pmo1);
 	merger.add(pmo2);
 	REQUIRE(merger.finish().to_json() == mergeMinimumPmos({pmo1, pmo2}, mergeMethod()).to_json());
+}
+
+TEST_CASE("mergeMinimumPmos keeps read counts by stage", "[pmoUtils]") {
+	//the samples are in a different order in each PMO
+	auto pmo1 = onePmo("tar1", {{"s1", "AAAA", 10}, {"s2", "AAAA", 20}});
+	auto pmo2 = onePmo("tar2", {{"s2", "CCCC", 5}, {"s1", "CCCC", 7}});
+	//tar3 has read counts but no haplotypes and is first in target_info, so target ids and representative_microhaplotypes positions differ
+	TargetInfo tar3;
+	tar3.target_name_ = "tar3";
+	tar3.forward_primer_.seq_ = "ACGT";
+	tar3.reverse_primer_.seq_ = "TTGG";
+	pmo2.target_info_.insert(pmo2.target_info_.begin(), tar3);
+	pmo2.representative_microhaplotypes_.targets_[0].target_id_ = 1;
+	pmo2.panel_info_[0].reactions_[0].panel_targets_ = {0, 1};
+	pmo1.read_counts_by_stage_ = std::vector<ReadCountsByStage>{readCountsFor(pmo1, {0}, 100)};
+	pmo2.read_counts_by_stage_ = std::vector<ReadCountsByStage>{readCountsFor(pmo2, {1, 0}, 50)};
+	pmo1.read_counts_by_stage_->front().read_counts_by_library_sample_by_stage_[0].extras_["batch"] = "b1";
+	pmo2.read_counts_by_stage_->front().read_counts_by_library_sample_by_stage_[1].extras_["lane"] = 2;
+	addBioinformatics(pmo1, "run1");
+	addBioinformatics(pmo2, "run1");
+	pmo1.read_counts_by_stage_->front().bioinformatics_run_id_ = 0;
+	pmo2.detected_microhaplotypes_[0].bioinformatics_run_id_ = 0;
+	auto merged = mergeMinimumPmos({pmo1, pmo2}, mergeMethod());
+
+	REQUIRE(1 == merged.bioinformatics_run_info_.value().size());
+	REQUIRE(1 == merged.bioinformatics_methods_info_.value().size());
+	REQUIRE(0 == merged.detected_microhaplotypes_[0].bioinformatics_run_id_.value());
+	REQUIRE(1 == merged.read_counts_by_stage_.value().size());
+	const auto & counts = merged.read_counts_by_stage_->front();
+	REQUIRE(0 == counts.bioinformatics_run_id_.value());
+	REQUIRE(2 == counts.read_counts_by_library_sample_by_stage_.size());
+	REQUIRE(0 == counts.read_counts_by_library_sample_by_stage_[0].library_sample_id_);
+	REQUIRE(1 == counts.read_counts_by_library_sample_by_stage_[1].library_sample_id_);
+	for (const auto & libraryCounts : counts.read_counts_by_library_sample_by_stage_) {
+		REQUIRE(1000 == libraryCounts.total_raw_count_);
+		REQUIRE(3 == libraryCounts.read_counts_for_targets_.value().size());
+	}
+	//s1 is the first library in pmo1 and the second in pmo2
+	REQUIRE(nlohmann::json("b1") == counts.read_counts_by_library_sample_by_stage_[0].extras_.at("batch"));
+	REQUIRE(nlohmann::json(2) == counts.read_counts_by_library_sample_by_stage_[0].extras_.at("lane"));
+	REQUIRE(0 == counts.read_counts_by_library_sample_by_stage_[1].extras_.count("lane"));
+	std::map<std::tuple<std::string, std::string, std::string>, std::pair<uint32_t, uint32_t>> expected{
+		{{"s1", "tar1", "extracted"}, {100, 10}}, {{"s2", "tar1", "extracted"}, {100, 10}},
+		{{"s1", "tar2", "extracted"}, {50, 5}}, {{"s2", "tar2", "extracted"}, {50, 5}},
+		{{"s1", "tar3", "extracted"}, {50, 5}}, {{"s2", "tar3", "extracted"}, {50, 5}}};
+	REQUIRE(expected == readCountsOf(merged));
+
+	//through a file the way validatePmo reads it
+	auto fnp = bfs::temp_directory_path() / bfs::unique_path("njhseqPmoTest-%%%%-%%%%_PMO.json.gz");
+	writePmo(merged, njhseq::OutOptions(fnp, ".gz"));
+	auto reread = readPmo(fnp);
+	bfs::remove(fnp);
+	REQUIRE(expected == readCountsOf(reread));
+	REQUIRE(merged.to_json() == reread.to_json());
+}
+
+TEST_CASE("mergeMinimumPmos leaves out sections none of the PMOs have", "[pmoUtils]") {
+	auto merged = mergeMinimumPmos({onePmo("tar1", {{"s1", "AAAA", 10}}), onePmo("tar2", {{"s1", "CCCC", 5}})}, mergeMethod());
+	REQUIRE_FALSE(merged.read_counts_by_stage_.has_value());
+	REQUIRE_FALSE(merged.bioinformatics_run_info_.has_value());
+	REQUIRE_FALSE(merged.bioinformatics_methods_info_.has_value());
+	REQUIRE_FALSE(merged.detected_microhaplotypes_[0].bioinformatics_run_id_.has_value());
+	const auto j = merged.to_json();
+	REQUIRE_FALSE(j.contains("read_counts_by_stage"));
+	REQUIRE_FALSE(j["detected_microhaplotypes"][0].contains("bioinformatics_run_id"));
+}
+
+TEST_CASE("mergeMinimumPmos errors on read count conflicts", "[pmoUtils]") {
+	auto pmo1 = onePmo("tar1", {{"s1", "AAAA", 10}});
+	auto pmo2 = onePmo("tar2", {{"s1", "CCCC", 5}});
+	pmo1.read_counts_by_stage_ = std::vector<ReadCountsByStage>{readCountsFor(pmo1, {0}, 100)};
+	pmo2.read_counts_by_stage_ = std::vector<ReadCountsByStage>{readCountsFor(pmo2, {0}, 50)};
+	SECTION("different total raw counts") {
+		pmo2.read_counts_by_stage_->front().read_counts_by_library_sample_by_stage_[0].total_raw_count_ = 999;
+		REQUIRE_THROWS_WITH(mergeMinimumPmos({pmo1, pmo2}, mergeMethod()), Catch::Matchers::ContainsSubstring("total_raw_count: 1000 and 999"));
+	}
+	SECTION("the same library and target twice") {
+		pmo1.read_counts_by_stage_->emplace_back(readCountsFor(pmo1, {0}, 100));
+		REQUIRE_THROWS_WITH(mergeMinimumPmos({pmo1, pmo2}, mergeMethod()), Catch::Matchers::ContainsSubstring("read counts for target tar1 more than once"));
+	}
+	SECTION("different library extras") {
+		pmo1.read_counts_by_stage_->front().read_counts_by_library_sample_by_stage_[0].extras_["batch"] = "b1";
+		pmo2.read_counts_by_stage_->front().read_counts_by_library_sample_by_stage_[0].extras_["batch"] = "b2";
+		REQUIRE_THROWS_WITH(mergeMinimumPmos({pmo1, pmo2}, mergeMethod()), Catch::Matchers::ContainsSubstring("conflicting values for batch"));
+	}
+	SECTION("a target id with no target") {
+		pmo2.read_counts_by_stage_ = std::vector<ReadCountsByStage>{readCountsFor(pmo2, {1}, 50)};
+		REQUIRE_THROWS_WITH(mergeMinimumPmos({pmo1, pmo2}, mergeMethod()), Catch::Matchers::ContainsSubstring("refer to target 1"));
+	}
+	SECTION("different bioinformatics runs") {
+		addBioinformatics(pmo1, "run1");
+		addBioinformatics(pmo2, "run2");
+		REQUIRE_THROWS_WITH(mergeMinimumPmos({pmo1, pmo2}, mergeMethod()), Catch::Matchers::ContainsSubstring("different bioinformatics"));
+	}
+	SECTION("bioinformatics sections in only one PMO") {
+		addBioinformatics(pmo2, "run1");
+		REQUIRE_THROWS_WITH(mergeMinimumPmos({pmo1, pmo2}, mergeMethod()), Catch::Matchers::ContainsSubstring("different bioinformatics"));
+	}
+	SECTION("more than one bioinformatics run") {
+		addBioinformatics(pmo1, "run1");
+		pmo1.bioinformatics_run_info_->emplace_back(pmo1.bioinformatics_run_info_->front());
+		pmo1.bioinformatics_run_info_->back().bioinformatics_run_name_ = "run2";
+		REQUIRE_THROWS_WITH(mergeMinimumPmos({pmo1, pmo2}, mergeMethod()), Catch::Matchers::ContainsSubstring("at most one bioinformatics run"));
+	}
+	SECTION("a run id with no run") {
+		pmo1.read_counts_by_stage_->front().bioinformatics_run_id_ = 0;
+		REQUIRE_THROWS_WITH(mergeMinimumPmos({pmo1, pmo2}, mergeMethod()), Catch::Matchers::ContainsSubstring("refers to bioinformatics run 0"));
+	}
 }
 
 TEST_CASE("addSpecimenMeta adds schema and custom fields", "[pmoUtils]") {
