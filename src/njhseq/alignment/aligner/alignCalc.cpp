@@ -2309,11 +2309,10 @@ void alignCalc::runNeedleDiagonalSave(
       --icursor;
     }
     if(tracerNext == '\0'){
-    	std::stringstream ss;
-    	ss << __PRETTY_FUNCTION__ << ", error in aligning: " << "\n";
-    	ss << objA << "\n";
-    	ss << objB << "\n";
-    	throw std::runtime_error{ss.str()};
+    	//the traceback left the part of the matrix the banded alignment filled in (e.g. very different
+    	//lengths or a long insertion such as adapter read-through), so redo it as a full global alignment
+    	runNeedleSave(objA, objB, parts);
+    	return;
     }
     if(icursor < 0 || jcursor < 0){
     		break;
